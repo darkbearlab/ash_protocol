@@ -1,0 +1,37 @@
+// Symmetric, bounded corner leaning. The player and AI use the same geometry.
+import {DIRECTIONS,distance,lineOfSight} from './world.js';
+
+export function adjacentWalls(grid,actor) {
+  return DIRECTIONS.filter(([dx,dy])=>grid[actor.y+dy]?.[actor.x+dx]!==1)
+    .map(([dx,dy])=>({x:actor.x+dx,y:actor.y+dy,type:'wall',indestructible:true}));
+}
+function anchors(grid,p) {
+  const out=[{x:p.x,y:p.y}];
+  if(!adjacentWalls(grid,p).length)return out;
+  // Lean just beyond a tile edge into a WALKABLE neighboring cell, never through a wall.
+  for(const [dx,dy]of DIRECTIONS)if(grid[p.y+dy]?.[p.x+dx]===1)out.push({x:p.x+dx*.6,y:p.y+dy*.6});
+  return out;
+}
+export function combatSight(grid,a,b) {
+  if(lineOfSight(grid,a,b))return true;
+  const origins=anchors(grid,a),targets=anchors(grid,b);
+  for(const origin of origins)for(const target of targets)if(lineOfSight(grid,origin,target))return true;
+  return false;
+}
+export function wallCover(grid,target,attacker) {
+  const dx=attacker.x-target.x,dy=attacker.y-target.y;
+  return adjacentWalls(grid,target).find(w=>{
+    const wx=w.x-target.x,wy=w.y-target.y,dot=wx*dx+wy*dy;
+    if(dot>0)return true;
+    if(dot<0)return false;
+    // A flat wall parallel to a shot gives no protection; its open end does.
+    return grid[w.y+Math.sign(dy)]?.[w.x+Math.sign(dx)]===1;
+  });
+}
+export function shotChance(game,attacker,target) {
+  const cover=game.protectingCover(target,attacker);
+  const moving=Boolean(target.moved);
+  const base=97,movePenalty=moving?22:0,coverPenalty=cover?(cover.type==='wall'?42:35):0;
+  const chance=Math.max(10,Math.min(97,base-movePenalty-coverPenalty));
+  return {chance,base,movePenalty,coverPenalty,cover,moving,distance:distance(attacker,target)};
+}

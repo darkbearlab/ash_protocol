@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101212"><meta name="description" content="灰燼協定：為觸控打造的科幻回合制戰術 roguelike。每一步，都有代價。">
+  <title>ASH PROTOCOL — 灰燼協定</title>
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./assets/icon.svg"><link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./expansion.css">
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="主選單"><a class="brand-mark" href="#" aria-label="灰燼協定首頁">Λ<span>·</span></a><button class="rail-button active" data-action="game" title="作戰介面">⌖</button><button class="rail-button" data-action="help" title="操作指南">▤</button><div class="rail-bottom"><span class="connection"></span><small>ONLINE</small><button class="rail-button" data-action="settings" title="設定">⚙</button></div></nav>
+  <div class="workspace">
+    <header class="topbar"><div class="wordmark">ASH<span>PROTOCOL</span><small>灰燼協定</small></div><div class="session"><span class="live-dot"></span>戰術連線已建立 <span class="divider">/</span> <span id="seed-label">RUN 001</span></div><button class="icon-button" data-action="settings" aria-label="開啟設定">⚙</button></header>
+    <main>
+      <section class="mission-heading"><div><div class="eyebrow">OPERATION: DEAD SIGNAL</div><h1>深入寂靜。<span>活著回來。</span></h1></div><button class="outline-button" data-action="help"><span>?</span> 作戰指南</button></section>
+      <div class="game-layout">
+        <section class="battle-panel" aria-label="戰術戰場">
+          <div class="battle-header"><div><span class="orange-square"></span><strong id="sector-title">01 / 軌道轉運站</strong><span class="sector-sub">EREBUS STATION</span></div><div class="turn-indicator"><span></span>你的回合 <b id="turn">001</b></div></div>
+          <div class="viewport" id="viewport"><canvas id="battle" aria-label="四方向俯視戰場：上下左右移動，點擊敵人或可破壞物鎖定" tabindex="0"></canvas><div class="map-coordinate">EREBUS // SECTOR <span id="sector-number">01</span><br><span class="muted">TACTICAL VIEW · LIVE</span></div><div class="map-tools"><button class="map-button" data-action="zoomOut" aria-label="縮小地圖">−</button><button class="map-button" data-action="zoomIn" aria-label="放大地圖">+</button><button class="map-button" data-action="center" aria-label="鏡頭回到角色">⌖</button></div><div class="mobile-health"><span>生命</span><b id="mobile-hp">100 / 100</b><div><i id="mobile-hp-bar"></i></div></div><div class="map-bottom"><span><i class="legend-dot player-dot"></i>你的位置</span><span><i class="legend-dot enemy-dot"></i>敵方單位</span><span><i class="legend-dot exit-dot"></i>撤離電梯</span></div><div class="floor-toast" id="floor-toast"><small>深入設施</small><strong>軌道轉運站</strong></div></div>
+          <div class="combat-strip"><span class="status-icon">⌖</span><div><strong id="target-name">掃描周遭區域</strong><span id="target-detail">點擊敵人鎖定目標，或移動探索設施</span></div><span class="range-pill" id="target-range">無目標</span></div>
+          <div class="loadout-bar"><span id="quick-weapon">AR–09 · 8/48</span><span id="status-effects"></span><button data-action="cycleTarget" aria-label="切換鎖定目標">⌖ 目標</button><button data-action="weapon" aria-label="快速切換武器">⇄</button><button data-action="bag" aria-label="開啟背包">▣ 背包</button></div><div class="control-deck"><div class="direction-pad" aria-label="移動方向"><button data-move="0,-1" class="north" aria-label="向上移動">↑</button><button data-move="-1,0" class="west" aria-label="向左移動">←</button><span>MOVE</span><button data-move="1,0" class="east" aria-label="向右移動">→</button><button data-move="0,1" class="south" aria-label="向下移動">↓</button></div><div class="action-buttons"><button class="action primary" data-action="fire"><span class="action-icon">⌖</span><strong>開火</strong><small>SPACE</small></button><button class="action" data-action="reload"><span class="action-icon">⟳</span><strong>裝填</strong><small id="reload-label">R</small></button><button class="action" data-action="grenade"><span class="action-icon">◉</span><strong id="grenade-label">手榴彈 2</strong><small>G</small></button><button class="action" data-action="heal"><span class="action-icon">✚</span><strong>醫療包 <b id="med-count">2</b></strong><small>H</small></button><button class="action" data-action="guard"><span class="action-icon">⛨</span><strong>防禦</strong><small>F</small></button><button class="action" data-action="wait"><span class="action-icon">◷</span><strong>等待</strong><small>．</small></button></div><button class="interact-button" id="interact" data-action="interact" hidden>搭乘電梯 ↓</button></div>
+        </section>
+        <aside class="sidebar">
+          <section class="operator-card"><div class="panel-label">OPERATOR <span>01</span></div><div class="operator"><div class="portrait"><img src="./assets/pixel/player.png" alt="橘色裝甲的行動員"></div><div><span class="eyebrow">先鋒 / VANGUARD</span><h2>流浪者</h2><span class="level" id="level">LV. 01</span></div><span class="live-dot"></span></div><div class="stat-label"><span>生命值 <small>VITALS</small></span><strong id="hp">100 <em>/ 100</em></strong></div><div class="health-track"><i id="hp-bar"></i></div><div class="xp-row"><span>戰鬥經驗</span><div><i id="xp-bar"></i></div><b id="xp">0 / 3</b></div></section>
+          <section class="weapon-card"><div class="panel-label">裝備武器 <span id="weapon-tag">01 / 02</span></div><div class="weapon-art"><img id="weapon-image" src="./assets/rifle.svg" alt="原創突擊步槍插圖"><span id="weapon-code">AR–09</span></div><div class="weapon-name"><div><h3 id="weapon-name">餘燼突擊步槍</h3><small id="weapon-type">ASSAULT RIFLE</small></div><button class="icon-button" data-action="weapon" aria-label="切換武器">⇄</button></div><div class="weapon-stats"><div><small>傷害</small><strong id="damage">22–28</strong></div><div><small>射程</small><strong id="range">7 <em>格</em></strong></div><div><small>彈藥</small><strong class="accent" id="ammo">8 <em>/ 48</em></strong></div></div><div class="ammo-pips" id="ammo-pips"></div></section>
+          <section class="objective-card"><div class="panel-label">當前任務 <span>MISSION</span></div><div class="objective"><span class="objective-symbol">◇</span><div><h3 id="objective-title">找到下一層入口</h3><p id="objective-text">穿越轉運站，尋找撤離電梯。<br>你只在行動時，才推進時間。</p></div></div><div class="floor-progress"><i class="current"></i><i></i><i></i><i></i><i></i><i></i><span id="floor-count">01 / 06</span></div></section>
+          <section class="log-card"><div class="panel-label">戰術紀錄 <span class="live-dot"></span></div><div id="log" role="log" aria-live="polite"></div></section>
+        </aside>
+      </div>
+      <footer><span><i class="live-dot"></i> 回合制戰術 ROGUELIKE</span><p>每一步，都有代價。<span>MAKE EVERY TURN COUNT.</span></p><span>BUILD 3.0 <b>↗</b></span></footer>
+    </main>
+  </div>
+</div>
+<dialog id="modal"><div id="modal-content"></div></dialog>
+<input type="file" id="import-save" accept=".json,application/json" hidden><script type="module" src="./src/main.js"></script>
+</body></html>
