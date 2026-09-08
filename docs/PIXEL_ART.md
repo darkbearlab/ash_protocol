@@ -23,12 +23,24 @@ python tools/pixelize.py --source art/source-atlas.png --out assets/pixel
 
 ## 目前接入
 
-角色、槍兵、突擊兵、狙擊手、重裝、無人機、頭目、獵犬、自爆體、箱體、油桶和終端使用 atlas。人物面板使用 player.png 放大。Canvas 關閉 imageSmoothing，面板設定 image-rendering: pixelated。原有程式美術仍作為圖片尚未載入時的 fallback。
+角色、槍兵、突擊兵、狙擊手、重裝、無人機、頭目、獵犬、自爆體、箱體、油桶和終端使用 atlas。3.1 已移除戰場旁的人物面板。Canvas 關閉 imageSmoothing，面板設定 image-rendering: pixelated。原有程式美術仍作為圖片尚未載入時的 fallback。
 
 醫療、彈藥、手榴彈也已產出 PNG，保留給後續 UI / 場景擴充；目前部分道具仍用原有簡圖。
 
+## 3.1 屍體與攻擊圖集
+
+內建 GPT Image 編輯模式，以原圖作角色參考；新來源為 art/source-aftermath.png，提示為 art/PROMPT_AFTERMATH.md。包含十個倒地角色外觀与六種特效，gunner 共用 rifleman 的外觀。
+
+此次生成來源為 RGB，**棋盤背景烘焙在圖中，不是真 alpha**。使用顯式 --remove-checker 選項，逐格從邊界 flood-fill 移除近中性灰色背景（通道差 ≤14、最小通道 95–225），保留暗輪廓與封閉盔甲部分。此步驟專供本來源，不會對其他真透明原圖自動套用。再走既有 BOX / median-cut / RGB5 / 硬 alpha 流程。
+
+```sh
+python tools/pixelize.py --source art/source-aftermath.png --aftermath --remove-checker
+```
+
+產物位於 assets/pixel/：aftermath.png、aftermath.json、aftermath-preview-4x.png、dead-*.png 及六個特效 PNG。遊戲讀取圖集；粒子、彈道與縮放時序由 Canvas 驅動，最多同時保留 64 筆特效。屍體不會阻擋移動或影響掉落。
+
 ## 驗證
 
-`npm test` 直接讀取 16 張 PNG 的 IHDR、PLTE、tRNS 和 SHA-256，確認 32×32、4-bit 索引、最多 16 色、RGB5 色階与透明索引。不依賴「看起來像像素」的主觀判斷。
+`npm test` 直接讀取 兩組共 32 張 PNG 的 IHDR、PLTE、tRNS 和 SHA-256，確認 32×32、4-bit 索引、最多 16 色、RGB5 色階与透明索引。不依賴「看起來像像素」的主觀判斷。
 
 限制：目前每個角色只有一個向下的静態姿勢，玩家方向以小標記表示，還沒有四向動畫；地板和牆仍為程式化方格。

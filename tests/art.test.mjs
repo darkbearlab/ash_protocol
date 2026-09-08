@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 
-test('generated sprites are real 32px indexed PNGs with <=16 palette entries and RGB5 colors',async()=>{
-  const meta=JSON.parse(await readFile(new URL('../assets/pixel/atlas.json',import.meta.url),'utf8'));
+for(const stem of ['atlas','aftermath'])test(`${stem} sprites are real 32px indexed PNGs with <=16 palette entries and RGB5 colors`,async()=>{
+  const meta=JSON.parse(await readFile(new URL(`../assets/pixel/${stem}.json`,import.meta.url),'utf8'));
   const levels=new Set(Array.from({length:32},(_,n)=>Math.round(n*255/31)));
   assert.equal(Object.keys(meta.sprites).length,16);
   for(const [name,sprite]of Object.entries(meta.sprites)){

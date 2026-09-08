@@ -12,6 +12,30 @@ import json
 
 NAMES = ['player','rifleman','raider','sniper','brute','drone','warden','boss',
          'crawler','bomber','cover','barrel','med','ammo','grenade','terminal']
+AFTERMATH_NAMES = ['dead-player','dead-rifleman','dead-raider','dead-sniper',
+                   'dead-brute','dead-drone','dead-warden','dead-boss',
+                   'dead-crawler','dead-bomber','muzzle','bullet','plasma','slash','claw','impact']
+
+def remove_checker(image):
+    """Opt-in matte removal for the aftermath source's baked neutral checker.
+
+    Only near-neutral, light/medium-gray pixels connected to a tile border are
+    removed. Dark outlines and enclosed armor remain intact. The threshold is
+    source-specific, never silently applied to genuine-alpha artwork.
+    """
+    from collections import deque
+    image=image.convert('RGBA'); pixels=image.load(); w,h=image.size
+    queue=deque([(x,0) for x in range(w)]+[(x,h-1) for x in range(w)]+
+                [(0,y) for y in range(h)]+[(w-1,y) for y in range(h)])
+    seen=set()
+    while queue:
+        x,y=queue.popleft()
+        if (x,y) in seen or not(0<=x<w and 0<=y<h): continue
+        seen.add((x,y)); r,g,b,a=pixels[x,y]
+        if max(r,g,b)-min(r,g,b)>14 or not 95<=min(r,g,b)<=225: continue
+        pixels[x,y]=(r,g,b,0)
+        queue.extend([(x-1,y),(x+1,y),(x,y-1),(x,y+1)])
+    return image
 
 def data(image):
     return getattr(image,'get_flattened_data',image.getdata)()
@@ -54,30 +78,35 @@ def pixelize_cell(cell, size=32, colors=16):
     indexed.info['transparency'] = 0
     return indexed,palette
 
-def build(source,out,size=32):
+def build(source,out,size=32,names=NAMES,stem='atlas',checker=False):
     out.mkdir(parents=True,exist_ok=True)
     image=Image.open(source).convert('RGBA')
-    if image.getchannel('A').getextrema()[0] == 255:
+    if image.getchannel('A').getextrema()[0] == 255 and not checker:
         raise ValueError('Input must contain real transparency; remove background explicitly before running.')
     atlas=Image.new('RGBA',(size*4,size*4))
     metadata={'source_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),'tileSize':size,'columns':4,
               'format':'indexed PNG, <=16 colors per sprite including transparency','rgbBits':5,'dither':False,'sprites':{}}
-    for index,name in enumerate(NAMES):
+    metadata['matteRemoval']='border-connected neutral checker (explicit opt-in)' if checker else 'original alpha'
+    for index,name in enumerate(names):
         x,y=index%4,index//4
         cell=image.crop((round(x*image.width/4),round(y*image.height/4),round((x+1)*image.width/4),round((y+1)*image.height/4)))
+        if checker: cell=remove_checker(cell)
         sprite,palette=pixelize_cell(cell,size)
         path=out/f'{name}.png';sprite.save(path,optimize=True,transparency=0,bits=4)
         atlas.alpha_composite(sprite.convert('RGBA'),(x*size,y*size))
         metadata['sprites'][name]={'x':x*size,'y':y*size,'w':size,'h':size,'colors':len(palette)+1,'palette':[list(c) for c in palette],'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
-    atlas.save(out/'atlas.png',optimize=True)
-    atlas.resize((size*16,size*16),Image.Resampling.NEAREST).save(out/'preview-4x.png',optimize=True)
-    (out/'atlas.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-    print(f'Created {len(NAMES)} indexed {size}x{size} sprites, atlas and nearest-neighbor preview at {out}')
+    atlas.save(out/f'{stem}.png',optimize=True)
+    atlas.resize((size*16,size*16),Image.Resampling.NEAREST).save(out/f'{stem}-preview-4x.png',optimize=True)
+    (out/f'{stem}.json').write_text(json.dumps(metadata,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+    print(f'Created {len(names)} indexed {size}x{size} sprites, atlas and nearest-neighbor preview at {out}')
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source',type=Path,default=Path('art/source-atlas.png'))
     parser.add_argument('--out',type=Path,default=Path('assets/pixel'))
     parser.add_argument('--size',type=int,default=32)
+    parser.add_argument('--aftermath',action='store_true')
+    parser.add_argument('--remove-checker',action='store_true')
     args=parser.parse_args()
-    build(args.source,args.out,args.size)
+    build(args.source,args.out,args.size,AFTERMATH_NAMES if args.aftermath else NAMES,
+          'aftermath' if args.aftermath else 'atlas',args.remove_checker)

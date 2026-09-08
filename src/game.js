@@ -2,7 +2,7 @@ import {SIZE,SAVE_VERSION,PACK_LIMIT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance} from './combat.js';
 
-const freshPlayer=()=>({x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],ammo:[8,4,0,0,0,0],upgrades:[0,0,0,0,0,0],reserve:48,energy:18,ordnance:4,facing:[0,1],guard:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],ammo:[8,4,0,0,0,0],upgrades:[0,0,0,0,0,0],reserve:48,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=e=>ENEMY_TYPES[e.type]?.name||'未知單位';
 
 export class Game {
@@ -13,7 +13,7 @@ export class Game {
   }
   loadFloor() {
     Object.assign(this,generate(this.seed,this.floor));
-    Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;
+    Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.focus=false;this.player.evasive=false;
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
   get weapon(){return WEAPONS[this.player.weapon];}
@@ -81,12 +81,14 @@ export class Game {
       case 'upgrade':success=this.upgrade();break;
       case 'terminal':success=this.useTerminal(arg);break;
       case 'guard':this.log('架起防禦：本回合直接傷害減半。');success=true;break;
-      case 'wait':this.log('保持位置，觀察敵情。');success=true;break;
+      case 'wait':this.log('觀察架勢：本回合閃避 +15，下次行動射擊命中 +15（最高 99%）。');success=true;break;
       case 'interact':return this.descend();
       default:return false;
     }
     if(!success)return false;
-    p.guard=type==='guard';p.moved=type==='move';this.turn++;
+    // The previous focus applies during fire(), then expires on ANY valid action.
+    // Waiting renews it without stacking. Evasion covers this enemy phase only.
+    p.guard=type==='guard';p.moved=type==='move';p.focus=type==='wait';p.evasive=type==='wait';this.turn++;
     this.reveal();this.enemyTurn();this.environmentTurn();this.reveal();
     if(p.hp<=0){p.hp=0;this.status='dead';this.log('生命訊號中斷。',true);}
     return true;
@@ -102,9 +104,9 @@ export class Game {
       if(e.hp<=0)break;
       p.ammo[p.weapon]--;p.stats.shots++;
       const range=this.weaponDamage(),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
-      const chance=this.props.includes(e)?97:this.accuracy(p,e).chance;
+      const chance=this.props.includes(e)?Math.min(99,97+(p.focus?15:0)):this.accuracy(p,e).chance;
       const hit=this.rng()*100<chance;
-      this.effects.push({type:'shot',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:hit?damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
+      this.effects.push({type:'shot',style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
       if(!hit){this.log(`射擊未命中（命中率 ${chance}%）。`);if(w.explosive)this.log('榴彈偏離目標，未在戰場內爆炸。');continue;}
       if(w.explosive)this.explode(e,1,damage+p.blastBonus);
       else this.hitTarget(e,damage,p,w.pierce||0);
@@ -128,6 +130,7 @@ export class Game {
   hurt(e,damage) {
     if(e.hp<=0)return;
     e.hp-=damage;this.player.stats.damage+=damage;
+    this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
     this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`);
     if(e.hp>0)return;
     this.player.kills++;this.player.xp+=ENEMY_TYPES[e.type]?.xp||1;
@@ -156,7 +159,7 @@ export class Game {
   }
   explode(center,radius,damage) {
     const origin={x:center.x,y:center.y};
-    this.effects.push({type:'blast',from:origin,to:origin,damage,radius});
+    this.effects.push({type:'blast',from:origin,to:origin,damage:0,radius});
     const affected=p=>distance(origin,p)<=radius&&lineOfSight(this.grid,origin,p);
     // Mark barrels as destroyed before recursion, so chain reactions terminate.
     for(const prop of this.props.filter(o=>o.hp>0&&affected(o)))this.damageProp(prop,damage);
@@ -169,7 +172,8 @@ export class Game {
     if(cover){damage*=.55;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));}
     damage=Math.max(1,Math.round(damage-p.armor));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
     p.hp-=damage;this.log(`${label}${cover?'（掩體減傷）':''}，生命 −${damage}。`,true);
-    if(attacker)this.effects.push({type:'enemyShot',from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
+    if(attacker)this.effects.push({type:'enemyShot',style:attacker.type==='crawler'?'claw':attacker.type==='brute'?'slash':ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet',from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
+    else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage});
   }
   enemyTurn() {
     const p=this.player;

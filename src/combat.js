@@ -32,6 +32,7 @@ export function shotChance(game,attacker,target) {
   const cover=game.protectingCover(target,attacker);
   const moving=Boolean(target.moved);
   const base=97,movePenalty=moving?22:0,coverPenalty=cover?(cover.type==='wall'?42:35):0;
-  const chance=Math.max(10,Math.min(97,base-movePenalty-coverPenalty));
-  return {chance,base,movePenalty,coverPenalty,cover,moving,distance:distance(attacker,target)};
+  const focusBonus=attacker.focus?15:0,evasionPenalty=target.evasive?15:0;
+  const chance=Math.max(10,Math.min(99,base+focusBonus-movePenalty-coverPenalty-evasionPenalty));
+  return {chance,base,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }
