@@ -1,3 +1,4 @@
+import {ArtToneCache} from './art-tone.js';
 import {WALL_ATLAS,drawWall} from './walls.js';
 import {drawTrace} from './traces.js';
 import {THEMES,themeAt,resolveSprite} from './themes.js';
@@ -18,7 +19,7 @@ export class Renderer {
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.last=0;this.time=0;
     this.targetingEnabled=true;this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
-    this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;
+    this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;this.terrainImages.set(WALL_ATLAS,this.wallImage);this.artTones=new ArtToneCache();
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
     this.aftermath=new Image();this.aftermath.src=new URL('../assets/pixel/aftermath.png',import.meta.url).href;
     // Precompute once at native resolution; avoids Canvas filter support differences on phones.
@@ -175,14 +176,15 @@ export class Renderer {
     this.terrainReady=Boolean(image?.complete&&image.naturalWidth);
     if(!this.terrainReady)return false;
     const c=this.ctx;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(rotation*Math.PI/2);c.imageSmoothingEnabled=false;
-    c.drawImage(image,sprite.x,sprite.y,sprite.size,sprite.size,-Math.floor(size/2),-Math.floor(size/2),size,size);c.restore();return true;
+    const toned=this.artTones?.get(image,sprite,role==='floor'?'floor':'prop');
+    c.drawImage(toned||image,toned?0:sprite.x,toned?0:sprite.y,sprite.size,sprite.size,-Math.floor(size/2),-Math.floor(size/2),size,size);c.restore();return true;
   }
-  sprite(name,a,size=32){const index=this.spriteNames.indexOf(name);if(index<0||!this.sprites.complete||!this.sprites.naturalWidth)return false;this.ctx.drawImage(this.sprites,(index%4)*32,Math.floor(index/4)*32,32,32,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
+  sprite(name,a,size=32){const index=this.spriteNames.indexOf(name);if(index<0||!this.sprites.complete||!this.sprites.naturalWidth)return false;const cell={x:index%4*32,y:Math.floor(index/4)*32,size:32},toned=this.artTones?.get(this.sprites,cell,index<10?'unit':'prop');this.ctx.drawImage(toned||this.sprites,toned?0:cell.x,toned?0:cell.y,32,32,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
   effectSprite(name,a,size=32,angle=0){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);c.drawImage(name.startsWith('dead-')&&this.corpseReady?this.corpseAtlas:this.aftermath,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
   corpse(a,type){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));const c=this.ctx;c.save();const drawn=this.effectSprite('dead-'+(type==='gunner'?'rifleman':type),a,size);c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
   wall(a,x,y){
     const g=this.game,adjacent=[[0,1],[0,-1],[1,0],[-1,0]].map(([dx,dy])=>({x:x+dx,y:y+dy})).find(p=>g.grid[p.y]?.[p.x]===1);
-    return drawWall(this.ctx,g,x,y,this.tile,a,this.wallImage,themeAt(g,adjacent||{x,y}));
+    return drawWall(this.ctx,g,x,y,this.tile,a,this.terrainImages,themeAt(g,adjacent||{x,y}),this.artTones);
   }
 
   hazard(a,h,time){const t=this.tile,l=a.x-t*.43,top=a.y-t*.43;this.box(l,top,t*.86,t*.86,h.type==='acid'?'#709a4855':'#cf672c55');for(let i=0;i<4;i++){const n=(i*13)%25;this.box(l+5+n,top+5+(i*7)%23,4,3,h.type==='acid'?'#b8d47388':'#efa65a99');}this.glow(a.x,a.y,t*.7,h.type==='acid'?'#b4cd5312':'#f99a381a');}
@@ -237,7 +239,7 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){if(p.type==='cover')
     if(this.sprites.complete&&this.sprites.naturalWidth&&this.spriteNames.includes(spriteType)){
       const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));
       if(player){this.box(a.x-17,a.y-17,34,34,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(a.x,a.y,20,0,Math.PI*2);c.stroke();}}
-      this.sprite(spriteType,a,size);
+      c.save();c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;this.sprite(spriteType,a,size);c.restore();
       if(e.control?.disabled){this.box(a.x-size/2,a.y-size/2,size,size,'#b9d5e94f');this.text(`×${e.control.disabled}`,a.x+this.tile*.35,a.y-10,'#d6edff',11);}
       if(player){this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);const f=e.facing||[0,1];this.box(a.x+f[0]*18-1,a.y+f[1]*18-1,3,3,'#ffe3ab');}
       else{this.box(a.x-13,a.y-this.tile*.45,26,3,'#17271e');this.box(a.x-13,a.y-this.tile*.45,26*e.hp/e.maxHp,3,e.charge?'#f2b779':def.color);if(e.charge)this.text(e.type==='sniper'?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}

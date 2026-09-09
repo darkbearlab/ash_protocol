@@ -9,25 +9,25 @@ import {Renderer} from '../src/renderer.js';
 function arena(){return {seed:321,floor:1,grid:Array.from({length:7},()=>Array(7).fill(1)),seen:Array.from({length:7},()=>Array(7).fill(true)),rooms:[]};}
 function context(){const calls=[],stack=[];return {calls,globalAlpha:1,save(){stack.push(this.globalAlpha);},restore(){this.globalAlpha=stack.pop();},fillRect(...v){calls.push(['rect',this.globalAlpha,...v]);},drawImage(...v){calls.push(['image',this.globalAlpha,...v]);}};}
 
-test('raised walls have a full-tile face plus a top; joins work in all 16 neighbor configurations',()=>{
+test('compact walls have a half-tile face and solid top inside one cell; joins work in all 16 neighbor configurations',()=>{
   for(let mask=0;mask<16;mask++){
     const g=arena();g.grid[3][3]=0;[[0,-1],[1,0],[0,1],[-1,0]].forEach(([dx,dy],i)=>{if(mask&(1<<i))g.grid[3+dy][3+dx]=0;});
-    const q=wallGeometry(g,3,3,32,{x:112,y:112});assert.equal(q.faceHeight,32);assert.equal(q.height,32);assert.equal(q.bottom-q.capTop,64);assert.equal(q.front,!(mask&4));assert.deepEqual(q.neighbors,[0,1,2,3].map(i=>!!(mask&(1<<i))));
+    const q=wallGeometry(g,3,3,32,{x:112,y:112});assert.equal(q.faceHeight,q.front?16:0);assert.equal(q.height,q.front?16:32);assert.equal(q.bottom-q.capTop,32);assert.equal(q.front,!(mask&4));assert.deepEqual(q.neighbors,[0,1,2,3].map(i=>!!(mask&(1<<i))));
   }
   // Fractional zoom/camera positions still join at precisely the same rounded boundary.
-  const g=arena(),t=38*1.13,a=wallGeometry(g,3,3,t,{x:109.2,y:111.7}),b=wallGeometry(g,3,4,t,{x:109.2,y:111.7+t});assert.equal(a.groundTop,b.capTop);
+  const g=arena(),t=38*1.13,a=wallGeometry(g,3,3,t,{x:109.2,y:111.7}),b=wallGeometry(g,3,4,t,{x:109.2,y:111.7+t});assert.equal(a.bottom,b.capTop);
 });
-test('foreground cap fades only over explored floor; faces remain opaque and context is restored',()=>{
+test('solid caps never overlap floors or fade based on exploration; context is restored',()=>{
   const g=arena();g.grid[3][3]=0;const image={complete:true,naturalWidth:128},c=context();c.globalAlpha=.36;
-  let q=drawWall(c,g,3,3,32,{x:112,y:112},image);assert.ok(q.cutaway);assert.deepEqual(c.calls.filter(c=>c[0]==='image').map(c=>c[1]),[.36,.36*.12]);assert.equal(c.globalAlpha,.36);
-  g.seen[2][3]=false;q=drawWall(context(),g,3,3,32,{x:112,y:112},image);assert.equal(q.cutaway,false);
-  g.grid[2][3]=0;g.seen[2][3]=true;assert.equal(wallGeometry(g,3,3,32,{x:112,y:112}).cutaway,false);
+  let q=drawWall(c,g,3,3,32,{x:112,y:112},image);assert.equal(q.capTop,96);assert.deepEqual(c.calls.filter(c=>c[0]==='image').map(c=>c[1]),[.36,.36]);assert.equal(c.globalAlpha,.36);
+  g.seen[2][3]=false;q=drawWall(context(),g,3,3,32,{x:112,y:112},image);assert.equal(q.capTop,96);
+  g.grid[2][3]=0;g.seen[2][3]=true;assert.equal(wallGeometry(g,3,3,32,{x:112,y:112}).capTop,96);
   const fallback=context();drawWall(fallback,g,3,3,32,{x:112,y:112},null);assert.ok(fallback.calls.some(c=>c[0]==='rect'));assert.equal(fallback.globalAlpha,1);
 });
 test('64 face/cap combinations remain independent, safe and deterministic without changing a save or RNG',()=>{
-  const g=new Game(321),before=g.serialize();for(let y=0;y<20;y++)for(let x=0;x<20;x++){const a=wallStyle(g,x,y);assert.deepEqual(wallStyle(g,x,y),a);assert.ok(a.face>=0&&a.face<8&&a.cap>=0&&a.cap<8);}assert.equal(g.serialize(),before);
+  const g=new Game(321),before=g.serialize();for(let y=0;y<20;y++)for(let x=0;x<20;x++){const a=wallStyle(g,x,y);assert.deepEqual(wallStyle(g,x,y),a);assert.match(a.face,/^W0[1-8]$/);assert.match(a.cap,/^W(09|1[0-6])$/);}assert.equal(g.serialize(),before);
   const restored=Game.restore(before);assert.deepEqual(wallStyle(restored,8,8),wallStyle(g,8,8));
-  const a=arena();a.rooms=[{x:2,y:2,w:3,h:3,wallStyle:{}}];for(let face=0;face<8;face++)for(let cap=0;cap<8;cap++){a.rooms[0].wallStyle={face:WALL_FACES[face],cap:WALL_CAPS[cap]};assert.deepEqual(wallStyle(a,3,3),{face,cap});}
+  const a=arena();a.rooms=[{x:2,y:2,w:3,h:3,wallStyle:{}}];for(let face=0;face<8;face++)for(let cap=0;cap<8;cap++){a.rooms[0].wallStyle={face:WALL_FACES[face],cap:WALL_CAPS[cap]};assert.deepEqual(wallStyle(a,3,3),{face:'W'+String(face+1).padStart(2,'0'),cap:'W'+String(cap+9).padStart(2,'0')});}
   a.rooms[0].wallStyle={face:'../../bad',cap:'bogus'};assert.deepEqual(wallStyle(a,3,3,'unknown'),wallStyle(a,3,3,'industrial'));
 });
 test('full battlefield draw stages walls before props and actors and retains cardinal picking',()=>{

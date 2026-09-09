@@ -1,4 +1,17 @@
-# 快速接手：ASH PROTOCOL 3.21.0
+# 快速接手：ASH PROTOCOL 3.22.0
+
+## 最新接手：3.22.0 地圖可讀性、半格牆與手工選材
+
+使用者肉眼否定 3.21 高牆；大致採納 Claude 可讀性 F 組。原報告已從 Claude worktree 逐位元複製到 qa/results/2026-09-10-claude-map-readability.md，未改其工作目錄。詳見 [MATERIALS.md](MATERIALS.md)、[WALLS.md](WALLS.md)。
+
+- 牆收回同一地格：南向暴露面下半格立面、上半格實心頂板；其他牆完整頂板。取消 .12 透明剖面與跨格抬升，四鄰接、霧亮度、地板／物件／人物順序保留。格間門／隔板規則與高度不變。
+- art-tone.js 首次使用生成 32px 快取 Canvas，按 floor／prop／wall／unit 色調處理，不依賴逐幀 ctx.filter、不覆寫 PNG。採 F 組，地板另先平均 luma 正規到 52.4 消除衛浴突亮；活體單位 1.3 亮度／1.5 彩度＋8px 暗光暈，屍體不增亮。
+- material-review.html 獨立審核頁，20 張 T01–T04／W01–W16，三用途可交換／停用／多用，原圖與用途調色、共用 drawWall 組合預覽、匯入下載 selection.json。只記憶體草稿，不碰任務儲存、不自動寫檔或推送；刷新前要下載。
+- art/materials/selection.json 為人工收件位置；npm run materials 檢查並生成 src/material-selection.js，build 也先編譯。兩檔一起提交。批准是白名單，原主題偏好停用時取清單第一張；不是勾選後保證每局隨機出現所有圖。目前沿用原選材待使用者批准。
+- floor resolveSprite 與 walls drawWall 接同一批准清單；跨兩圖集依用途處理，舊 room.wallStyle 名稱仍相容。圖片路徑白名單，空清單／未知 ID／重複會擋建置；不增加存檔欄位，save v17／profile v4／backup v1 不變。
+- 本機 server 補上審核頁及三種既有像素子目錄路徑，避免本機預覽載不到圖；不開放任意工作區。審核頁也打包、共同雜湊與預快取。
+- 更新原牆測試＋新增 6 項，全套 273 項與 build 通過；73 個預快取資源齊全，共同模組雜湊 b9492dd9c35a。沿用 3.20／3.21 fixture；沒有自行做瀏覽器／真機 QA，頁面操作、材質階層和手機效能交最新紙條。不能把 Claude 3.21 的 session 實驗當成本批驗收。
+- 外部頭像與私人紙條仍保留未追蹤，未納入提交。遊戲規則／地圖生成／RNG／進度不改。
 
 ## 最新接手：3.21.0 高牆與組合材質
 

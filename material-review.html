@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ASH PROTOCOL 素材審核</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#142020;color:#dbe3d6}body{max-width:1100px;margin:auto;padding:18px}h1{font-size:24px}p{line-height:1.65}button,select,label{font:inherit}button,select{padding:10px;border:1px solid #6b8178;border-radius:5px;background:#253b36;color:inherit}button{cursor:pointer}button:disabled{opacity:.4}nav{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.guide{color:#acbeb2}.status{min-height:1.5em;color:#e3c385}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-top:18px}.card{background:#20312e;border:1px solid #435a50;padding:12px;border-radius:6px}.card strong{display:block;margin-bottom:8px}.card canvas{width:128px;height:128px;display:block;margin:auto;image-rendering:pixelated}.card label{display:inline-flex;align-items:center;min-height:44px;margin-right:5px;font-size:14px}input{width:18px;height:18px}.preview{width:320px;max-width:100%;height:auto;image-rendering:pixelated;border:1px solid #708479}.panel{display:flex;gap:20px;flex-wrap:wrap;margin:18px 0}.controls{display:flex;flex-direction:column;gap:8px}a{color:#b9dec7}code{overflow-wrap:anywhere}#import{display:none}
+</style>
+<h1>地板、立面、頂板：素材審核</h1>
+<p>每張圖都有固定編號。勾選允許的用途，取消全部勾選就代表停用；同一張圖可以用在多個位置。這裡先保留目前選用狀態，等待你的批准。</p>
+<nav><button id="download">下載選用設定</button><button id="load">匯入設定</button><button id="reset">回到已發布設定</button><a href="./">返回遊戲</a><input type="file" id="import" accept="application/json,.json"></nav>
+<p class="guide">勾選只影響這張預覽，不會更動正在玩的任務。完成後把下載的 <code>selection.json</code> 交給 Codex；或放到專案 <code>art/materials/selection.json</code>，執行 <code>npm run materials</code>。下一次建置會自動讀取設定。也可以直接告訴 Codex「W03 改地板、T01 改頂板」。</p>
+<p id="status" class="status" aria-live="polite"></p>
+<div class="panel"><canvas id="scene" class="preview" width="320" height="240" aria-label="地板、半格立面與實心頂板的組合示意"></canvas><div class="controls"><b>組合示意（不代表難度）</b><label>地板 <select id="floor"></select></label><label>立面 <select id="face"></select></label><label>頂板 <select id="cap"></select></label><label>下方圖卡 <select id="tone"><option value="original">原始素材</option><option value="floor">用作地板的色調</option><option value="wall">用作牆面／頂板的色調</option></select></label><small>左圖使用遊戲的色調與牆繪圖。<br>每種用途至少保留一張。刷新前請下載保存。</small></div></div>
+<div id="catalog" class="grid"></div>
+<script type="module" src="./src/material-review.js"></script>
+</html>
