@@ -1,3 +1,4 @@
+import {presentStep} from './presentation.js';
 import {SIZE,SAVE_VERSION,PACK_LIMIT,PLATE_CAPACITY,ENEMY_LOOT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS,LORE} from './data.js';
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
@@ -74,7 +75,7 @@ export class Game {
         if(p.hp===p.maxHp&&p.poison===0)return this.fail('生命值已滿。');
         p.meds--;p.hp=Math.min(p.maxHp,p.hp+45+p.healBonus);p.poison=0;
         this.log(`使用醫療包，回復 ${45+p.healBonus} 生命並清除中毒。`);success=true;break;
-      case 'grenade': success=this.throwGrenade(arg||this.targeted);break;
+      case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
       case 'weapon': {
         const index=arg===undefined?p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length]:Number(arg);
         if(!p.owned.includes(index))return this.fail('背包裡沒有這把武器。');
@@ -93,7 +94,7 @@ export class Game {
     // The previous focus applies during fire(), then expires on ANY valid action.
     // Waiting renews it without stacking. Evasion covers this enemy phase only.
     p.guard=type==='wait';p.moved=type==='move';p.focus=type==='wait';p.evasive=type==='wait';this.turn++;
-    this.reveal();this.enemyTurn();this.environmentTurn();this.reveal();
+    this.reveal();this.enemyTurn();presentStep(this,()=>this.environmentTurn());this.reveal();
     if(p.hp<=0){p.hp=0;this.status='dead';this.log('生命訊號中斷。',true);}
     return true;
   }
@@ -106,15 +107,17 @@ export class Game {
     const shots=Math.min(w.burst||1,p.ammo[p.weapon]);
     for(let i=0;i<shots;i++) {
       if(e.hp<=0)break;
-      p.ammo[p.weapon]--;p.stats.shots++;
-      const range=this.weaponDamage(),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
-      const chance=this.props.includes(e)?Math.min(99,97+(p.focus?15:0)):this.accuracy(p,e).chance;
-      const hit=this.rng()*100<chance;
-      this.effects.push({type:'shot',style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
-      if(!hit){this.log(`射擊未命中（命中率 ${chance}%）。`);if(w.explosive)this.log('榴彈偏離目標，未在戰場內爆炸。');continue;}
-      if(w.explosive)this.explode(e,1,damage+p.blastBonus);
-      else this.hitTarget(e,damage,p,w.pierce||0);
-      if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p);
+      presentStep(this,()=>{
+        p.ammo[p.weapon]--;p.stats.shots++;
+        const range=this.weaponDamage(),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
+        const chance=this.props.includes(e)?Math.min(99,97+(p.focus?15:0)):this.accuracy(p,e).chance;
+        const hit=this.rng()*100<chance;
+        this.effects.push({type:'shot',style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
+        if(!hit){this.log(`射擊未命中（命中率 ${chance}%）。`);if(w.explosive)this.log('榴彈偏離目標，未在戰場內爆炸。');return;}
+        if(w.explosive)this.explode(e,1,damage+p.blastBonus);
+        else this.hitTarget(e,damage,p,w.pierce||0);
+        if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p);
+      });
     }
     return true;
   }
@@ -163,6 +166,7 @@ export class Game {
     if(!pos||!Number.isInteger(pos.x)||!Number.isInteger(pos.y)||this.grid[pos.y]?.[pos.x]!==1)return this.fail('先選擇可見地板或敵人作為投擲位置。');
     if(distance(p,pos)>5||!this.visible(pos))return this.fail('投擲位置需在視線內 5 格以內。');
     p.grenades--;p.stats.grenades++;this.log('投擲破片手榴彈。');
+    this.effects.push({type:'shot',style:'grenade',from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     this.explode(pos,2,55+p.blastBonus);return true;
   }
   explode(center,radius,damage) {
@@ -187,24 +191,24 @@ export class Game {
   enemyTurn() {
     const p=this.player;
     const due=this.marks.filter(m=>m.due<=this.turn);this.marks=this.marks.filter(m=>m.due>this.turn);
-    for(const m of due)this.explode(m,1,38);
+    for(const m of due)presentStep(this,()=>this.explode(m,1,38));
     for(const e of this.enemies)e.moved=false;
-    for(const e of [...this.enemies]) {
-      if(e.hp<=0||!e.alert||p.hp<=0)continue;
+    for(const e of [...this.enemies]) presentStep(this,()=>{
+      if(e.hp<=0||!e.alert||p.hp<=0)return;
       const def=ENEMY_TYPES[e.type],d=distance(e,p),los=combatSight(this.grid,e,p);
-      if(d>16)continue;
+      if(d>16)return;
       if(def.seekCover&&los&&!e.charge&&!this.protectingCover(e,p)){
         const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>this.passable(n.x,n.y,e)&&distance(n,p)>1&&!this.enemies.some(o=>o!==e&&o.hp>0&&distance(o,n)===0)&&!this.hazards.some(h=>distance(h,n)===0)&&distance(n,p)<=def.range&&combatSight(this.grid,n,p)&&this.protectingCover(n,p));
-        if(spot){e.x=spot.x;e.y=spot.y;e.moved=true;continue;}
+        if(spot){e.x=spot.x;e.y=spot.y;e.moved=true;return;}
       }
       if(los&&d<=def.range) {
         if(e.type==='boss'&&(e.attackCount||0)%2===1&&!e.charge) {
           this.marks.push({x:p.x,y:p.y,due:this.turn+2});e.attackCount++;
-          this.log('核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！',true);continue;
+          this.log('核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！',true);return;
         }
-        if(!e.charge){e.charge=true;e.windup=e.type==='sniper'?2:1;e.aim={x:p.x,y:p.y};continue;}
-        e.windup=(e.windup||1)-1;if(e.windup>0)continue;
-        if(e.type==='bomber'){this.hurt(e,e.hp);continue;}
+        if(!e.charge){e.charge=true;e.windup=e.type==='sniper'?2:1;e.aim={x:p.x,y:p.y};return;}
+        e.windup=(e.windup||1)-1;if(e.windup>0)return;
+        if(e.type==='bomber'){this.hurt(e,e.hp);return;}
         if(e.type==='sniper'&&distance(p,e.aim||p)>0)this.log('狙擊彈擊中你原本的位置。');
         else {
           const chance=def.range>1?this.accuracy(e,p).chance:97;
@@ -221,7 +225,7 @@ export class Game {
         for(const [dx,dy]of DIRECTIONS.slice(0,2)){const x=e.x+dx,y=e.y+dy;if(this.passable(x,y)&&distance(p,{x,y})>0&&!this.enemies.some(o=>o.hp>0&&o.x===x&&o.y===y)){const drone=makeEnemy('drone',x,y,`${e.id}-reinforce-${dx}-${dy}`,this.floor);drone.alert=true;this.enemies.push(drone);}}
         this.log(`${enemyName(e)}呼叫了無人機增援！`,true);
       }
-    }
+    });
   }
   nextStep(e,target) {
     const queue=[{x:e.x,y:e.y,first:null}],visited=new Set([key(e)]);
@@ -235,9 +239,10 @@ export class Game {
     }return null;
   }
   environmentTurn() {
-    const p=this.player,hazard=this.hazards.find(h=>h.x===p.x&&h.y===p.y);
+    const p=this.player,hpBefore=p.hp,hazard=this.hazards.find(h=>h.x===p.x&&h.y===p.y);
     if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)p.poison=3;this.log(`${hazard.type==='acid'?'污染液':'高熱地板'}傷害 −${damage}。`,true);}
     else if(p.poison>0){p.poison--;const damage=Math.max(0,4-p.hazmat);p.hp-=damage;if(damage)this.log(`中毒傷害 −${damage}，剩餘 ${p.poison} 回合。`,true);}
+    if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp});
     for(const e of this.enemies.filter(e=>e.hp>0&&e.type!=='drone'))if(this.hazards.some(h=>h.x===e.x&&h.y===e.y))this.hurt(e,6);
   }
   pickup() {

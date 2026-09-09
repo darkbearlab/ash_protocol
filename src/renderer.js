@@ -7,7 +7,7 @@ import {SIZE,FLOOR_INFO,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance} from './
 export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
-    this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.last=0;
+    this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.last=0;this.time=0;
     this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
     this.aftermath=new Image();this.aftermath.src=new URL('../assets/pixel/aftermath.png',import.meta.url).href;
@@ -28,7 +28,7 @@ export class Renderer {
   text(value,x,y,color='#c1ceb2',size=9){const c=this.ctx;c.font=`${size}px monospace`;c.textAlign='center';c.fillStyle=color;c.fillText(value,x,y);}
   frame(t) {
     const dt=Math.min((t-this.last)/1000,.1);this.last=t;
-    if(!document.hidden){const frame=cameraFrame(this.game.player,this.game.targeted,this.aim,this.w,this.h,this.zoom);this.camera={x:frame.x,y:frame.y};this.tile=frame.tile;this.draw(t);this.placeTargetCard();}
+    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);const frame=cameraFrame(this.game.player,this.game.targeted,this.aim,this.w,this.h,this.zoom);this.camera={x:frame.x,y:frame.y};this.tile=frame.tile;this.draw(this.time);this.placeTargetCard();}
     requestAnimationFrame(v=>this.frame(v));
   }
   placeTargetCard(){
@@ -37,7 +37,7 @@ export class Renderer {
     const frame=[target.id,target.x,target.y,this.game.player.x,this.game.player.y,this.w,this.h,this.tile].join(',');
     if(!ui.dirty&&ui.frame===frame)return;ui.frame=frame;
     const compact=this.w<240;if(ui.compact!==compact){ui.card.classList.toggle('compact',compact);ui.compact=compact;ui.dirty=true;}
-    const width=Math.min(160,Math.max(110,this.w-10));
+    const width=Math.min(136,Math.max(110,this.w-10));
     if(ui.width!==width||ui.dirty){ui.card.style.width=`${width}px`;ui.width=width;ui.height=ui.card.offsetHeight;ui.dirty=false;}
     const a=this.project(target.x,target.y),p=this.project(this.game.player.x,this.game.player.y);
     const obstacles=[{x:6,y:6,w:118,h:54,weight:60},{x:this.w-140,y:this.h-40,w:134,h:34,weight:60},...this.game.visibleEnemies.filter(e=>e!==target).map(e=>{const q=this.project(e.x,e.y);return {x:q.x-16,y:q.y-20,w:32,h:40};})];
@@ -89,11 +89,16 @@ export class Renderer {
     for(const e of g.visibleEnemies){const a=this.project(e.x,e.y);this.actor(a,e.type,time,e);}
     const target=g.targeted;if(target){const a=this.project(target.x,target.y),r=t*.43;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(a.x+dx*r,a.y+dy*r,a.x+dx*(r-7),a.y+dy*r,'#f1b07c',1.5);this.line(a.x+dx*r,a.y+dy*r,a.x+dx*r,a.y+dy*(r-7),'#f1b07c',1.5);}}
     for(const fx of this.effects) {
-      const age=(time-fx.time)/650;if(age>1)continue;
+      const elapsed=time-fx.time,age=elapsed/650;if(age<0||age>1)continue;
       const a=this.project(fx.from.x,fx.from.y),b=this.project(fx.to.x,fx.to.y),color=fx.color||(fx.type==='shot'?'#ffe1ad':'#ff986c');
       c.globalAlpha=1-age;
       const angle=Math.atan2(b.y-a.y,b.x-a.x),step=Math.floor(age*8)/8;
-      if(fx.type==='blast'){
+      if(fx.quiet){
+        const q=fx.type==='shot'||fx.type==='enemyShot'?a:b;
+        if(age<.25)this.box(q.x-5,q.y-5,10,10,'#ffe1ad55');
+      }else if(fx.type==='miss'){
+        // Arrival label only.
+      }else if(fx.type==='blast'){
         const size=32*Math.max(1,Math.round(t*(fx.radius+.5)/32*(.5+step)));
         this.effectSprite('impact',b,size);
         for(let i=0;i<10;i++){const theta=i*2.4,r=t*(fx.radius+.3)*step;this.box(Math.round((b.x+Math.cos(theta)*r)/3)*3,Math.round((b.y+Math.sin(theta)*r)/3)*3,3,3,i%2?'#ffb65a':'#c76039');}
@@ -101,12 +106,14 @@ export class Renderer {
         for(let i=0;i<7;i++){const theta=i*2.4,r=4+step*19;this.box(Math.round((b.x+Math.cos(theta)*r)/2)*2,Math.round((b.y+Math.sin(theta)*r)/2)*2,2,2,fx.mechanical?'#b7e2d0':'#bd654e');}
       }else if(fx.style==='claw'||fx.style==='slash'){
         if(age<.65)this.effectSprite(fx.style,b,32,angle);
-      }else if(age<.6){
-        const progress=Math.min(1,Math.floor(age*14)/6),end={x:b.x+(fx.miss?Math.cos(angle+1.57)*t*.35:0),y:b.y+(fx.miss?Math.sin(angle+1.57)*t*.35:0)};
+      }else if(elapsed<(fx.travel||280)){
+        const progress=Math.min(1,elapsed/(fx.travel||280)),end={x:b.x+(fx.missPath?Math.cos(angle+1.57)*t*.35:0),y:b.y+(fx.missPath?Math.sin(angle+1.57)*t*.35:0)};
         if(age<.22)this.effectSprite('muzzle',a,16,angle);
-        this.effectSprite(fx.style==='plasma'?'plasma':'bullet',{x:a.x+(end.x-a.x)*progress,y:a.y+(end.y-a.y)*progress},32,angle);
+        const q={x:a.x+(end.x-a.x)*progress,y:a.y+(end.y-a.y)*progress};
+        if(fx.style==='grenade'){q.y-=Math.sin(progress*Math.PI)*t*.35;this.box(q.x-3,q.y-3,6,6,'#c8d692','#e9efca');}
+        else this.effectSprite(fx.style==='plasma'?'plasma':'bullet',q,32,angle);
       }
-      if(fx.miss||fx.damage>0)this.text(fx.miss?'MISS':'−'+fx.damage,b.x,b.y-20-age*23,color,fx.miss?10:14);c.globalAlpha=1;
+      if(fx.miss||fx.damage>0)this.text(fx.miss?'MISS':'−'+fx.damage,b.x,b.y-20-(fx.quiet?0:age*23),color,fx.miss?10:14);c.globalAlpha=1;
     }
     this.effects=this.effects.filter(e=>time-e.time<700);
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}
@@ -168,5 +175,5 @@ export class Renderer {
   }
   markArea(center,radius,fill,stroke,label){const g=this.game,t=this.tile;for(let y=center.y-radius;y<=center.y+radius;y++)for(let x=center.x-radius;x<=center.x+radius;x++)if(distance(center,{x,y})<=radius&&g.grid[y]?.[x]===1){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}if(label){const a=this.project(center.x,center.y);this.text(label,a.x,a.y+5,'#ffd3a4',17);}}
   drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?'#809672':'#384b3a';c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.end,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}const target=g.targeted;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
-  addEffects(effects){this.effects.push(...effects.map(e=>({...e,time:performance.now()})));this.effects=this.effects.slice(-64);}
+  addEffects(effects){this.effects.push(...effects.map(e=>({...e,time:this.time})));this.effects=this.effects.slice(-64);}
 }
