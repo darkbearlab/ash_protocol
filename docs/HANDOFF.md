@@ -1,8 +1,12 @@
-# 快速接手：ASH PROTOCOL 3.1.1
+# 快速接手：ASH PROTOCOL 3.1.2
 
 最後更新：2026-09-09。先讀本檔，再讀 DESIGN.md 和 RELEASE.md。
 
 **永久交付要求：所有完成更新推到 https://github.com/darkbearlab/ash_protocol 並整合到 main，驗證 GitHub Pages 部署。見根目錄 AGENTS.md。**使用者希望持續擴充手機瀏覽器科幻 roguelike；上下左右必須對應螢幕方向，不要改回等角移動。
+
+## 3.1.2 收尾
+
+3.1.1 提交 aaec082 已補推 main 並確認 Pages 成功。線上 QA 找到 selectstart 的 target 可能為 Text 節點，3.1.2 修正 closest 例外。所有遊戲 QA 仍用 ?test=1，沒有改動正式進度。下一步等手機回饋，不擴充延期功能。
 
 ## 3.1.1 手機回饋修正（2026-09-09）
 
