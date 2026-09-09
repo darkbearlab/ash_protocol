@@ -1,5 +1,5 @@
 import {cameraFrame} from './camera.js';
-import {SIZE,FLOOR_INFO,ENEMY_TYPES,distance} from './engine.js';
+import {SIZE,FLOOR_INFO,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance} from './engine.js';
 
 // Orthographic board: world +x = screen right, world +y = screen down.
 // Art is drawn procedurally to remain sharp at every phone density.
@@ -55,6 +55,7 @@ export class Renderer {
       for(const [dx,dy]of[[0,-1],[-1,0]])if(g.grid[y+dy]?.[x+dx]!==1){if(dx)this.line(left+3,top+7,left+3,top+t-7,'#c3aa625e',2);else this.line(left+7,top+3,left+t-7,top+3,'#c3aa625e',2);}
       const hazard=g.hazards.find(h=>h.x===x&&h.y===y);if(hazard)this.hazard(a,hazard,time);
       if(distance(p,{x,y})===1&&g.passable(x,y)&&!g.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))this.box(left+3,top+3,t-6,t-6,'#b0ba8010','#b1c48a3b');
+      const room=g.rooms?.find(r=>r.supply&&r.cx===x&&r.cy===y);if(room){const sign=SUPPLY_ROOMS[room.supply];if(sign)this.text(sign.name,a.x,a.y-this.tile*.4,sign.color,9);}
       if(g.end.x===x&&g.end.y===y)this.exit(a,time);
       for(const dead of g.enemies)if(dead.hp<=0&&dead.x===x&&dead.y===y)this.corpse(a,dead.type);
       for(const item of g.items)if(item.x===x&&item.y===y)this.item(a,item,time);
@@ -109,7 +110,7 @@ export class Renderer {
   }
   hazard(a,h,time){const t=this.tile,l=a.x-t*.43,top=a.y-t*.43;this.box(l,top,t*.86,t*.86,h.type==='acid'?'#709a4855':'#cf672c55');for(let i=0;i<4;i++){const n=(i*13)%25;this.box(l+5+n,top+5+(i*7)%23,4,3,h.type==='acid'?'#b8d47388':'#efa65a99');}this.glow(a.x,a.y,t*.7,h.type==='acid'?'#b4cd5312':'#f99a381a');}
   exit(a,time){const t=this.tile;this.box(a.x-t*.44,a.y-t*.44,t*.88,t*.88,'#284b40','#8fca9b');this.box(a.x-t*.32,a.y-t*.32,t*.64,t*.64,'#2e5b4a','#a1d3a655');for(let i=-1;i<=1;i++)this.line(a.x+i*9,a.y-8,a.x+i*9,a.y+6,'#102e24',2);this.text(this.game.bossAlive?'LOCK':'EXIT',a.x,a.y+16,'#ceebbb',8);this.glow(a.x,a.y,t*.8,'#9de0aa1c');}
-  item(a,item,time){const c=this.ctx;const colors={med:'#b9d2a2',ammo:'#c4ad70',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db'};const color=colors[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol={med:'+',ammo:'≡',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'S',weapon:'W',lore:'D'}[item.type];this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text('軍械',a.x,a.y-15,'#e8c185',8);}}
+  item(a,item,time){const c=this.ctx;const colors={armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db'};const color=colors[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol={armor:'▣',med:'+',ammo:'≡',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'S',weapon:'W',lore:'D'}[item.type];this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache)this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text('軍械',a.x,a.y-15,'#e8c185',8);}}
   prop(a,p,time){if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){if(p.type==='cover'){this.box(a.x-12,a.y-16,24,2,'#17281f');this.box(a.x-12,a.y-16,24*p.hp/p.maxHp,2,'#cad396');}if(p.type==='terminal'&&p.used)this.box(a.x-8,a.y-7,15,10,'#17241ab0');return;}if(p.type==='terminal'){this.box(a.x-13,a.y-13,26,27,'#263c34','#75977755');this.box(a.x-9,a.y-10,18,12,p.used?'#354339':'#82b6a0');this.line(a.x-7,a.y+7,a.x+7,a.y+7,'#9da77955',2);if(!p.used)this.glow(a.x,a.y-4,20,'#9ee3b41a');return;}
     if(p.hp<=0){this.box(a.x-13,a.y-5,9,8,'#6f705751');this.box(a.x+2,a.y+3,12,6,'#85775a51');return;}
     if(p.type==='barrel'){const c=this.ctx;c.fillStyle='#795032';c.beginPath();c.ellipse(a.x,a.y,10,13,0,0,Math.PI*2);c.fill();this.box(a.x-9,a.y-7,18,3,'#ca8b4f');this.box(a.x-9,a.y+6,18,3,'#ce9859');this.text('!',a.x,a.y+4,'#ffdaa0',12);return;}
@@ -150,6 +151,6 @@ export class Renderer {
     else this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);
   }
   markArea(center,radius,fill,stroke,label){const g=this.game,t=this.tile;for(let y=center.y-radius;y<=center.y+radius;y++)for(let x=center.x-radius;x<=center.x+radius;x++)if(distance(center,{x,y})<=radius&&g.grid[y]?.[x]===1){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}if(label){const a=this.project(center.x,center.y);this.text(label,a.x,a.y+5,'#ffd3a4',17);}}
-  drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?'#809672':'#384b3a';c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const [o,color]of[[g.end,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}const target=g.targeted;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
+  drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?'#809672':'#384b3a';c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.end,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}const target=g.targeted;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
   addEffects(effects){this.effects.push(...effects.map(e=>({...e,time:performance.now()})));this.effects=this.effects.slice(-64);}
 }

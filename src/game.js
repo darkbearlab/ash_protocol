@@ -1,4 +1,5 @@
-import {SIZE,SAVE_VERSION,PACK_LIMIT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS,LORE} from './data.js';
+import {SIZE,SAVE_VERSION,PACK_LIMIT,PLATE_CAPACITY,ENEMY_LOOT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS,LORE} from './data.js';
+import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance} from './combat.js';
 
@@ -6,13 +7,14 @@ const freshPlayer=()=>({x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus
 export const enemyName=e=>ENEMY_TYPES[e.type]?.name||'未知單位';
 
 export class Game {
-  constructor(seed=Date.now()%1000000) {
+  constructor(seed=Date.now()%1000000,unlocks=[]) {
     this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
+    this.player.plates=0;this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
     this.logs=[];this.status='playing';this.pendingPerks=0;this.effects=[];this.loadFloor();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   loadFloor() {
-    Object.assign(this,generate(this.seed,this.floor));
+    Object.assign(this,generate(this.seed,this.floor,this.unlockedWeapons));
     Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.focus=false;this.player.evasive=false;
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
@@ -40,6 +42,7 @@ export class Game {
   reserveKey(weapon=this.weapon){return weapon.ammoType==='energy'?'energy':weapon.ammoType==='ordnance'?'ordnance':'reserve';}
   weaponDamage(index=this.player.weapon){const w=WEAPONS[index],bonus=this.player.bonus+(this.player.upgrades[index]||0)*5;return {min:w.min+bonus,max:w.max+bonus};}
   fail(text){this.log(text);return false;}
+  awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
   // Only this gateway advances turns. Invalid actions, aiming and inspecting are free.
   action(type,arg) {
@@ -138,8 +141,12 @@ export class Game {
     this.log(`${enemyName(e)}已消滅。`);
     while(this.player.xp>=this.player.level+2){this.player.xp-=this.player.level+2;this.player.level++;this.pendingPerks++;}
     if(e.type==='bomber')this.explode(e,1,30);
-    if(e.type==='warden')this.items.push({x:e.x,y:e.y,type:'weapon',weapon:4});
-    if(this.rng()<.35)this.items.push({x:e.x,y:e.y,type:'ammo',amount:10});
+    if(e.type==='warden'||e.type==='boss')this.awardProtocol(e.type,`${this.floor}:${e.id}`);
+    const loot=ENEMY_LOOT[e.type];
+    if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.items.push({x:e.x,y:e.y,type:'weapon',weapon:loot.weapon});
+    if(this.rng()<.35){const type=loot?.ammo||'ammo';this.items.push({x:e.x,y:e.y,type,amount:type==='energy'?6:type==='ordnance'?2:10});}
+    if(this.rng()<.06)this.items.push({x:e.x,y:e.y,type:'med'});
+    if((ENEMY_TYPES[e.type]?.armor||0)>0&&this.rng()<.2)this.items.push({x:e.x,y:e.y,type:'armor',amount:10});
   }
   damageProp(prop,damage) {
     if(prop.indestructible)return;
@@ -171,7 +178,8 @@ export class Game {
     let damage=raw;
     if(cover){damage*=.55;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));}
     damage=Math.max(1,Math.round(damage-p.armor));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
-    p.hp-=damage;this.log(`${label}${cover?'（掩體減傷）':''}，生命 −${damage}。`,true);
+    const absorbed=Math.min(p.plates||0,Math.floor(damage/2));p.plates=(p.plates||0)-absorbed;damage-=absorbed;
+    p.hp-=damage;this.log(`${label}${cover?'（掩體減傷）':''}${absorbed?`（護甲板吸收 ${absorbed}）`:''}，生命 −${damage}。`,true);
     if(attacker)this.effects.push({type:'enemyShot',style:attacker.type==='crawler'?'claw':attacker.type==='brute'?'slash':ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet',from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
     else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage});
   }
@@ -244,9 +252,10 @@ export class Game {
       else if(item.type==='energy'){p.energy+=item.amount||12;this.log('拾取能量電池。');}
       else if(item.type==='ordnance'){p.ordnance+=item.amount||4;this.log('拾取榴彈彈藥。');}
       else if(item.type==='med'){p.meds++;this.log('拾取醫療包 +1。');}
+      else if(item.type==='armor'){const amount=Math.min(item.amount||20,PLATE_CAPACITY-(p.plates||0));if(amount<=0){this.log('護甲板已滿，補給留在原地。');return true;}p.plates=(p.plates||0)+amount;this.log(`修復護甲板 +${amount}（${p.plates}/${PLATE_CAPACITY}）。`);}
       else if(item.type==='grenade'){p.grenades+=item.amount||1;this.log('拾取手榴彈 +1。');}
       else if(item.type==='scrap'){const amount=Math.round((item.amount||15)*(1+p.scavenger*.5));p.scrap+=amount;this.log(`回收廢料 +${amount}。`);}
-      else if(item.type==='lore'){if(!p.lore.includes(item.floor))p.lore.push(item.floor);p.scrap+=10;this.log(`資料已解密：${LORE[item.floor-1]}`);}
+      else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;this.log(`資料已解密：${LORE[item.floor-1]}`);}
       return false;
     });
   }
@@ -289,7 +298,8 @@ export class Game {
     const p=this.player;
     if(distance(p,this.end)>1)return this.fail('需要靠近綠色電梯。');
     if(this.bossAlive)return this.fail('本層頭目仍存活，電梯鎖定。');
-    if(this.floor===FLOORS.length){this.status='won';this.log('訊號已恢復。撤離成功。');return true;}
+    this.awardProtocol('floor',this.floor);
+    if(this.floor===FLOORS.length){this.awardProtocol('extraction','win');this.status='won';this.log('訊號已恢復。撤離成功。');return true;}
     this.floor++;this.turn++;p.reserve+=20;p.energy+=10;p.ordnance+=2;p.hp=Math.min(p.maxHp,p.hp+25);
     this.loadFloor();this.log(`進入${FLOORS[this.floor-1]}。生命 +25，補充各類備彈。`);return true;
   }
@@ -316,6 +326,7 @@ export class Game {
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
       if(!Array.isArray(data.props)||!Array.isArray(data.items))return null;
       const defaults=freshPlayer(),p={...defaults,...data.player};
+      p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0||p.plates>PLATE_CAPACITY)return null;
       if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||data.grid[p.y]?.[p.x]!==1||!Number.isFinite(p.hp)||p.hp<=0)return null;
       p.ammo=WEAPONS.map((_,i)=>data.player.ammo?.[i]??defaults.ammo[i]);
       p.upgrades=WEAPONS.map((_,i)=>data.player.upgrades?.[i]??0);p.stats={...defaults.stats,...p.stats};
@@ -323,6 +334,10 @@ export class Game {
       if(p.ammo.some(n=>!Number.isInteger(n)||n<0)||p.upgrades.some(n=>!Number.isInteger(n)||n<0||n>3))return null;
       if(!Array.isArray(p.lore)||p.lore.some(n=>!Number.isInteger(n)||n<1||n>FLOORS.length))return null;
       const g=Object.assign(Object.create(Game.prototype),data,{player:p,effects:[],hazards:data.hazards||[],marks:data.marks||[]});
+      g.runId=typeof data.runId==='string'&&/^[a-zA-Z0-9-]{1,100}$/.test(data.runId)?data.runId:`legacy-${data.seed}`;
+      if(['__proto__','constructor','prototype'].includes(g.runId))return null;
+      g.protocol=data.protocol??{earned:0,events:[]};g.unlockedWeapons=Array.isArray(data.unlockedWeapons)?data.unlockedWeapons.filter(x=>typeof x==='string'):[];
+      if(!Number.isSafeInteger(g.protocol.earned)||g.protocol.earned<0||g.protocol.earned>1000000||!Array.isArray(g.protocol.events)||g.protocol.events.length>128||g.protocol.events.some(x=>typeof x!=='string'))return null;
       g.rng=random(rngState??g.seed+g.turn*13);
       if(version===1){g.props=g.props.map((o,i)=>({...o,id:o.id||`legacy-${i}`,type:o.type==='crate'?'cover':o.type,...(o.type==='crate'?{hp:65,maxHp:65}:{})}));for(const e of g.enemies)if(e.type==='boss'&&g.floor===3)e.type='warden';g.log('存檔已升級：六層設施、背包與手榴彈現已可用。');}
       if(version<3){p.moved=false;for(const e of g.enemies)e.moved=false;g.log('戰術更新：牆角探身、移動閃避與命中率已啟用。新地圖從下一層開始。');}

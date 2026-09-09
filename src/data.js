@@ -2,6 +2,9 @@
 export const SIZE = 27;
 export const SAVE_VERSION = 3;
 export const PACK_LIMIT = 3;
+export const PLATE_CAPACITY = 30;
+export const SUPPLY_ROOMS={ammo:{name:'彈藥庫',color:'#d9bd7b'},medical:{name:'醫療室',color:'#a9d9ac'},armor:{name:'裝甲庫',color:'#92c4df'}};
+export const ENEMY_LOOT={rifleman:{weapon:0,chance:.12,ammo:'ammo'},raider:{weapon:2,chance:.18,ammo:'ammo'},gunner:{weapon:1,chance:.14,ammo:'ammo'},sniper:{weapon:3,chance:.2,ammo:'ammo'},drone:{ammo:'energy'},warden:{weapon:4,chance:1,ammo:'energy'},boss:{ammo:'ordnance'}};
 export const WEAPONS = [
   { id:'rifle', name:'餘燼突擊步槍', type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'ballistic', desc:'可靠的中距離主力，適合多數交戰。' },
   { id:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, range:4, mag:4, file:'shotgun', ammoType:'ballistic', splash:1, desc:'近距離高傷害。目標鄰格受到 45% 濺射傷害。' },
@@ -41,7 +44,7 @@ export const PERKS = [
   {id:'medic',name:'急救訓練',text:'醫療包回復量 +20；立即獲得 1 醫療包。'},
   {id:'hazmat',name:'密封防護',text:'環境與中毒傷害 −5，立即解除中毒。'},
 ];
-export const SUPPLY_NAMES = {ammo:'彈藥箱',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',grenade:'手榴彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
+export const SUPPLY_NAMES = {ammo:'實彈箱',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'手榴彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
 export const LORE = [
   '最後一班運輸船沒有離港紀錄。有人從內部取消了撤離。',
   '冷卻液樣本呈現活動性。請勿接觸管道內的綠色沉積物。',

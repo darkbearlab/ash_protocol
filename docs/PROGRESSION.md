@@ -1,0 +1,27 @@
+# 協定點數與未來解鎖接口（3.2.0）
+
+目前只提供賺取與保存，不提供消費、商店或角色切換。協定點數和本局廢料分開；死亡或重新部署不會扣除已同步的點數。
+
+## 資料與發放
+
+- `Game.runId`：新局使用 UUID（無 crypto 時以時間及隨機字串回退），不使用地圖種子作新局 ID。同種子重開是獨立任務。
+- `Game.protocol = {earned, events}`：本局累積與已領里程碑。`awardProtocol(type,id)` 為入口，數值由 `PROTOCOL_REWARDS` 定義。
+- 資料 +3、完成樓層 +4、封鎖官 +8、核心守衛 +12、撤離額外 +16。完整六層與全部資料共 78 點；不補發升級前已完成的里程碑。
+- `ash-profile` version 2：既有 runs／wins／history 保留，新增 `protocol: {balance, earned}`、`unlocks: {weapons: [], characters: ['operator']}`、`protocolRuns: {runId: {earned, recorded}}`。
+- `saveGame()` 保存本局後同步點數；結局先將點數及結果寫入 profile，再移除本局存檔。重複呼叫／同局匯入只補上超過已發放累積值的差額。
+- `protocolRuns` 不隨最近十次任務歷史裁切。後續不可直接移除去重紀錄；若要壓縮，需設計同等去重機制。
+- QA 使用 `qa-ash-profile`、`qa-ash-save`。正式資料不可用於測試。點數只存在目前瀏覽器；目前匯出 JSON 是單局存檔，**不是完整 profile／錢包備份**。提供商店前，優先補完整 profile 備份與還原。
+
+## 舊存檔
+
+單局版本仍為 3，缺少新欄位時補預設值，護甲板為 0、點數為 0；既有地圖保持不變。舊存檔缺少原始局次 ID，採 `legacy-種子` 固定識別以防重複匯入刷點。因此升級前同種子的不同歷史存檔會共用累積上限；升級後新局沒有此限制。
+
+## 接入武器與角色
+
+新武器只能附加到 `WEAPONS`，不可重排既有索引。可選武器加穩定 `unlockId`，購買後把該 ID 加入 profile.unlocks.weapons。現有六把武器沒有 unlockId，永遠可用。
+
+新局由 controller 將解鎖列表傳給 `new Game(seed, ids)`，存入 `unlockedWeapons` 快照；繼續舊局保留當時快照。`weaponUnlocked()` 提供資格判定，敵人武器掉落會检查；軍械箱在有可選解鎖武器時以 25% 機率從中抽取，否則沿用各層保證武器。現階段沒有任何付費解鎖武器，所以六把既有武器流程不變。
+
+角色先保留 profile.unlocks.characters 的穩定 ID 容器。未來還需實作角色定義、選擇畫面、局次角色快照與存檔遷移；此版不假裝已具備角色技能。
+
+消費功能未實作。後續扣款及解鎖應在同一次 profile 寫入完成，驗證餘額與已解鎖狀態；不要把廢料改成跨局點數，也不要讓解鎖直接替代局內取得武器的流程。
