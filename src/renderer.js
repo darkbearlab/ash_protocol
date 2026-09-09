@@ -10,6 +10,9 @@ export class Renderer {
     this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
     this.aftermath=new Image();this.aftermath.src=new URL('../assets/pixel/aftermath.png',import.meta.url).href;
+    // Precompute once at native resolution; avoids Canvas filter support differences on phones.
+    this.corpseAtlas=document.createElement('canvas');
+    this.aftermath.addEventListener('load',()=>{const atlas=this.corpseAtlas;atlas.width=this.aftermath.naturalWidth;atlas.height=this.aftermath.naturalHeight;const c=atlas.getContext('2d');c.drawImage(this.aftermath,0,0);const pixels=c.getImageData(0,0,atlas.width,atlas.height),d=pixels.data;for(let i=0;i<d.length;i+=4){const gray=d[i]*.2126+d[i+1]*.7152+d[i+2]*.0722;for(let k=0;k<3;k++)d[i+k]=Math.round((d[i+k]*.3+gray*.7)*.8);}c.putImageData(pixels,0,0);this.corpseReady=true;});
     this.aftermathNames=['dead-player','dead-rifleman','dead-raider','dead-sniper','dead-brute','dead-drone','dead-warden','dead-boss','dead-crawler','dead-bomber','muzzle','bullet','plasma','slash','claw','impact'];
     this.spriteNames=['player','rifleman','raider','sniper','brute','drone','warden','boss','crawler','bomber','cover','barrel','med','ammo','grenade','terminal'];
     this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(canvas);this.resize();
@@ -93,8 +96,8 @@ export class Renderer {
 
   }
   sprite(name,a,size=32){const index=this.spriteNames.indexOf(name);if(index<0||!this.sprites.complete||!this.sprites.naturalWidth)return false;this.ctx.drawImage(this.sprites,(index%4)*32,Math.floor(index/4)*32,32,32,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
-  effectSprite(name,a,size=32,angle=0){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);c.drawImage(this.aftermath,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
-  corpse(a,type){const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));if(this.effectSprite('dead-'+(type==='gunner'?'rifleman':type),a,size))return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
+  effectSprite(name,a,size=32,angle=0){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);c.drawImage(name.startsWith('dead-')&&this.corpseReady?this.corpseAtlas:this.aftermath,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
+  corpse(a,type){const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));const c=this.ctx;c.save();const drawn=this.effectSprite('dead-'+(type==='gunner'?'rifleman':type),a,size);c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
   wall(a,x,y,color) {
     const t=this.tile,l=a.x-t/2,top=a.y-t/2;
     this.box(l,top,t,t,'#29372e','#64705244');

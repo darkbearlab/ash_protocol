@@ -9,8 +9,6 @@ let entered=false;
 let game=savedGame||new Game(),renderer=new Renderer($('#battle'),game),lockUntil=0,lastStatus='playing',previousFloor=game.floor,noticeTimer;
 audio.enabled=read('ash-sound')!=='off';
 const notice=document.createElement('div');notice.className='battle-notice';notice.setAttribute('role','status');$('#field-messages').append(notice);
-const aimBanner=document.createElement('div');aimBanner.className='aim-banner';aimBanner.hidden=true;$('#field-messages').append(aimBanner);
-const contextBar=document.createElement('div');contextBar.className='context-actions';$('#field-messages').append(contextBar);
 const pad=n=>String(n).padStart(2,'0');
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
@@ -33,8 +31,6 @@ function update() {
   $('#target-detail').textContent=target?`HP ${Math.max(0,target.hp)}/${target.maxHp} · ${distance(p,target)}/${w.range} 格${aim?.cover?' · '+(aim.cover.type==='wall'?'牆角':'掩體'):''}${target.moved?' · 移動中':''}`:`${w.name} · 點擊敵人鎖定`;
   $('#target-range').textContent=target?(distance(p,target)>w.range?'超出射程':`命中 ${aim?.chance??97}%`):'無目標';$('#target-range').style.color=target&&(distance(p,target)>w.range||(aim?.chance??97)<65)?'#e7906b':'';
   for(const b of document.querySelectorAll('.control-deck button'))b.disabled=game.status!=='playing';
-  $('#interact').disabled=game.status!=='playing'||distance(p,game.end)>1;$('#interact').querySelector('strong').textContent=game.bossAlive?'電梯鎖定':game.floor===FLOORS.length?'撤離':'下樓';
-  contextBar.innerHTML=(game.status!=='playing'?'<button data-action="result">查看任務結果</button>':'')+(game.nearbyTerminal?'<button data-action="terminal">▤ 補給終端</button>':'')+(game.groundWeapon?'<button data-action="bag">▣ 附近有武器</button>':'');
   updateAim();
   if(game.floor!==previousFloor){previousFloor=game.floor;floorToast();}
   if(entered)saveGame(game);
@@ -52,12 +48,19 @@ function move(dx,dy){if(renderer.mode==='grenade'){const pos={x:renderer.aim.x+d
 function floorToast(){notify(`第 ${game.floor} 層 · ${FLOORS[game.floor-1]}：${FLOOR_INFO[game.floor-1].text}`);}
 function cancelAim(){renderer.mode=null;renderer.aim=null;updateAim();}
 function setAim(pos){if(distance(pos,game.player)<=5&&game.grid[pos.y]?.[pos.x]===1&&game.visible(pos)){renderer.aim=pos;updateAim();}else notify('投擲落點需在視線內 5 格以內。');}
-function updateAim(){const aiming=renderer.mode==='grenade';aimBanner.hidden=!aiming;
-  $('#grenade-label').textContent=aiming?'確認投擲':`手榴彈 ${game.player.grenades}`;
+function interactions(){return [...(game.groundWeapon?[{label:'拾取',action:'bag'}]:[]),...(game.nearbyTerminal?[{label:'終端',action:'terminal'}]:[]),...(distance(game.player,game.end)<=1?[{label:game.bossAlive?'電梯鎖定':game.floor===FLOORS.length?'撤離':'下樓',action:'descend'}]:[])];}
+function updateAim(){const aiming=renderer.mode==='grenade',b=$('#interact'),options=interactions();
+  $('#grenade-label').textContent=aiming?'取消投擲':`手榴彈 ${game.player.grenades}`;
   $('[data-action="grenade"]').classList.toggle('aiming',aiming);
-  if(aiming)aimBanner.innerHTML=`<span>${distance(renderer.aim,game.player)<=2?'⚠ 你也在爆炸範圍！':'點地板或方向鍵選落點'}<br><small>半徑 2 格 · 再按「確認投擲」</small></span><button data-action="cancelAim" aria-label="取消投擲">✕</button>`;
+  b.disabled=game.status==='playing'&&!aiming&&!options.length;
+  b.querySelector('strong').textContent=game.status!=='playing'?'結果':aiming?'確認投擲':options.length>1?'互動':options[0]?.label||'互動';
+  b.classList.toggle('aiming',aiming);
 }
-function grenade(){if(renderer.mode==='grenade'){act('grenade',renderer.aim);return;}if(game.player.grenades<=0){notify('手榴彈已用盡。');return;}renderer.mode='grenade';const e=game.targeted;renderer.aim=e&&distance(e,game.player)<=5?{x:e.x,y:e.y}:{x:game.player.x,y:game.player.y};updateAim();}
+function interact(){if(game.status!=='playing'){showResult();return;}if(renderer.mode==='grenade'){act('grenade',renderer.aim);return;}
+  const options=interactions();if(options.length>1){modal('<h2>附近互動</h2>'+options.map(o=>`<button class="modal-button secondary" data-context="${o.action}">${o.label}</button>`).join('')+'<button class="modal-button" data-modal="close">返回戰場</button>');return;}
+  if(options[0]?.action==='bag')showInventory();else if(options[0]?.action==='terminal')showTerminal();else if(options[0]?.action==='descend')act('interact');
+}
+function grenade(){if(renderer.mode==='grenade'){cancelAim();return;}if(game.player.grenades<=0){notify('手榴彈已用盡。');return;}renderer.mode='grenade';const e=game.targeted;renderer.aim=e&&distance(e,game.player)<=5?{x:e.x,y:e.y}:{x:game.player.x,y:game.player.y};updateAim();}
 function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify('附近沒有可見敵人。');return;}game.target=list[(list.findIndex(x=>x.id===game.target)+1)%list.length].id;update();}
 function modal(html,wide=false){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal-content').innerHTML=html;if(!$('#modal').open)$('#modal').showModal();}
 function close(){if(!entered){showIntro();return;}if(game.pendingPerks)return;if(game.status!=='playing'){$('#modal').close();return;}$('#modal').close();$('#battle').focus({preventScroll:true});}
@@ -90,14 +93,15 @@ function showTerminal(){const p=game.player;modal(`<div class="eyebrow">SUPPLY T
 function showPerks(){modal(`<div class="eyebrow">UPGRADE AVAILABLE / LV. ${game.player.level}</div><h2>適應，然後生存。</h2><p>強化生效至本次任務結束。${game.pendingPerks>1?`還有 ${game.pendingPerks} 次選擇。`:''}</p>${game.perkChoices.map(p=>`<button class="perk" data-perk="${p.id}"><strong>＋ ${p.name}</strong><span>${p.text}</span></button>`).join('')}`);}
 function showJournal(){const p=game.player,records=profile();modal(`<div class="eyebrow">ARCHIVE / FIELD INTELLIGENCE</div><h2>留下你的足跡。</h2><div class="journal-tabs"><button data-modal="journal">任務紀錄</button><button data-modal="bestiary">敵人圖鑑</button><button data-modal="help">操作指南</button></div><div class="result-stats"><div><b>${records.runs}</b>完成任務</div><div><b>${records.wins}</b>成功撤離</div><div><b>${records.bestFloor}/6</b>最深紀錄</div></div><h3>本次收集 ${p.lore.length} / 6</h3>${p.lore.length?p.lore.map(f=>`<p class="lore-entry"><strong>${pad(f)} / ${FLOORS[f-1]}</strong><br>${LORE[f-1]}</p>`).join(''):'<p>探索各層紫色資料片段，拼湊設施的秘密。</p>'}<h3>最近任務</h3>${records.history.length?records.history.slice(0,5).map(r=>`<p>RUN ${r.seed} · ${r.won?'撤離':'陣亡'} · ${r.floor} 層 · ${r.kills} 擊殺 · ${r.turn} 回合</p>`).join(''):'<p>第一次任務紀錄尚未完成。</p>'}<button class="modal-button" data-modal="close">返回戰場 →</button>`,true);}
 function bestiary(){modal(`<div class="eyebrow">HOSTILE DATABASE / 10</div><h2>了解你的敵人。</h2><div class="bestiary">${Object.entries(ENEMY_TYPES).map(([id,e])=>`<article><span class="enemy-token" style="--enemy:${e.color}">${id==='boss'?'Ω':id==='drone'?'◇':'!'}</span><div><h3>${e.name}</h3><small>基礎生命 ${e.hp} · 射程 ${e.range} · 護甲 ${e.armor}</small><p>${e.role}</p></div></article>`).join('')}</div><button class="modal-button" data-modal="close">返回戰場 →</button>`,true);}
-function showHelp(){modal(`<div class="eyebrow">FIELD MANUAL / BUILD 3.1</div><h2>每一步，都要算數。</h2><p>穿越六層設施。第 3 層擊敗封鎖官，第 6 層摧毀核心守衛，從綠色電梯撤離。</p><div class="help-grid"><b>四方向</b><span>↑ ↓ ← → 就是畫面上的上下左右。方向鈕、鍵盤 WASD / 方向鍵或點相鄰格移動。</span><b>射擊</b><span>點敌人、掩體或油桶鎖定，再按開火 / Space。目標鈕 / Tab 輪換敵人。</span><b>掩體</b><span>牆角可探身互射，也能提供掩護。箱體與牆角均降低命中率並減傷；爆炸無視箱體。</span><b>命中率</b><span>暴露且靜止 97%；移動 −22%。箱體 −35%、牆角 −42%，敵我規則相同。鎖定欄顯示當前命中率。</span><b>手榴彈</b><span>按 G 或手榴彈，點地板選落點，再確認投擲。射程 5、爆炸半徑 2，會自傷和連鎖引爆。</span><b>背包</b><span>B 開啟背包，可帶 3 把武器。Q 換槍、R 裝填、H 醫療、F 防禦減伤、句點 / 中央鈕等待：本回合被射擊命中率 −15，下次行動射擊命中 +15（最高 99%）。加成不疊加；任何有效行動後失效。</span><b>補給</b><span>走上道具即可拾取。靠近終端以廢料交易。武器可拆解回收、改裝增傷至 +3。</span><b>危險</b><span>! 代表敵人蓄勢。紅色轟炸格兩回合後爆炸；綠色毒液與橘色高熱格會傷害站在上面的單位。</span><b>撤離</b><span>到綠色電梯鄰格，按電梯按鈕或 E。頭目未死時電梯鎖定。</span><b>存檔</b><span>每步自動儲存在目前瀏覽器。設定可匯出 / 匯入存檔，避免換裝置失去進度。</span></div><button class="modal-button" data-modal="close">收到，返回戰場 →</button>`,true);}
-function settings(){modal(`<div class="eyebrow">SYSTEM / BUILD 3.1</div><h2>作戰設定</h2><p>任務 ${game.seed} · 第 ${game.floor} 層 · ${game.turn} 回合<br>${storage.available?'進度已自動儲存。':'本機儲存不可用，請匯出存檔保留進度。'}</p><div class="modal-row"><button class="modal-button secondary" data-modal="sound">音效：${audio.enabled?'開啟':'關閉'}</button><button class="modal-button secondary" data-modal="help">作戰指南</button></div><div class="modal-row"><button class="modal-button secondary" data-modal="export">匯出存檔</button><button class="modal-button secondary" data-modal="import">匯入存檔</button></div><button class="modal-button secondary" data-modal="journal">任務紀錄與敵人圖鑑</button><button class="modal-button secondary" data-modal="intro">任務簡介</button><button class="modal-button secondary" data-modal="restart">重新部署新任務</button><button class="modal-button" data-modal="close">繼續任務 →</button>`);}
+function showHelp(){modal(`<div class="eyebrow">FIELD MANUAL / BUILD 3.1.1</div><h2>每一步，都要算數。</h2><p>穿越六層設施。第 3 層擊敗封鎖官，第 6 層摧毀核心守衛，從綠色電梯撤離。</p><div class="help-grid"><b>四方向</b><span>↑ ↓ ← → 就是畫面上的上下左右。方向鈕、鍵盤 WASD / 方向鍵或點相鄰格移動。</span><b>射擊</b><span>點敌人、掩體或油桶鎖定，再按開火 / Space。目標鈕 / Tab 輪換敵人。</span><b>掩體</b><span>牆角可探身互射，也能提供掩護。箱體與牆角均降低命中率並減傷；爆炸無視箱體。</span><b>命中率</b><span>暴露且靜止 97%；移動 −22%。箱體 −35%、牆角 −42%，敵我規則相同。鎖定欄顯示當前命中率。</span><b>手榴彈</b><span>按 G 或手榴彈，點地板選落點，再按右下「確認投擲」；原手榴彈按鈕可取消。射程 5、爆炸半徑 2，會自傷和連鎖引爆。</span><b>背包</b><span>B 開啟背包，可帶 3 把武器。Q 換槍、R 裝填、H 醫療、F 防禦減伤、句點 / 中央鈕等待：本回合被射擊命中率 −15，下次行動射擊命中 +15（最高 99%）。加成不疊加；任何有效行動後失效。</span><b>補給</b><span>走上道具即可拾取。靠近終端以廢料交易。武器可拆解回收、改裝增傷至 +3。</span><b>危險</b><span>! 代表敵人蓄勢。紅色轟炸格兩回合後爆炸；綠色毒液與橘色高熱格會傷害站在上面的單位。</span><b>撤離</b><span>到綠色電梯鄰格，按電梯按鈕或 E。頭目未死時電梯鎖定。</span><b>存檔</b><span>每步自動儲存在目前瀏覽器。設定可匯出 / 匯入存檔，避免換裝置失去進度。</span></div><button class="modal-button" data-modal="close">收到，返回戰場 →</button>`,true);}
+function settings(){modal(`<div class="eyebrow">SYSTEM / BUILD 3.1.1</div><h2>作戰設定</h2><p>任務 ${game.seed} · 第 ${game.floor} 層 · ${game.turn} 回合<br>${storage.available?'進度已自動儲存。':'本機儲存不可用，請匯出存檔保留進度。'}</p><div class="modal-row"><button class="modal-button secondary" data-modal="sound">音效：${audio.enabled?'開啟':'關閉'}</button><button class="modal-button secondary" data-modal="help">作戰指南</button></div><div class="modal-row"><button class="modal-button secondary" data-modal="export">匯出存檔</button><button class="modal-button secondary" data-modal="import">匯入存檔</button></div><button class="modal-button secondary" data-modal="journal">任務紀錄與敵人圖鑑</button><button class="modal-button secondary" data-modal="intro">任務簡介</button><button class="modal-button secondary" data-modal="restart">重新部署新任務</button><button class="modal-button" data-modal="close">繼續任務 →</button>`);}
 function showResult(){const won=game.status==='won',p=game.player;modal(`<div class="eyebrow">${won?'SIGNAL RESTORED':'SIGNAL LOST'} / RUN ${game.seed}</div><h2>${won?'灰燼之中，仍有回音。':'這次的訊號，到此為止。'}</h2><p>${won?'核心已沉默。你帶著設施的秘密，搭上最後一班撤離電梯。':'你留下的紀錄將協助下一位行動員。掩體、補給與適時撤退，都能改變下一次任務。'}</p><div class="result-stats"><div><b>${pad(game.floor)}</b>抵達樓層</div><div><b>${p.kills}</b>消滅敵人</div><div><b>${game.turn}</b>行動回合</div></div><p>總傷害 ${p.stats.damage} · 投擲 ${p.stats.grenades} · 資料 ${p.lore.length}/6</p><button class="modal-button secondary" data-modal="lastBattle">查看最後戰場</button><button class="modal-button" data-modal="new">重新部署 →</button>`);}
 function newGame(seed){entered=true;game=new Game(seed);renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();}
 function exportSave(){const blob=new Blob([game.serialize()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`ash-protocol-${game.seed}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('存檔已匯出。');}
 
 document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b||b.disabled)return;
+  if(b.dataset.context){close();if(b.dataset.context==='bag')showInventory();else if(b.dataset.context==='terminal')showTerminal();else act('interact');return;}
   if(b.dataset.move){move(...b.dataset.move.split(',').map(Number));return;}
   if(b.dataset.perk){game.choosePerk(b.dataset.perk);$('#modal').close();audio.play('heal');update();return;}
   if(b.dataset.equip!==undefined){modalAction('weapon',Number(b.dataset.equip));return;}
@@ -114,11 +118,11 @@ document.addEventListener('click',e=>{
     case 'new':{const value=$('#new-seed')?.value,seed=value!==undefined&&value!==''?Number(value):undefined;if(seed!==undefined&&(!Number.isInteger(seed)||seed<0||seed>999999999)){notify('種子需為 0–999999999 的整數。');return;}newGame(seed);break;}
   }return;}
   switch(b.dataset.action){
-    case 'result':showResult();break;case 'map':showMap();break;case 'game':$('#battle').focus();break;case 'help':showHelp();break;case 'settings':settings();break;case 'bag':showInventory();break;case 'terminal':showTerminal();break;
+    case 'interact':interact();break;case 'result':showResult();break;case 'map':showMap();break;case 'game':$('#battle').focus();break;case 'help':showHelp();break;case 'settings':settings();break;case 'bag':showInventory();break;case 'terminal':showTerminal();break;
     case 'cycleTarget':cycleTarget();break;case 'grenade':grenade();break;case 'cancelAim':cancelAim();break;
     case 'zoomIn':renderer.zoom=Math.min(1.6,renderer.zoom+.15);renderer.resize();break;
     case 'zoomOut':renderer.zoom=Math.max(.65,renderer.zoom-.15);renderer.resize();break;
-    case 'center':renderer.camera={x:game.player.x,y:game.player.y};break;
+    case 'center':renderer.zoom=1;renderer.resize();renderer.camera={x:game.player.x,y:game.player.y};break;
     default:act(b.dataset.action);
   }
 });
@@ -144,7 +148,7 @@ document.addEventListener('keydown',e=>{
   if($('#modal').open||e.target.matches('input,textarea,select'))return;
   const moves={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]},actions={' ':'fire',r:'reload',h:'heal',q:'weapon',e:'interact',f:'guard','.':'wait'},key=e.key.length===1?e.key.toLowerCase():e.key;
   if(moves[key]){e.preventDefault();move(...moves[key]);}
-  else if(actions[key]){e.preventDefault();act(actions[key]);}
+  else if(actions[key]){e.preventDefault();if(key==='e')interact();else act(actions[key]);}
   else if(key==='Tab'){e.preventDefault();cycleTarget();}
   else if(key==='g'){e.preventDefault();grenade();}
   else if(key==='b'){e.preventDefault();showInventory();}
@@ -154,5 +158,7 @@ $('#import-save').addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
   try{if(file.size>1000000)throw new Error('存檔超過大小限制。');const imported=Game.restore(await file.text());if(!imported)throw new Error('存檔格式不相容或任務已結束。');write('ash-save-before-import',game.serialize());game=imported;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify('存檔已匯入；原進度已在本機備份。'); }catch(error){modal('<h2>無法匯入存檔</h2><p>'+escapeHTML(error.message)+'</p><button class="modal-button" data-modal="close">返回戰場</button>');}e.target.value='';
 });
+document.addEventListener('selectstart',e=>{if(!e.target.closest('input,textarea'))e.preventDefault();});
+document.addEventListener('contextmenu',e=>{if(e.target.closest('.battle-panel'))e.preventDefault();});
 window.addEventListener('pagehide',()=>{if(entered)saveGame(game);});update();showIntro();
 if('serviceWorker'in navigator)navigator.serviceWorker.register(new URL('../sw.js',import.meta.url)).catch(()=>{});
