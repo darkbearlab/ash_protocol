@@ -1,6 +1,6 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 11;
+export const SAVE_VERSION = 12;
 export const PACK_LIMIT = 3;
 export const PLATE_CAPACITY = 30;
 export const SUPPLY_ROOMS={ammo:{name:'彈藥庫',color:'#d9bd7b'},medical:{name:'醫療室',color:'#a9d9ac'},armor:{name:'裝甲庫',color:'#92c4df'}};
@@ -48,7 +48,7 @@ export const PERKS = [
   {id:'medic',name:'急救訓練',text:'醫療包回復量 +20；立即獲得 1 醫療包。'},
   {id:'hazmat',name:'密封防護',text:'環境與中毒傷害 −5，立即解除中毒。'},
 ];
-export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'手榴彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
+export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
 export const LORE = [
   '最後一班運輸船沒有離港紀錄。有人從內部取消了撤離。',
   '冷卻液樣本呈現活動性。請勿接觸管道內的綠色沉積物。',

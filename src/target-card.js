@@ -10,7 +10,7 @@ export function targetDetails(game){
     traits:enemy?traitLabels(target).join(' · '):'',
     order:enemy&&(initiative(target)!==0||initiative(game.player)!==0)?(initiative(target)<initiative(game.player)?'行動在你之前':initiative(target)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',
     cover:melee?'近戰無視掩體':enemy?(activeTrait(target,'no_cover')?'無法利用掩體':aim.cover?aim.cover.type==='wall'?'牆角掩護':'箱體掩護':'無掩護'):'可破壞物',
-    state:[withinRange?'':'超出射程',aim.bracedBonus?`架槍 +${aim.bracedBonus}`:'',aim.trackingBonus?`修正 +${aim.trackingBonus}`:'',aim.sidePenalty?`側身 −${aim.sidePenalty}`:'',target.moved?'移動中':'',target.charge?'即將攻擊':''].filter(Boolean).join(' · '),withinRange};
+    state:[withinRange?'':'超出射程',aim.bracedBonus?`架槍 +${aim.bracedBonus}`:'',aim.trackingBonus?`修正 +${aim.trackingBonus}`:'',aim.sidePenalty?`側身 −${aim.sidePenalty}`:'',target.control?.disabled?`失能 ${target.control.disabled}`:'',target.control?.immune?`失能免疫 ${target.control.immune}`:'',target.moved?'移動中':'',target.charge?'即將攻擊':''].filter(Boolean).join(' · '),withinRange};
 }
 
 const overlap=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));

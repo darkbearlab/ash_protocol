@@ -24,7 +24,7 @@ export function lineOfSight(grid,a,b) {
 }
 export function makeEnemy(type,x,y,id,floor=1) {
   const def=ENEMY_TYPES[type],hp=def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4));
-  return {id,type,x,y,hp,maxHp:hp,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
+  return {id,type,x,y,hp,maxHp:hp,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
 }
 export function generate(seed,floor=1,unlocks=[]) {
   const rng=random(seed+floor*7919),grid=Array.from({length:SIZE},()=>Array(SIZE).fill(0)),rooms=[];
@@ -72,6 +72,7 @@ export function generate(seed,floor=1,unlocks=[]) {
     if(i===rewardRooms[0])items.push({x:r.cx,y:r.cy-1,type:'lore',floor});
     if(info.hazard&&i!==startRoom&&i%2===1)hazards.push({x:r.x+r.w-2,y:r.y+2,type:info.hazard});
     if(r.supply==='ammo'){items.push({x:r.cx-1,y:r.cy,type:'ammo',amount:20,cache:true},{x:r.cx,y:r.cy,type:'energy',amount:12,cache:true},{x:r.cx+1,y:r.cy,type:'ordnance',amount:3,cache:true},{x:r.cx-1,y:r.cy+1,type:'pistol',amount:24,cache:true},{x:r.cx+1,y:r.cy+1,type:'shell',amount:6,cache:true});}
+    if(r.supply)items.push({x:r.cx,y:r.cy+1,type:{ammo:'emp',medical:'stun',armor:'smoke'}[r.supply],amount:1,cache:true});
     if(r.supply==='medical')items.push({x:r.cx,y:r.cy,type:'med',amount:1,cache:true});
     if(r.supply==='armor')items.push({x:r.cx,y:r.cy,type:'armor',amount:20,cache:true});
   });

@@ -51,7 +51,7 @@ test('invalid intentions consume no turn, trait duration, RNG, focus or fast ene
   const g=arena(),e=enemy(g,'fast');trait(e,'fast',2);g.player.owned=[0];g.player.focus=g.player.guard=g.player.evasive=true;g.grid[10][9]=0;g.target=null;
   let actions=0;g.enemyAct=()=>actions++;
   for(const [type,arg] of [['move',[-1,0]],['move',[1,1]],['fire'],['reload'],['heal'],['grenade',{x:25,y:25}],['weapon',0],['salvage',0],['takeWeapon',999],['replaceWeapon',{take:999,leave:0}],['upgrade'],['terminal','heal'],['interact']]){
-    assert.equal(g.action(type,arg),false, type);assert.equal(g.turn,1);assert.equal(actions,0);assert.equal(e.traits[0].turns,2);assert.equal(g.player.focus,true);assert.equal(g.player.guard,true);
+    assert.equal(g.action(type,arg),false, type);assert.equal(g.turn,1);assert.equal(actions,0);assert.equal(e.traits.find(t=>t.id==='fast').turns,2);assert.equal(g.player.focus,true);assert.equal(g.player.guard,true);
   }
 });
 class EscapeGame extends Game{enemyAct(e){if(e.id==='escape'){e.x=this.escape.x;e.y=this.escape.y;e.moved=true;}else super.enemyAct(e);}}
@@ -96,7 +96,7 @@ test('previous waiting protection lasts until player acts, and a new wait cannot
 });
 test('temporary opposites expire after one whole committed round and survive saves',()=>{
   const g=arena(),e=enemy(g,'e');trait(e,'fast');trait(e,'slow',1);const restored=Game.restore(g.serialize());assert.ok(restored);assert.equal(initiative(restored.enemies[0]),0);
-  restored.action('reload');assert.equal(initiative(restored.enemies[0]),0);restored.action('wait');assert.equal(initiative(restored.enemies[0]),-1);assert.equal(restored.enemies[0].traits.length,1);
+  restored.action('reload');assert.equal(initiative(restored.enemies[0]),0);restored.action('wait');assert.equal(initiative(restored.enemies[0]),-1);assert.equal(restored.enemies[0].traits.length,2);
   const snapshotGame=snapshot(restored);assert.equal(initiative(snapshotGame.enemies[0]),-1);assert.notEqual(snapshotGame.enemies[0].traits,restored.enemies[0].traits);
 });
 test('fast attackers act before elevators, normal and slow old-floor enemies never follow downstairs',()=>{
@@ -111,11 +111,11 @@ test('save migration and full backups preserve trait sources, timers and unrelat
   const g=arena();trait(g.player,'small');trait(g.player,'slow',2);const e=enemy(g,'e');trait(e,'agile');g.player.upgrades[0]=2;
   const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(restored.player,g.player);assert.deepEqual(restored.enemies,g.enemies);
   const old=JSON.parse(g.serialize());old.version=6;delete old.data.player.traits;for(const e of old.data.enemies)delete e.traits;
-  const migrated=Game.restore(JSON.stringify(old));assert.ok(migrated);assert.deepEqual(migrated.player.traits.map(t=>t.id),['braced','correction']);assert.equal(migrated.player.upgrades[0],2);assert.equal(migrated.player.ammo[0],8);
+  const migrated=Game.restore(JSON.stringify(old));assert.ok(migrated);assert.deepEqual(migrated.player.traits.map(t=>t.id),['biological','braced','correction']);assert.equal(migrated.player.upgrades[0],2);assert.equal(migrated.player.ammo[0],8);
   const bad=JSON.parse(g.serialize());bad.data.player.traits=[{id:'fast',source:'test',turns:0}];assert.equal(Game.restore(JSON.stringify(bad)),null);
 });
 test('target cards explain effective order and cancelled traits; spawn defaults stay small in scope',()=>{
-  const g=arena(),e=enemy(g,'e');trait(e,'fast');g.target=e.id;assert.equal(targetDetails(g).order,'行動在你之前');assert.equal(targetDetails(g).traits,'快速');trait(g.player,'fast');assert.equal(targetDetails(g).order,'同速，你先行動');trait(e,'slow');assert.match(targetDetails(g).traits,/抵銷/);
+  const g=arena(),e=enemy(g,'e');trait(e,'fast');g.target=e.id;assert.equal(targetDetails(g).order,'行動在你之前');assert.equal(targetDetails(g).traits,'生物 · 快速');trait(g.player,'fast');assert.equal(targetDetails(g).order,'同速，你先行動');trait(e,'slow');assert.match(targetDetails(g).traits,/抵銷/);
   assert.equal(activeTrait(makeEnemy('drone',1,1,'drone'),'no_cover'),true);assert.equal(activeTrait(makeEnemy('brute',1,1,'brute'),'large'),true);assert.equal(activeTrait(makeEnemy('brute',1,1,'brute'),'no_cover'),false);
   assert.equal(initiative(makeEnemy('crawler',1,1,'early',1)),0);assert.equal(initiative(makeEnemy('crawler',1,1,'late',4)),-1);
 });

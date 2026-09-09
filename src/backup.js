@@ -47,7 +47,7 @@ export function decodeBackup(raw,namespace){
     requireValue(game,'任務存檔損壞或版本不相容。');
     game.setCarryLevel(p.upgrades.carrying);
     const player=game.player;
-    requireValue(['hp','maxHp','meds','grenades','armor','bonus','blastBonus','healBonus','hazmat','scavenger','scrap','level','xp','kills','reserve','pistol','shell','energy','ordnance','poison'].every(k=>count(player[k]))&&Object.values(player.stats).every(count)&&count(game.pendingPerks),'任務角色數值無效。');
+    requireValue(['hp','maxHp','meds','grenades','smoke','emp','stun','armor','bonus','blastBonus','healBonus','hazmat','scavenger','scrap','level','xp','kills','reserve','pistol','shell','energy','ordnance','poison'].every(k=>count(player[k]))&&Object.values(player.stats).every(count)&&count(game.pendingPerks),'任務角色數值無效。');
     const position=o=>object(o)&&Number.isInteger(o.x)&&Number.isInteger(o.y)&&o.x>=0&&o.y>=0&&o.x<SIZE&&o.y<SIZE;
     requireValue(position(game.end)&&Array.isArray(game.rooms)&&game.items.every(o=>position(o)&&Object.hasOwn(SUPPLY_NAMES,o.type)&&(o.type!=='weapon'||game.player.weaponBases[o.slot]===o.weapon))&&game.props.every(o=>position(o)&&['cover','barrel','terminal'].includes(o.type))&&game.enemies.every(position),'任務地圖或物品資料無效。');
     requireValue((p.protocolRuns[game.runId]?.earned||0)>=game.protocol.earned,'備份缺少這次任務的點數發放紀錄。');

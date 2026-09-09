@@ -78,6 +78,7 @@ export class Renderer {
       for(const dead of g.enemies)if(dead.hp<=0&&dead.x===x&&dead.y===y)this.corpse(a,dead.type);
       for(const item of g.items)if(item.x===x&&item.y===y)this.item(a,item,time);
       for(const prop of g.props)if(prop.x===x&&prop.y===y)this.prop(a,prop,time);
+      for(const cloud of g.smoke)if(cloud.cells.some(q=>q.x===x&&q.y===y)){this.box(left+1,top+1,t-2,t-2,'#abc1cd66');for(let n=0;n<3;n++)this.box(left+5+n*7,top+8+(x+y+n)%3*6,11,5,'#d4dfe84a');this.text(String(Math.max(1,cloud.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#d3e2ed',8);}
       c.globalAlpha=1;
     }
     for(const m of g.marks)this.markArea(m,1,'#e969494f','#f8996977',String(Math.max(1,m.due-g.turn)));
@@ -102,6 +103,8 @@ export class Renderer {
         if(elapsed<140){c.globalAlpha=(1-elapsed/140)*.85;this.effectSprite('impact',b,32);}
       }else if(fx.type==='miss'){
         // Arrival label only.
+      }else if(fx.type==='pulse'){
+        c.strokeStyle=color;c.lineWidth=3;c.beginPath();c.arc(b.x,b.y,t*(fx.radius+.3)*step,0,Math.PI*2);c.stroke();
       }else if(fx.type==='blast'){
         const size=32*Math.max(1,Math.round(t*(fx.radius+.5)/32*(.5+step)));
         this.effectSprite('impact',b,size);
@@ -115,7 +118,7 @@ export class Renderer {
         const progress=Math.min(1,elapsed/(fx.travel||125)),offset=(fx.spread||0)+(fx.missPath ? .35 : 0),end={x:b.x+Math.cos(angle+1.57)*t*offset,y:b.y+Math.sin(angle+1.57)*t*offset};
         if(age<.22)this.effectSprite('muzzle',a,16,angle);
         const q={x:a.x+(end.x-a.x)*progress,y:a.y+(end.y-a.y)*progress};
-        if(fx.style==='grenade'){q.y-=Math.sin(progress*Math.PI)*t*.35;this.box(q.x-3,q.y-3,6,6,'#c8d692','#e9efca');}
+        if(fx.style==='grenade'){q.y-=Math.sin(progress*Math.PI)*t*.35;this.box(q.x-3,q.y-3,6,6,color,'#e9efca');}
         else if(fx.style==='pellet')this.box(q.x-1,q.y-1,3,3,'#ffe1ad');
         else {this.line(q.x-Math.cos(angle)*(fx.style==='tracer'?18:7),q.y-Math.sin(angle)*(fx.style==='tracer'?18:7),q.x,q.y,color,fx.style==='tracer'?2:1);this.effectSprite(fx.style==='plasma'?'plasma':'bullet',q,fx.style==='tracer'?32:16,angle);}
       }
@@ -139,7 +142,7 @@ export class Renderer {
   }
   hazard(a,h,time){const t=this.tile,l=a.x-t*.43,top=a.y-t*.43;this.box(l,top,t*.86,t*.86,h.type==='acid'?'#709a4855':'#cf672c55');for(let i=0;i<4;i++){const n=(i*13)%25;this.box(l+5+n,top+5+(i*7)%23,4,3,h.type==='acid'?'#b8d47388':'#efa65a99');}this.glow(a.x,a.y,t*.7,h.type==='acid'?'#b4cd5312':'#f99a381a');}
   exit(a,time){const t=this.tile;this.box(a.x-t*.44,a.y-t*.44,t*.88,t*.88,'#284b40','#8fca9b');this.box(a.x-t*.32,a.y-t*.32,t*.64,t*.64,'#2e5b4a','#a1d3a655');for(let i=-1;i<=1;i++)this.line(a.x+i*9,a.y-8,a.x+i*9,a.y+6,'#102e24',2);this.text(this.game.bossAlive?'LOCK':'EXIT',a.x,a.y+16,'#ceebbb',8);this.glow(a.x,a.y,t*.8,'#9de0aa1c');}
-  item(a,item,time){const c=this.ctx;const colors={armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db'};const color=colors[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol={armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D'}[item.type];this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache)this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text('軍械',a.x,a.y-15,'#e8c185',8);}}
+  item(a,item,time){const c=this.ctx;const colors={smoke:'#a9bbcb',emp:'#81dce9',stun:'#eee0a0',armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db'};const color=colors[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol={smoke:'≋',emp:'E',stun:'✦',armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D'}[item.type];this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache)this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text('軍械',a.x,a.y-15,'#e8c185',8);}}
   prop(a,p,time){if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){if(p.type==='cover'){this.box(a.x-12,a.y-16,24,2,'#17281f');this.box(a.x-12,a.y-16,24*p.hp/p.maxHp,2,'#cad396');}if(p.type==='terminal'&&p.used)this.box(a.x-8,a.y-7,15,10,'#17241ab0');return;}if(p.type==='terminal'){this.box(a.x-13,a.y-13,26,27,'#263c34','#75977755');this.box(a.x-9,a.y-10,18,12,p.used?'#354339':'#82b6a0');this.line(a.x-7,a.y+7,a.x+7,a.y+7,'#9da77955',2);if(!p.used)this.glow(a.x,a.y-4,20,'#9ee3b41a');return;}
     if(p.hp<=0){this.box(a.x-13,a.y-5,9,8,'#6f705751');this.box(a.x+2,a.y+3,12,6,'#85775a51');return;}
     if(p.type==='barrel'){const c=this.ctx;c.fillStyle='#795032';c.beginPath();c.ellipse(a.x,a.y,10,13,0,0,Math.PI*2);c.fill();this.box(a.x-9,a.y-7,18,3,'#ca8b4f');this.box(a.x-9,a.y+6,18,3,'#ce9859');this.text('!',a.x,a.y+4,'#ffdaa0',12);return;}
@@ -152,6 +155,7 @@ export class Renderer {
       const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));
       if(player){this.box(a.x-17,a.y-17,34,34,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(a.x,a.y,20,0,Math.PI*2);c.stroke();}}
       this.sprite(spriteType,a,size);
+      if(e.control?.disabled){this.box(a.x-size/2,a.y-size/2,size,size,'#b9d5e94f');this.text(`×${e.control.disabled}`,a.x+this.tile*.35,a.y-10,'#d6edff',11);}
       if(player){this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);const f=e.facing||[0,1];this.box(a.x+f[0]*18-1,a.y+f[1]*18-1,3,3,'#ffe3ab');}
       else{this.box(a.x-13,a.y-this.tile*.45,26,3,'#17271e');this.box(a.x-13,a.y-this.tile*.45,26*e.hp/e.maxHp,3,e.charge?'#f2b779':def.color);if(e.charge)this.text(e.type==='sniper'?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
       return;

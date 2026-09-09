@@ -1,5 +1,7 @@
 # 背包四分頁與預備欄（3.11.0 起）
 
+3.15.0 已新增煙霧、EMP、震撼，四種合計共用 grenade 容量，全部使用原投擲預備欄。品項 catalog 來自 throwables.js，數量分別保存；背包顯示每種數量與合計上限。技能仍空白。下方「未加入煙霧／EMP」為 3.11.0 初版紀錄，以 [THROWABLES.md](THROWABLES.md) 為準。
+
 3.14.0 補充：weaponSwitchTurns(destination,current) 支援 integrated 內建動力拳，切進與切出都 0 回合。從拳切任意槍也免費，槍械直接互換沿原規則；真正揮拳仍耗回合。見 BULWARK.md。
 
 3.12.0 已接上 Soldier／Recon 與快速裝填，保存版本升為 v9，詳見 CHARACTERS.md。下方為預備系統基礎；快速裝填現在也有專用免費執行分支。

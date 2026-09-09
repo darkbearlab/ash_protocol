@@ -1,4 +1,16 @@
-# 快速接手：ASH PROTOCOL 3.14.0
+# 快速接手：ASH PROTOCOL 3.15.0
+
+## 3.15.0：生物／機械、EMP、震撼與煙霧
+
+- 本批使用者只授權三種投擲物與關鍵字；Recon 主動技能延後。詳見 [THROWABLES.md](THROWABLES.md)，下方各歷史節的「尚無煙霧／EMP」已被本節取代。
+- biological／mechanical 為可並存的獨立被動。所有玩家含 Bulwark 為生物；drone／warden／boss 機械，其餘生物。初始分類由 traits.bodyKeyword 讀內容 metadata，實際相剋查 activeTrait。現有玩家電漿直擊 +20% 已改用機械關鍵字。
+- src/throwables.js：四種 catalog 共用背包預備與容量；frag→grenades，另 smoke／emp／stun。range 5／radius 2，牆阻隔，預備免費、投擲 1 回合。EMP／震撼不扣 HP，不炸物件；震撼會自暈。
+- control.disabled 跳過自身行動兩次，boss／warden 一次；中斷蓄勢、等待、移動與連射，恢復後 control.immune 保護兩次自身行動，不刷新／不交替無限控。依速度隊列扣機會，不能用全局回合末 tickTraits 代替；自身暈後按等待恢復，跳過時不扣彈藥或道具。免費預備不解暈，失能時免費換裝／快填被拒絕。
+- smoke 保存 {cells,expires}，投擲當輪＋後兩輪有效，回合末到期清除。Game.sight 共用煙霧 LOS，煙中僅相鄰可見；不減傷，已標記狙擊／轟炸仍可打。普通射手失去視線時按 lastKnown 搜索，煙區不是完整感知系統。
+- 共用投擲容量 4→5→6→7，沿用 grenade 永久升級；grenadeTotal／receiveGrenade／trimGrenades 必須一起用，不能只檢查 p.grenades。超額按種類留地。各層獎勵房固定一顆 EMP／震撼／煙霧，不新增 RNG，終端可買；起始裝備不變。
+- v12 保存控制、目擊、煙區、新庫存，兼容 v1–v11，v11 首讀留原件；profile v4／backup v1 不變。validTraits 上限 66，讓舊 64 個來源能保留後補分類。未知／缺失新版控制值、煙區、庫存拒絕載入。
+- 已有 191 項自動測試及 build 通過；新增 16 項包含九種速度組合、自己失能、混合分類、共用容量、煙霧搜索、狙擊與保存。最終小修後全套與建置亦通過。七份場景由 qa/create-3.15-fixtures.mjs 產生；手機與平衡交根目錄紙條，不自行跑瀏覽器 QA。
+- Recon「幾乎不可玩」回饋仍待自然遊玩複驗；本批不聲稱解決。未實作堅毅／重生、敵人丟道具或訊號斷層技能。完成 main／Pages 後停手。
 
 最後更新：2026-09-09。先讀本檔，再讀 DESIGN.md 和 RELEASE.md。
 
