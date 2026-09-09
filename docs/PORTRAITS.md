@@ -1,5 +1,7 @@
 # 隨局頭像（3.13.0）
 
+外部頭像交付規格 v1 已放在 [assets/pixel/portraits/custom/README.md](../assets/pixel/portraits/custom/README.md)。外部應用可先交付 64×64 PNG 與可選同名 metadata；自動掃描／隨機池／缺檔回退尚未實作，現在放入圖片不會被遊戲選中。
+
 3.14.0：使用者認可第二輪風格，正式採用 art/portraits-v2 的 16 張 64×64／16 色成品。前四張沿用 ember／onyx／silver／cedar ID，其餘 portrait-05–16；舊檔雜湊仍固定四 ID。重建使用 python tools/pixelize_portrait_atlas.py --install；下方 3.13 第一輪來源保留，舊處理程式現只寫 art/portraits/cells-v1，避免覆蓋新池。
 
 四張原創日系正面頭像由內建 GPT Image 生成，經 Python／Pillow 處理成真正 64×64、最多 32 色的索引 PNG，RGB 各通道限制在 5-bit 色階，不抖色；介面用最近鄰放大。外觀不影響職業、能力、地圖或戰鬥亂數。
