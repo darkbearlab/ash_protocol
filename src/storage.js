@@ -1,3 +1,4 @@
+import {CARRY_COSTS} from './ammunition.js';
 import {Game} from './engine.js';
 import {normalizeProfile,creditProtocol} from './progression.js';
 import {makeBackup,decodeBackup} from './backup.js';
@@ -10,7 +11,7 @@ export function read(key){try{return localStorage.getItem(storageKey(key));}catc
 export function write(key,value){try{localStorage.setItem(storageKey(key),value);return true;}catch{storage.available=false;return false;}}
 export function loadGame(){
   if(!recoverRestore()){try{return decodeBackup(read('ash-restore-journal'),backupNamespace).game;}catch{return null;}}
-  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if([1,2].includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}return Game.restore(raw);
+  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if([1,2,3].includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}const game=Game.restore(raw);if(game)game.setCarryLevel(profile().upgrades.carrying);return game;
 }
 export function saveGame(game){
   if(storage.recoveryPending)return;
@@ -33,6 +34,20 @@ export function recordResult(game){
   p.bestFloor=Math.max(p.bestFloor,game.floor);p.bestKills=Math.max(p.bestKills,game.player.kills);
   p.history.unshift({id,seed:game.seed,floor:game.floor,kills:game.player.kills,turn:game.turn,won:game.status==='won',protocol:game.protocol.earned,date:new Date().toISOString()});
   p.history=p.history.slice(0,10);write('ash-profile',JSON.stringify(p));return p;
+}
+
+export function purchaseCarrying(game,expectedLevel){
+  if(storage.recoveryPending||!storage.available)throw new Error('本機儲存尚未就緒，請先備份資料後重試。');
+  const p=profile(),level=p.upgrades.carrying,cost=CARRY_COSTS[level];
+  if(!storage.available)throw new Error('無法讀取協定點數，尚未購買。');
+  if(expectedLevel!==level)throw new Error('升級資料已更新，請查看最新價格。');
+  if(cost===undefined)throw new Error('攜行裝備已達最高等級。');
+  if(p.protocol.balance<cost)throw new Error('協定點數不足。');
+  p.protocol.balance-=cost;p.upgrades.carrying++;
+  // One atomic localStorage write commits both cost and permanent level.
+  if(!write('ash-profile',JSON.stringify(p)))throw new Error('無法儲存升級，尚未扣除點數。');
+  if(game)game.setCarryLevel(p.upgrades.carrying);
+  return p;
 }
 
 export function exportBackup(game){return JSON.stringify(makeBackup(game,profile(),backupNamespace),null,2);}

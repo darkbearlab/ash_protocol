@@ -1,3 +1,4 @@
+import {AMMUNITION,itemAmmo,TERMINAL_AMMO} from '../src/ammunition.js';
 // Headless gameplay agent. Uses only legal public actions; no stat/map mutation.
 // It knows the floor plan for routing, so win rate is a regression signal, not player telemetry.
 import {Game,distance,WEAPONS} from '../src/engine.js';
@@ -38,8 +39,8 @@ export function play(seed,maxActions=1800) {
     if(p.ammo[p.weapon]===0&&p[g.reserveKey()]===0){const other=p.owned.find(index=>index!==p.weapon&&(p.ammo[index]>0||p[g.reserveKey(WEAPONS[index])]>0));if(other!==undefined){act('weapon',other);continue;}}
     if(!g.visibleEnemies.length&&p.scrap>=25+p.upgrades[p.weapon]*15&&p.upgrades[p.weapon]<3){act('upgrade');continue;}
     if(distance(p,g.end)<=1&&!g.bossAlive){act('interact');continue;}
-    if(g.nearbyTerminal&&p.scrap>=15){if(p.hp<p.maxHp-55){act('terminal','heal');continue;}if(p.reserve<16){act('terminal','ammo');continue;}}
-    const needs=g.items.filter(item=>(item.type==='ammo'&&p.reserve<16)||(item.type==='med'&&p.meds<1)||(item.type==='grenade'&&p.grenades<1)).sort((a,b)=>distance(p,a)-distance(p,b));
+    if(g.nearbyTerminal){if(p.scrap>=15&&p.hp<p.maxHp-55){act('terminal','heal');continue;}const offer=TERMINAL_AMMO[g.weapon.ammoType];if(p.scrap>=offer.cost&&p[g.reserveKey()]<g.weapon.mag*2){act('terminal',g.weapon.ammoType);continue;}}
+    const needs=g.items.filter(item=>{const type=itemAmmo(item.type),weapons=p.owned.map(i=>WEAPONS[i]).filter(w=>w.ammoType===type);return (type&&weapons.length&&p[AMMUNITION[type].key]<Math.max(...weapons.map(w=>w.mag))*2)||(item.type==='med'&&p.meds<1)||(item.type==='grenade'&&p.grenades<1);}).sort((a,b)=>distance(p,a)-distance(p,b));
     const boss=g.enemies.find(e=>(e.type==='boss'||e.type==='warden')&&e.hp>0);
     let goal=needs.find(n=>route(g,n))||g.end;
     if(boss&&distance(p,g.end)<=5){const adjacent=[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dy])=>({x:boss.x+dx,y:boss.y+dy}));goal=adjacent.find(n=>route(g,n))||g.end;}

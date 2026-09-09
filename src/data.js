@@ -1,15 +1,15 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const PACK_LIMIT = 3;
 export const PLATE_CAPACITY = 30;
 export const SUPPLY_ROOMS={ammo:{name:'彈藥庫',color:'#d9bd7b'},medical:{name:'醫療室',color:'#a9d9ac'},armor:{name:'裝甲庫',color:'#92c4df'}};
-export const ENEMY_LOOT={rifleman:{weapon:0,chance:.12,ammo:'ammo'},raider:{weapon:2,chance:.18,ammo:'ammo'},gunner:{weapon:1,chance:.14,ammo:'ammo'},sniper:{weapon:3,chance:.2,ammo:'ammo'},drone:{ammo:'energy'},warden:{weapon:4,chance:1,ammo:'energy'},boss:{ammo:'ordnance'}};
+export const ENEMY_LOOT={rifleman:{weapon:0,chance:.12,ammo:'ammo'},raider:{weapon:2,chance:.18,ammo:'pistol'},gunner:{weapon:1,chance:.14,ammo:'shell'},sniper:{weapon:3,chance:.2,ammo:'ammo'},drone:{ammo:'energy'},warden:{weapon:4,chance:1,ammo:'energy'},boss:{ammo:'ordnance'}};
 export const WEAPONS = [
-  { id:'rifle', name:'餘燼突擊步槍', type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'ballistic', desc:'可靠的中距離主力，適合多數交戰。' },
-  { id:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, range:4, mag:4, file:'shotgun', ammoType:'ballistic', splash:1, desc:'近距離高傷害。目標鄰格受到 45% 濺射傷害。' },
-  { id:'smg', name:'蜂群衝鋒槍', type:'SUBMACHINE GUN', code:'SM–24', min:13, max:17, range:5, mag:18, file:'smg', ammoType:'ballistic', burst:2, desc:'每回合射擊兩發。適合清理近距離輕裝敵人。' },
-  { id:'sniper', name:'寂靜精準步槍', type:'PRECISION RIFLE', code:'SR–07', min:52, max:66, range:10, mag:3, file:'sniper', ammoType:'ballistic', pierce:0.7, desc:'長距離單發重擊，穿透 70% 裝甲與掩體減傷。' },
+  { id:'rifle', name:'餘燼突擊步槍', type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'rifle', desc:'可靠的中距離主力，適合多數交戰。' },
+  { id:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, range:4, mag:4, file:'shotgun', ammoType:'shell', splash:1, desc:'近距離高傷害。目標鄰格受到 45% 濺射傷害。' },
+  { id:'smg', name:'蜂群衝鋒槍', type:'SUBMACHINE GUN', code:'SM–24', min:13, max:17, range:5, mag:18, file:'smg', ammoType:'pistol', burst:2, desc:'每回合射擊兩發。適合清理近距離輕裝敵人。' },
+  { id:'sniper', name:'寂靜精準步槍', type:'PRECISION RIFLE', code:'SR–07', min:52, max:66, range:10, mag:3, file:'sniper', ammoType:'rifle', pierce:0.7, desc:'長距離單發重擊，穿透 70% 裝甲與掩體減傷。' },
   { id:'plasma', name:'極光電漿步槍', type:'PLASMA CARBINE', code:'PL–08', min:35, max:44, range:7, mag:6, file:'plasma', ammoType:'energy', pierce:0.5, desc:'消耗能量電池，穿透 50% 防護並擅長對抗機械。' },
   { id:'launcher', name:'日蝕榴彈發射器', type:'GRENADE LAUNCHER', code:'GL–03', min:54, max:64, range:6, mag:2, file:'launcher', ammoType:'ordnance', explosive:true, desc:'爆炸半徑 1 格。無視掩體，會傷害自己與引爆油桶。' },
 ];
@@ -38,13 +38,13 @@ export const PERKS = [
   {id:'damage',name:'高壓彈藥',text:'武器每發傷害 +6。'},
   {id:'health',name:'生存本能',text:'最大生命 +25，立即回復 40 生命。'},
   {id:'armor',name:'複合裝甲',text:'每次直接受傷減少 3 點。'},
-  {id:'med',name:'戰地補給',text:'獲得 2 醫療包、2 手榴彈與 24 發子彈。'},
+  {id:'med',name:'戰地補給',text:'獲得 2 醫療包、2 手榴彈與分類備彈。'},
   {id:'blast',name:'爆破專家',text:'手榴彈與爆炸武器傷害 +18。'},
   {id:'scavenger',name:'資源回收',text:'之後獲得的廢料 +50%，立即獲得 15 廢料。'},
   {id:'medic',name:'急救訓練',text:'醫療包回復量 +20；立即獲得 1 醫療包。'},
   {id:'hazmat',name:'密封防護',text:'環境與中毒傷害 −5，立即解除中毒。'},
 ];
-export const SUPPLY_NAMES = {ammo:'實彈箱',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'手榴彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
+export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'手榴彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
 export const LORE = [
   '最後一班運輸船沒有離港紀錄。有人從內部取消了撤離。',
   '冷卻液樣本呈現活動性。請勿接觸管道內的綠色沉積物。',

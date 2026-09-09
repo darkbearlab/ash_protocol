@@ -21,9 +21,9 @@ test('routes vary entrances, exits and connections; reward rooms remain reachabl
   assert.ok(starts.size>=4);assert.ok(ends.size>=4);assert.ok(routes.size>=30);
 });
 
-test('classified caches contain all three ammo pools, medical supplies and armor plates',()=>{
+test('classified caches contain all five ammo pools, medical supplies and armor plates',()=>{
   const g=arena();g.items=generate(21,1).items.filter(i=>i.cache).map(i=>({...i,x:10,y:10}));g.pickup();
-  assert.equal(g.player.reserve,68);assert.equal(g.player.energy,30);assert.equal(g.player.ordnance,7);
+  assert.equal(g.player.pistol,48);assert.equal(g.player.shell,18);assert.equal(g.player.reserve,68);assert.equal(g.player.energy,30);assert.equal(g.player.ordnance,7);
   assert.equal(g.player.meds,3);assert.equal(g.player.plates,20);
 });
 
@@ -40,7 +40,7 @@ test('full armor leaves pickup in place and replenishment respects capacity',()=
 });
 
 test('enemy loot uses weapon and ammo type; the same corpse never grants loot twice',()=>{
-  for(const [type,index,ammo]of [['rifleman',0,'ammo'],['raider',2,'ammo'],['gunner',1,'ammo'],['sniper',3,'ammo'],['warden',4,'energy']]){
+  for(const [type,index,ammo]of [['rifleman',0,'ammo'],['raider',2,'pistol'],['gunner',1,'shell'],['sniper',3,'ammo'],['warden',4,'energy']]){
     const g=arena();g.rng=()=>0;const e=makeEnemy(type,14,10,'loot');g.hurt(e,999);
     assert.equal(g.items.find(i=>i.type==='weapon').weapon,index);assert.ok(g.items.some(i=>i.type===ammo));
     const count=g.items.length;g.hurt(e,999);assert.equal(g.items.length,count);assert.equal(g.player.kills,1);

@@ -1,15 +1,16 @@
+import {AMMUNITION,AMMO_IDS,capacity,carryLevel,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
 import {presentStep} from './presentation.js';
 import {SIZE,SAVE_VERSION,PACK_LIMIT,PLATE_CAPACITY,ENEMY_LOOT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS,LORE} from './data.js';
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance} from './combat.js';
 
-const freshPlayer=()=>({x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],ammo:[8,4,0,0,0,0],upgrades:[0,0,0,0,0,0],reserve:48,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],ammo:[8,4,0,0,0,0],upgrades:[0,0,0,0,0,0],reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=e=>ENEMY_TYPES[e.type]?.name||'未知單位';
 
 export class Game {
-  constructor(seed=Date.now()%1000000,unlocks=[]) {
-    this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
+  constructor(seed=Date.now()%1000000,unlocks=[],carrying=0) {
+    this.carryLevel=carryLevel(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     this.player.plates=0;this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
     this.logs=[];this.status='playing';this.pendingPerks=0;this.effects=[];this.loadFloor();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
@@ -40,7 +41,23 @@ export class Game {
   }
   autoTarget(){if(!this.targeted)this.target=this.visibleEnemies.sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
   log(text,danger=false){this.logs.unshift({turn:this.turn,text,danger});this.logs=this.logs.slice(0,50);}
-  reserveKey(weapon=this.weapon){return weapon.ammoType==='energy'?'energy':weapon.ammoType==='ordnance'?'ordnance':'reserve';}
+  reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType].key;}
+  ammoCapacity(type){return capacity(type,this.carryLevel);}
+  dropAmmo(type,amount,pos=this.player){
+    if(amount<=0)return;
+    const item=AMMUNITION[type].item,existing=this.items.find(o=>o.type===item&&o.x===pos.x&&o.y===pos.y);
+    if(existing)existing.amount=(existing.amount??AMMUNITION[type].pickup)+amount;
+    else this.items.push({x:pos.x,y:pos.y,type:item,amount});
+  }
+  receiveAmmo(type,amount,{spill=true}={}){
+    const key=AMMUNITION[type].key,accepted=Math.min(amount,Math.max(0,this.ammoCapacity(type)-this.player[key]));
+    this.player[key]+=accepted;if(spill&&amount>accepted){this.dropAmmo(type,amount-accepted);this.log(`${AMMUNITION[type].name}超出容量，${amount-accepted} 留在腳下。`);}return accepted;
+  }
+  setCarryLevel(level){
+    this.carryLevel=carryLevel(level);
+    for(const [type,info]of Object.entries(AMMUNITION)){const excess=this.player[info.key]-this.ammoCapacity(type);if(excess>0){this.player[info.key]-=excess;this.dropAmmo(type,excess);}}
+  }
+  supplyPack(amounts){for(const [type,amount]of Object.entries(amounts))this.receiveAmmo(type,amount);}
   weaponDamage(index=this.player.weapon){const w=WEAPONS[index],bonus=this.player.bonus+(this.player.upgrades[index]||0)*5;return {min:w.min+bonus,max:w.max+bonus};}
   fail(text){this.log(text);return false;}
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
@@ -148,7 +165,7 @@ export class Game {
     if(e.type==='warden'||e.type==='boss')this.awardProtocol(e.type,`${this.floor}:${e.id}`);
     const loot=ENEMY_LOOT[e.type];
     if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.items.push({x:e.x,y:e.y,type:'weapon',weapon:loot.weapon});
-    if(this.rng()<.35){const type=loot?.ammo||'ammo';this.items.push({x:e.x,y:e.y,type,amount:type==='energy'?6:type==='ordnance'?2:10});}
+    if(this.rng()<.35){const type=loot?.ammo||'ammo';this.items.push({x:e.x,y:e.y,type,amount:type==='energy'?6:type==='ordnance'?2:type==='pistol'?18:type==='shell'?4:10});}
     if(this.rng()<.06)this.items.push({x:e.x,y:e.y,type:'med'});
     if((ENEMY_TYPES[e.type]?.armor||0)>0&&this.rng()<.2)this.items.push({x:e.x,y:e.y,type:'armor',amount:10});
   }
@@ -254,12 +271,12 @@ export class Game {
         if(p.owned.length>=PACK_LIMIT){this.log('背包武器欄已滿。打開背包拆解武器，再拾取。');return true;}
         this.addWeapon(item.weapon);return false;
       }
-      if(item.type==='ammo'){p.reserve+=item.amount||16;this.log(`拾取子彈 +${item.amount||16}。`);}
-      else if(item.type==='energy'){p.energy+=item.amount||12;this.log('拾取能量電池。');}
-      else if(item.type==='ordnance'){p.ordnance+=item.amount||4;this.log('拾取榴彈彈藥。');}
-      else if(item.type==='med'){p.meds++;this.log('拾取醫療包 +1。');}
+      const ammo=itemAmmo(item.type);
+      if(ammo){const amount=item.amount??AMMUNITION[ammo].pickup,accepted=this.receiveAmmo(ammo,amount,{spill:false});
+        if(accepted)this.log(`拾取${AMMUNITION[ammo].name} +${accepted}。`);
+        if(accepted<amount){item.amount=amount-accepted;this.log(`${AMMUNITION[ammo].name}容量已滿，剩餘 ${item.amount} 留在原地。`);return true;}
+      }      else if(item.type==='med'){p.meds++;this.log('拾取醫療包 +1。');}
       else if(item.type==='armor'){const amount=Math.min(item.amount||20,PLATE_CAPACITY-(p.plates||0));if(amount<=0){this.log('護甲板已滿，補給留在原地。');return true;}p.plates=(p.plates||0)+amount;this.log(`修復護甲板 +${amount}（${p.plates}/${PLATE_CAPACITY}）。`);}
-      else if(item.type==='grenade'){p.grenades+=item.amount||1;this.log('拾取手榴彈 +1。');}
       else if(item.type==='scrap'){const amount=Math.round((item.amount||15)*(1+p.scavenger*.5));p.scrap+=amount;this.log(`回收廢料 +${amount}。`);}
       else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;this.log(`資料已解密：${LORE[item.floor-1]}`);}
       return false;
@@ -277,7 +294,7 @@ export class Game {
     const p=this.player;
     if(!p.owned.includes(index))return this.fail('背包裡沒有這把武器。');
     if(p.owned.length<=1)return this.fail('至少保留一把武器。');
-    p[this.reserveKey(WEAPONS[index])]+=p.ammo[index];p.ammo[index]=0;p.owned=p.owned.filter(i=>i!==index);
+    this.receiveAmmo(WEAPONS[index].ammoType,p.ammo[index]);p.ammo[index]=0;p.owned=p.owned.filter(i=>i!==index);
     p.scrap+=20+(p.upgrades[index]||0)*10;p.upgrades[index]=0;p.stats.salvaged++;
     if(p.weapon===index)p.weapon=p.owned[0];this.log(`拆解${WEAPONS[index].name}，回收彈匣與廢料。`);return true;
   }
@@ -290,14 +307,18 @@ export class Game {
   useTerminal(option) {
     const terminal=this.nearbyTerminal,p=this.player;
     if(!terminal)return this.fail('附近沒有可用補給終端。');
-    if(!['heal','ammo','grenade'].includes(option))return false;
-    const cost=option==='grenade'?12:15;
+    if(!['heal','ammo','grenade',...AMMO_IDS].includes(option))return false;
+    const cost=TERMINAL_AMMO[option]?.cost??(option==='grenade'?12:15);
+    const kind=option==='grenade'?'grenade':TERMINAL_AMMO[option]?option:null;
+    if(kind&&p[AMMUNITION[kind].key]>=this.ammoCapacity(kind))return this.fail('此彈種已達攜帶上限。');
+    if(option==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=this.ammoCapacity(id)))return this.fail('各類備彈皆已滿。');
     if(p.scrap<cost)return this.fail(`終端需要 ${cost} 廢料。`);
     if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return this.fail('生命值已滿。');
     p.scrap-=cost;terminal.used=true;
     if(option==='heal'){p.hp=Math.min(p.maxHp,p.hp+60);p.poison=0;}
-    if(option==='ammo'){p.reserve+=24;p.energy+=12;p.ordnance+=3;}
-    if(option==='grenade')p.grenades+=2;
+    if(option==='ammo')this.supplyPack({rifle:24,pistol:24,shell:6,energy:12,ordnance:3});
+    if(TERMINAL_AMMO[option])this.receiveAmmo(option,TERMINAL_AMMO[option].amount);
+    if(option==='grenade')this.receiveAmmo('grenade',2);
     this.log('終端補給完成。此終端已耗盡。');return true;
   }
   descend() {
@@ -306,8 +327,8 @@ export class Game {
     if(this.bossAlive)return this.fail('本層頭目仍存活，電梯鎖定。');
     this.awardProtocol('floor',this.floor);
     if(this.floor===FLOORS.length){this.awardProtocol('extraction','win');this.status='won';this.log('訊號已恢復。撤離成功。');return true;}
-    this.floor++;this.turn++;p.reserve+=20;p.energy+=10;p.ordnance+=2;p.hp=Math.min(p.maxHp,p.hp+25);
-    this.loadFloor();this.log(`進入${FLOORS[this.floor-1]}。生命 +25，補充各類備彈。`);return true;
+    this.floor++;this.turn++;p.hp=Math.min(p.maxHp,p.hp+25);
+    this.loadFloor();this.supplyPack({rifle:20,pistol:24,shell:6,energy:10,ordnance:2});this.log(`進入${FLOORS[this.floor-1]}。生命 +25，補充各類備彈。`);return true;
   }
   choosePerk(id) {
     if(!this.pendingPerks||!PERKS.some(o=>o.id===id))return false;
@@ -315,7 +336,7 @@ export class Game {
     if(id==='damage')p.bonus+=6;
     if(id==='health'){p.maxHp+=25;p.hp=Math.min(p.maxHp,p.hp+40);}
     if(id==='armor')p.armor+=3;
-    if(id==='med'){p.meds+=2;p.grenades+=2;p.reserve+=24;}
+    if(id==='med'){p.meds+=2;this.supplyPack({grenade:2,rifle:24,pistol:24,shell:6});}
     if(id==='blast')p.blastBonus+=18;
     if(id==='scavenger'){p.scavenger++;p.scrap+=15;}
     if(id==='medic'){p.healBonus+=20;p.meds++;}
@@ -326,7 +347,7 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
@@ -347,7 +368,17 @@ export class Game {
       g.rng=random(rngState??g.seed+g.turn*13);
       if(version===1){g.props=g.props.map((o,i)=>({...o,id:o.id||`legacy-${i}`,type:o.type==='crate'?'cover':o.type,...(o.type==='crate'?{hp:65,maxHp:65}:{})}));for(const e of g.enemies)if(e.type==='boss'&&g.floor===3)e.type='warden';g.log('存檔已升級：六層設施、背包與手榴彈現已可用。');}
       if(version<3){p.moved=false;for(const e of g.enemies)e.moved=false;g.log('戰術更新：牆角探身、移動閃避與命中率已啟用。新地圖從下一層開始。');}
-      g.reveal();return g;
+      const validCount=n=>Number.isSafeInteger(n)&&n>=0&&n<=10000000;
+      if(!['reserve','energy','ordnance','grenades'].every(k=>validCount(p[k])))return null;
+      if(g.items.some(item=>itemAmmo(item.type)&&item.amount!==undefined&&(!validCount(item.amount)||item.amount===0)))return null;
+      if(version<4){
+        const split=amount=>splitLegacyRounds(amount,p.owned.map(i=>WEAPONS[i]),WEAPONS[p.weapon].ammoType);
+        const rounds=split(p.reserve);p.reserve=rounds.rifle;p.pistol=rounds.pistol;p.shell=rounds.shell;
+        g.items=g.items.flatMap(item=>item.type==='ammo'?Object.entries(split(item.amount??16)).filter(([,n])=>n>0).map(([id,amount])=>({...item,type:AMMUNITION[id].item,amount})):item);
+        g.carryLevel=0;g.log('備彈已分類為手槍彈、步槍彈與霰彈；超出上限的補給留在腳下。');
+      }else if(!Object.values(AMMUNITION).every(info=>validCount(data.player[info.key]))||!Number.isInteger(g.carryLevel)||g.carryLevel<0||g.carryLevel>3)return null;
+      if(g.items.some(item=>itemAmmo(item.type)&&item.amount!==undefined&&(!validCount(item.amount)||item.amount===0)))return null;
+      g.setCarryLevel(g.carryLevel);g.reveal();return g;
     }catch{return null;}
   }
 }

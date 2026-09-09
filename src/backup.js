@@ -1,3 +1,4 @@
+import {CARRY_COSTS} from './ammunition.js';
 import {Game} from './game.js';
 import {normalizeProfile,creditProtocol} from './progression.js';
 import {SIZE,SUPPLY_NAMES} from './data.js';
@@ -9,9 +10,10 @@ const id=v=>typeof v==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(v)&&!['__proto__'
 const requireValue=(ok,message)=>{if(!ok)throw new Error(message);};
 
 export function validateProfile(raw){
-  requireValue(object(raw)&&raw.version===2,'全局紀錄版本不相容。');
+  requireValue(object(raw)&&[2,3].includes(raw.version),'全局紀錄版本不相容。');
   requireValue(['runs','wins','bestKills','bestFloor'].every(k=>count(raw[k]))&&raw.wins<=raw.runs&&raw.bestFloor>=1&&raw.bestFloor<=6,'任務紀錄數值無效。');
   requireValue(object(raw.protocol)&&count(raw.protocol.balance)&&count(raw.protocol.earned)&&raw.protocol.balance<=raw.protocol.earned,'協定點數數值無效。');
+  if(raw.version===3){requireValue(object(raw.upgrades)&&count(raw.upgrades.carrying)&&raw.upgrades.carrying<=CARRY_COSTS.length,'攜行升級資料無效。');requireValue(raw.protocol.earned-raw.protocol.balance>=CARRY_COSTS.slice(0,raw.upgrades.carrying).reduce((a,b)=>a+b,0),'攜行升級與點數支出不符。');}
   requireValue(object(raw.unlocks)&&['weapons','characters'].every(k=>Array.isArray(raw.unlocks[k])&&raw.unlocks[k].every(id)),'解鎖紀錄無效。');
   requireValue(object(raw.protocolRuns),'點數發放紀錄缺漏。');
   let total=0;
@@ -40,8 +42,9 @@ export function decodeBackup(raw,namespace){
   if(b.campaign!==null){
     requireValue(object(b.campaign),'任務資料無效。');game=Game.restore(JSON.stringify(b.campaign));
     requireValue(game,'任務存檔損壞或版本不相容。');
+    game.setCarryLevel(p.upgrades.carrying);
     const player=game.player;
-    requireValue(['hp','maxHp','meds','grenades','armor','bonus','blastBonus','healBonus','hazmat','scavenger','scrap','level','xp','kills','reserve','energy','ordnance','poison'].every(k=>count(player[k]))&&Object.values(player.stats).every(count)&&count(game.pendingPerks),'任務角色數值無效。');
+    requireValue(['hp','maxHp','meds','grenades','armor','bonus','blastBonus','healBonus','hazmat','scavenger','scrap','level','xp','kills','reserve','pistol','shell','energy','ordnance','poison'].every(k=>count(player[k]))&&Object.values(player.stats).every(count)&&count(game.pendingPerks),'任務角色數值無效。');
     const position=o=>object(o)&&Number.isInteger(o.x)&&Number.isInteger(o.y)&&o.x>=0&&o.y>=0&&o.x<SIZE&&o.y<SIZE;
     requireValue(position(game.end)&&Array.isArray(game.rooms)&&game.items.every(o=>position(o)&&Object.hasOwn(SUPPLY_NAMES,o.type)&&(o.type!=='weapon'||game.player.ammo[o.weapon]!==undefined))&&game.props.every(o=>position(o)&&['cover','barrel','terminal'].includes(o.type))&&game.enemies.every(position),'任務地圖或物品資料無效。');
     requireValue((p.protocolRuns[game.runId]?.earned||0)>=game.protocol.earned,'備份缺少這次任務的點數發放紀錄。');

@@ -65,12 +65,12 @@ export function generate(seed,floor=1,unlocks=[]) {
     props.push({id:`${floor}-cover-${i}`,x:r.x+1,y:r.y+2,type:'cover',hp:65,maxHp:65});
     if(i%3===1)props.push({id:`${floor}-barrel-${i}`,x:r.x+r.w-1,y:r.y+r.h-2,type:'barrel',hp:18,maxHp:18});
     props.push({id:`${floor}-console-${i}`,x:r.x+r.w-1,y:r.y,type:'terminal',used:false});
-    if(i===startRoom||i%2===0)items.push({x:r.x+1,y:r.y+r.h-2,type:i===startRoom?'med':'ammo'});
+    if(i===startRoom||i%2===0)items.push({x:r.x+1,y:r.y+r.h-2,type:i===startRoom?'med':['ammo','pistol','shell'][Math.floor(i/2)%3]});
     if(i===1||i===6)items.push({x:r.x+r.w-2,y:r.y+r.h-2,type:'grenade',amount:1});
     if(i===2||i===7)items.push({x:r.x+2,y:r.y+r.h-2,type:'scrap',amount:18});
     if(i===rewardRooms[0])items.push({x:r.cx,y:r.cy-1,type:'lore',floor});
     if(info.hazard&&i!==startRoom&&i%2===1)hazards.push({x:r.x+r.w-2,y:r.y+2,type:info.hazard});
-    if(r.supply==='ammo'){items.push({x:r.cx-1,y:r.cy,type:'ammo',amount:20,cache:true},{x:r.cx,y:r.cy,type:'energy',amount:12,cache:true},{x:r.cx+1,y:r.cy,type:'ordnance',amount:3,cache:true});}
+    if(r.supply==='ammo'){items.push({x:r.cx-1,y:r.cy,type:'ammo',amount:20,cache:true},{x:r.cx,y:r.cy,type:'energy',amount:12,cache:true},{x:r.cx+1,y:r.cy,type:'ordnance',amount:3,cache:true},{x:r.cx-1,y:r.cy+1,type:'pistol',amount:24,cache:true},{x:r.cx+1,y:r.cy+1,type:'shell',amount:6,cache:true});}
     if(r.supply==='medical')items.push({x:r.cx,y:r.cy,type:'med',amount:1,cache:true});
     if(r.supply==='armor')items.push({x:r.cx,y:r.cy,type:'armor',amount:20,cache:true});
   });

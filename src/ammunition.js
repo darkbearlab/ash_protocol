@@ -1,0 +1,26 @@
+// Stable resource IDs. `reserve` / item `ammo` remain rifle rounds for old tools.
+export const AMMUNITION={
+  pistol:{name:'手槍彈',short:'手槍彈',key:'pistol',item:'pistol',base:120,step:30,pickup:24},
+  rifle:{name:'步槍彈',short:'步槍彈',key:'reserve',item:'ammo',base:72,step:18,pickup:16},
+  shell:{name:'霰彈',short:'霰彈',key:'shell',item:'shell',base:24,step:6,pickup:6},
+  energy:{name:'能量電池',short:'電池',key:'energy',item:'energy',base:36,step:9,pickup:12},
+  ordnance:{name:'發射器榴彈',short:'榴彈',key:'ordnance',item:'ordnance',base:8,step:2,pickup:4},
+  grenade:{name:'手榴彈',short:'手榴彈',key:'grenades',item:'grenade',base:4,step:1,pickup:1}
+};
+export const AMMO_IDS=['pistol','rifle','shell','energy','ordnance'];
+export const CARRY_COSTS=[20,40,70];
+export const carryLevel=value=>Number.isInteger(value)?Math.max(0,Math.min(CARRY_COSTS.length,value)):0;
+export const capacity=(type,level=0)=>AMMUNITION[type].base+AMMUNITION[type].step*carryLevel(level);
+export const itemAmmo=type=>Object.keys(AMMUNITION).find(id=>AMMUNITION[id].item===type);
+export const TERMINAL_AMMO={pistol:{amount:36,cost:10},rifle:{amount:24,cost:10},shell:{amount:8,cost:10},energy:{amount:12,cost:12},ordnance:{amount:3,cost:12}};
+// Preserve the exact old total, apportioned by owned ballistic magazine sizes.
+export function splitLegacyRounds(total,weapons,currentType='rifle'){
+  const weights={};for(const w of weapons)if(['pistol','rifle','shell'].includes(w.ammoType))weights[w.ammoType]=(weights[w.ammoType]||0)+w.mag;
+  if(!Object.keys(weights).length)weights.rifle=1;
+  const sum=Object.values(weights).reduce((a,b)=>a+b,0),result={pistol:0,rifle:0,shell:0};
+  const ids=Object.keys(weights).sort((a,b)=>(b===currentType)-(a===currentType));
+  for(const id of ids)result[id]=Math.floor(total*weights[id]/sum);
+  let left=total-Object.values(result).reduce((a,b)=>a+b,0);
+  for(let i=0;left>0;i++,left--)result[ids[i%ids.length]]++;
+  return result;
+}

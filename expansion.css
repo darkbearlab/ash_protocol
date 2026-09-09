@@ -67,3 +67,5 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .loadout-bar .enemy-alert{animation:target-alert 1s ease-in-out infinite}
 @keyframes target-alert{0%,100%{background:#293323;color:#c4d1b3}50%{background:#b46935;color:#fff0cf;border-color:#ffcb80}}
 @media(prefers-reduced-motion:reduce){.loadout-bar .enemy-alert{animation:none;background:#87532b;color:#fff0cf;border-color:#ffcb80}}
+
+.pack-ammo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:12px 0}.pack-ammo span{display:flex;flex-direction:column;gap:3px;padding:8px;background:#25342b;font-size:11px;color:#bed0b8}.pack-ammo b{font:13px var(--mono);color:#e8ce98}
