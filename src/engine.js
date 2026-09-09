@@ -5,3 +5,5 @@ export * from './game.js';
 export * from './combat.js';
 
 export * from './barriers.js';
+
+export * from './containers.js';

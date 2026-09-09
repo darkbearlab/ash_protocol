@@ -1,3 +1,4 @@
+import {isContainer,containerName,validContainers} from './containers.js';
 import {BARRIER_TYPES,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,firstBarrierOnRay,validBarriers} from './barriers.js';
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {GRENADES,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
@@ -48,6 +49,22 @@ export class Game {
   canCross(a,b){return !blockedBetween(this.barriers,a,b);}
   canRoute(a,b){const edge=barrierBetween(this.barriers,a,b);return !edgeBlocks(edge)||edge.type==='door';}
   canTouch(point){return distance(this.player,point)<=1&&this.canCross(this.player,point);}
+  get nearbyContainers(){return this.props.filter(c=>isContainer(c)&&!c.opened&&this.canTouch(c));}
+  containerLabel(c){const dx=c.x-this.player.x,dy=c.y-this.player.y;return `${dx>0?'東側':dx<0?'西側':dy>0?'南側':dy<0?'北側':'腳下'}${containerName(c)}`;}
+  containerDrop(c){
+    const p=this.player,steps=DIRECTIONS.map(([dx,dy])=>({x:c.x+dx,y:c.y+dy}));
+    const facing={x:p.x+p.facing[0],y:p.y+p.facing[1]};
+    const candidates=[...(distance(c,p)===0?[facing]:[]),{x:c.x,y:c.y},...steps];
+    const safe=q=>this.grid[q.y]?.[q.x]===1&&(distance(c,q)===0||this.canCross(c,q))&&!this.solid(q.x,q.y)&&!this.enemies.some(e=>e.hp>0&&distance(e,q)===0)&&!this.props.some(o=>o!==c&&distance(o,q)===0)&&!this.hazards.some(h=>distance(h,q)===0)&&distance(p,q)>0;
+    return candidates.find(q=>safe(q)&&!this.items.some(i=>distance(i,q)===0))||candidates.find(safe)||{x:p.x,y:p.y};
+  }
+  openContainer(id){
+    const c=this.nearbyContainers.find(c=>c.id===id);if(!c)return this.fail('附近沒有可開啟的補給箱。');
+    const pos=this.containerDrop(c),contents=c.contents;c.opened=true;c.contents=[];
+    this.items.push(...contents.map(i=>({...i,...pos})));
+    this.effects.push({type:'unpack',from:{x:c.x,y:c.y},to:pos,damage:0});
+    this.log(`${containerName(c)}已開啟，補給${distance(pos,this.player)===0?'留在腳下，移開再走回拾取':'落在地上，走上去拾取'}。`);return true;
+  }
   get nearbyDoors(){return this.barriers.filter(b=>b.type==='door'&&b.hp>0&&edgeAdjacent(b,this.player));}
   doorLabel(b){const dx=b.x-this.player.x,dy=b.y-this.player.y;return `${dx>0?'東':dx<0?'西':dy>0?'南':'北'}側${b.open?'關門':'開門'}`;}
   setDoor(b,open){
@@ -113,6 +130,7 @@ export class Game {
       if(!this.passable(x,y))return this.fail('前方有牆壁或障礙。');
       const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;return this.fail('敵人擋住去路，先開火。');}return true;
     }
+    if(type==='openContainer')return this.nearbyContainers.some(c=>c.id===arg)||this.fail('附近沒有可開啟的補給箱。');
     if(type==='door')return Boolean(arg&&typeof arg.open==='boolean'&&this.nearbyDoors.some(b=>b.id===arg.id&&b.open!==arg.open));
     if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');if(!this.shotClear(p,e)||(w.melee&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail('射線或近戰路徑被障礙物擋住。');return w.melee||p.ammo[p.weapon]>0||this.fail('彈匣已空，請裝填。');}
     if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail('彈匣已滿或沒有對應備彈。');
@@ -191,6 +209,7 @@ export class Game {
         if(e){this.target=e.id;return this.fail('敵人擋住去路，先開火。');}
         p.x=x;p.y=y;p.facing=[dx,dy];p.moveDelta=[dx,dy];this.pickup();success=true;break;
       }
+      case 'openContainer':success=presentStep(this,()=>this.openContainer(arg));break;
       case 'door':success=presentStep(this,()=>{const b=this.nearbyDoors.find(b=>b.id===arg.id);return this.setDoor(b,arg.open);});break;
       case 'fire': success=this.fire(arg);break;
       case 'reload': success=this.reload();break;
@@ -535,13 +554,14 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,4,5,6,7,8,9,10,11,12,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
       if(!Array.isArray(data.props)||!Array.isArray(data.items))return null;
       if(version<13)data.barriers=[];
       if(!validBarriers(data.barriers,data.grid,[...data.enemies,...data.props].map(o=>o.id)))return null;
+      if(!validContainers(data.props,data.grid,[...data.enemies,...data.barriers,...data.props.filter(p=>!isContainer(p))].map(o=>o.id)))return null;
       const defaults=freshPlayer(),p={...defaults,...data.player};
       if(version<12){
         p.smoke=0;p.emp=0;p.stun=0;p.control=controlState();data.smoke=[];

@@ -1,3 +1,4 @@
+import {packSupplies} from './containers.js';
 import {blockedBetween,barrierBetween,makeBarrier,edgeCells,edgeKey} from './barriers.js';
 import {startingTraits} from './traits.js';
 import {SIZE,ENEMY_TYPES,FLOOR_INFO,WEAPONS,RARE_ARMORY} from './data.js';
@@ -136,7 +137,7 @@ export function generate(seed,floor=1,unlocks=[]) {
       if(destinations.some(p=>!accessible.has(key(p)))||all.size!==grid.flat().filter(v=>v===1).length)map.barriers=previous;else placed=true;
     }
   }
-  return map;
+  return packSupplies(map,floor);
 }
 export function reachable(map,start,{openDoors=true}={}) {
   const queue=[start],seen=new Set([key(start)]);

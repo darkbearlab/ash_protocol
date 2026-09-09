@@ -1,3 +1,4 @@
+import {allSupplies} from '../src/containers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,generate,reachable,key,distance,makeEnemy,WEAPONS,SIZE} from '../src/engine.js';
@@ -22,7 +23,7 @@ test('routes vary entrances, exits and connections; reward rooms remain reachabl
 });
 
 test('classified caches contain all five ammo pools, medical supplies and armor plates',()=>{
-  const g=arena();g.items=generate(21,1).items.filter(i=>i.cache).map(i=>({...i,x:10,y:10}));g.pickup();
+  const g=arena();g.items=allSupplies(generate(21,1)).filter(i=>i.cache).map(i=>({...i,x:10,y:10}));g.pickup();
   assert.equal(g.player.pistol,48);assert.equal(g.player.shell,18);assert.equal(g.player.reserve,68);assert.equal(g.player.energy,30);assert.equal(g.player.ordnance,7);
   assert.equal(g.player.meds,3);assert.equal(g.player.plates,20);
 });

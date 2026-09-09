@@ -1,3 +1,4 @@
+import {allSupplies} from '../src/containers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy,ENEMY_TYPES} from '../src/engine.js';
@@ -93,7 +94,7 @@ test('all grenade stocks share upgradeable capacity, and overflow keeps its orig
   const restored=Game.restore(g.serialize());assert.ok(restored);assert.deepEqual(restored.player,g.player);assert.deepEqual(restored.items,g.items);
 });
 test('each utility has a reachable floor cache and terminal purchase rejects full inventory for free',()=>{
-  for(let floor=1;floor<=6;floor++){const g=new Game(315);g.floor=floor;g.loadFloor();for(const id of ['smoke','emp','stun']){const item=g.items.find(i=>i.type===id);assert.ok(item);assert.ok(g.passable(item.x,item.y));}}
+  for(let floor=1;floor<=6;floor++){const g=new Game(315);g.floor=floor;g.loadFloor();for(const id of ['smoke','emp','stun']){const item=allSupplies(g).find(i=>i.type===id);assert.ok(item);assert.ok(g.passable(item.x,item.y));}}
   for(const id of ['smoke','emp','stun']){const g=arena();g.props=[{type:'terminal',x:10,y:11,used:false}];g.player.scrap=50;assert.ok(g.action('terminal',id));assert.equal(g.player[id],1);assert.equal(g.player.scrap,50-GRENADES[id].cost);g.props[0].used=false;g.player.grenades=3;const turn=g.turn;assert.equal(g.action('terminal',id),false);assert.equal(g.turn,turn);assert.equal(g.props[0].used,false);}
 });
 test('new fields roundtrip through full backup; legacy v11 receives tags but preserves its campaign',()=>{
