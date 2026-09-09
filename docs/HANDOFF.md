@@ -2,6 +2,16 @@
 
 最後更新：2026-09-09。先讀本檔，再讀 DESIGN.md 和 RELEASE.md。
 
+## 最新交接：先停手，驗證交給使用者或其他 AI
+
+使用者 2026-09-09 最新指示：降低 Codex 操作成本，驗證工作以紙條交接；確認 GitHub 最新、更新文件後停止。**不要自行展開瀏覽器 QA、重跑遊玩或新增功能。** 驗證步驟與回報格式見根目錄 [給驗證者的紙條.md](../給驗證者的紙條.md)。後續有明確修正要求才恢復開發。
+
+已確認 GitHub main 與本機遊戲程式提交同為 `9c095ae2823fae883d86d53c9ddacd1428ab739b`（3.1.2）。該提交的 Pages 工作流程已成功，上一輪線上確認 BUILD 3.1.2，連點沒有新增 console error。47 項測試及 build 是上一輪結果，本次僅文件交接，不宣稱重新實測手機。
+
+3.1.2 也包含建置時的 JS／CSS／SW URL 內容版本號與離線快取重新驗證，避免新版頁面混用舊模組。正式遊玩可開 `https://darkbearlab.github.io/ash_protocol/?v=3.1.2`；驗證必須另加 `test=1`，保留正式存檔。
+
+根目錄「給Codex的紙條.md」是使用者留下的歷史交接原件，未修改、未納入本次提交；目前版本與发布狀態以本檔及 GitHub 為準。
+
 **永久交付要求：所有完成更新推到 https://github.com/darkbearlab/ash_protocol 並整合到 main，驗證 GitHub Pages 部署。見根目錄 AGENTS.md。**使用者希望持續擴充手機瀏覽器科幻 roguelike；上下左右必須對應螢幕方向，不要改回等角移動。
 
 ## 3.1.2 收尾
@@ -70,7 +80,7 @@
 | src/audio.js | 程式合成音效 |
 | style.css / expansion.css | 共用與對話框樣式 / 3.1 作戰排版 |
 | tools/pixelize.py | 來源圖集轉 32px / 索引色精靈，詳見 PIXEL_ART.md |
-| tools/build.mjs | 只收集公開客戶端檔案至 dist/ |
+| tools/build.mjs | 收集公開客戶端檔案至 dist/，並為 JS／CSS／SW URL 加內容版本號 |
 | .github/workflows/pages.yml | main push → tests → build → Pages |
 | tools/balance.mjs | 無畫面遊玩機器人；知道地图輪廓，僅透過合法 action 操作 |
 | server.mjs | 5173 靜態伺服器，只允許公開遊戲檔案 |
