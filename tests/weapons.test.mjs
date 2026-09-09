@@ -7,7 +7,7 @@ import {captureAction} from '../src/presentation.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
-function arena(){const g=new Game(42);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.reveal();return g;}
+function arena(){const g=new Game(42);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.reveal();return g;}
 function loot(g,base=0,affix='stable'){
   const item=g.registerWeapon({type:'weapon',weapon:base,x:11,y:10});g.player.affixes[item.slot]=affix;g.player.ammo[item.slot]=g.weaponAt(item.slot).mag;g.items.push(item);return item.slot;
 }

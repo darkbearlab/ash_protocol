@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Game,generate,reachable,key,distance,makeEnemy,WEAPONS,SIZE} from '../src/engine.js';
 import {normalizeProfile,creditProtocol,weaponUnlocked} from '../src/progression.js';
 
-function arena(){const g=new Game(42);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.reveal();return g;}
+function arena(){const g=new Game(42);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.reveal();return g;}
 
 test('routes vary entrances, exits and connections; reward rooms remain reachable off the shortest route',()=>{
   const starts=new Set(),ends=new Set(),routes=new Set();

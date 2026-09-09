@@ -7,7 +7,7 @@ import {captureAction} from '../src/presentation.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
-function arena(Type=Game){const g=new Type(311);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.reveal();return g;}
+function arena(Type=Game){const g=new Type(311);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.reveal();return g;}
 function fastEnemy(g){const e=makeEnemy('rifleman',14,10,'fast');e.alert=true;e.charge=true;e.windup=1;grantTrait(e,'fast','test:fast',2);g.enemies.push(e);g.reveal();return e;}
 const prepare=(g,category,id)=>g.action('prepare',{category,id});
 

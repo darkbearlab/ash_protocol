@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 const output=new URL('./fixtures/3.2/',import.meta.url);
 await mkdir(output,{recursive:true});
-function arena(){const g=new Game(320);g.grid=Array.from({length:SIZE},(_,y)=>Array.from({length:SIZE},(_,x)=>Number(x>0&&y>0&&x<SIZE-1&&y<SIZE-1)));g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rooms=[];Object.assign(g.player,{x:10,y:10,hp:70,meds:0});g.start={x:10,y:10};g.end={x:20,y:20};return g;}
+function arena(){const g=new Game(320);g.barriers=[];g.grid=Array.from({length:SIZE},(_,y)=>Array.from({length:SIZE},(_,x)=>Number(x>0&&y>0&&x<SIZE-1&&y<SIZE-1)));g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rooms=[];Object.assign(g.player,{x:10,y:10,hp:70,meds:0});g.start={x:10,y:10};g.end={x:20,y:20};return g;}
 async function save(name,g){for(const item of g.items)if(item.type==='weapon')g.registerWeapon(item);g.reveal();await writeFile(new URL(name,output),g.serialize());}
 const supplies=arena();supplies.items=[{x:11,y:10,type:'ammo',amount:20,cache:true},{x:12,y:10,type:'energy',amount:12,cache:true},{x:13,y:10,type:'ordnance',amount:3,cache:true},{x:10,y:11,type:'med',cache:true},{x:9,y:10,type:'armor',amount:20,cache:true},{x:10,y:9,type:'weapon',weapon:2},{x:10,y:9,type:'weapon',weapon:3}];supplies.props=[{id:'qa-terminal',type:'terminal',x:11,y:9,used:false}];await save('supplies.json',supplies);
 const milestones=arena();milestones.items=[{x:11,y:10,type:'lore',floor:1}];milestones.end={x:12,y:10};await save('milestones.json',milestones);

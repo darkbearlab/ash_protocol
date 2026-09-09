@@ -4,7 +4,7 @@ import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {captureAction,planPresentation,Playback,FLIGHT_MS,snapshot,projectileVisuals,DEATH_MS} from '../src/presentation.js';
 
 function arena(){
-  const g=new Game(51);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));
+  const g=new Game(51);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));
   Object.assign(g.player,{x:10,y:10});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.reveal();
   g.rng=Object.assign(()=>0,{state:()=>0});return g;
 }

@@ -3,7 +3,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {Game,SIZE,makeEnemy,random} from '../src/engine.js';
 import {grantTrait} from '../src/traits.js';
 const folder=new URL('./fixtures/3.10/',import.meta.url);await mkdir(folder,{recursive:true});
-function arena(name){const g=new Game(3100);g.runId=`qa-traits-${name}-${Date.now()}`;g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10,hp:300,maxHp:300});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rooms=[];g.end={x:20,y:20};g.rng=random(0);return g;}
+function arena(name){const g=new Game(3100);g.runId=`qa-traits-${name}-${Date.now()}`;g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10,hp:300,maxHp:300});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rooms=[];g.end={x:20,y:20};g.rng=random(0);return g;}
 function add(g,type,id,x,y,trait){const e=makeEnemy(type,x,y,id);e.hp=e.maxHp=100;e.alert=true;e.charge=true;e.windup=1;if(trait)grantTrait(e,trait,'qa:fixture');g.enemies.push(e);return e;}
 async function save(name,g){g.reveal();if(!Game.restore(g.serialize()))throw Error(`Invalid ${name}`);await writeFile(new URL(`${name}.json`,folder),g.serialize());}
 for(const speed of ['normal','fast','slow']){

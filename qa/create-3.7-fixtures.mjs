@@ -5,7 +5,7 @@ import {AMMUNITION} from '../src/ammunition.js';
 import {normalizeProfile} from '../src/progression.js';
 import {makeBackup} from '../src/backup.js';
 const folder=new URL('./fixtures/3.7/',import.meta.url);await mkdir(folder,{recursive:true});
-function arena(name){const g=new Game(51);g.runId=`qa-ammo-${name}-${Date.now()}`;g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10,scrap:100,owned:[0,1,2]});g.player.ammo[2]=18;g.enemies=[];g.items=[];g.hazards=[];g.marks=[];g.rooms=[];g.props=[{id:'terminal',type:'terminal',x:11,y:10,used:false}];g.end={x:20,y:20};g.reveal();return g;}
+function arena(name){const g=new Game(51);g.runId=`qa-ammo-${name}-${Date.now()}`;g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10,scrap:100,owned:[0,1,2]});g.player.ammo[2]=18;g.enemies=[];g.items=[];g.hazards=[];g.marks=[];g.rooms=[];g.props=[{id:'terminal',type:'terminal',x:11,y:10,used:false}];g.end={x:20,y:20};g.reveal();return g;}
 async function save(name,value){await writeFile(new URL(name,folder),typeof value==='string'?value:JSON.stringify(value,null,2));}
 const full=arena('caps');for(const [type,info]of Object.entries(AMMUNITION)){full.player[info.key]=full.ammoCapacity(type)-1;full.items.push({x:10,y:11,type:info.item,amount:5});}await save('partial-pickups.json',full.serialize());
 const gear=arena('gear'),p=normalizeProfile();p.protocol={balance:200,earned:200};await save('carrying-backup.json',makeBackup(gear,p,'qa'));

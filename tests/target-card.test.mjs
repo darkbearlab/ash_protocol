@@ -4,7 +4,7 @@ import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {targetDetails,targetCardPlacement,actorObstacle} from '../src/target-card.js';
 import {Renderer} from '../src/renderer.js';
 
-function arena(){const g=new Game(51);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.reveal();return g;}
+function arena(){const g=new Game(51);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.reveal();return g;}
 test('target card reports actual health, shot chance, distance, cover and target state',()=>{
   const g=arena(),e=makeEnemy('rifleman',14,10,'e');g.enemies=[e];g.props=[{x:13,y:10,type:'cover',hp:65,maxHp:65}];g.reveal();
   let details=targetDetails(g);assert.equal(details.name,'斷訊槍兵');assert.equal(details.hp,'HP 22 / 22');assert.equal(details.chance,'命中 62%');assert.equal(details.cover,'箱體掩護');assert.equal(details.distance,'距離 4 格\n射程 7 格');

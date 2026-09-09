@@ -5,7 +5,7 @@ import {random} from '../src/world.js';
 const folder=new URL('./fixtures/3.5/',import.meta.url);await mkdir(folder,{recursive:true});
 function arena(name){
   const g=new Game(51);g.runId=`qa-presentation-${name}-${Date.now()}`;
-  g.grid=Array.from({length:SIZE},(_,y)=>Array.from({length:SIZE},(_,x)=>x&&y&&x<SIZE-1&&y<SIZE-1?1:0));
+  g.barriers=[];g.grid=Array.from({length:SIZE},(_,y)=>Array.from({length:SIZE},(_,x)=>x&&y&&x<SIZE-1&&y<SIZE-1?1:0));
   Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.rooms=[];g.end={x:20,y:20};g.rng=random(0);return g;
 }
 function enemy(g,type,hp,x,y){const e=makeEnemy(type,x,y,'enemy-'+g.enemies.length);e.hp=hp;e.maxHp=Math.max(e.maxHp,hp);g.enemies.push(e);return e;}

@@ -8,7 +8,7 @@ import {targetDetails} from '../src/target-card.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
-function arena(character='soldier',Type=Game){const g=new Type(312,[],0,character);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.rng=Object.assign(()=>.99,{state:()=>0});g.reveal();return g;}
+function arena(character='soldier',Type=Game){const g=new Type(312,[],0,character);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.rng=Object.assign(()=>.99,{state:()=>0});g.reveal();return g;}
 function enemy(g,x=14,y=10,id='target'){const e=makeEnemy('rifleman',x,y,id);e.hp=e.maxHp=1000;e.alert=true;e.charge=true;g.enemies.push(e);g.target=e.id;g.reveal();return e;}
 function coverTarget(g){g.props=[{id:'shield',type:'cover',x:13,y:10,hp:10000,maxHp:10000}];}
 

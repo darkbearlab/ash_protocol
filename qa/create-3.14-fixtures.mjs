@@ -2,7 +2,7 @@
 import {mkdir,writeFile} from 'node:fs/promises';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 const folder=new URL('./fixtures/3.14/',import.meta.url);await mkdir(folder,{recursive:true});
-function arena(name){const g=new Game(3140,[],0,'bulwark','portrait-14');g.runId=`qa-bulwark-${name}`;g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10,scrap:100});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rooms=[];g.end={x:20,y:20};return g;}
+function arena(name){const g=new Game(3140,[],0,'bulwark','portrait-14');g.runId=`qa-bulwark-${name}`;g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10,scrap:100});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rooms=[];g.end={x:20,y:20};return g;}
 function enemy(g,x=11,y=10){const e=makeEnemy('rifleman',x,y,'target');Object.assign(e,{hp:400,maxHp:400,alert:true,charge:true});g.enemies.push(e);g.target=e.id;return e;}
 async function save(name,g,legacy=false){g.reveal();const data=JSON.parse(g.serialize());if(legacy)data.version=10;const raw=JSON.stringify(data);if(!Game.restore(raw))throw Error(`Invalid fixture ${name}`);await writeFile(new URL(`${name}.json`,folder),raw);}
 const duel=arena('duel');enemy(duel);await save('bulwark-duel',duel);

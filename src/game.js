@@ -1,3 +1,4 @@
+import {BARRIER_TYPES,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,firstBarrierOnRay,validBarriers} from './barriers.js';
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {GRENADES,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits} from './characters.js';
@@ -35,14 +36,26 @@ export class Game {
   weaponAt(slot){return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot]);}
   fireChance(target){if(this.weapon.melee)return this.weapon.hitChance;return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)));}
   get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.visible(e));}
-  get targeted(){return [...this.enemies,...this.props].find(e=>e.id===this.target&&e.hp>0&&this.visible(e));}
+  get targeted(){return [...this.enemies,...this.props,...this.barriers].find(e=>e.id===this.target&&e.hp>0&&this.visible(e));}
   get perkChoices(){const start=(this.seed+this.player.level*3)%PERKS.length;return [0,1,3].map(n=>PERKS[(start+n)%PERKS.length]);}
   get bossAlive(){return this.enemies.some(e=>(e.type==='boss'||e.type==='warden')&&e.hp>0);}
-  get nearbyTerminal(){return this.props.find(o=>o.type==='terminal'&&!o.used&&distance(o,this.player)<=1);}
-  get groundWeapon(){return this.items.find(o=>o.type==='weapon'&&distance(o,this.player)<=1);}
-  get cover(){if(activeTrait(this.player,'no_cover'))return [];return [...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,this.player)===1),...adjacentWalls(this.grid,this.player)];}
-  visible(e){return distance(this.player,e)<=Math.max(10,this.weapon.range)&&this.sight(this.player,e);}
+  get nearbyTerminal(){return this.props.find(o=>o.type==='terminal'&&!o.used&&this.canTouch(o));}
+  get groundWeapon(){return this.items.find(o=>o.type==='weapon'&&this.canTouch(o));}
+  get cover(){if(activeTrait(this.player,'no_cover'))return [];return [...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,this.player)===1),...adjacentWalls(this.grid,this.player),...this.barriers.filter(b=>edgeAdjacent(b,this.player)&&edgeBlocks(b,'cover'))];}
+  visible(e){return distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e));}
   sight(a,b){return tacticalSight(this,a,b);}
+  shotClear(a,b){return combatSight(this.grid,a,b,isBarrier(b)?this.barriers.filter(e=>e!==b):this.barriers,'shot');}
+  canCross(a,b){return !blockedBetween(this.barriers,a,b);}
+  canRoute(a,b){const edge=barrierBetween(this.barriers,a,b);return !edgeBlocks(edge)||edge.type==='door';}
+  canTouch(point){return distance(this.player,point)<=1&&this.canCross(this.player,point);}
+  get nearbyDoors(){return this.barriers.filter(b=>b.type==='door'&&b.hp>0&&edgeAdjacent(b,this.player));}
+  doorLabel(b){const dx=b.x-this.player.x,dy=b.y-this.player.y;return `${dx>0?'東':dx<0?'西':dy>0?'南':'北'}側${b.open?'關門':'開門'}`;}
+  setDoor(b,open){
+    if(!b||b.type!=='door'||b.hp<=0)return false;
+    if(b.open===open)return true;b.open=open;
+    this.effects.push({type:'gate',from:{x:b.x,y:b.y},to:{x:b.x,y:b.y},axis:b.axis,open});
+    this.log(`${barrierName(b)}已${open?'開啟':'關閉'}。`);this.reveal();return true;
+  }
   accuracy(attacker,target){return shotChance(this,attacker,target);}
   solid(x,y){return this.props.find(o=>o.x===x&&o.y===y&&o.hp>0&&(o.type==='cover'||o.type==='barrel'));}
   passable(x,y,actor){return this.grid[y]?.[x]===1&&(!this.solid(x,y)||actor?.type==='drone');}
@@ -95,10 +108,13 @@ export class Game {
     if(type==='move'){
       if(!Array.isArray(arg)||!Number.isInteger(arg[0])||!Number.isInteger(arg[1])||Math.abs(arg[0])+Math.abs(arg[1])!==1)return false;
       const [dx,dy]=arg,x=p.x+dx,y=p.y+dy;
+      const edge=barrierBetween(this.barriers,p,{x,y});
+      if(edgeBlocks(edge)){if(edge.type==='door')return true;this.target=edge.id;return this.fail('隔板阻擋通行，可開火破壞。');}
       if(!this.passable(x,y))return this.fail('前方有牆壁或障礙。');
       const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;return this.fail('敵人擋住去路，先開火。');}return true;
     }
-    if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');return w.melee||p.ammo[p.weapon]>0||this.fail('彈匣已空，請裝填。');}
+    if(type==='door')return Boolean(arg&&typeof arg.open==='boolean'&&this.nearbyDoors.some(b=>b.id===arg.id&&b.open!==arg.open));
+    if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');if(!this.shotClear(p,e)||(w.melee&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail('射線或近戰路徑被障礙物擋住。');return w.melee||p.ammo[p.weapon]>0||this.fail('彈匣已空，請裝填。');}
     if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail('彈匣已滿或沒有對應備彈。');
     if(type==='heal')return (p.meds>0&&(p.hp<p.maxHp||p.poison>0))||this.fail('無法使用醫療包。');
     if(type==='grenade')return (p[preparedEntry(p,'grenade').resource]>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail('需要手榴彈與視線內 5 格的有效落點。');
@@ -112,7 +128,7 @@ export class Game {
       const cost=TERMINAL_AMMO[arg]?.cost??(arg==='grenade'?12:GRENADES[arg]?.cost??15),kind=grenadeByItem(arg)?'grenade':TERMINAL_AMMO[arg]?arg:null;
       return (p.scrap>=cost&&!(arg==='heal'&&p.hp===p.maxHp&&!p.poison)&&!(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=this.ammoCapacity(kind))&&!(arg==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=this.ammoCapacity(id))))||this.fail('廢料不足或補給已滿。');
     }
-    if(type==='interact')return (distance(p,this.end)<=1&&!this.bossAlive)||this.fail('需要靠近電梯並擊敗本層頭目。');
+    if(type==='interact')return (this.canTouch(this.end)&&!this.bossAlive)||this.fail('需要靠近電梯並擊敗本層頭目。');
     return type==='wait';
   }
   action(type,arg){
@@ -127,6 +143,7 @@ export class Game {
     if(type==='grenade'){const pos=arg||this.targeted;arg=pos?{x:pos.x,y:pos.y,grenade:p.prepared.grenade}:null;}
     if(!this.validateAction(type,arg))return false;
     if(p.control.disabled&&type!=='prepare'&&this.actionCost(type,arg)===0)return this.fail('失能中，按中央等待恢復。');
+    if(type==='move'){const edge=barrierBetween(this.barriers,p,{x:p.x+arg[0],y:p.y+arg[1]});if(edgeBlocks(edge)&&edge.type==='door'){type='door';arg={id:edge.id,open:true};}}
     // Free preparation/equipment commits outside the turn queue and preserves all timed state.
     if(this.actionCost(type,arg)===0){
       if(type==='prepare')p.prepared[arg.category]=arg.id;
@@ -168,11 +185,13 @@ export class Game {
       case 'move': {
         if(!Array.isArray(arg)||!Number.isInteger(arg[0])||!Number.isInteger(arg[1])||Math.abs(arg[0])+Math.abs(arg[1])!==1)return false;
         const [dx,dy]=arg,x=p.x+dx,y=p.y+dy;
+        if(!this.canCross(p,{x,y}))return this.fail('前方障礙物已阻擋移動。');
         if(!this.passable(x,y))return this.fail(this.solid(x,y)?'掩體或油桶擋住去路。可以繞行或射擊破壞。':'前方是牆壁。');
         const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);
         if(e){this.target=e.id;return this.fail('敵人擋住去路，先開火。');}
         p.x=x;p.y=y;p.facing=[dx,dy];p.moveDelta=[dx,dy];this.pickup();success=true;break;
       }
+      case 'door':success=presentStep(this,()=>{const b=this.nearbyDoors.find(b=>b.id===arg.id);return this.setDoor(b,arg.open);});break;
       case 'fire': success=this.fire(arg);break;
       case 'reload': success=this.reload();break;
       case 'heal':
@@ -210,7 +229,7 @@ export class Game {
     const p=this.player,e=this.targeted,w=this.weapon;
     if(w.melee)return this.strike(intent);
     // A committed shot still fires at the last confirmed tile if its target is lost.
-    if(intent&&(!e||distance(p,e)>w.range)){
+    if(intent&&(!e||distance(p,e)>w.range||!this.shotClear(p,e))){
       p.facing=[Math.sign(intent.x-p.x),Math.sign(intent.y-p.y)];
       const shots=Math.min(w.burst||1,p.ammo[p.weapon]);
       for(let i=0;i<shots;i++)presentStep(this,()=>{
@@ -235,7 +254,7 @@ export class Game {
         const hit=this.rng()*100<chance;
         this.effects.push({type:'shot',weaponId:w.id,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
         if(!hit){this.log(`射擊未命中（命中率 ${chance}%）。`);if(w.explosive)this.log('榴彈偏離目標，未在戰場內爆炸。');return;}
-        if(w.explosive)this.explode(e,1,damage+p.blastBonus);
+        if(w.explosive)this.explode(isBarrier(e)?barrierFace(e,p):e,1,damage+p.blastBonus);
         else this.hitTarget(e,damage,p,w.pierce||0);
         if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p,w.pierce||0);
       });
@@ -247,7 +266,7 @@ export class Game {
     const p=this.player,w=this.weapon,target=this.targeted;
     if(!w.melee)return false;
     if(!intent&&(!target||distance(p,target)>1))return this.fail('近戰需要相鄰一格的目標。');
-    const valid=target&&distance(p,target)<=1,to=valid?target:intent;
+    const valid=target&&distance(p,target)<=1&&this.shotClear(p,target)&&(isBarrier(target)||this.canCross(p,target)),to=valid?target:intent;
     p.fireChain=null;p.facing=[Math.sign(to.x-p.x),Math.sign(to.y-p.y)];
     presentStep(this,()=>{
       const hit=Boolean(valid)&&this.rng()*100<w.hitChance;
@@ -260,10 +279,10 @@ export class Game {
   protectingCover(target,attacker) {
     if(activeTrait(target,'no_cover'))return null;
     const dx=attacker.x-target.x,dy=attacker.y-target.y;
-    return wallCover(this.grid,target,attacker)||this.props.find(o=>o.type==='cover'&&o.hp>0&&distance(o,target)===1&&((o.x-target.x)*dx+(o.y-target.y)*dy)>0);
+    return edgeCover(this.barriers,target,attacker)||wallCover(this.grid,target,attacker)||this.props.find(o=>o.type==='cover'&&o.hp>0&&distance(o,target)===1&&((o.x-target.x)*dx+(o.y-target.y)*dy)>0);
   }
   hitTarget(target,raw,attacker,pierce=0) {
-    if(this.props.includes(target)){this.damageProp(target,raw);return;}
+    if(this.props.includes(target)||isBarrier(target)){this.damageProp(target,raw);return;}
     const cover=this.weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
     let damage=raw;
     if(cover){damage*=1-.45*(1-pierce);if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));this.log('敵方掩體吸收了部分傷害。');}
@@ -292,6 +311,11 @@ export class Game {
   }
   damageProp(prop,damage) {
     if(prop.indestructible)return;
+    if(isBarrier(prop)){
+      if(prop.hp<=0||!BARRIER_TYPES[prop.type].destructible)return;prop.hp=Math.max(0,prop.hp-Math.ceil(damage));
+      this.effects.push({type:'impact',from:{x:prop.x,y:prop.y},to:{x:prop.x,y:prop.y},damage:Math.ceil(damage),mechanical:true});
+      this.log(`${barrierName(prop)}${prop.hp?`耐久剩 ${prop.hp}。`:'已摧毀，通道打開。'}`);this.reveal();return;
+    }
     if(prop.hp<=0)return;
     prop.hp-=damage;
     if(prop.hp>0)return;
@@ -307,7 +331,7 @@ export class Game {
     this.effects.push({type:'shot',style:'grenade',color:def.color,from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     if(id==='frag')this.explode(pos,2,55+p.blastBonus);
     else {
-      const cells=areaCells(this.grid,pos),affected=new Set(cells.map(key));
+      const cells=areaCells(this.grid,pos,2,this.barriers),affected=new Set(cells.map(key));
       this.effects.push({type:'pulse',radius:2,color:def.color,from:{x:pos.x,y:pos.y},to:{x:pos.x,y:pos.y}});
       if(id==='smoke'){this.smoke=[...this.smoke,{cells,expires:this.turn+2}];this.log('煙霧展開：敵我視線受阻，爆炸仍可傷害。');}
       else for(const actor of [p,...this.enemies])if(affected.has(key(actor))&&applyDisruption(actor,def.keyword)){
@@ -321,11 +345,15 @@ export class Game {
   explode(center,radius,damage) {
     const origin={x:center.x,y:center.y};
     this.effects.push({type:'blast',from:origin,to:origin,damage:0,radius});
-    const affected=p=>distance(origin,p)<=radius&&lineOfSight(this.grid,origin,p);
+    const affected=p=>distance(origin,p)<=radius&&lineOfSight(this.grid,origin,p,this.barriers,'blast');
+    // Freeze shielding for this blast before destroying any of its barriers.
+    const hitProps=this.props.filter(o=>o.hp>0&&affected(o)),hitEnemies=this.enemies.filter(e=>e.hp>0&&affected(e)),hitPlayer=affected(this.player);
+    const hitEdges=this.barriers.filter(b=>b.hp>0&&distance(origin,b)<=radius&&lineOfSight(this.grid,origin,b,this.barriers.filter(e=>e!==b),'blast'));
+    for(const b of hitEdges)this.damageProp(b,damage);
     // Mark barrels as destroyed before recursion, so chain reactions terminate.
-    for(const prop of this.props.filter(o=>o.hp>0&&affected(o)))this.damageProp(prop,damage);
-    for(const e of this.enemies.filter(e=>e.hp>0&&affected(e)))this.hurt(e,reduceDirectDamage(e,Math.max(1,damage-distance(origin,e)*10)));
-    if(affected(this.player))this.damagePlayer(Math.max(1,damage-distance(origin,this.player)*10),'爆炸衝擊',null,true);
+    for(const prop of hitProps)this.damageProp(prop,damage);
+    for(const e of hitEnemies)this.hurt(e,reduceDirectDamage(e,Math.max(1,damage-distance(origin,e)*10)));
+    if(hitPlayer)this.damagePlayer(Math.max(1,damage-distance(origin,this.player)*10),'爆炸衝擊',null,true);
   }
   damagePlayer(raw,label,attacker=null,blast=false) {
     const p=this.player,cover=!blast&&attacker?this.protectingCover(p,attacker):null;
@@ -349,10 +377,10 @@ export class Game {
       if(los)e.lastKnown={x:p.x,y:p.y};
       if(d>16)return;
       if(def.seekCover&&los&&!e.charge&&!this.protectingCover(e,p)){
-        const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>this.passable(n.x,n.y,e)&&distance(n,p)>1&&!this.enemies.some(o=>o!==e&&o.hp>0&&distance(o,n)===0)&&!this.hazards.some(h=>distance(h,n)===0)&&distance(n,p)<=def.range&&this.sight(n,p)&&this.protectingCover({...e,...n},p));
+        const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>this.passable(n.x,n.y,e)&&this.canCross(e,n)&&distance(n,p)>1&&!this.enemies.some(o=>o!==e&&o.hp>0&&distance(o,n)===0)&&!this.hazards.some(h=>distance(h,n)===0)&&distance(n,p)<=def.range&&this.sight(n,p)&&this.protectingCover({...e,...n},p));
         if(spot){e.x=spot.x;e.y=spot.y;e.moved=true;return;}
       }
-      if((los&&d<=def.range)||(e.type==='sniper'&&e.charge&&e.aim)) {
+      if((los&&this.shotClear(e,p)&&d<=def.range&&(def.range>1||this.canCross(e,p)))||(e.type==='sniper'&&e.charge&&e.aim)) {
         if(e.type==='boss'&&(e.attackCount||0)%2===1&&!e.charge) {
           this.marks.push({x:p.x,y:p.y,due:this.turn+2});e.attackCount++;
           this.log('核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！',true);return;
@@ -361,7 +389,8 @@ export class Game {
         e.windup=(e.windup||1)-1;if(e.windup>0)return;
         if(e.type==='bomber'){this.hurt(e,e.hp);return;}
         fired=def.range>1;
-        if(e.type==='sniper'&&distance(p,e.aim||p)>0){this.log('狙擊彈擊中你原本的位置。');this.effects.push({type:'enemyShot',attackerType:'sniper',from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true});}
+        if(e.type==='sniper'&&e.aim&&!this.shotClear(e,e.aim)){const edge=firstBarrierOnRay(this.barriers,e,e.aim);this.log('狙擊彈被門或隔板阻擋。');this.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:edge?{x:edge.x,y:edge.y}:{...e.aim},damage:0});if(edge)this.damageProp(edge,def.damage+this.floor*2);}
+        else if(e.type==='sniper'&&distance(p,e.aim||p)>0){this.log('狙擊彈擊中你原本的位置。');this.effects.push({type:'enemyShot',attackerType:'sniper',from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true});}
         else {
           const chance=def.range>1?this.accuracy(e,p).chance:97;
           if(this.rng()*100<chance)this.damagePlayer(def.damage+this.floor*2,`${enemyName(e)}攻擊`,e);
@@ -370,12 +399,12 @@ export class Game {
         e.charge=Boolean(def.rapid);e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
       } else {
         e.charge=false;e.aim=null;e.windup=0;
-        const destination=this.smoke.length&&!los?e.lastKnown:p;
-        const step=destination&&distance(e,destination)>0?this.nextStep(e,destination):null;if(step){e.x=step.x;e.y=step.y;e.moved=true;}
+        const destination=(this.smoke.length||this.barriers.length)&&!los?e.lastKnown:p;
+        const step=destination&&distance(e,destination)>0?this.nextStep(e,destination):null;if(step){const edge=barrierBetween(this.barriers,e,step);if(edgeBlocks(edge)){if(['crawler','brute','bomber','boss'].includes(e.type))this.damageProp(edge,Math.max(15,def.damage));else this.setDoor(edge,true);}else{e.x=step.x;e.y=step.y;e.moved=true;}}
       }
       if((e.type==='boss'||e.type==='warden')&&e.hp<e.maxHp*.5&&!e.reinforced) {
         e.reinforced=true;
-        for(const [dx,dy]of DIRECTIONS.slice(0,2)){const x=e.x+dx,y=e.y+dy;if(this.passable(x,y)&&distance(p,{x,y})>0&&!this.enemies.some(o=>o.hp>0&&o.x===x&&o.y===y)){const drone=makeEnemy('drone',x,y,`${e.id}-reinforce-${dx}-${dy}`,this.floor);drone.alert=true;this.enemies.push(drone);}}
+        for(const [dx,dy]of DIRECTIONS.slice(0,2)){const x=e.x+dx,y=e.y+dy;if(this.passable(x,y)&&this.canCross(e,{x,y})&&distance(p,{x,y})>0&&!this.enemies.some(o=>o.hp>0&&o.x===x&&o.y===y)){const drone=makeEnemy('drone',x,y,`${e.id}-reinforce-${dx}-${dy}`,this.floor);drone.alert=true;drone.lastKnown=e.lastKnown?{...e.lastKnown}:null;this.enemies.push(drone);}}
         this.log(`${enemyName(e)}呼叫了無人機增援！`,true);
       }
     return fired;
@@ -386,7 +415,8 @@ export class Game {
     for(let i=0;i<queue.length&&i<SIZE*SIZE;i++)for(const [dx,dy]of DIRECTIONS) {
       const q=queue[i],x=q.x+dx,y=q.y+dy,k=`${x},${y}`;
       if(visited.has(k)||!this.passable(x,y,e))continue;
-      if(x===target.x&&y===target.y)return q.first||(distance(target,this.player)>0?{x,y}:null);
+      const edge=barrierBetween(this.barriers,q,{x,y});if(edgeBlocks(edge)&&edge.type!=='door')continue;
+      if(x===target.x&&y===target.y)return q.first||(distance(target,this.player)>0||edgeBlocks(edge)?{x,y}:null);
       if(occupied.has(k))continue;
       visited.add(k);queue.push({x,y,first:q.first||{x,y}});
     }return null;
@@ -432,7 +462,7 @@ export class Game {
     if(!WEAPONS[base]||this.player.owned.length>=PACK_LIMIT)return false;
     const item=this.registerWeapon({weapon:base});this.collectWeapon(item);return item.slot;
   }
-  nearbyWeapon(slot){return this.items.find(o=>o.type==='weapon'&&o.slot===slot&&distance(o,this.player)<=1);}
+  nearbyWeapon(slot){return this.items.find(o=>o.type==='weapon'&&o.slot===slot&&this.canTouch(o));}
   takeWeapon(slot) {
     const item=this.nearbyWeapon(slot);
     if(!item)return this.fail('附近沒有這把武器。');
@@ -481,7 +511,7 @@ export class Game {
   }
   descend(advanceTurn=true) {
     const p=this.player;
-    if(distance(p,this.end)>1)return this.fail('需要靠近綠色電梯。');
+    if(!this.canTouch(this.end))return this.fail('需要靠近綠色電梯。');
     if(this.bossAlive)return this.fail('本層頭目仍存活，電梯鎖定。');
     this.awardProtocol('floor',this.floor);
     if(this.floor===FLOORS.length){this.awardProtocol('extraction','win');this.status='won';this.log('訊號已恢復。撤離成功。');return true;}
@@ -505,11 +535,13 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,4,5,6,7,8,9,10,11,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,5,6,7,8,9,10,11,12,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
       if(!Array.isArray(data.props)||!Array.isArray(data.items))return null;
+      if(version<13)data.barriers=[];
+      if(!validBarriers(data.barriers,data.grid,[...data.enemies,...data.props].map(o=>o.id)))return null;
       const defaults=freshPlayer(),p={...defaults,...data.player};
       if(version<12){
         p.smoke=0;p.emp=0;p.stun=0;p.control=controlState();data.smoke=[];

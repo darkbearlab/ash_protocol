@@ -5,7 +5,7 @@ import {AMMUNITION} from '../src/ammunition.js';
 import {normalizeProfile} from '../src/progression.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 const output=new URL('./fixtures/3.9/',import.meta.url);await mkdir(output,{recursive:true});
-function arena(){const g=new Game(390);g.runId=`qa-independent-${Date.now()}`;g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.rooms=[];g.end={x:20,y:20};g.reveal();return g;}
+function arena(){const g=new Game(390);g.runId=`qa-independent-${Date.now()}`;g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.rooms=[];g.end={x:20,y:20};g.reveal();return g;}
 async function save(name,b){const raw=JSON.stringify(b,null,2);decodeBackup(raw,'qa');await writeFile(new URL(`${name}.json`,output),raw);}
 const g=arena(),p=normalizeProfile();p.protocol={balance:800,earned:800};await save('individual-upgrades',makeBackup(g,p,'qa'));
 const old=arena();old.setCarryLevel(3);for(const [id,info]of Object.entries(AMMUNITION))old.player[info.key]=old.ammoCapacity(id);

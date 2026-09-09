@@ -5,7 +5,7 @@ import {grantTrait} from '../src/traits.js';
 const folder=new URL('./fixtures/3.15/',import.meta.url);await mkdir(folder,{recursive:true});
 function arena(name,character='recon'){
   const g=new Game(3150,[],0,character,'portrait-06');g.runId=`qa-throwables-${name}`;
-  g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10,grenades:1,emp:1,stun:1,smoke:1,scrap:100});
+  g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10,grenades:1,emp:1,stun:1,smoke:1,scrap:100});
   g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rooms=[];g.end={x:20,y:20};return g;
 }
 function enemy(g,type,x,y){const e=makeEnemy(type,x,y,`${type}-${g.enemies.length}`);Object.assign(e,{hp:300,maxHp:300,alert:true,charge:true,windup:1,aim:{x:10,y:10}});g.enemies.push(e);return e;}

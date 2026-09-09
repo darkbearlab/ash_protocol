@@ -4,13 +4,13 @@ import {AMMUNITION,itemAmmo,TERMINAL_AMMO} from '../src/ammunition.js';
 import {Game,distance,WEAPONS} from '../src/engine.js';
 import {pathToFileURL} from 'node:url';
 
-export function route(game,goal) {
+export function route(game,goal,{ignoreEnemies=false}={}) {
   const p=game.player,queue=[{x:p.x,y:p.y,first:null}],seen=new Set([`${p.x},${p.y}`]);
   for(let i=0;i<queue.length;i++) {
     const q=queue[i];if(distance(q,goal)===0)return q.first;
     for(const [dx,dy]of[[1,0],[0,1],[-1,0],[0,-1]]) {
       const x=q.x+dx,y=q.y+dy,k=`${x},${y}`;
-      if(!game.passable(x,y)||seen.has(k)||game.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))continue;
+      if(!game.canRoute(q,{x,y})||!game.passable(x,y)||seen.has(k)||(!ignoreEnemies&&game.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y)))continue;
       if(game.hazards.some(h=>h.x===x&&h.y===y))continue;
       seen.add(k);queue.push({x,y,first:q.first||[dx,dy]});
     }
@@ -18,7 +18,7 @@ export function route(game,goal) {
 }
 function safeMove(g,predicate) {
   const p=g.player;
-  return [[0,-1],[1,0],[0,1],[-1,0]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy,step:[dx,dy]})).filter(n=>g.passable(n.x,n.y)&&!g.hazards.some(h=>distance(h,n)===0)&&!g.enemies.some(e=>e.hp>0&&distance(e,n)===0)&&predicate(n)).sort((a,b)=>g.visibleEnemies.filter(e=>e.charge&&distance(e,a)<=1).length-g.visibleEnemies.filter(e=>e.charge&&distance(e,b)<=1).length)[0]?.step;
+  return [[0,-1],[1,0],[0,1],[-1,0]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy,step:[dx,dy]})).filter(n=>g.passable(n.x,n.y)&&g.canCross(p,n)&&!g.hazards.some(h=>distance(h,n)===0)&&!g.enemies.some(e=>e.hp>0&&distance(e,n)===0)&&predicate(n)).sort((a,b)=>g.visibleEnemies.filter(e=>e.charge&&distance(e,a)<=1).length-g.visibleEnemies.filter(e=>e.charge&&distance(e,b)<=1).length)[0]?.step;
 }
 export function play(seed,maxActions=1800) {
   const g=new Game(seed);let invalid=0,actions=0;
@@ -44,7 +44,11 @@ export function play(seed,maxActions=1800) {
     const boss=g.enemies.find(e=>(e.type==='boss'||e.type==='warden')&&e.hp>0);
     let goal=needs.find(n=>route(g,n))||g.end;
     if(boss&&distance(p,g.end)<=5){const adjacent=[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dy])=>({x:boss.x+dx,y:boss.y+dy}));goal=adjacent.find(n=>route(g,n))||g.end;}
-    const step=route(g,goal);
+    // Approach an occupied corridor instead of waiting because the entire route is blocked.
+    // Still never issue a move into an enemy; a closed door may be opened from here.
+    const approach=route(g,goal,{ignoreEnemies:true});
+    const next=approach?{x:p.x+approach[0],y:p.y+approach[1]}:null;
+    const step=route(g,goal)||(next&&(!g.canCross(p,next)||!g.enemies.some(e=>e.hp>0&&distance(e,next)===0))?approach:null);
     if(step)act('move',step);
     else if(g.visibleEnemies.length){const e=g.visibleEnemies[0],near=[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>route(g,n));if(near)act('move',route(g,near));else act('wait');}
     else act('wait');

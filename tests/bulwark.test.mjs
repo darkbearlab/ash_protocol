@@ -9,7 +9,7 @@ import {targetDetails} from '../src/target-card.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
-function arena(Type=Game){const g=new Type(314,[],0,'bulwark','onyx');g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();return g;}
+function arena(Type=Game){const g=new Type(314,[],0,'bulwark','onyx');g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();return g;}
 function add(g,x=11,y=10){const e=makeEnemy('rifleman',x,y,'enemy');Object.assign(e,{hp:1000,maxHp:1000,alert:true,charge:true});g.enemies.push(e);g.target=e.id;g.reveal();return e;}
 
 test('Bulwark starts with independent large, clumsy, slow and armor traits and the two new weapons',()=>{

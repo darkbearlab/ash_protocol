@@ -8,7 +8,7 @@ import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
 function arena(character='soldier'){
-  const g=new Game(315,[],0,character);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));
+  const g=new Game(315,[],0,character);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));
   Object.assign(g.player,{x:10,y:10,grenades:0,hp:500,maxHp:500});
   g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rooms=[];
   g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();return g;

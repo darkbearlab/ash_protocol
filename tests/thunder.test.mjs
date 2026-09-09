@@ -5,7 +5,7 @@ import {CHARACTERS} from '../src/characters.js';
 import {captureAction,planPresentation} from '../src/presentation.js';
 import {rollAffix} from '../src/weapons.js';
 
-function arena(){const g=new Game(3148);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rng=()=>0;const item=g.registerWeapon({type:'weapon',weapon:8,x:10,y:10});g.items.push(item);g.pickup();g.player.weapon=item.slot;g.reveal();return g;}
+function arena(){const g=new Game(3148);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rng=()=>0;const item=g.registerWeapon({type:'weapon',weapon:8,x:10,y:10});g.items.push(item);g.pickup();g.player.weapon=item.slot;g.reveal();return g;}
 function add(g,x=14,y=10){const e=makeEnemy('brute',x,y,'target');Object.assign(e,{hp:1000,maxHp:1000,alert:false});g.enemies.push(e);g.target=e.id;g.reveal();return e;}
 test('Thunder is loot-only, appears in later armories and heavy-enemy drops, and keeps the guaranteed cache',()=>{
   assert.equal(WEAPONS[8].lootOnly,true);assert.ok(Object.values(CHARACTERS).every(c=>!c.weapons.includes(8)));

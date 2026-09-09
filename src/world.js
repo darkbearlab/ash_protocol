@@ -1,3 +1,4 @@
+import {blockedBetween,barrierBetween,makeBarrier,edgeCells,edgeKey} from './barriers.js';
 import {startingTraits} from './traits.js';
 import {SIZE,ENEMY_TYPES,FLOOR_INFO,WEAPONS,RARE_ARMORY} from './data.js';
 import {weaponUnlocked} from './progression.js';
@@ -9,7 +10,7 @@ export function random(seed) {
 export const distance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 export const key=(p)=>`${p.x},${p.y}`;
 export const DIRECTIONS=[[0,-1],[1,0],[0,1],[-1,0]];
-export function lineOfSight(grid,a,b) {
+export function lineOfSight(grid,a,b,barriers=[],channel='sight') {
   let x=Math.floor(a.x+.5),y=Math.floor(a.y+.5);
   const endX=Math.floor(b.x+.5),endY=Math.floor(b.y+.5),dx=b.x-a.x,dy=b.y-a.y,sx=Math.sign(dx),sy=Math.sign(dy);
   if(grid[y]?.[x]!==1||grid[endY]?.[endX]!==1)return false;
@@ -17,8 +18,14 @@ export function lineOfSight(grid,a,b) {
   let tx=dx?(x+(sx>0?.5:-.5)-a.x)/dx:Infinity,ty=dy?(y+(sy>0?.5:-.5)-a.y)/dy:Infinity;
   for(let i=0;i<SIZE*3;i++){
     if(x===endX&&y===endY)return true;
-    if(Math.abs(tx-ty)<1e-9){if(grid[y]?.[x+sx]!==1&&grid[y+sy]?.[x]!==1)return false;x+=sx;y+=sy;tx+=stepX;ty+=stepY;}
-    else if(tx<ty){x+=sx;tx+=stepX;}else{y+=sy;ty+=stepY;}
+    if(Math.abs(tx-ty)<1e-9){
+      const from={x,y},across={x:x+sx,y:y+sy},horizontal={x:x+sx,y},vertical={x,y:y+sy};
+      const viaX=grid[y]?.[x+sx]===1&&!blockedBetween(barriers,from,horizontal,channel)&&!blockedBetween(barriers,horizontal,across,channel);
+      const viaY=grid[y+sy]?.[x]===1&&!blockedBetween(barriers,from,vertical,channel)&&!blockedBetween(barriers,vertical,across,channel);
+      if(!viaX&&!viaY)return false;x+=sx;y+=sy;tx+=stepX;ty+=stepY;
+    }
+    else if(tx<ty){if(blockedBetween(barriers,{x,y},{x:x+sx,y},channel))return false;x+=sx;tx+=stepX;}
+    else{if(blockedBetween(barriers,{x,y},{x,y:y+sy},channel))return false;y+=sy;ty+=stepY;}
     if(grid[y]?.[x]!==1)return false;
   }return false;
 }
@@ -102,10 +109,37 @@ export function generate(seed,floor=1,unlocks=[]) {
     const floors=reachable({...map,props:[]},start);
     if(destinations.some(p=>!seen.has(key(p)))||floors.size!==grid.flat().filter(n=>n===1).length){for(const p of walls)grid[p.y][p.x]=1;props.splice(previousProps);}
   });
+  map.barriers=[];
+  // A few single-width corridor doors, after terrain/RNG generation is complete.
+  const occupied=p=>props.some(o=>o.hp>0&&o.x===p.x&&o.y===p.y);
+  for(const [i,r]of rooms.entries()){
+    if(i===startRoom||map.barriers.length>=3)continue;
+    const candidates=[];
+    for(let y=r.y+1;y<r.y+r.h-1;y++)candidates.push([{x:r.x,y},{x:r.x-1,y}],[{x:r.x+r.w-1,y},{x:r.x+r.w,y}]);
+    for(let x=r.x+1;x<r.x+r.w-1;x++)candidates.push([{x,y:r.y},{x,y:r.y-1}],[{x,y:r.y+r.h-1},{x,y:r.y+r.h}]);
+    const pair=candidates.find(([a,b])=>grid[a.y]?.[a.x]===1&&grid[b.y]?.[b.x]===1&&!occupied(a)&&!occupied(b)&&corridors.has(key(b))&&(a.x!==b.x?grid[b.y-1]?.[b.x]!==1&&grid[b.y+1]?.[b.x]!==1:grid[b.y]?.[b.x-1]!==1&&grid[b.y]?.[b.x+1]!==1)&&!barrierBetween(map.barriers,a,b));
+    if(pair)map.barriers.push(makeBarrier('door',...pair,`edge-${floor}-entrance-${i}`));
+  }
+  // One neutral 2x2 compartment. It is terrain only; themed room modules come later.
+  let placed=false;
+  for(const [i,r]of rooms.entries()){
+    if(i===startRoom||placed)continue;
+    for(let y=r.y+1;y<r.y+r.h-2&&!placed;y++)for(let x=r.x+1;x<r.x+r.w-2&&!placed;x++){
+      const cells=[{x,y},{x:x+1,y},{x,y:y+1},{x:x+1,y:y+1}];
+      if(cells.some(p=>grid[p.y]?.[p.x]!==1||corridors.has(key(p))||occupied(p)||[start,end].some(q=>key(q)===key(p))))continue;
+      const pairs=[];for(const cell of cells)for(const [dx,dy]of DIRECTIONS){const other={x:cell.x+dx,y:cell.y+dy};if(!cells.some(p=>key(p)===key(other)))pairs.push([cell,other]);}
+      const boundaries=pairs.filter(([,b])=>grid[b.y]?.[b.x]===1);
+      if(!boundaries.length||boundaries.some(([a,b])=>occupied(b)||barrierBetween(map.barriers,a,b)))continue;
+      const addition=boundaries.map(([a,b],n)=>makeBarrier(n===0?'door':'partition',a,b,`edge-${floor}-cell-${i}-${n}`));
+      const previous=map.barriers;map.barriers=[...previous,...addition];
+      const accessible=reachable(map,start),all=reachable({...map,props:[]},start);
+      if(destinations.some(p=>!accessible.has(key(p)))||all.size!==grid.flat().filter(v=>v===1).length)map.barriers=previous;else placed=true;
+    }
+  }
   return map;
 }
-export function reachable(map,start) {
+export function reachable(map,start,{openDoors=true}={}) {
   const queue=[start],seen=new Set([key(start)]);
-  for(let i=0;i<queue.length;i++)for(const [dx,dy]of DIRECTIONS){const p={x:queue[i].x+dx,y:queue[i].y+dy};if(map.grid[p.y]?.[p.x]===1&&!seen.has(key(p))&&!map.props.some(o=>o.hp>0&&(o.type==='cover'||o.type==='barrel')&&o.x===p.x&&o.y===p.y)){seen.add(key(p));queue.push(p);}}
+  for(let i=0;i<queue.length;i++)for(const [dx,dy]of DIRECTIONS){const p={x:queue[i].x+dx,y:queue[i].y+dy},edge=barrierBetween(map.barriers,queue[i],p);if(blockedBetween(map.barriers,queue[i],p)&&!(openDoors&&edge.type==='door'))continue;if(map.grid[p.y]?.[p.x]===1&&!seen.has(key(p))&&!map.props.some(o=>o.hp>0&&(o.type==='cover'||o.type==='barrel')&&o.x===p.x&&o.y===p.y)){seen.add(key(p));queue.push(p);}}
   return seen;
 }

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,combatSight,lineOfSight,makeEnemy,generate,ENEMY_TYPES,random} from '../src/engine.js';
 
-function arena(seed=7){const g=new Game(seed);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.player.x=10;g.player.y=10;g.props=[];g.items=[];g.hazards=[];g.marks=[];g.enemies=[];g.reveal();return g;}
+function arena(seed=7){const g=new Game(seed);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.player.x=10;g.player.y=10;g.props=[];g.items=[];g.hazards=[];g.marks=[];g.enemies=[];g.reveal();return g;}
 function elbow(){const grid=Array.from({length:SIZE},()=>Array(SIZE).fill(0));for(let x=1;x<=5;x++)grid[3][x]=1;for(let y=3;y<=8;y++)grid[y][5]=1;return grid;}
 
 test('a corner permits reciprocal leaning and shooting, not movement through walls',()=>{

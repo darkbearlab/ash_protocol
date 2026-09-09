@@ -5,7 +5,7 @@ import {AMMUNITION,AMMO_IDS,capacity,carryLevels,splitLegacyRounds,CARRY_COSTS} 
 import {normalizeProfile} from '../src/progression.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 
-function arena(){const g=new Game(51);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.reveal();return g;}
+function arena(){const g=new Game(51);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.reveal();return g;}
 const stock=(g,type)=>g.player[AMMUNITION[type].key]+g.items.filter(i=>i.type===AMMUNITION[type].item).reduce((sum,i)=>sum+(i.amount??AMMUNITION[type].pickup),0);
 
 test('five reserves reload only their matching weapons and wrong ammunition cannot pay for reload',()=>{
