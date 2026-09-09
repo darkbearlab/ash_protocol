@@ -1,0 +1,198 @@
+{
+  "sourceSHA256": "e50b118235109c8c9cb44babf4d6338f80be35468a36ab48242596a0725ff9eb",
+  "pillow": "12.2.0",
+  "grid": [
+    4,
+    4
+  ],
+  "tileSize": 32,
+  "colors": 32,
+  "rgb": "RGB555",
+  "sampling": "NEAREST",
+  "alphaThreshold": 224,
+  "floorGain": [
+    0.78,
+    0.78,
+    0.53,
+    0.74
+  ],
+  "sprites": {
+    "floor-metal": {
+      "index": 0,
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "colors": 17,
+      "sha256": "57ad30744c6814a683785acac703da7adc324c584021c6c4993cbb4ac11344dd"
+    },
+    "floor-grate": {
+      "index": 1,
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "colors": 17,
+      "sha256": "1af52d8c9d1405732baabd5c9a63d1fb522d9439953c91e2f2c6d198cfdfcc76"
+    },
+    "floor-restroom": {
+      "index": 2,
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "colors": 12,
+      "sha256": "a090a633e29c78637d0c2898ac3c26e8df59c5ccbe3e2b17ac99426692abdfb9"
+    },
+    "floor-checkpoint": {
+      "index": 3,
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "colors": 13,
+      "sha256": "13b4f6353b7d7fb2a54a19e66acb28840a3fc4978874e0b7e0ded609179cebcf"
+    },
+    "toilet": {
+      "index": 4,
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "colors": 23,
+      "sha256": "27d50378ee383fbce5fda0a004aebc5a0c87bb33cbaeb3e8dcc7826e364c0521"
+    },
+    "sink": {
+      "index": 5,
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "colors": 21,
+      "sha256": "d6430dc30b860280f37ed17d9c7387c290cc78266163c80adceb93f128f8a2fd"
+    },
+    "counter": {
+      "index": 6,
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "colors": 23,
+      "sha256": "17052ac73ab7537fbb8d220b03b5b02c3bd16aa0082fea0ea34fe7528422c551"
+    },
+    "scanner": {
+      "index": 7,
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "colors": 24,
+      "sha256": "d9d7e1ee7154052a136465d31c756acb5326b456ffb69da2db6ab9c4efc261e9"
+    },
+    "locker": {
+      "index": 8,
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "colors": 25,
+      "sha256": "ccd464ee6e92756ea4363c49270f68594e73b5fe325e821f09470e54d5e161ed"
+    },
+    "bench": {
+      "index": 9,
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "colors": 14,
+      "sha256": "450c0c4c85ad08e20412e818da711fb527fbf01a4ad36f88832c60e85f28b75c"
+    },
+    "cover": {
+      "index": 10,
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "colors": 24,
+      "sha256": "0dab8d63bf3827fcbfaedf0d8e6faf14a5913a564b4346d38ccbfc0fe8e8ded6"
+    },
+    "barrel": {
+      "index": 11,
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "colors": 19,
+      "sha256": "ccfab6453a83b9f1b30b295fa9bd03924e6cd70a36bfce872e7313054619c7bf"
+    },
+    "terminal": {
+      "index": 12,
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "colors": 25,
+      "sha256": "650d50372dec4a51b3219f060487ee3dee704fe3db5fba9c71153b7b5d7f1fd1"
+    },
+    "case": {
+      "index": 13,
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "colors": 25,
+      "sha256": "de8ec2a6c15e6cb98d1b60754a876300406bd1f25c482022507331014599d179"
+    },
+    "door": {
+      "index": 14,
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "colors": 18,
+      "sha256": "a779c50469d64b2eac2e288e666593f94a2cfc50c5a72b2a635b2a183d1fe278"
+    },
+    "partition": {
+      "index": 15,
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "colors": 19,
+      "sha256": "de40426a39b5d5750653036df854f22d0205cce3799c5d8f9878e70e2bdfc80b"
+    }
+  },
+  "atlasSHA256": "453a03f948c83796a3e52ddf2cd81789cae4f28b1a59eaec018ef464354657d9"
+}
