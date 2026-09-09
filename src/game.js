@@ -1,3 +1,4 @@
+import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits} from './characters.js';
 import {defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns} from './prepared.js';
 import {activeTrait,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory} from './traits.js';
@@ -13,10 +14,11 @@ const freshPlayer=()=>({character:'soldier',moveDelta:[0,0],fireChain:null,prepa
 export const enemyName=e=>ENEMY_TYPES[e.type]?.name||'未知單位';
 
 export class Game {
-  constructor(seed=Date.now()%1000000,unlocks=[],carrying=0,character='soldier') {
+  constructor(seed=Date.now()%1000000,unlocks=[],carrying=0,character='soldier',portrait=pickPortrait()) {
     if(!validCharacter(character))throw new Error('未知角色。');
+    if(!validPortrait(portrait))throw new Error('未知頭像。');
     this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
-    this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
+    this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.player.plates=0;this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
     this.logs=[];this.status='playing';this.pendingPerks=0;this.effects=[];this.loadFloor();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
@@ -452,12 +454,14 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,4,5,6,7,8,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,5,6,7,8,9,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
       if(!Array.isArray(data.props)||!Array.isArray(data.items))return null;
       const defaults=freshPlayer(),p={...defaults,...data.player};
+      if(version<10)p.portrait=portraitForLegacy(data.runId??data.seed);
+      if(!validPortrait(p.portrait))return null;
       if(version<8){p.prepared=defaultPrepared();p.skills=[];}
       if(!validPrepared(version>=8?data.player:p))return null;
       if(version<7){p.traits=[];for(const e of data.enemies)e.traits=startingTraits(e.type,data.floor);}

@@ -57,13 +57,13 @@ test('lost-target committed shots still build correction without revealing or hi
 });
 test('sidestep is relative to each shooter, excludes forward/backward and exact diagonal, and stacks with agile',()=>{
   const g=arena('recon'),east=enemy(g),south=enemy(g,10,14,'south');g.player.moved=true;g.player.moveDelta=[0,1];
-  assert.equal(g.accuracy(east,g.player).sidePenalty,15);assert.equal(g.accuracy(east,g.player).chance,60);assert.equal(g.accuracy(south,g.player).chance,75);
-  assert.equal(sidestepPenalty({x:14,y:14},g.player),0);grantTrait(g.player,'agile','test');assert.equal(g.accuracy(east,g.player).chance,47);
+  assert.equal(g.accuracy(east,g.player).sidePenalty,20);assert.equal(g.accuracy(east,g.player).chance,55);assert.equal(g.accuracy(south,g.player).chance,75);
+  assert.equal(sidestepPenalty({x:14,y:14},g.player),0);grantTrait(g.player,'agile','test');assert.equal(g.accuracy(east,g.player).chance,42);
   g.player.moveDelta=[1,0];assert.equal(sidestepPenalty(east,g.player),0);g.player.moveDelta=[-1,0];assert.equal(sidestepPenalty(east,g.player),0);
-  east.moved=true;east.moveDelta=[0,1];grantTrait(east,'sidestep','test');assert.equal(g.accuracy(g.player,east).sidePenalty,15);
+  east.moved=true;east.moveDelta=[0,1];grantTrait(east,'sidestep','test');assert.equal(g.accuracy(g.player,east).sidePenalty,20);
 });
 test('movement history follows actual cardinal movement and ends at the next paid action',()=>{
-  const g=arena('recon'),e=enemy(g);g.action('move',[0,1]);assert.deepEqual(g.player.moveDelta,[0,1]);assert.equal(g.accuracy(e,g.player).sidePenalty,15);
+  const g=arena('recon'),e=enemy(g);g.action('move',[0,1]);assert.deepEqual(g.player.moveDelta,[0,1]);assert.equal(g.accuracy(e,g.player).sidePenalty,20);
   g.player.ammo[2]=3;g.action('reload');assert.deepEqual(g.player.moveDelta,[0,1]);assert.equal(g.player.moved,true);g.action('wait');assert.deepEqual(g.player.moveDelta,[0,0]);assert.equal(g.accuracy(e,g.player).sidePenalty,0);
   const moving=arena(),f=enemy(moving,19,10);f.charge=false;moving.action('wait');assert.equal(f.moved,true);assert.equal(Math.abs(f.moveDelta[0])+Math.abs(f.moveDelta[1]),1);
 });

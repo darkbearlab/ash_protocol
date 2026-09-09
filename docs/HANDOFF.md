@@ -1,6 +1,17 @@
-# 快速接手：ASH PROTOCOL 3.12.0
+# 快速接手：ASH PROTOCOL 3.13.0
 
 最後更新：2026-09-09。先讀本檔，再讀 DESIGN.md 和 RELEASE.md。
+
+## 3.13.0：暴露側身與隨局像素頭像
+
+使用者測試期間追加此批。下方 3.12 的側身 −15 是歷史數值，已由此節與 CHARACTERS.md 取代。
+
+- 側身基礎額外 −20；暴露時以 max(20,42−movePenalty) 補足，移動＋側身至少 −42，等同牆角命中懲罰。敏捷可更強，追獵／笨拙不突破暴露側身下限。敵我共用；一般暴露側身被命中 55%，敏捷 42%，沒有額外減傷。方向／交叉火力／回合期限不變。
+- src/portraits.js 頭像池四張，選角畫面每次獨立隨機、同次兩角色不重複，確認後將預覽 ID 傳入 Game 第五參數。player.portrait 隨局保存，不消耗遊戲 RNG。背包／繼續任務／結算顯示，只有 dead 蓋 KIA；撤離／放棄不蓋。
+- 單局 v10 接受 v1–v9；舊局由 runId/seed 雜湊補固定頭像，v9 留原件。profile v4／backup v1 不變，新歷史可存 portrait。新未知 ID 拒絕載入，原角色／裝備／回合／RNG 保留。
+- 內建 GPT Image 四張日系原圖和提示位於 art/portraits；tools/pixelize_portraits.py 轉 64×64、最多 32 色、RGB555、無抖色。成品 assets/pixel/portraits，共約 9 KB，SW 預快取。來源／manifest／預覽保留，詳見 PORTRAITS.md。
+- 使用者建議未來一次產 4×4 頭像圖集再切割，此批四張已生成而沿用。未改地圖精靈，未新增煙霧／EMP／技能。
+- 159 項自動測試與 npm run build 通過；新增頭像持久化／舊原件／備份／RNG、KIA 狀態、全部六槍與詞條／大小／敏捷笨拙的側身和牆體對照。手機／瀏覽器不自測，交 qa/create-3.13-fixtures.mjs 四場景與根目錄驗證紙條；發布 main／Pages 後停手。
 
 ## 3.12.0：Soldier／Recon 與四個角色被動
 

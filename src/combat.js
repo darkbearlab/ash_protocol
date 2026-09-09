@@ -36,7 +36,9 @@ export function shotChance(game,attacker,target) {
   const weapon=attacker===game.player?game.weapon:null,accuracyBonus=weapon?.accuracyBonus||0;
   const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)-(weapon?.tracking||0)):0,coverPenalty=cover?(cover.type==='wall'?42:35):0;
   const focusBonus=attacker.focus?15:0,evasionPenalty=target.evasive?15:0;
-  const bracedBonus=bracingBonus(game,attacker,target),trackingBonus=correctionBonus(attacker,target===game.player?'player':target.id,game.turn),sidePenalty=sidestepPenalty(attacker,target);
+  const bracedBonus=bracingBonus(game,attacker,target),trackingBonus=correctionBonus(attacker,target===game.player?'player':target.id,game.turn),sideBase=sidestepPenalty(attacker,target);
+  // In the open, lateral evasion must match wall cover even against tracking.
+  const sidePenalty=sideBase?Math.max(sideBase,cover?0:42-movePenalty):0;
   const chance=Math.max(10,Math.min(99,base+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty));
   return {chance,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }

@@ -1,0 +1,37 @@
+{
+  "size": 64,
+  "maxColors": 32,
+  "channels": "RGB555",
+  "dither": false,
+  "pillow": "12.2.0",
+  "portraits": [
+    {
+      "id": "ember",
+      "sourceSHA256": "6e65703a95f03ae74743ce7100a201e0378a6e285b70a7a9b758b5aa7c0fb083",
+      "outputSHA256": "6cdc8fa7467645bebd4f584a3fe75bc6e24be2ae640e5fcf50a01f69473ccab1",
+      "colors": 24,
+      "bytes": 2203
+    },
+    {
+      "id": "onyx",
+      "sourceSHA256": "76e586f2e61d373da24134a408946008a389b400ecdd8749fee57150093db37c",
+      "outputSHA256": "45747c62ab6f985fbaccbbf4f1fdc716b438a56110289b8e3f26e386cba4e0c0",
+      "colors": 21,
+      "bytes": 2278
+    },
+    {
+      "id": "silver",
+      "sourceSHA256": "726f482317f4dbd4dc111ead5e2b9d92352241a0c6b2cb7bcaa91bc347d5d6cd",
+      "outputSHA256": "7a5c5e6ff05a364c6360c45305c5c324300f1c20b631a4ffd041e00c5960f140",
+      "colors": 27,
+      "bytes": 2255
+    },
+    {
+      "id": "cedar",
+      "sourceSHA256": "23ec7c90a662b5167919d55bc7ec3ec5efd7118333496518a341640cb295ca19",
+      "outputSHA256": "831ff71bb2009a9d5d0d9f27bfe505d17b5453bbbac360772587ba039823c0e1",
+      "colors": 24,
+      "bytes": 2184
+    }
+  ]
+}

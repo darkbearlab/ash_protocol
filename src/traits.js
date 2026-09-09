@@ -2,7 +2,7 @@
 export const TRAITS={
   braced:{name:'架槍',text:'自己相對射擊目標受到掩體保護時，命中 +12。'},
   correction:{name:'著彈修正',short:'修正',text:'連續回合射擊同一敵人，後續命中每次 +8，最高 +24；未命中仍累積。'},
-  sidestep:{name:'側身',text:'相對攻擊者主要橫向移動時，被射擊命中額外 −15。'},
+  sidestep:{name:'側身',text:'相對攻擊者主要橫向移動時，被射擊命中額外 −20；暴露時移動與側身合計至少 −42。'},
   quick_reload:{name:'快速裝填',short:'快填',text:'使用手槍彈的武器裝填不耗回合，仍消耗備彈。'},
   large:{name:'大型',opposite:'small',text:'被射擊命中率 +15 個百分點。'},
   small:{name:'小型',opposite:'large',text:'被射擊命中率 −15 個百分點。'},
@@ -45,7 +45,7 @@ export function recordShot(actor,targetId,turn){
 export function sidestepPenalty(attacker,target){
   if(!target.moved||!activeTrait(target,'sidestep')||!target.moveDelta)return 0;
   const [mx,my]=target.moveDelta,dx=attacker.x-target.x,dy=attacker.y-target.y;
-  return Math.abs(mx*dy-my*dx)>Math.abs(mx*dx+my*dy)?15:0;
+  return Math.abs(mx*dy-my*dx)>Math.abs(mx*dx+my*dy)?20:0;
 }
 export function validCombatMemory(actor,turn){
   const d=actor.moveDelta,c=actor.fireChain;
