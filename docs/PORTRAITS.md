@@ -1,5 +1,7 @@
 # 隨局頭像（3.13.0）
 
+3.14.0：使用者認可第二輪風格，正式採用 art/portraits-v2 的 16 張 64×64／16 色成品。前四張沿用 ember／onyx／silver／cedar ID，其餘 portrait-05–16；舊檔雜湊仍固定四 ID。重建使用 python tools/pixelize_portrait_atlas.py --install；下方 3.13 第一輪來源保留，舊處理程式現只寫 art/portraits/cells-v1，避免覆蓋新池。
+
 四張原創日系正面頭像由內建 GPT Image 生成，經 Python／Pillow 處理成真正 64×64、最多 32 色的索引 PNG，RGB 各通道限制在 5-bit 色階，不抖色；介面用最近鄰放大。外觀不影響職業、能力、地圖或戰鬥亂數。
 
 - `src/portraits.js`：穩定 ID `ember / onyx / silver / cedar`。追加新圖可擴充池，已發布 ID 不刪改；路徑由白名單取得。

@@ -1,10 +1,11 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 10;
+export const SAVE_VERSION = 11;
 export const PACK_LIMIT = 3;
 export const PLATE_CAPACITY = 30;
 export const SUPPLY_ROOMS={ammo:{name:'彈藥庫',color:'#d9bd7b'},medical:{name:'醫療室',color:'#a9d9ac'},armor:{name:'裝甲庫',color:'#92c4df'}};
-export const ENEMY_LOOT={rifleman:{weapon:0,chance:.12,ammo:'ammo'},raider:{weapon:2,chance:.18,ammo:'pistol'},gunner:{weapon:1,chance:.14,ammo:'shell'},sniper:{weapon:3,chance:.2,ammo:'ammo'},drone:{ammo:'energy'},warden:{weapon:4,chance:1,ammo:'energy'},boss:{ammo:'ordnance'}};
+export const RARE_ARMORY={weapon:8,minFloor:3,chance:.2};
+export const ENEMY_LOOT={rifleman:{weapon:0,chance:.12,ammo:'ammo'},raider:{weapon:2,chance:.18,ammo:'pistol'},gunner:{weapon:1,chance:.14,ammo:'shell'},sniper:{weapon:3,chance:.2,ammo:'ammo'},drone:{ammo:'energy'},brute:{rareWeapon:8,rareChance:.1},warden:{weapon:4,chance:1,ammo:'energy',rareWeapon:8,rareChance:.15},boss:{ammo:'ordnance'}};
 export const WEAPONS = [
   { id:'rifle', weaponClass:'rifle', name:'餘燼突擊步槍', type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'rifle', desc:'可靠的中距離主力，適合多數交戰。' },
   { id:'shotgun', weaponClass:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, range:4, mag:4, file:'shotgun', ammoType:'shell', splash:1, desc:'近距離高傷害。目標鄰格受到 45% 濺射傷害。' },
@@ -12,6 +13,9 @@ export const WEAPONS = [
   { id:'sniper', weaponClass:'sniper', name:'寂靜精準步槍', type:'PRECISION RIFLE', code:'SR–07', min:52, max:66, range:10, mag:3, file:'sniper', ammoType:'rifle', pierce:0.7, desc:'長距離單發重擊，穿透 70% 裝甲與掩體減傷。' },
   { id:'plasma', weaponClass:'plasma', name:'極光電漿步槍', type:'PLASMA CARBINE', code:'PL–08', min:35, max:44, range:7, mag:6, file:'plasma', ammoType:'energy', pierce:0.5, desc:'消耗能量電池，穿透 50% 防護並擅長對抗機械。' },
   { id:'launcher', weaponClass:'launcher', name:'日蝕榴彈發射器', type:'GRENADE LAUNCHER', code:'GL–03', min:54, max:64, range:6, mag:2, file:'launcher', ammoType:'ordnance', explosive:true, desc:'爆炸半徑 1 格。無視掩體，會傷害自己與引爆油桶。' },
+  {id:'lmg',weaponClass:'lmg',name:'堡壘輕機槍',type:'LIGHT MACHINE GUN',code:'LM–30',min:18,max:22,range:7,mag:30,file:'lmg',ammoType:'rifle',burst:3,desc:'使用步槍彈，每次三連發，適合持續壓制。'},
+  {id:'powerfist',weaponClass:'melee',name:'震擊動力拳',type:'POWER GAUNTLET',code:'PF–01',min:70,max:90,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,hitChance:99,pierce:.5,desc:'相鄰一格近戰，命中 99%，無限使用、無須裝填。無視掩體，穿透 50% 裝甲。裝甲內建，雙向切換免費；不能拆解或交換，可改裝至 +3。'},
+  {id:'thunder',weaponClass:'burst_launcher',name:'雷鳴爆彈槍',type:'BURST GRENADE RIFLE',code:'TB–09',min:24,max:30,range:6,mag:9,file:'thunder',ammoType:'ordnance',burst:3,explosive:true,lootOnly:true,desc:'三連發爆彈，每發命中後爆炸半徑 1 格；會自傷及引爆油桶。使用榴彈彈藥，僅能探索拾取。'},
 ];
 export const FLOORS = ['軌道轉運站','污染冷卻區','軍械封鎖區','生化培養艙','高壓熔爐','深淵反應核心'];
 export const FLOOR_INFO = [
@@ -35,7 +39,7 @@ export const ENEMY_TYPES = {
   boss:{ name:'核心守衛', hp:280, damage:22, range:7, armor:7, color:'#df785f', xp:6, mechanical:true, role:'反應核心頭目。交替槍擊與延遲轟炸，離開紅色標記。' },
 };
 export const PERKS = [
-  {id:'damage',name:'高壓彈藥',text:'武器每發傷害 +6。'},
+  {id:'damage',name:'武器增幅',text:'武器每發／每次近戰傷害 +6。'},
   {id:'health',name:'生存本能',text:'最大生命 +25，立即回復 40 生命。'},
   {id:'armor',name:'複合裝甲',text:'每次直接受傷減少 3 點。'},
   {id:'med',name:'戰地補給',text:'獲得 2 醫療包、2 手榴彈與分類備彈。'},

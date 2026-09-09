@@ -1,7 +1,8 @@
 // Cosmetic choices never consume the map/combat RNG. IDs are persisted with the run.
-export const PORTRAITS=Object.freeze(['ember','onyx','silver','cedar']);
+const LEGACY_PORTRAITS=Object.freeze(['ember','onyx','silver','cedar']);
+export const PORTRAITS=Object.freeze([...LEGACY_PORTRAITS,...Array.from({length:12},(_,i)=>`portrait-${String(i+5).padStart(2,'0')}`)]);
 export const validPortrait=id=>typeof id==='string'&&PORTRAITS.includes(id);
-export function portraitForLegacy(key){let hash=2166136261;for(const c of String(key))hash=Math.imul(hash^c.charCodeAt(0),16777619);return PORTRAITS[(hash>>>0)%PORTRAITS.length];}
+export function portraitForLegacy(key){let hash=2166136261;for(const c of String(key))hash=Math.imul(hash^c.charCodeAt(0),16777619);return LEGACY_PORTRAITS[(hash>>>0)%LEGACY_PORTRAITS.length];}
 export function pickPortrait(random=Math.random){return PORTRAITS[Math.min(PORTRAITS.length-1,Math.max(0,Math.floor(random()*PORTRAITS.length)))];}
 export function deploymentPortraits(characters,random=Math.random){
   const pool=[...PORTRAITS],result={};

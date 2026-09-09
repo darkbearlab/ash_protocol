@@ -121,7 +121,7 @@ test('target cards explain effective order and cancelled traits; spawn defaults 
 });
 
 test('lost-target commitment respects every weapon ammunition cost, burst remainder and replay',()=>{
-  for(const [slot,ammo,spent] of [[0,8,1],[1,4,1],[2,18,2],[2,1,1],[3,3,1],[4,5,1],[5,2,1]]){
+  for(const [slot,ammo,spent] of [[0,8,1],[1,4,1],[2,18,2],[2,1,1],[3,3,1],[4,5,1],[5,2,1],[6,30,3],[8,9,3],[8,2,2]]){
     const g=arena(EscapeGame),e=enemy(g,'escape');trait(e,'fast');g.escape={x:14,y:12};g.target=e.id;
     for(let x=0;x<SIZE;x++)g.grid[11][x]=0;
     g.player.owned=[slot];g.player.weapon=slot;g.player.ammo[slot]=ammo;

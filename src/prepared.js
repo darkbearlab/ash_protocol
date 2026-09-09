@@ -22,4 +22,4 @@ export function validPrepared(player){
 }
 // Switching TO a handgun can be free. Ammo type never determines equip cost (SMG stays 1).
 // No handgun is available yet; future definitions opt in with weaponClass:'pistol'.
-export function weaponSwitchTurns(weapon){return weapon?.weaponClass==='pistol'?0:1;}
+export function weaponSwitchTurns(weapon,current){return weapon?.integrated||current?.integrated||weapon?.weaponClass==='pistol'?0:1;}

@@ -6,6 +6,9 @@ Does not overwrite the live portrait pool. Only Pillow is required.
 from pathlib import Path
 import hashlib
 import json
+import argparse
+import shutil
+from pixelize_portraits import pixelize as pixelize_v1
 from PIL import Image, ImageDraw, __version__
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +35,7 @@ def convert(cell):
     return quantized
 
 def main():
+    parser=argparse.ArgumentParser();parser.add_argument("--install",action="store_true",help="Install approved v2 portraits into the live asset pool");args=parser.parse_args()
     target = FOLDER / 'cells'; target.mkdir(parents=True, exist_ok=True)
     source = FOLDER / 'source-atlas.png'
     atlas = Image.open(source).convert('RGBA'); w, h = atlas.size
@@ -49,16 +53,21 @@ def main():
         sheet.paste(sprite.convert('RGB').resize((192,192),Image.Resampling.NEAREST),(x*212+10,y*224+22))
         draw.text((x*212+10,y*224+5),name,fill=(214,222,198))
         if i<4:
-            old = Image.open(ROOT / 'assets/pixel/portraits' / f"{('ember','onyx','silver','cedar')[i]}.png").convert('RGB')
+            old = pixelize_v1(Image.open(ROOT / 'art/portraits' / f"{('ember','onyx','silver','cedar')[i]}.png")).convert('RGB')
             compare.paste(old.resize((192,192),Image.Resampling.NEAREST),(x*212+10,22))
             compare.paste(sprite.convert('RGB').resize((192,192),Image.Resampling.NEAREST),(x*212+10,246))
             labels.text((x*212+10,5),f'OLD {name} / 32 colors max',fill=(214,222,198))
             labels.text((x*212+10,229),f'NEW {name} / 16 colors max',fill=(214,222,198))
         records.append({'id':name,'crop':bounds,'colors':len(sprite.getcolors()),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
     sheet.save(FOLDER / 'preview.png');compare.save(FOLDER / 'comparison.png')
-    manifest={'status':'preview-only','sourceSHA256':hashlib.sha256(source.read_bytes()).hexdigest(),'pillow':__version__,'grid':[4,4],'size':64,'maxColors':16,'indexBits':4,'rgb':'RGB555','alphaThreshold':224,'sampling':'NEAREST','dither':False,'portraits':records}
+    manifest={'status':'approved-3.14-source','sourceSHA256':hashlib.sha256(source.read_bytes()).hexdigest(),'pillow':__version__,'grid':[4,4],'size':64,'maxColors':16,'indexBits':4,'rgb':'RGB555','alphaThreshold':224,'sampling':'NEAREST','dither':False,'portraits':records}
     (FOLDER / 'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n',encoding='utf-8')
-    print('Created 16 preview portraits: 64x64, <=16 colors, RGB555; live assets untouched.')
+    if args.install:
+        names=('ember','onyx','silver','cedar')+tuple(f'portrait-{i:02d}' for i in range(5,17))
+        for i,name in enumerate(names,1):
+            shutil.copyfile(target/f'{i:02d}.png',ROOT/f'assets/pixel/portraits/{name}.png')
+        print('Installed approved v2 portrait pool; legacy IDs retained.')
+    print('Created 16 preview portraits: 64x64, <=16 colors, RGB555; --install updates live assets only when requested.')
 
 if __name__ == '__main__':
     main()

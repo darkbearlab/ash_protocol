@@ -50,7 +50,7 @@ test('prepared healing still respects fast lethal attacks and turn ordering',()=
 });
 class HandgunHookGame extends Game{weaponAt(slot){const w=super.weaponAt(slot);return slot===1?{...w,weaponClass:'pistol'}:w;}}
 test('handgun switch hook is destination-based and free; pistol-ammo SMG is still a full turn',()=>{
-  assert.ok(WEAPONS.every(w=>weaponSwitchTurns(w)===1));assert.equal(weaponSwitchTurns({weaponClass:'smg',ammoType:'pistol'}),1);assert.equal(weaponSwitchTurns({weaponClass:'pistol'}),0);
+  assert.ok(WEAPONS.filter(w=>!w.integrated).every(w=>weaponSwitchTurns(w)===1));assert.equal(weaponSwitchTurns({weaponClass:'smg',ammoType:'pistol'}),1);assert.equal(weaponSwitchTurns({weaponClass:'pistol'}),0);
   const g=arena(HandgunHookGame);fastEnemy(g);Object.assign(g.player,{guard:true,focus:true,evasive:true,moved:true,poison:2});g.hazards=[{x:10,y:10,type:'fire'}];g.marks=[{x:10,y:10,due:1}];
   const before=JSON.parse(g.serialize());assert.equal(g.actionCost('weapon',1),0);const result=captureAction(g,()=>g.action('weapon',1));assert.equal(result.success,true);assert.equal(result.steps.length,0);
   const after=JSON.parse(g.serialize());before.data.player.weapon=1;before.data.logs=after.data.logs;assert.deepEqual(after,before);

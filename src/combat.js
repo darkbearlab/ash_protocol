@@ -31,6 +31,7 @@ export function wallCover(grid,target,attacker) {
 }
 export const bracingBonus=(game,attacker,target)=>activeTrait(attacker,'braced')&&game.protectingCover(attacker,target)?12:0;
 export function shotChance(game,attacker,target) {
+  if(attacker===game.player&&game.weapon.melee)return {chance:game.weapon.hitChance,base:game.weapon.hitChance,bracedBonus:0,trackingBonus:0,sidePenalty:0,accuracyBonus:0,movePenalty:0,coverPenalty:0,focusBonus:0,evasionPenalty:0,cover:null,moving:Boolean(target.moved),distance:distance(attacker,target)};
   const cover=game.protectingCover(target,attacker);
   const moving=Boolean(target.moved);
   const weapon=attacker===game.player?game.weapon:null,accuracyBonus=weapon?.accuracyBonus||0;

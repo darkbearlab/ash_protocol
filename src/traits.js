@@ -1,5 +1,6 @@
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const TRAITS={
+  heavy_armor:{name:'重裝防護',text:'直接傷害在固定裝甲後再減少 25%，向上取整；不抵擋環境或中毒。'},
   braced:{name:'架槍',text:'自己相對射擊目標受到掩體保護時，命中 +12。'},
   correction:{name:'著彈修正',short:'修正',text:'連續回合射擊同一敵人，後續命中每次 +8，最高 +24；未命中仍累積。'},
   sidestep:{name:'側身',text:'相對攻擊者主要橫向移動時，被射擊命中額外 −20；暴露時移動與側身合計至少 −42。'},
@@ -52,3 +53,5 @@ export function validCombatMemory(actor,turn){
   return Array.isArray(d)&&d.length===2&&d.every(Number.isInteger)&&Math.abs(d[0])+Math.abs(d[1])<=1&&
     (c===null||(c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.targetId==='string'&&c.targetId.length>0&&c.targetId.length<=100&&Number.isInteger(c.turn)&&c.turn>=1&&c.turn<=turn&&Number.isInteger(c.count)&&c.count>=1&&c.count<=3));
 }
+
+export const reduceDirectDamage=(actor,damage)=>activeTrait(actor,'heavy_armor')?Math.max(1,Math.ceil(damage*.75)):damage;

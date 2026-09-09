@@ -1,7 +1,7 @@
 """Deterministic opaque portraits: 64x64, <=32 colors, RGB555, no dithering.
 
 Run: python tools/pixelize_portraits.py
-Source images and prompts stay in art/portraits; only tiny final PNGs ship.
+Archived v1 pipeline. Results stay in art/portraits/cells-v1; never overwrite the approved v2 live pool.
 Future atlas input can be cut into equal cells before the same pixelize() step.
 """
 from pathlib import Path
@@ -33,7 +33,7 @@ def pixelize(source):
     return indexed
 
 def main():
-    output = ROOT / 'assets/pixel/portraits'; output.mkdir(parents=True, exist_ok=True)
+    output = ROOT / 'art/portraits/cells-v1'; output.mkdir(parents=True, exist_ok=True)
     preview = Image.new('RGB', (256*4, 256)); records = []
     for i, name in enumerate(IDS):
         source = ROOT / f'art/portraits/{name}.png'

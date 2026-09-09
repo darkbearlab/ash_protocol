@@ -1,5 +1,5 @@
 import {startingTraits} from './traits.js';
-import {SIZE,ENEMY_TYPES,FLOOR_INFO,WEAPONS} from './data.js';
+import {SIZE,ENEMY_TYPES,FLOOR_INFO,WEAPONS,RARE_ARMORY} from './data.js';
 import {weaponUnlocked} from './progression.js';
 export function random(seed) {
   let a=seed>>>0;
@@ -80,6 +80,7 @@ export function generate(seed,floor=1,unlocks=[]) {
   const unlocked=WEAPONS.map((w,i)=>({w,i})).filter(({w})=>w.unlockId&&weaponUnlocked(w,unlocks));
   const weapon=unlocked.length&&rng()<.25?unlocked[Math.floor(rng()*unlocked.length)].i:preferred;
   const armory=rooms[rewardRooms[0]];items.push({x:armory.cx,y:armory.cy+1,type:'weapon',weapon});
+  if(floor>=RARE_ARMORY.minFloor&&rng()<RARE_ARMORY.chance)items.push({x:armory.cx,y:armory.cy+1,type:'weapon',weapon:RARE_ARMORY.weapon});
   if(floor>=3){const r=rooms[startRoom];items.push({x:r.x+r.w-2,y:r.y+r.h-2,type:'energy',amount:18});items.push({x:r.x+r.w-2,y:r.y+1,type:'ordnance',amount:4});}
   const spawn=rooms[startRoom];enemies.unshift(makeEnemy('rifleman',spawn.x+spawn.w-1,spawn.y+1,`${floor}-scout`,floor));
   // Doorways can now enter from any side. Never place a solid prop or hazard on a connecting lane.

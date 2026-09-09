@@ -1,11 +1,11 @@
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits} from './characters.js';
 import {defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns} from './prepared.js';
-import {activeTrait,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory} from './traits.js';
+import {activeTrait,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
 import {presentStep} from './presentation.js';
-import {SIZE,SAVE_VERSION,PACK_LIMIT,PLATE_CAPACITY,ENEMY_LOOT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS,LORE} from './data.js';
+import {SIZE,SAVE_VERSION,PACK_LIMIT,PLATE_CAPACITY,RARE_ARMORY,ENEMY_LOOT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS,LORE} from './data.js';
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
@@ -18,8 +18,9 @@ export class Game {
     if(!validCharacter(character))throw new Error('未知角色。');
     if(!validPortrait(portrait))throw new Error('未知頭像。');
     this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
+    Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
     this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
-    this.player.plates=0;this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
+    this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
     this.logs=[];this.status='playing';this.pendingPerks=0;this.effects=[];this.loadFloor();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
@@ -31,7 +32,7 @@ export class Game {
   }
   get weapon(){return this.weaponAt(this.player.weapon);}
   weaponAt(slot){return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot]);}
-  fireChance(target){return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)));}
+  fireChance(target){if(this.weapon.melee)return this.weapon.hitChance;return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)));}
   get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.visible(e));}
   get targeted(){return [...this.enemies,...this.props].find(e=>e.id===this.target&&e.hp>0&&this.visible(e));}
   get perkChoices(){const start=(this.seed+this.player.level*3)%PERKS.length;return [0,1,3].map(n=>PERKS[(start+n)%PERKS.length]);}
@@ -52,7 +53,7 @@ export class Game {
   }
   autoTarget(){if(!this.targeted)this.target=this.visibleEnemies.sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
   log(text,danger=false){this.logs.unshift({turn:this.turn,text,danger});this.logs=this.logs.slice(0,50);}
-  reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType].key;}
+  reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType]?.key??null;}
   ammoCapacity(type){return capacity(type,this.carryLevel);}
   dropAmmo(type,amount,pos=this.player){
     if(amount<=0)return;
@@ -73,7 +74,7 @@ export class Game {
   fail(text){this.log(text);return false;}
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
-  actionCost(type,arg){return type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg))):1;}
+  actionCost(type,arg){return type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
   // Validate the intent before any actor acts: rejected input cannot scout fast enemies.
   validateAction(type,arg){
     const p=this.player,w=this.weapon;
@@ -86,14 +87,14 @@ export class Game {
       if(!this.passable(x,y))return this.fail('前方有牆壁或障礙。');
       const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;return this.fail('敵人擋住去路，先開火。');}return true;
     }
-    if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');return p.ammo[p.weapon]>0||this.fail('彈匣已空，請裝填。');}
-    if(type==='reload')return (p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail('彈匣已滿或沒有對應備彈。');
+    if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');return w.melee||p.ammo[p.weapon]>0||this.fail('彈匣已空，請裝填。');}
+    if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail('彈匣已滿或沒有對應備彈。');
     if(type==='heal')return (p.meds>0&&(p.hp<p.maxHp||p.poison>0))||this.fail('無法使用醫療包。');
     if(type==='grenade')return (p.grenades>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail('需要手榴彈與視線內 5 格的有效落點。');
     if(type==='weapon')return (p.owned.includes(Number(arg))&&Number(arg)!==p.weapon)||this.fail('無法換裝此武器。');
-    if(type==='salvage')return (p.owned.includes(Number(arg))&&p.owned.length>1)||this.fail('無法拆解此武器。');
+    if(type==='salvage')return (p.owned.includes(Number(arg))&&p.owned.length>1&&!this.weaponAt(Number(arg)).locked)||this.fail('無法拆解此武器。');
     if(type==='takeWeapon')return (Boolean(this.nearbyWeapon(Number(arg)))&&p.owned.length<PACK_LIMIT)||this.fail('附近沒有這把武器或背包已滿。');
-    if(type==='replaceWeapon')return (Boolean(this.nearbyWeapon(arg?.take))&&p.owned.includes(arg?.leave))||this.fail('要交換的武器已不在原處。');
+    if(type==='replaceWeapon')return (Boolean(this.nearbyWeapon(arg?.take))&&p.owned.includes(arg?.leave)&&!this.weaponAt(arg.leave).locked)||this.fail('要交換的武器已不在原處。');
     if(type==='upgrade'){const level=p.upgrades[p.weapon];return (level<3&&p.scrap>=25+level*15)||this.fail('改裝已滿或廢料不足。');}
     if(type==='terminal'){
       if(!this.nearbyTerminal||!['heal','ammo','grenade',...AMMO_IDS].includes(arg))return this.fail('沒有可用終端或補給選項。');
@@ -181,6 +182,7 @@ export class Game {
     return success;
   }
   reload(){
+    if(this.weapon.melee)return this.fail('近戰武器無須裝填。');
     const p=this.player,need=this.weapon.mag-p.ammo[p.weapon],reserve=this.reserveKey();
     if(need<=0)return this.fail('彈匣已滿。');
     if(p[reserve]<=0)return this.fail('沒有對應備彈。探索補給箱或切換武器。');
@@ -189,6 +191,7 @@ export class Game {
   }
   fire(intent=null) {
     const p=this.player,e=this.targeted,w=this.weapon;
+    if(w.melee)return this.strike(intent);
     // A committed shot still fires at the last confirmed tile if its target is lost.
     if(intent&&(!e||distance(p,e)>w.range)){
       p.facing=[Math.sign(intent.x-p.x),Math.sign(intent.y-p.y)];
@@ -207,7 +210,7 @@ export class Game {
     p.facing=[Math.sign(e.x-p.x),Math.sign(e.y-p.y)];
     const shots=Math.min(w.burst||1,p.ammo[p.weapon]);
     for(let i=0;i<shots;i++) {
-      if(e.hp<=0)break;
+      if(e.hp<=0||p.hp<=0)break;
       presentStep(this,()=>{
         p.ammo[p.weapon]--;p.stats.shots++;
         const range=this.weaponDamage(),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
@@ -223,6 +226,20 @@ export class Game {
     if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
     return true;
   }
+  strike(intent=null) {
+    const p=this.player,w=this.weapon,target=this.targeted;
+    if(!w.melee)return false;
+    if(!intent&&(!target||distance(p,target)>1))return this.fail('近戰需要相鄰一格的目標。');
+    const valid=target&&distance(p,target)<=1,to=valid?target:intent;
+    p.fireChain=null;p.facing=[Math.sign(to.x-p.x),Math.sign(to.y-p.y)];
+    presentStep(this,()=>{
+      const hit=Boolean(valid)&&this.rng()*100<w.hitChance;
+      this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:to.x,y:to.y},damage:0,miss:!hit});
+      if(!hit){this.log(valid?`近戰揮擊未命中（${w.hitChance}%）。`:'原目標已離開近戰範圍，揮擊落空。');return;}
+      const d=this.weaponDamage();this.hitTarget(target,d.min+Math.floor(this.rng()*(d.max-d.min+1)),p,w.pierce||0);
+    });
+    return true;
+  }
   protectingCover(target,attacker) {
     if(activeTrait(target,'no_cover'))return null;
     const dx=attacker.x-target.x,dy=attacker.y-target.y;
@@ -230,12 +247,12 @@ export class Game {
   }
   hitTarget(target,raw,attacker,pierce=0) {
     if(this.props.includes(target)){this.damageProp(target,raw);return;}
-    const cover=this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
+    const cover=this.weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
     let damage=raw;
     if(cover){damage*=1-.45*(1-pierce);if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));this.log('敵方掩體吸收了部分傷害。');}
     damage=Math.max(1,Math.round(damage-armor*(1-pierce)));
     if(this.weapon.ammoType==='energy'&&ENEMY_TYPES[target.type]?.mechanical)damage=Math.round(damage*1.2);
-    this.hurt(target,damage);
+    this.hurt(target,reduceDirectDamage(target,damage));
   }
   hurt(e,damage) {
     if(e.hp<=0)return;
@@ -251,6 +268,7 @@ export class Game {
     if(e.type==='warden'||e.type==='boss')this.awardProtocol(e.type,`${this.floor}:${e.id}`);
     const loot=ENEMY_LOOT[e.type];
     if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.items.push(this.registerWeapon({x:e.x,y:e.y,type:'weapon',weapon:loot.weapon},true));
+    if(this.floor>=RARE_ARMORY.minFloor&&loot?.rareWeapon!==undefined&&this.rng()<loot.rareChance)this.items.push(this.registerWeapon({x:e.x,y:e.y,type:'weapon',weapon:loot.rareWeapon},true));
     if(this.rng()<.35){const type=loot?.ammo||'ammo';this.items.push({x:e.x,y:e.y,type,amount:type==='energy'?6:type==='ordnance'?2:type==='pistol'?18:type==='shell'?4:10});}
     if(this.rng()<.06)this.items.push({x:e.x,y:e.y,type:'med'});
     if((ENEMY_TYPES[e.type]?.armor||0)>0&&this.rng()<.2)this.items.push({x:e.x,y:e.y,type:'armor',amount:10});
@@ -278,14 +296,14 @@ export class Game {
     const affected=p=>distance(origin,p)<=radius&&lineOfSight(this.grid,origin,p);
     // Mark barrels as destroyed before recursion, so chain reactions terminate.
     for(const prop of this.props.filter(o=>o.hp>0&&affected(o)))this.damageProp(prop,damage);
-    for(const e of this.enemies.filter(e=>e.hp>0&&affected(e)))this.hurt(e,Math.max(1,damage-distance(origin,e)*10));
+    for(const e of this.enemies.filter(e=>e.hp>0&&affected(e)))this.hurt(e,reduceDirectDamage(e,Math.max(1,damage-distance(origin,e)*10)));
     if(affected(this.player))this.damagePlayer(Math.max(1,damage-distance(origin,this.player)*10),'爆炸衝擊',null,true);
   }
   damagePlayer(raw,label,attacker=null,blast=false) {
     const p=this.player,cover=!blast&&attacker?this.protectingCover(p,attacker):null;
     let damage=raw;
     if(cover){damage*=.55;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));}
-    damage=Math.max(1,Math.round(damage-p.armor));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
+    damage=reduceDirectDamage(p,Math.max(1,Math.round(damage-p.armor)));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
     const absorbed=Math.min(p.plates||0,Math.floor(damage/2));p.plates=(p.plates||0)-absorbed;damage-=absorbed;
     p.hp-=damage;this.log(`${label}${cover?'（掩體減傷）':''}${absorbed?`（護甲板吸收 ${absorbed}）`:''}，生命 −${damage}。`,true);
     if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:attacker.type==='crawler'?'claw':attacker.type==='brute'?'slash':ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet',from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
@@ -391,7 +409,7 @@ export class Game {
   }
   replaceWeapon(arg) {
     const p=this.player,item=this.nearbyWeapon(arg?.take),old=arg?.leave;
-    if(!item||!p.owned.includes(old))return this.fail('要交換的武器已不在原處。');
+    if(!item||!p.owned.includes(old)||this.weaponAt(old).locked)return this.fail('要交換的武器已不在原處。');
     p.owned[p.owned.indexOf(old)]=item.slot;if(p.weapon===old)p.weapon=item.slot;
     this.items=this.items.filter(o=>o!==item);
     this.items.push({x:p.x,y:p.y,type:'weapon',weapon:p.weaponBases[old],slot:old});
@@ -400,6 +418,7 @@ export class Game {
   salvage(index) {
     const p=this.player;
     if(!p.owned.includes(index))return this.fail('背包裡沒有這把武器。');
+    if(this.weaponAt(index).locked)return this.fail('固定武器不能拆解或交換，只能升級。');
     if(p.owned.length<=1)return this.fail('至少保留一把武器。');
     this.receiveAmmo(this.weaponAt(index).ammoType,p.ammo[index]);p.ammo[index]=0;p.owned=p.owned.filter(i=>i!==index);
     p.scrap+=20+(p.upgrades[index]||0)*10;p.upgrades[index]=0;p.stats.salvaged++;
@@ -409,7 +428,7 @@ export class Game {
     const p=this.player,level=p.upgrades[p.weapon]||0,cost=25+level*15;
     if(level>=3)return this.fail('此武器已達最高改裝等級。');
     if(p.scrap<cost)return this.fail(`改裝需要 ${cost} 廢料。`);
-    p.scrap-=cost;p.upgrades[p.weapon]++;this.log(`${this.weapon.name}改裝 +${level+1}，每發傷害 +5。`);return true;
+    p.scrap-=cost;p.upgrades[p.weapon]++;this.log(`${this.weapon.name}改裝 +${level+1}，單次傷害 +5。`);return true;
   }
   useTerminal(option) {
     const terminal=this.nearbyTerminal,p=this.player;
@@ -454,7 +473,7 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,4,5,6,7,8,9,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,5,6,7,8,9,10,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
@@ -478,10 +497,12 @@ export class Game {
       if(version>=5&&!'weaponBases affixes ammo upgrades'.split(' ').every(k=>Array.isArray(data.player[k])))return null;
       p.stats={...defaults.stats,...p.stats};
       if(!Array.isArray(p.weaponBases)||p.weaponBases.length<1||p.weaponBases.length>10000||p.weaponBases.some(i=>!Number.isInteger(i)||!WEAPONS[i]))return null;
-      if(!Array.isArray(p.affixes)||p.affixes.length!==p.weaponBases.length||p.affixes.some((a,i)=>a!==null&&(!Object.hasOwn(AFFIXES,a)||(a==='piercing'&&WEAPONS[p.weaponBases[i]].explosive))))return null;
+      if(!Array.isArray(p.affixes)||p.affixes.length!==p.weaponBases.length||p.affixes.some((a,i)=>a!==null&&(!Object.hasOwn(AFFIXES,a)||(a==='piercing'&&WEAPONS[p.weaponBases[i]].explosive)||WEAPONS[p.weaponBases[i]].locked)))return null;
       if(!Array.isArray(p.owned)||!p.owned.length||p.owned.length>PACK_LIMIT||new Set(p.owned).size!==p.owned.length||!p.owned.includes(p.weapon)||p.owned.some(i=>!Number.isInteger(i)||p.weaponBases[i]===undefined))return null;
       if(!Array.isArray(p.ammo)||!Array.isArray(p.upgrades)||p.ammo.length!==p.weaponBases.length||p.upgrades.length!==p.weaponBases.length)return null;
       if(p.ammo.some(n=>!Number.isSafeInteger(n)||n<0||n>10000000)||p.upgrades.some(n=>!Number.isInteger(n)||n<0||n>3))return null;
+      if(p.weaponBases.some((base,slot)=>WEAPONS[base].melee&&p.ammo[slot]!==0))return null;
+      if(p.character==='bulwark'&&p.owned.filter(slot=>WEAPONS[p.weaponBases[slot]].id==='powerfist').length!==1)return null;
       if(!Array.isArray(p.lore)||p.lore.some(n=>!Number.isInteger(n)||n<1||n>FLOORS.length))return null;
       const g=Object.assign(Object.create(Game.prototype),data,{player:p,effects:[],hazards:data.hazards||[],marks:data.marks||[]});
       g.runId=typeof data.runId==='string'&&/^[a-zA-Z0-9-]{1,100}$/.test(data.runId)?data.runId:`legacy-${data.seed}`;
@@ -504,7 +525,7 @@ export class Game {
       const locations=new Set(p.owned);
       for(const item of g.items){
         if(item.type!=='weapon')continue;
-        if(!Number.isInteger(item.weapon)||!WEAPONS[item.weapon])return null;
+        if(!Number.isInteger(item.weapon)||!WEAPONS[item.weapon]||WEAPONS[item.weapon].locked)return null;
         if(version<5){delete item.slot;g.registerWeapon(item);}
         if(!Number.isInteger(item.slot)||p.weaponBases[item.slot]!==item.weapon||locations.has(item.slot))return null;
         locations.add(item.slot);

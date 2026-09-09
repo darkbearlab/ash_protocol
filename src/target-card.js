@@ -3,13 +3,13 @@ import {ENEMY_TYPES,distance,bracingBonus} from './engine.js';
 
 export function targetDetails(game){
   const target=game.targeted;if(!target)return null;
-  const enemy=ENEMY_TYPES[target.type],aim=enemy?game.accuracy(game.player,target):{chance:game.fireChance(target),bracedBonus:bracingBonus(game,game.player,target)};
+  const melee=game.weapon.melee,enemy=ENEMY_TYPES[target.type],aim=enemy?game.accuracy(game.player,target):{chance:game.fireChance(target),bracedBonus:bracingBonus(game,game.player,target)};
   const range=distance(game.player,target),withinRange=range<=game.weapon.range;
   return {name:enemy?.name||(target.type==='barrel'?'爆裂油桶':'可破壞掩體'),hp:`HP ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}`,
-    chance:withinRange?`命中 ${aim.chance}%`:'無法射擊',distance:`距離 ${range} 格\n射程 ${game.weapon.range} 格`,
+    chance:withinRange?`命中 ${aim.chance}%`:melee?'無法近戰':'無法射擊',distance:`距離 ${range} 格\n射程 ${game.weapon.range} 格`,
     traits:enemy?traitLabels(target).join(' · '):'',
     order:enemy&&(initiative(target)!==0||initiative(game.player)!==0)?(initiative(target)<initiative(game.player)?'行動在你之前':initiative(target)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',
-    cover:enemy?(activeTrait(target,'no_cover')?'無法利用掩體':aim.cover?aim.cover.type==='wall'?'牆角掩護':'箱體掩護':'無掩護'):'可破壞物',
+    cover:melee?'近戰無視掩體':enemy?(activeTrait(target,'no_cover')?'無法利用掩體':aim.cover?aim.cover.type==='wall'?'牆角掩護':'箱體掩護':'無掩護'):'可破壞物',
     state:[withinRange?'':'超出射程',aim.bracedBonus?`架槍 +${aim.bracedBonus}`:'',aim.trackingBonus?`修正 +${aim.trackingBonus}`:'',aim.sidePenalty?`側身 −${aim.sidePenalty}`:'',target.moved?'移動中':'',target.charge?'即將攻擊':''].filter(Boolean).join(' · '),withinRange};
 }
 

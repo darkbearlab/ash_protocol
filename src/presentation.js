@@ -20,6 +20,9 @@ export function captureAction(game,action){
 }
 // Cosmetic projectiles per resolved shot; these never affect ammunition or damage.
 export const WEAPON_VISUALS={
+  thunder:{count:1,flight:100,stagger:0,spread:0,style:'grenade'},
+  lmg:{count:2,flight:60,stagger:15,spread:.07,style:'bullet'},
+  powerfist:{count:1,flight:100,stagger:0,spread:0,style:'slash'},
   rifle:{count:3,flight:85,stagger:20,spread:.04,style:'bullet'},
   shotgun:{count:6,flight:95,stagger:0,spread:.5,style:'pellet'},
   smg:{count:3,flight:60,stagger:15,spread:.07,style:'bullet'},
@@ -53,7 +56,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0});
     time+=travel;
     events.push({time,state:step.after,effects:impacts.map(e=>({...e,quiet:reduceMotion}))});
-    const burstContinues=flights.some(e=>e.weaponId==='smg')&&steps[index+1]?.effects.some(e=>e.type==='shot'&&e.weaponId==='smg');
+    const burstContinues=flights.some(e=>['smg','lmg','thunder'].includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&['smg','lmg','thunder'].includes(e.weaponId));
     time+=reduceMotion?120:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
   }
   return {events,duration:time};

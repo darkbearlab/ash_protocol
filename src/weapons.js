@@ -1,3 +1,4 @@
+import {AMMUNITION} from './ammunition.js';
 import {WEAPONS} from './data.js';
 
 // Stable IDs are stored in saves. Affixes affect the base gun; +1 tuning stays +5 damage.
@@ -10,16 +11,21 @@ export const AFFIXES={
   tracking:{name:'追獵',text:'目標移動的命中懲罰減為 10；基礎傷害 −10%',tracking:12,damage:.9},
 };
 export function weaponStats(base,affix=null){
-  const w=WEAPONS[base],a=AFFIXES[affix]||{};
-  return {...w,name:a.name?`${a.name}・${w.name}`:w.name,affix,affixText:a.text||'標準型，沒有詞條',
+  const w=WEAPONS[base];if(w.melee)return {...w,affix:null,affixText:w.desc,accuracyBonus:0,tracking:0};
+  const a=AFFIXES[affix]||{};
+  return {...w,name:a.name?`${a.name}・${w.name}`:w.name,affix,affixText:(a.text||'標準型，沒有詞條')+(w.lootOnly?` · ${w.desc}`:''),
     min:Math.round(w.min*(a.damage||1)),max:Math.round(w.max*(a.damage||1)),
     mag:Math.max(1,Math.floor(w.mag*(a.mag||1))),range:w.range+(a.range||0),
     pierce:Math.min(.95,(w.pierce||0)+(a.pierce||0)),accuracyBonus:a.accuracy||0,tracking:a.tracking||0};
 }
 // Separate from combat RNG: inspecting, collecting or restoring loot never rerolls it.
 export function rollAffix(base,seed){
+  if(WEAPONS[base]?.locked)return null;
   let hash=2166136261;for(const c of String(seed)){hash^=c.charCodeAt(0);hash=Math.imul(hash,16777619);}
   hash>>>=0;if(hash%100>=65)return null;
   const ids=Object.keys(AFFIXES).filter(id=>id!=='piercing'||!WEAPONS[base].explosive);
   return ids[Math.floor(hash/100)%ids.length];
 }
+
+export const ammoName=w=>w.melee?'無限使用':AMMUNITION[w.ammoType].name;
+export const magazineLabel=(w,rounds)=>w.melee?'∞':`${rounds}/${w.mag}`;
