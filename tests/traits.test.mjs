@@ -111,7 +111,7 @@ test('save migration and full backups preserve trait sources, timers and unrelat
   const g=arena();trait(g.player,'small');trait(g.player,'slow',2);const e=enemy(g,'e');trait(e,'agile');g.player.upgrades[0]=2;
   const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(restored.player,g.player);assert.deepEqual(restored.enemies,g.enemies);
   const old=JSON.parse(g.serialize());old.version=6;delete old.data.player.traits;for(const e of old.data.enemies)delete e.traits;
-  const migrated=Game.restore(JSON.stringify(old));assert.ok(migrated);assert.deepEqual(migrated.player.traits,[]);assert.equal(migrated.player.upgrades[0],2);assert.equal(migrated.player.ammo[0],8);
+  const migrated=Game.restore(JSON.stringify(old));assert.ok(migrated);assert.deepEqual(migrated.player.traits.map(t=>t.id),['braced','correction']);assert.equal(migrated.player.upgrades[0],2);assert.equal(migrated.player.ammo[0],8);
   const bad=JSON.parse(g.serialize());bad.data.player.traits=[{id:'fast',source:'test',turns:0}];assert.equal(Game.restore(JSON.stringify(bad)),null);
 });
 test('target cards explain effective order and cancelled traits; spawn defaults stay small in scope',()=>{

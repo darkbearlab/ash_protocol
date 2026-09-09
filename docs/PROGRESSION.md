@@ -14,7 +14,7 @@
 
 ## 舊存檔
 
-單局已升為 v8（含被動規則與預備欄，見 TRAITS.md／PREPARED.md），舊 v1–v3 會遷移彈種並保留總量，詳見 [AMMUNITION.md](AMMUNITION.md)；既有地圖保持不變。舊存檔缺少原始局次 ID，採 `legacy-種子` 固定識別以防重複匯入刷點。因此升級前同種子的不同歷史存檔會共用累積上限；升級後新局沒有此限制。
+單局已升為 v9（含角色、戰鬥記憶、被動與預備欄，見 CHARACTERS.md），舊 v1–v3 會遷移彈種並保留總量，詳見 [AMMUNITION.md](AMMUNITION.md)；既有地圖保持不變。舊存檔缺少原始局次 ID，採 `legacy-種子` 固定識別以防重複匯入刷點。因此升級前同種子的不同歷史存檔會共用累積上限；升級後新局沒有此限制。
 
 ## 接入武器與角色
 
@@ -29,3 +29,5 @@
 全局 upgrades.carrying 為六鍵物件，每種 0–3 階，分別花 20／40／70 點。profile v2 補六種 0；v3 整組升級先退還舊費用再歸零，v4 不重複退還。單局匯入不帶入等級；完整備份替換整份等級與餘額。詳細原子寫入與上限見 [AMMUNITION.md](AMMUNITION.md)。
 
 放棄本局保留點數與永久升級，記為 history.outcome=abandoned；重新部署亦走相同結算。只有使用者確認「重置遊戲進度」才清空全局資料及去重紀錄，另留完整備份。
+
+3.12.0：Soldier／Recon 為免費基礎角色，不消耗協定點數、不要求 unlocks.characters；歷史 operator ID 保留。未來付費角色尚未接購買流程，新任務歷史另保存 character。

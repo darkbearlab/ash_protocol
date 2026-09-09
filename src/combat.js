@@ -1,4 +1,4 @@
-import {sizeModifier,movementModifier} from './traits.js';
+import {sizeModifier,movementModifier,activeTrait,correctionBonus,sidestepPenalty} from './traits.js';
 // Symmetric, bounded corner leaning. The player and AI use the same geometry.
 import {DIRECTIONS,distance,lineOfSight} from './world.js';
 
@@ -29,12 +29,14 @@ export function wallCover(grid,target,attacker) {
     return grid[w.y+Math.sign(dy)]?.[w.x+Math.sign(dx)]===1;
   });
 }
+export const bracingBonus=(game,attacker,target)=>activeTrait(attacker,'braced')&&game.protectingCover(attacker,target)?12:0;
 export function shotChance(game,attacker,target) {
   const cover=game.protectingCover(target,attacker);
   const moving=Boolean(target.moved);
   const weapon=attacker===game.player?game.weapon:null,accuracyBonus=weapon?.accuracyBonus||0;
   const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)-(weapon?.tracking||0)):0,coverPenalty=cover?(cover.type==='wall'?42:35):0;
   const focusBonus=attacker.focus?15:0,evasionPenalty=target.evasive?15:0;
-  const chance=Math.max(10,Math.min(99,base+sizeModifier(target)+accuracyBonus+focusBonus-movePenalty-coverPenalty-evasionPenalty));
-  return {chance,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
+  const bracedBonus=bracingBonus(game,attacker,target),trackingBonus=correctionBonus(attacker,target===game.player?'player':target.id,game.turn),sidePenalty=sidestepPenalty(attacker,target);
+  const chance=Math.max(10,Math.min(99,base+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty));
+  return {chance,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }

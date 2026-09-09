@@ -1,6 +1,20 @@
-# 快速接手：ASH PROTOCOL 3.11.0
+# 快速接手：ASH PROTOCOL 3.12.0
 
 最後更新：2026-09-09。先讀本檔，再讀 DESIGN.md 和 RELEASE.md。
+
+## 3.12.0：Soldier／Recon 與四個角色被動
+
+使用者已授權實作架槍、著彈修正、側身、快速裝填，並確認 +12／每輪 +8 上限 +24／側身 −15／手槍彈免費裝填數值。歷史「僅記錄」與尚無角色的描述已被本節取代；堅毅／重生仍延期。完整約定見 [CHARACTERS.md](CHARACTERS.md)。
+
+- src/characters.js：Soldier 士兵（步槍＋霰彈，braced／correction）和 Recon 偵察兵（SMG＋霰彈，sidestep／quick_reload），免費，其他起始數值相同。均沿用現有玩家圖像。constructor 第四參數為角色 ID；使用者必須在新局選擇，不在進行中換角。
+- 首頁新任務、結果重新部署、設定重新部署皆先進選角；確認才放棄現有任務並建立新局，取消無影響。初始裝備名稱用 WEAPONS 基礎定義，不能從當前任務 slot 猜。角色在背包、設定、結算及歷史顯示，單局匯入會直接採用該任務角色並可繼續，不回到新局選擇。
+- 架槍查 protectingCover(attacker,target)，自己方向正確的掩體才 +12，可破壞物也適用；no_cover 取消自身掩體條件。原目標掩體懲罰仍保留。
+- fireChain 保存敵人 ID／回合／count 1–3。每次整個射擊完成後記一筆，未命中／失去目標的承諾射擊也算，SMG 同輪兩發不分開累積。免費與無效操作不打斷；耗回合非射擊、射擊不同目標／物件及換層會重置。敵方遠程可獨立掛此規則，executeEnemy 回報實際射擊，enemyAct 統一記錄。
+- moveDelta 保存實際移動向量；側身以當前射線的橫向分量 > 縱向分量判定（45 度不算），每個攻擊者分開 −15，與移動／敏捷疊加。免費操作不清除；狀態列「側身 N」僅表示對 N 名目前射程內射手生效。
+- actionCost('reload') 按 quick_reload 和 ammoType:pistol 回 0；共用 Game.reload() 轉移備彈，免費分支不走 executePlayer 的清狀態程序。SMG 換裝仍 1 回合。戰場快填標籤、浮卡架槍／修正／敵方側身提示與指南已更新。
+- 單局 v9 保存角色／移動方向／連射；v1–v8 補 Soldier 與兩個角色來源，保留原武器、其他被動、預備和資源；不知道舊方向設 [0,0]。v8 首次讀檔留原件。profile v4／備份 v1 不變，新歷史可含 character；舊歷史顯示 Soldier。免費基礎角色不依賴歷史 unlocks.characters 的 operator ID。
+- 152 項自動測試與 npm run build 通過，新增 15 項角色測試；原等待基礎測試明確排除 Soldier 連射效果、舊遷移測試改驗士兵來源。四份場景由 node qa/create-3.12-fixtures.mjs 重建，手機／選角／平衡仍交根目錄驗證紙條。
+- 完成必要測試、build、main 與 Pages 部署後停手；煙霧、EMP、主動技能和新角色美術不在此批。
 
 ## 3.11.0：背包四分頁與獨立預備欄
 

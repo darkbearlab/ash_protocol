@@ -1,3 +1,4 @@
+import {validCharacter} from './characters.js';
 import {CARRY_COSTS,validCarryLevels,carryingSpent} from './ammunition.js';
 import {Game} from './game.js';
 import {normalizeProfile,creditProtocol} from './progression.js';
@@ -22,7 +23,7 @@ export function validateProfile(raw){
     requireValue(id(key)&&object(value)&&count(value.earned)&&typeof value.recorded==='boolean','點數發放紀錄無效。');total+=value.earned;
   }
   requireValue(Number.isSafeInteger(total)&&total<=raw.protocol.earned,'點數發放紀錄與累計不符。');
-  requireValue(Array.isArray(raw.history)&&raw.history.length<=10&&raw.history.every(r=>object(r)&&id(r.id)&&['seed','floor','kills','turn'].every(k=>count(r[k]))&&r.floor>=1&&r.floor<=6&&r.turn>=1&&typeof r.won==='boolean'&&(r.outcome===undefined||['won','dead','abandoned'].includes(r.outcome))&&typeof r.date==='string'&&Number.isFinite(Date.parse(r.date))&&(r.protocol===undefined||count(r.protocol))),'最近任務紀錄無效。');
+  requireValue(Array.isArray(raw.history)&&raw.history.length<=10&&raw.history.every(r=>object(r)&&id(r.id)&&['seed','floor','kills','turn'].every(k=>count(r[k]))&&r.floor>=1&&r.floor<=6&&r.turn>=1&&typeof r.won==='boolean'&&(r.outcome===undefined||['won','dead','abandoned'].includes(r.outcome))&&(r.character===undefined||validCharacter(r.character))&&typeof r.date==='string'&&Number.isFinite(Date.parse(r.date))&&(r.protocol===undefined||count(r.protocol))),'最近任務紀錄無效。');
   return normalizeProfile(JSON.parse(JSON.stringify(raw)));
 }
 

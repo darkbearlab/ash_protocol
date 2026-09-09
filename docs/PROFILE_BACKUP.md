@@ -8,7 +8,7 @@
 
 `{format: 'ash-protocol-backup', version: 1, namespace: 'live' | 'qa', createdAt, profile, campaign}`
 
-- profile 為 version 4（六種獨立 upgrades.carrying 等級），接受舊 v2／v3；v3 整組升級退款後歸零。campaign 為 v8 單局物件或 null，接受 v1–v7 遷移；保存敵我被動規則，以及三個預備欄與已學會技能 ID。預覽列出六種等級，見 AMMUNITION.md。
+- profile 為 version 4（六種獨立 upgrades.carrying 等級），接受舊 v2／v3；v3 整組升級退款後歸零。campaign 為 v9 單局物件或 null，接受 v1–v8 遷移；保存角色、移動方向、連射累積、敵我被動規則與預備欄。新任務歷史可含 character，舊歷史仍相容。預覽列出六種等級，見 AMMUNITION.md。
 - `src/backup.js` 處理建立與驗證，拒絕未知版本、錯誤欄位、負點數、不完整去重紀錄及不相容任務。最大檔案 5 MB。
 - 正式與 QA 備份分開，namespace 必須和目前頁面相符。正式資料不可匯入 QA 做測試；QA fixture 也不可作正式完整備份使用。
 - 音效／瞄準顯示偏好、舊遷移備份、先前匯入備份不是本格式的內容；完整備份的範圍是全局遊玩資料與當前任務。

@@ -16,7 +16,8 @@ test('grenade aim and locked target fit simultaneously without changing cardinal
   for(const a of [p,target,aim]){const x=159+(a.x-f.x)*f.tile,y=159+(a.y-f.y)*f.tile;assert.ok(x>=0&&x<=318&&y>=0&&y<=318);assert.equal(Math.round((x-159)/f.tile+f.x),a.x);assert.equal(Math.round((y-159)/f.tile+f.y),a.y);}
 });
 test('waiting boosts next shot, evades current enemy phase, and never stacks',()=>{
-  const g=arena(),e=makeEnemy('rifleman',14,10,'e');g.enemies=[e];g.props=[{x:13,y:10,type:'cover',hp:1000,maxHp:1000}];g.reveal();g.rng=()=>.76;
+  // Isolate the waiting rule from Soldier's new consecutive-fire passive.
+  const g=arena();g.player.traits=[];const e=makeEnemy('rifleman',14,10,'e');g.enemies=[e];g.props=[{x:13,y:10,type:'cover',hp:1000,maxHp:1000}];g.reveal();g.rng=()=>.76;
   assert.equal(g.accuracy(g.player,e).chance,62);g.action('wait');assert.equal(g.accuracy(g.player,e).chance,77);assert.equal(g.accuracy(e,g.player).chance,82);
   g.action('wait');assert.equal(g.accuracy(g.player,e).chance,77);
   const hp=e.hp;g.action('fire');assert.ok(e.hp<hp);assert.equal(g.player.focus,false);assert.equal(g.player.evasive,false);assert.equal(g.accuracy(g.player,e).chance,62);

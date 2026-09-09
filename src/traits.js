@@ -1,5 +1,9 @@
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const TRAITS={
+  braced:{name:'架槍',text:'自己相對射擊目標受到掩體保護時，命中 +12。'},
+  correction:{name:'著彈修正',short:'修正',text:'連續回合射擊同一敵人，後續命中每次 +8，最高 +24；未命中仍累積。'},
+  sidestep:{name:'側身',text:'相對攻擊者主要橫向移動時，被射擊命中額外 −15。'},
+  quick_reload:{name:'快速裝填',short:'快填',text:'使用手槍彈的武器裝填不耗回合，仍消耗備彈。'},
   large:{name:'大型',opposite:'small',text:'被射擊命中率 +15 個百分點。'},
   small:{name:'小型',opposite:'large',text:'被射擊命中率 −15 個百分點。'},
   agile:{name:'敏捷',opposite:'clumsy',text:'移動時，對手射擊命中率 −35（原為 −22）。'},
@@ -28,3 +32,23 @@ export function grantTrait(actor,id,source,turns){
   actor.traits=[...traits,trait];return true;
 }
 export function removeTraitSource(actor,source){actor.traits=(actor.traits||[]).filter(t=>t.source!==source);}
+
+export function correctionBonus(actor,targetId,turn){
+  const c=actor.fireChain;
+  return activeTrait(actor,'correction')&&c&&c.targetId===targetId&&(c.turn===turn||c.turn===turn-1)?c.count*8:0;
+}
+export function recordShot(actor,targetId,turn){
+  if(!activeTrait(actor,'correction')){actor.fireChain=null;return;}
+  const c=actor.fireChain;
+  actor.fireChain={targetId,turn,count:c?.targetId===targetId&&c.turn===turn-1?Math.min(3,c.count+1):1};
+}
+export function sidestepPenalty(attacker,target){
+  if(!target.moved||!activeTrait(target,'sidestep')||!target.moveDelta)return 0;
+  const [mx,my]=target.moveDelta,dx=attacker.x-target.x,dy=attacker.y-target.y;
+  return Math.abs(mx*dy-my*dx)>Math.abs(mx*dx+my*dy)?15:0;
+}
+export function validCombatMemory(actor,turn){
+  const d=actor.moveDelta,c=actor.fireChain;
+  return Array.isArray(d)&&d.length===2&&d.every(Number.isInteger)&&Math.abs(d[0])+Math.abs(d[1])<=1&&
+    (c===null||(c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.targetId==='string'&&c.targetId.length>0&&c.targetId.length<=100&&Number.isInteger(c.turn)&&c.turn>=1&&c.turn<=turn&&Number.isInteger(c.count)&&c.count>=1&&c.count<=3));
+}

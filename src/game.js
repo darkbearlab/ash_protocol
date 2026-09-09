@@ -1,19 +1,22 @@
+import {CHARACTERS,validCharacter,grantCharacterTraits} from './characters.js';
 import {defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns} from './prepared.js';
-import {activeTrait,startingTraits,validTraits,tickTraits,initiativeQueue} from './traits.js';
+import {activeTrait,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
 import {presentStep} from './presentation.js';
 import {SIZE,SAVE_VERSION,PACK_LIMIT,PLATE_CAPACITY,ENEMY_LOOT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS,LORE} from './data.js';
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
-import {combatSight,wallCover,adjacentWalls,shotChance} from './combat.js';
+import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
 
-const freshPlayer=()=>({prepared:defaultPrepared(),skills:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({character:'soldier',moveDelta:[0,0],fireChain:null,prepared:defaultPrepared(),skills:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=e=>ENEMY_TYPES[e.type]?.name||'未知單位';
 
 export class Game {
-  constructor(seed=Date.now()%1000000,unlocks=[],carrying=0) {
+  constructor(seed=Date.now()%1000000,unlocks=[],carrying=0,character='soldier') {
+    if(!validCharacter(character))throw new Error('未知角色。');
     this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
+    this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.player.plates=0;this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
     this.logs=[];this.status='playing';this.pendingPerks=0;this.effects=[];this.loadFloor();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
@@ -21,12 +24,12 @@ export class Game {
   loadFloor() {
     Object.assign(this,generate(this.seed,this.floor,this.unlockedWeapons));
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
-    Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.focus=false;this.player.evasive=false;
+    Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.focus=false;this.player.evasive=false;
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
   get weapon(){return this.weaponAt(this.player.weapon);}
   weaponAt(slot){return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot]);}
-  fireChance(target){return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.player.focus?15:0)+this.weapon.accuracyBonus));}
+  fireChance(target){return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)));}
   get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.visible(e));}
   get targeted(){return [...this.enemies,...this.props].find(e=>e.id===this.target&&e.hp>0&&this.visible(e));}
   get perkChoices(){const start=(this.seed+this.player.level*3)%PERKS.length;return [0,1,3].map(n=>PERKS[(start+n)%PERKS.length]);}
@@ -68,7 +71,7 @@ export class Game {
   fail(text){this.log(text);return false;}
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
-  actionCost(type,arg){return type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg))):1;}
+  actionCost(type,arg){return type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg))):1;}
   // Validate the intent before any actor acts: rejected input cannot scout fast enemies.
   validateAction(type,arg){
     const p=this.player,w=this.weapon;
@@ -113,6 +116,7 @@ export class Game {
     if(this.actionCost(type,arg)===0){
       if(type==='prepare')p.prepared[arg.category]=arg.id;
       else if(type==='weapon'){p.weapon=Number(arg);this.log(`切換至${this.weapon.name}，不耗回合。`);}
+      else if(type==='reload')return this.reload();
       return true;
     }
     const fireIntent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:null,floor=this.floor,queue=initiativeQueue(p,this.enemies),playerSpeed=queue.find(q=>q.actor===p).speed;
@@ -139,7 +143,7 @@ export class Game {
   executePlayer(type,arg){
     const p=this.player;
     let success=false;
-    p.guard=false;p.moved=false;
+    p.guard=false;p.moved=false;p.moveDelta=[0,0];if(type!=='fire')p.fireChain=null;
     switch(type) {
       case 'move': {
         if(!Array.isArray(arg)||!Number.isInteger(arg[0])||!Number.isInteger(arg[1])||Math.abs(arg[0])+Math.abs(arg[1])!==1)return false;
@@ -147,16 +151,10 @@ export class Game {
         if(!this.passable(x,y))return this.fail(this.solid(x,y)?'掩體或油桶擋住去路。可以繞行或射擊破壞。':'前方是牆壁。');
         const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);
         if(e){this.target=e.id;return this.fail('敵人擋住去路，先開火。');}
-        p.x=x;p.y=y;p.facing=[dx,dy];this.pickup();success=true;break;
+        p.x=x;p.y=y;p.facing=[dx,dy];p.moveDelta=[dx,dy];this.pickup();success=true;break;
       }
       case 'fire': success=this.fire(arg);break;
-      case 'reload': {
-        const need=this.weapon.mag-p.ammo[p.weapon],reserve=this.reserveKey();
-        if(!need)return this.fail('彈匣已滿。');
-        if(p[reserve]<=0)return this.fail('沒有對應備彈。探索補給箱或切換武器。');
-        const amount=Math.min(need,p[reserve]);p.ammo[p.weapon]+=amount;p[reserve]-=amount;
-        this.log(`裝填完成，補充 ${amount} 發。`);success=true;break;
-      }
+      case 'reload': success=this.reload();break;
       case 'heal':
         if(p.meds<=0)return this.fail('醫療包已用盡。');
         if(p.hp===p.maxHp&&p.poison===0)return this.fail('生命值已滿。');
@@ -180,6 +178,13 @@ export class Game {
     }
     return success;
   }
+  reload(){
+    const p=this.player,need=this.weapon.mag-p.ammo[p.weapon],reserve=this.reserveKey();
+    if(need<=0)return this.fail('彈匣已滿。');
+    if(p[reserve]<=0)return this.fail('沒有對應備彈。探索補給箱或切換武器。');
+    const amount=Math.min(need,p[reserve]);p.ammo[p.weapon]+=amount;p[reserve]-=amount;
+    this.log(`裝填完成，補充 ${amount} 發${this.actionCost('reload')===0?'，不耗回合':''}。`);return true;
+  }
   fire(intent=null) {
     const p=this.player,e=this.targeted,w=this.weapon;
     // A committed shot still fires at the last confirmed tile if its target is lost.
@@ -190,6 +195,7 @@ export class Game {
         p.ammo[p.weapon]--;p.stats.shots++;
         this.effects.push({type:'shot',weaponId:w.id,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:intent.x,y:intent.y},damage:0,miss:true,color:w.ammoType==='energy'?'#8ae9da':null});
       });
+      if(this.enemies.some(e=>e.id===intent.id))recordShot(p,intent.id,this.turn);else p.fireChain=null;
       this.log(`原目標已失去有效射線，向最後確認位置開火落空，消耗 ${shots} 發。`);
       return true;
     }
@@ -212,6 +218,7 @@ export class Game {
         if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p,w.pierce||0);
       });
     }
+    if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
     return true;
   }
   protectingCover(target,attacker) {
@@ -282,8 +289,13 @@ export class Game {
     if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:attacker.type==='crawler'?'claw':attacker.type==='brute'?'slash':ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet',from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
     else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage});
   }
-  enemyAct(e) {
-    const p=this.player;e.moved=false;
+  enemyAct(e){
+    const x=e.x,y=e.y,fired=this.executeEnemy(e);
+    e.moveDelta=e.moved?[e.x-x,e.y-y]:[0,0];
+    if(fired)recordShot(e,'player',this.turn);else e.fireChain=null;
+  }
+  executeEnemy(e) {
+    const p=this.player;e.moved=false;e.moveDelta=[0,0];let fired=false;
       if(e.hp<=0||!e.alert||p.hp<=0)return;
       const def=ENEMY_TYPES[e.type],d=distance(e,p),los=combatSight(this.grid,e,p);
       if(d>16)return;
@@ -299,6 +311,7 @@ export class Game {
         if(!e.charge){e.charge=true;e.windup=e.type==='sniper'?2:1;e.aim={x:p.x,y:p.y};return;}
         e.windup=(e.windup||1)-1;if(e.windup>0)return;
         if(e.type==='bomber'){this.hurt(e,e.hp);return;}
+        fired=def.range>1;
         if(e.type==='sniper'&&distance(p,e.aim||p)>0)this.log('狙擊彈擊中你原本的位置。');
         else {
           const chance=def.range>1?this.accuracy(e,p).chance:97;
@@ -315,6 +328,7 @@ export class Game {
         for(const [dx,dy]of DIRECTIONS.slice(0,2)){const x=e.x+dx,y=e.y+dy;if(this.passable(x,y)&&distance(p,{x,y})>0&&!this.enemies.some(o=>o.hp>0&&o.x===x&&o.y===y)){const drone=makeEnemy('drone',x,y,`${e.id}-reinforce-${dx}-${dy}`,this.floor);drone.alert=true;this.enemies.push(drone);}}
         this.log(`${enemyName(e)}呼叫了無人機增援！`,true);
       }
+    return fired;
   }
   nextStep(e,target) {
     const queue=[{x:e.x,y:e.y,first:null}],visited=new Set([key(e)]);
@@ -438,7 +452,7 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,4,5,6,7,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,5,6,7,8,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
@@ -448,6 +462,8 @@ export class Game {
       if(!validPrepared(version>=8?data.player:p))return null;
       if(version<7){p.traits=[];for(const e of data.enemies)e.traits=startingTraits(e.type,data.floor);}
       if((version>=7&&!validTraits(data.player.traits))||!validTraits(p.traits)||data.enemies.some(e=>!validTraits(e.traits)))return null;
+      if(version<9){p.character='soldier';p.moveDelta=[0,0];p.fireChain=null;grantCharacterTraits(p);for(const e of data.enemies){e.moveDelta=[0,0];e.fireChain=null;}}
+      if(!validCharacter(version>=9?data.player.character:p.character)||!validCombatMemory(version>=9?data.player:p,data.turn)||data.enemies.some(e=>!validCombatMemory(e,data.turn)))return null;
       p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0||p.plates>PLATE_CAPACITY)return null;
       if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||data.grid[p.y]?.[p.x]!==1||!Number.isFinite(p.hp)||p.hp<=0)return null;
       if(version<5){
