@@ -37,7 +37,7 @@ export class Renderer {
     const frame=[target.id,target.x,target.y,this.game.player.x,this.game.player.y,this.w,this.h,this.tile,this.camera.x,this.camera.y,this.sprites.naturalWidth,...this.game.visibleEnemies.flatMap(e=>[e.id,e.x,e.y])].join(',');
     if(!ui.dirty&&ui.frame===frame)return;ui.frame=frame;
     const compact=this.w<240;if(ui.compact!==compact){ui.card.classList.toggle('compact',compact);ui.compact=compact;ui.dirty=true;}
-    const width=Math.min(120,this.w-10);
+    const width=Math.min(104,this.w-10);
     if(ui.width!==width||ui.dirty){ui.card.style.width=`${width}px`;ui.width=width;ui.height=Math.ceil(ui.card.getBoundingClientRect().height);ui.dirty=false;}
     const a=this.project(target.x,target.y),p=this.project(this.game.player.x,this.game.player.y),fallbackActors=!this.sprites.complete||!this.sprites.naturalWidth;
     const obstacles=[{x:6,y:6,w:118,h:54,weight:60},{x:this.w-140,y:this.h-40,w:134,h:34,weight:60}];
