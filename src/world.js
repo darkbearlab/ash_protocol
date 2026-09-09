@@ -1,3 +1,4 @@
+import {selectSupplyStations,addLivingModules} from './modules.js';
 import {packSupplies} from './containers.js';
 import {blockedBetween,barrierBetween,makeBarrier,edgeCells,edgeKey} from './barriers.js';
 import {startingTraits} from './traits.js';
@@ -137,7 +138,8 @@ export function generate(seed,floor=1,unlocks=[]) {
       if(destinations.some(p=>!accessible.has(key(p)))||all.size!==grid.flat().filter(v=>v===1).length)map.barriers=previous;else placed=true;
     }
   }
-  return packSupplies(map,floor);
+  packSupplies(map,floor);selectSupplyStations(map,floor);
+  addLivingModules(map,seed,floor,{corridors,reachable});return map;
 }
 export function reachable(map,start,{openDoors=true}={}) {
   const queue=[start],seen=new Set([key(start)]);
