@@ -1,13 +1,19 @@
 import {Game} from './engine.js';
 import {normalizeProfile,creditProtocol} from './progression.js';
-export const storage={available:true};
+import {makeBackup,decodeBackup} from './backup.js';
+export const storage={available:true,recoveryPending:false};
 // Browser QA uses a separate namespace, never the user's campaign.
 export const TEST_MODE=typeof location!=='undefined'&&new URLSearchParams(location.search).get('test')==='1';
 const storageKey=key=>TEST_MODE?`qa-${key}`:key;
+export const backupNamespace=TEST_MODE?'qa':'live';
 export function read(key){try{return localStorage.getItem(storageKey(key));}catch{storage.available=false;return null;}}
 export function write(key,value){try{localStorage.setItem(storageKey(key),value);return true;}catch{storage.available=false;return false;}}
-export function loadGame(){const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if([1,2].includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}return Game.restore(raw);}
+export function loadGame(){
+  if(!recoverRestore()){try{return decodeBackup(read('ash-restore-journal'),backupNamespace).game;}catch{return null;}}
+  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if([1,2].includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}return Game.restore(raw);
+}
 export function saveGame(game){
+  if(storage.recoveryPending)return;
   if(game.status==='playing'){
     write('ash-save',game.serialize());
     const p=profile();if(creditProtocol(p,game)>0)write('ash-profile',JSON.stringify(p));
@@ -17,9 +23,9 @@ export function saveGame(game){
     if(storage.available)try{localStorage.removeItem(storageKey('ash-save'));}catch{storage.available=false;}
   }
 }
-export function profile(){try{return normalizeProfile(JSON.parse(read('ash-profile')));}catch{return normalizeProfile();}}
+export function profile(){try{if(storage.recoveryPending)return decodeBackup(read('ash-restore-journal'),backupNamespace).snapshot.profile;return normalizeProfile(JSON.parse(read('ash-profile')));}catch{return normalizeProfile();}}
 export function recordResult(game){
-  const p=profile();if(game.status==='playing')return p;
+  const p=profile();if(game.status==='playing'||storage.recoveryPending)return p;
   const delta=creditProtocol(p,game),id=game.runId;
   if(!Object.hasOwn(p.protocolRuns,id))return p;
   if(p.protocolRuns[id].recorded){if(delta)write('ash-profile',JSON.stringify(p));return p;}
@@ -27,4 +33,26 @@ export function recordResult(game){
   p.bestFloor=Math.max(p.bestFloor,game.floor);p.bestKills=Math.max(p.bestKills,game.player.kills);
   p.history.unshift({id,seed:game.seed,floor:game.floor,kills:game.player.kills,turn:game.turn,won:game.status==='won',protocol:game.protocol.earned,date:new Date().toISOString()});
   p.history=p.history.slice(0,10);write('ash-profile',JSON.stringify(p));return p;
+}
+
+export function exportBackup(game){return JSON.stringify(makeBackup(game,profile(),backupNamespace),null,2);}
+export function previewBackup(raw){return decodeBackup(raw,backupNamespace);}
+function storeSnapshot(snapshot){
+  localStorage.setItem(storageKey('ash-profile'),JSON.stringify(snapshot.profile));
+  if(snapshot.campaign)localStorage.setItem(storageKey('ash-save'),JSON.stringify(snapshot.campaign));
+  else localStorage.removeItem(storageKey('ash-save'));
+}
+export function recoverRestore(){
+  const journal=read('ash-restore-journal');if(!journal){storage.recoveryPending=false;return true;}
+  try{const {snapshot}=decodeBackup(journal,backupNamespace);storeSnapshot(snapshot);localStorage.removeItem(storageKey('ash-restore-journal'));storage.recoveryPending=false;return true;}
+  catch{storage.available=false;storage.recoveryPending=true;return false;}
+}
+export function restoreBackup(raw,currentGame){
+  const next=previewBackup(raw); // Validate everything before touching local data.
+  if(!recoverRestore())throw new Error('上次還原尚未復原，請先匯出目前資料再重試。');
+  const previous=exportBackup(currentGame);
+  // A recovery snapshot and journal must both persist before either live key changes.
+  if(!write('ash-backup-before-restore',previous)||!write('ash-restore-journal',previous))throw new Error('無法保存還原前備份，原資料尚未變更。');
+  try{storeSnapshot(next.snapshot);localStorage.removeItem(storageKey('ash-restore-journal'));storage.available=true;return next;}
+  catch{storage.available=false;const recovered=recoverRestore();throw new Error(recovered?'還原寫入失敗，已復原原資料。':'還原中斷；復原紀錄已保留，請重新開啟頁面後重試。');}
 }

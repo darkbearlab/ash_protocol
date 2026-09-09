@@ -9,7 +9,8 @@
 <body>
 <div class="app"><main class="workspace">
 <section class="battle-panel" aria-label="戰術作戰介面">
-<div class="viewport" id="viewport"><canvas id="battle" aria-label="四方向俯視戰場：點相鄰格移動，點擊敵人或可破壞物鎖定" tabindex="0"></canvas><div class="vitals-bar"><div class="mobile-health"><span>生命</span><b id="mobile-hp">100 / 100</b><div><i id="mobile-hp-bar"></i></div></div><span id="level">LV. 01</span><div class="map-tools"><button class="map-button" data-action="center" aria-label="鏡頭復位">⌖</button><button class="map-button" data-action="zoomOut" aria-label="縮小地圖">−</button><button class="map-button" data-action="zoomIn" aria-label="放大地圖">+</button><button class="map-button" data-action="map" aria-label="開啟樓層地圖">▦</button></div></div></div>
+<div class="viewport" id="viewport"><canvas id="battle" aria-label="四方向俯視戰場：點相鄰格移動，點擊敵人或可破壞物鎖定" tabindex="0"></canvas><div class="vitals-bar"><div class="mobile-health"><span>生命</span><b id="mobile-hp">100 / 100</b><div><i id="mobile-hp-bar"></i></div></div><span id="level">LV. 01</span><div class="map-tools"><button class="map-button" data-action="center" aria-label="鏡頭復位">⌖</button><button class="map-button" data-action="zoomOut" aria-label="縮小地圖">−</button><button class="map-button" data-action="zoomIn" aria-label="放大地圖">+</button><button class="map-button" data-action="map" aria-label="開啟樓層地圖">▦</button></div></div>
+</div>
 <div class="tactical-panel">
 <div class="battle-header"><strong id="sector-title">01 / 軌道轉運站</strong><span class="turn-indicator">回合 <b id="turn">001</b></span><button class="map-button" data-action="settings" aria-label="開啟選單與設定">☰</button></div>
 <div class="combat-strip"><span class="status-icon">⌖</span><div><strong id="target-name">掃描周遭區域</strong><span id="target-detail">點擊敵人鎖定目標</span></div><span class="range-pill" id="target-range">無目標</span></div>
@@ -20,5 +21,7 @@
 <div id="field-messages" aria-label="戰術提示"></div>
 </div></section></main></div>
 <dialog id="modal"><div id="modal-content"></div></dialog>
+<dialog id="orientation-guard" aria-labelledby="orientation-title"><div><span aria-hidden="true">↻</span><h2 id="orientation-title">請轉回直向遊玩</h2><p>目前回合與選單已保留。</p></div></dialog>
+<input type="file" id="import-backup" accept=".json,application/json" hidden>
 <input type="file" id="import-save" accept=".json,application/json" hidden><script type="module" src="./src/main.js"></script>
 </body></html>

@@ -10,7 +10,7 @@
 - `ash-profile` version 2：既有 runs／wins／history 保留，新增 `protocol: {balance, earned}`、`unlocks: {weapons: [], characters: ['operator']}`、`protocolRuns: {runId: {earned, recorded}}`。
 - `saveGame()` 保存本局後同步點數；結局先將點數及結果寫入 profile，再移除本局存檔。重複呼叫／同局匯入只補上超過已發放累積值的差額。
 - `protocolRuns` 不隨最近十次任務歷史裁切。後續不可直接移除去重紀錄；若要壓縮，需設計同等去重機制。
-- QA 使用 `qa-ash-profile`、`qa-ash-save`。正式資料不可用於測試。點數只存在目前瀏覽器；目前匯出 JSON 是單局存檔，**不是完整 profile／錢包備份**。提供商店前，優先補完整 profile 備份與還原。
+- QA 使用 `qa-ash-profile`、`qa-ash-save`。正式資料不可用於測試。點數只存在目前瀏覽器；3.3.0 已加入 [完整 profile／錢包備份與還原](PROFILE_BACKUP.md)。原本的「匯出任務」仍僅包含單局，移轉錢包應使用「完整備份」。
 
 ## 舊存檔
 

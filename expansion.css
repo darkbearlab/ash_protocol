@@ -1,6 +1,6 @@
-/* 3.1: gameplay only. No HUD child is positioned over the battlefield. */
+/* Portrait gameplay; compact HUD overlays stay within the square battlefield. */
 .app{min-height:100dvh;display:block;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-.workspace{width:100%;max-width:1400px;margin:0 auto;padding:0}
+.workspace{width:100%;max-width:480px;margin:0 auto;padding:0}
 .battle-panel{--board-size:320px;display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"header" "board" "target" "loadout" "controls" "messages";width:100%;border:1px solid #3b4238;background:#151e19;min-width:0}
 .tactical-panel{display:contents}
 .viewport{grid-area:board;width:var(--board-size);height:var(--board-size);min-height:0;max-height:none;aspect-ratio:1;position:relative;overflow:hidden;justify-self:center;background:#10191a}
@@ -38,9 +38,6 @@
 #field-messages{grid-area:messages;min-height:28px;display:flex;flex-direction:column;align-items:stretch;background:#121c17}
 .battle-notice{position:static;transform:none;max-width:none;min-width:0;min-height:28px;height:auto;padding:5px 8px;border:0;background:none;color:#c5cbaa;font-size:10px;text-align:left;opacity:1;transition:none;white-space:normal;line-height:1.6;pointer-events:none}
 .battle-notice:not(.show){color:#8e9c80}
-.battle-panel.landscape{grid-template-columns:var(--board-size) minmax(0,1fr);grid-template-areas:"board hud";align-items:start}
-.landscape .tactical-panel{grid-area:hud;display:flex;flex-direction:column;height:var(--board-size);overflow-y:auto;overscroll-behavior:contain}
-.landscape .tactical-panel>*{flex-shrink:0}.landscape #field-messages{flex:1}
 #overview{width:100%;height:auto;aspect-ratio:1;image-rendering:pixelated;touch-action:auto}
 .intro-rules{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-block:1px solid #435337;padding-block:14px;color:#d6b382;font-size:11px}
 @media(min-width:750px){.battle-header strong{font-size:13px}.action strong{font-size:12px}.action-buttons .action{min-height:66px}}
@@ -51,7 +48,6 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .battle-panel,.battle-panel button{touch-action:manipulation}
 #field-messages{height:28px;min-height:28px;max-height:28px;overflow:hidden}
 .battle-notice{height:28px;min-height:28px;max-height:28px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.landscape #field-messages{flex:0 0 28px}
 .combat-strip,.loadout-bar{height:44px;min-height:44px;max-height:44px;overflow:hidden}
 .combat-strip strong,.combat-strip div>span,#status-effects{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vitals-bar{position:absolute;inset:6px;display:block;min-height:0;padding:0;border:0;background:none;pointer-events:none}
@@ -59,3 +55,6 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 #level{position:absolute;top:32px;left:0;background:#142019aa;padding:3px 5px}
 .map-tools{position:absolute;bottom:0;right:0;gap:2px;pointer-events:auto}
 .map-tools .map-button{width:32px;min-width:32px;height:32px;background:#17251bbb;font-size:18px}
+
+#orientation-guard{position:fixed;inset:0;margin:0;width:100vw;max-width:none;height:100dvh;max-height:none;border:0;padding:24px;background:#10191a;text-align:center}
+#orientation-guard[open]{display:grid;place-items:center}#orientation-guard::backdrop{background:#10191a}#orientation-guard span{display:block;font:52px var(--mono);color:var(--orange);margin-bottom:12px}
