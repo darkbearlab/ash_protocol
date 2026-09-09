@@ -100,13 +100,13 @@ export class Game {
     if(type==='weapon'&&arg===undefined)arg=p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length];
     if(type==='grenade'){const pos=arg||this.targeted;arg=pos?{x:pos.x,y:pos.y}:null;}
     if(!this.validateAction(type,arg))return false;
-    const targetId=type==='fire'?this.target:null,floor=this.floor,queue=initiativeQueue(p,this.enemies),playerSpeed=queue.find(q=>q.actor===p).speed;
+    const fireIntent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:null,floor=this.floor,queue=initiativeQueue(p,this.enemies),playerSpeed=queue.find(q=>q.actor===p).speed;
     this.turn++;
     for(const {actor,speed}of queue){
       if(p.hp<=0||this.status!=='playing'||this.floor!==floor)break;
       if(actor===p){
-        if(type==='fire')this.target=targetId; // Track identity, never switch to another enemy.
-        const success=this.executePlayer(type,arg);
+        if(type==='fire')this.target=fireIntent.id; // Track identity, never switch to another enemy.
+        const success=this.executePlayer(type,fireIntent||arg);
         if(!success)this.log('局勢已改變，行動未能完成；本回合已消耗。');
         p.guard=success&&type==='wait';p.moved=success&&type==='move';p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
         this.reveal();
@@ -134,7 +134,7 @@ export class Game {
         if(e){this.target=e.id;return this.fail('敵人擋住去路，先開火。');}
         p.x=x;p.y=y;p.facing=[dx,dy];this.pickup();success=true;break;
       }
-      case 'fire': success=this.fire();break;
+      case 'fire': success=this.fire(arg);break;
       case 'reload': {
         const need=this.weapon.mag-p.ammo[p.weapon],reserve=this.reserveKey();
         if(!need)return this.fail('彈匣已滿。');
@@ -165,8 +165,19 @@ export class Game {
     }
     return success;
   }
-  fire() {
+  fire(intent=null) {
     const p=this.player,e=this.targeted,w=this.weapon;
+    // A committed shot still fires at the last confirmed tile if its target is lost.
+    if(intent&&(!e||distance(p,e)>w.range)){
+      p.facing=[Math.sign(intent.x-p.x),Math.sign(intent.y-p.y)];
+      const shots=Math.min(w.burst||1,p.ammo[p.weapon]);
+      for(let i=0;i<shots;i++)presentStep(this,()=>{
+        p.ammo[p.weapon]--;p.stats.shots++;
+        this.effects.push({type:'shot',weaponId:w.id,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:intent.x,y:intent.y},damage:0,miss:true,color:w.ammoType==='energy'?'#8ae9da':null});
+      });
+      this.log(`原目標已失去有效射線，向最後確認位置開火落空，消耗 ${shots} 發。`);
+      return true;
+    }
     if(!e)return this.fail('射線內沒有目標。');
     if(distance(p,e)>w.range)return this.fail('目標超出射程，靠近再開火。');
     if(p.ammo[p.weapon]<=0)return this.fail('彈匣已空，請裝填。');

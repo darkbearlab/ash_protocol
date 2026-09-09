@@ -62,17 +62,18 @@ test('a fast moving target keeps its identity; bullets use the new position and 
   assert.equal(steps[0].before.enemies[0].x,14);assert.equal(steps[0].after.enemies[0].x,15);assert.equal(steps[0].effects.length,0,'quiet fast movement gets its own presentation step');
   assert.ok(planPresentation(steps).events.find(e=>e.effects.some(f=>f.type==='shot')).time>0);
 });
-test('target fleeing range or sight costs the committed turn without ammo or replacement targeting',()=>{
+test('target fleeing range or sight consumes committed ammunition without replacement targeting',()=>{
   for(const hidden of [false,true]){
     const g=arena(EscapeGame),e=enemy(g,'escape');trait(e,'fast');enemy(g,'other',11,10);g.target=e.id;g.escape=hidden?{x:14,y:12}:{x:18,y:10};
     if(hidden)for(let x=0;x<SIZE;x++)g.grid[11][x]=0;
-    assert.equal(g.action('fire'),true);assert.equal(g.turn,2);assert.equal(g.player.ammo[0],8);assert.equal(g.player.stats.shots,0);assert.equal(g.enemies[1].hp,500);
-    assert.ok(g.logs.some(l=>l.text.includes('本回合已消耗')));
+    assert.equal(g.action('fire'),true);assert.equal(g.turn,2);assert.equal(g.player.ammo[0],7);assert.equal(g.player.stats.shots,1);assert.equal(g.enemies[1].hp,500);assert.equal(e.hp,500);
+    const shot=g.effects.find(f=>f.type==='shot');assert.equal(shot.miss,true);assert.deepEqual(shot.to,{x:14,y:10});
+    assert.ok(g.logs.some(l=>l.text.includes('開火落空')));
   }
 });
 test('if the original target dies before player action, no other target is shot',()=>{
   const g=arena(),e=enemy(g,'bomber',11,10,'bomber');trait(e,'fast');e.charge=true;e.windup=1;enemy(g,'other',14,10);g.target=e.id;
-  assert.equal(g.action('fire'),true);assert.ok(e.hp<=0);assert.equal(g.player.stats.shots,0);assert.equal(g.player.ammo[0],8);assert.equal(g.player.kills,1);
+  assert.equal(g.action('fire'),true);assert.ok(e.hp<=0);assert.equal(g.player.stats.shots,1);assert.equal(g.player.ammo[0],7);assert.equal(g.player.kills,1);assert.equal(g.enemies[1].hp,500);
 });
 test('fast lethal attack cancels the player action and all later actors; replay starts with enemy damage',()=>{
   const g=arena(),e=enemy(g,'fast');trait(e,'fast');e.charge=true;e.windup=1;enemy(g,'later',14,11);g.player.hp=1;g.target=e.id;
@@ -117,4 +118,19 @@ test('target cards explain effective order and cancelled traits; spawn defaults 
   const g=arena(),e=enemy(g,'e');trait(e,'fast');g.target=e.id;assert.equal(targetDetails(g).order,'行動在你之前');assert.equal(targetDetails(g).traits,'快速');trait(g.player,'fast');assert.equal(targetDetails(g).order,'同速，你先行動');trait(e,'slow');assert.match(targetDetails(g).traits,/抵銷/);
   assert.equal(activeTrait(makeEnemy('drone',1,1,'drone'),'no_cover'),true);assert.equal(activeTrait(makeEnemy('brute',1,1,'brute'),'large'),true);assert.equal(activeTrait(makeEnemy('brute',1,1,'brute'),'no_cover'),false);
   assert.equal(initiative(makeEnemy('crawler',1,1,'early',1)),0);assert.equal(initiative(makeEnemy('crawler',1,1,'late',4)),-1);
+});
+
+test('lost-target commitment respects every weapon ammunition cost, burst remainder and replay',()=>{
+  for(const [slot,ammo,spent] of [[0,8,1],[1,4,1],[2,18,2],[2,1,1],[3,3,1],[4,5,1],[5,2,1]]){
+    const g=arena(EscapeGame),e=enemy(g,'escape');trait(e,'fast');g.escape={x:14,y:12};g.target=e.id;
+    for(let x=0;x<SIZE;x++)g.grid[11][x]=0;
+    g.player.owned=[slot];g.player.weapon=slot;g.player.ammo[slot]=ammo;
+    const {steps}=captureAction(g,()=>g.action('fire'));
+    assert.equal(g.player.ammo[slot],ammo-spent);assert.equal(g.player.stats.shots,spent);assert.equal(e.hp,500);
+    const shots=steps.filter(s=>s.effects.some(f=>f.type==='shot'));assert.equal(shots.length,spent);
+    assert.equal(shots[0].before.player.ammo[slot],ammo);assert.equal(shots.at(-1).after.player.ammo[slot],ammo-spent);
+    assert.ok(shots.every(s=>s.effects[0].miss));assert.equal(g.effects.some(f=>f.type==='blast'),false);
+    const plan=planPresentation(steps);assert.ok(plan.events.some(e=>e.effects.some(f=>f.type==='miss')));
+    const restored=Game.restore(g.serialize());assert.ok(restored);assert.equal(restored.player.ammo[slot],ammo-spent);
+  }
 });
