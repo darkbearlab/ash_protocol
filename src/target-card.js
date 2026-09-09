@@ -1,3 +1,4 @@
+import {missionTarget} from './missions.js';
 import {FURNITURE} from './modules.js';
 import {isBarrier,barrierName} from './barriers.js';
 import {traitLabels,initiative,activeTrait} from './traits.js';
@@ -7,7 +8,7 @@ export function targetDetails(game){
   const target=game.targeted;if(!target)return null;
   const melee=game.weapon.melee,enemy=ENEMY_TYPES[target.type],aim=enemy?game.accuracy(game.player,target):{chance:game.fireChance(target),bracedBonus:bracingBonus(game,game.player,target)};
   const range=distance(game.player,target),withinDistance=range<=game.weapon.range,withinRange=withinDistance&&game.shotClear(game.player,target)&&(!melee||isBarrier(target)||game.canCross(game.player,target));
-  return {name:enemy?.name||(isBarrier(target)?barrierName(target):target.type==='barrel'?'爆裂油桶':FURNITURE[target.style]?.name||'可破壞掩體'),hp:`${isBarrier(target)?'耐久':'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}`,
+  return {name:(enemy?(missionTarget(game,target)?'◇ ':'')+enemy.name:null)||(isBarrier(target)?barrierName(target):target.type==='barrel'?'爆裂油桶':FURNITURE[target.style]?.name||'可破壞掩體'),hp:`${isBarrier(target)?'耐久':'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}`,
     chance:withinRange?`命中 ${aim.chance}%`:melee?'無法近戰':'無法射擊',distance:`距離 ${range} 格\n射程 ${game.weapon.range} 格`,
     traits:enemy?traitLabels(target).join(' · '):'',
     order:enemy&&(initiative(target)!==0||initiative(game.player)!==0)?(initiative(target)<initiative(game.player)?'行動在你之前':initiative(target)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',

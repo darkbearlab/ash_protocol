@@ -91,3 +91,8 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .is-kia img{filter:saturate(.25) brightness(.7)}
 .kia-stamp{position:absolute;left:0;right:0;top:44%;text-align:center;transform:rotate(-12deg);border:3px double #ff8175;color:#ff9c8e;background:#461b22b8;font:900 20px/1.15 monospace;letter-spacing:3px;text-shadow:1px 1px #4a1118;pointer-events:none}
 .result-identity .kia-stamp{font-size:32px;border-width:5px}
+
+/* Replace the existing heading in place: no extra battlefield row. */
+#sector-title{flex:1;min-width:0;min-height:44px;padding:0;text-align:left;font:500 11px var(--mono);color:#c6ddc7;background:none;border:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mission-choices .character-choice strong{font-size:14px}
+.mission-choices .character-choice span{gap:3px}
