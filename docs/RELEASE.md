@@ -29,4 +29,6 @@ Pages 設定使用 **GitHub Actions** 作為來源。完成一次設定後，後
 
 3.1.2 修正 Pages 的 HTTP 快取干擾：安裝新離線快取時使用 Request cache:reload，線上讀取使用 cache:no-cache 重新驗證。否則 Pages 的 max-age=600 會讓新 Service Worker 再存入舊 JS，導致部署已成功卻仍顯示舊 BUILD。離線仍讀既有快取，不清除玩家存檔。
 
+正式 build 也會根據 HTML／CSS／JS 內容產生共同雜湊，將模組、CSS 及 SW URL 加上 ?v=雜湊；SW 清單使用相同 URL，快取名稱也含雜湊。即使尚未接管的新 SW 不能更新舊 HTTP 快取，新 HTML 仍會載入全新的依賴 URL。本機原始碼不改寫，這是 dist 的發布處理。
+
 若正式遊戲仍在開啟狀態，部署不會強制中斷當前回合；重新整理載入新版。存檔沿用版本遷移。GitHub 與 localhost 是不同 origin，各自保有自己的存檔，可使用遊戲內匯出 / 匯入移轉。
