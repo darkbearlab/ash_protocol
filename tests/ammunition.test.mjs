@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,WEAPONS} from '../src/engine.js';
-import {AMMUNITION,AMMO_IDS,capacity,splitLegacyRounds,CARRY_COSTS} from '../src/ammunition.js';
+import {AMMUNITION,AMMO_IDS,capacity,carryLevels,splitLegacyRounds,CARRY_COSTS} from '../src/ammunition.js';
 import {normalizeProfile} from '../src/progression.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 
@@ -81,11 +81,11 @@ test('carrying levels raise all capacities without granting ammunition and lower
 });
 
 test('full backups include permanent levels and reconcile campaign caps; v2 profiles migrate',()=>{
-  const g=arena(),p=normalizeProfile();p.protocol={balance:70,earned:200};p.upgrades.carrying=3;g.setCarryLevel(3);
-  const b=makeBackup(g,p,'qa'),restored=decodeBackup(JSON.stringify(b),'qa');assert.equal(restored.game.carryLevel,3);assert.equal(restored.snapshot.profile.upgrades.carrying,3);
+  const g=arena(),p=normalizeProfile();p.protocol={balance:70,earned:200};p.upgrades.carrying.rifle=3;g.setCarryLevel(p.upgrades.carrying);
+  const b=makeBackup(g,p,'qa'),restored=decodeBackup(JSON.stringify(b),'qa');assert.equal(restored.game.carryLevel.rifle,3);assert.equal(restored.snapshot.profile.upgrades.carrying.rifle,3);assert.equal(restored.game.carryLevel.shell,0);
   const old=structuredClone(b);old.profile.version=2;delete old.profile.upgrades;old.profile.protocol.balance=200;
-  assert.equal(decodeBackup(JSON.stringify(old),'qa').snapshot.profile.upgrades.carrying,0);
-  old.profile.upgrades={carrying:3};assert.equal(decodeBackup(JSON.stringify(old),'qa').snapshot.profile.upgrades.carrying,0,'v2 cannot import a permanent upgrade field');
+  assert.deepEqual(decodeBackup(JSON.stringify(old),'qa').snapshot.profile.upgrades.carrying,carryLevels(0));
+  old.profile.upgrades={carrying:3};assert.deepEqual(decodeBackup(JSON.stringify(old),'qa').snapshot.profile.upgrades.carrying,carryLevels(0),'v2 cannot import a permanent upgrade field');
   for(const mutate of [b=>b.profile.upgrades.carrying=4,b=>b.profile.upgrades.carrying=-1,b=>b.profile.upgrades.carrying='1',b=>b.profile.protocol.balance=200,b=>b.campaign.data.player.pistol=-1]){
     const bad=structuredClone(b);mutate(bad);assert.throws(()=>decodeBackup(JSON.stringify(bad),'qa'));
   }
@@ -97,20 +97,20 @@ test('purchase commits cost and level together, survives reload, rejects repeats
   const {purchaseCarrying,profile,saveGame,loadGame,restoreBackup,exportBackup,storage}=await import('../src/storage.js');
   const g=arena(),p=normalizeProfile();g.awardProtocol('lore',1);p.protocol={balance:197,earned:197};memory.set('qa-ash-profile',JSON.stringify(p));saveGame(g);
   const original=exportBackup(g),before=structuredClone(g.player),turn=g.turn;
-  reject=true;assert.throws(()=>purchaseCarrying(g,0),/尚未扣除/);assert.equal(profile().protocol.balance,200);assert.equal(g.carryLevel,0);
-  reject=false;storage.available=true;purchaseCarrying(g,0);assert.equal(profile().protocol.balance,180);assert.equal(profile().upgrades.carrying,1);assert.equal(loadGame().carryLevel,1);
-  assert.throws(()=>purchaseCarrying(g,0),/資料已更新/);assert.equal(profile().protocol.balance,180);
-  purchaseCarrying(g,1);purchaseCarrying(g,2);assert.equal(profile().protocol.balance,200-CARRY_COSTS.reduce((a,b)=>a+b));assert.throws(()=>purchaseCarrying(g,3),/最高/);
+  reject=true;assert.throws(()=>purchaseCarrying(g,'rifle',0),/尚未扣除/);assert.equal(profile().protocol.balance,200);assert.equal(g.carryLevel.rifle,0);
+  reject=false;storage.available=true;purchaseCarrying(g,'rifle',0);assert.equal(profile().protocol.balance,180);assert.equal(profile().upgrades.carrying.rifle,1);assert.equal(loadGame().carryLevel.rifle,1);
+  assert.throws(()=>purchaseCarrying(g,'rifle',0),/資料已更新/);assert.equal(profile().protocol.balance,180);
+  purchaseCarrying(g,'rifle',1);purchaseCarrying(g,'rifle',2);assert.equal(profile().protocol.balance,200-CARRY_COSTS.reduce((a,b)=>a+b));assert.throws(()=>purchaseCarrying(g,'rifle',3),/最高/);
   assert.equal(g.turn,turn);assert.deepEqual(g.player,before);saveGame(g);assert.equal(profile().protocol.balance,70);
   saveGame(Game.restore(g.serialize()));assert.equal(profile().protocol.balance,70,'reloading a previously rewarded run cannot refund spent points');
-  failSaveOnce=true;assert.throws(()=>restoreBackup(original,g),/已復原/);assert.equal(profile().upgrades.carrying,3);assert.equal(profile().protocol.balance,70);
-  const restored=restoreBackup(original,g);assert.equal(restored.game.carryLevel,0);assert.equal(profile().protocol.balance,200);assert.equal(profile().upgrades.carrying,0);
+  failSaveOnce=true;assert.throws(()=>restoreBackup(original,g),/已復原/);assert.equal(profile().upgrades.carrying.rifle,3);assert.equal(profile().protocol.balance,70);
+  const restored=restoreBackup(original,g);assert.equal(restored.game.carryLevel.rifle,0);assert.equal(profile().protocol.balance,200);assert.equal(profile().upgrades.carrying.rifle,0);
   // The first purchase remains affordable; empty wallets and pending recovery are rejected.
-  const empty=normalizeProfile();memory.set('qa-ash-profile',JSON.stringify(empty));assert.throws(()=>purchaseCarrying(restored.game,0),/不足/);
-  storage.recoveryPending=true;assert.throws(()=>purchaseCarrying(restored.game,0),/尚未就緒/);storage.recoveryPending=false;
+  const empty=normalizeProfile();memory.set('qa-ash-profile',JSON.stringify(empty));assert.throws(()=>purchaseCarrying(restored.game,'rifle',0),/不足/);
+  storage.recoveryPending=true;assert.throws(()=>purchaseCarrying(restored.game,'rifle',0),/尚未就緒/);storage.recoveryPending=false;
   const legacy=JSON.parse(g.serialize());legacy.version=3;legacy.data.player.reserve=48;delete legacy.data.player.pistol;delete legacy.data.player.shell;const legacyRaw=JSON.stringify(legacy);memory.set('qa-ash-save',legacyRaw);
   const migrated=loadGame();assert.ok(migrated);assert.equal(memory.get('qa-ash-save-v3-backup'),legacyRaw);saveGame(migrated);assert.deepEqual(loadGame().player,migrated.player);
-  const v4=JSON.parse(migrated.serialize());v4.version=4;delete v4.data.player.weaponBases;delete v4.data.player.affixes;v4.data.player.ammo=v4.data.player.ammo.slice(0,6);v4.data.player.upgrades=v4.data.player.upgrades.slice(0,6);for(const item of v4.data.items)delete item.slot;const v4Raw=JSON.stringify(v4);memory.set('qa-ash-save',v4Raw);assert.ok(loadGame());assert.equal(memory.get('qa-ash-save-v4-backup'),v4Raw);
+  const v4=JSON.parse(migrated.serialize());v4.version=4;v4.data.carryLevel=0;delete v4.data.player.weaponBases;delete v4.data.player.affixes;v4.data.player.ammo=v4.data.player.ammo.slice(0,6);v4.data.player.upgrades=v4.data.player.upgrades.slice(0,6);for(const item of v4.data.items)delete item.slot;const v4Raw=JSON.stringify(v4);memory.set('qa-ash-save',v4Raw);assert.ok(loadGame());assert.equal(memory.get('qa-ash-save-v4-backup'),v4Raw);
   assert.equal(memory.get('ash-save'),'live-save');assert.equal(memory.get('ash-profile'),'live-profile');
   delete globalThis.location;delete globalThis.localStorage;
 });

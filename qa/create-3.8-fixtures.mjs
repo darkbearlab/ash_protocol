@@ -9,6 +9,6 @@ const pack=arena();pack.addWeapon(2);pack.player.ammo[0]=2;pack.player.upgrades[
 for(const affix of ['stable','piercing','extended','powerful','longbarrel','tracking'])loot(pack,0,affix);
 pack.items.push({type:'scrap',x:9,y:10},{type:'shell',x:10,y:9,amount:6});await save('comparison-full-pack',pack);
 const combat=arena(),gun=loot(combat,0,'tracking');combat.takeWeapon(gun);combat.player.weapon=gun;combat.enemies=[makeEnemy('brute',15,10,'qa-target')];combat.target='qa-target';await save('affix-combat',combat);
-const old=JSON.parse(arena().serialize());old.version=4;old.data.player.ammo=[2,3,0,0,0,0];old.data.player.upgrades=[2,1,0,0,0,0];delete old.data.player.weaponBases;delete old.data.player.affixes;old.data.items=[{type:'weapon',weapon:0,x:11,y:10}];
+const old=JSON.parse(arena().serialize());old.version=4;old.data.carryLevel=0;old.data.player.ammo=[2,3,0,0,0,0];old.data.player.upgrades=[2,1,0,0,0,0];delete old.data.player.weaponBases;delete old.data.player.affixes;old.data.items=[{type:'weapon',weapon:0,x:11,y:10}];
 if(!Game.restore(JSON.stringify(old)))throw new Error('Invalid legacy fixture');await writeFile(new URL('legacy-v4.json',output),JSON.stringify(old));
 console.log('Created three QA-only weapon fixtures in qa/fixtures/3.8/.');

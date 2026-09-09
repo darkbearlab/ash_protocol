@@ -72,7 +72,7 @@ test('penetration and longer range affect actual attacks; visuals retain gun fam
   g.player.affixes[1]='longbarrel';assert.equal(g.action('fire'),true);
 });
 test('v4 migration preserves old guns, ground weapons, ammo, currency and RNG exactly once',()=>{
-  const g=new Game(12),old=JSON.parse(g.serialize());old.version=4;const p=old.data.player;
+  const g=new Game(12),old=JSON.parse(g.serialize());old.version=4;old.data.carryLevel=0;const p=old.data.player;
   p.weapon=1;p.ammo=[3,2,0,0,0,0];p.upgrades=[2,1,0,0,0,0];delete p.weaponBases;delete p.affixes;
   for(const item of old.data.items)delete item.slot;
   const restored=Game.restore(JSON.stringify(old));assert.ok(restored);assert.deepEqual(restored.player.ammo.slice(0,6),p.ammo);assert.deepEqual(restored.player.upgrades.slice(0,6),p.upgrades);

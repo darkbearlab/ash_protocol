@@ -71,3 +71,5 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .pack-ammo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:12px 0}.pack-ammo span{display:flex;flex-direction:column;gap:3px;padding:8px;background:#25342b;font-size:11px;color:#bed0b8}.pack-ammo b{font:13px var(--mono);color:#e8ce98}
 
 .weapon-comparison{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}.weapon-comparison th,.weapon-comparison td{padding:6px 3px;text-align:left;border-bottom:1px solid #91ab8133}.weapon-comparison thead{color:#9dcdb8}.weapon-comparison tbody th{font-weight:400}.ground-loot small{display:block}.pack-weapon h3,.ground-loot strong{overflow-wrap:anywhere}
+
+.carry-upgrade button{min-height:44px}.carry-upgrade small{order:2}

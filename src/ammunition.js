@@ -10,7 +10,10 @@ export const AMMUNITION={
 export const AMMO_IDS=['pistol','rifle','shell','energy','ordnance'];
 export const CARRY_COSTS=[20,40,70];
 export const carryLevel=value=>Number.isInteger(value)?Math.max(0,Math.min(CARRY_COSTS.length,value)):0;
-export const capacity=(type,level=0)=>AMMUNITION[type].base+AMMUNITION[type].step*carryLevel(level);
+export const carryLevels=value=>Object.fromEntries(Object.keys(AMMUNITION).map(id=>[id,carryLevel(typeof value==='number'?value:value?.[id])]));
+export const validCarryLevels=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===Object.keys(AMMUNITION).length&&Object.keys(AMMUNITION).every(id=>Object.hasOwn(value,id)&&Number.isInteger(value[id])&&value[id]>=0&&value[id]<=CARRY_COSTS.length);
+export const carryingSpent=level=>CARRY_COSTS.slice(0,carryLevel(level)).reduce((sum,n)=>sum+n,0);
+export const capacity=(type,levels=0)=>AMMUNITION[type].base+AMMUNITION[type].step*carryLevel(typeof levels==='number'?levels:levels?.[type]);
 export const itemAmmo=type=>Object.keys(AMMUNITION).find(id=>AMMUNITION[id].item===type);
 export const TERMINAL_AMMO={pistol:{amount:36,cost:10},rifle:{amount:24,cost:10},shell:{amount:8,cost:10},energy:{amount:12,cost:12},ordnance:{amount:3,cost:12}};
 // Preserve the exact old total, apportioned by owned ballistic magazine sizes.

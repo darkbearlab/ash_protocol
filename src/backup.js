@@ -1,4 +1,4 @@
-import {CARRY_COSTS} from './ammunition.js';
+import {CARRY_COSTS,validCarryLevels,carryingSpent} from './ammunition.js';
 import {Game} from './game.js';
 import {normalizeProfile,creditProtocol} from './progression.js';
 import {SIZE,SUPPLY_NAMES} from './data.js';
@@ -10,10 +10,11 @@ const id=v=>typeof v==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(v)&&!['__proto__'
 const requireValue=(ok,message)=>{if(!ok)throw new Error(message);};
 
 export function validateProfile(raw){
-  requireValue(object(raw)&&[2,3].includes(raw.version),'全局紀錄版本不相容。');
+  requireValue(object(raw)&&[2,3,4].includes(raw.version),'全局紀錄版本不相容。');
   requireValue(['runs','wins','bestKills','bestFloor'].every(k=>count(raw[k]))&&raw.wins<=raw.runs&&raw.bestFloor>=1&&raw.bestFloor<=6,'任務紀錄數值無效。');
   requireValue(object(raw.protocol)&&count(raw.protocol.balance)&&count(raw.protocol.earned)&&raw.protocol.balance<=raw.protocol.earned,'協定點數數值無效。');
   if(raw.version===3){requireValue(object(raw.upgrades)&&count(raw.upgrades.carrying)&&raw.upgrades.carrying<=CARRY_COSTS.length,'攜行升級資料無效。');requireValue(raw.protocol.earned-raw.protocol.balance>=CARRY_COSTS.slice(0,raw.upgrades.carrying).reduce((a,b)=>a+b,0),'攜行升級與點數支出不符。');}
+  if(raw.version===4){requireValue(object(raw.upgrades)&&validCarryLevels(raw.upgrades.carrying),'各彈種攜行升級資料無效。');requireValue(raw.protocol.earned-raw.protocol.balance>=Object.values(raw.upgrades.carrying).reduce((sum,n)=>sum+carryingSpent(n),0),'攜行升級與點數支出不符。');}
   requireValue(object(raw.unlocks)&&['weapons','characters'].every(k=>Array.isArray(raw.unlocks[k])&&raw.unlocks[k].every(id)),'解鎖紀錄無效。');
   requireValue(object(raw.protocolRuns),'點數發放紀錄缺漏。');
   let total=0;
@@ -21,7 +22,7 @@ export function validateProfile(raw){
     requireValue(id(key)&&object(value)&&count(value.earned)&&typeof value.recorded==='boolean','點數發放紀錄無效。');total+=value.earned;
   }
   requireValue(Number.isSafeInteger(total)&&total<=raw.protocol.earned,'點數發放紀錄與累計不符。');
-  requireValue(Array.isArray(raw.history)&&raw.history.length<=10&&raw.history.every(r=>object(r)&&id(r.id)&&['seed','floor','kills','turn'].every(k=>count(r[k]))&&r.floor>=1&&r.floor<=6&&r.turn>=1&&typeof r.won==='boolean'&&typeof r.date==='string'&&Number.isFinite(Date.parse(r.date))&&(r.protocol===undefined||count(r.protocol))),'最近任務紀錄無效。');
+  requireValue(Array.isArray(raw.history)&&raw.history.length<=10&&raw.history.every(r=>object(r)&&id(r.id)&&['seed','floor','kills','turn'].every(k=>count(r[k]))&&r.floor>=1&&r.floor<=6&&r.turn>=1&&typeof r.won==='boolean'&&(r.outcome===undefined||['won','dead','abandoned'].includes(r.outcome))&&typeof r.date==='string'&&Number.isFinite(Date.parse(r.date))&&(r.protocol===undefined||count(r.protocol))),'最近任務紀錄無效。');
   return normalizeProfile(JSON.parse(JSON.stringify(raw)));
 }
 
