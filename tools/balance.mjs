@@ -28,7 +28,7 @@ export function play(seed,maxActions=1800) {
     const marked=g.marks.find(m=>distance(p,m)<=1);
     if(marked){const step=safeMove(g,n=>distance(n,marked)>distance(p,marked));if(step){act('move',step);continue;}}
     const bomber=g.visibleEnemies.find(e=>e.type==='bomber'&&distance(e,p)<=1);
-    if(bomber){act('guard');continue;}
+    if(bomber){act('wait');continue;}
     if(p.hp<=p.maxHp-45&&p.meds>0){act('heal');continue;}
     const targets=g.visibleEnemies.filter(e=>distance(p,e)<=g.weapon.range).sort((a,b)=>Number(b.charge)-Number(a.charge)||distance(a,p)-distance(b,p));
     const grenade=targets.find(e=>distance(p,e)>2&&distance(p,e)<=5&&(e.hp>=75||g.visibleEnemies.filter(o=>distance(o,e)<=2).length>=2));

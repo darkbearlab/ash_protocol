@@ -51,7 +51,7 @@ test('careless exposed squads kill quickly; shelter materially improves survival
   const outcomes=[];
   for(const sheltered of[false,true]){let dead=0,hp=0;for(let seed=1;seed<=100;seed++){
     const g=arena(seed);g.rng=random(seed);g.enemies=[makeEnemy('rifleman',14,9,'a'),makeEnemy('rifleman',14,10,'b'),makeEnemy('rifleman',14,11,'c')];
-    if(sheltered)g.grid[10][11]=0;g.reveal();for(let turn=0;turn<4&&g.status==='playing';turn++)g.action('wait');
+    if(sheltered)g.grid[10][11]=0;g.reveal();for(let turn=0;turn<4&&g.status==='playing';turn++)g.action('weapon');
     dead+=Number(g.status==='dead');hp+=g.player.hp;
   }outcomes.push({dead,hp:hp/100});}
   assert.ok(outcomes[0].dead>=90,JSON.stringify(outcomes));assert.ok(outcomes[1].dead<=10,JSON.stringify(outcomes));assert.ok(outcomes[1].hp-outcomes[0].hp>=40,JSON.stringify(outcomes));

@@ -1,4 +1,5 @@
 import {cameraFrame} from './camera.js';
+import {targetCardPlacement} from './target-card.js';
 import {SIZE,FLOOR_INFO,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance} from './engine.js';
 
 // Orthographic board: world +x = screen right, world +y = screen down.
@@ -27,8 +28,23 @@ export class Renderer {
   text(value,x,y,color='#c1ceb2',size=9){const c=this.ctx;c.font=`${size}px monospace`;c.textAlign='center';c.fillStyle=color;c.fillText(value,x,y);}
   frame(t) {
     const dt=Math.min((t-this.last)/1000,.1);this.last=t;
-    if(!document.hidden){const frame=cameraFrame(this.game.player,this.game.targeted,this.aim,this.w,this.h,this.zoom);this.camera={x:frame.x,y:frame.y};this.tile=frame.tile;this.draw(t);}
+    if(!document.hidden){const frame=cameraFrame(this.game.player,this.game.targeted,this.aim,this.w,this.h,this.zoom);this.camera={x:frame.x,y:frame.y};this.tile=frame.tile;this.draw(t);this.placeTargetCard();}
     requestAnimationFrame(v=>this.frame(v));
+  }
+  placeTargetCard(){
+    const ui=this.targetUI,target=this.game.targeted;if(!ui)return;
+    if(!target||ui.card.hidden){ui.link.setAttribute('hidden','');ui.frame=null;return;}
+    const frame=[target.id,target.x,target.y,this.game.player.x,this.game.player.y,this.w,this.h,this.tile].join(',');
+    if(!ui.dirty&&ui.frame===frame)return;ui.frame=frame;
+    const compact=this.w<240;if(ui.compact!==compact){ui.card.classList.toggle('compact',compact);ui.compact=compact;ui.dirty=true;}
+    const width=Math.min(160,Math.max(110,this.w-10));
+    if(ui.width!==width||ui.dirty){ui.card.style.width=`${width}px`;ui.width=width;ui.height=ui.card.offsetHeight;ui.dirty=false;}
+    const a=this.project(target.x,target.y),p=this.project(this.game.player.x,this.game.player.y);
+    const obstacles=[{x:6,y:6,w:118,h:54,weight:60},{x:this.w-140,y:this.h-40,w:134,h:34,weight:60},...this.game.visibleEnemies.filter(e=>e!==target).map(e=>{const q=this.project(e.x,e.y);return {x:q.x-16,y:q.y-20,w:32,h:40};})];
+    const pos=targetCardPlacement({target:a,player:p,tile:this.tile,width:this.w,height:this.h,cardWidth:width,cardHeight:ui.height,obstacles});
+    const signature=[pos.x,pos.y,pos.link.x,pos.link.y,a.x,a.y,this.w,this.h].join(',');
+    if(ui.position!==signature){ui.card.style.transform=`translate(${pos.x}px,${pos.y}px)`;ui.link.setAttribute('viewBox',`0 0 ${this.w} ${this.h}`);ui.path.setAttribute('d',`M ${a.x} ${a.y} L ${pos.link.x} ${pos.link.y}`);ui.position=signature;}
+    ui.link.removeAttribute('hidden');
   }
   draw(time) {
     const c=this.ctx,g=this.game,t=this.tile,half=t/2,p=g.player;

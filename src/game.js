@@ -46,11 +46,13 @@ export class Game {
 
   // Only this gateway advances turns. Invalid actions, aiming and inspecting are free.
   action(type,arg) {
+    if(type==='guard')type='wait'; // Compatibility alias; one combined action everywhere.
     if(this.status!=='playing'||this.pendingPerks)return false;
     this.effects=[];
     const p=this.player;
     let success=false;
-    switch(type) {
+    const previousGuard=p.guard;p.guard=false;
+    try{switch(type) {
       case 'move': {
         if(!Array.isArray(arg)||!Number.isInteger(arg[0])||!Number.isInteger(arg[1])||Math.abs(arg[0])+Math.abs(arg[1])!==1)return false;
         const [dx,dy]=arg,x=p.x+dx,y=p.y+dy;
@@ -83,15 +85,14 @@ export class Game {
       case 'takeWeapon':success=this.takeWeapon(arg);break;
       case 'upgrade':success=this.upgrade();break;
       case 'terminal':success=this.useTerminal(arg);break;
-      case 'guard':this.log('架起防禦：本回合直接傷害減半。');success=true;break;
-      case 'wait':this.log('觀察架勢：本回合閃避 +15，下次行動射擊命中 +15（最高 99%）。');success=true;break;
-      case 'interact':return this.descend();
+      case 'wait':this.log('防禦待機：直接傷害減半、被射擊命中率 −15；下次行動射擊命中 +15。');success=true;break;
+      case 'interact':success=this.descend();return success;
       default:return false;
-    }
+    }}finally{if(!success)p.guard=previousGuard;}
     if(!success)return false;
     // The previous focus applies during fire(), then expires on ANY valid action.
     // Waiting renews it without stacking. Evasion covers this enemy phase only.
-    p.guard=type==='guard';p.moved=type==='move';p.focus=type==='wait';p.evasive=type==='wait';this.turn++;
+    p.guard=type==='wait';p.moved=type==='move';p.focus=type==='wait';p.evasive=type==='wait';this.turn++;
     this.reveal();this.enemyTurn();this.environmentTurn();this.reveal();
     if(p.hp<=0){p.hp=0;this.status='dead';this.log('生命訊號中斷。',true);}
     return true;
