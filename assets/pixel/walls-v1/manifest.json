@@ -1,0 +1,194 @@
+{
+  "sourceSHA256": "1a5a8b43b3e09e52bcafbd19e22cf754f9e5c2facf6c99ea0ba8c8a6bbe76bde",
+  "pillow": "12.2.0",
+  "grid": [
+    4,
+    4
+  ],
+  "tileSize": 32,
+  "colors": 32,
+  "rgb": "RGB555",
+  "sampling": "NEAREST",
+  "opaque": true,
+  "faceGain": 0.7,
+  "capGain": 0.88,
+  "sprites": {
+    "face-armored": {
+      "index": 0,
+      "crop": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "sha256": "c387c80ed416ed2ea75496a899be850b4dfa4ddfcc02d9b8ce3c641c9a572183",
+      "colors": 15
+    },
+    "face-reinforced": {
+      "index": 1,
+      "crop": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "sha256": "0fe256158515ab3de76979339c9a21b7939473b0ad3a114c43a1115d97ff086c",
+      "colors": 15
+    },
+    "face-concrete": {
+      "index": 2,
+      "crop": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "sha256": "095ca18d8f4235b9b69dec8d6e1965ac3b8a661c765d2465185921aaa8ab53a8",
+      "colors": 17
+    },
+    "face-ribbed": {
+      "index": 3,
+      "crop": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "sha256": "e359d7f0274df3082b9e5334fad07cb10949f6488c87cac43a763176a205883c",
+      "colors": 18
+    },
+    "face-conduit": {
+      "index": 4,
+      "crop": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "sha256": "d1cc44a2f02fc46dd6b371f051030d55a7764f9465dda57916f0a0620191298f",
+      "colors": 21
+    },
+    "face-vent": {
+      "index": 5,
+      "crop": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "sha256": "52ecae214e7567e6ace035adb27d43eddae20d7c9a7f2583bb1d92b399926a9a",
+      "colors": 17
+    },
+    "face-hazard": {
+      "index": 6,
+      "crop": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "sha256": "0f0f4aafea16f4a026df00a227bd913ac14a3cf5a5eab8b45fad3f6cc497d2b6",
+      "colors": 16
+    },
+    "face-access": {
+      "index": 7,
+      "crop": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "sha256": "9b000eaadef53a2b000726c4cf176e8add7c582e16fb5903eb27653c0156c85e",
+      "colors": 16
+    },
+    "cap-steel": {
+      "index": 8,
+      "crop": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "sha256": "ca8858c382b1b7cd6881a2a376f1f8572028b2ced54d5313bab915804b7b25f5",
+      "colors": 17
+    },
+    "cap-olive": {
+      "index": 9,
+      "crop": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "sha256": "6e5994eb2b5231d76df4bbb49f0920e03375f03754c8e859147162bfabea5015",
+      "colors": 17
+    },
+    "cap-concrete": {
+      "index": 10,
+      "crop": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "sha256": "7796e621cd4d3a4e04f3e7b2244a10249c2f7e26e49ad69c8dd569b72ce9c86a",
+      "colors": 19
+    },
+    "cap-grille": {
+      "index": 11,
+      "crop": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "sha256": "ff923f8729af020ae54ec8308fccd1f1226e94d132463a515d5dc2f8e15fabe8",
+      "colors": 18
+    },
+    "cap-cables": {
+      "index": 12,
+      "crop": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "sha256": "aba1ee2ef262c7e9b3239aa2cdf4629fc6d609b30f08af4c2f001a0c015ab7c1",
+      "colors": 20
+    },
+    "cap-grid": {
+      "index": 13,
+      "crop": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "sha256": "76480f6eb07e4312fedaf5a9a81d41fad1a9df22c0b7bbcf33bff71f0ae9d374",
+      "colors": 18
+    },
+    "cap-hazard": {
+      "index": 14,
+      "crop": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "sha256": "276a689f3ec878a1e045809434d634f43679b08d3eabb02d6823e600d06bd45c",
+      "colors": 20
+    },
+    "cap-bolted": {
+      "index": 15,
+      "crop": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "sha256": "8c07b42436c9587dd32350bdbd72fd1affcbeb9a715aebabac4024e1bdc211fc",
+      "colors": 18
+    }
+  },
+  "atlasSHA256": "d95947611c73d2b78303c88c05e88d5712f85dc028bcfa8ccf4a9f583f55d352"
+}

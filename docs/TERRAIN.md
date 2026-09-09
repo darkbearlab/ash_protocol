@@ -1,5 +1,7 @@
 # 場景素材與戰鬥痕跡（3.20.0）
 
+3.21 補上 [高牆與 8×8 組合材質](WALLS.md)。下方 3.20 未替換的牆已由新版接手，門框、殘骸與其他回退不變。
+
 ## 場景圖集
 
 內建 GPT Image 生成一張 4×4 圖集。實際輸出 1254×1254，按四等分座標取樣，沒有假定來源一定 1024。提示 [prompt.txt](../art/terrain-v1/prompt.txt)、原始 [source-atlas.png](../art/terrain-v1/source-atlas.png)、處理後 [preview.png](../art/terrain-v1/preview.png) 留在 art/terrain-v1/。正式成品位於 assets/pixel/terrain-v1/，不覆寫舊人物／武器／屍體圖集。

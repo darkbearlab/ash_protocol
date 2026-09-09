@@ -1,4 +1,15 @@
-# 快速接手：ASH PROTOCOL 3.20.0
+# 快速接手：ASH PROTOCOL 3.21.0
+
+## 最新接手：3.21.0 高牆與組合材質
+
+使用者要求生成牆面、至少一格立面高度加頂面、兩組可混搭。詳見 [WALLS.md](WALLS.md)。
+
+- 內建 GPT Image 生成 art/walls-v1/source-atlas.png；提示、32px 預覽、64 搭配預覽皆保留。tools/pixelize_walls.py 最近鄰／共用 32 色 RGB555，輸出 assets/pixel/walls-v1 的 8 立面＋8 頂面及一張 128px atlas；可重建，不覆寫舊圖。
+- walls.js 純外觀：立面一格＋抬升一格的頂面，南向暴露面、四鄰接頂面；同房間穩定選材，room.wallStyle 的 face/cap 可獨立覆寫，未知值回預設，不耗 RNG。
+- renderer 改三段：地板、高牆、地面內容；人物／效果最後。頂面投影在已探索可走格時乘 .12 透明度，未知格不剖面，不額外顯示敵人。底部多取兩格避免高牆出畫面閃現。四方向／unproject／LOS／掩體／門隔板規則不變。
+- 存檔仍 v17、profile v4、backup v1；不需要遷移或重置。格間門隔板不升高、實體牆不可破壞，未加彈孔。
+- 新增五項測試，全套 267 項與 build 通過；68 個預快取檔案齊全、模組雜湊一致（a2a788e9a6b1），像素重建逐位元相同；四份 QA fixture 有效，手機與瀏覽器美術驗收交最新紙條，不宣稱實機已通過。3.19／3.20 外部驗收仍待原清單。
+- 外部頭像 art/portraits-custom/ 與 custom/*.png/json、私人給Codex紙條繼續保留未追蹤，不混入提交。
 
 ## 最新接手：3.20.0 場景像素素材與戰鬥痕跡
 

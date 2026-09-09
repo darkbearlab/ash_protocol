@@ -1,3 +1,4 @@
+import {WALL_ATLAS,drawWall} from './walls.js';
 import {drawTrace} from './traces.js';
 import {THEMES,themeAt,resolveSprite} from './themes.js';
 import {missionObjects,missionTarget} from './missions.js';
@@ -10,13 +11,14 @@ import {targetCardPlacement,actorObstacle} from './target-card.js';
 import {SIZE,FLOOR_INFO,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance} from './engine.js';
 
 // Orthographic board: world +x = screen right, world +y = screen down.
-// Art is drawn procedurally to remain sharp at every phone density.
+// Pixel atlases use nearest-neighbor drawing, with procedural missing-image fallbacks.
 export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.last=0;this.time=0;
     this.targetingEnabled=true;this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
+    this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
     this.aftermath=new Image();this.aftermath.src=new URL('../assets/pixel/aftermath.png',import.meta.url).href;
     // Precompute once at native resolution; avoids Canvas filter support differences on phones.
@@ -73,12 +75,13 @@ export class Renderer {
     this.box(0,0,this.w,this.h,'#10191a');
     const palette=FLOOR_INFO[g.floor-1],radial=c.createRadialGradient(this.w/2,this.h/2,30,this.w/2,this.h/2,this.w*.65);
     radial.addColorStop(0,'#354337');radial.addColorStop(1,'#101819');c.fillStyle=radial;c.fillRect(0,0,this.w,this.h);
+    const floorCells=[],wallCells=[];
     const minX=Math.max(0,Math.floor(this.camera.x-this.w/t/2-1)),maxX=Math.min(SIZE-1,Math.ceil(this.camera.x+this.w/t/2+1));
-    const minY=Math.max(0,Math.floor(this.camera.y-this.h/t/2-1)),maxY=Math.min(SIZE-1,Math.ceil(this.camera.y+this.h/t/2+1));
+    const minY=Math.max(0,Math.floor(this.camera.y-this.h/t/2-1)),maxY=Math.min(SIZE-1,Math.ceil(this.camera.y+this.h/t/2+2));
     for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++) {
       const a=this.project(x,y),left=a.x-half,top=a.y-half,seen=g.seen[y][x];
       if(g.grid[y][x]!==1) {
-        if([[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.grid[y+dy]?.[x+dx]===1&&g.seen[y+dy]?.[x+dx]))this.wall(a,x,y,palette.color);
+        if([[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.grid[y+dy]?.[x+dx]===1&&g.seen[y+dy]?.[x+dx])){this.box(left,top,t,t,'#202e2b');wallCells.push({a,x,y});}
         else this.box(left,top,t,t,'#12201a10','#6685790c');continue;
       }
       if(!seen)continue;
@@ -93,6 +96,15 @@ export class Renderer {
       for(const [dx,dy]of[[0,-1],[-1,0]])if(g.grid[y+dy]?.[x+dx]!==1){if(dx)this.line(left+3,top+7,left+3,top+t-7,'#c3aa625e',2);else this.line(left+7,top+3,left+t-7,top+3,'#c3aa625e',2);}
       }
       const module=g.props.find(m=>m.type==='module'&&moduleCells(m).some(q=>q.x===x&&q.y===y));if(module&&!this.terrainReady)this.moduleFloor(a,module);
+      floorCells.push({a,left,top,x,y});c.globalAlpha=1;
+    }
+    // Ground first, raised walls second, all readable floor contents and actors last.
+    for(const {a,x,y}of wallCells){
+      c.globalAlpha=[[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.visibleTiles?.has((x+dx)+','+(y+dy)))?1:.36;
+      this.wall(a,x,y);c.globalAlpha=1;
+    }
+    for(const {a,left,top,x,y}of floorCells){
+      c.globalAlpha=g.visibleTiles?.has(x+','+y)?1:.36;
       for(const trace of traceCells.get(x+','+y)||[])drawTrace(c,trace,a.x,a.y,t);
       const hazard=g.hazards.find(h=>h.x===x&&h.y===y);if(hazard)this.hazard(a,hazard,time);
       if(distance(p,{x,y})===1&&g.passable(x,y)&&!g.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))this.box(left+3,top+3,t-6,t-6,'#b0ba8010','#b1c48a3b');
@@ -168,15 +180,11 @@ export class Renderer {
   sprite(name,a,size=32){const index=this.spriteNames.indexOf(name);if(index<0||!this.sprites.complete||!this.sprites.naturalWidth)return false;this.ctx.drawImage(this.sprites,(index%4)*32,Math.floor(index/4)*32,32,32,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
   effectSprite(name,a,size=32,angle=0){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);c.drawImage(name.startsWith('dead-')&&this.corpseReady?this.corpseAtlas:this.aftermath,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
   corpse(a,type){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));const c=this.ctx;c.save();const drawn=this.effectSprite('dead-'+(type==='gunner'?'rifleman':type),a,size);c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
-  wall(a,x,y,color) {
-    const t=this.tile,l=a.x-t/2,top=a.y-t/2;
-    this.box(l,top,t,t,'#29372e','#64705244');
-    this.box(l+2,top+2,t-4,t-10,'#4a5441','#8f997a30');
-    this.box(l+2,top+t-8,t-4,7,'#20302a');
-    this.line(l+6,top+5,l+t-6,top+5,'#a6af7c44');
-    if((x+y)%3===0){this.box(l+t*.23,top+t-7,t*.54,2,color);this.glow(a.x,a.y+t*.4,t*.55,color+'0c');}
-    if((x*3+y)%5===0)for(let i=0;i<3;i++)this.line(l+9+i*7,top+12,l+9+i*7,top+t-15,'#1a2d2550',2);
+  wall(a,x,y){
+    const g=this.game,adjacent=[[0,1],[0,-1],[1,0],[-1,0]].map(([dx,dy])=>({x:x+dx,y:y+dy})).find(p=>g.grid[p.y]?.[p.x]===1);
+    return drawWall(this.ctx,g,x,y,this.tile,a,this.wallImage,themeAt(g,adjacent||{x,y}));
   }
+
   hazard(a,h,time){const t=this.tile,l=a.x-t*.43,top=a.y-t*.43;this.box(l,top,t*.86,t*.86,h.type==='acid'?'#709a4855':'#cf672c55');for(let i=0;i<4;i++){const n=(i*13)%25;this.box(l+5+n,top+5+(i*7)%23,4,3,h.type==='acid'?'#b8d47388':'#efa65a99');}this.glow(a.x,a.y,t*.7,h.type==='acid'?'#b4cd5312':'#f99a381a');}
   exit(a,time){const t=this.tile;this.box(a.x-t*.44,a.y-t*.44,t*.88,t*.88,'#284b40','#8fca9b');this.box(a.x-t*.32,a.y-t*.32,t*.64,t*.64,'#2e5b4a','#a1d3a655');for(let i=-1;i<=1;i++)this.line(a.x+i*9,a.y-8,a.x+i*9,a.y+6,'#102e24',2);this.text(this.game.exitBlocked?'LOCK':'EXIT',a.x,a.y+16,'#ceebbb',8);this.glow(a.x,a.y,t*.8,'#9de0aa1c');}
   item(a,item,time){const c=this.ctx;const colors={smoke:'#a9bbcb',emp:'#81dce9',stun:'#eee0a0',armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db'};const color=colors[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol={smoke:'≋',emp:'E',stun:'✦',armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D'}[item.type];this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache)this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text('軍械',a.x,a.y-15,'#e8c185',8);}}
