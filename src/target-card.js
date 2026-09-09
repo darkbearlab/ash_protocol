@@ -1,3 +1,4 @@
+import {traitLabels,initiative,activeTrait} from './traits.js';
 import {ENEMY_TYPES,distance} from './engine.js';
 
 export function targetDetails(game){
@@ -6,7 +7,9 @@ export function targetDetails(game){
   const range=distance(game.player,target),withinRange=range<=game.weapon.range;
   return {name:enemy?.name||(target.type==='barrel'?'爆裂油桶':'可破壞掩體'),hp:`HP ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}`,
     chance:withinRange?`命中 ${aim.chance}%`:'無法射擊',distance:`距離 ${range} 格\n射程 ${game.weapon.range} 格`,
-    cover:enemy?(aim.cover?aim.cover.type==='wall'?'牆角掩護':'箱體掩護':'無掩護'):'可破壞物',
+    traits:enemy?traitLabels(target).join(' · '):'',
+    order:enemy&&(initiative(target)!==0||initiative(game.player)!==0)?(initiative(target)<initiative(game.player)?'行動在你之前':initiative(target)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',
+    cover:enemy?(activeTrait(target,'no_cover')?'無法利用掩體':aim.cover?aim.cover.type==='wall'?'牆角掩護':'箱體掩護':'無掩護'):'可破壞物',
     state:[withinRange?'':'超出射程',target.moved?'移動中':'',target.charge?'即將攻擊':''].filter(Boolean).join(' · '),withinRange};
 }
 

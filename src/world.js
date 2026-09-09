@@ -1,3 +1,4 @@
+import {startingTraits} from './traits.js';
 import {SIZE,ENEMY_TYPES,FLOOR_INFO,WEAPONS} from './data.js';
 import {weaponUnlocked} from './progression.js';
 export function random(seed) {
@@ -23,7 +24,7 @@ export function lineOfSight(grid,a,b) {
 }
 export function makeEnemy(type,x,y,id,floor=1) {
   const def=ENEMY_TYPES[type],hp=def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4));
-  return {id,type,x,y,hp,maxHp:hp,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
+  return {id,type,x,y,hp,maxHp:hp,traits:startingTraits(type,floor),alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
 }
 export function generate(seed,floor=1,unlocks=[]) {
   const rng=random(seed+floor*7919),grid=Array.from({length:SIZE},()=>Array(SIZE).fill(0)),rooms=[];

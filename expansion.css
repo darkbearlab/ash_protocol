@@ -75,3 +75,5 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .carry-upgrade button{min-height:44px}.carry-upgrade small{order:2}
 
 #target-distance{white-space:pre-line}
+
+.target-traits,.target-order{font-size:9px;color:#b9d9d0}.target-traits:empty,.target-order:empty{display:none}.target-order{color:#e7b781}

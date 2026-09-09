@@ -4,12 +4,14 @@ export function snapshot(game){
   const {rng,effects,...data}=game;
   return Object.assign(Object.create(Object.getPrototypeOf(game)),structuredClone(data),{effects:[]});
 }
-export function presentStep(game,action){
+export function presentStep(game,action,quietActor=null){
   const steps=observers.get(game);
   if(!steps)return action();
   const before=snapshot(game),start=game.effects.length;
+  const state=quietActor?{x:quietActor.x,y:quietActor.y,charge:quietActor.charge,windup:quietActor.windup,visible:game.visible(quietActor)}:null;
   const result=action();
-  if(game.effects.length>start)steps.push({before,after:snapshot(game),effects:structuredClone(game.effects.slice(start))});
+  const changed=state&&(state.visible||game.visible(quietActor))&&(state.x!==quietActor.x||state.y!==quietActor.y||state.charge!==quietActor.charge||state.windup!==quietActor.windup);
+  if(game.effects.length>start||changed)steps.push({before,after:snapshot(game),effects:structuredClone(game.effects.slice(start))});
   return result;
 }
 export function captureAction(game,action){

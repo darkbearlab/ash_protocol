@@ -1,3 +1,4 @@
+import {sizeModifier,movementModifier} from './traits.js';
 // Symmetric, bounded corner leaning. The player and AI use the same geometry.
 import {DIRECTIONS,distance,lineOfSight} from './world.js';
 
@@ -32,8 +33,8 @@ export function shotChance(game,attacker,target) {
   const cover=game.protectingCover(target,attacker);
   const moving=Boolean(target.moved);
   const weapon=attacker===game.player?game.weapon:null,accuracyBonus=weapon?.accuracyBonus||0;
-  const base=97,movePenalty=moving?Math.max(0,22-(weapon?.tracking||0)):0,coverPenalty=cover?(cover.type==='wall'?42:35):0;
+  const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)-(weapon?.tracking||0)):0,coverPenalty=cover?(cover.type==='wall'?42:35):0;
   const focusBonus=attacker.focus?15:0,evasionPenalty=target.evasive?15:0;
-  const chance=Math.max(10,Math.min(99,base+accuracyBonus+focusBonus-movePenalty-coverPenalty-evasionPenalty));
+  const chance=Math.max(10,Math.min(99,base+sizeModifier(target)+accuracyBonus+focusBonus-movePenalty-coverPenalty-evasionPenalty));
   return {chance,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }
