@@ -31,8 +31,9 @@ export function wallCover(grid,target,attacker) {
 export function shotChance(game,attacker,target) {
   const cover=game.protectingCover(target,attacker);
   const moving=Boolean(target.moved);
-  const base=97,movePenalty=moving?22:0,coverPenalty=cover?(cover.type==='wall'?42:35):0;
+  const weapon=attacker===game.player?game.weapon:null,accuracyBonus=weapon?.accuracyBonus||0;
+  const base=97,movePenalty=moving?Math.max(0,22-(weapon?.tracking||0)):0,coverPenalty=cover?(cover.type==='wall'?42:35):0;
   const focusBonus=attacker.focus?15:0,evasionPenalty=target.evasive?15:0;
-  const chance=Math.max(10,Math.min(99,base+focusBonus-movePenalty-coverPenalty-evasionPenalty));
-  return {chance,base,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
+  const chance=Math.max(10,Math.min(99,base+accuracyBonus+focusBonus-movePenalty-coverPenalty-evasionPenalty));
+  return {chance,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }

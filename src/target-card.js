@@ -2,7 +2,7 @@ import {ENEMY_TYPES,distance} from './engine.js';
 
 export function targetDetails(game){
   const target=game.targeted;if(!target)return null;
-  const enemy=ENEMY_TYPES[target.type],aim=enemy?game.accuracy(game.player,target):{chance:Math.min(99,97+(game.player.focus?15:0))};
+  const enemy=ENEMY_TYPES[target.type],aim=enemy?game.accuracy(game.player,target):{chance:game.fireChance(target)};
   const range=distance(game.player,target),withinRange=range<=game.weapon.range;
   return {name:enemy?.name||(target.type==='barrel'?'爆裂油桶':'可破壞掩體'),hp:`HP ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}`,
     chance:withinRange?`命中 ${aim.chance}%`:'無法射擊',distance:`距離 ${range} 格 / 射程 ${game.weapon.range}`,

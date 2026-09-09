@@ -1,3 +1,4 @@
+import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevel,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
 import {presentStep} from './presentation.js';
 import {SIZE,SAVE_VERSION,PACK_LIMIT,PLATE_CAPACITY,ENEMY_LOOT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS,LORE} from './data.js';
@@ -5,7 +6,7 @@ import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance} from './combat.js';
 
-const freshPlayer=()=>({x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],ammo:[8,4,0,0,0,0],upgrades:[0,0,0,0,0,0],reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=e=>ENEMY_TYPES[e.type]?.name||'未知單位';
 
 export class Game {
@@ -17,10 +18,13 @@ export class Game {
   }
   loadFloor() {
     Object.assign(this,generate(this.seed,this.floor,this.unlockedWeapons));
+    for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.focus=false;this.player.evasive=false;
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
-  get weapon(){return WEAPONS[this.player.weapon];}
+  get weapon(){return this.weaponAt(this.player.weapon);}
+  weaponAt(slot){return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot]);}
+  fireChance(target){return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.player.focus?15:0)+this.weapon.accuracyBonus));}
   get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.visible(e));}
   get targeted(){return [...this.enemies,...this.props].find(e=>e.id===this.target&&e.hp>0&&this.visible(e));}
   get perkChoices(){const start=(this.seed+this.player.level*3)%PERKS.length;return [0,1,3].map(n=>PERKS[(start+n)%PERKS.length]);}
@@ -58,7 +62,7 @@ export class Game {
     for(const [type,info]of Object.entries(AMMUNITION)){const excess=this.player[info.key]-this.ammoCapacity(type);if(excess>0){this.player[info.key]-=excess;this.dropAmmo(type,excess);}}
   }
   supplyPack(amounts){for(const [type,amount]of Object.entries(amounts))this.receiveAmmo(type,amount);}
-  weaponDamage(index=this.player.weapon){const w=WEAPONS[index],bonus=this.player.bonus+(this.player.upgrades[index]||0)*5;return {min:w.min+bonus,max:w.max+bonus};}
+  weaponDamage(index=this.player.weapon){const w=this.weaponAt(index),bonus=this.player.bonus+(this.player.upgrades[index]||0)*5;return {min:w.min+bonus,max:w.max+bonus};}
   fail(text){this.log(text);return false;}
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
@@ -100,7 +104,8 @@ export class Game {
         p.weapon=index;this.log(`切換至${this.weapon.name}。`);success=true;break;
       }
       case 'salvage':success=this.salvage(Number(arg));break;
-      case 'takeWeapon':success=this.takeWeapon(arg);break;
+      case 'takeWeapon':success=this.takeWeapon(Number(arg));break;
+      case 'replaceWeapon':success=this.replaceWeapon(arg);break;
       case 'upgrade':success=this.upgrade();break;
       case 'terminal':success=this.useTerminal(arg);break;
       case 'wait':this.log('防禦待機：直接傷害減半、被射擊命中率 −15；下次行動射擊命中 +15。');success=true;break;
@@ -127,13 +132,13 @@ export class Game {
       presentStep(this,()=>{
         p.ammo[p.weapon]--;p.stats.shots++;
         const range=this.weaponDamage(),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
-        const chance=this.props.includes(e)?Math.min(99,97+(p.focus?15:0)):this.accuracy(p,e).chance;
+        const chance=this.fireChance(e);
         const hit=this.rng()*100<chance;
         this.effects.push({type:'shot',weaponId:w.id,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
         if(!hit){this.log(`射擊未命中（命中率 ${chance}%）。`);if(w.explosive)this.log('榴彈偏離目標，未在戰場內爆炸。');return;}
         if(w.explosive)this.explode(e,1,damage+p.blastBonus);
         else this.hitTarget(e,damage,p,w.pierce||0);
-        if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p);
+        if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p,w.pierce||0);
       });
     }
     return true;
@@ -164,7 +169,7 @@ export class Game {
     if(e.type==='bomber')this.explode(e,1,30);
     if(e.type==='warden'||e.type==='boss')this.awardProtocol(e.type,`${this.floor}:${e.id}`);
     const loot=ENEMY_LOOT[e.type];
-    if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.items.push({x:e.x,y:e.y,type:'weapon',weapon:loot.weapon});
+    if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.items.push(this.registerWeapon({x:e.x,y:e.y,type:'weapon',weapon:loot.weapon},true));
     if(this.rng()<.35){const type=loot?.ammo||'ammo';this.items.push({x:e.x,y:e.y,type,amount:type==='energy'?6:type==='ordnance'?2:type==='pistol'?18:type==='shell'?4:10});}
     if(this.rng()<.06)this.items.push({x:e.x,y:e.y,type:'med'});
     if((ENEMY_TYPES[e.type]?.armor||0)>0&&this.rng()<.2)this.items.push({x:e.x,y:e.y,type:'armor',amount:10});
@@ -267,9 +272,9 @@ export class Game {
     this.items=this.items.filter(item=>{
       if(distance(item,p)!==0)return true;
       if(item.type==='weapon') {
-        if(p.owned.includes(item.weapon)){p.scrap+=15;this.log('拆解重複武器：廢料 +15。');return false;}
-        if(p.owned.length>=PACK_LIMIT){this.log('背包武器欄已滿。打開背包拆解武器，再拾取。');return true;}
-        this.addWeapon(item.weapon);return false;
+        this.registerWeapon(item);
+        if(p.owned.length>=PACK_LIMIT){this.log('武器欄已滿。打開背包比較並交換，原武器會留在地上。');return true;}
+        this.collectWeapon(item);return false;
       }
       const ammo=itemAmmo(item.type);
       if(ammo){const amount=item.amount??AMMUNITION[ammo].pickup,accepted=this.receiveAmmo(ammo,amount,{spill:false});
@@ -282,21 +287,40 @@ export class Game {
       return false;
     });
   }
-  addWeapon(index){const p=this.player;p.owned.push(index);p.ammo[index]=WEAPONS[index].mag;p.upgrades[index]=0;this.log(`取得武器：${WEAPONS[index].name}。在背包中裝備。`);}
-  takeWeapon(index) {
-    const item=this.items.find(o=>o.type==='weapon'&&o.weapon===Number(index)&&distance(o,this.player)<=1);
+  registerWeapon(item,roll=false) {
+    if(item.slot!==undefined)return item;
+    const p=this.player,slot=p.weaponBases.length;
+    const affix=roll?rollAffix(item.weapon,`${this.seed}:${this.floor}:${slot}:${item.x}:${item.y}`):null;
+    p.weaponBases.push(item.weapon);p.affixes.push(affix);p.ammo.push(weaponStats(item.weapon,affix).mag);p.upgrades.push(0);
+    item.slot=slot;return item;
+  }
+  collectWeapon(item){const p=this.player;p.owned.push(item.slot);this.log(`取得武器：${this.weaponAt(item.slot).name}。在背包中裝備。`);}
+  addWeapon(base){
+    if(!WEAPONS[base]||this.player.owned.length>=PACK_LIMIT)return false;
+    const item=this.registerWeapon({weapon:base});this.collectWeapon(item);return item.slot;
+  }
+  nearbyWeapon(slot){return this.items.find(o=>o.type==='weapon'&&o.slot===slot&&distance(o,this.player)<=1);}
+  takeWeapon(slot) {
+    const item=this.nearbyWeapon(slot);
     if(!item)return this.fail('附近沒有這把武器。');
-    if(this.player.owned.includes(item.weapon))return this.fail('已持有此武器。走上武器箱可拆解為廢料。');
-    if(this.player.owned.length>=PACK_LIMIT)return this.fail('武器欄已滿（3 格）。先拆解一把武器。');
-    this.addWeapon(item.weapon);this.items=this.items.filter(o=>o!==item);return true;
+    if(this.player.owned.length>=PACK_LIMIT)return this.fail('武器欄已滿（3 格）。可比較並交換武器。');
+    this.collectWeapon(item);this.items=this.items.filter(o=>o!==item);return true;
+  }
+  replaceWeapon(arg) {
+    const p=this.player,item=this.nearbyWeapon(arg?.take),old=arg?.leave;
+    if(!item||!p.owned.includes(old))return this.fail('要交換的武器已不在原處。');
+    p.owned[p.owned.indexOf(old)]=item.slot;if(p.weapon===old)p.weapon=item.slot;
+    this.items=this.items.filter(o=>o!==item);
+    this.items.push({x:p.x,y:p.y,type:'weapon',weapon:p.weaponBases[old],slot:old});
+    this.log(`換入${this.weaponAt(item.slot).name}；${this.weaponAt(old).name}連同彈匣與改裝留在腳下。`);return true;
   }
   salvage(index) {
     const p=this.player;
     if(!p.owned.includes(index))return this.fail('背包裡沒有這把武器。');
     if(p.owned.length<=1)return this.fail('至少保留一把武器。');
-    this.receiveAmmo(WEAPONS[index].ammoType,p.ammo[index]);p.ammo[index]=0;p.owned=p.owned.filter(i=>i!==index);
+    this.receiveAmmo(this.weaponAt(index).ammoType,p.ammo[index]);p.ammo[index]=0;p.owned=p.owned.filter(i=>i!==index);
     p.scrap+=20+(p.upgrades[index]||0)*10;p.upgrades[index]=0;p.stats.salvaged++;
-    if(p.weapon===index)p.weapon=p.owned[0];this.log(`拆解${WEAPONS[index].name}，回收彈匣與廢料。`);return true;
+    if(p.weapon===index)p.weapon=p.owned[0];this.log(`拆解${this.weaponAt(index).name}，回收彈匣與廢料。`);return true;
   }
   upgrade() {
     const p=this.player,level=p.upgrades[p.weapon]||0,cost=25+level*15;
@@ -347,7 +371,7 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
@@ -355,10 +379,18 @@ export class Game {
       const defaults=freshPlayer(),p={...defaults,...data.player};
       p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0||p.plates>PLATE_CAPACITY)return null;
       if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||data.grid[p.y]?.[p.x]!==1||!Number.isFinite(p.hp)||p.hp<=0)return null;
-      p.ammo=WEAPONS.map((_,i)=>data.player.ammo?.[i]??defaults.ammo[i]);
-      p.upgrades=WEAPONS.map((_,i)=>data.player.upgrades?.[i]??0);p.stats={...defaults.stats,...p.stats};
-      if(!p.owned.includes(p.weapon)||p.owned.some(i=>!WEAPONS[i]))return null;
-      if(p.ammo.some(n=>!Number.isInteger(n)||n<0)||p.upgrades.some(n=>!Number.isInteger(n)||n<0||n>3))return null;
+      if(version<5){
+        p.weaponBases=WEAPONS.map((_,i)=>i);p.affixes=WEAPONS.map(()=>null);
+        p.ammo=WEAPONS.map((_,i)=>data.player.ammo?.[i]??defaults.ammo[i]);
+        p.upgrades=WEAPONS.map((_,i)=>data.player.upgrades?.[i]??0);
+      }
+      if(version>=5&&!'weaponBases affixes ammo upgrades'.split(' ').every(k=>Array.isArray(data.player[k])))return null;
+      p.stats={...defaults.stats,...p.stats};
+      if(!Array.isArray(p.weaponBases)||p.weaponBases.length<1||p.weaponBases.length>10000||p.weaponBases.some(i=>!Number.isInteger(i)||!WEAPONS[i]))return null;
+      if(!Array.isArray(p.affixes)||p.affixes.length!==p.weaponBases.length||p.affixes.some((a,i)=>a!==null&&(!Object.hasOwn(AFFIXES,a)||(a==='piercing'&&WEAPONS[p.weaponBases[i]].explosive))))return null;
+      if(!Array.isArray(p.owned)||!p.owned.length||p.owned.length>PACK_LIMIT||new Set(p.owned).size!==p.owned.length||!p.owned.includes(p.weapon)||p.owned.some(i=>!Number.isInteger(i)||p.weaponBases[i]===undefined))return null;
+      if(!Array.isArray(p.ammo)||!Array.isArray(p.upgrades)||p.ammo.length!==p.weaponBases.length||p.upgrades.length!==p.weaponBases.length)return null;
+      if(p.ammo.some(n=>!Number.isSafeInteger(n)||n<0||n>10000000)||p.upgrades.some(n=>!Number.isInteger(n)||n<0||n>3))return null;
       if(!Array.isArray(p.lore)||p.lore.some(n=>!Number.isInteger(n)||n<1||n>FLOORS.length))return null;
       const g=Object.assign(Object.create(Game.prototype),data,{player:p,effects:[],hazards:data.hazards||[],marks:data.marks||[]});
       g.runId=typeof data.runId==='string'&&/^[a-zA-Z0-9-]{1,100}$/.test(data.runId)?data.runId:`legacy-${data.seed}`;
@@ -378,6 +410,15 @@ export class Game {
         g.carryLevel=0;g.log('備彈已分類為手槍彈、步槍彈與霰彈；超出上限的補給留在腳下。');
       }else if(!Object.values(AMMUNITION).every(info=>validCount(data.player[info.key]))||!Number.isInteger(g.carryLevel)||g.carryLevel<0||g.carryLevel>3)return null;
       if(g.items.some(item=>itemAmmo(item.type)&&item.amount!==undefined&&(!validCount(item.amount)||item.amount===0)))return null;
+      const locations=new Set(p.owned);
+      for(const item of g.items){
+        if(item.type!=='weapon')continue;
+        if(!Number.isInteger(item.weapon)||!WEAPONS[item.weapon])return null;
+        if(version<5){delete item.slot;g.registerWeapon(item);}
+        if(!Number.isInteger(item.slot)||p.weaponBases[item.slot]!==item.weapon||locations.has(item.slot))return null;
+        locations.add(item.slot);
+      }
+      if(version<5)g.log('武器已升級為獨立個體。既有彈匣與改裝保留，新掉落可能帶有詞條。');
       g.setCarryLevel(g.carryLevel);g.reveal();return g;
     }catch{return null;}
   }

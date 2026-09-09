@@ -110,6 +110,7 @@ test('purchase commits cost and level together, survives reload, rejects repeats
   storage.recoveryPending=true;assert.throws(()=>purchaseCarrying(restored.game,0),/尚未就緒/);storage.recoveryPending=false;
   const legacy=JSON.parse(g.serialize());legacy.version=3;legacy.data.player.reserve=48;delete legacy.data.player.pistol;delete legacy.data.player.shell;const legacyRaw=JSON.stringify(legacy);memory.set('qa-ash-save',legacyRaw);
   const migrated=loadGame();assert.ok(migrated);assert.equal(memory.get('qa-ash-save-v3-backup'),legacyRaw);saveGame(migrated);assert.deepEqual(loadGame().player,migrated.player);
+  const v4=JSON.parse(migrated.serialize());v4.version=4;delete v4.data.player.weaponBases;delete v4.data.player.affixes;v4.data.player.ammo=v4.data.player.ammo.slice(0,6);v4.data.player.upgrades=v4.data.player.upgrades.slice(0,6);for(const item of v4.data.items)delete item.slot;const v4Raw=JSON.stringify(v4);memory.set('qa-ash-save',v4Raw);assert.ok(loadGame());assert.equal(memory.get('qa-ash-save-v4-backup'),v4Raw);
   assert.equal(memory.get('ash-save'),'live-save');assert.equal(memory.get('ash-profile'),'live-profile');
   delete globalThis.location;delete globalThis.localStorage;
 });
