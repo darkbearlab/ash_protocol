@@ -1,5 +1,5 @@
 import {cameraFrame} from './camera.js';
-import {targetCardPlacement} from './target-card.js';
+import {targetCardPlacement,actorObstacle} from './target-card.js';
 import {SIZE,FLOOR_INFO,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance} from './engine.js';
 
 // Orthographic board: world +x = screen right, world +y = screen down.
@@ -8,7 +8,7 @@ export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.last=0;this.time=0;
-    this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.targetingEnabled=true;this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
     this.aftermath=new Image();this.aftermath.src=new URL('../assets/pixel/aftermath.png',import.meta.url).href;
     // Precompute once at native resolution; avoids Canvas filter support differences on phones.
@@ -28,20 +28,22 @@ export class Renderer {
   text(value,x,y,color='#c1ceb2',size=9){const c=this.ctx;c.font=`${size}px monospace`;c.textAlign='center';c.fillStyle=color;c.fillText(value,x,y);}
   frame(t) {
     const dt=Math.min((t-this.last)/1000,.1);this.last=t;
-    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);const frame=cameraFrame(this.game.player,this.game.targeted,this.aim,this.w,this.h,this.zoom);this.camera={x:frame.x,y:frame.y};this.tile=frame.tile;this.draw(this.time);this.placeTargetCard();}
+    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);const frame=cameraFrame(this.game.player,this.targetingEnabled?this.game.targeted:null,this.aim,this.w,this.h,this.zoom);this.camera={x:frame.x,y:frame.y};this.tile=frame.tile;this.draw(this.time);this.placeTargetCard();}
     requestAnimationFrame(v=>this.frame(v));
   }
   placeTargetCard(){
     const ui=this.targetUI,target=this.game.targeted;if(!ui)return;
-    if(!target||ui.card.hidden){ui.link.setAttribute('hidden','');ui.frame=null;return;}
-    const frame=[target.id,target.x,target.y,this.game.player.x,this.game.player.y,this.w,this.h,this.tile].join(',');
+    if(!target||ui.card.hidden){ui.card.style.visibility='hidden';ui.link.setAttribute('hidden','');ui.frame=null;return;}
+    const frame=[target.id,target.x,target.y,this.game.player.x,this.game.player.y,this.w,this.h,this.tile,this.camera.x,this.camera.y,this.sprites.naturalWidth,...this.game.visibleEnemies.flatMap(e=>[e.id,e.x,e.y])].join(',');
     if(!ui.dirty&&ui.frame===frame)return;ui.frame=frame;
     const compact=this.w<240;if(ui.compact!==compact){ui.card.classList.toggle('compact',compact);ui.compact=compact;ui.dirty=true;}
-    const width=Math.min(136,Math.max(110,this.w-10));
-    if(ui.width!==width||ui.dirty){ui.card.style.width=`${width}px`;ui.width=width;ui.height=ui.card.offsetHeight;ui.dirty=false;}
-    const a=this.project(target.x,target.y),p=this.project(this.game.player.x,this.game.player.y);
-    const obstacles=[{x:6,y:6,w:118,h:54,weight:60},{x:this.w-140,y:this.h-40,w:134,h:34,weight:60},...this.game.visibleEnemies.filter(e=>e!==target).map(e=>{const q=this.project(e.x,e.y);return {x:q.x-16,y:q.y-20,w:32,h:40};})];
-    const pos=targetCardPlacement({target:a,player:p,tile:this.tile,width:this.w,height:this.h,cardWidth:width,cardHeight:ui.height,obstacles});
+    const width=Math.min(120,this.w-10);
+    if(ui.width!==width||ui.dirty){ui.card.style.width=`${width}px`;ui.width=width;ui.height=Math.ceil(ui.card.getBoundingClientRect().height);ui.dirty=false;}
+    const a=this.project(target.x,target.y),p=this.project(this.game.player.x,this.game.player.y),fallbackActors=!this.sprites.complete||!this.sprites.naturalWidth;
+    const obstacles=[{x:6,y:6,w:118,h:54,weight:60},{x:this.w-140,y:this.h-40,w:134,h:34,weight:60}];
+    const pos=targetCardPlacement({target:a,player:p,tile:this.tile,width:this.w,height:this.h,cardWidth:width,cardHeight:ui.height,obstacles,blockers:this.game.visibleEnemies.filter(e=>e!==target).map(e=>actorObstacle(this.project(e.x,e.y),this.tile,fallbackActors)),fallbackActors});
+    if(!pos){ui.card.style.visibility='hidden';ui.link.setAttribute('hidden','');return;}
+    ui.card.style.visibility='visible';
     const signature=[pos.x,pos.y,pos.link.x,pos.link.y,a.x,a.y,this.w,this.h].join(',');
     if(ui.position!==signature){ui.card.style.transform=`translate(${pos.x}px,${pos.y}px)`;ui.link.setAttribute('viewBox',`0 0 ${this.w} ${this.h}`);ui.path.setAttribute('d',`M ${a.x} ${a.y} L ${pos.link.x} ${pos.link.y}`);ui.position=signature;}
     ui.link.removeAttribute('hidden');
@@ -87,15 +89,17 @@ export class Renderer {
     const pos=this.project(p.x,p.y);if(p.hp<=0)this.corpse(pos,'player');else this.actor(pos,'player',time,p);
     for(const cover of g.cover){const dx=cover.x-p.x,dy=cover.y-p.y;const x=pos.x+dx*t*.48,y=pos.y+dy*t*.48;this.line(x+(dy? -t*.27:0),y+(dx?-t*.27:0),x+(dy?t*.27:0),y+(dx?t*.27:0),cover.type==='wall'?'#8bd2c9':'#c7d896',2);}
     for(const e of g.visibleEnemies){const a=this.project(e.x,e.y);this.actor(a,e.type,time,e);}
-    const target=g.targeted;if(target){const a=this.project(target.x,target.y),r=t*.43;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(a.x+dx*r,a.y+dy*r,a.x+dx*(r-7),a.y+dy*r,'#f1b07c',1.5);this.line(a.x+dx*r,a.y+dy*r,a.x+dx*r,a.y+dy*(r-7),'#f1b07c',1.5);}}
+    const target=this.targetingEnabled?g.targeted:null;if(target){const a=this.project(target.x,target.y),r=t*.43;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(a.x+dx*r,a.y+dy*r,a.x+dx*(r-7),a.y+dy*r,'#f1b07c',1.5);this.line(a.x+dx*r,a.y+dy*r,a.x+dx*r,a.y+dy*(r-7),'#f1b07c',1.5);}}
     for(const fx of this.effects) {
-      const elapsed=time-fx.time,age=elapsed/650;if(age<0||age>1)continue;
+      const elapsed=time-fx.time-(fx.delay||0),age=elapsed/650;if(age<0||age>1)continue;
       const a=this.project(fx.from.x,fx.from.y),b=this.project(fx.to.x,fx.to.y),color=fx.color||(fx.type==='shot'?'#ffe1ad':'#ff986c');
       c.globalAlpha=1-age;
       const angle=Math.atan2(b.y-a.y,b.x-a.x),step=Math.floor(age*8)/8;
       if(fx.quiet){
         const q=fx.type==='shot'||fx.type==='enemyShot'?a:b;
         if(age<.25)this.box(q.x-5,q.y-5,10,10,'#ffe1ad55');
+      }else if(fx.type==='fall'){
+        if(elapsed<140){c.globalAlpha=(1-elapsed/140)*.85;this.effectSprite('impact',b,32);}
       }else if(fx.type==='miss'){
         // Arrival label only.
       }else if(fx.type==='blast'){
@@ -103,15 +107,17 @@ export class Renderer {
         this.effectSprite('impact',b,size);
         for(let i=0;i<10;i++){const theta=i*2.4,r=t*(fx.radius+.3)*step;this.box(Math.round((b.x+Math.cos(theta)*r)/3)*3,Math.round((b.y+Math.sin(theta)*r)/3)*3,3,3,i%2?'#ffb65a':'#c76039');}
       }else if(fx.type==='impact'){
+        if(elapsed<70)this.box(b.x-6,b.y-6,12,12,'#fff1cbba');
         for(let i=0;i<7;i++){const theta=i*2.4,r=4+step*19;this.box(Math.round((b.x+Math.cos(theta)*r)/2)*2,Math.round((b.y+Math.sin(theta)*r)/2)*2,2,2,fx.mechanical?'#b7e2d0':'#bd654e');}
       }else if(fx.style==='claw'||fx.style==='slash'){
-        if(age<.65)this.effectSprite(fx.style,b,32,angle);
-      }else if(elapsed<(fx.travel||280)){
-        const progress=Math.min(1,elapsed/(fx.travel||280)),end={x:b.x+(fx.missPath?Math.cos(angle+1.57)*t*.35:0),y:b.y+(fx.missPath?Math.sin(angle+1.57)*t*.35:0)};
+        if(elapsed<(fx.travel||80))this.effectSprite(fx.style,b,32,angle);
+      }else if(elapsed<(fx.travel||125)){
+        const progress=Math.min(1,elapsed/(fx.travel||125)),offset=(fx.spread||0)+(fx.missPath ? .35 : 0),end={x:b.x+Math.cos(angle+1.57)*t*offset,y:b.y+Math.sin(angle+1.57)*t*offset};
         if(age<.22)this.effectSprite('muzzle',a,16,angle);
         const q={x:a.x+(end.x-a.x)*progress,y:a.y+(end.y-a.y)*progress};
         if(fx.style==='grenade'){q.y-=Math.sin(progress*Math.PI)*t*.35;this.box(q.x-3,q.y-3,6,6,'#c8d692','#e9efca');}
-        else this.effectSprite(fx.style==='plasma'?'plasma':'bullet',q,32,angle);
+        else if(fx.style==='pellet')this.box(q.x-1,q.y-1,3,3,'#ffe1ad');
+        else {this.line(q.x-Math.cos(angle)*(fx.style==='tracer'?18:7),q.y-Math.sin(angle)*(fx.style==='tracer'?18:7),q.x,q.y,color,fx.style==='tracer'?2:1);this.effectSprite(fx.style==='plasma'?'plasma':'bullet',q,fx.style==='tracer'?32:16,angle);}
       }
       if(fx.miss||fx.damage>0)this.text(fx.miss?'MISS':'−'+fx.damage,b.x,b.y-20-(fx.quiet?0:age*23),color,fx.miss?10:14);c.globalAlpha=1;
     }
@@ -121,7 +127,7 @@ export class Renderer {
   }
   sprite(name,a,size=32){const index=this.spriteNames.indexOf(name);if(index<0||!this.sprites.complete||!this.sprites.naturalWidth)return false;this.ctx.drawImage(this.sprites,(index%4)*32,Math.floor(index/4)*32,32,32,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
   effectSprite(name,a,size=32,angle=0){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);c.drawImage(name.startsWith('dead-')&&this.corpseReady?this.corpseAtlas:this.aftermath,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
-  corpse(a,type){const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));const c=this.ctx;c.save();const drawn=this.effectSprite('dead-'+(type==='gunner'?'rifleman':type),a,size);c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
+  corpse(a,type){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));const c=this.ctx;c.save();const drawn=this.effectSprite('dead-'+(type==='gunner'?'rifleman':type),a,size);c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
   wall(a,x,y,color) {
     const t=this.tile,l=a.x-t/2,top=a.y-t/2;
     this.box(l,top,t,t,'#29372e','#64705244');
@@ -174,6 +180,6 @@ export class Renderer {
     else this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);
   }
   markArea(center,radius,fill,stroke,label){const g=this.game,t=this.tile;for(let y=center.y-radius;y<=center.y+radius;y++)for(let x=center.x-radius;x<=center.x+radius;x++)if(distance(center,{x,y})<=radius&&g.grid[y]?.[x]===1){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}if(label){const a=this.project(center.x,center.y);this.text(label,a.x,a.y+5,'#ffd3a4',17);}}
-  drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?'#809672':'#384b3a';c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.end,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}const target=g.targeted;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
+  drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?'#809672':'#384b3a';c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.end,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
   addEffects(effects){this.effects.push(...effects.map(e=>({...e,time:this.time})));this.effects=this.effects.slice(-64);}
 }

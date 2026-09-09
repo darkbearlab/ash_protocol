@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
-import {targetDetails,targetCardPlacement} from '../src/target-card.js';
+import {targetDetails,targetCardPlacement,actorObstacle} from '../src/target-card.js';
+import {Renderer} from '../src/renderer.js';
 
 function arena(){const g=new Game(51);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.reveal();return g;}
 test('target card reports actual health, shot chance, distance, cover and target state',()=>{
@@ -32,4 +33,32 @@ test('waiting combines reduction, evasion and next-shot aim, without stacking or
 test('waiting reduction does not carry into the next player grenade and does not protect against fire',()=>{
   const g=arena();g.action('wait');g.action('grenade',{x:10,y:10});assert.equal(g.player.hp,45);assert.equal(g.player.guard,false);
   const other=arena();other.hazards=[{x:10,y:10,type:'fire'}];other.action('wait');assert.equal(other.player.hp,88);assert.equal(other.player.guard,true);
+});
+
+test('cards never overlap any enemy even in dense layouts, or omit themselves when no space fits',()=>{
+  const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
+  let shown=0,omitted=0;
+  for(const width of [128,200,262,320,480])for(const tile of [16,32,45,72])for(let seed=0;seed<20;seed++){
+    const fallbackActors=seed%2===0;
+    const target={x:width*.7,y:width*.5},player={x:width/2,y:width/2};
+    const blockers=Array.from({length:seed},(_,i)=>actorObstacle({x:(i*83+seed*31)%width,y:(i*47+seed*17)%width},tile,fallbackActors));
+    const card=targetCardPlacement({target,player,tile,width,height:width,cardWidth:120,cardHeight:78,blockers,fallbackActors});
+    if(!card){omitted++;continue;}shown++;
+    assert.ok(card.x>=5&&card.y>=5&&card.x+card.w<=width-5&&card.y+card.h<=width-5);
+    for(const enemy of [...blockers,actorObstacle(target,tile,fallbackActors),actorObstacle(player,tile,fallbackActors)])assert.equal(overlaps(card,enemy),false);
+  }
+  assert.ok(shown>0);assert.ok(omitted>0);
+  assert.equal(targetCardPlacement({target:{x:64,y:64},player:{x:32,y:32},tile:32,width:128,height:128,cardWidth:120,cardHeight:200}),null,'never clamp the measured height and accidentally overflow into enemies');
+});
+
+test('renderer invalidates placement when camera moves and rounds measured card bounds outward',()=>{
+  const game=arena();game.enemies=[makeEnemy('rifleman',14,10,'e')];game.reveal();
+  const attributes=new Map(),link={setAttribute:(k,v)=>attributes.set(k,v),removeAttribute:k=>attributes.delete(k)};
+  const card={hidden:false,style:{},classList:{toggle(){}},getBoundingClientRect:()=>({height:77.4})};
+  const renderer=Object.assign(Object.create(Renderer.prototype),{game,w:320,h:320,tile:32,camera:{x:10,y:10},sprites:{complete:true,naturalWidth:128},targetUI:{card,link,path:link,dirty:true}});
+  renderer.placeTargetCard();const frame=renderer.targetUI.frame;
+  assert.equal(renderer.targetUI.height,78);assert.equal(card.style.visibility,'visible');
+  renderer.camera.x=11;renderer.placeTargetCard();assert.notEqual(renderer.targetUI.frame,frame);
+  renderer.h=64;renderer.placeTargetCard();assert.equal(card.style.visibility,'hidden');assert.ok(attributes.has('hidden'));
+  renderer.h=320;renderer.placeTargetCard();assert.equal(card.style.visibility,'visible');assert.equal(attributes.has('hidden'),false);
 });

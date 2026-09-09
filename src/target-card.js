@@ -11,22 +11,28 @@ export function targetDetails(game){
 }
 
 const overlap=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
-// Place beside the target, flipping at edges. Prefer clear player/target silhouettes,
-// then avoid other visible enemies and corner HUD. Tiny viewports use least overlap.
-export function targetCardPlacement({target,player,tile,width,height,cardWidth,cardHeight,obstacles=[]}){
-  const gap=Math.max(18,tile*.65)+7,pad=5,w=Math.min(cardWidth,width-2*pad),h=Math.min(cardHeight,height-2*pad);
-  const candidates=[
-    [target.x+gap,target.y-h/2],[target.x-gap-w,target.y-h/2],
-    [target.x-w/2,target.y-gap-h],[target.x-w/2,target.y+gap],
-    [target.x+gap,target.y-gap-h],[target.x-gap-w,target.y-gap-h],
-    [target.x+gap,target.y+gap],[target.x-gap-w,target.y+gap],
-    [pad,pad],[width-w-pad,pad],[pad,height-h-pad],[width-w-pad,height-h-pad]
-  ];
-  const silhouette=p=>({x:p.x-18,y:p.y-22,w:36,h:44});
+// Include sprite, health bar and charge marker at every rendered zoom.
+export function actorObstacle(point,tile,fallback=false){
+  const size=tile<30?16:32*Math.max(1,Math.floor(tile/32));
+  const extent=fallback?tile*.8:0;
+  const rx=Math.max(18,size/2+3,tile*.38+10,extent),top=Math.max(24,size/2+3,tile*.45+5,extent),bottom=Math.max(20,size/2+3,tile*.58+4,extent);
+  return {x:point.x-rx,y:point.y-top,w:rx*2,h:top+bottom};
+}
+// Actors are hard exclusions. If no free rectangle fits, omit the card.
+export function targetCardPlacement({target,player,tile,width,height,cardWidth,cardHeight,obstacles=[],blockers=[],fallbackActors=false}){
+  const pad=5,w=cardWidth,h=cardHeight;
+  if(w>width-pad*2||h>height-pad*2)return null;
+  const hard=[actorObstacle(target,tile,fallbackActors),actorObstacle(player,tile,fallbackActors),...blockers];
+  const clampX=x=>Math.round(Math.max(pad,Math.min(width-w-pad,x)));
+  const clampY=y=>Math.round(Math.max(pad,Math.min(height-h-pad,y)));
+  // All obstacle edges are candidates, including gaps between a crowded group.
+  const xs=new Set([pad,width-w-pad,clampX(target.x-w/2)]),ys=new Set([pad,height-h-pad,clampY(target.y-h/2)]);
+  for(const o of [...hard,...obstacles]){xs.add(clampX(Math.floor(o.x-w-2)));xs.add(clampX(Math.ceil(o.x+o.w+2)));ys.add(clampY(Math.floor(o.y-h-2)));ys.add(clampY(Math.ceil(o.y+o.h+2)));}
   let best=null;
-  for(const [cx,cy]of candidates){const r={x:Math.round(Math.max(pad,Math.min(width-w-pad,cx))),y:Math.round(Math.max(pad,Math.min(height-h-pad,cy))),w,h};
-    const link={x:Math.max(r.x,Math.min(r.x+w,target.x)),y:Math.max(r.y,Math.min(r.y+h,target.y))};
-    const score=overlap(r,silhouette(target))*1000+overlap(r,silhouette(player))*800+obstacles.reduce((sum,o)=>sum+overlap(r,o)*(o.weight||25),0)+Math.hypot(link.x-target.x,link.y-target.y);
+  for(const x of xs)for(const y of ys){const r={x,y,w,h};
+    if(hard.some(o=>overlap(r,o)>0))continue;
+    const link={x:Math.max(x,Math.min(x+w,target.x)),y:Math.max(y,Math.min(y+h,target.y))};
+    const score=obstacles.reduce((sum,o)=>sum+overlap(r,o)*(o.weight||25),0)+Math.hypot(link.x-target.x,link.y-target.y);
     if(!best||score<best.score)best={...r,link,score};
   }
   return best;

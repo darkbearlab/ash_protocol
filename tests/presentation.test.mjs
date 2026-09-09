@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
-import {captureAction,planPresentation,Playback,FLIGHT_MS,snapshot} from '../src/presentation.js';
+import {captureAction,planPresentation,Playback,FLIGHT_MS,snapshot,projectileVisuals,DEATH_MS} from '../src/presentation.js';
 
 function arena(){
   const g=new Game(51);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));
@@ -84,5 +84,39 @@ test('capturing a turn preserves RNG, saves, combat rules and rejected actions',
     assert.deepEqual(recorded.effects,ordinary.effects);
     assert.ok(snapshot(recorded).visibleTiles instanceof Set);
     if(!result.success)assert.equal(result.steps.length,0);
+  }
+});
+
+test('weapon classes have distinct cosmetic projectile counts and every projectile arrives before damage',()=>{
+  for(const [weapon,count]of [[0,3],[1,6],[2,6],[3,1],[4,1],[5,1]]){
+    const g=arena();enemy(g,'brute',1000,13,10);g.player.weapon=weapon;
+    if(!g.player.owned.includes(weapon))g.player.owned.push(weapon);g.player.ammo[weapon]=10;
+    const {steps}=captureAction(g,()=>g.action('fire')),plan=planPresentation(steps);
+    const visuals=plan.events.flatMap(e=>e.effects).filter(e=>e.type==='shot');assert.equal(visuals.length,count);
+    assert.equal(g.player.ammo[weapon],weapon===2?8:9,'cosmetic tracers never consume ammunition');
+    for(let i=0;i<plan.events.length;i+=2){const launch=plan.events[i],impact=plan.events[i+1];
+      for(const fx of launch.effects)assert.ok(launch.time+fx.delay+fx.travel<=impact.time);
+    }
+    if(weapon===1){assert.ok(visuals.some(e=>e.spread<0));assert.ok(visuals.some(e=>e.spread>0));}
+    if(weapon===2)assert.ok(plan.duration<400,'SMG is a short burst, not two slow independent attacks');
+  }
+});
+
+test('single remaining SMG round and first-shot kills never invent another damaging attack',()=>{
+  for(const hp of [1,1000]){
+    const g=arena();enemy(g,'brute',hp);Object.assign(g.player,{weapon:2,owned:[0,1,2]});g.player.ammo[2]=hp===1?2:1;
+    const plan=planPresentation(captureAction(g,()=>g.action('fire')).steps);
+    assert.equal(g.player.stats.shots,1);assert.equal(plan.events[0].effects.length,3);
+    if(hp===1){assert.ok(plan.events[1].effects.some(e=>e.type==='fall'));assert.equal(plan.duration-plan.events[1].time,DEATH_MS);}
+  }
+});
+
+test('enemy weapons and reduced motion use the same visual profiles without multiplying hit labels',()=>{
+  for(const [type,count]of [['rifleman',3],['raider',3],['gunner',6],['sniper',1],['drone',1],['brute',1]]){
+    const effect={type:'enemyShot',attackerType:type,damage:19,miss:true,from:{x:1,y:1},to:{x:4,y:4}};
+    const visuals=projectileVisuals(effect);assert.equal(visuals.length,count);
+    assert.ok(visuals.every(e=>e.damage===0&&e.miss===false&&e.missPath));
+    assert.equal(projectileVisuals(effect,true).length,1);
+    if(type==='brute')assert.equal(visuals[0].style,'slash');
   }
 });
