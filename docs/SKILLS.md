@@ -1,4 +1,6 @@
-# 主動技能：3.29.0
+# 主動技能：3.30.0
+
+3.30 更新：新增工程師追隨／放置僚機、德魯伊指揮／救援、死靈法師死者徵召。詳見 [ALLIES.md](ALLIES.md)，包含數值、技能成本／冷卻、共享機體與跨層規則。原三角色保持；技能不再僅免費，付費技能也在正常行動佇列結算。
 
 ## Soldier：預警 early_warning
 
@@ -24,7 +26,7 @@ Recon 新局直接學會並預備；Soldier／Bulwark 沒有。使用原戰場�
 
 ## 資料與保存
 
-src/skills.js 定義 SKILLS、計時／可用性／狀態驗證，prepared catalog 共用它。角色 skills 是學會清單，prepared.skill 是選擇，skillState 是各技能的 {remaining,cooldown}；天生被動 traits 不占技能欄。後續技能要補實際執行分支及測試，不能只加 catalog。當前有兩種免費技能，不承諾尚未實作的付費技能通用執行器。
+src/skills.js 定義 SKILLS、計時／可用性／狀態驗證，prepared catalog 共用它。角色 skills 是學會清單，prepared.skill 是選擇，skillState 是各技能的 {remaining,cooldown}；天生被動 traits 不占技能欄。後續技能要補實際執行分支及測試，不能只加 catalog。目前同時有免費與付費技能；付費技能在玩家行動機會呼叫 activateSkill，先手擊殺／失能仍會取消。
 
 Game.action 在進入 initiative 前免費啟動；付費 action 的全輪結尾 tickSkills 一次。Game.sight 攔截敵方對實際 player 的感知；shotClear 幾何獨立，承諾射擊不被消除。技能的 pulse 經現有 presentation 快照播放，不新增圖檔或隨機數。
 

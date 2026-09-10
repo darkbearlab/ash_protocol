@@ -20,16 +20,16 @@ export function resumedFloor(frame,turn){
   for(const spawn of state.reinforcements)spawn.due+=elapsed;
   return state;
 }
-export function arrivalCell(frame){
+export function arrivalCell(frame,allies=[]){
   const cells=reachable(frame,frame.end);
   return [...cells].map(k=>{const [x,y]=k.split(',').map(Number);return {x,y};})
-    .filter(p=>!frame.enemies.some(e=>e.hp>0&&key(e)===key(p))&&!frame.hazards.some(h=>key(h)===key(p)))
+    .filter(p=>![...frame.enemies,...allies].some(e=>e.hp>0&&key(e)===key(p))&&!frame.hazards.some(h=>key(h)===key(p)))
     .sort((a,b)=>distance(a,frame.end)-distance(b,frame.end)||a.y-b.y||a.x-b.x)[0]||null;
 }
 export function scheduleRetreatWave(g){
   if(!returning(g)||g.mission.reinforced.includes(g.floor))return;
   g.mission.reinforced.push(g.floor);
-  const blocked=[g.start,g.end,g.player,...g.props,...g.items,...g.hazards,...g.enemies.filter(e=>e.hp>0),...missionObjects(g)];
+  const blocked=[g.start,g.end,g.player,...g.activeAllies,...g.props,...g.items,...g.hazards,...g.enemies.filter(e=>e.hp>0),...missionObjects(g)];
   const cells=[...reachable(g,g.player)].map(k=>{const [x,y]=k.split(',').map(Number);return {x,y};})
     .filter(p=>distance(p,g.player)>=5&&!blocked.some(o=>key(o)===key(p)))
     .sort((a,b)=>Math.abs(distance(a,g.player)-7)-Math.abs(distance(b,g.player)-7)||a.y-b.y||a.x-b.x);
@@ -42,7 +42,7 @@ export function resolveRetreatWave(g){
   const pending=[];
   for(const spawn of g.reinforcements){
     if(spawn.due>g.turn){pending.push(spawn);continue;}
-    if(!g.passable(spawn.x,spawn.y)||key(g.player)===key(spawn)||g.enemies.some(e=>e.hp>0&&key(e)===key(spawn))){pending.push({...spawn,due:g.turn+1});continue;}
+    if(!g.passable(spawn.x,spawn.y)||key(g.player)===key(spawn)||g.activeAllies.some(a=>key(a)===key(spawn))||g.enemies.some(e=>e.hp>0&&key(e)===key(spawn))){pending.push({...spawn,due:g.turn+1});continue;}
     const e=makeEnemy(spawn.type,spawn.x,spawn.y,spawn.id,g.floor);e.reinforcement=true;g.enemies.push(e);
     // Perception is established by reveal, including smoke and signal break.
     g.effects.push({type:'pulse',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},radius:.7,color:'#83e4e9',damage:0});

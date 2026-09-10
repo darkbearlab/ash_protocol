@@ -33,7 +33,7 @@ export function shotChance(game,attacker,target) {
   const cover=game.protectingCover(target,attacker),protection=coverEffects(cover,target,attacker);
   const light=lightingEffects(game,attacker,target),darkPenalty=light.penalty;
   const moving=Boolean(target.moved);
-  const weapon=attacker===game.player?game.weapon:null,accuracyBonus=weapon?.accuracyBonus||0;
+  const weapon=attacker===game.player?game.weapon:game.actorWeapon?.(attacker),accuracyBonus=weapon?.accuracyBonus||0;
   const innateAccuracy=actorStat(attacker,'rangedAccuracy'),innateEvasion=actorStat(target,'rangedEvasion');
   const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)-(weapon?.tracking||0)):0,coverPenalty=protection.penalty;
   const focusBonus=attacker.focus?15:0,evasionPenalty=target.evasive?15:0;

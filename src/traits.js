@@ -34,7 +34,7 @@ export function startingTraits(type,floor=1){
   ids.push(bodyKeyword(type));
   return ids.map(id=>({id,source:`enemy:${type}`}));
 }
-export function initiativeQueue(player,enemies){return [player,...enemies.filter(e=>e.hp>0)].map((actor,index)=>({actor,index,speed:initiative(actor)})).sort((a,b)=>a.speed-b.speed||a.index-b.index);}
+export function initiativeQueue(player,enemies,allies=[]){return [player,...allies.filter(a=>a.hp>0),...enemies.filter(e=>e.hp>0)].map((actor,index)=>({actor,index,speed:initiative(actor)})).sort((a,b)=>a.speed-b.speed||a.index-b.index);}
 
 export function grantTrait(actor,id,source,turns){
   const trait={id,source,...(turns===undefined?{}:{turns})};if(!validTraits([trait]))return false;
