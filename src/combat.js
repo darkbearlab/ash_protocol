@@ -40,6 +40,7 @@ export function shotChance(game,attacker,target) {
   const bracedBonus=bracingBonus(game,attacker,target),trackingBonus=correctionBonus(attacker,target===game.player?'player':target.id,game.turn),sideBase=sidestepPenalty(attacker,target);
   // In the open, lateral evasion must match wall cover even against tracking.
   const sidePenalty=sideBase?Math.max(sideBase,cover?0:42-movePenalty):0;
-  const chance=Math.max(10,Math.min(99,base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty));
-  return {chance,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
+  const closeBonus=weapon?.closeRange&&distance(attacker,target)<=weapon.closeRange?weapon.closeAccuracy:0,vaultBonus=target.vaultExposed?20:0;
+  const chance=Math.max(10,Math.min(99,closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty));
+  return {chance,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }

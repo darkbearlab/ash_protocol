@@ -1,14 +1,14 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 21;
+export const SAVE_VERSION = 22;
 export const PACK_LIMIT = 3;
 export const PLATE_CAPACITY = 30;
 export const SUPPLY_ROOMS={ammo:{name:'彈藥庫',color:'#d9bd7b'},medical:{name:'醫療室',color:'#a9d9ac'},armor:{name:'裝甲庫',color:'#92c4df'}};
 export const RARE_ARMORY={weapon:8,minFloor:3,chance:.2};
-export const ENEMY_LOOT={rifleman:{weapon:0,chance:.12,ammo:'ammo'},raider:{weapon:2,chance:.18,ammo:'pistol'},gunner:{weapon:1,chance:.14,ammo:'shell'},sniper:{weapon:3,chance:.2,ammo:'ammo'},drone:{ammo:'energy'},brute:{rareWeapon:8,rareChance:.1},warden:{weapon:4,chance:1,ammo:'energy',rareWeapon:8,rareChance:.15},boss:{ammo:'ordnance'}};
+export const ENEMY_LOOT={rifleman:{weapon:0,chance:.20,ammo:'ammo'},raider:{weapon:2,chance:.18,ammo:'pistol'},gunner:{weapon:1,chance:.14,ammo:'shell'},sniper:{weapon:3,chance:.2,ammo:'ammo'},drone:{ammo:'energy'},brute:{rareWeapon:8,rareChance:.1},warden:{weapon:4,chance:1,ammo:'energy',rareWeapon:8,rareChance:.15},boss:{ammo:'ordnance'}};
 export const WEAPONS = [
   { id:'rifle', weaponClass:'rifle', name:'餘燼突擊步槍', type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'rifle', desc:'可靠的中距離主力，適合多數交戰。' },
-  { id:'shotgun', weaponClass:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, range:4, mag:4, file:'shotgun', ammoType:'shell', splash:1, desc:'近距離高傷害。目標鄰格受到 45% 濺射傷害。' },
+  { id:'shotgun', weaponClass:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, closeRange:2, closeMin:60, closeMax:72, closeAccuracy:15, range:4, mag:4, file:'shotgun', ammoType:'shell', splash:1, desc:'1–2 格傷害 60–72、命中 +15；更遠傷害 42–54。目標鄰格受到 45% 濺射傷害。' },
   { id:'smg', weaponClass:'smg', name:'蜂群衝鋒槍', type:'SUBMACHINE GUN', code:'SM–24', min:13, max:17, range:5, mag:18, file:'smg', ammoType:'pistol', burst:2, desc:'每回合射擊兩發。適合清理近距離輕裝敵人。' },
   { id:'sniper', weaponClass:'sniper', name:'寂靜精準步槍', type:'PRECISION RIFLE', code:'SR–07', min:52, max:66, range:10, mag:3, file:'sniper', ammoType:'rifle', pierce:0.7, desc:'長距離單發重擊，穿透 70% 裝甲與掩體減傷。' },
   { id:'plasma', weaponClass:'plasma', name:'極光電漿步槍', type:'PLASMA CARBINE', code:'PL–08', min:35, max:44, range:7, mag:6, file:'plasma', ammoType:'energy', pierce:0.5, desc:'消耗能量電池，穿透 50% 防護並擅長對抗機械。' },

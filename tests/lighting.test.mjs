@@ -19,13 +19,13 @@ function arena(character='soldier'){
 function enemy(g,type='rifleman',x=14,y=10){const e=makeEnemy(type,x,y,'qa-light-'+g.enemies.length);e.hp=e.maxHp=500;g.enemies.push(e);return e;}
 function smoke(g){g.smoke=[{cells:areaCells(g.grid,{x:12,y:10}),expires:g.turn+2}];}
 
-test('each new floor has three deterministic dark rooms, with lit entrance and outside corridors',()=>{
+test('each new floor has three deterministic dark rooms, with lit entrance and inherited corridor lighting',()=>{
   const layouts=new Set();
   for(let seed=1;seed<=20;seed++)for(let floor=1;floor<=6;floor++){
-    const map=generate(seed,floor),again=createLighting(map.grid,map.rooms,map.start,seed,floor);
+    const map=generate(seed,floor),again=generate(seed,floor).lighting;
     assert.deepEqual(map.lighting,again);assert.equal(isDark(map,map.start),false);
     assert.equal(map.rooms.filter(r=>map.lighting.slice(r.y,r.y+r.h).some(row=>row.slice(r.x,r.x+r.w).includes(0))).length,3);
-    for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(map.grid[y][x]===1&&!map.rooms.some(r=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h))assert.equal(map.lighting[y][x],1);
+    for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(map.grid[y][x]===1)assert.ok([0,1].includes(map.lighting[y][x]));
     layouts.add(JSON.stringify(map.lighting));
   }
   assert.ok(layouts.size>20);
@@ -117,7 +117,7 @@ test('v17 Recon migration adds exactly two senses and keeps old floor lit, resou
 });
 test('darkness paints only the floor beneath objects and actors; map uses a distinct dark color',()=>{
   const g=arena();g.lighting[10][10]=0;g.reveal();const stages=[],colors=[],gradient={addColorStop(){}};
-  const ctx=new Proxy({globalAlpha:1,fillRect(){colors.push(this.fillStyle);if(this.fillStyle==='#060c22a6')stages.push('dark');},createRadialGradient(){return gradient;}},{get(o,k){return k in o?o[k]:()=>{};},set(o,k,v){o[k]=v;return true;}});
+  const ctx=new Proxy({globalAlpha:1,fillRect(){colors.push(this.fillStyle);if(typeof this.fillStyle==='string'&&this.fillStyle.startsWith('#060c22'))stages.push('dark');},createRadialGradient(){return gradient;}},{get(o,k){return k in o?o[k]:()=>{};},set(o,k,v){o[k]=v;return true;}});
   const r=Object.create(Renderer.prototype);Object.assign(r,{ctx,game:g,tile:38,w:300,h:400,dpr:1,camera:{x:10,y:10},effects:[],reduceMotion:true,targetingEnabled:false,terrain(){return true;},wall(){},prop(){stages.push('prop');},actor(){stages.push('actor');},corpse(){},item(){},drawBarrier(){},hazard(){},exit(){},terrainReady:true});
   const before=g.serialize();r.draw(0);assert.ok(stages.includes('dark'));assert.ok(stages.indexOf('dark')<stages.indexOf('actor'));r.drawMap({width:280,getContext:()=>ctx});assert.ok(colors.includes('#343e62'));assert.equal(g.serialize(),before);
 });

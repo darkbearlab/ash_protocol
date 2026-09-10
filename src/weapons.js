@@ -15,6 +15,7 @@ export function weaponStats(base,affix=null){
   const a=AFFIXES[affix]||{};
   return {...w,name:a.name?`${a.name}・${w.name}`:w.name,affix,affixText:(a.text||'標準型，沒有詞條')+(w.lootOnly?` · ${w.desc}`:''),
     min:Math.round(w.min*(a.damage||1)),max:Math.round(w.max*(a.damage||1)),
+    ...(w.closeRange?{closeMin:Math.round(w.closeMin*(a.damage||1)),closeMax:Math.round(w.closeMax*(a.damage||1))}:{}),
     mag:Math.max(1,Math.floor(w.mag*(a.mag||1))),range:w.range+(a.range||0),
     pierce:Math.min(.95,(w.pierce||0)+(a.pierce||0)),accuracyBonus:a.accuracy||0,tracking:a.tracking||0};
 }

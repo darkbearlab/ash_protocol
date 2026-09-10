@@ -12,7 +12,7 @@ export function read(key){try{return localStorage.getItem(storageKey(key));}catc
 export function write(key,value){try{localStorage.setItem(storageKey(key),value);return true;}catch{storage.available=false;return false;}}
 export function loadGame(){
   if(!recoverRestore()){try{return decodeBackup(read('ash-restore-journal'),backupNamespace).game;}catch{return null;}}
-  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}const game=Game.restore(raw);if(game)game.setCarryLevel(profile().upgrades.carrying);return game;
+  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21].includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}const game=Game.restore(raw);if(game)game.setCarryLevel(profile().upgrades.carrying);return game;
 }
 export function saveGame(game){
   if(storage.recoveryPending)return;

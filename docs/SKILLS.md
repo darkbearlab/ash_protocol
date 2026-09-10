@@ -1,3 +1,13 @@
+# 主動技能：3.29.0
+
+## Soldier：預警 early_warning
+
+新局起始學會且預備，舊 Soldier 遷移追加，空技能欄才預備。免費啟動，曼哈頓距離 8 內活敵人座標存入 game.sensorContacts，穿牆／煙霧顯示金色光點。**單次快照**不跟隨移動／死亡，不提供名稱、血量、目標選取、射線、已探索地圖或額外可視敵人。
+
+被掃描的敵人立刻 alert=true、lastKnown=玩家當下座標；未掃到者不因此警戒。技能脈衝與光點走現有演出，光點是牆上方的戰術 UI。duration=1：下一次完整耗回合行動（包括被失能跳過）結束後清除。cooldown=5：同時起算五次耗回合行動，免費裝填／換裝／預備不倒數。換層清效果／光點、保留冷卻並消耗移層該輪。
+
+save v22 校驗光點陣列與地板座標；舊檔補空快照、Soldier 就緒技能，保留其他技能倒數與所有資源。v21 首讀另備份原件，當前空預備欄保持。光點不屬於存層資料，往返不能復活舊掃描。
+
 # 主動技能（3.27.0）
 
 ## 訊號斷層 signal_break
@@ -14,7 +24,7 @@ Recon 新局直接學會並預備；Soldier／Bulwark 沒有。使用原戰場�
 
 ## 資料與保存
 
-src/skills.js 定義 SKILLS、計時／可用性／狀態驗證，prepared catalog 共用它。角色 skills 是學會清單，prepared.skill 是選擇，skillState 是各技能的 {remaining,cooldown}；天生被動 traits 不占技能欄。後續技能要補實際執行分支及測試，不能只加 catalog。當前僅有一種免費技能，不承諾尚未實作的付費技能通用執行器。
+src/skills.js 定義 SKILLS、計時／可用性／狀態驗證，prepared catalog 共用它。角色 skills 是學會清單，prepared.skill 是選擇，skillState 是各技能的 {remaining,cooldown}；天生被動 traits 不占技能欄。後續技能要補實際執行分支及測試，不能只加 catalog。當前有兩種免費技能，不承諾尚未實作的付費技能通用執行器。
 
 Game.action 在進入 initiative 前免費啟動；付費 action 的全輪結尾 tickSkills 一次。Game.sight 攔截敵方對實際 player 的感知；shotClear 幾何獨立，承諾射擊不被消除。技能的 pulse 經現有 presentation 快照播放，不新增圖檔或隨機數。
 

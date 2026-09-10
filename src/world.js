@@ -1,7 +1,7 @@
 import {createLighting} from './lighting.js';
 import {selectSupplyStations,addLivingModules} from './modules.js';
 import {packSupplies} from './containers.js';
-import {blockedBetween,barrierBetween,makeBarrier,edgeCells,edgeKey} from './barriers.js';
+import {vaultable,blockedBetween,barrierBetween,makeBarrier,edgeCells,edgeKey} from './barriers.js';
 import {startingTraits} from './traits.js';
 import {SIZE,ENEMY_TYPES,FLOOR_INFO,WEAPONS,RARE_ARMORY} from './data.js';
 import {weaponUnlocked} from './progression.js';
@@ -34,7 +34,7 @@ export function lineOfSight(grid,a,b,barriers=[],channel='sight') {
 }
 export function makeEnemy(type,x,y,id,floor=1) {
   const def=ENEMY_TYPES[type],hp=def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4));
-  return {id,type,x,y,hp,maxHp:hp,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
+  return {id,type,x,y,hp,maxHp:hp,vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
 }
 export function generate(seed,floor=1,unlocks=[]) {
   const rng=random(seed+floor*7919),grid=Array.from({length:SIZE},()=>Array(SIZE).fill(0)),rooms=[];
@@ -57,9 +57,9 @@ export function generate(seed,floor=1,unlocks=[]) {
   const rewardRooms=shuffled(rooms.map((_,i)=>i).filter(i=>!mainRoute.includes(i))).slice(0,3);
   for(const i of shuffled(rooms.map((_,i)=>i).filter(i=>i!==startRoom&&i!==endRoom&&!rewardRooms.includes(i))))if(rewardRooms.length<3)rewardRooms.push(i);
   rewardRooms.forEach((i,n)=>rooms[i].supply=['ammo','medical','armor'][n]);
-  const corridors=new Set();
-  const carve=(a,b)=>{let x=a.x,y=a.y;grid[y][x]=1;corridors.add(`${x},${y}`);while(x!==b.x){x+=Math.sign(b.x-x);grid[y][x]=1;corridors.add(`${x},${y}`);}while(y!==b.y){y+=Math.sign(b.y-y);grid[y][x]=1;corridors.add(`${x},${y}`);}};
-  for(const [ai,bi]of links){const a=rooms[ai],b=rooms[bi];
+  const corridors=new Set(),corridorPaths=[];let path;
+  const carve=(a,b)=>{let x=a.x,y=a.y;grid[y][x]=1;corridors.add(`${x},${y}`);path.cells.push({x,y});while(x!==b.x){x+=Math.sign(b.x-x);grid[y][x]=1;corridors.add(`${x},${y}`);path.cells.push({x,y});}while(y!==b.y){y+=Math.sign(b.y-y);grid[y][x]=1;corridors.add(`${x},${y}`);path.cells.push({x,y});}};
+  for(const [ai,bi]of links){path={rooms:[ai,bi],cells:[]};corridorPaths.push(path);const a=rooms[ai],b=rooms[bi];
     // Offset entrances break long straight firing lanes; only cardinal neighboring rooms connect.
     if(Math.floor(ai/3)===Math.floor(bi/3)){const left=a.x<b.x?a:b,doorX=left.x+left.w,ay=a.cy+Math.floor(rng()*3)-1,by=b.cy+Math.floor(rng()*3)-1;carve({x:a.cx,y:ay},{x:doorX,y:ay});carve({x:doorX,y:ay},{x:doorX,y:by});carve({x:doorX,y:by},{x:b.cx,y:by});}
     else{const top=a.y<b.y?a:b,doorY=top.y+top.h,ax=a.cx+Math.floor(rng()*3)-1,bx=b.cx+Math.floor(rng()*3)-1;carve({x:ax,y:a.cy},{x:ax,y:doorY});carve({x:ax,y:doorY},{x:bx,y:doorY});carve({x:bx,y:doorY},{x:bx,y:b.cy});}
@@ -140,10 +140,19 @@ export function generate(seed,floor=1,unlocks=[]) {
     }
   }
   packSupplies(map,floor);selectSupplyStations(map,floor);
-  addLivingModules(map,seed,floor,{corridors,reachable});map.lighting=createLighting(grid,rooms,start,seed,floor);return map;
+  addLivingModules(map,seed,floor,{corridors,reachable});map.lighting=createLighting(grid,rooms,start,seed,floor,corridorPaths);
+  // Two low rails per floor, independent of gameplay RNG. Existing sealed rooms stay sealed.
+  for(const [i,r]of rooms.entries()){
+    if(i===startRoom||map.barriers.filter(b=>b.type==='low_partition').length>=2)continue;
+    const axis=(seed+i+floor)%2,options=[];
+    for(let y=r.y+1;y<r.y+r.h-1;y++)for(let x=r.x+1;x<r.x+r.w-1;x++)options.push([{x,y},{x:x+(axis?0:1),y:y+(axis?1:0)}]);
+    const pair=options.find(cells=>cells.every(p=>grid[p.y]?.[p.x]===1&&![start,end,...props,...hazards,...items,...enemies].some(o=>key(o)===key(p))&&!map.barriers.some(b=>edgeCells(b).some(q=>key(q)===key(p)))));
+    if(pair)map.barriers.push(makeBarrier('low_partition',...pair,`edge-${floor}-low-${i}`));
+  }
+  return map;
 }
 export function reachable(map,start,{openDoors=true}={}) {
   const queue=[start],seen=new Set([key(start)]);
-  for(let i=0;i<queue.length;i++)for(const [dx,dy]of DIRECTIONS){const p={x:queue[i].x+dx,y:queue[i].y+dy},edge=barrierBetween(map.barriers,queue[i],p);if(blockedBetween(map.barriers,queue[i],p)&&!(openDoors&&edge.type==='door'))continue;if(map.grid[p.y]?.[p.x]===1&&!seen.has(key(p))&&!map.props.some(o=>o.hp>0&&(o.type==='cover'||o.type==='barrel')&&o.x===p.x&&o.y===p.y)){seen.add(key(p));queue.push(p);}}
+  for(let i=0;i<queue.length;i++)for(const [dx,dy]of DIRECTIONS){const p={x:queue[i].x+dx,y:queue[i].y+dy},edge=barrierBetween(map.barriers,queue[i],p);if(blockedBetween(map.barriers,queue[i],p)&&!(openDoors&&edge.type==='door')&&!vaultable(edge))continue;if(map.grid[p.y]?.[p.x]===1&&!seen.has(key(p))&&!map.props.some(o=>o.hp>0&&(o.type==='cover'||o.type==='barrel')&&o.x===p.x&&o.y===p.y)){seen.add(key(p));queue.push(p);}}
   return seen;
 }

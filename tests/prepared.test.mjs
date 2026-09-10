@@ -12,9 +12,9 @@ function fastEnemy(g){const e=makeEnemy('rifleman',14,10,'fast');e.alert=true;e.
 const prepare=(g,category,id)=>g.action('prepare',{category,id});
 
 test('new campaigns have three independent prepared slots and no fabricated skills',()=>{
-  const g=arena();assert.deepEqual(g.player.prepared,defaultPrepared());assert.deepEqual(g.player.skills,[]);
+  const g=arena();assert.deepEqual(g.player.prepared,{...defaultPrepared(),skill:'early_warning'});assert.deepEqual(g.player.skills,['early_warning']);
   assert.equal(preparedEntry(g.player,'item').resource,'meds');assert.equal(preparedEntry(g.player,'grenade').resource,'grenades');
-  assert.deepEqual(preparedOptions(g.player,'skill'),[]);assert.equal(validPrepared(g.player),true);
+  assert.equal(preparedOptions(g.player,'skill').length,1);assert.equal(validPrepared(g.player),true);
 });
 test('preparation preserves the entire world, timed states, RNG and waiting bonuses',()=>{
   const g=arena();fastEnemy(g);Object.assign(g.player,{poison:3,guard:true,focus:true,evasive:true,moved:true});grantTrait(g.player,'slow','test:slow',2);
@@ -38,7 +38,7 @@ test('unprepared items cannot bypass the slot through legacy actions; actual use
   assert.deepEqual(g.effects.find(e=>e.style==='grenade').to,{x:14,y:10});
 });
 test('zero stock keeps its selection, and invalid usage never advances the queue',()=>{
-  const g=arena();fastEnemy(g);g.player.meds=0;g.player.grenades=0;g.player.hp=50;
+  const g=arena();fastEnemy(g);g.player.meds=0;g.player.grenades=0;g.player.hp=50;prepare(g,'skill',null);
   const before=g.enemies[0].hp,turn=g.turn;
   for(const category of ['item','grenade','skill'])assert.equal(g.action('usePrepared',{category,target:{x:14,y:10}}),false);
   assert.equal(g.turn,turn);assert.equal(g.player.hp,50);assert.equal(g.enemies[0].hp,before);assert.deepEqual(g.player.prepared,defaultPrepared());
@@ -60,7 +60,7 @@ test('handgun switch hook is destination-based and free; pistol-ammo SMG is stil
 test('v7 migration defaults prepared slots, v8 rejects malformed selection, backups retain intentional empty slots',()=>{
   const g=arena();grantTrait(g.player,'small','test:small');g.player.ammo[0]=3;g.player.upgrades[0]=2;
   const old=JSON.parse(g.serialize());old.version=7;delete old.data.player.prepared;delete old.data.player.skills;
-  const migrated=Game.restore(JSON.stringify(old));assert.ok(migrated);assert.deepEqual(migrated.player.prepared,defaultPrepared());assert.deepEqual(migrated.player.traits,g.player.traits);assert.equal(migrated.player.ammo[0],3);assert.equal(migrated.player.upgrades[0],2);assert.equal(migrated.rng.state(),g.rng.state());
+  const migrated=Game.restore(JSON.stringify(old));assert.ok(migrated);assert.deepEqual(migrated.player.prepared,{...defaultPrepared(),skill:'early_warning'});assert.deepEqual(migrated.player.traits,g.player.traits);assert.equal(migrated.player.ammo[0],3);assert.equal(migrated.player.upgrades[0],2);assert.equal(migrated.rng.state(),g.rng.state());
   prepare(g,'grenade',null);prepare(g,'item',null);const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(restored.player,g.player);
   for(const mutate of [p=>delete p.prepared,p=>delete p.skills,p=>p.prepared.skill='unknown',p=>p.prepared.item='frag',p=>p.prepared.extra=null,p=>p.skills=['unknown'],p=>p.prepared=[]]){const bad=JSON.parse(g.serialize());mutate(bad.data.player);assert.equal(Game.restore(JSON.stringify(bad)),null);}
 });

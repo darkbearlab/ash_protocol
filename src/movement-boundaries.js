@@ -1,4 +1,4 @@
-import {barrierBetween,edgeBlocks} from './barriers.js';
+import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
 const directions=[[0,-1],[1,0],[0,1],[-1,0]];
 const key=(x,y)=>x+','+y;
 // Open contour: doors and unknown space are passages, never closing caps.
@@ -8,7 +8,7 @@ export function movementBoundaries(game){
     const [x,y]=cell.split(',').map(Number);if(!game.passable(x,y))continue;
     for(const [dx,dy]of directions){
       const next={x:x+dx,y:y+dy},barrier=barrierBetween(game.barriers,{x,y},next);
-      if(barrier?.type==='door')continue;
+      if(barrier?.type==='door'||vaultable(barrier))continue;
       const blocked=edgeBlocks(barrier)&&game.visible(barrier)||
         game.grid[next.y]?.[next.x]!==1||visible.has(key(next.x,next.y))&&Boolean(game.solid(next.x,next.y));
       if(!blocked)continue;
