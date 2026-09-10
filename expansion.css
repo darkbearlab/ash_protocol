@@ -159,6 +159,7 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .term-face .operator-portrait{flex:0 0 26px;width:26px;height:26px}
 .term-face:empty{display:none}
 .term-body{display:flex;align-items:baseline;gap:8px;min-width:0}
+.term-caret+.term-body{grid-column:2/-1}
 .term-name{font:600 15px var(--display);letter-spacing:.06em;color:var(--text);white-space:nowrap}
 .term-pick input:checked~.term-body .term-name{color:var(--orange)}
 .term-meta{font:9px var(--mono);color:var(--muted);letter-spacing:.06em;margin-left:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -174,6 +175,10 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .term-detail-body{display:grid;gap:5px;padding:2px 0 6px;border-left:1px solid #2a332c;padding-left:9px}
 .term-detail-body small{font:10px/1.6 var(--mono);color:#b7c2b6}
 .term-detail-body b{color:var(--text)}
+/* 任務清單：說明只在選中的那一列展開。不支援 :has() 的瀏覽器維持全部顯示，不會把說明藏到看不見。 */
+@supports selector(:has(*)){.reveal-notes .term-row{padding-bottom:2px}.reveal-notes .term-note{display:none}.reveal-notes .term-row:has(input:checked){padding-bottom:10px}.reveal-notes .term-row:has(input:checked) .term-note{display:block}}
+.seed-advanced{margin:12px 0 0}
+.seed-advanced .seed-field{padding:2px 0 4px}
 /* 開機遮罩：模組載入完成、主選單開好之前不顯示戰鬥介面。底色與主選單相同，銜接無跳動。 */
 .boot-screen{display:none}
 body.booting{background:#0d1211}
