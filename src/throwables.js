@@ -2,10 +2,12 @@ import {activeTrait} from './traits.js';
 import {distance,lineOfSight,key} from './world.js';
 import {combatSight} from './combat.js';
 
+export const SMOKE_DURATION=5;
+
 // Keywords select reactions; they do not imply armor, size, or allegiance.
 export const GRENADES={
   frag:{name:'破片手榴彈',short:'破片彈',icon:'◉',resource:'grenades',item:'grenade',cost:12,amount:2,color:'#c8d692',action:'grenade',text:'射程 5、半徑 2。造成爆炸傷害，會自傷及引爆油桶。'},
-  smoke:{name:'煙霧彈',short:'煙霧彈',icon:'≋',resource:'smoke',item:'smoke',cost:12,amount:1,color:'#a9bbcb',action:'grenade',text:'射程 5、半徑 2，持續 3 輪（含投擲當輪）。阻斷無紅外線者的視線，煙內僅見相鄰格；紅外線可穿煙，不減傷。'},
+  smoke:{name:'煙霧彈',short:'煙霧彈',icon:'≋',resource:'smoke',item:'smoke',cost:12,amount:1,color:'#a9bbcb',action:'grenade',text:'射程 5、半徑 2，持續 5 輪（含投擲當輪）。阻斷無紅外線者的視線，煙內僅見相鄰格；紅外線可穿煙，不減傷。'},
   emp:{name:'EMP 彈',short:'EMP',icon:'ϟ',resource:'emp',item:'emp',keyword:'mechanical',cost:15,amount:1,color:'#81dce9',action:'grenade',text:'射程 5、半徑 2。機械中斷蓄勢並跳過 2 次行動，頭目 1 次；恢復後免疫 2 次行動。不扣生命。'},
   stun:{name:'震撼彈',short:'震撼彈',icon:'✦',resource:'stun',item:'stun',keyword:'biological',cost:15,amount:1,color:'#eee0a0',action:'grenade',text:'射程 5、半徑 2。生物或有夜視／紅外線者中斷蓄勢並跳過 2 次行動，頭目 1 次；恢復後免疫 2 次行動。會震暈自己。'},
 };

@@ -74,11 +74,11 @@ test('smoke blocks symmetric sight and adjacency still works, with wall corners 
   assert.equal(g.sight({x:12,y:10},{x:13,y:10}),true);assert.equal(g.sight({x:12,y:10},{x:14,y:10}),false);
   g.grid[10][12]=0;assert.equal(g.sight({x:12,y:10},{x:13,y:10}),false);
 });
-test('smoke lasts casting round plus two paid rounds, survives free actions and creates no damage reduction',()=>{
+test('smoke lasts casting round plus four paid rounds, survives free actions and creates no damage reduction',()=>{
   const g=arena('recon');equip(g,'smoke');toss(g,10,10);const expiry=g.smoke[0].expires;g.player.ammo[2]=1;
   assert.ok(g.action('reload'));g.action('prepare',{category:'grenade',id:'emp'});assert.equal(g.smoke[0].expires,expiry);assert.equal(g.turn,2);
   const hp=g.player.hp;g.explode(g.player,1,20);assert.equal(g.player.hp,hp-20);
-  g.action('wait');assert.equal(g.smoke.length,1);g.action('wait');assert.equal(g.smoke.length,0);
+  for(let i=0;i<3;i++){g.action('wait');assert.equal(g.smoke.length,1);}g.action('wait');assert.equal(g.smoke.length,0);
 });
 test('ordinary shooters stop tracking live coordinates through smoke; a sniper keeps its marked shot',()=>{
   const g=arena(),e=enemy(g);equip(g,'smoke');toss(g,12,10);assert.equal(g.effects.some(f=>f.type==='enemyShot'),false);const last={...e.lastKnown};

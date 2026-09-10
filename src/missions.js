@@ -1,4 +1,4 @@
-import {FLOORS} from './data.js';
+import {FLOORS,SIZE} from './data.js';
 import {reachable,key,distance} from './world.js';
 
 // Stable contract IDs are persisted. Mission placement never consumes combat RNG.
@@ -7,16 +7,17 @@ export const MISSIONS={
   hunt:{name:'定點清除',kind:'hunt',count:1,text:'第 6 層殲滅 1 名指定敵人，再從電梯撤離；核心守衛不是必要目標。'},
   sweep:{name:'獵殺名單',kind:'hunt',count:3,text:'第 6 層殲滅分布在不同房間的 3 名指定敵人，再從電梯撤離。'},
   retrieval:{name:'機密回收',kind:'recover',count:1,text:'第 6 層找到 1 份機密資料，靠近後互動回收，再從電梯撤離。'},
+  roundtrip:{name:'原路回收',kind:'recover',count:1,depth:3,returnTrip:true,text:'深入三層，回收機密並擊敗封鎖官，沿原路返回第 1 層入口撤離。回程各層一次傳送增援，不補發物資、回血或彈藥。'},
   archive:{name:'分散檔案',kind:'recover',count:3,text:'第 6 層從不同房間回收 3 份機密資料，再從電梯撤離。'}
 };
 export const validMissionId=id=>typeof id==='string'&&Object.hasOwn(MISSIONS,id);
 export function newMission(id='extraction'){
   if(!validMissionId(id))throw new Error('未知任務。');
-  return {id,targets:[]};
+  return {id,targets:[],...(MISSIONS[id].returnTrip?{returning:false,reinforced:[]}: {})};
 }
 export function prepareMission(g){
   const m=g.mission,def=MISSIONS[m.id];
-  if(g.floor!==FLOORS.length||def.kind==='extraction')return;
+  if(g.floor!==missionDepth(g)||def.kind==='extraction')return;
   const accessible=reachable(g,g.start),rooms=g.rooms.map((r,i)=>({...r,index:i})).filter(r=>r.index!==g.startRoom);
   // Seeded room rotation is independent of all loot and battle random rolls.
   const offset=g.seed%rooms.length,ordered=[...rooms.slice(offset),...rooms.slice(0,offset)];
@@ -37,29 +38,46 @@ export function prepareMission(g){
   if(m.targets.length!==def.count)throw new Error('無法配置任務目標。');
 }
 export const missionDefinition=g=>MISSIONS[g.mission.id];
-export const missionTarget=(g,e)=>g.floor===FLOORS.length&&missionDefinition(g).kind==='hunt'&&g.mission.targets.some(t=>t.id===e.id);
-export const missionObjects=g=>g.floor===FLOORS.length&&missionDefinition(g).kind==='recover'?g.mission.targets:[];
+export const missionDepth=g=>missionDefinition(g).depth||FLOORS.length;
+export const returning=g=>Boolean(missionDefinition(g).returnTrip&&g.mission.returning);
+export const exitPoint=g=>returning(g)?g.start:g.end;
+export const exitLabel=g=>returning(g)?g.floor===1?'撤離':'上樓':g.floor===missionDepth(g)?'撤離':'下樓';
+export const deepestFloor=g=>returning(g)?missionDepth(g):g.floor;
+export const missionTarget=(g,e)=>g.floor===missionDepth(g)&&missionDefinition(g).kind==='hunt'&&g.mission.targets.some(t=>t.id===e.id);
+export const missionObjects=g=>g.floor===missionDepth(g)&&missionDefinition(g).kind==='recover'?g.mission.targets:[];
 export function missionProgress(g){
   const def=missionDefinition(g);
-  if(def.kind==='extraction')return {done:g.floor===FLOORS.length&&!g.bossAlive?1:0,total:1};
+  if(def.kind==='extraction')return {done:g.floor===missionDepth(g)&&!g.bossAlive?1:0,total:1};
   return {done:g.mission.targets.filter(t=>def.kind==='recover'?t.done:g.enemies.some(e=>e.id===t.id&&e.hp<=0)).length,total:def.count};
 }
 export function exitBlocked(g){
-  if(g.floor!==FLOORS.length)return g.bossAlive?'本層頭目仍存活，電梯鎖定。':'';
+  if(missionDefinition(g).returnTrip){
+    if(g.bossAlive)return '本層頭目仍存活，電梯鎖定。';
+    return !returning(g)&&g.floor===missionDepth(g)?'回收機密後，從本層入口上樓。':'';
+  }
+  if(g.floor!==missionDepth(g))return g.bossAlive?'本層頭目仍存活，電梯鎖定。':'';
   const {done,total}=missionProgress(g);
   return done<total?missionDefinition(g).kind==='extraction'?'核心守衛仍存活，撤離鎖定。':`任務目標 ${done}/${total}，完成後才能撤離。`:'';
 }
 export function missionSummary(g){
   const def=missionDefinition(g),{done,total}=missionProgress(g);
-  return `${def.name} · ${g.floor<FLOORS.length?'目標位於第 6 層':`${done}/${total} · ${done===total?'前往撤離電梯':def.kind==='recover'?'尋找青色資料匣':def.kind==='hunt'?'殲滅標記目標':'摧毀核心守衛'}`}`;
+  if(returning(g))return `${def.name} · 回程 ${g.floor} → 1 · ${g.floor===1?'前往入口撤離':'返回本層入口上樓'}`;
+  return `${def.name} · ${g.floor<missionDepth(g)?`目標位於第 ${missionDepth(g)} 層`:`${done}/${total} · ${done===total?'前往撤離電梯':def.kind==='recover'?'尋找青色資料匣':def.kind==='hunt'?'殲滅標記目標':'摧毀核心守衛'}`}`;
 }
 export function validMission(m,g){
   if(!m||!validMissionId(m.id)||!Array.isArray(m.targets))return false;
-  const def=MISSIONS[m.id],expected=g.floor===FLOORS.length?def.count:0;
+  const def=MISSIONS[m.id],depth=def.depth||FLOORS.length;
+  if(g.floor>depth)return false;
+  if(def.returnTrip){
+    if(typeof m.returning!=='boolean'||!Array.isArray(m.reinforced))return false;
+    const expected=m.returning?Array.from({length:depth-g.floor+1},(_,i)=>depth-i):[];
+    if(JSON.stringify(m.reinforced)!==JSON.stringify(expected))return false;
+  }else if(m.returning!==undefined||m.reinforced!==undefined)return false;
+  const expected=g.floor===depth||m.returning?def.count:0;
   if(m.targets.length!==expected||new Set(m.targets.map(t=>t?.id)).size!==expected)return false;
   return m.targets.every((t,i)=>{
     if(!t||typeof t.id!=='string')return false;
     if(def.kind==='hunt')return Object.keys(t).length===1&&g.enemies.filter(e=>e.id===t.id).length===1;
-    return t.id===`objective-${i+1}`&&typeof t.done==='boolean'&&Number.isInteger(t.x)&&Number.isInteger(t.y)&&g.grid[t.y]?.[t.x]===1&&!m.targets.slice(0,i).some(p=>key(p)===key(t));
+    return t.id===`objective-${i+1}`&&typeof t.done==='boolean'&&Number.isInteger(t.x)&&Number.isInteger(t.y)&&t.x>=0&&t.x<SIZE&&t.y>=0&&t.y<SIZE&&(m.returning&&g.floor<depth||g.grid[t.y]?.[t.x]===1)&&(!m.returning||t.done)&&!m.targets.slice(0,i).some(p=>key(p)===key(t));
   });
 }

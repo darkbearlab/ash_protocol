@@ -1,14 +1,15 @@
+import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {SKILLS,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
 import {fullLighting,validLighting,lightingEffects} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
 import {addTrace,spentCase,validTraces} from './traces.js';
-import {newMission,prepareMission,validMission,missionObjects,missionTarget,missionSummary,exitBlocked} from './missions.js';
+import {missionDefinition,missionDepth,returning,exitPoint,exitLabel,deepestFloor,newMission,prepareMission,validMission,missionObjects,missionTarget,missionSummary,exitBlocked} from './missions.js';
 import {validModules} from './modules.js';
 import {isContainer,containerName,validContainers} from './containers.js';
 import {BARRIER_TYPES,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,firstBarrierOnRay,validBarriers} from './barriers.js';
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
-import {GRENADES,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
+import {SMOKE_DURATION,GRENADES,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
 import {defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns} from './prepared.js';
 import {grantTrait,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
@@ -33,12 +34,12 @@ export class Game {
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
     this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
-    this.logs=[];this.status='playing';this.pendingPerks=0;this.effects=[];this.loadFloor();
+    this.floorStates={};this.reinforcements=[];this.logs=[];this.status='playing';this.pendingPerks=0;this.effects=[];this.loadFloor();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   loadFloor() {
     endSkillEffects(this.player);
-    Object.assign(this,generate(this.seed,this.floor,this.unlockedWeapons));this.smoke=[];this.traces=[];this.player.control=controlState();
+    Object.assign(this,generate(this.seed,this.floor,this.unlockedWeapons));this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.focus=false;this.player.evasive=false;
     prepareMission(this);
@@ -50,13 +51,18 @@ export class Game {
   get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.visible(e));}
   get targeted(){return [...this.enemies,...this.props,...this.barriers].find(e=>e.id===this.target&&e.hp>0&&this.visible(e));}
   get perkChoices(){const start=(this.seed+this.player.level*3)%PERKS.length;return [0,1,3].map(n=>PERKS[(start+n)%PERKS.length]);}
+  get exitPoint(){return exitPoint(this);}
+  get exitLabel(){return exitLabel(this);}
+  get deepestFloor(){return deepestFloor(this);}
   get exitBlocked(){return exitBlocked(this);}
   get missionSummary(){return missionSummary(this);}
   get nearbyObjectives(){return missionObjects(this).filter(t=>!t.done&&this.canTouch(t));}
   recoverObjective(id){
     const t=this.nearbyObjectives.find(t=>t.id===id);
     if(!t)return this.fail('附近沒有可回收的機密資料。');
-    t.done=true;this.log('機密資料已回收；'+this.missionSummary+'。');return true;
+    t.done=true;
+    if(missionDefinition(this).returnTrip){this.mission.returning=true;scheduleRetreatWave(this);this.log('機密已取得：返回本層入口上樓，沿原路撤離。',true);}
+    this.log('機密資料已回收；'+this.missionSummary+'。');return true;
   }
   get bossAlive(){return this.enemies.some(e=>(e.type==='boss'||e.type==='warden')&&e.hp>0);}
   get nearbyTerminal(){return this.props.find(o=>o.type==='terminal'&&!o.used&&this.canTouch(o));}
@@ -170,7 +176,7 @@ export class Game {
       const cost=TERMINAL_AMMO[arg]?.cost??(arg==='grenade'?12:GRENADES[arg]?.cost??15),kind=grenadeByItem(arg)?'grenade':TERMINAL_AMMO[arg]?arg:null;
       return (p.scrap>=cost&&!(arg==='heal'&&p.hp===p.maxHp&&!p.poison)&&!(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=this.ammoCapacity(kind))&&!(arg==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=this.ammoCapacity(id))))||this.fail('廢料不足或補給已滿。');
     }
-    if(type==='interact')return (this.canTouch(this.end)&&!this.exitBlocked)||this.fail(this.exitBlocked||'需要靠近綠色電梯。');
+    if(type==='interact')return (this.canTouch(this.exitPoint)&&!this.exitBlocked)||this.fail(this.exitBlocked||'需要靠近綠色電梯。');
     return type==='wait';
   }
   action(type,arg){
@@ -218,6 +224,7 @@ export class Game {
     if(this.floor===floor&&this.status==='playing'&&p.hp>0){
       const due=this.marks.filter(m=>m.due<=this.turn);this.marks=this.marks.filter(m=>m.due>this.turn);
       for(const m of due){if(p.hp<=0)break;presentStep(this,()=>this.explode(m,1,38));}
+      if(p.hp>0)presentStep(this,()=>resolveRetreatWave(this));
       if(p.hp>0)presentStep(this,()=>this.environmentTurn());
     }
     tickSkills(p);
@@ -361,6 +368,7 @@ export class Game {
     while(this.player.xp>=this.player.level+2){this.player.xp-=this.player.level+2;this.player.level++;this.pendingPerks++;}
     if(e.type==='bomber')this.explode(e,1,30);
     if(e.type==='warden'||e.type==='boss')this.awardProtocol(e.type,`${this.floor}:${e.id}`);
+    if(e.reinforcement)return; // Retreat waves add pressure, not replacement supplies.
     const loot=ENEMY_LOOT[e.type];
     if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.items.push(this.registerWeapon({x:e.x,y:e.y,type:'weapon',weapon:loot.weapon},true));
     if(this.floor>=RARE_ARMORY.minFloor&&loot?.rareWeapon!==undefined&&this.rng()<loot.rareChance)this.items.push(this.registerWeapon({x:e.x,y:e.y,type:'weapon',weapon:loot.rareWeapon},true));
@@ -394,7 +402,7 @@ export class Game {
     else {
       const cells=areaCells(this.grid,pos,2,this.barriers),affected=new Set(cells.map(key));
       this.effects.push({type:'pulse',radius:2,color:def.color,from:{x:pos.x,y:pos.y},to:{x:pos.x,y:pos.y}});
-      if(id==='smoke'){this.smoke=[...this.smoke,{cells,expires:this.turn+2}];this.log('煙霧展開：阻斷無紅外線者的視線，爆炸仍可傷害。');}
+      if(id==='smoke'){this.smoke=[...this.smoke,{cells,expires:this.turn+SMOKE_DURATION-1}];this.log('煙霧展開：阻斷無紅外線者的視線，爆炸仍可傷害。');}
       else for(const actor of [p,...this.enemies])if(affected.has(key(actor))&&applyDisruption(actor,def.keyword)){
         if(actor!==p)actor.alert=true;
         this.log(`${actor===p?'你':enemyName(actor)}失能：跳過 ${actor.control.disabled} 次行動。`,actor===p);
@@ -575,10 +583,20 @@ export class Game {
   }
   descend(advanceTurn=true) {
     const p=this.player;
-    if(!this.canTouch(this.end))return this.fail('需要靠近綠色電梯。');
+    if(!this.canTouch(this.exitPoint))return this.fail('需要靠近綠色電梯。');
     if(this.exitBlocked)return this.fail(this.exitBlocked);
+    const next=this.floor-1,frame=returning(this)&&this.floor>1?this.floorStates[next]:null,arrival=frame&&arrivalCell(frame);
+    if(returning(this)&&this.floor>1&&!arrival)return this.fail('上一層入口暫無安全落腳處。');
     this.awardProtocol('floor',this.floor);
-    if(this.floor===FLOORS.length){this.awardProtocol('extraction','win');this.status='won';this.log(this.missionSummary+'。撤離成功。');return true;}
+    if((returning(this)&&this.floor===1)||(!missionDefinition(this).returnTrip&&this.floor===missionDepth(this))){this.awardProtocol('extraction','win');this.status='won';this.log(this.missionSummary+'。撤離成功。');return true;}
+    if(returning(this)){
+      if(advanceTurn)this.turn++;
+      Object.assign(this,resumedFloor(frame,this.turn));delete this.floorStates[next];this.floor=next;
+      Object.assign(p,arrival,{guard:false,focus:false,evasive:false,moved:false,moveDelta:[0,0],fireChain:null});
+      endSkillEffects(p);this.target=null;scheduleRetreatWave(this);this.reveal();
+      this.log(`返回${FLOORS[this.floor-1]}：物資與戰場保持原狀，沒有換層補給。`);return true;
+    }
+    if(missionDefinition(this).returnTrip)this.floorStates[this.floor]=archiveFloor(this);
     this.floor++;if(advanceTurn)this.turn++;p.hp=Math.min(p.maxHp,p.hp+25);
     this.loadFloor();this.supplyPack({rifle:20,pistol:24,shell:6,energy:10,ordnance:2});this.log(`進入${FLOORS[this.floor-1]}。生命 +25，補充各類備彈。`);return true;
   }
@@ -599,7 +617,7 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
@@ -613,6 +631,7 @@ export class Game {
       if(version<17)data.traces=[];
       if(!validTraces(data.traces,data.grid))return null;
       if(version<16)data.mission=newMission();
+      if(version<21){data.floorStates={};data.reinforcements=[];}
       if(!validMission(data.mission,data))return null;
       const defaults=freshPlayer(),p={...defaults,...data.player};
       if(![p,...data.enemies].every(a=>validCombatModifiers(a.combatModifiers)))return null;
@@ -627,7 +646,7 @@ export class Game {
       if(![version>=12?data.player:p,...data.enemies].every(a=>validControl(a.control)))return null;
       const point=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&data.grid[q.y]?.[q.x]===1;
       if(data.enemies.some(e=>e.lastKnown!==null&&!point(e.lastKnown)))return null;
-      if(!Array.isArray(data.smoke)||data.smoke.length>32||data.smoke.some(s=>!Number.isInteger(s.expires)||s.expires<=data.turn||s.expires>data.turn+2||!Array.isArray(s.cells)||s.cells.length<1||s.cells.length>13||s.cells.some(q=>!point(q))))return null;
+      if(!Array.isArray(data.smoke)||data.smoke.length>32||data.smoke.some(s=>!Number.isInteger(s.expires)||s.expires<=data.turn||s.expires>data.turn+SMOKE_DURATION-1||!Array.isArray(s.cells)||s.cells.length<1||s.cells.length>13||s.cells.some(q=>!point(q))))return null;
       if(version>=12&&!['smoke','emp','stun'].every(k=>Number.isSafeInteger(data.player[k])&&data.player[k]>=0&&data.player[k]<=10000000))return null;
       if(version<10)p.portrait=portraitForLegacy(data.runId??data.seed);
       if(!validPortrait(p.portrait))return null;
@@ -688,6 +707,11 @@ export class Game {
         if(version<5){delete item.slot;g.registerWeapon(item);}
         if(!Number.isInteger(item.slot)||p.weaponBases[item.slot]!==item.weapon||locations.has(item.slot))return null;
         locations.add(item.slot);
+      }
+      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,...frame,turn:frame.savedTurn,floor,floorStates:{},mission:newMission(),player:{...p,x:frame.start.x,y:frame.start.y,fireChain:null}}})))))return null;
+      // Weapon slots belong to the run, including weapons left on archived floors.
+      for(const frame of Object.values(g.floorStates))for(const item of frame.items)if(item.type==='weapon'){
+        if(locations.has(item.slot))return null;locations.add(item.slot);
       }
       if(version<5)g.log('武器已升級為獨立個體。既有彈匣與改裝保留，新掉落可能帶有詞條。');
       g.setCarryLevel(g.carryLevel);g.reveal();return g;

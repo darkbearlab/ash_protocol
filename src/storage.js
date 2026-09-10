@@ -1,3 +1,4 @@
+import {deepestFloor} from './missions.js';
 import {AMMUNITION,CARRY_COSTS} from './ammunition.js';
 import {Game} from './engine.js';
 import {normalizeProfile,creditProtocol} from './progression.js';
@@ -11,7 +12,7 @@ export function read(key){try{return localStorage.getItem(storageKey(key));}catc
 export function write(key,value){try{localStorage.setItem(storageKey(key),value);return true;}catch{storage.available=false;return false;}}
 export function loadGame(){
   if(!recoverRestore()){try{return decodeBackup(read('ash-restore-journal'),backupNamespace).game;}catch{return null;}}
-  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19].includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}const game=Game.restore(raw);if(game)game.setCarryLevel(profile().upgrades.carrying);return game;
+  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20].includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}const game=Game.restore(raw);if(game)game.setCarryLevel(profile().upgrades.carrying);return game;
 }
 export function saveGame(game){
   if(storage.recoveryPending)return;
@@ -38,8 +39,8 @@ function resultProfile(game,p=profile()){if(game.status==='playing'||storage.rec
   if(!Object.hasOwn(p.protocolRuns,id))return p;
   if(p.protocolRuns[id].recorded)return p;
   p.protocolRuns[id].recorded=true;p.runs++;p.wins+=Number(game.status==='won');
-  p.bestFloor=Math.max(p.bestFloor,game.floor);p.bestKills=Math.max(p.bestKills,game.player.kills);
-  p.history.unshift({id,mission:game.mission.id,portrait:game.player.portrait,character:game.player.character,seed:game.seed,floor:game.floor,kills:game.player.kills,turn:game.turn,won:game.status==='won',outcome:game.status,protocol:game.protocol.earned,date:new Date().toISOString()});
+  p.bestFloor=Math.max(p.bestFloor,deepestFloor(game));p.bestKills=Math.max(p.bestKills,game.player.kills);
+  p.history.unshift({id,mission:game.mission.id,portrait:game.player.portrait,character:game.player.character,seed:game.seed,floor:deepestFloor(game),kills:game.player.kills,turn:game.turn,won:game.status==='won',outcome:game.status,protocol:game.protocol.earned,date:new Date().toISOString()});
   p.history=p.history.slice(0,10);return p;
 }
 

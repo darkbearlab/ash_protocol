@@ -16,7 +16,7 @@ function arena(id='retrieval'){
   const g=new Game(319,[],0,'soldier','onyx',id);g.floor=6;g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.barriers=[];g.props=[];g.items=[];g.enemies=[];g.hazards=[];g.marks=[];g.smoke=[];
   Object.assign(g.player,{x:10,y:10});g.end={x:20,y:20};g.mission.targets=[{id:'objective-1',x:11,y:10,done:false}];g.reveal();return g;
 }
-test('all five contracts persist from deployment, with no extra first-floor loot or RNG',()=>{
+test('all contracts persist from deployment, with no extra first-floor loot or RNG',()=>{
   const base=new Game(9,[],0,'soldier','onyx');
   for(const id of Object.keys(MISSIONS)){
     const g=new Game(9,[],0,'soldier','onyx',id);assert.equal(g.mission.id,id);assert.deepEqual(g.mission.targets,[]);assert.deepEqual(g.items,base.items);assert.deepEqual(g.props,base.props);assert.deepEqual(g.enemies,base.enemies);assert.equal(g.rng.state(),base.rng.state());assert.equal(Game.restore(g.serialize()).mission.id,id);
@@ -26,7 +26,7 @@ test('all five contracts persist from deployment, with no extra first-floor loot
 test('100 final maps place distinct reachable mission targets in separate rooms without changing loot or RNG',()=>{
   for(let seed=0;seed<100;seed++){
     const g=finalFloor('extraction',seed),before=JSON.stringify([g.enemies,g.items,g.props,g.barriers]),rng=g.rng.state(),seen=reachable(g,g.start);
-    for(const [id,def]of Object.entries(MISSIONS)){
+    for(const [id,def]of Object.entries(MISSIONS).filter(([,def])=>!def.returnTrip)){
       g.mission=newMission(id);prepareMission(g);assert.ok(validMission(g.mission,g));assert.equal(g.mission.targets.length,def.count);
       const rooms=new Set();for(const t of g.mission.targets){const point=def.kind==='hunt'?g.enemies.find(e=>e.id===t.id):t;assert.ok(seen.has(key(point)));rooms.add(g.rooms.findIndex(r=>point.x>=r.x&&point.x<r.x+r.w&&point.y>=r.y&&point.y<r.y+r.h));if(def.kind==='recover')assert.ok(![...g.props,...g.items,...g.enemies,...g.hazards,g.end].some(o=>key(o)===key(t)));}
       assert.equal(rooms.size,def.count);assert.equal(JSON.stringify([g.enemies,g.items,g.props,g.barriers]),before);assert.equal(g.rng.state(),rng);
@@ -44,7 +44,7 @@ test('ordinary kills never substitute for a target; partial progress stays locke
 test('core contract retains final boss gate and every contract retains floor-three gate',()=>{
   const g=finalFloor('extraction');Object.assign(g.player,g.end);assert.ok(g.exitBlocked);assert.equal(g.descend(),false);
   g.hurt(g.enemies.find(e=>e.type==='boss'),9999);assert.equal(g.exitBlocked,'');
-  for(const id of Object.keys(MISSIONS)){const g=new Game(319,[],0,'soldier','onyx',id);g.floor=3;g.loadFloor();Object.assign(g.player,g.end);assert.ok(g.exitBlocked);assert.equal(g.descend(),false);g.hurt(g.enemies.find(e=>e.type==='warden'),9999);assert.equal(g.exitBlocked,'');}
+  for(const id of Object.keys(MISSIONS)){const g=new Game(319,[],0,'soldier','onyx',id);g.floor=3;g.loadFloor();Object.assign(g.player,g.end);assert.ok(g.exitBlocked);assert.equal(g.descend(),false);g.hurt(g.enemies.find(e=>e.type==='warden'),9999);if(MISSIONS[id].returnTrip)assert.match(g.exitBlocked,/回收/);else assert.equal(g.exitBlocked,'');}
 });
 test('recover costs one turn, clears waiting and correction, does not consume pack capacity and cannot duplicate',()=>{
   const g=arena();g.player.owned.push(2);const inventory=structuredClone([g.player.owned,g.player.prepared,g.player.meds,g.player.grenades]);g.player.guard=true;g.player.focus=true;g.player.fireChain={targetId:'old',turn:g.turn,count:3};
