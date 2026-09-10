@@ -1,5 +1,13 @@
 # 更新紀錄
 
+## 3.32.0：終端機風主選單
+
+- 標題畫面改為暗底滿版：置中放大的 A 標誌（沿用 assets/icon.svg 造型）、ASH PROTOCOL 英文字標，下方五個等寬大寫的終端機風選單列，游標與細分隔線，移除原本的故事文案、規則短句與幹員頭像。
+- 選單為 CONTINUE／NEW GAME／UPGRADES／MANUAL／SETTING。作戰指南由原本的次要按鈕扶正為一般入口 MANUAL。每列右側只保留一行極短狀態：目前角色與樓層、協定點數等。
+- **導覽邏輯未變**：五個入口仍走既有 data-modal（enter／deploy／carrying／help／settings），沒有新增或修改任何 handler、Game.action 或存檔欄位。CONTINUE 在沒有可續任務時停用並顯示原因。
+- 新增 #modal.title 修飾類與 .title-* 樣式；modal() 增加第三個 title 參數，預設 false，其他對話框不受影響。save v24／profile v4／backup v1 不變，未升存檔版本。
+- 411 項既有 Node 測試與 npm run build 通過。375×812 與 320×568 實測：無橫向溢出、註記不換行不裁切、內容在視窗內；五個入口與返回路徑逐一驗證。真機手感交使用者。
+
 ## 2026-09-10 文件：Claude 開發接手
 
 新增根目錄給 Claude 的交接，區分可自主調整的數值／全域經濟／選單與需另議的遊戲規則；列出資料來源、存檔與 QA 保障、工作樹整合、發布及回報格式。AGENTS／HANDOFF／DESIGN／驗證紙條連結同步；遊戲維持 3.31.0、save v24／profile v4／backup v1。純文件未重跑本機遊戲測試。
