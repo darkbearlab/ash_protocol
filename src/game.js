@@ -1,4 +1,4 @@
-import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickPackedPet,petSkillReason} from './allies.js';
+import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickPackedPet,petSkillReason,fitDrone,DRONE_HP,DRONE_BUILD_COST} from './allies.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
@@ -489,7 +489,7 @@ export class Game {
     if(cover){damage*=1-coverEffects(cover,a,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));}
     damage=reduceDirectDamage(a,Math.max(1,Math.round(damage-a.armor)));a.hp=Math.max(0,a.hp-damage);
     addTrace(this,a,activeTrait(a,'mechanical')?'oil':'blood');this.effects.push({type:'impact',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},damage});this.log(`${allyName(a)}受傷 −${damage}。`,true);
-    if(!a.hp){a.status=a.kind==='pet'?'down':'destroyed';a.order=null;this.reveal();this.log(`${allyName(a)}${a.kind==='pet'?'倒地：相鄰用技能回收，收納中會自行回血。':a.kind==='drone'?'已被摧毀：相鄰用技能回收殘骸。':'已被摧毀。'}`,true);}
+    if(!a.hp){a.status=a.kind==='pet'?'down':'destroyed';a.order=null;this.reveal();this.log(`${allyName(a)}${a.kind==='pet'?'倒地：相鄰用技能回收，收納中會自行回血。':a.kind==='drone'?`已被摧毀：按僚機技能花 ${DRONE_BUILD_COST} 廢料生產新機。`:'已被摧毀。'}`,true);}
   }
   enemyTarget(e){
     const options=[this.player,...this.activeAllies].filter(a=>a.hp>0&&distance(e,a)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,a));
@@ -681,7 +681,7 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)||(e.raised!==undefined&&typeof e.raised!=='boolean')))return null;
@@ -792,6 +792,12 @@ export class Game {
         if(locations.has(item.slot))return null;locations.add(item.slot);
       }
       if(version<5)g.log('武器已升級為獨立個體。既有彈匣與改裝保留，新掉落可能帶有詞條。');
+      // v27: the follow drone now fires rifle rounds. Hand back pistol rounds still in an old follow magazine (overflow
+      // lands at the player's feet), widen the chassis to the new hit points without healing, and refit to its mode.
+      if(version<27){
+        let refund=0;for(const a of g.allies)if(a.kind==='drone'){if(a.sourceId==='drone_follow'&&a.ammo>0){refund+=a.ammo;a.ammo=0;}if(a.maxHp===45)a.maxHp=DRONE_HP;fitDrone(a);}
+        if(refund){g.receiveAmmo('pistol',refund);g.log(`存檔已升級：追隨無人機改用步槍彈，原彈匣 ${refund} 發手槍彈已退回。`);}
+      }
       g.setCarryLevel(g.carryLevel);g.reveal();return g;
     }catch{return null;}
   }

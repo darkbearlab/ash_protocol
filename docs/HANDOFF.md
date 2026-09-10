@@ -1,4 +1,12 @@
-# 快速接手：ASH PROTOCOL 3.38.0
+# 快速接手：ASH PROTOCOL 3.39.0
+
+## 3.39.0：工程師無人機改版（Claude 開發，使用者決定）
+
+- 規格：[ALLIES.md](ALLIES.md)「工程師」；報告：[qa/results/2026-09-11-claude-3.39.0-allies-iteration.md](../qa/results/2026-09-11-claude-3.39.0-allies-iteration.md)。使用者決定已註記在 [ALLY_ITERATION_SCOPE.md](ALLY_ITERATION_SCOPE.md) 工程師段。
+- `src/allies.js`：`DRONE_HP`／`DRONE_BUILD_COST`／`SENTRY_ARMOR`、`fitDrone`（依模式設定裝甲與 `no_cover`）。`droneLost` 時技能改為生產；`allyAct` 內的 `topUp` 負責自動換彈。移除 `canRecoverWreck`。
+- `src/game.js`：save v27 遷移（在 `restore` 結尾：退還追隨機體彈匣內的手槍彈、45→90 HP 上限、`fitDrone`）；無人機被毀提示改為生產。
+- 美術待辦：哨兵要改成地面砲台外觀，見 [PIXEL_ART.md](PIXEL_ART.md) 開頭。
+- 模擬腳本：`qa/drone-waves.mjs`（三波連戰，可並列新舊 src）。
 
 ## 3.38.0：換位解決窄口卡點（Claude 開發，使用者決定）
 
