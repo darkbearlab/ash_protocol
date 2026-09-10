@@ -1,6 +1,8 @@
 # 獨立被動規則與行動順序（3.12.0）
 
-3.15.0 補充：新增 biological／mechanical，可並存且不互相抵銷，不附帶體型、裝甲或掩體效果。三位玩家均為生物，機械敵人為 drone／warden／boss；其餘敵人為生物。EMP／震撼與玩家電漿增傷依這些標籤判定，詳见 [THROWABLES.md](THROWABLES.md)。失能／恢復免疫用獨立 control 記錄自身行動機會，不用 traits.turns；被動來源容量放寬為 66 以保留舊滿額來源。下方自然生成與保存版本描述為初版歷史。
+3.24 補充：night_vision 免暗區命中 −40；infrared 穿煙不穿牆門，兩者獨立且可並存。生物或擁有任一感知被動皆受震撼彈影響，EMP 仍查機械，多條符合不重複失能。Recon 兩條全有，新狙擊手夜視、新封鎖官紅外線。被動來源容量 68、單局 v18；舊 Recon 新增兩條，不刪舊來源。詳見 [LIGHTING.md](LIGHTING.md)。
+
+3.15.0 補充：新增 biological／mechanical，可並存且不互相抵銷，不附帶體型、裝甲或掩體效果。三位玩家均為生物，機械敵人為 drone／warden／boss；其餘敵人為生物。EMP／震撼與玩家電漿增傷依這些標籤判定，詳見 [THROWABLES.md](THROWABLES.md)。失能／恢復免疫用獨立 control 記錄自身行動機會，不用 traits.turns；被動來源容量放寬為 66 以保留舊滿額來源。下方自然生成與保存版本描述為初版歷史。
 
 3.14.0 新增獨立 heavy_armor（重裝防護）：固定裝甲後直接傷害再減 25%，向上取整，環境／毒不適用。Bulwark 分別掛大型、笨拙、緩速及重裝防護。細節見 BULWARK.md。
 

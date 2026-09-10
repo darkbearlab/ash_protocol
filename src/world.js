@@ -1,3 +1,4 @@
+import {createLighting} from './lighting.js';
 import {selectSupplyStations,addLivingModules} from './modules.js';
 import {packSupplies} from './containers.js';
 import {blockedBetween,barrierBetween,makeBarrier,edgeCells,edgeKey} from './barriers.js';
@@ -139,7 +140,7 @@ export function generate(seed,floor=1,unlocks=[]) {
     }
   }
   packSupplies(map,floor);selectSupplyStations(map,floor);
-  addLivingModules(map,seed,floor,{corridors,reachable});return map;
+  addLivingModules(map,seed,floor,{corridors,reachable});map.lighting=createLighting(grid,rooms,start,seed,floor);return map;
 }
 export function reachable(map,start,{openDoors=true}={}) {
   const queue=[start],seen=new Set([key(start)]);

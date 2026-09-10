@@ -5,16 +5,17 @@ import {combatSight} from './combat.js';
 // Keywords select reactions; they do not imply armor, size, or allegiance.
 export const GRENADES={
   frag:{name:'破片手榴彈',short:'破片彈',icon:'◉',resource:'grenades',item:'grenade',cost:12,amount:2,color:'#c8d692',action:'grenade',text:'射程 5、半徑 2。造成爆炸傷害，會自傷及引爆油桶。'},
-  smoke:{name:'煙霧彈',short:'煙霧彈',icon:'≋',resource:'smoke',item:'smoke',cost:12,amount:1,color:'#a9bbcb',action:'grenade',text:'射程 5、半徑 2，持續 3 輪（含投擲當輪）。阻斷敵我視線，煙內僅能看見相鄰格；不減傷。'},
+  smoke:{name:'煙霧彈',short:'煙霧彈',icon:'≋',resource:'smoke',item:'smoke',cost:12,amount:1,color:'#a9bbcb',action:'grenade',text:'射程 5、半徑 2，持續 3 輪（含投擲當輪）。阻斷無紅外線者的視線，煙內僅見相鄰格；紅外線可穿煙，不減傷。'},
   emp:{name:'EMP 彈',short:'EMP',icon:'ϟ',resource:'emp',item:'emp',keyword:'mechanical',cost:15,amount:1,color:'#81dce9',action:'grenade',text:'射程 5、半徑 2。機械中斷蓄勢並跳過 2 次行動，頭目 1 次；恢復後免疫 2 次行動。不扣生命。'},
-  stun:{name:'震撼彈',short:'震撼彈',icon:'✦',resource:'stun',item:'stun',keyword:'biological',cost:15,amount:1,color:'#eee0a0',action:'grenade',text:'射程 5、半徑 2。生物中斷蓄勢並跳過 2 次行動，頭目 1 次；恢復後免疫 2 次行動。會震暈自己。'},
+  stun:{name:'震撼彈',short:'震撼彈',icon:'✦',resource:'stun',item:'stun',keyword:'biological',cost:15,amount:1,color:'#eee0a0',action:'grenade',text:'射程 5、半徑 2。生物或有夜視／紅外線者中斷蓄勢並跳過 2 次行動，頭目 1 次；恢復後免疫 2 次行動。會震暈自己。'},
 };
 export const grenadeTotal=p=>Object.values(GRENADES).reduce((n,g)=>n+(p[g.resource]||0),0);
 export const grenadeByItem=type=>Object.keys(GRENADES).find(id=>GRENADES[id].item===type);
 export const controlState=()=>({disabled:0,immune:0});
 export const validControl=c=>c&&typeof c==='object'&&!Array.isArray(c)&&Object.keys(c).length===2&&['disabled','immune'].every(k=>Number.isInteger(c[k])&&c[k]>=0&&c[k]<=2)&&!(c.disabled&&c.immune);
+export const disruptionEligible=(actor,keyword)=>activeTrait(actor,keyword)||(keyword==='biological'&&(activeTrait(actor,'night_vision')||activeTrait(actor,'infrared')));
 export function applyDisruption(actor,keyword){
-  if(!activeTrait(actor,keyword)||actor.hp<=0||actor.control.disabled||actor.control.immune)return false;
+  if(!disruptionEligible(actor,keyword)||actor.hp<=0||actor.control.disabled||actor.control.immune)return false;
   actor.control.disabled=['boss','warden'].includes(actor.type)?1:2;
   actor.charge=false;actor.aim=null;actor.windup=0;actor.fireChain=null;
   actor.guard=false;actor.focus=false;actor.evasive=false;actor.moved=false;actor.moveDelta=[0,0];
@@ -34,7 +35,7 @@ export function areaCells(grid,pos,radius=2,barriers=[]){
 }
 const sightCache=new WeakMap();
 export function tacticalSight(game,a,b){
-  if(!game.smoke?.length||distance(a,b)<=1)return combatSight(game.grid,a,b,game.barriers);
+  if(activeTrait(a,'infrared')||!game.smoke?.length||distance(a,b)<=1)return combatSight(game.grid,a,b,game.barriers);
   let cache=sightCache.get(game);
   if(!cache||cache.grid!==game.grid||cache.clouds!==game.smoke){
     const cells=new Set(game.smoke.flatMap(s=>s.cells.map(key))),blocked=game.grid.map((row,y)=>row.map((v,x)=>cells.has(`${x},${y}`)?0:v));

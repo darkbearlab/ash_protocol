@@ -1,6 +1,8 @@
 import {ENEMY_TYPES} from './data.js';
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const TRAITS={
+  night_vision:{name:'夜視',text:'忽略目標暗區的射擊命中懲罰；會受震撼彈失能，不穿煙。'},
+  infrared:{name:'紅外線',text:'看穿煙霧，仍受牆與門阻擋；會受震撼彈失能，不抵銷暗區懲罰。'},
   biological:{name:'生物',text:'會受到震撼彈的失能效果；可與機械同時存在。'},
   mechanical:{name:'機械',text:'會受到 EMP 的失能效果，電漿直擊增傷 20%；可與生物同時存在。'},
   heavy_armor:{name:'重裝防護',text:'直接傷害在固定裝甲後再減少 25%，向上取整；不抵擋環境或中毒。'},
@@ -23,10 +25,12 @@ export const sizeModifier=actor=>activeTrait(actor,'large')?15:activeTrait(actor
 export const movementModifier=actor=>activeTrait(actor,'agile')?13:activeTrait(actor,'clumsy')?-13:0;
 export function traitLabels(actor){return [...new Set((actor?.traits||[]).map(t=>t.id))].map(id=>`${TRAITS[id].short||TRAITS[id].name}${activeTrait(actor,id)?'':'（抵銷）'}`);}
 export function tickTraits(actor){actor.traits=(actor.traits||[]).flatMap(t=>t.turns===undefined?[t]:t.turns>1?[{...t,turns:t.turns-1}]:[]);}
-export function validTraits(traits){return Array.isArray(traits)&&traits.length<=66&&traits.every(t=>t&&typeof t==='object'&&!Array.isArray(t)&&typeof t.id==='string'&&Object.hasOwn(TRAITS,t.id)&&typeof t.source==='string'&&/^[a-zA-Z0-9:_-]{1,100}$/.test(t.source)&&(t.turns===undefined||(Number.isInteger(t.turns)&&t.turns>0&&t.turns<=999)));}
+export function validTraits(traits){return Array.isArray(traits)&&traits.length<=68&&traits.every(t=>t&&typeof t==='object'&&!Array.isArray(t)&&typeof t.id==='string'&&Object.hasOwn(TRAITS,t.id)&&typeof t.source==='string'&&/^[a-zA-Z0-9:_-]{1,100}$/.test(t.source)&&(t.turns===undefined||(Number.isInteger(t.turns)&&t.turns>0&&t.turns<=999)));}
 export const bodyKeyword=type=>ENEMY_TYPES[type]?.mechanical?'mechanical':'biological';
 export function startingTraits(type,floor=1){
   const ids=type==='drone'?['no_cover']:type==='brute'?['large']:type==='crawler'&&floor>=4?['fast']:[];
+  if(type==='sniper')ids.push('night_vision');
+  if(type==='warden')ids.push('infrared');
   ids.push(bodyKeyword(type));
   return ids.map(id=>({id,source:`enemy:${type}`}));
 }
@@ -34,7 +38,7 @@ export function initiativeQueue(player,enemies){return [player,...enemies.filter
 
 export function grantTrait(actor,id,source,turns){
   const trait={id,source,...(turns===undefined?{}:{turns})};if(!validTraits([trait]))return false;
-  const traits=(actor.traits||[]).filter(t=>t.id!==id||t.source!==source);if(traits.length>=66)return false;
+  const traits=(actor.traits||[]).filter(t=>t.id!==id||t.source!==source);if(traits.length>=68)return false;
   actor.traits=[...traits,trait];return true;
 }
 export function removeTraitSource(actor,source){actor.traits=(actor.traits||[]).filter(t=>t.source!==source);}
