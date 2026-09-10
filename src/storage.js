@@ -1,5 +1,5 @@
 import {deepestFloor} from './missions.js';
-import {AMMUNITION,CARRY_COSTS} from './ammunition.js';
+import {AMMUNITION,CARRY_COSTS,carryLevels,carryingSpent} from './ammunition.js';
 import {Game} from './engine.js';
 import {normalizeProfile,creditProtocol} from './progression.js';
 import {makeBackup,decodeBackup} from './backup.js';
@@ -59,6 +59,19 @@ export function purchaseCarrying(game,type,expectedLevel){
   if(!write('ash-profile',JSON.stringify(p)))throw new Error('無法儲存升級，尚未扣除點數。');
   if(game)game.setCarryLevel(p.upgrades.carrying);
   return p;
+}
+
+// Free placeholder reset: refund exactly what was spent, then re-apply the
+// existing capacity path so overflow drops to the ground instead of vanishing.
+export function resetCarrying(game){
+  if(storage.recoveryPending||!storage.available)throw new Error('本機儲存尚未就緒，請先備份資料後重試。');
+  const p=profile(),refund=Object.keys(AMMUNITION).reduce((sum,type)=>sum+carryingSpent(p.upgrades.carrying[type]),0);
+  if(!refund)throw new Error('目前沒有可重置的攜行升級。');
+  p.protocol.balance+=refund;p.upgrades.carrying=carryLevels(0);
+  // One atomic write commits both the refund and the cleared levels.
+  if(!write('ash-profile',JSON.stringify(p)))throw new Error('無法儲存重置，尚未退還點數。');
+  if(game)game.setCarryLevel(p.upgrades.carrying);
+  return refund;
 }
 
 export function exportBackup(game){return JSON.stringify(makeBackup(game,profile(),backupNamespace),null,2);}

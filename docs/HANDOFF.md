@@ -1,8 +1,16 @@
-# 快速接手：ASH PROTOCOL 3.32.1
+# 快速接手：ASH PROTOCOL 3.33.0
 
 ## 2026-09-10 開發分工交接（遊戲仍為 3.31.0）
 
 使用者為節省 Codex 週額度，將數值、全域經濟、選單等非規則層工作交 Claude 接手；Codex 於規則需求再介入。[給 Claude 的交接](../給Claude的交接.md) 列出授權邊界、原始碼／規格位置、存檔保障、工作樹整合與 main 發布、回報格式。舊「只提交 QA 報告」限制僅適用純驗證任務；完成的開發仍須測試、更新文件、發布 main。本次只改文件，不升遊戲版號、不重跑本機遊戲測試。
+
+## 3.33.0：永久升級卡片頁與重置（Claude 開發）
+
+- UPGRADES 改為方形卡片格狀（攜行容量／幹員／武器／投擲物／技能／重置，共 30 張），每張一行短提示＋等級＋按鈕。320px 兩欄。
+- **只有攜行容量是實際功能**，沿用 `purchaseCarrying()`。**其餘四區是靜態佔位，一律顯示「已解鎖」，不讀也不寫 profile** —— 之後接真實 gating 不必先清假資料。
+- 新增 `resetCarrying(game)`（storage.js）：`carryingSpent()` 精確退還已投入點數、等級歸零、單次 atomic write，再走既有 `setCarryLevel()` 讓超額備彈落地。`protocol.earned` 不動。免費，有確認頁。
+- **給 Codex**：解鎖鉤子盤點與待接需求全部寫在 [PROGRESSION.md](PROGRESSION.md)「3.33.0」——武器鉤子完整但九把都沒 `unlockId`；`unlocks.characters` 只有欄位沒有閘門；道具／技能／成就完全不存在。實際 gating 屬規則層，且**既有玩家的六角色與九把武器不可倒退**。使用者另要求部分幹員以遊玩成就解鎖，需新設計。
+- save v24／profile v4／backup v1 不變。411 項測試與 build 通過。Claude 已實測購買、退款守恆與版面；真機手感交使用者。
 
 ## 3.32.1：設定選單依情境切分（Claude 開發）
 

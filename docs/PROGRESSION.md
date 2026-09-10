@@ -31,3 +31,24 @@
 放棄本局保留點數與永久升級，記為 history.outcome=abandoned；重新部署亦走相同結算。只有使用者確認「重置遊戲進度」才清空全局資料及去重紀錄，另留完整備份。
 
 3.12.0：Soldier／Recon 為免費基礎角色，不消耗協定點數、不要求 unlocks.characters；歷史 operator ID 保留。未來付費角色尚未接購買流程，新任務歷史另保存 character。
+
+## 3.33.0：永久升級卡片頁與解鎖佔位（Claude）
+
+升級頁改為方形卡片格狀，分「攜行容量／幹員／武器／投擲物／技能／重置」六區。**只有攜行容量是實際功能**；其餘四區是**靜態佔位展示，一律顯示「已解鎖」，不讀也不寫 profile**，所以之後接真實 gating 時不必先清除假資料。
+
+### 現有解鎖鉤子盤點（Claude 於 3.32.1 基底查核）
+
+| 對象 | 鉤子 | 狀態 |
+| --- | --- | --- |
+| 武器 | `weaponUnlocked(weapon,ids)` = `!weapon.unlockId \|\| ids.includes(weapon.unlockId)`；接於 `world.js` 地圖保證武器（25% 機率從已解鎖池抽）與 `game.js` 敵人掉落過濾 | **管線完整但空轉**：九把武器沒有任何一把帶 `unlockId`，池永遠是空的 |
+| 儲物箱 | 不需另接 —— `containers.js` 只是把 `generate()` 放好的 items 打包，擋住生成即擋住箱子 | 依賴武器鉤子 |
+| 角色 | `profile.unlocks.characters`（預設 `['operator']`），`normalizeProfile` 保存、`backup.js` 驗證 | **只有欄位，沒有任何程式讀它擋選角**；六角色目前全免費 |
+| 道具／投擲物／技能 | 無 | **完全不存在** |
+| 成就 | 無系統；profile 只有 `runs`／`wins`／`bestFloor`／`bestKills`／`history` | **不存在** |
+
+### 交回 Codex 的需求（使用者指定，Claude 未實作）
+
+1. **實際 gating 屬規則層**：把解鎖狀態接進地圖生成／儲物箱池／選角閘門，會改動 `generate()` 與選角流程，依交接文件交回 Codex。
+2. **既有玩家不可倒退**：使用者現在六角色與九把武器全部可用。導入解鎖時必須把既有 profile 一律補成已解鎖，或明確與使用者確認。交接文件亦明訂「不自行把使用者已能玩的角色改成付費」。
+3. **成就解鎖幹員**：使用者希望**一部分幹員以遊玩成就解鎖**（非協定點數購買）。目前沒有成就系統，需要新增事件記錄與判定；Claude 未評估可行性，僅依指示留下紀錄。
+4. 卡片 UI 已預留：`shown(name,hint)` 產生的佔位卡片與真實卡片共用 `.upgrade-card` 樣式，接上真實資料後只需把 `tier/cap/button/locked` 換成實際值。
