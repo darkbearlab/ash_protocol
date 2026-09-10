@@ -1,4 +1,11 @@
-# 快速接手：ASH PROTOCOL 3.35.8
+# 快速接手：ASH PROTOCOL 3.36.0
+
+## 3.36.0：友軍第一輪 —— 卡點與跟隨（Claude 開發）
+
+- 依 [ALLY_ITERATION_SCOPE.md](ALLY_ITERATION_SCOPE.md) 第一批。報告：[qa/results/2026-09-11-claude-3.36.0-allies-iteration.md](../qa/results/2026-09-11-claude-3.36.0-allies-iteration.md)；現行規格：[ALLIES.md](ALLIES.md)「3.36 跟隨、交戰與讓路」。
+- `src/allies.js`：`allyAct` 重排優先順序（繩索→留守→攻擊→追擊到攻擊位置→閒置跟隨 `FOLLOW_RANGE`）；新 `stepToward` 在精確目的格不可達時以步行距離逼近；新 `pushCell`／`pushReason`／`pushAlly`。`validAllies` 驗證選填 `restTurn`。
+- `src/game.js`：只改移動的 `validateAction` 與 `executePlayer` 兩處接線，玩家撞友軍改為推動；沒有動 `initiativeQueue` 或其他行動。
+- 數值全未動。下一輪假設：無人機射程 5 與友軍索敵半徑 8（從友軍算）是交戰距離的主要瓶頸；拉長時要一併評估友軍會驚動敵人的代價。
 
 ## 文件：開放 Claude 三職業友軍迭代
 

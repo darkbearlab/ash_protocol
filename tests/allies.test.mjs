@@ -191,6 +191,48 @@ test('packed zero-hp wreck follows floors and survives complete backup while gro
  const raw=JSON.parse(g.serialize());raw.data.allies[0].status='active';assert.equal(Game.restore(JSON.stringify(raw)),null);
  raw.data.allies[0].status='packed';raw.data.allies[0].hp=-1;assert.equal(Game.restore(JSON.stringify(raw)),null);
 });
+// 3.36 ally iteration round 1: shoves, closing in when the exact tile is taken, and holding fights.
+const corridor=(g,x0,x1)=>{g.grid=g.grid.map(r=>r.map(()=>0));for(let x=x0;x<=x1;x++)g.grid[10][x]=1;};
+test('walking into an ally shoves it along the move for one turn; the ally gives up that action',()=>{
+ const g=arena('druid'),a=pet(g),e=enemy(g,13,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
+ assert.ok(g.action('move',[1,0]));assert.deepEqual([g.player.x,a.x,a.y,g.turn,a.restTurn],[11,12,10,2,2]);assert.equal(e.hp,500);
+ g.action('wait');assert.ok(e.hp<500);assert.ok(Game.restore(g.serialize()));
+});
+test('a blocked shove sidesteps but never backs into the player; a boxed-in ally refuses without spending time',()=>{
+ const g=arena('druid'),a=pet(g);corridor(g,5,11);
+ assert.equal(g.action('move',[1,0]),false);assert.equal(g.turn,1);assert.equal(a.x,11);assert.match(g.logs[0].text,/沒有空位/);
+ g.grid[11][11]=1;assert.ok(g.action('move',[1,0]));assert.deepEqual([g.player.x,g.player.y,a.x,a.y],[11,10,11,11]);
+});
+test('sentries, disabled allies, low rails and an anchored bulwark refuse a shove without spending time',()=>{
+ const g=arena(),s=drone(g,{x:11,y:10},'active','drone_sentry');assert.equal(g.action('move',[1,0]),false);assert.match(g.logs[0].text,/哨兵/);
+ s.sourceId='drone_follow';s.control.disabled=2;assert.equal(g.action('move',[1,0]),false);assert.match(g.logs[0].text,/失能/);
+ s.control.disabled=0;g.barriers=[makeBarrier('low_partition',{x:10,y:10},{x:11,y:10},'push-rail')];assert.equal(g.action('move',[1,0]),false);assert.equal(g.turn,1);assert.equal(s.x,11);
+ const b=arena('bulwark');assert.ok(use(b));addAlly(b,'survivor','rifleman',{point:{x:11,y:10}});const turn=b.turn;assert.equal(b.action('move',[1,0]),false);assert.match(b.logs[0].text,/下錨/);assert.equal(b.turn,turn);
+});
+test('a faster ally that already acted gives up its next action instead, and the rest marker round-trips',()=>{
+ const g=arena('necromancer'),a=addAlly(g,'summon','raider',{sourceId:'raise_dead',point:{x:11,y:10}}),e=enemy(g,13,10);grantTrait(a,'fast','test:push');e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
+ assert.ok(g.action('move',[1,0]));assert.ok(e.hp<500);assert.equal(a.restTurn,g.turn+1);assert.ok(Game.restore(g.serialize()));
+ const hp=e.hp;g.action('wait');assert.equal(e.hp,hp);g.action('wait');assert.ok(e.hp<hp);
+ for(const bad of [0,'3',g.turn+2]){const raw=JSON.parse(g.serialize());raw.data.allies[0].restTurn=bad;assert.equal(Game.restore(JSON.stringify(raw)),null);}
+});
+test('a fast enemy taking the only free tile cancels the committed shove; nothing moves but the turn is spent',()=>{
+ const g=arena('druid'),a=pet(g);corridor(g,5,14);const e=enemy(g,14,10);e.hp=500;e.alert=true;grantTrait(e,'fast','test:push');g.enemyAct=x=>{if(x===e){e.x=12;e.y=10;}};
+ assert.ok(g.action('move',[1,0]));assert.equal(g.turn,2);assert.deepEqual([g.player.x,a.x,e.x],[10,11,12]);assert.equal(a.restTurn,undefined);
+});
+test('two summons queue through a one-tile corridor instead of the rear one freezing',()=>{
+ const g=arena('necromancer');corridor(g,2,24);const A=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:9,y:10}}),B=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:8,y:10}});
+ for(let i=0;i<8;i++)assert.ok(g.action('move',[1,0]));for(let i=0;i<4;i++)g.action('wait');assert.deepEqual([g.player.x-A.x,g.player.x-B.x],[3,4]);
+});
+test('melee pets hold a fight inside the tether instead of pacing back to the idle leash',()=>{
+ for(const k of [5,6]){const g=arena('druid'),a=pet(g),e=enemy(g,10+k,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
+  for(let i=0;i<8;i++){g.action('wait');assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=6);}assert.ok(e.hp<500,`enemy ${k} tiles out`);}
+});
+test('follow drones fire from their tile before closing the idle leash, and still never chase',()=>{
+ const g=arena(),a=drone(g,{x:7,y:10});a.ammo=12;a.bornTurn=1;g.turn=2;enemy(g,11,11);zero(g);g.reveal();allyAct(g,a);assert.equal(a.x,7);assert.equal(a.ammo,11);
+});
+test('a pet whose hold tile is taken fights from where it stands instead of idling',()=>{
+ const g=arena('druid'),a=pet(g,{x:12,y:10}),e=enemy(g,13,10);e.hp=500;a.order={x:13,y:10};g.enemyAct=()=>{};zero(g);g.reveal();g.action('wait');assert.ok(e.hp<500);assert.deepEqual([a.x,a.y],[12,10]);
+});
 test('v23 original local save is backed up verbatim; destroyed chassis and resources survive migration',async()=>{
  const g=arena(),a=drone(g);a.ammo=5;g.damageAlly(a,999);const old=JSON.parse(g.serialize());old.version=23;const raw=JSON.stringify(old),memory=new Map([['qa-ash-save',raw],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};

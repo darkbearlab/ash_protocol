@@ -1,12 +1,14 @@
 import {ENEMY_TYPES,SIZE} from './data.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
-import {activeTrait,validTraits,validCombatMemory} from './traits.js';
+import {activeTrait,validTraits,validCombatMemory,initiative} from './traits.js';
 import {validControl} from './throwables.js';
 import {validCombatModifiers} from './actor-stats.js';
 
 export const ALLY_SKILLS=['drone_follow','drone_sentry','pet_command','raise_dead'];
 export const TETHER=6,CARRY_DISTANCE=3,SUMMON_LIMIT=2;
+// Idle leash: with no fight to hold, allies drift back once farther than this. Engaged allies use the tether instead.
+export const FOLLOW_RANGE={drone:2,other:3};
 // Placeholder economy: keep price and healing shared by rules and inventory UI.
 export const DRONE_REPAIR_COST=10,DRONE_REPAIR_FRACTION=.5;
 export function droneRepairReason(g,id){
@@ -123,28 +125,58 @@ export function commandPet(g,point){
 }
 export function allyAct(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return;
- a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn)return;
+ a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return;
  const w=allyWeapon(a),linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
- let goal=null,stop=0;
- if(!linked||a.kind==='drone'&&a.sourceId==='drone_follow'&&distance(a,g.player)>2||a.kind!=='drone'&&!a.order&&distance(a,g.player)>3){goal=g.player;stop=1;}
- else if(a.order&&distance(a,a.order)>0){goal=a.order;}
- else if(linked){
-  const e=targets.find(e=>distance(a,e)<=w.range&&g.shotClear(a,e)&&(!w.melee||g.canCross(a,e)));
-  if(e&&(a.kind!=='drone'||a.ammo>0)){
-   if(a.kind==='drone')a.ammo--;
-   const chance=w.melee?g.meleeAccuracy(a,e,w.hitChance):g.accuracy(a,e).chance,hit=g.rng()*100<chance;
-   g.effects.push({type:'shot',weaponId:w.id,style:w.melee?'claw':'bullet',from:{x:a.x,y:a.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:'#89e8c8'});
-   if(hit)g.hitTarget(e,w.min+Math.floor(g.rng()*(w.max-w.min+1)),a,0,w);else g.log(`${allyName(a)}射擊／攻擊落空。`);return;
-  }
-  if(a.kind!=='drone'&&!a.order&&targets[0]&&distance(targets[0],g.player)<=TETHER){goal=targets[0];stop=1;}
+ const shot=linked&&(a.kind!=='drone'||a.ammo>0)?targets.find(e=>distance(a,e)<=w.range&&g.shotClear(a,e)&&(!w.melee||g.canCross(a,e))):null;
+ const attack=e=>{
+  if(a.kind==='drone')a.ammo--;
+  const chance=w.melee?g.meleeAccuracy(a,e,w.hitChance):g.accuracy(a,e).chance,hit=g.rng()*100<chance;
+  g.effects.push({type:'shot',weaponId:w.id,style:w.melee?'claw':'bullet',from:{x:a.x,y:a.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:'#89e8c8'});
+  if(hit)g.hitTarget(e,w.min+Math.floor(g.rng()*(w.max-w.min+1)),a,0,w);else g.log(`${allyName(a)}射擊／攻擊落空。`);
+ };
+ const beside=goal=>q=>distance(q,goal)<=1;
+ if(a.kind==='drone'&&a.sourceId==='drone_sentry'){if(shot)attack(shot);return;}
+ if(!linked){stepToward(g,a,g.player,beside(g.player),linked);return;}
+ // A hold order walks first; if the way is shut, fight from here rather than idle.
+ if(a.order&&distance(a,a.order)>0){if(!stepToward(g,a,a.order,q=>key(q)===key(a.order),linked)&&shot)attack(shot);return;}
+ // Engaged allies keep the fight inside the tether; the short leash would make melee pets pace back and forth.
+ if(shot){attack(shot);return;}
+ const chase=a.kind!=='drone'&&!a.order?targets.find(e=>distance(e,g.player)<=TETHER):null;
+ // Walk to the nearest tile that can actually attack, not to the target's side: ranged allies stop at range.
+ if(chase){stepToward(g,a,chase,q=>distance(q,chase)<=w.range&&g.shotClear(q,chase)&&(!w.melee||g.canCross(q,chase)),linked);return;}
+ if((a.kind==='drone'||!a.order)&&distance(a,g.player)>FOLLOW_RANGE[a.kind==='drone'?'drone':'other'])stepToward(g,a,g.player,beside(g.player),linked);
+}
+// One step toward a tile that satisfies reached. When none is reachable (taken, or behind another ally),
+// close in on goal by walking distance instead of freezing; never step to a tile that is no closer.
+function stepToward(g,a,goal,reached,linked){
+ const cells=routeCells(g,a,{actor:a,limit:18,maxPlayerDistance:Math.max(TETHER,distance(a,g.player))}).filter(q=>q.first&&(distance(q,g.player)<=TETHER||!linked));
+ let dest=cells.filter(reached).sort((b,c)=>b.d-c.d)[0];
+ if(!dest){
+  const walk=new Map(routeCells(g,goal,{actor:a,ignoreActors:true}).map(q=>[key(q),q.d])),far=q=>walk.get(key(q))??Infinity,here=far(a);
+  dest=cells.filter(q=>far(q)<here).sort((b,c)=>far(b)-far(c)||b.d-c.d)[0];
  }
- if(a.kind==='drone'&&a.sourceId==='drone_sentry')return;
- if(!goal)return;
- const candidates=routeCells(g,a,{actor:a,limit:18,maxPlayerDistance:Math.max(TETHER,distance(a,g.player))}).filter(q=>q.first&&(distance(q,g.player)<=TETHER||!linked));
- const dest=candidates.filter(q=>distance(q,goal)<=stop).sort((b,c)=>b.d-c.d)[0];if(!dest)return;
+ if(!dest)return false;
  const next=dest.first,edge=barrierBetween(g.barriers,a,next);
- if(edgeBlocks(edge)&&!vaultable(edge)){g.setDoor(edge,true);return;}
- const old={x:a.x,y:a.y};Object.assign(a,next);a.moveDelta=[a.x-old.x,a.y-old.y];a.moved=true;a.vaultExposed=vaultable(edge);
+ if(edgeBlocks(edge)&&!vaultable(edge)){g.setDoor(edge,true);return true;}
+ const old={x:a.x,y:a.y};Object.assign(a,next);a.moveDelta=[a.x-old.x,a.y-old.y];a.moved=true;a.vaultExposed=vaultable(edge);return true;
+}
+// Walking into an ally pushes it one tile along the move, else to a free side tile; never back onto the player,
+// never across a closed door or rail. The shove replaces the ally's own action for one world turn.
+export function pushCell(g,a,[dx,dy]){
+ const cells=[[dx,dy],...DIRECTIONS.filter(([x,y])=>x*dx+y*dy===0)].map(([x,y])=>({x:a.x+x,y:a.y+y})).filter(n=>g.passable(n.x,n.y,a)&&g.canCross(a,n)&&!occupied(g,n,a));
+ return cells.find(n=>!g.hazards.some(h=>key(h)===key(n)))||cells[0]||null;
+}
+export function pushReason(g,a,dir){
+ if(a.kind==='drone'&&a.sourceId==='drone_sentry')return '哨兵無人機固定原地，請繞行或回收。';
+ if(a.control?.disabled)return `${allyName(a)}失能中，無法推開。`;
+ if(!g.canCross(g.player,a))return '隔著矮隔板無法推開友軍。';
+ return pushCell(g,a,dir)?'':`${allyName(a)}沒有空位可以讓開。`;
+}
+export function pushAlly(g,a,cell){
+ // An ally that already acted this world turn (faster than the player) gives up its next action instead.
+ const rest=initiative(a)<initiative(g.player)?g.turn+1:g.turn;
+ Object.assign(a,{moveDelta:[cell.x-a.x,cell.y-a.y],x:cell.x,y:cell.y,moved:true,vaultExposed:false,restTurn:rest});
+ g.log(`${allyName(a)}被推開讓路，放棄一次行動。`);
 }
 export function validAllies(g){
  if(!Array.isArray(g.allies)||g.allies.length>32||!Number.isSafeInteger(g.allySerial)||g.allySerial<0)return false;
@@ -155,6 +187,7 @@ export function validAllies(g){
   if(a.kind==='summon'&&['boss','warden'].includes(a.type)||a.kind==='drone'&&a.type!=='drone')return false;
   if((a.status==='down'&&a.kind!=='pet')||(a.status==='packed'&&a.kind!=='drone')||(a.status==='active'&&a.hp===0)||(['down','destroyed'].includes(a.status)&&a.hp!==0))return false;
   if(!Number.isInteger(a.armor)||a.armor<0||a.armor>20||!Number.isInteger(a.bornTurn)||a.bornTurn<1||a.bornTurn>g.turn||!validTraits(a.traits)||!validControl(a.control)||!validCombatMemory(a,g.turn)||!validCombatModifiers(a.combatModifiers)||typeof a.vaultExposed!=='boolean')return false;
+  if(a.restTurn!==undefined&&(!Number.isInteger(a.restTurn)||a.restTurn<1||a.restTurn>g.turn+1))return false;
   if(a.missionId!==null&&(typeof a.missionId!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(a.missionId)))return false;
   if(a.kind==='drone'&&!['drone_follow','drone_sentry'].includes(a.sourceId)||a.kind==='pet'&&a.sourceId!=='pet_command'||a.kind==='summon'&&a.sourceId!=='raise_dead'||a.kind==='survivor'&&a.sourceId!==null&&typeof a.sourceId!=='string')return false;
   if(a.order!==null&&(!a.order||![a.order.x,a.order.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)))return false;
