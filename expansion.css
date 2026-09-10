@@ -140,3 +140,8 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .upgrade-section summary small{margin-left:auto;margin-right:10px;font:10px var(--mono);color:var(--muted)}
 .upgrade-section summary:hover .eyebrow,.upgrade-section summary:focus-visible .eyebrow{color:var(--text)}
 .upgrade-section .upgrade-grid{margin-top:0;margin-bottom:12px}
+/* 對話框較窄，部署選單改成兩行：標籤在上、註記在下。 */
+.deploy-menu{max-width:none;margin-top:6px}
+.deploy-menu .title-entry{grid-template-columns:18px 1fr;row-gap:2px;padding:13px 4px}
+.deploy-menu .title-label{white-space:nowrap}
+.deploy-menu .title-note{grid-column:2;justify-self:start;text-align:left}
