@@ -65,8 +65,8 @@ test('v7 migration defaults prepared slots, v8 rejects malformed selection, back
   for(const mutate of [p=>delete p.prepared,p=>delete p.skills,p=>p.prepared.skill='unknown',p=>p.prepared.item='frag',p=>p.prepared.extra=null,p=>p.skills=['unknown'],p=>p.prepared=[]]){const bad=JSON.parse(g.serialize());mutate(bad.data.player);assert.equal(Game.restore(JSON.stringify(bad)),null);}
 });
 test('skill selection supports registered learned skills but refuses unlearned ones',()=>{
-  PREPARED_CATALOG.skill.test={name:'test',short:'test',icon:'◇',text:'test'};
-  try{const g=arena();assert.equal(prepare(g,'skill','test'),false);g.player.skills.push('test');assert.equal(prepare(g,'skill','test'),true);assert.equal(g.player.prepared.item,'medkit');assert.equal(g.player.prepared.grenade,'frag');assert.equal(g.turn,1);assert.ok(Game.restore(g.serialize()));assert.equal(prepare(g,'skill',null),true);}finally{delete PREPARED_CATALOG.skill.test;}
+  PREPARED_CATALOG.skill.test={name:'test',short:'test',icon:'◇',text:'test',duration:1,cooldown:1};
+  try{const g=arena();assert.equal(prepare(g,'skill','test'),false);g.player.skills.push('test');g.player.skillState.test={remaining:0,cooldown:0};assert.equal(prepare(g,'skill','test'),true);assert.equal(g.player.prepared.item,'medkit');assert.equal(g.player.prepared.grenade,'frag');assert.equal(g.turn,1);assert.ok(Game.restore(g.serialize()));assert.equal(prepare(g,'skill',null),true);}finally{delete PREPARED_CATALOG.skill.test;}
 });
 test('loading v7 keeps an original QA-only backup and preserves v8 prepared choices on later loads',async()=>{
   const memory=new Map([['ash-save','live untouched'],['ash-profile','live profile']]);globalThis.location={search:'?test=1'};

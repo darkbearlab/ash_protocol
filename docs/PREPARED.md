@@ -1,5 +1,9 @@
 # 背包四分頁與預備欄（3.11.0 起）
 
+## 3.27：技能欄已接入訊號斷層
+
+技能 catalog 現取自 src/skills.js；Recon 預設學會並預備 signal_break。戰場顯示就緒／生效 N／冷卻 N，效果中與冷卻中停用使用鈕。背包仍可免費預備／取消，計時不重置；預備與使用成本分開，訊號斷層免費啟動。維持 3 次耗回合行動，冷卻啟動起算 6 次。狀態存於 skillState，詳見 [SKILLS.md](SKILLS.md)。下方技能空白為初版歷史。
+
 3.15.0 已新增煙霧、EMP、震撼，四種合計共用 grenade 容量，全部使用原投擲預備欄。品項 catalog 來自 throwables.js，數量分別保存；背包顯示每種數量與合計上限。技能仍空白。下方「未加入煙霧／EMP」為 3.11.0 初版紀錄，以 [THROWABLES.md](THROWABLES.md) 為準。
 
 3.14.0 補充：weaponSwitchTurns(destination,current) 支援 integrated 內建動力拳，切進與切出都 0 回合。從拳切任意槍也免費，槍械直接互換沿原規則；真正揮拳仍耗回合。見 BULWARK.md。

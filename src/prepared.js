@@ -1,10 +1,11 @@
+import {SKILLS} from './skills.js';
 import {GRENADES} from './throwables.js';
 // Separate prepared slots. Stable catalog IDs are saved; quantities retain existing keys.
 export const PREPARED_CATEGORIES={grenade:'手榴彈',item:'道具',skill:'技能'};
 export const PREPARED_CATALOG={
   grenade:GRENADES,
   item:{medkit:{name:'醫療包',short:'醫療包',icon:'✚',resource:'meds',action:'heal',text:'回復生命並清除中毒。使用消耗 1 回合，滿血且未中毒時不消耗。'}},
-  skill:{},
+  skill:SKILLS,
 };
 export const defaultPrepared=()=>({grenade:'frag',item:'medkit',skill:null});
 export function preparedOptions(player,category){

@@ -1,3 +1,4 @@
+import {SKILLS,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
 import {fullLighting,validLighting,lightingEffects} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
@@ -19,7 +20,7 @@ import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
 
-const freshPlayer=()=>({character:'soldier',smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,prepared:defaultPrepared(),skills:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({character:'soldier',smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,prepared:defaultPrepared(),skills:[],skillState:{},traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=e=>ENEMY_TYPES[e.type]?.name||'未知單位';
 
 export class Game {
@@ -28,6 +29,7 @@ export class Game {
     if(!validPortrait(portrait))throw new Error('未知頭像。');
     this.mission=newMission(mission);this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
+    this.player.skills=[...(CHARACTERS[character].skills||[])];this.player.skillState=initialSkillState(this.player.skills);
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
     this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
@@ -35,6 +37,7 @@ export class Game {
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   loadFloor() {
+    endSkillEffects(this.player);
     Object.assign(this,generate(this.seed,this.floor,this.unlockedWeapons));this.smoke=[];this.traces=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.focus=false;this.player.evasive=false;
@@ -60,7 +63,7 @@ export class Game {
   get groundWeapon(){return this.items.find(o=>o.type==='weapon'&&this.canTouch(o));}
   get cover(){if(activeTrait(this.player,'no_cover'))return [];return [...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,this.player)===1),...adjacentWalls(this.grid,this.player),...this.barriers.filter(b=>edgeAdjacent(b,this.player)&&edgeBlocks(b,'cover'))];}
   visible(e){return distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e));}
-  sight(a,b){return tacticalSight(this,a,b);}
+  sight(a,b){return !(b===this.player&&a!==this.player&&skillActive(this.player))&&tacticalSight(this,a,b);}
   shotClear(a,b){return combatSight(this.grid,a,b,isBarrier(b)?this.barriers.filter(e=>e!==b):this.barriers,'shot');}
   canCross(a,b){return !blockedBetween(this.barriers,a,b);}
   canRoute(a,b){const edge=barrierBetween(this.barriers,a,b);return !edgeBlocks(edge)||edge.type==='door';}
@@ -134,10 +137,11 @@ export class Game {
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
   bumpMeleeSlot(){return this.player.owned.find(slot=>{const w=this.weaponAt(slot);return w.melee&&weaponSwitchTurns(w,this.weapon)===0&&weaponSwitchTurns(this.weapon,w)===0;});}
-  actionCost(type,arg){return type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
+  actionCost(type,arg){return type==='skill'?(SKILLS[arg]?.cost??1):type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
   // Validate the intent before any actor acts: rejected input cannot scout fast enemies.
   validateAction(type,arg){
     const p=this.player,w=this.weapon;
+    if(type==='skill')return canUseSkill(p,arg)||this.fail('技能無法啟動：請確認預備欄與冷卻狀態。');
     if(type==='prepare')return Boolean(arg&&canPrepare(p,arg.category,arg.id)&&p.prepared[arg.category]!==arg.id);
     if(type==='heal'&&p.prepared.item!=='medkit')return this.fail('請先在背包預備醫療包。');
     if(type==='grenade'&&!preparedEntry(p,'grenade'))return this.fail('請先在背包預備手榴彈。');
@@ -175,7 +179,7 @@ export class Game {
     this.effects=[];const p=this.player;
     if(type==='usePrepared'){
       const entry=preparedEntry(p,arg?.category);if(!entry?.action)return this.fail('請先在背包預備可用項目。');
-      type=entry.action;arg=arg.target;
+      type=entry.action;arg=type==='skill'?p.prepared.skill:arg.target;
     }
     if(type==='weapon'&&arg===undefined)arg=p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length];
     if(type==='grenade'){const pos=arg||this.targeted;arg=pos?{x:pos.x,y:pos.y,grenade:p.prepared.grenade}:null;}
@@ -192,6 +196,7 @@ export class Game {
       if(type==='prepare')p.prepared[arg.category]=arg.id;
       else if(type==='weapon'){p.weapon=Number(arg);this.log(`切換至${this.weapon.name}，不耗回合。`);}
       else if(type==='reload')return this.reload();
+      else if(type==='skill')return this.activateSkill(arg);
       return true;
     }
     const fireIntent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:null,floor=this.floor,queue=initiativeQueue(p,this.enemies),playerSpeed=queue.find(q=>q.actor===p).speed;
@@ -215,10 +220,18 @@ export class Game {
       for(const m of due){if(p.hp<=0)break;presentStep(this,()=>this.explode(m,1,38));}
       if(p.hp>0)presentStep(this,()=>this.environmentTurn());
     }
+    tickSkills(p);
     this.smoke=this.smoke.filter(s=>s.expires>this.turn);
     for(const actor of [p,...this.enemies])tickTraits(actor);
     this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';this.log('生命訊號中斷。',true);}
     return true;
+  }
+  activateSkill(id){
+    return presentStep(this,()=>{
+      const def=SKILLS[id],p=this.player;p.skillState[id]={remaining:def.duration,cooldown:def.cooldown};
+      this.effects.push({type:'pulse',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},radius:.6,color:'#8ae9da',damage:0});
+      this.log(`${def.name}啟動：持續 ${def.duration} 回合，冷卻 ${def.cooldown} 回合。`);this.reveal();return true;
+    });
   }
   executePlayer(type,arg){
     const p=this.player;
@@ -423,7 +436,7 @@ export class Game {
   executeEnemy(e) {
     const p=this.player;e.moved=false;e.moveDelta=[0,0];let fired=false;
       if(e.hp<=0||!e.alert||p.hp<=0)return;
-      const def=ENEMY_TYPES[e.type],d=distance(e,p),los=this.sight(e,p);
+      const def=ENEMY_TYPES[e.type],los=this.sight(e,p),known=los?p:e.lastKnown||e.aim,d=skillActive(p)&&!los?(known?distance(e,known):Infinity):distance(e,p);
       if(los)e.lastKnown={x:p.x,y:p.y};
       if(d>16)return;
       if(def.seekCover&&los&&!e.charge&&!this.protectingCover(e,p)){
@@ -466,6 +479,7 @@ export class Game {
       const q=queue[i],x=q.x+dx,y=q.y+dy,k=`${x},${y}`;
       if(visited.has(k)||!this.passable(x,y,e))continue;
       const edge=barrierBetween(this.barriers,q,{x,y});if(edgeBlocks(edge)&&edge.type!=='door')continue;
+      if(skillActive(this.player)&&distance(target,this.player)>0&&x===this.player.x&&y===this.player.y)continue;
       if(x===target.x&&y===target.y)return q.first||(distance(target,this.player)>0||edgeBlocks(edge)?{x,y}:null);
       if(occupied.has(k))continue;
       visited.add(k);queue.push({x,y,first:q.first||{x,y}});
@@ -585,7 +599,7 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
@@ -624,6 +638,14 @@ export class Game {
       if(version<9){p.character='soldier';p.moveDelta=[0,0];p.fireChain=null;grantCharacterTraits(p);for(const e of data.enemies){e.moveDelta=[0,0];e.fireChain=null;}}
       if(!validCharacter(version>=9?data.player.character:p.character)||!validCombatMemory(version>=9?data.player:p,data.turn)||data.enemies.some(e=>!validCombatMemory(e,data.turn)))return null;
       if(version<18&&p.character==='recon')for(const id of ['night_vision','infrared'])if(!p.traits.some(t=>t.id===id&&t.source==='character:recon'))grantTrait(p,id,'character:recon');
+      if(version<20){
+        if(p.character==='recon'){
+          if(!p.skills.includes('signal_break'))p.skills=[...p.skills,'signal_break'];
+          p.prepared={...p.prepared,skill:p.prepared.skill||'signal_break'};
+        }
+        p.skillState=initialSkillState(p.skills);
+      }
+      if(!validSkillState(version>=20?data.player:p))return null;
       p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0||p.plates>CHARACTERS[p.character].plateCapacity)return null;
       if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||data.grid[p.y]?.[p.x]!==1||!Number.isFinite(p.hp)||p.hp<=0)return null;
       if(version<5){
