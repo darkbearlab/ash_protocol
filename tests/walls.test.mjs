@@ -9,19 +9,20 @@ import {Renderer} from '../src/renderer.js';
 function arena(){return {seed:321,floor:1,grid:Array.from({length:7},()=>Array(7).fill(1)),seen:Array.from({length:7},()=>Array(7).fill(true)),rooms:[]};}
 function context(){const calls=[],stack=[];return {calls,globalAlpha:1,save(){stack.push(this.globalAlpha);},restore(){this.globalAlpha=stack.pop();},fillRect(...v){calls.push(['rect',this.globalAlpha,...v]);},drawImage(...v){calls.push(['image',this.globalAlpha,...v]);}};}
 
-test('compact walls have a half-tile face and solid top inside one cell; joins work in all 16 neighbor configurations',()=>{
+test('every wall brick has a half-tile face plus full-tile cap in all 16 neighbor configurations',()=>{
   for(let mask=0;mask<16;mask++){
     const g=arena();g.grid[3][3]=0;[[0,-1],[1,0],[0,1],[-1,0]].forEach(([dx,dy],i)=>{if(mask&(1<<i))g.grid[3+dy][3+dx]=0;});
-    const q=wallGeometry(g,3,3,32,{x:112,y:112});assert.equal(q.faceHeight,q.front?16:0);assert.equal(q.height,q.front?16:32);assert.equal(q.bottom-q.capTop,32);assert.equal(q.front,!(mask&4));assert.deepEqual(q.neighbors,[0,1,2,3].map(i=>!!(mask&(1<<i))));
+    const q=wallGeometry(g,3,3,32,{x:112,y:112});assert.equal(q.faceHeight,16);assert.equal(q.height,32);assert.equal(q.bottom-q.capTop,48);assert.deepEqual(q.neighbors,[0,1,2,3].map(i=>!!(mask&(1<<i))));
+    const c=context();drawWall(c,g,3,3,32,{x:112,y:112},{complete:true,naturalWidth:128});const draws=c.calls.filter(v=>v[0]==='image');assert.equal(draws.length,2);assert.deepEqual(draws.map(v=>v.slice(-2)),[[32,16],[32,32]]);
   }
   // Fractional zoom/camera positions still join at precisely the same rounded boundary.
-  const g=arena(),t=38*1.13,a=wallGeometry(g,3,3,t,{x:109.2,y:111.7}),b=wallGeometry(g,3,4,t,{x:109.2,y:111.7+t});assert.equal(a.bottom,b.capTop);
+  const g=arena(),t=38*1.13,a=wallGeometry(g,3,3,t,{x:109.2,y:111.7}),b=wallGeometry(g,3,4,t,{x:109.2,y:111.7+t});assert.equal(a.groundTop,b.capTop);
 });
-test('solid caps never overlap floors or fade based on exploration; context is restored',()=>{
+test('solid caps project half a tile upward and never change with exploration; context is restored',()=>{
   const g=arena();g.grid[3][3]=0;const image={complete:true,naturalWidth:128},c=context();c.globalAlpha=.36;
-  let q=drawWall(c,g,3,3,32,{x:112,y:112},image);assert.equal(q.capTop,96);assert.deepEqual(c.calls.filter(c=>c[0]==='image').map(c=>c[1]),[.36,.36]);assert.equal(c.globalAlpha,.36);
-  g.seen[2][3]=false;q=drawWall(context(),g,3,3,32,{x:112,y:112},image);assert.equal(q.capTop,96);
-  g.grid[2][3]=0;g.seen[2][3]=true;assert.equal(wallGeometry(g,3,3,32,{x:112,y:112}).capTop,96);
+  let q=drawWall(c,g,3,3,32,{x:112,y:112},image);assert.equal(q.capTop,80);assert.deepEqual(c.calls.filter(c=>c[0]==='image').map(c=>c[1]),[.36,.36]);assert.equal(c.globalAlpha,.36);
+  g.seen[2][3]=false;q=drawWall(context(),g,3,3,32,{x:112,y:112},image);assert.equal(q.capTop,80);
+  g.grid[2][3]=0;g.seen[2][3]=true;assert.equal(wallGeometry(g,3,3,32,{x:112,y:112}).capTop,80);
   const fallback=context();drawWall(fallback,g,3,3,32,{x:112,y:112},null);assert.ok(fallback.calls.some(c=>c[0]==='rect'));assert.equal(fallback.globalAlpha,1);
 });
 test('64 face/cap combinations remain independent, safe and deterministic without changing a save or RNG',()=>{

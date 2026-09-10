@@ -20,11 +20,11 @@ export function wallStyle(g,x,y,theme='industrial',selection=MATERIAL_SELECTION)
 
 export function wallGeometry(g,x,y,tile,center){
   const left=Math.round(center.x-tile/2),bottom=Math.round(center.y+tile/2),width=Math.round(center.x+tile/2)-left;
-  const neighbors=DIRS.map(([dx,dy])=>solid(g,x+dx,y+dy)),front=!neighbors[2];
-  const capTop=Math.round(center.y-tile/2),groundTop=front?Math.round(center.y+tile/2-tile*WALL_HEIGHT):bottom;
-  // A wall always occupies one ground cell. Only its exposed front uses the lower half.
+  const neighbors=DIRS.map(([dx,dy])=>solid(g,x+dx,y+dy));
+  const groundTop=Math.round(center.y+tile/2-tile*WALL_HEIGHT),capTop=Math.round(center.y+tile/2-tile*(WALL_HEIGHT+1));
+  // Every brick has the same half-tile face and full-tile cap, regardless of neighbors.
   const height=groundTop-capTop,faceHeight=bottom-groundTop;
-  return {left,width,height,faceHeight,bottom,groundTop,capTop,neighbors,front};
+  return {left,width,height,faceHeight,bottom,groundTop,capTop,neighbors};
 
 }
 
@@ -38,8 +38,8 @@ export function drawWall(ctx,g,x,y,tile,center,images,theme='industrial',tones=n
     }else{ctx.fillStyle=fallback;ctx.fillRect(q.left,top,q.width,height);}
   };
   ctx.save();ctx.imageSmoothingEnabled=false;
-  // South faces are exposed; connected walls share the raised top instead of stacked faces.
-  if(q.front){texture(style.face,q.groundTop,q.faceHeight,'#35433f');ctx.fillStyle='#111e22';ctx.fillRect(q.left,q.bottom-2,q.width,2);}
+  // Draw every complete brick; the normal back-to-front pass handles physical overlap.
+  texture(style.face,q.groundTop,q.faceHeight,'#35433f');ctx.fillStyle='#111e22';ctx.fillRect(q.left,q.bottom-2,q.width,2);
   ctx.save();
   texture(style.cap,q.capTop,q.height,'#52615b');
   // No edge stroke between adjoining wall cells: corners/T/cross joints remain continuous.

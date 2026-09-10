@@ -1,6 +1,6 @@
-# ASH PROTOCOL / 灰燼協定 3.22.0
+# ASH PROTOCOL / 灰燼協定 3.22.1
 
-3.22.0：改善地圖明度層次，牆改同一格內半格立面＋實心頂板。[素材審核頁](https://darkbearlab.github.io/ash_protocol/material-review.html) 可選地板／立面／頂板用途、預覽並下載選用設定；[操作說明](art/materials/README.md)。原圖、存檔和規則保留。
+3.22.1：每塊牆固定下方 0.5 格立面＋上方 1 格實心頂板，總高 1.5 格；保留改善後的明度層次。[素材審核頁](https://darkbearlab.github.io/ash_protocol/material-review.html) 可選地板／立面／頂板用途、預覽並下載選用設定；[操作說明](art/materials/README.md)。原圖、存檔和規則保留。
 
 3.21.0：[高牆](docs/WALLS.md) 使用 8 種立面與 8 種頂面，立面高一格、上方加頂面，遮到已探索地板時淡化。保留四方向與既有戰鬥規則。
 

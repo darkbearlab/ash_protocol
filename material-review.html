@@ -8,7 +8,7 @@
 <nav><button id="download">下載選用設定</button><button id="load">匯入設定</button><button id="reset">回到已發布設定</button><a href="./">返回遊戲</a><input type="file" id="import" accept="application/json,.json"></nav>
 <p class="guide">勾選只影響這張預覽，不會更動正在玩的任務。完成後把下載的 <code>selection.json</code> 交給 Codex；或放到專案 <code>art/materials/selection.json</code>，執行 <code>npm run materials</code>。下一次建置會自動讀取設定。也可以直接告訴 Codex「W03 改地板、T01 改頂板」。</p>
 <p id="status" class="status" aria-live="polite"></p>
-<div class="panel"><canvas id="scene" class="preview" width="320" height="240" aria-label="地板、半格立面與實心頂板的組合示意"></canvas><div class="controls"><b>組合示意（不代表難度）</b><label>地板 <select id="floor"></select></label><label>立面 <select id="face"></select></label><label>頂板 <select id="cap"></select></label><label>下方圖卡 <select id="tone"><option value="original">原始素材</option><option value="floor">用作地板的色調</option><option value="wall">用作牆面／頂板的色調</option></select></label><small>左圖使用遊戲的色調與牆繪圖。<br>每種用途至少保留一張。刷新前請下載保存。</small></div></div>
+<div class="panel"><canvas id="scene" class="preview" width="320" height="260" aria-label="地板、半格立面與一格實心頂板的組合示意"></canvas><div class="controls"><b>組合示意（不代表難度）</b><label>地板 <select id="floor"></select></label><label>立面 <select id="face"></select></label><label>頂板 <select id="cap"></select></label><label>下方圖卡 <select id="tone"><option value="original">原始素材</option><option value="floor">用作地板的色調</option><option value="wall">用作牆面／頂板的色調</option></select></label><small>左圖使用遊戲的色調與牆繪圖。<br>每塊牆固定：立面 0.5 格＋頂板 1 格。<br>每種用途至少保留一張。刷新前請下載保存。</small></div></div>
 <div id="catalog" class="grid"></div>
 <script type="module" src="./src/material-review.js"></script>
 </html>
