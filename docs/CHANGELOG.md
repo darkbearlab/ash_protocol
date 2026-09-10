@@ -1,5 +1,12 @@
 # 更新紀錄
 
+## 3.35.4：開機遮罩，不再先閃戰鬥介面
+
+- **原因**：`index.html` 的戰鬥介面是靜態 HTML，唯一腳本是延後執行的 `<script type="module">`。瀏覽器先畫出 HTML＋CSS，再以瀑布方式抓 41 個模組，`showIntro()` 在 controller.js 最後一行才執行，中間這段就看到戰鬥介面空殼。Claude 冷載入實測：HTML 與 CSS 約 0.9 秒就緒，最後一個模組 5.7 秒才到，空窗約 4.9 秒（工具網路偏慢；有 Service Worker 快取時短很多，但首次開啟必定會閃）。
+- **修正**：`<body class="booting">` 期間隱藏整個 `.app`（含自帶 `visibility:visible` 的目標卡片，以 `!important` 一併壓住），改顯示置中的 `INITIALIZING`。`showIntro()` 同步開好主選單後才移除 `booting`，同一個 task 內完成、中間不會繪製。開機底色 `#0d1211` 與主選單背景相同，銜接無跳動。
+- 用 `visibility` 而非 `display:none`，版面尺寸照常計算，`fitLayout` 首幀量測不受影響。載入超過 12 秒時以純 CSS 動畫浮出「載入時間較長，若畫面停住請重新整理或檢查網路」，不依賴 JS，腳本失敗時也看得到。尊重 `prefers-reduced-motion`。
+- 未改規則或存檔；save v24／profile v4／backup v1 不變。432 項測試與 build 通過。
+
 ## 2026-09-10 文件：升級強化與角色參數對照（Claude）
 
 新增 [PERKS.md](PERKS.md)：把八個升級強化的實際效果、精確數字與作用點整理成可讀對照，

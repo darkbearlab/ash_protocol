@@ -6,7 +6,8 @@
   <title>ASH PROTOCOL — 灰燼協定</title>
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./assets/icon.svg"><link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./expansion.css">
 </head>
-<body>
+<body class="booting">
+<div class="boot-screen" aria-hidden="true"><span class="boot-line">INITIALIZING</span><span class="boot-slow">載入時間較長。若畫面停住，請重新整理或檢查網路。</span></div>
 <div class="app"><main class="workspace">
 <section class="battle-panel" aria-label="戰術作戰介面">
 <div class="viewport" id="viewport"><canvas id="battle" aria-label="四方向俯視戰場：點相鄰格移動，點擊敵人或可破壞物鎖定" tabindex="0"></canvas><div class="vitals-bar"><div class="mobile-health"><span>生命</span><b id="mobile-hp">100 / 100</b><div><i id="mobile-hp-bar"></i></div></div><span id="level">LV. 01</span><div class="map-tools"><button class="map-button" data-action="center" aria-label="鏡頭復位">⌖</button><button class="map-button" data-action="zoomOut" aria-label="縮小地圖">−</button><button class="map-button" data-action="zoomIn" aria-label="放大地圖">+</button><button class="map-button" data-action="map" aria-label="開啟樓層地圖">▦</button></div></div>

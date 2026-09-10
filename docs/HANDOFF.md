@@ -1,4 +1,11 @@
-# 快速接手：ASH PROTOCOL 3.35.3
+# 快速接手：ASH PROTOCOL 3.35.4
+
+## 3.35.4：開機遮罩（Claude 開發）
+
+- 開啟網址時不再先閃戰鬥介面。靜態 HTML 的戰鬥介面在 41 個模組以瀑布方式載完、`showIntro()` 執行前會先被畫出，冷載入實測空窗約 4.9 秒。
+- `<body class="booting">` 期間以 `visibility:hidden!important` 隱藏整個 `.app` 與其所有子元素，顯示置中 `INITIALIZING`；`showIntro()` 開好主選單後同步移除。底色與主選單相同。用 visibility 不影響版面量測。超過 12 秒以純 CSS 浮出重新整理提示。
+- **若之後新增會在開機前就需要顯示的元素，請放在 `.app` 之外**，否則會被遮罩隱藏。
+- 未改規則或存檔；432 項測試與 build 通過。
 
 ## 2026-09-10 文件：升級強化與角色參數對照（Claude）
 

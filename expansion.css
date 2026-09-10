@@ -174,3 +174,13 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .term-detail-body{display:grid;gap:5px;padding:2px 0 6px;border-left:1px solid #2a332c;padding-left:9px}
 .term-detail-body small{font:10px/1.6 var(--mono);color:#b7c2b6}
 .term-detail-body b{color:var(--text)}
+/* 開機遮罩：模組載入完成、主選單開好之前不顯示戰鬥介面。底色與主選單相同，銜接無跳動。 */
+.boot-screen{display:none}
+body.booting{background:#0d1211}
+body.booting .app,body.booting .app *{visibility:hidden!important}
+body.booting .boot-screen{display:flex;position:fixed;inset:0;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;box-sizing:border-box;background:#0d1211;z-index:1}
+.boot-line{font:11px var(--mono);letter-spacing:.3em;color:var(--muted);animation:boot-blink 1.1s steps(2,end) infinite}
+.boot-slow{max-width:260px;text-align:center;font:11px/1.6 var(--mono);color:var(--muted);opacity:0;animation:boot-reveal 0s 12s forwards}
+@keyframes boot-blink{50%{opacity:.35}}
+@keyframes boot-reveal{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.boot-line{animation:none}}
