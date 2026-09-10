@@ -23,6 +23,15 @@ export function validTraces(traces,grid){
   });
 }
 // Logical 32px patterns drawn on the floor, underneath hazards, loot and actors.
+// Mixed individual directions, not parallel rows rotated as a group. Existing
+// variant/rotation fields select these deterministically, including old saves.
+const CASE_SCATTERS=[
+  [[-9,-5,0],[4,-7,2],[-3,5,1],[8,7,3]],
+  [[-6,-8,3],[7,-3,1],[-10,4,2],[1,8,0]],
+  [[-10,-2,1],[0,-7,0],[7,3,3],[-4,8,2]],
+  [[-8,-7,2],[6,-5,3],[-6,5,0],[5,8,1]],
+];
+const CASE_PIXELS=[[[0,0],[1,0],[2,0]],[[0,0],[0,1],[0,2]],[[0,0],[1,1],[2,2]],[[0,2],[1,1],[2,0]]];
 export function drawTrace(ctx,trace,cx,cy,tile){
   const unit=tile/32,oldAlpha=ctx.globalAlpha;
   ctx.save();ctx.translate(Math.round(cx),Math.round(cy));ctx.rotate(trace.rotation*Math.PI/2);ctx.globalAlpha=oldAlpha*.74;
@@ -32,7 +41,13 @@ export function drawTrace(ctx,trace,cx,cy,tile){
     const color=trace.kind==='blood'?'#54292b':'#172c30',light=trace.kind==='blood'?'#763b37':'#365257';
     rect(-7+shift,1,10,5,color);rect(-4,-2,5,10,color);rect(4,4,3,2,color);rect(-9,-3,2,2,light);rect(-3,2,5,2,light);rect(6,-1+shift,2,2,color);
   }else if(trace.kind==='casing'||trace.kind==='shell'){
-    const color=trace.kind==='shell'?'#ae6f49':'#b3a06c';for(let i=0;i<3;i++){const x=-9+i*6,y=5+(i+trace.variant)%3*2;rect(x,y,3,1,color);rect(x,y,1,1,'#e0c592');}
+    const shell=trace.kind==='shell',color=shell?'#ae6f49':'#b3a06c';
+    for(const [x,y,direction]of CASE_SCATTERS[trace.variant]){
+      const pixels=CASE_PIXELS[direction],w=shell&&direction!==0?2:1,h=shell&&direction===0?2:1;
+      for(const [dx,dy]of pixels)rect(x+dx,y+dy+1,w,h,'#393728');
+      for(const [dx,dy]of pixels)rect(x+dx,y+dy,w,h,color);
+      const [dx,dy]=pixels[0];rect(x+dx,y+dy,w,h,'#e0c592');
+    }
   }else if(trace.kind==='scorch'){
     rect(-8,-5,15,11,'#202822');rect(-5,-8,9,17,'#252a25');rect(-3,-3,6,6,'#14221f');rect(8,shift,2,3,'#30312a');
   }else if(trace.kind==='chip'){

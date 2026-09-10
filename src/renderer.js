@@ -209,7 +209,9 @@ export class Renderer {
   }
   furniture(a,p){
     const m=this.game.props.find(o=>o.id===p.moduleId);
-    if(this.terrain(p.style,a,p,Math.round(this.tile),m?.rotation||0)){this.objectHealth(p,a.x-12,a.y-this.tile*.44);return;}
+    // These sprites have a visible front face, not a top-down view to rotate.
+    const rotation=['locker','counter','bench'].includes(p.style)?0:m?.rotation||0;
+    if(this.terrain(p.style,a,p,Math.round(this.tile),rotation)){this.objectHealth(p,a.x-12,a.y-this.tile*.44);return;}
 
     const u=Math.max(1,Math.floor(this.tile/22)),x=Math.round(a.x)-8*u,y=Math.round(a.y)-8*u;
     const rect=(dx,dy,w,h,color)=>this.box(x+dx*u,y+dy*u,w*u,h*u,color);
