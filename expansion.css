@@ -119,3 +119,4 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .title-entry:disabled .title-caret{opacity:.12}
 .title-entry:disabled .title-note{color:#4a534b}
 @media (max-height:600px){.title-mark{width:min(26vw,104px);margin-bottom:12px}.title-menu{margin-top:20px}.title-entry{padding:12px 6px}}
+.settings-section{margin-top:22px}
