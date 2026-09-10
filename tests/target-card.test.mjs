@@ -78,3 +78,13 @@ test('equally clear corners retain previous position and bottom candidates leave
   assert.equal(targetCardPlacement({...args,previousCorner:'bottom-left'}).corner,'bottom-left');
   const card=targetCardPlacement({...args,previousCorner:'bottom-left',bottomInset:44});assert.equal(card.y+card.h,271);assert.ok(card.link.x>=card.x&&card.link.x<=card.x+card.w);assert.ok(card.link.y>=card.y&&card.link.y<=card.y+card.h);
 });
+
+test('equally unobstructed cards prefer the shortest connector over an old far corner',()=>{
+  const args={player:{x:160,y:160},tile:32,width:320,height:400,cardWidth:100,cardHeight:80,bottomInset:44};
+  for(const [target,corner]of [[{x:180,y:50},'top-right'],[{x:180,y:325},'bottom-right'],[{x:140,y:325},'bottom-left']]){
+    const card=targetCardPlacement({...args,target,previousCorner:corner==='top-right'?'bottom-left':'top-right'});
+    assert.equal(card.corner,corner);
+  }
+  const target={x:140,y:325},near={x:5,y:271,w:100,h:80};
+  assert.equal(targetCardPlacement({...args,target,blockers:[near]}).corner,'bottom-right','avoiding an enemy still takes priority over a shorter line');
+});

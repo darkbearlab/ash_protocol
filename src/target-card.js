@@ -39,8 +39,11 @@ export function targetCardPlacement({target,player,tile,width,height,cardWidth,c
     const r={...candidate,x:Math.round(candidate.x),y:Math.round(candidate.y),w,h};
     if(overlap(r,targetBox)>0)continue;
     const areas=blockers.map(b=>overlap(r,b));
-    const rank=[areas.filter(a=>a>0).length,areas.reduce((a,b)=>a+b,0),overlap(r,playerBox),obstacles.reduce((sum,o)=>sum+overlap(r,o)*(o.weight||25),0),r.corner===previousCorner?0:1,index];
     const link={x:Math.max(r.x,Math.min(r.x+w,target.x)),y:Math.max(r.y,Math.min(r.y+h,target.y))};
+    // Once enemy occlusion is equal, shorten the actual connector before other
+    // soft preferences; the previous corner only settles otherwise equal ties.
+    const linkDistance=(target.x-link.x)**2+(target.y-link.y)**2;
+    const rank=[areas.filter(a=>a>0).length,areas.reduce((a,b)=>a+b,0),linkDistance,overlap(r,playerBox),obstacles.reduce((sum,o)=>sum+overlap(r,o)*(o.weight||25),0),r.corner===previousCorner?0:1,index];
     if(!best||rank.some((n,i)=>n<best.rank[i]&&rank.slice(0,i).every((v,k)=>v===best.rank[k])))best={...r,link,rank};
   }
   return best;
