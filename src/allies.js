@@ -7,6 +7,25 @@ import {validCombatModifiers} from './actor-stats.js';
 
 export const ALLY_SKILLS=['drone_follow','drone_sentry','pet_command','raise_dead'];
 export const TETHER=6,CARRY_DISTANCE=3,SUMMON_LIMIT=2;
+// Placeholder economy: keep price and healing shared by rules and inventory UI.
+export const DRONE_REPAIR_COST=10,DRONE_REPAIR_FRACTION=.5;
+export function droneRepairReason(g,id){
+ const a=g.allies.find(a=>a.id===id&&a.kind==='drone');
+ if(g.status!=='playing'||g.pendingPerks)return '目前無法維修';
+ if(!g.player.skills.some(id=>['drone_follow','drone_sentry'].includes(id))||!a)return '沒有可維修機體';
+ if(a.status!=='packed')return '先回收機體';
+ if(a.hp===a.maxHp)return '狀態完好';
+ if(g.player.control.disabled)return '失能中無法維修';
+ if(g.player.scrap<DRONE_REPAIR_COST)return '廢料不足';
+ return '';
+}
+export function repairDrone(g,id){
+ if(droneRepairReason(g,id))return false;
+ const a=g.allies.find(a=>a.id===id),before=a.hp;
+ g.player.scrap-=DRONE_REPAIR_COST;a.hp=Math.min(a.maxHp,a.hp+Math.ceil(a.maxHp*DRONE_REPAIR_FRACTION));
+ g.log(`消耗 ${DRONE_REPAIR_COST} 廢料，機體修復 +${a.hp-before} 生命；仍收納中。`);return true;
+}
+export const canRecoverWreck=(g,a)=>a.kind==='drone'&&a.status==='destroyed'&&a.floor===g.floor&&distance(g.player,a)<=1&&g.canCross(g.player,a)&&!g.enemies.some(e=>e.hp>0&&key(e)===key(a))&&!currentAllies(g).some(e=>key(e)===key(a));
 export const currentAllies=g=>(g.allies||[]).filter(a=>a.floor===g.floor&&a.status==='active'&&a.hp>0);
 export const localAllies=g=>(g.allies||[]).filter(a=>a.floor===g.floor&&['active','down','destroyed'].includes(a.status));
 export const connected=(g,a)=>a.status==='active'&&a.hp>0&&a.floor===g.floor&&distance(a,g.player)<=TETHER;
@@ -60,16 +79,17 @@ export const corpsePool=g=>g.enemies.filter(e=>e.hp<=0&&!e.raised&&!['boss','war
 export function allySkillState(g,id){
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
  if(id==='raise_dead')return `召喚 ${currentAllies(g).filter(a=>a.kind==='summon').length}/${SUMMON_LIMIT} · 素材 ${corpsePool(g).length}`;
- if(!a)return '沒有夥伴';if(a.status==='destroyed')return '機體已毀';if(a.floor!==g.floor&&a.status!=='packed')return `留在 ${a.floor} 層`;
- if(a.status==='down')return '救援 · 醫療包 1';if(a.status==='packed')return '部署 · 1 回合';
+ if(!a)return '沒有夥伴';if(a.floor!==g.floor&&a.status!=='packed')return `留在 ${a.floor} 層`;if(a.status==='destroyed')return '回收殘骸 · 相鄰';
+ if(a.status==='down')return '救援 · 醫療包 1';if(a.status==='packed')return a.hp?'部署 · 1 回合':'待修復 · 背包技能';
  return a.kind==='pet'?'指揮／召回':a.sourceId!==id?'先回收原機型':`回收 ${a.ammo}/${allyWeapon(a).mag}`;
 }
 export function rescueCell(g,a){if(!occupied(g,a))return a;if(key(a)===key(g.player))return routeCells(g,g.player,{limit:1,openDoors:false}).find(q=>q.d>0)||null;return null;}
 export function canAllySkill(g,id){
  const p=g.player;if(!p.skills.includes(id)||p.prepared.skill!==id||p.skillState[id]?.cooldown||p.control.disabled)return false;
  if(id==='raise_dead')return g.allies.filter(a=>a.status!=='destroyed').length<32&&currentAllies(g).filter(a=>a.kind==='summon').length<SUMMON_LIMIT&&corpsePool(g).length>0&&routeCells(g,p,{limit:2,openDoors:false}).some(q=>q.d>0);
- const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');if(!a||a.status==='destroyed')return false;
- if(a.status==='packed')return routeCells(g,p,{limit:2,openDoors:false}).some(q=>q.d>0);
+ const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');if(!a)return false;
+ if(a.status==='destroyed')return canRecoverWreck(g,a);
+ if(a.status==='packed')return a.hp>0&&routeCells(g,p,{limit:2,openDoors:false}).some(q=>q.d>0);
  if(a.floor!==g.floor)return false;
  if(id==='pet_command')return a.status==='active'||a.status==='down'&&p.meds>0&&distance(p,a)<=1&&g.canCross(p,a)&&Boolean(rescueCell(g,a));
  return a.sourceId===id&&carryCandidates(g).includes(a);
@@ -88,6 +108,8 @@ export function useAllySkill(g,id){
  if(id==='pet_command'){
   if(a.status==='down'){const cell=rescueCell(g,a);a.x=cell.x;a.y=cell.y;p.meds--;a.hp=Math.ceil(a.maxHp*.5);a.status='active';a.control={disabled:0,immune:0};a.bornTurn=g.turn;g.log('消耗醫療包，寵物恢復一半生命。');}
   else a.order=null;
+ }else if(a.status==='destroyed'){
+  a.status='packed';a.order=null;g.log('殘骸已收納；到背包技能分頁消耗廢料修復。');
  }else if(a.status==='packed'){
   const cell=routeCells(g,p,{limit:2,openDoors:false}).find(q=>q.d>0);if(a.sourceId!==id&&a.ammo){g.receiveAmmo(allyWeapon(a).ammoType,a.ammo);a.ammo=0;}Object.assign(a,{x:cell.x,y:cell.y,sourceId:id,floor:g.floor,status:'active',order:null,bornTurn:g.turn});
   reloadDrone(g,a);g.log(`${allyName(a)}已部署。`);
@@ -131,7 +153,7 @@ export function validAllies(g){
   if(!a||!['drone','pet','summon','survivor'].includes(a.kind)||!ENEMY_TYPES[a.type]||!/^ally-[1-9][0-9]*$/.test(a.id)||Number(a.id.slice(5))>g.allySerial||ids.has(a.id)||!['active','packed','down','destroyed'].includes(a.status))return false;ids.add(a.id);
   if(!Number.isInteger(a.floor)||a.floor<1||a.floor>6||![a.x,a.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)||!Number.isInteger(a.hp)||!Number.isInteger(a.maxHp)||a.maxHp<1||a.maxHp>500||a.hp<0||a.hp>a.maxHp||!Number.isInteger(a.ammo)||a.ammo<0||a.ammo>allyWeapon(a).mag)return false;
   if(a.kind==='summon'&&['boss','warden'].includes(a.type)||a.kind==='drone'&&a.type!=='drone')return false;
-  if((a.status==='down'&&a.kind!=='pet')||(a.status==='packed'&&a.kind!=='drone')||(['active','packed'].includes(a.status)?a.hp===0:a.hp!==0))return false;
+  if((a.status==='down'&&a.kind!=='pet')||(a.status==='packed'&&a.kind!=='drone')||(a.status==='active'&&a.hp===0)||(['down','destroyed'].includes(a.status)&&a.hp!==0))return false;
   if(!Number.isInteger(a.armor)||a.armor<0||a.armor>20||!Number.isInteger(a.bornTurn)||a.bornTurn<1||a.bornTurn>g.turn||!validTraits(a.traits)||!validControl(a.control)||!validCombatMemory(a,g.turn)||!validCombatModifiers(a.combatModifiers)||typeof a.vaultExposed!=='boolean')return false;
   if(a.missionId!==null&&(typeof a.missionId!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(a.missionId)))return false;
   if(a.kind==='drone'&&!['drone_follow','drone_sentry'].includes(a.sourceId)||a.kind==='pet'&&a.sourceId!=='pet_command'||a.kind==='summon'&&a.sourceId!=='raise_dead'||a.kind==='survivor'&&a.sourceId!==null&&typeof a.sourceId!=='string')return false;

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {SIZE} from '../src/data.js';
 import {CHARACTERS} from '../src/characters.js';
-import {addAlly,allyWeapon,allyAct,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,corpsePool,validAllies} from '../src/allies.js';
+import {DRONE_REPAIR_COST,droneRepairReason,addAlly,allyWeapon,allyAct,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,corpsePool,validAllies} from '../src/allies.js';
 import {makeEnemy} from '../src/world.js';
 import {makeBarrier} from '../src/barriers.js';
 import {grantTrait} from '../src/traits.js';
@@ -32,8 +32,8 @@ test('recovery retains injury and ammunition, refills only missing rounds, switc
  const g=arena(),a=drone(g);a.ammo=3;a.hp=19;const pistol=g.player.pistol;assert.ok(use(g));assert.equal(a.status,'packed');assert.equal(a.hp,19);assert.equal(a.ammo,12);assert.equal(g.player.pistol,pistol-9);
  g.action('prepare',{category:'skill',id:'drone_sentry'});const rifle=g.player.reserve;assert.ok(use(g));assert.equal(a.sourceId,'drone_sentry');assert.equal(a.ammo,8);assert.equal(g.player.reserve,rifle-8);assert.equal(g.player.pistol,pistol+3);assert.equal(a.hp,19);
 });
-test('destroyed machine cannot be redeployed and the other skill cannot create a second chassis',()=>{
- const g=arena(),a=drone(g);g.damageAlly(a,1000);const turn=g.turn;assert.equal(use(g),false);g.action('prepare',{category:'skill',id:'drone_sentry'});assert.equal(use(g),false);assert.equal(g.turn,turn);assert.equal(g.allies.length,1);assert.ok(Game.restore(g.serialize()));
+test('distant destroyed machine cannot be redeployed and the other skill cannot create a second chassis',()=>{
+ const g=arena(),a=drone(g,{x:15,y:10});g.damageAlly(a,1000);const turn=g.turn;assert.equal(use(g),false);g.action('prepare',{category:'skill',id:'drone_sentry'});assert.equal(use(g),false);assert.equal(g.turn,turn);assert.equal(g.allies.length,1);assert.ok(Game.restore(g.serialize()));
 });
 test('stationary drone never moves and disconnected drones stop firing and granting sight',()=>{
  const g=arena(),a=drone(g,{x:18,y:10},'active','drone_sentry'),e=enemy(g,20);a.ammo=8;a.bornTurn=1;g.turn=2;zero(g);g.reveal();const before=e.hp;allyAct(g,a);assert.equal(a.x,18);assert.equal(a.ammo,8);assert.equal(e.hp,before);
@@ -135,4 +135,64 @@ test('new class natural-map actions keep legal occupancy and roundtrip-safe save
 test('deployment cannot materialize through a closed door when there is no reachable empty floor',()=>{
  const g=arena();g.grid=g.grid.map(r=>r.map(()=>0));g.grid[10][10]=g.grid[10][11]=1;drone(g,{x:10,y:10},'packed');g.barriers=[makeBarrier('door',{x:10,y:10},{x:11,y:10},'edge-blocked-spawn')];const ammo=g.player.pistol;
  assert.equal(use(g),false);assert.equal(g.turn,1);assert.equal(g.player.pistol,ammo);g.barriers[0].open=true;assert.ok(use(g));assert.equal(g.allies[0].x,11);
+});
+
+
+test('wreck recovery uses either drone skill, costs a turn, and preserves identity, hp and all ammo',()=>{
+ for(const skill of ['drone_follow','drone_sentry']){
+  const g=arena(),a=drone(g);a.ammo=4;g.damageAlly(a,999);g.action('prepare',{category:'skill',id:skill});
+  const before={pistol:g.player.pistol,rifle:g.player.reserve,scrap:g.player.scrap,id:a.id};
+  assert.ok(use(g));assert.equal(g.turn,2);assert.equal(a.status,'packed');assert.equal(a.hp,0);assert.equal(a.ammo,4);assert.equal(a.id,before.id);assert.equal(a.sourceId,'drone_follow');
+  assert.equal(g.player.pistol,before.pistol);assert.equal(g.player.reserve,before.rifle);assert.equal(g.player.scrap,before.scrap);assert.equal(use(g),false);assert.equal(g.allies.length,1);assert.ok(Game.restore(g.serialize()));
+ }
+});
+test('wreck retrieval requires same floor and a clear adjacent edge, rejects occupied wrecks, allows standing on it',()=>{
+ const g=arena(),a=drone(g);g.damageAlly(a,999);
+ g.barriers=[makeBarrier('door',g.player,a,'edge-repair-door')];assert.equal(use(g),false);g.barriers[0].open=true;
+ a.floor=2;assert.equal(use(g),false);a.floor=1;enemy(g,11);assert.equal(use(g),false);g.enemies=[];
+ pet(g,{x:11,y:10});assert.equal(use(g),false);g.allies=g.allies.filter(x=>x.kind==='drone');
+ g.player.x=11;assert.ok(use(g));assert.equal(a.status,'packed');assert.ok(Game.restore(g.serialize()));
+});
+test('packed machine repair spends scrap and a turn, restores half maximum rounded up, caps hp and never refills ammo',()=>{
+ const g=arena(),a=drone(g,{x:10,y:10},'packed');a.hp=0;a.ammo=3;a.control.disabled=2;g.player.scrap=50;
+ const pistol=g.player.pistol,rifle=g.player.reserve,id=a.id;g.player.prepared.skill=null;
+ assert.ok(g.action('repairDrone',id));assert.equal(g.turn,2);assert.equal(a.hp,23);assert.equal(g.player.scrap,50-DRONE_REPAIR_COST);assert.equal(a.status,'packed');assert.equal(a.ammo,3);assert.equal(a.control.disabled,2);
+ assert.ok(g.action('repairDrone',id));assert.equal(a.hp,45);assert.equal(g.player.scrap,50-2*DRONE_REPAIR_COST);assert.equal(g.player.pistol,pistol);assert.equal(g.player.reserve,rifle);
+ const turn=g.turn;assert.equal(g.action('repairDrone',id),false);assert.equal(g.turn,turn);assert.equal(droneRepairReason(g,id),'狀態完好');assert.ok(Game.restore(g.serialize()));
+});
+test('repair rejects deployed units, ground wrecks, insufficient funds, missing skills and invalid ids without spending time',()=>{
+ const g=arena(),a=drone(g);a.hp=10;g.player.scrap=50;assert.equal(g.action('repairDrone',a.id),false);
+ g.damageAlly(a,999);assert.equal(g.action('repairDrone',a.id),false);a.status='packed';g.player.scrap=DRONE_REPAIR_COST-1;assert.equal(g.action('repairDrone',a.id),false);
+ g.player.scrap=50;g.player.skills=[];assert.equal(g.action('repairDrone',a.id),false);assert.equal(g.action('repairDrone','ally-999'),false);assert.equal(g.turn,1);assert.equal(g.player.scrap,50);assert.equal(a.hp,0);
+});
+test('fast lethal or disabling enemies prevent committed repair from charging scrap',()=>{
+ for(const effect of ['death','disable']){
+  const g=arena(),a=drone(g,{x:10,y:10},'packed');a.hp=0;g.player.scrap=30;
+  const e=enemy(g,14);grantTrait(e,'fast','test:repair-fast');e.alert=true;
+  g.enemyAct=()=>{if(effect==='death')g.player.hp=0;else g.player.control.disabled=2;};
+  assert.ok(g.action('repairDrone',a.id));assert.equal(g.turn,2);assert.equal(g.player.scrap,30);assert.equal(a.hp,0);
+ }
+});
+test('a fast enemy occupying the wreck cancels recovery while the committed turn is still spent',()=>{
+ const g=arena(),a=drone(g);g.damageAlly(a,999);const e=enemy(g,14);e.alert=true;grantTrait(e,'fast','test:repair-fast');g.enemyAct=()=>{e.x=a.x;e.y=a.y;};
+ assert.ok(use(g));assert.equal(g.turn,2);assert.equal(a.status,'destroyed');assert.equal(a.hp,0);
+});
+test('repaired wreck must deploy separately, conserves ammunition through mode switch and does not shoot on deployment',()=>{
+ const g=arena(),a=drone(g);a.ammo=3;g.damageAlly(a,999);g.player.scrap=30;const pistol=g.player.pistol,rifle=g.player.reserve;
+ assert.ok(use(g));assert.ok(g.action('repairDrone',a.id));assert.equal(g.activeAllies.length,0);assert.equal(a.hp,23);
+ g.action('prepare',{category:'skill',id:'drone_sentry'});const e=enemy(g,15);e.alert=false;g.enemyAct=()=>{};const hp=e.hp;
+ assert.ok(use(g));assert.equal(g.turn,4);assert.equal(a.hp,23);assert.equal(a.status,'active');assert.equal(a.sourceId,'drone_sentry');assert.equal(a.ammo,8);assert.equal(e.hp,hp);
+ assert.equal(g.player.pistol,pistol+3);assert.equal(g.player.reserve,rifle-8);assert.equal(g.allies.length,1);
+});
+test('packed zero-hp wreck follows floors and survives complete backup while ground wreck stays behind',()=>{
+ const g=arena(),a=drone(g);g.damageAlly(a,999);assert.ok(!departAllies(g).includes(a.id));assert.ok(use(g));const ids=departAllies(g);assert.ok(ids.includes(a.id));
+ g.floor=2;arriveAllies(g,ids);assert.equal(a.floor,2);assert.equal(a.hp,0);assert.equal(a.status,'packed');
+ const copy=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa');assert.deepEqual(copy.game.allies,g.allies);
+ const raw=JSON.parse(g.serialize());raw.data.allies[0].status='active';assert.equal(Game.restore(JSON.stringify(raw)),null);
+ raw.data.allies[0].status='packed';raw.data.allies[0].hp=-1;assert.equal(Game.restore(JSON.stringify(raw)),null);
+});
+test('v23 original local save is backed up verbatim; destroyed chassis and resources survive migration',async()=>{
+ const g=arena(),a=drone(g);a.ammo=5;g.damageAlly(a,999);const old=JSON.parse(g.serialize());old.version=23;const raw=JSON.stringify(old),memory=new Map([['qa-ash-save',raw],['ash-save','untouched']]);
+ globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
+ const storage=await import('../src/storage.js?repair331'),restored=storage.loadGame();assert.ok(restored);assert.deepEqual(restored.allies,g.allies);assert.deepEqual(restored.player,g.player);assert.equal(restored.rng.state(),g.rng.state());assert.equal(memory.get('qa-ash-save-v23-backup'),raw);assert.equal(memory.get('ash-save'),'untouched');assert.ok(use(restored));
 });
