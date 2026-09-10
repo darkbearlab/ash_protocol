@@ -125,3 +125,32 @@ test('blast preview paints only reachable cells and expands when the door opens'
   Renderer.prototype.markArea.call(renderer,g.player,2,'fill','stroke');assert.deepEqual(painted.map(p=>p.x),[8,9,10]);
   b.open=true;painted.length=0;Renderer.prototype.markArea.call(renderer,g.player,2,'fill','stroke');assert.deepEqual(painted.map(p=>p.x),[8,9,10,11,12]);
 });
+
+
+test('interactive doors accept all four corner positions in both orientations without moving or changing cover adjacency',()=>{
+ for(const axis of ['x','y'])for(const side of [0,1])for(const offset of [-1,1]){
+  const g=arena(),b=gate(g,'door',{x:10,y:10},axis==='x'?{x:11,y:10}:{x:10,y:11});
+  Object.assign(g.player,axis==='x'?{x:10+side,y:10+offset}:{x:10+offset,y:10+side});
+  const before={x:g.player.x,y:g.player.y},turn=g.turn;assert.ok(g.nearbyDoors.includes(b));assert.equal(edgeCover(g.barriers,g.player,{x:15,y:15}),null);
+  assert.ok(g.action('door',{id:b.id,open:true}));assert.equal(b.open,true);assert.equal(g.turn,turn+1);assert.deepEqual({x:g.player.x,y:g.player.y},before);assert.equal(g.player.moved,false);
+  assert.ok(g.action('door',{id:b.id,open:false}));assert.equal(b.open,false);assert.equal(g.turn,turn+2);assert.deepEqual({x:g.player.x,y:g.player.y},before);
+ }
+});
+test('corner door operation cannot reach through solid tiles, furniture, or closed intervening edges, and never extends forward range',()=>{
+ const g=arena(),b=gate(g);Object.assign(g.player,{x:10,y:9});
+ g.grid[10][10]=0;assert.equal(g.nearbyDoors.includes(b),false);g.grid[10][10]=1;
+ g.props=[{id:'cover-block',type:'cover',x:10,y:10,hp:30,maxHp:30}];assert.equal(g.nearbyDoors.includes(b),false);g.props=[];
+ const block=gate(g,'partition',{x:10,y:9},{x:10,y:10});assert.equal(g.action('door',{id:b.id,open:true}),false);assert.equal(g.turn,1);
+ block.hp=0;assert.ok(g.nearbyDoors.includes(b));
+ for(const pos of [{x:9,y:10},{x:12,y:10},{x:10,y:8},{x:9,y:9}]){Object.assign(g.player,pos);assert.equal(g.nearbyDoors.includes(b),false);}
+ Object.assign(g.player,{x:10,y:9});b.hp=0;assert.equal(g.nearbyDoors.includes(b),false);
+});
+test('corner operation does not depend on enemy occupancy; ordinary movement still takes only the cardinal step',()=>{
+ const g=arena(),b=gate(g);Object.assign(g.player,{x:10,y:9});enemy(g,'rifleman',10,10);assert.ok(g.nearbyDoors.includes(b));g.enemyAct=()=>{};
+ assert.ok(g.action('door',{id:b.id,open:true}));assert.equal(g.player.y,9);
+ const h=arena(),door=gate(h);Object.assign(h.player,{x:10,y:9});assert.ok(h.action('move',[0,1]));assert.equal(h.player.y,10);assert.equal(door.open,false);
+});
+test('corner door intent is rechecked after fast actors; new obstruction cancels without movement while turn remains spent',()=>{
+ const g=arena(),b=gate(g);Object.assign(g.player,{x:10,y:9});const e=enemy(g,'rifleman',14,9);grantTrait(e,'fast','test:corner');
+ g.enemyAct=()=>{g.grid[10][10]=0;};assert.ok(g.action('door',{id:b.id,open:true}));assert.equal(b.open,false);assert.equal(g.turn,2);assert.equal(g.player.x,10);assert.equal(g.player.y,9);
+});

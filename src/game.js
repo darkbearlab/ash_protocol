@@ -97,8 +97,14 @@ export class Game {
     this.effects.push({type:'unpack',from:{x:c.x,y:c.y},to:pos,damage:0});
     this.log(`${containerName(c)}已開啟，補給${distance(pos,this.player)===0?'留在腳下，移開再走回拾取':'落在地上，走上去拾取'}。`);return true;
   }
-  get nearbyDoors(){return this.barriers.filter(b=>b.type==='door'&&b.hp>0&&edgeAdjacent(b,this.player));}
-  doorLabel(b){const dx=b.x-this.player.x,dy=b.y-this.player.y;return `${dx>0?'東':dx<0?'西':dy>0?'南':'北'}側${b.open?'關門':'開門'}`;}
+  canOperateDoor(b){
+    if(b.type!=='door'||b.hp<=0)return false;
+    const p=this.player;if(edgeAdjacent(b,p))return true;
+    // Reach from either door-side cell's lateral neighbors, never through another edge or solid tile.
+    return edgeCells(b).some(q=>(b.axis==='x'?p.x===q.x&&Math.abs(p.y-q.y)===1:p.y===q.y&&Math.abs(p.x-q.x)===1)&&this.passable(q.x,q.y)&&this.canCross(p,q));
+  }
+  get nearbyDoors(){return this.barriers.filter(b=>this.canOperateDoor(b));}
+  doorLabel(b){const dx=b.x-this.player.x,dy=b.y-this.player.y;return `${dx>0?'東':dx<0?'西':''}${dy>0?'南':dy<0?'北':''}側${b.open?'關門':'開門'}`;}
   setDoor(b,open){
     if(!b||b.type!=='door'||b.hp<=0)return false;
     if(b.open===open)return true;b.open=open;
