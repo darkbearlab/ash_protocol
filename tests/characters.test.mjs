@@ -12,15 +12,15 @@ function arena(character='soldier',Type=Game){const g=new Type(312,[],0,characte
 function enemy(g,x=14,y=10,id='target'){const e=makeEnemy('rifleman',x,y,id);e.hp=e.maxHp=1000;e.alert=true;e.charge=true;g.enemies.push(e);g.target=e.id;g.reveal();return e;}
 function coverTarget(g){g.props=[{id:'shield',type:'cover',x:13,y:10,hp:10000,maxHp:10000}];}
 
-test('Soldier and Recon have separate passives and starting kits, with no currency or stat changes',()=>{
+test('Soldier and Recon have separate passives and starting kits, with distinct innate stats and initial utility supplies',()=>{
   const soldier=arena(),recon=arena('recon');assert.equal(soldier.player.character,'soldier');assert.deepEqual(soldier.player.owned,[0,1]);assert.deepEqual(recon.player.owned,[2,1]);assert.equal(recon.player.weapon,2);assert.equal(recon.player.ammo[2],18);assert.equal(recon.player.ammo[0],0);
   assert.deepEqual(soldier.player.traits.map(t=>t.id),CHARACTERS.soldier.traits);assert.deepEqual(recon.player.traits.map(t=>t.id),CHARACTERS.recon.traits);
-  for(const key of ['hp','maxHp','meds','grenades','pistol','shell','reserve','armor','scrap'])assert.equal(soldier.player[key],recon.player[key],key);
-  assert.equal(recon.protocol.earned,0);assert.match(characterName('recon'),/Recon/);assert.throws(()=>arena('unknown'));
+  for(const key of ['hp','maxHp','meds','pistol','shell','reserve','armor','scrap'])assert.equal(soldier.player[key],recon.player[key],key);
+  assert.equal(soldier.player.grenades,2);assert.equal(recon.player.grenades,0);assert.equal(recon.player.smoke,2);assert.equal(recon.player.emp,2);assert.equal(recon.ammoCapacity('grenade'),6);assert.equal(recon.player.prepared.grenade,'smoke');assert.equal(recon.protocol.earned,0);assert.match(characterName('recon'),/Recon/);assert.throws(()=>arena('unknown'));
 });
 test('braced uses the shooter-facing cover direction, applies symmetrically and respects no-cover',()=>{
-  const g=arena(),e=enemy(g);coverTarget(g);assert.equal(g.accuracy(g.player,e).chance,62);assert.equal(g.accuracy(g.player,e).bracedBonus,0);
-  g.props.push({id:'own',type:'cover',x:11,y:10,hp:10000,maxHp:10000});assert.equal(g.accuracy(g.player,e).chance,74);assert.equal(g.accuracy(g.player,e).bracedBonus,12);
+  const g=arena(),e=enemy(g);coverTarget(g);assert.equal(g.accuracy(g.player,e).chance,70);assert.equal(g.accuracy(g.player,e).bracedBonus,0);
+  g.props.push({id:'own',type:'cover',x:11,y:10,hp:10000,maxHp:10000});assert.equal(g.accuracy(g.player,e).chance,82);assert.equal(g.accuracy(g.player,e).bracedBonus,12);
   grantTrait(e,'braced','test');assert.equal(g.accuracy(e,g.player).chance,74);grantTrait(g.player,'no_cover','test');assert.equal(g.accuracy(g.player,e).bracedBonus,0);
   g.player.traits=g.player.traits.filter(t=>t.id!=='no_cover');g.props=g.props.filter(p=>p.id!=='own');g.grid[10][11]=0;assert.equal(g.accuracy(g.player,e).bracedBonus,12);
   g.grid[10][11]=1;g.grid[10][9]=0;assert.equal(g.accuracy(g.player,e).bracedBonus,0,'wall behind the shooter is not bracing against this target');
@@ -28,7 +28,7 @@ test('braced uses the shooter-facing cover direction, applies symmetrically and 
 test('correction increases by committed firing rounds including misses, capped at +24',()=>{
   const g=arena(),e=enemy(g);coverTarget(g);
   for(const bonus of [0,8,16,24,24]){
-    assert.equal(g.accuracy(g.player,e).trackingBonus,bonus);assert.equal(g.accuracy(g.player,e).chance,62+bonus);
+    assert.equal(g.accuracy(g.player,e).trackingBonus,bonus);assert.equal(g.accuracy(g.player,e).chance,70+bonus);
     const {steps}=captureAction(g,()=>g.action('fire'));const shot=steps.find(s=>s.effects.some(f=>f.type==='shot'));
     assert.equal(shot.before.accuracy(shot.before.player,shot.before.enemies[0]).trackingBonus,bonus);assert.equal(shot.effects[0].miss,true);
   }
@@ -57,8 +57,8 @@ test('lost-target committed shots still build correction without revealing or hi
 });
 test('sidestep is relative to each shooter, excludes forward/backward and exact diagonal, and stacks with agile',()=>{
   const g=arena('recon'),east=enemy(g),south=enemy(g,10,14,'south');g.player.moved=true;g.player.moveDelta=[0,1];
-  assert.equal(g.accuracy(east,g.player).sidePenalty,20);assert.equal(g.accuracy(east,g.player).chance,55);assert.equal(g.accuracy(south,g.player).chance,75);
-  assert.equal(sidestepPenalty({x:14,y:14},g.player),0);grantTrait(g.player,'agile','test');assert.equal(g.accuracy(east,g.player).chance,42);
+  assert.equal(g.accuracy(east,g.player).sidePenalty,20);assert.equal(g.accuracy(east,g.player).chance,45);assert.equal(g.accuracy(south,g.player).chance,65);
+  assert.equal(sidestepPenalty({x:14,y:14},g.player),0);grantTrait(g.player,'agile','test');assert.equal(g.accuracy(east,g.player).chance,32);
   g.player.moveDelta=[1,0];assert.equal(sidestepPenalty(east,g.player),0);g.player.moveDelta=[-1,0];assert.equal(sidestepPenalty(east,g.player),0);
   east.moved=true;east.moveDelta=[0,1];grantTrait(east,'sidestep','test');assert.equal(g.accuracy(g.player,east).sidePenalty,20);
 });
@@ -68,7 +68,7 @@ test('movement history follows actual cardinal movement and ends at the next pai
   const moving=arena(),f=enemy(moving,19,10);f.charge=false;moving.action('wait');assert.equal(f.moved,true);assert.equal(Math.abs(f.moveDelta[0])+Math.abs(f.moveDelta[1]),1);
 });
 test('sideways movement changes actual hit rolls independently for crossing enemy fire',()=>{
-  const g=arena('recon');enemy(g,14,10,'east');enemy(g,10,14,'south');g.rng=()=>.7;
+  const g=arena('recon');enemy(g,14,10,'east');enemy(g,10,14,'south');g.rng=()=>.6;
   const {steps}=captureAction(g,()=>g.action('move',[0,1]));
   const shots=steps.flatMap(s=>s.effects).filter(e=>e.type==='enemyShot');assert.equal(shots.length,2);
   assert.equal(shots[0].miss,true);assert.equal(shots[1].miss,undefined);assert.equal(g.player.hp,81);

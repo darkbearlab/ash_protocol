@@ -35,7 +35,7 @@ export function play(seed,maxActions=1800,character='soldier') {
     if(p.hp<=p.maxHp-45&&p.meds>0){act('heal');continue;}
     const targets=g.visibleEnemies.filter(e=>distance(p,e)<=g.weapon.range).sort((a,b)=>Number(b.charge)-Number(a.charge)||distance(a,p)-distance(b,p));
     const grenade=targets.find(e=>distance(p,e)>2&&distance(p,e)<=5&&(e.hp>=75||g.visibleEnemies.filter(o=>distance(o,e)<=2).length>=2));
-    if(grenade&&p.grenades>0){act('grenade',grenade);continue;}
+    if(grenade&&p.grenades>0){if(p.prepared.grenade!=='frag')act('prepare',{category:'grenade',id:'frag'});act('grenade',grenade);continue;}
     if(targets.length&&p.ammo[p.weapon]>0){g.target=targets[0].id;
       // Darkness makes unaimed fire waste scarce ammo. Brace using the same public wait as a player.
       if(g.accuracy(p,targets[0]).darkPenalty&&!p.focus){act('wait');continue;}

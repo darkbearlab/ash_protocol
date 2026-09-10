@@ -7,13 +7,13 @@ import {Renderer} from '../src/renderer.js';
 function arena(){const g=new Game(51);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.reveal();return g;}
 test('target card reports actual health, shot chance, distance, cover and target state',()=>{
   const g=arena(),e=makeEnemy('rifleman',14,10,'e');g.enemies=[e];g.props=[{x:13,y:10,type:'cover',hp:65,maxHp:65}];g.reveal();
-  let details=targetDetails(g);assert.equal(details.name,'斷訊槍兵');assert.equal(details.hp,'HP 22 / 22');assert.equal(details.chance,'命中 62%');assert.equal(details.cover,'箱體掩護');assert.equal(details.distance,'距離 4 格\n射程 7 格');
-  e.moved=true;e.charge=true;details=targetDetails(g);assert.equal(details.chance,'命中 40%');assert.match(details.state,/移動中/);assert.match(details.state,/即將攻擊/);
+  let details=targetDetails(g);assert.equal(details.name,'斷訊槍兵');assert.equal(details.hp,'HP 22 / 22');assert.equal(details.chance,'命中 70%');assert.equal(details.cover,'箱體掩護');assert.equal(details.distance,'距離 4 格\n射程 7 格');
+  e.moved=true;e.charge=true;details=targetDetails(g);assert.equal(details.chance,'命中 48%');assert.match(details.state,/移動中/);assert.match(details.state,/即將攻擊/);
   e.x=19;g.reveal();details=targetDetails(g);assert.equal(details.withinRange,false);assert.equal(details.chance,'無法射擊');assert.match(details.state,/超出射程/);
   g.enemies=[];g.target=null;assert.equal(targetDetails(g),null);
 });
 test('destructible targets show health without claiming enemy cover or movement',()=>{
-  const g=arena();g.props=[{id:'barrel',type:'barrel',x:11,y:10,hp:18,maxHp:18}];g.target='barrel';const d=targetDetails(g);assert.equal(d.name,'爆裂油桶');assert.equal(d.hp,'HP 18 / 18');assert.equal(d.cover,'可破壞物');assert.equal(d.chance,'命中 97%');
+  const g=arena();g.props=[{id:'barrel',type:'barrel',x:11,y:10,hp:18,maxHp:18}];g.target='barrel';const d=targetDetails(g);assert.equal(d.name,'爆裂油桶');assert.equal(d.hp,'HP 18 / 18');assert.equal(d.cover,'可破壞物');assert.equal(d.chance,'命中 99%');
 });
 test('target cards stay inside all viewport edges and keep ordinary target/player silhouettes clear',()=>{
   for(const side of [262,320,388,480])for(const target of [{x:20,y:20},{x:side-20,y:20},{x:20,y:side-20},{x:side-20,y:side-20},{x:side/2+35,y:side/2}]){

@@ -14,7 +14,7 @@ import {Renderer} from '../src/renderer.js';
 function arena(character='soldier'){
   const g=new Game(324,[],0,character,'onyx');g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=fullLighting(g.grid);
   g.barriers=[];g.props=[];g.items=[];g.hazards=[];g.enemies=[];g.smoke=[];g.marks=[];g.rooms=[];g.traces=[];
-  Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500,armor:0,plates:0});g.end={x:20,y:20};g.reveal();return g;
+  Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500,armor:0,plates:0});/* Cancel Soldier innate +8 to isolate this rule. */g.player.combatModifiers=character==='soldier'?{rangedAccuracy:-8}:{};g.end={x:20,y:20};g.reveal();return g;
 }
 function enemy(g,type='rifleman',x=14,y=10){const e=makeEnemy(type,x,y,'qa-light-'+g.enemies.length);e.hp=e.maxHp=500;g.enemies.push(e);return e;}
 function smoke(g){g.smoke=[{cells:areaCells(g.grid,{x:12,y:10}),expires:g.turn+2}];}

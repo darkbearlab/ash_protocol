@@ -83,7 +83,7 @@ test('new character and fixed fist survive save, floor and backup; malformed or 
   const g=arena();g.player.upgrades[7]=2;g.action('weapon',7);const p=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game.player;assert.deepEqual(p,g.player);
   g.floor=2;g.loadFloor();assert.equal(g.player.character,'bulwark');assert.equal(g.player.weapon,7);assert.equal(g.player.upgrades[7],2);
   for(const mutate of [p=>p.owned=[6],p=>p.ammo[7]=1,p=>p.affixes[7]='extended']){const raw=JSON.parse(g.serialize());mutate(raw.data.player);assert.equal(Game.restore(JSON.stringify(raw)),null);}
-  const old=new Game(314,[],0,'recon');const raw=JSON.parse(old.serialize());raw.version=10;const restored=Game.restore(JSON.stringify(raw));assert.deepEqual(restored.player,old.player);assert.equal(restored.rng.state(),old.rng.state());
+  const old=new Game(314,[],0,'recon');old.player.smoke=0;old.player.emp=0;const raw=JSON.parse(old.serialize());raw.version=10;const restored=Game.restore(JSON.stringify(raw));assert.deepEqual(restored.player,old.player);assert.equal(restored.rng.state(),old.rng.state());
 });
 test('v10 migration saves an untouched QA original and Bulwark result history is valid in a complete backup',async()=>{
   const memory=new Map();globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};

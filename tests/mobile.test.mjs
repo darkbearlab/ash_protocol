@@ -18,9 +18,9 @@ test('grenade aim and locked target fit simultaneously without changing cardinal
 test('waiting boosts next shot, evades current enemy phase, and never stacks',()=>{
   // Isolate the waiting rule from Soldier's new consecutive-fire passive.
   const g=arena();g.player.traits=[];const e=makeEnemy('rifleman',14,10,'e');g.enemies=[e];g.props=[{x:13,y:10,type:'cover',hp:1000,maxHp:1000}];g.reveal();g.rng=()=>.76;
-  assert.equal(g.accuracy(g.player,e).chance,62);g.action('wait');assert.equal(g.accuracy(g.player,e).chance,77);assert.equal(g.accuracy(e,g.player).chance,82);
-  g.action('wait');assert.equal(g.accuracy(g.player,e).chance,77);
-  const hp=e.hp;g.action('fire');assert.ok(e.hp<hp);assert.equal(g.player.focus,false);assert.equal(g.player.evasive,false);assert.equal(g.accuracy(g.player,e).chance,62);
+  assert.equal(g.accuracy(g.player,e).chance,70);g.action('wait');assert.equal(g.accuracy(g.player,e).chance,85);assert.equal(g.accuracy(e,g.player).chance,82);
+  g.action('wait');assert.equal(g.accuracy(g.player,e).chance,85);
+  const hp=e.hp;g.action('fire');assert.ok(e.hp<hp);assert.equal(g.player.focus,false);assert.equal(g.player.evasive,false);assert.equal(g.accuracy(g.player,e).chance,70);
 });
 test('focus survives invalid commands and saves, but expires after other valid actions and floors',()=>{
   const g=arena();g.action('wait');const turn=g.turn;assert.equal(g.action('reload'),false);assert.equal(g.turn,turn);assert.equal(g.player.focus,true);

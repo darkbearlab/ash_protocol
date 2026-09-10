@@ -53,11 +53,11 @@ test('exchanging a spare keeps the current gun; stale pickup and swap cannot dup
 });
 test('affix accuracy applies to player shots and target card, never enemy shots',()=>{
   const g=arena(),e=makeEnemy('rifleman',13,10,'target');g.enemies=[e];g.target=e.id;g.player.affixes[0]='tracking';e.moved=true;
-  assert.equal(g.fireChance(e),87);assert.equal(targetDetails(g).chance,'命中 87%');
+  assert.equal(g.fireChance(e),95);assert.equal(targetDetails(g).chance,'命中 95%');
   g.player.moved=true;assert.equal(g.accuracy(e,g.player).chance,75);
-  g.player.affixes[0]='stable';assert.equal(g.fireChance(e),85);g.player.focus=true;assert.equal(g.fireChance(e),99);
+  g.player.affixes[0]='stable';assert.equal(g.fireChance(e),93);g.player.focus=true;assert.equal(g.fireChance(e),99);
   const prop={id:'box',type:'cover',x:12,y:11,hp:65};g.props=[prop];g.target=prop.id;g.player.focus=false;g.player.affixes[0]='extended';
-  assert.equal(g.fireChance(prop),89);assert.equal(targetDetails(g).chance,'命中 89%');
+  assert.equal(g.fireChance(prop),97);assert.equal(targetDetails(g).chance,'命中 97%');
 });
 test('extended magazine reload and salvage conserve capped ammunition',()=>{
   const g=arena(),slot=loot(g,0,'extended');g.takeWeapon(slot);g.player.weapon=slot;g.player.ammo[slot]=1;

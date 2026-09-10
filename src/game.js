@@ -1,3 +1,4 @@
+import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
 import {fullLighting,validLighting,lightingEffects} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
 import {addTrace,spentCase,validTraces} from './traces.js';
@@ -7,13 +8,13 @@ import {isContainer,containerName,validContainers} from './containers.js';
 import {BARRIER_TYPES,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,firstBarrierOnRay,validBarriers} from './barriers.js';
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {GRENADES,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
-import {CHARACTERS,validCharacter,grantCharacterTraits} from './characters.js';
+import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
 import {defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns} from './prepared.js';
 import {grantTrait,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
 import {presentStep} from './presentation.js';
-import {SIZE,SAVE_VERSION,PACK_LIMIT,PLATE_CAPACITY,RARE_ARMORY,ENEMY_LOOT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS,LORE} from './data.js';
+import {SIZE,SAVE_VERSION,RARE_ARMORY,ENEMY_LOOT,WEAPONS,FLOORS,FLOOR_INFO,ENEMY_TYPES,PERKS,LORE} from './data.js';
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
@@ -27,6 +28,7 @@ export class Game {
     if(!validPortrait(portrait))throw new Error('未知頭像。');
     this.mission=newMission(mission);this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
+    Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
     this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
     this.logs=[];this.status='playing';this.pendingPerks=0;this.effects=[];this.loadFloor();
@@ -41,7 +43,7 @@ export class Game {
   }
   get weapon(){return this.weaponAt(this.player.weapon);}
   weaponAt(slot){return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot]);}
-  fireChance(target){if(this.weapon.melee)return this.weapon.hitChance;return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)-lightingEffects(this,this.player,target).penalty));}
+  fireChance(target){if(this.weapon.melee)return meleeChance(this.player,target,this.weapon.hitChance);return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+actorStat(this.player,'rangedAccuracy')+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)-lightingEffects(this,this.player,target).penalty));}
   get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.visible(e));}
   get targeted(){return [...this.enemies,...this.props,...this.barriers].find(e=>e.id===this.target&&e.hp>0&&this.visible(e));}
   get perkChoices(){const start=(this.seed+this.player.level*3)%PERKS.length;return [0,1,3].map(n=>PERKS[(start+n)%PERKS.length]);}
@@ -100,7 +102,9 @@ export class Game {
   autoTarget(){if(!this.targeted)this.target=this.visibleEnemies.sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
   log(text,danger=false){this.logs.unshift({turn:this.turn,text,danger});this.logs=this.logs.slice(0,50);}
   reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType]?.key??null;}
-  ammoCapacity(type){return capacity(type,this.carryLevel);}
+  get weaponCapacity(){return CHARACTERS[this.player.character].weaponCapacity;}
+  get plateCapacity(){return CHARACTERS[this.player.character].plateCapacity;}
+  ammoCapacity(type){return capacity(type,this.carryLevel)+classCarryBonus(this.player.character,type);}
   dropAmmo(type,amount,pos=this.player){
     if(amount<=0)return;
     const item=AMMUNITION[type].item,existing=this.items.find(o=>o.type===item&&o.x===pos.x&&o.y===pos.y);
@@ -153,7 +157,7 @@ export class Game {
     if(type==='grenade')return (p[preparedEntry(p,'grenade').resource]>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail('需要手榴彈與視線內 5 格的有效落點。');
     if(type==='weapon')return (p.owned.includes(Number(arg))&&Number(arg)!==p.weapon)||this.fail('無法換裝此武器。');
     if(type==='salvage')return (p.owned.includes(Number(arg))&&p.owned.length>1&&!this.weaponAt(Number(arg)).locked)||this.fail('無法拆解此武器。');
-    if(type==='takeWeapon')return (Boolean(this.nearbyWeapon(Number(arg)))&&p.owned.length<PACK_LIMIT)||this.fail('附近沒有這把武器或背包已滿。');
+    if(type==='takeWeapon')return (Boolean(this.nearbyWeapon(Number(arg)))&&p.owned.length<this.weaponCapacity)||this.fail('附近沒有這把武器或背包已滿。');
     if(type==='replaceWeapon')return (Boolean(this.nearbyWeapon(arg?.take))&&p.owned.includes(arg?.leave)&&!this.weaponAt(arg.leave).locked)||this.fail('要交換的武器已不在原處。');
     if(type==='upgrade'){const level=p.upgrades[p.weapon];return (level<3&&p.scrap>=25+level*15)||this.fail('改裝已滿或廢料不足。');}
     if(type==='terminal'){
@@ -304,9 +308,9 @@ export class Game {
     const valid=target&&distance(p,target)<=1&&this.shotClear(p,target)&&(isBarrier(target)||this.canCross(p,target)),to=valid?target:intent;
     p.fireChain=null;p.facing=[Math.sign(to.x-p.x),Math.sign(to.y-p.y)];
     presentStep(this,()=>{
-      const hit=Boolean(valid)&&this.rng()*100<w.hitChance;
+      const chance=meleeChance(p,target,w.hitChance),hit=Boolean(valid)&&this.rng()*100<chance;
       this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:to.x,y:to.y},damage:0,miss:!hit});
-      if(!hit){this.log(valid?`近戰揮擊未命中（${w.hitChance}%）。`:'原目標已離開近戰範圍，揮擊落空。');return;}
+      if(!hit){this.log(valid?`近戰揮擊未命中（${chance}%）。`:'原目標已離開近戰範圍，揮擊落空。');return;}
       const d=this.weaponDamage();this.hitTarget(target,d.min+Math.floor(this.rng()*(d.max-d.min+1)),p,w.pierce||0);
     });
     return true;
@@ -431,7 +435,7 @@ export class Game {
         if(e.type==='sniper'&&e.aim&&!this.shotClear(e,e.aim)){const edge=firstBarrierOnRay(this.barriers,e,e.aim);this.log('狙擊彈被門或隔板阻擋。');this.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:edge?{x:edge.x,y:edge.y}:{...e.aim},damage:0});if(edge)this.damageProp(edge,def.damage+this.floor*2);}
         else if(e.type==='sniper'&&distance(p,e.aim||p)>0){this.log('狙擊彈擊中你原本的位置。');this.effects.push({type:'enemyShot',attackerType:'sniper',from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true});}
         else {
-          const chance=def.range>1?this.accuracy(e,p).chance:97;
+          const chance=def.range>1?this.accuracy(e,p).chance:meleeChance(e,p);
           if(this.rng()*100<chance)this.damagePlayer(def.damage+this.floor*2,`${enemyName(e)}攻擊`,e);
           else {this.log(`${enemyName(e)}未命中（${chance}%）。`);this.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true});}
         }
@@ -473,7 +477,7 @@ export class Game {
       if(distance(item,p)!==0)return true;
       if(item.type==='weapon') {
         this.registerWeapon(item);
-        if(p.owned.length>=PACK_LIMIT){this.log('武器欄已滿。打開背包比較並交換，原武器會留在地上。');return true;}
+        if(p.owned.length>=this.weaponCapacity){this.log('武器欄已滿。打開背包比較並交換，原武器會留在地上。');return true;}
         this.collectWeapon(item);return false;
       }
       const utility=grenadeByItem(item.type);
@@ -483,7 +487,7 @@ export class Game {
         if(accepted)this.log(`拾取${AMMUNITION[ammo].name} +${accepted}。`);
         if(accepted<amount){item.amount=amount-accepted;this.log(`${AMMUNITION[ammo].name}容量已滿，剩餘 ${item.amount} 留在原地。`);return true;}
       }      else if(item.type==='med'){p.meds++;this.log('拾取醫療包 +1。');}
-      else if(item.type==='armor'){const amount=Math.min(item.amount||20,PLATE_CAPACITY-(p.plates||0));if(amount<=0){this.log('護甲板已滿，補給留在原地。');return true;}p.plates=(p.plates||0)+amount;this.log(`修復護甲板 +${amount}（${p.plates}/${PLATE_CAPACITY}）。`);}
+      else if(item.type==='armor'){const amount=Math.min(item.amount||20,this.plateCapacity-(p.plates||0));if(amount<=0){this.log('護甲板已滿，補給留在原地。');return true;}p.plates=(p.plates||0)+amount;this.log(`修復護甲板 +${amount}（${p.plates}/${this.plateCapacity}）。`);}
       else if(item.type==='scrap'){const amount=Math.round((item.amount||15)*(1+p.scavenger*.5));p.scrap+=amount;this.log(`回收廢料 +${amount}。`);}
       else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;this.log(`資料已解密：${LORE[item.floor-1]}`);}
       return false;
@@ -498,14 +502,14 @@ export class Game {
   }
   collectWeapon(item){const p=this.player;p.owned.push(item.slot);this.log(`取得武器：${this.weaponAt(item.slot).name}。在背包中裝備。`);}
   addWeapon(base){
-    if(!WEAPONS[base]||this.player.owned.length>=PACK_LIMIT)return false;
+    if(!WEAPONS[base]||this.player.owned.length>=this.weaponCapacity)return false;
     const item=this.registerWeapon({weapon:base});this.collectWeapon(item);return item.slot;
   }
   nearbyWeapon(slot){return this.items.find(o=>o.type==='weapon'&&o.slot===slot&&this.canTouch(o));}
   takeWeapon(slot) {
     const item=this.nearbyWeapon(slot);
     if(!item)return this.fail('附近沒有這把武器。');
-    if(this.player.owned.length>=PACK_LIMIT)return this.fail('武器欄已滿（3 格）。可比較並交換武器。');
+    if(this.player.owned.length>=this.weaponCapacity)return this.fail(`武器欄已滿（${this.weaponCapacity} 格）。可比較並交換武器。`);
     this.collectWeapon(item);this.items=this.items.filter(o=>o!==item);return true;
   }
   replaceWeapon(arg) {
@@ -574,7 +578,7 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)))return null;
@@ -590,6 +594,7 @@ export class Game {
       if(version<16)data.mission=newMission();
       if(!validMission(data.mission,data))return null;
       const defaults=freshPlayer(),p={...defaults,...data.player};
+      if(![p,...data.enemies].every(a=>validCombatModifiers(a.combatModifiers)))return null;
       if(version<12){
         p.smoke=0;p.emp=0;p.stun=0;p.control=controlState();data.smoke=[];
         for(const actor of [p,...data.enemies]){
@@ -612,7 +617,7 @@ export class Game {
       if(version<9){p.character='soldier';p.moveDelta=[0,0];p.fireChain=null;grantCharacterTraits(p);for(const e of data.enemies){e.moveDelta=[0,0];e.fireChain=null;}}
       if(!validCharacter(version>=9?data.player.character:p.character)||!validCombatMemory(version>=9?data.player:p,data.turn)||data.enemies.some(e=>!validCombatMemory(e,data.turn)))return null;
       if(version<18&&p.character==='recon')for(const id of ['night_vision','infrared'])if(!p.traits.some(t=>t.id===id&&t.source==='character:recon'))grantTrait(p,id,'character:recon');
-      p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0||p.plates>PLATE_CAPACITY)return null;
+      p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0||p.plates>CHARACTERS[p.character].plateCapacity)return null;
       if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||data.grid[p.y]?.[p.x]!==1||!Number.isFinite(p.hp)||p.hp<=0)return null;
       if(version<5){
         p.weaponBases=WEAPONS.map((_,i)=>i);p.affixes=WEAPONS.map(()=>null);
@@ -623,7 +628,7 @@ export class Game {
       p.stats={...defaults.stats,...p.stats};
       if(!Array.isArray(p.weaponBases)||p.weaponBases.length<1||p.weaponBases.length>10000||p.weaponBases.some(i=>!Number.isInteger(i)||!WEAPONS[i]))return null;
       if(!Array.isArray(p.affixes)||p.affixes.length!==p.weaponBases.length||p.affixes.some((a,i)=>a!==null&&(!Object.hasOwn(AFFIXES,a)||(a==='piercing'&&WEAPONS[p.weaponBases[i]].explosive)||WEAPONS[p.weaponBases[i]].locked)))return null;
-      if(!Array.isArray(p.owned)||!p.owned.length||p.owned.length>PACK_LIMIT||new Set(p.owned).size!==p.owned.length||!p.owned.includes(p.weapon)||p.owned.some(i=>!Number.isInteger(i)||p.weaponBases[i]===undefined))return null;
+      if(!Array.isArray(p.owned)||!p.owned.length||p.owned.length>CHARACTERS[p.character].weaponCapacity||new Set(p.owned).size!==p.owned.length||!p.owned.includes(p.weapon)||p.owned.some(i=>!Number.isInteger(i)||p.weaponBases[i]===undefined))return null;
       if(!Array.isArray(p.ammo)||!Array.isArray(p.upgrades)||p.ammo.length!==p.weaponBases.length||p.upgrades.length!==p.weaponBases.length)return null;
       if(p.ammo.some(n=>!Number.isSafeInteger(n)||n<0||n>10000000)||p.upgrades.some(n=>!Number.isInteger(n)||n<0||n>3))return null;
       if(p.weaponBases.some((base,slot)=>WEAPONS[base].melee&&p.ammo[slot]!==0))return null;

@@ -29,7 +29,7 @@ test('portrait persists through save, next floor and full backup; v9 migration i
   assert.equal(Game.restore(g.serialize()).player.portrait,'silver');
   const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;
   assert.deepEqual(restored.player,g.player);
-  const old=JSON.parse(g.serialize());old.version=9;delete old.data.player.portrait;
+  const old=JSON.parse(g.serialize());old.version=9;old.data.player.smoke=0;old.data.player.emp=0;delete old.data.player.portrait;
   const a=Game.restore(JSON.stringify(old)),b=Game.restore(JSON.stringify(old));
   assert.equal(a.player.portrait,portraitForLegacy(g.runId));assert.equal(a.player.portrait,b.player.portrait);
   const {portrait,...player}=a.player;assert.deepEqual(player,old.data.player);assert.equal(a.rng.state(),g.rng.state());
@@ -68,10 +68,10 @@ test('exposed lateral movement matches stationary wall protection for every weap
     assert.ok(side.movePenalty+side.sidePenalty>=42);assert.ok(side.chance<=wall.chance,`${weapon}/${affix}/${movement}/${size}`);
   }
 });
-test('player exposed sidestep is 55%, stacks with agility, ends with a paid action and adds no cover damage reduction',()=>{
+test('Recon exposed sidestep plus innate evasion is 45%, stacks with agility, ends with a paid action and adds no cover damage reduction',()=>{
   const g=new Game(313,[],0,'recon');g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.props=[];g.player.x=10;g.player.y=10;
   const e=makeEnemy('rifleman',14,10,'east');g.player.moved=true;g.player.moveDelta=[0,1];
-  assert.equal(g.accuracy(e,g.player).chance,55);assert.ok(!g.protectingCover(g.player,e));
-  grantTrait(g.player,'agile','test');assert.equal(g.accuracy(e,g.player).chance,42);
+  assert.equal(g.accuracy(e,g.player).chance,45);assert.ok(!g.protectingCover(g.player,e));
+  grantTrait(g.player,'agile','test');assert.equal(g.accuracy(e,g.player).chance,32);
   g.enemies=[];g.hazards=[];g.marks=[];g.action('wait');assert.equal(g.accuracy(e,g.player).sidePenalty,0);
 });
