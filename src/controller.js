@@ -128,11 +128,25 @@ function skill(){if(renderer.mode==='pet'){cancelAim();return;}if(game.player.pr
 function grenade(){if(renderer.mode==='grenade'){cancelAim();return;}const entry=preparedEntry(game.player,'grenade');if(!entry){notify('請先在背包預備手榴彈。');return;}if(game.player[entry.resource]<=0){notify(`${entry.name}已用盡。`);return;}renderer.mode='grenade';const locked=game.targeted,e=isBarrier(locked)?barrierFace(locked,game.player):locked;renderer.aim=e&&distance(e,game.player)<=5?{x:e.x,y:e.y}:{x:game.player.x,y:game.player.y};updateAim();}
 function toggleTargeting(){renderer.targetingEnabled=!renderer.targetingEnabled;write('ash-targeting',renderer.targetingEnabled?'on':'off');update();}
 function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify('附近沒有可見敵人。');return;}game.target=list[(list.findIndex(x=>x.id===game.target)+1)%list.length].id;update();}
-function modal(html,wide=false){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal-content').innerHTML=html;if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
+function modal(html,wide=false,title=false){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
 function close(){if(!entered){showIntro();return;}if(game.pendingPerks){showPerks();return;}if(game.status!=='playing'){$('#modal').close();return;}$('#modal').close();$('#battle').focus({preventScroll:true});}
 function modalAction(type,arg){close();act(type,arg);}
 
-function showIntro(){modal(`<div class="eyebrow">ASH PROTOCOL / 灰燼協定</div><h2>深入寂靜。<br>活著回來。</h2><p>木星邊境的厄瑞玻斯設施停止回傳訊號。你是最後一名接近它的行動員。</p><p>選擇六層深入任務，或三層原路回收：取得機密後沿原路返回入口。只有你採取行動，敵人才會行動。</p><p>協定點數 ${profile().protocol.balance} · 探索資料、擊敗頭目與完成樓層可累積，死亡仍保留。現在可用於永久攜行升級。</p><div class="intro-rules"><span>↑ 四方向探索</span><span>⌖ 掩體與命中率</span><span>◷ 等待觀察</span><span>▣ 搜刮與換裝</span></div><div class="operator-identity">${resumable||entered?portraitMarkup(game.player.portrait,game.status):''}<p>${resumable||entered?`${characterName(game.player.character)} · 任務 ${game.seed} · 第 ${game.floor} 層 · ${game.turn} 回合<br>${game.missionSummary}`:'六種角色免費：士兵、偵察兵、重裝兵、工程師、德魯伊與死靈法師。'}</p></div><button class="modal-button" data-modal="${game.status==='playing'&&(resumable||entered)?'enter':'deploy'}">${game.status!=='playing'?'開始新任務':resumable||entered?'繼續任務':'開始行動'} →</button><button class="modal-button secondary" data-modal="carrying">永久攜行升級</button><button class="modal-button secondary" data-modal="help">閱讀作戰指南</button><button class="modal-button secondary" data-modal="settings">備份與設定</button>`);}
+function showIntro(){
+  const canContinue=game.status==='playing'&&(resumable||entered);
+  const entry=(action,label,note,disabled=false)=>`<button class="title-entry" data-modal="${action}"${disabled?' disabled':''}><span class="title-caret" aria-hidden="true">&gt;</span><span class="title-label">${label}</span><span class="title-note">${note}</span></button>`;
+  modal(`<div class="title-screen">
+    <div class="title-mark" aria-hidden="true"><svg viewBox="0 0 128 128"><path d="M23 99 58 24h15l34 75H85L65 50 44 99Z" fill="currentColor"/><path d="m56 85 9-21 9 21Z" fill="#0d1211"/></svg></div>
+    <h2 class="title-word">ASH PROTOCOL</h2>
+    <nav class="title-menu">
+      ${entry('enter','CONTINUE',canContinue?`${characterName(game.player.character).split(' · ').pop()} · 第 ${game.floor} 層`:'無進行中的任務',!canContinue)}
+      ${entry('deploy','NEW GAME','選擇角色與合約')}
+      ${entry('carrying','UPGRADES',`協定點數 ${profile().protocol.balance}`)}
+      ${entry('settings','SETTING','備份 · 顯示 · 音效')}
+    </nav>
+    <button class="title-manual" data-modal="help">作戰指南</button>
+  </div>`,false,true);
+}
 function showDeployment(){
   const live=game.status==='playing'&&(entered||resumable);
   deploymentFaces=deploymentPortraits(Object.keys(CHARACTERS));

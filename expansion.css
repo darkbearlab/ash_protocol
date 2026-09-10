@@ -98,3 +98,26 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .mission-choices .character-choice span{gap:3px}
 
 .boundary-opacity{display:grid;grid-template-columns:1fr auto;gap:8px;color:#c6d2c3;font-size:12px}.boundary-opacity input{grid-column:1 / -1;width:100%;min-height:44px;margin:0;accent-color:#c6d2c3;touch-action:pan-y}.boundary-opacity input:focus-visible{outline:2px solid #e8ce98;outline-offset:2px}
+
+/* 標題畫面：暗底、置中標誌與終端機風選單。純呈現，按鈕仍走既有 data-modal 入口。 */
+#modal.title{max-width:none;width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;padding:0;background:#0d1211;box-shadow:none;overflow:hidden}
+#modal.title::backdrop{background:#0d1211}
+#modal.title #modal-content{height:100%}
+.title-screen{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:24px 20px calc(24px + env(safe-area-inset-bottom));box-sizing:border-box}
+.title-mark{color:var(--orange);width:min(38vw,150px);margin-bottom:18px;filter:drop-shadow(0 0 22px #ee945c33)}
+.title-mark svg{display:block;width:100%;height:auto}
+.title-word{font:600 clamp(26px,8.5vw,40px)/1 var(--display);letter-spacing:.22em;text-indent:.22em;color:var(--text);margin:0 0 4px;text-align:center}
+.title-menu{width:100%;max-width:340px;margin-top:34px;border-top:1px solid #2a332c}
+.title-entry{display:grid;grid-template-columns:18px auto 1fr;align-items:baseline;gap:10px;width:100%;padding:15px 6px;background:none;border:0;border-bottom:1px solid #2a332c;color:var(--text);text-align:left;cursor:pointer;font-family:var(--mono)}
+.title-caret{color:var(--orange);opacity:.35;font-size:13px;line-height:1}
+.title-label{font-size:15px;letter-spacing:.16em}
+.title-note{font-size:10px;color:var(--muted);letter-spacing:.04em;justify-self:end;text-align:right;white-space:nowrap}
+.title-entry:hover:not(:disabled),.title-entry:focus-visible{background:#141a17;outline:0}
+.title-entry:hover:not(:disabled) .title-caret,.title-entry:focus-visible .title-caret{opacity:1}
+.title-entry:hover:not(:disabled) .title-label,.title-entry:focus-visible .title-label{color:var(--orange)}
+.title-entry:disabled{cursor:default;color:#59635a}
+.title-entry:disabled .title-caret{opacity:.12}
+.title-entry:disabled .title-note{color:#4a534b}
+.title-manual{margin-top:26px;background:none;border:0;color:var(--muted);font:11px var(--mono);letter-spacing:.12em;padding:8px 12px;cursor:pointer}
+.title-manual:hover,.title-manual:focus-visible{color:var(--orange);outline:0}
+@media (max-height:600px){.title-mark{width:min(26vw,104px);margin-bottom:12px}.title-menu{margin-top:20px}.title-entry{padding:12px 6px}}
