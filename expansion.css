@@ -118,6 +118,4 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .title-entry:disabled{cursor:default;color:#59635a}
 .title-entry:disabled .title-caret{opacity:.12}
 .title-entry:disabled .title-note{color:#4a534b}
-.title-manual{margin-top:26px;background:none;border:0;color:var(--muted);font:11px var(--mono);letter-spacing:.12em;padding:8px 12px;cursor:pointer}
-.title-manual:hover,.title-manual:focus-visible{color:var(--orange);outline:0}
 @media (max-height:600px){.title-mark{width:min(26vw,104px);margin-bottom:12px}.title-menu{margin-top:20px}.title-entry{padding:12px 6px}}

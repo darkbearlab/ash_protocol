@@ -142,9 +142,9 @@ function showIntro(){
       ${entry('enter','CONTINUE',canContinue?`${characterName(game.player.character).split(' · ').pop()} · 第 ${game.floor} 層`:'無進行中的任務',!canContinue)}
       ${entry('deploy','NEW GAME','選擇角色與合約')}
       ${entry('carrying','UPGRADES',`協定點數 ${profile().protocol.balance}`)}
+      ${entry('help','MANUAL','規則與操作')}
       ${entry('settings','SETTING','備份 · 顯示 · 音效')}
     </nav>
-    <button class="title-manual" data-modal="help">作戰指南</button>
   </div>`,false,true);
 }
 function showDeployment(){
