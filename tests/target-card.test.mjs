@@ -15,11 +15,11 @@ test('target card reports actual health, shot chance, distance, cover and target
 test('destructible targets show health without claiming enemy cover or movement',()=>{
   const g=arena();g.props=[{id:'barrel',type:'barrel',x:11,y:10,hp:18,maxHp:18}];g.target='barrel';const d=targetDetails(g);assert.equal(d.name,'爆裂油桶');assert.equal(d.hp,'HP 18 / 18');assert.equal(d.cover,'可破壞物');assert.equal(d.chance,'命中 99%');
 });
-test('target cards stay inside all viewport edges and keep ordinary target/player silhouettes clear',()=>{
+test('target cards use only three corners, stay inside viewport edges and keep the target clear',()=>{
   for(const side of [262,320,388,480])for(const target of [{x:20,y:20},{x:side-20,y:20},{x:20,y:side-20},{x:side-20,y:side-20},{x:side/2+35,y:side/2}]){
     const player={x:side/2,y:side/2},p=targetCardPlacement({target,player,tile:32,width:side,height:side,cardWidth:160,cardHeight:94});
-    assert.ok(p.x>=0&&p.y>=0&&p.x+p.w<=side&&p.y+p.h<=side);
-    for(const point of [target,player])assert.ok(!(point.x>=p.x&&point.x<=p.x+p.w&&point.y>=p.y&&point.y<=p.y+p.h),JSON.stringify({side,target,p}));
+    assert.ok(p);assert.ok(['top-right','bottom-right','bottom-left'].includes(p.corner));assert.ok(p.x>=0&&p.y>=0&&p.x+p.w<=side&&p.y+p.h<=side);
+    for(const point of [target])assert.ok(!(point.x>=p.x&&point.x<=p.x+p.w&&point.y>=p.y&&point.y<=p.y+p.h),JSON.stringify({side,target,p}));
   }
 });
 test('waiting combines reduction, evasion and next-shot aim, without stacking or spending on invalid input',()=>{
@@ -35,7 +35,7 @@ test('waiting reduction does not carry into the next player grenade and does not
   const other=arena();other.hazards=[{x:10,y:10,type:'fire'}];other.action('wait');assert.equal(other.player.hp,88);assert.equal(other.player.guard,true);
 });
 
-test('cards never overlap any enemy even in dense layouts, or omit themselves when no space fits',()=>{
+test('dense layouts keep the target clear but may overlap other enemies in one of the three corners',()=>{
   const overlaps=(a,b)=>a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y;
   let shown=0,omitted=0;
   for(const width of [128,200,262,320,480])for(const tile of [16,32,45,72])for(let seed=0;seed<20;seed++){
@@ -45,7 +45,7 @@ test('cards never overlap any enemy even in dense layouts, or omit themselves wh
     const card=targetCardPlacement({target,player,tile,width,height:width,cardWidth:120,cardHeight:78,blockers,fallbackActors});
     if(!card){omitted++;continue;}shown++;
     assert.ok(card.x>=5&&card.y>=5&&card.x+card.w<=width-5&&card.y+card.h<=width-5);
-    for(const enemy of [...blockers,actorObstacle(target,tile,fallbackActors),actorObstacle(player,tile,fallbackActors)])assert.equal(overlaps(card,enemy),false);
+    assert.equal(overlaps(card,actorObstacle(target,tile,fallbackActors)),false);assert.ok(['top-right','bottom-right','bottom-left'].includes(card.corner));
   }
   assert.ok(shown>0);assert.ok(omitted>0);
   assert.equal(targetCardPlacement({target:{x:64,y:64},player:{x:32,y:32},tile:32,width:128,height:128,cardWidth:120,cardHeight:200}),null,'never clamp the measured height and accidentally overflow into enemies');
@@ -61,4 +61,20 @@ test('renderer invalidates placement when camera moves and rounds measured card 
   renderer.camera.x=11;renderer.placeTargetCard();assert.notEqual(renderer.targetUI.frame,frame);
   renderer.h=64;renderer.placeTargetCard();assert.equal(card.style.visibility,'hidden');assert.ok(attributes.has('hidden'));
   renderer.h=320;renderer.placeTargetCard();assert.equal(card.style.visibility,'visible');assert.equal(attributes.has('hidden'),false);
+});
+
+test('corner choice prioritizes clear target, then fewest enemies, then least enemy overlap',()=>{
+  const args={target:{x:160,y:160},player:{x:120,y:160},tile:32,width:320,height:320,cardWidth:100,cardHeight:80};
+  assert.equal(targetCardPlacement(args).corner,'top-right');
+  const top={x:215,y:5,w:100,h:80},right={x:215,y:235,w:100,h:80},left={x:5,y:235,w:100,h:80};
+  assert.equal(targetCardPlacement({...args,blockers:[top]}).corner,'bottom-right');
+  assert.equal(targetCardPlacement({...args,blockers:[top,right]}).corner,'bottom-left');
+  const crowded=targetCardPlacement({...args,blockers:[top,top,right,left]});assert.equal(crowded.corner,'bottom-right');assert.equal(crowded.rank[0],1);
+  assert.equal(targetCardPlacement({...args,blockers:[top,right,{...left,w:10}]}).corner,'bottom-left');
+  assert.equal(targetCardPlacement({...args,target:{x:265,y:45},blockers:[right,left]}).corner,'bottom-right','target exclusion outranks avoiding every other enemy');
+});
+test('equally clear corners retain previous position and bottom candidates leave room for map controls',()=>{
+  const args={target:{x:160,y:160},player:{x:120,y:160},tile:32,width:320,height:320,cardWidth:100,cardHeight:80};
+  assert.equal(targetCardPlacement({...args,previousCorner:'bottom-left'}).corner,'bottom-left');
+  const card=targetCardPlacement({...args,previousCorner:'bottom-left',bottomInset:44});assert.equal(card.y+card.h,271);assert.ok(card.link.x>=card.x&&card.link.x<=card.x+card.w);assert.ok(card.link.y>=card.y&&card.link.y<=card.y+card.h);
 });

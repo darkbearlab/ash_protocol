@@ -69,9 +69,9 @@ export class Renderer {
     if(ui.width!==width||ui.dirty){ui.card.style.width=`${width}px`;ui.width=width;ui.height=Math.ceil(ui.card.getBoundingClientRect().height);ui.dirty=false;}
     const a=this.project(target.x,target.y),p=this.project(this.game.player.x,this.game.player.y),fallbackActors=!this.sprites.complete||!this.sprites.naturalWidth;
     const obstacles=[{x:6,y:6,w:118,h:54,weight:60},{x:this.w-140,y:this.h-40,w:134,h:34,weight:60}];
-    const pos=targetCardPlacement({target:a,player:p,tile:this.tile,width:this.w,height:this.h,cardWidth:width,cardHeight:ui.height,obstacles,blockers:this.game.visibleEnemies.filter(e=>e!==target).map(e=>actorObstacle(this.project(e.x,e.y),this.tile,fallbackActors)),fallbackActors});
+    const pos=targetCardPlacement({target:a,player:p,tile:this.tile,width:this.w,height:this.h,cardWidth:width,cardHeight:ui.height,bottomInset:44,previousCorner:ui.corner,obstacles,blockers:this.game.visibleEnemies.filter(e=>e!==target).map(e=>actorObstacle(this.project(e.x,e.y),this.tile,fallbackActors)),fallbackActors});
     if(!pos){ui.card.style.visibility='hidden';ui.link.setAttribute('hidden','');return;}
-    ui.card.style.visibility='visible';
+    ui.corner=pos.corner;ui.card.style.visibility='visible';
     const signature=[pos.x,pos.y,pos.link.x,pos.link.y,a.x,a.y,this.w,this.h].join(',');
     if(ui.position!==signature){ui.card.style.transform=`translate(${pos.x}px,${pos.y}px)`;ui.link.setAttribute('viewBox',`0 0 ${this.w} ${this.h}`);ui.path.setAttribute('d',`M ${a.x} ${a.y} L ${pos.link.x} ${pos.link.y}`);ui.position=signature;}
     ui.link.removeAttribute('hidden');

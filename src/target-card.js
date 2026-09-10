@@ -26,22 +26,22 @@ export function actorObstacle(point,tile,fallback=false){
   const rx=Math.max(18,size/2+3,tile*.38+10,extent),top=Math.max(24,size/2+3,tile*.45+5,extent),bottom=Math.max(20,size/2+3,tile*.58+4,extent);
   return {x:point.x-rx,y:point.y-top,w:rx*2,h:top+bottom};
 }
-// Actors are hard exclusions. If no free rectangle fits, omit the card.
-export function targetCardPlacement({target,player,tile,width,height,cardWidth,cardHeight,obstacles=[],blockers=[],fallbackActors=false}){
-  const pad=5,w=cardWidth,h=cardHeight;
+// Only three screen corners. The target is a hard exclusion; other enemies are
+// a preference so crowds cannot force the card back into the middle of the map.
+export function targetCardPlacement({target,player,tile,width,height,cardWidth,cardHeight,obstacles=[],blockers=[],fallbackActors=false,bottomInset=0,previousCorner=null}){
+  const pad=5,w=cardWidth,h=cardHeight,bottom=height-h-pad-bottomInset;
   if(w>width-pad*2||h>height-pad*2)return null;
-  const hard=[actorObstacle(target,tile,fallbackActors),actorObstacle(player,tile,fallbackActors),...blockers];
-  const clampX=x=>Math.round(Math.max(pad,Math.min(width-w-pad,x)));
-  const clampY=y=>Math.round(Math.max(pad,Math.min(height-h-pad,y)));
-  // All obstacle edges are candidates, including gaps between a crowded group.
-  const xs=new Set([pad,width-w-pad,clampX(target.x-w/2)]),ys=new Set([pad,height-h-pad,clampY(target.y-h/2)]);
-  for(const o of [...hard,...obstacles]){xs.add(clampX(Math.floor(o.x-w-2)));xs.add(clampX(Math.ceil(o.x+o.w+2)));ys.add(clampY(Math.floor(o.y-h-2)));ys.add(clampY(Math.ceil(o.y+o.h+2)));}
+  const targetBox=actorObstacle(target,tile,fallbackActors),playerBox=actorObstacle(player,tile,fallbackActors);
+  const candidates=[{corner:'top-right',x:width-w-pad,y:pad},{corner:'bottom-right',x:width-w-pad,y:bottom},{corner:'bottom-left',x:pad,y:bottom}];
   let best=null;
-  for(const x of xs)for(const y of ys){const r={x,y,w,h};
-    if(hard.some(o=>overlap(r,o)>0))continue;
-    const link={x:Math.max(x,Math.min(x+w,target.x)),y:Math.max(y,Math.min(y+h,target.y))};
-    const score=obstacles.reduce((sum,o)=>sum+overlap(r,o)*(o.weight||25),0)+Math.hypot(link.x-target.x,link.y-target.y);
-    if(!best||score<best.score)best={...r,link,score};
+  for(const [index,candidate]of candidates.entries()){
+    if(candidate.y<pad)continue;
+    const r={...candidate,x:Math.round(candidate.x),y:Math.round(candidate.y),w,h};
+    if(overlap(r,targetBox)>0)continue;
+    const areas=blockers.map(b=>overlap(r,b));
+    const rank=[areas.filter(a=>a>0).length,areas.reduce((a,b)=>a+b,0),overlap(r,playerBox),obstacles.reduce((sum,o)=>sum+overlap(r,o)*(o.weight||25),0),r.corner===previousCorner?0:1,index];
+    const link={x:Math.max(r.x,Math.min(r.x+w,target.x)),y:Math.max(r.y,Math.min(r.y+h,target.y))};
+    if(!best||rank.some((n,i)=>n<best.rank[i]&&rank.slice(0,i).every((v,k)=>v===best.rank[k])))best={...r,link,rank};
   }
   return best;
 }
