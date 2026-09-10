@@ -1,4 +1,4 @@
-import {movementBoundaries} from './movement-boundaries.js';
+import {movementBoundaries,boundaryOpacityPercent} from './movement-boundaries.js';
 import {isDark} from './lighting.js';
 import {ArtToneCache} from './art-tone.js';
 import {WALL_ATLAS,drawWall} from './walls.js';
@@ -19,7 +19,7 @@ export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.last=0;this.time=0;
-    this.movementBoundaries=false;this.targetingEnabled=true;this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
     this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;this.terrainImages.set(WALL_ATLAS,this.wallImage);this.artTones=new ArtToneCache();
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
@@ -183,7 +183,23 @@ export class Renderer {
     }
 
     // Optional tactical overlay uses ground coordinates, above wall art for readability.
-    if(this.movementBoundaries)for(const edge of movementBoundaries(g)){const a=this.project(edge.x1,edge.y1),b=this.project(edge.x2,edge.y2);this.line(a.x,a.y,b.x,b.y,'#10191acc',3);this.line(a.x,a.y,b.x,b.y,'#ffffffcc',1);}
+    this.drawTacticalOverlays();
+  }
+  drawTacticalOverlays(){
+    const c=this.ctx,g=this.game,alpha=boundaryOpacityPercent(this.boundaryOpacity)/100;
+    c.save();c.globalAlpha=alpha;
+    if(this.movementBoundaries&&alpha>0)for(const edge of movementBoundaries(g)){
+      const a=this.project(edge.x1,edge.y1),b=this.project(edge.x2,edge.y2);
+      this.line(a.x,a.y,b.x,b.y,'#10191a',3);this.line(a.x,a.y,b.x,b.y,'#ffffff',1);
+    }
+    c.globalAlpha=1;
+    for(const door of g.barriers)if(door.type==='door'&&door.hp>0&&g.visible(door)){
+      const p=this.project(door.x,door.y),h=this.tile*.46,vertical=door.axis==='x';
+      const a={x:p.x-(vertical?0:h),y:p.y-(vertical?h:0)},b={x:p.x+(vertical?0:h),y:p.y+(vertical?h:0)};
+      if(door.open){for(const q of [a,b]){this.box(Math.round(q.x)-3,Math.round(q.y)-3,6,6,'#10191a');this.box(Math.round(q.x)-2,Math.round(q.y)-2,4,4,'#6ef39b');}}
+      else {this.line(a.x,a.y,b.x,b.y,'#10191a',4);this.line(a.x,a.y,b.x,b.y,'#6ef39b',2);}
+    }
+    c.restore();
   }
   terrain(role,a,point,size=Math.round(this.tile),rotation=0){
     const sprite=resolveSprite(themeAt(this.game,point),role),image=sprite&&this.terrainImages.get(sprite.url);

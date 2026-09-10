@@ -96,3 +96,5 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 #sector-title{flex:1;min-width:0;min-height:44px;padding:0;text-align:left;font:500 11px var(--mono);color:#c6ddc7;background:none;border:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mission-choices .character-choice strong{font-size:14px}
 .mission-choices .character-choice span{gap:3px}
+
+.boundary-opacity{display:grid;grid-template-columns:1fr auto;gap:8px;color:#c6d2c3;font-size:12px}.boundary-opacity input{grid-column:1 / -1;width:100%;min-height:44px;margin:0;accent-color:#c6d2c3;touch-action:pan-y}.boundary-opacity input:focus-visible{outline:2px solid #e8ce98;outline-offset:2px}
