@@ -21,7 +21,7 @@ test('Recon alone starts with learned, prepared, ready signal break and normal s
   const g=arena();assert.deepEqual(g.player.skills,['signal_break']);assert.equal(g.player.prepared.skill,'signal_break');
   assert.deepEqual(state(g),{remaining:0,cooldown:0});assert.ok(canUseSkill(g.player,'signal_break'));
   assert.equal(g.player.emp,2);assert.equal(g.player.smoke,2);assert.equal(g.player.meds,2);
-  for(const id of ['bulwark']){const other=arena(id);assert.deepEqual(other.player.skills,[]);assert.equal(use(other),false);assert.equal(other.turn,1);}
+  for(const id of ['bulwark']){const other=arena(id);assert.deepEqual(other.player.skills,['anchor']);assert.equal(canUseSkill(other.player,'signal_break'),false);assert.equal(other.turn,1);}
 });
 
 test('activation is free, preserves resources, enemy memory and RNG, and emits one presentation step',()=>{
@@ -124,7 +124,7 @@ test('v19 Recon migration adds a ready prepared skill without refilling or chang
     const g=arena(character);Object.assign(g.player,{hp:43,meds:0,emp:0,smoke:0,reserve:7});
     const legacy=JSON.parse(g.serialize());legacy.version=19;const p=legacy.data.player;p.skills=[];p.prepared.skill=null;delete p.skillState;
     const restored=Game.restore(JSON.stringify(legacy));assert.ok(restored);assert.equal(restored.rng.state(),g.rng.state());
-    const expected=structuredClone(p);const id=character==='recon'?'signal_break':character==='soldier'?'early_warning':null;expected.skills=id?[id]:[];expected.prepared.skill=id;
+    const expected=structuredClone(p);const id=character==='recon'?'signal_break':character==='soldier'?'early_warning':'anchor';expected.skills=id?[id]:[];expected.prepared.skill=id;
     expected.skillState=id?{[id]:{remaining:0,cooldown:0}}:{};assert.deepEqual(restored.player,expected);
   }
 });

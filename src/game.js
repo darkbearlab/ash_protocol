@@ -1,6 +1,6 @@
 import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies} from './allies.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
-import {SKILLS,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
+import {toggleAnchor,validAnchor,SKILLS,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
 import {fullLighting,validLighting,lightingEffects} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
@@ -168,7 +168,7 @@ export class Game {
       if(edgeBlocks(edge)&&!vaultable(edge)){if(edge.type==='door')return true;this.target=edge.id;return this.fail('隔板阻擋通行，可開火破壞。');}
       if(!this.passable(x,y))return this.fail('前方有牆壁或障礙。');
       if(this.activeAllies.some(a=>a.x===x&&a.y===y))return this.fail('友軍占據前方，請指揮移開或繞行。');
-      const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;if(!edgeBlocks(edge)&&this.bumpMeleeSlot()!==undefined&&this.visible(e)&&this.shotClear(p,e))return true;return this.fail('敵人擋住去路，先開火。');}return true;
+      const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;if(!edgeBlocks(edge)&&this.bumpMeleeSlot()!==undefined&&this.visible(e)&&this.shotClear(p,e))return true;return this.fail('敵人擋住去路，先開火。');}return !skillActive(p,'anchor')||this.fail('下錨中無法移動，請先解除。');
     }
     if(type==='recoverObjective')return this.nearbyObjectives.some(t=>t.id===arg)||this.fail('附近沒有可回收的機密資料。');
     if(type==='openContainer')return this.nearbyContainers.some(c=>c.id===arg)||this.fail('附近沒有可開啟的補給箱。');
@@ -187,6 +187,7 @@ export class Game {
       const cost=TERMINAL_AMMO[arg]?.cost??(arg==='grenade'?12:GRENADES[arg]?.cost??15),kind=grenadeByItem(arg)?'grenade':TERMINAL_AMMO[arg]?arg:null;
       return (p.scrap>=cost&&!(arg==='heal'&&p.hp===p.maxHp&&!p.poison)&&!(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=this.ammoCapacity(kind))&&!(arg==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=this.ammoCapacity(id))))||this.fail('廢料不足或補給已滿。');
     }
+    if(type==='interact'&&skillActive(p,'anchor'))return this.fail('下錨中無法換層，請先解除。');
     if(type==='interact')return (this.canTouch(this.exitPoint)&&!this.exitBlocked)||this.fail(this.exitBlocked||'需要靠近綠色電梯。');
     return type==='wait';
   }
@@ -217,23 +218,31 @@ export class Game {
       else if(type==='commandPet')return commandPet(this,arg);
       return true;
     }
+    const doubleAttack=skillActive(p,'anchor')&&['fire','bumpMelee','grenade'].includes(type),previousChain=p.fireChain?{...p.fireChain}:null;
     const fireIntent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:null,floor=this.floor,queue=initiativeQueue(p,this.enemies,this.activeAllies),playerSpeed=queue.find(q=>q.actor===p).speed;
+    if(doubleAttack){
+      queue.find(q=>q.actor===p).speed=1;
+      queue.push({actor:p,index:0,speed:0,anchorExtra:true});queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);
+    }
+    let playerStunned=false;
     this.turn++;
-    for(const {actor,speed}of queue){
+    for(const {actor,speed,anchorExtra=false}of queue){
       if(p.hp<=0||this.status!=='playing'||this.floor!==floor)break;
       if(actor.hp<=0||actor.kind&&(actor.status!=='active'||actor.floor!==this.floor))continue;
+      if(actor===p&&playerStunned)continue;
       actor.vaultExposed=false;
-      if(skipDisabled(actor)){if(actor===p)this.log('失能：本次行動跳過，未消耗彈藥或道具。',true);continue;}
+      if(skipDisabled(actor)){if(actor===p){playerStunned=true;this.log('失能：本次行動跳過，未消耗彈藥或道具。',true);}continue;}
       const immunityBefore=actor.control?.immune||0;
       if(actor===p){
+        if(doubleAttack&&!anchorExtra&&type==='fire')p.fireChain=previousChain?{...previousChain}:null;
         if(type==='fire')this.target=fireIntent.id; // Track identity, never switch to another enemy.
-        const success=this.executePlayer(type,fireIntent||arg);
+        const success=this.executePlayer(type,fireIntent||arg,{committedThrow:doubleAttack});
         if(!success)this.log('局勢已改變，行動未能完成；本回合已消耗。');
         p.guard=success&&type==='wait';p.moved=success&&type==='move';p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
         this.reveal();
       }else if(actor.kind)presentStep(this,()=>{allyAct(this,actor);this.reveal();},actor);
       else if(actor.hp>0&&actor.alert)presentStep(this,()=>this.enemyAct(actor),speed!==0||playerSpeed!==0?actor:null);
-      if(immunityBefore)actor.control.immune=Math.max(0,actor.control.immune-1);
+      if(immunityBefore&&!anchorExtra)actor.control.immune=Math.max(0,actor.control.immune-1);
     }
     if(this.floor===floor&&this.status==='playing'&&p.hp>0){
       const due=this.marks.filter(m=>m.due<=this.turn);this.marks=this.marks.filter(m=>m.due>this.turn);
@@ -250,19 +259,25 @@ export class Game {
   activateSkill(id){
     return presentStep(this,()=>{
       if(ALLY_SKILLS.includes(id))return useAllySkill(this,id);
+      if(id==='anchor'){
+        if(!toggleAnchor(this.player))return false;
+        this.effects.push({type:'pulse',from:{x:this.player.x,y:this.player.y},to:{x:this.player.x,y:this.player.y},radius:.6,color:'#e6c281',damage:0});
+        this.log(skillActive(this.player,'anchor')?'下錨完成：固定位置，攻擊於普通與緩速各一次。':'下錨已解除，可以移動。');return true;
+      }
       const def=SKILLS[id],p=this.player;p.skillState[id]={remaining:def.duration,cooldown:def.cooldown};
       if(id==='early_warning'){this.sensorContacts=this.enemies.filter(e=>e.hp>0&&distance(p,e)<=def.radius).map(e=>{e.alert=true;e.lastKnown={x:p.x,y:p.y};return {x:e.x,y:e.y};});this.log(`預警取得 ${this.sensorContacts.length} 個位置；敵人已得知你的位置。`,true);}
       this.effects.push({type:'pulse',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},radius:.6,color:'#8ae9da',damage:0});
       this.log(`${def.name}啟動：持續 ${def.duration} 回合，冷卻 ${def.cooldown} 回合。`);this.reveal();return true;
     });
   }
-  executePlayer(type,arg){
+  executePlayer(type,arg,{committedThrow=false}={}){
     const p=this.player;
     let success=false;
     p.guard=false;p.moved=false;p.moveDelta=[0,0];if(type!=='fire')p.fireChain=null;
     switch(type) {
       case 'move': {
         if(!Array.isArray(arg)||!Number.isInteger(arg[0])||!Number.isInteger(arg[1])||Math.abs(arg[0])+Math.abs(arg[1])!==1)return false;
+        if(skillActive(p,'anchor'))return this.fail('下錨中無法移動。');
         const [dx,dy]=arg,x=p.x+dx,y=p.y+dy;
         const edge=barrierBetween(this.barriers,p,{x,y});
         if(!this.canCross(p,{x,y})&&!vaultable(edge))return this.fail('前方障礙物已阻擋移動。');
@@ -286,7 +301,7 @@ export class Game {
         if(p.hp===p.maxHp&&p.poison===0)return this.fail('生命值已滿。');
         p.meds--;p.hp=Math.min(p.maxHp,p.hp+45+p.healBonus);p.poison=0;
         this.log(`使用醫療包，回復 ${45+p.healBonus} 生命並清除中毒。`);success=true;break;
-      case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
+      case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted,committedThrow));break;
       case 'weapon': {
         const index=arg===undefined?p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length]:Number(arg);
         if(!p.owned.includes(index))return this.fail('背包裡沒有這把武器。');
@@ -413,11 +428,11 @@ export class Game {
     this.log(prop.type==='barrel'?'油桶被引爆！':'掩體已摧毀。');
     if(prop.type==='barrel')this.explode(prop,2,45);
   }
-  throwGrenade(pos) {
+  throwGrenade(pos,committed=false) {
     const p=this.player,id=pos?.grenade??p.prepared.grenade,def=GRENADES[id];
     if(!def||p[def.resource]<=0)return this.fail('預備的投擲物已用盡。');
     if(!pos||!Number.isInteger(pos.x)||!Number.isInteger(pos.y)||this.grid[pos.y]?.[pos.x]!==1)return this.fail('先選擇可見地板或敵人作為投擲位置。');
-    if(distance(p,pos)>5||!this.visible(pos))return this.fail('投擲位置需在視線內 5 格以內。');
+    if(distance(p,pos)>5||(!committed&&!this.visible(pos)))return this.fail('投擲位置需在視線內 5 格以內。');
     p[def.resource]--;p.stats.grenades++;this.log(`投擲${def.name}。`);
     this.effects.push({type:'shot',style:'grenade',color:def.color,from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     if(id==='frag')this.explode(pos,2,55+p.blastBonus);
@@ -619,6 +634,7 @@ export class Game {
     this.log('終端補給完成。此終端已耗盡。');return true;
   }
   descend(advanceTurn=true) {
+    if(skillActive(this.player,'anchor'))return this.fail('下錨中無法換層，請先解除。');
     const p=this.player;
     if(!this.canTouch(this.exitPoint))return this.fail('需要靠近綠色電梯。');
     if(this.exitBlocked)return this.fail(this.exitBlocked);
@@ -655,7 +671,7 @@ export class Game {
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
-      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
+      if(![1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,SAVE_VERSION].includes(version)||data?.status!=='playing'||!data.player||!Number.isInteger(data.floor)||data.floor<1||data.floor>FLOORS.length)return null;
       if(!Number.isInteger(data.seed)||data.seed<0||!Number.isInteger(data.turn)||data.turn<1)return null;
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)||(e.raised!==undefined&&typeof e.raised!=='boolean')))return null;
@@ -708,6 +724,12 @@ export class Game {
         data.sensorContacts=[];p.vaultExposed=false;for(const e of data.enemies)e.vaultExposed=false;
         for(const frame of Object.values(data.floorStates||{}))for(const e of frame.enemies||[])e.vaultExposed=false;
       }
+      if(version<25&&p.character==='bulwark'){
+        if(!p.skills.includes('anchor'))p.skills=[...p.skills,'anchor'];
+        p.prepared={...p.prepared,skill:p.prepared.skill||'anchor'};
+        p.skillState={...p.skillState,anchor:{remaining:0,cooldown:0}};
+      }
+      if(!validAnchor(p))return null;
       if(!validSkillState(p)||![version>=22?data.player:p,...data.enemies].every(a=>typeof a.vaultExposed==='boolean'))return null;
       if(!Array.isArray(data.sensorContacts)||data.sensorContacts.length>256||data.sensorContacts.some(q=>!point(q))||(!skillActive(p,'early_warning')&&data.sensorContacts.length))return null;
       p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0||p.plates>CHARACTERS[p.character].plateCapacity)return null;
