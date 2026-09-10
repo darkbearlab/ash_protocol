@@ -1,4 +1,4 @@
-// 友軍迭代的同場景前後對照（3.36.0 起）。人工場景、敵人不行動，不代表自然平衡。
+// 友軍迭代的同場景前後對照（3.36.0 起；K 開頭為 3.38 窄口卡點）。人工場景、敵人不行動，不代表自然平衡。
 // 用法：node qa/ally-scenes.mjs [src 目錄]，預設為本倉庫 src，輸出 JSON。
 // 比較舊版：git archive <舊 SHA> src | tar -x -C <暫存目錄>，再以 <暫存目錄>/src 執行一次。
 import {pathToFileURL} from 'node:url';
@@ -120,6 +120,47 @@ for (const [label, make, cls] of [['追隨無人機', g => drone(g, 9, 10), 'eng
   for (let i = 0; i < 4; i++) { g.action('move', [1, 0]); count(); }
   for (let i = 0; i < 10; i++) { g.action('wait'); count(); }
   out[`E2 推進中交戰：${label}`] = {十四回合出手: shots, 傷害: hp - e.hp, ...(a.kind === 'drone' ? {剩彈: a.ammo} : {})};
+}
+
+// ── 3.38 窄口卡點 ──
+const rooms = [[3, 6, 8, 14], [9, 10, 9, 10], [10, 6, 16, 14]];
+let petDamage = 0;
+const watchPet = (g, p) => { const hit = g.hitTarget.bind(g); g.hitTarget = (e, dmg, a, ...r) => { const hp = e.hp, res = hit(e, dmg, a, ...r); if (a === p) petDamage += hp - Math.max(0, e.hp); return res; }; };
+
+// K1 死路回頭：帶兩隻召喚物走進死路走廊，再往回走 12 步
+{
+  const g = build('necromancer', [[3, 10, 15, 10]]); g.player.x = 6; turn1(g); summon(g, 5, 10); summon(g, 4, 10);
+  for (let i = 0; i < 9; i++) g.action('move', [1, 0]);
+  let ok = 0; for (let i = 0; i < 12; i++) if (g.action('move', [-1, 0])) ok++; else g.action('wait');
+  out['K1 死路回頭（兩隻召喚物）'] = {十二次往回走成功: ok, 玩家最後位置: g.player.x};
+}
+// K2 門洞被正在射擊的友軍佔住：召喚哨兵在門洞射擊，狗在後面想衝過去
+{
+  const g = build('druid', rooms); Object.assign(g.player, {x: 6, y: 12}); turn1(g);
+  const s = summon(g, 9, 10, 'gunner'), p = pet(g, 8, 10), e = foe(g, 13, 10); petDamage = 0; watchPet(g, p);
+  const hp = e.hp; for (let i = 0; i < 8; i++) g.action('wait');
+  out['K2 門洞被射擊中的友軍佔住'] = {狗造成傷害: petDamage, 總傷害: hp - e.hp, 狗位置: `${p.x},${p.y}`};
+}
+// K2b 同上，但換位後哨兵會失去射線（牠正在打的敵人在門洞斜上方）：不應換位
+{
+  const g = build('druid', rooms); Object.assign(g.player, {x: 6, y: 12}); turn1(g);
+  const s = summon(g, 9, 10, 'gunner'), p = pet(g, 8, 10); foe(g, 13, 10); foe(g, 10, 8);
+  for (let i = 0; i < 4; i++) g.action('wait');
+  out['K2b 換位會讓射擊中的友軍失去射線'] = {哨兵位置: `${s.x},${s.y}`, 狗位置: `${p.x},${p.y}`};
+}
+// K3 玩家擋在走廊：狗在身後看得到前方敵人，玩家往後撞狗一次
+{
+  const g = build('druid', [[3, 10, 12, 10], [13, 6, 18, 14]]); Object.assign(g.player, {x: 9, y: 10}); turn1(g);
+  const p = pet(g, 8, 10), e = foe(g, 15, 10); petDamage = 0; watchPet(g, p);
+  g.action('move', [-1, 0]); for (let i = 0; i < 7; i++) g.action('wait');
+  out['K3 玩家往後撞狗'] = {狗造成傷害: petDamage, 狗位置: `${p.x},${p.y}`};
+}
+// K4 走廊兩隻召喚物單純跟隨：不應為了靠近玩家而來回互換
+{
+  const g = build('necromancer', corridor); g.player.x = 10; turn1(g); const A = summon(g, 9, 10), B = summon(g, 8, 10);
+  let swaps = 0; const log = g.log.bind(g); g.log = (t, ...r) => { if (/交換位置/.test(t)) swaps++; return log(t, ...r); };
+  for (let i = 0; i < 8; i++) g.action('move', [1, 0]); for (let i = 0; i < 6; i++) g.action('wait');
+  out['K4 走廊跟隨不來回互換'] = {互換次數: swaps, 前隻距離: d(A, g.player), 後隻距離: d(B, g.player)};
 }
 
 console.log(JSON.stringify(out));

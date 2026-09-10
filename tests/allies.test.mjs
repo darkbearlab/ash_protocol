@@ -216,33 +216,50 @@ test('packed zero-hp wreck follows floors and survives complete backup while gro
  const raw=JSON.parse(g.serialize());raw.data.allies[0].status='active';assert.equal(Game.restore(JSON.stringify(raw)),null);
  raw.data.allies[0].status='packed';raw.data.allies[0].hp=-1;assert.equal(Game.restore(JSON.stringify(raw)),null);
 });
-// 3.36 ally iteration round 1: shoves, closing in when the exact tile is taken, and holding fights.
+// 3.36 ally iteration round 1 (closing in when the exact tile is taken, holding fights) and
+// 3.38 swaps: walking into an ally trades places, and allies trade places in narrow ways.
 const corridor=(g,x0,x1)=>{g.grid=g.grid.map(r=>r.map(()=>0));for(let x=x0;x<=x1;x++)g.grid[10][x]=1;};
-test('walking into an ally shoves it along the move for one turn; the ally gives up that action',()=>{
- const g=arena('druid'),a=pet(g),e=enemy(g,13,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
- assert.ok(g.action('move',[1,0]));assert.deepEqual([g.player.x,a.x,a.y,g.turn,a.restTurn],[11,12,10,2,2]);assert.equal(e.hp,500);
+const rooms=(g,rects)=>{g.grid=g.grid.map(r=>r.map(()=>0));for(const [x0,y0,x1,y1] of rects)for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)g.grid[y][x]=1;};
+test('walking into an ally trades places for one turn; the ally gives up that action',()=>{
+ const g=arena('druid'),a=pet(g),e=enemy(g,9,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
+ assert.ok(g.action('move',[1,0]));assert.deepEqual([g.player.x,a.x,a.y,g.turn,a.restTurn],[11,10,10,2,2]);assert.equal(e.hp,500);
  g.action('wait');assert.ok(e.hp<500);assert.ok(Game.restore(g.serialize()));
 });
-test('a blocked shove sidesteps but never backs into the player; a boxed-in ally refuses without spending time',()=>{
- const g=arena('druid'),a=pet(g);corridor(g,5,11);
- assert.equal(g.action('move',[1,0]),false);assert.equal(g.turn,1);assert.equal(a.x,11);assert.match(g.logs[0].text,/沒有空位/);
- g.grid[11][11]=1;assert.ok(g.action('move',[1,0]));assert.deepEqual([g.player.x,g.player.y,a.x,a.y],[11,10,11,11]);
+test('allies can never box the player in: a dead-end ally still swaps and two summons are walked back out',()=>{
+ const g=arena('druid'),a=pet(g);corridor(g,5,11);assert.ok(g.action('move',[1,0]));assert.deepEqual([g.player.x,a.x],[11,10]);
+ const n=arena('necromancer');corridor(n,3,15);n.player.x=6;addAlly(n,'summon','rifleman',{sourceId:'raise_dead',point:{x:5,y:10}});addAlly(n,'summon','rifleman',{sourceId:'raise_dead',point:{x:4,y:10}});
+ for(let i=0;i<9;i++)assert.ok(n.action('move',[1,0]));for(let i=0;i<12;i++)assert.ok(n.action('move',[-1,0]),`step back ${i}`);assert.equal(n.player.x,3);assert.ok(Game.restore(n.serialize()));
 });
-test('sentries, disabled allies, low rails and an anchored bulwark refuse a shove without spending time',()=>{
+test('sentries, disabled allies, low rails and an anchored bulwark refuse a swap without spending time',()=>{
  const g=arena(),s=drone(g,{x:11,y:10},'active','drone_sentry');assert.equal(g.action('move',[1,0]),false);assert.match(g.logs[0].text,/哨兵/);
  s.sourceId='drone_follow';s.control.disabled=2;assert.equal(g.action('move',[1,0]),false);assert.match(g.logs[0].text,/失能/);
- s.control.disabled=0;g.barriers=[makeBarrier('low_partition',{x:10,y:10},{x:11,y:10},'push-rail')];assert.equal(g.action('move',[1,0]),false);assert.equal(g.turn,1);assert.equal(s.x,11);
+ s.control.disabled=0;g.barriers=[makeBarrier('low_partition',{x:10,y:10},{x:11,y:10},'swap-rail')];assert.equal(g.action('move',[1,0]),false);assert.equal(g.turn,1);assert.equal(s.x,11);
  const b=arena('bulwark');assert.ok(use(b));addAlly(b,'survivor','rifleman',{point:{x:11,y:10}});const turn=b.turn;assert.equal(b.action('move',[1,0]),false);assert.match(b.logs[0].text,/下錨/);assert.equal(b.turn,turn);
 });
 test('a faster ally that already acted gives up its next action instead, and the rest marker round-trips',()=>{
- const g=arena('necromancer'),a=addAlly(g,'summon','raider',{sourceId:'raise_dead',point:{x:11,y:10}}),e=enemy(g,13,10);grantTrait(a,'fast','test:push');e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
- assert.ok(g.action('move',[1,0]));assert.ok(e.hp<500);assert.equal(a.restTurn,g.turn+1);assert.ok(Game.restore(g.serialize()));
+ const g=arena('necromancer'),a=addAlly(g,'summon','raider',{sourceId:'raise_dead',point:{x:11,y:10}}),e=enemy(g,13,10);grantTrait(a,'fast','test:swap');e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
+ assert.ok(g.action('move',[1,0]));assert.deepEqual([g.player.x,a.x],[11,10]);assert.ok(e.hp<500);assert.equal(a.restTurn,g.turn+1);assert.ok(Game.restore(g.serialize()));
  const hp=e.hp;g.action('wait');assert.equal(e.hp,hp);g.action('wait');assert.ok(e.hp<hp);
  for(const bad of [0,'3',g.turn+2]){const raw=JSON.parse(g.serialize());raw.data.allies[0].restTurn=bad;assert.equal(Game.restore(JSON.stringify(raw)),null);}
 });
-test('a fast enemy taking the only free tile cancels the committed shove; nothing moves but the turn is spent',()=>{
- const g=arena('druid'),a=pet(g);corridor(g,5,14);const e=enemy(g,14,10);e.hp=500;e.alert=true;grantTrait(e,'fast','test:push');g.enemyAct=x=>{if(x===e){e.x=12;e.y=10;}};
- assert.ok(g.action('move',[1,0]));assert.equal(g.turn,2);assert.deepEqual([g.player.x,a.x,e.x],[10,11,12]);assert.equal(a.restTurn,undefined);
+test('a fast enemy disabling the ally first cancels the committed swap; nothing moves but the turn is spent',()=>{
+ const g=arena('druid'),a=pet(g);const e=enemy(g,14,10);e.hp=500;e.alert=true;grantTrait(e,'fast','test:swap');g.enemyAct=x=>{if(x===e)a.control.disabled=2;};
+ assert.ok(g.action('move',[1,0]));assert.equal(g.turn,2);assert.deepEqual([g.player.x,a.x],[10,11]);assert.equal(a.restTurn,undefined);
+});
+test('stepping back into a pet behind you in a corridor puts it in front to reach the enemy',()=>{
+ const g=arena('druid'),a=pet(g,{x:8,y:10});corridor(g,3,14);g.player.x=9;const e=enemy(g,13,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
+ assert.ok(g.action('move',[-1,0]));assert.deepEqual([g.player.x,a.x],[8,9]);for(let i=0;i<5;i++)g.action('wait');assert.ok(e.hp<500);
+});
+test('an ally trades places with one parked in a doorway only when the parked one keeps its shot',()=>{
+ const layout=[[3,6,8,14],[9,10,9,10],[10,6,16,14]];
+ const g=arena('druid');rooms(g,layout);Object.assign(g.player,{x:6,y:12});const s=addAlly(g,'summon','gunner',{sourceId:'raise_dead',point:{x:9,y:10}}),a=pet(g,{x:8,y:10}),e=enemy(g,13,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
+ g.action('wait');assert.deepEqual([a.x,s.x],[9,8]);assert.equal(s.restTurn,g.turn+1);const hp=e.hp;for(let i=0;i<5;i++)g.action('wait');assert.equal(Math.abs(a.x-e.x)+Math.abs(a.y-e.y),1);assert.ok(e.hp<hp);
+ const h=arena('druid');rooms(h,layout);Object.assign(h.player,{x:6,y:12});const t=addAlly(h,'summon','gunner',{sourceId:'raise_dead',point:{x:9,y:10}}),b=pet(h,{x:8,y:10});enemy(h,13,10).hp=500;enemy(h,10,8).hp=500;h.enemyAct=()=>{};zero(h);h.reveal();
+ for(let i=0;i<3;i++)h.action('wait');assert.deepEqual([b.x,t.x],[8,9]);
+});
+test('a pet holding a commanded tile is never traded aside by another ally',()=>{
+ const g=arena('necromancer');corridor(g,3,16);g.player.x=5;const p=addAlly(g,'pet','crawler',{sourceId:'pet_command',point:{x:8,y:10}});p.order={x:8,y:10};const s=addAlly(g,'summon','crawler',{sourceId:'raise_dead',point:{x:7,y:10}});enemy(g,12,10).hp=500;g.enemyAct=()=>{};g.reveal();
+ for(let i=0;i<3;i++)g.action('wait');assert.deepEqual([s.x,p.x],[7,8]);
 });
 test('two summons queue through a one-tile corridor instead of the rear one freezing',()=>{
  const g=arena('necromancer');corridor(g,2,24);const A=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:9,y:10}}),B=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:8,y:10}});

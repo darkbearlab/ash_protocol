@@ -1,4 +1,4 @@
-import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,pushCell,pushReason,pushAlly,tickPackedPet,petSkillReason} from './allies.js';
+import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickPackedPet,petSkillReason} from './allies.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
@@ -174,7 +174,7 @@ export class Game {
       if(edgeBlocks(edge)&&!vaultable(edge)){if(edge.type==='door')return true;this.target=edge.id;return this.fail('隔板阻擋通行，可開火破壞。');}
       if(!this.passable(x,y))return this.fail('前方有牆壁或障礙。');
       const ally=this.activeAllies.find(a=>a.x===x&&a.y===y);
-      if(ally){if(skillActive(p,'anchor'))return this.fail('下錨中無法移動，請先解除。');const reason=pushReason(this,ally,arg);return !reason||this.fail(reason);}
+      if(ally){if(skillActive(p,'anchor'))return this.fail('下錨中無法移動，請先解除。');const reason=swapReason(this,ally);return !reason||this.fail(reason);}
       const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;if(!edgeBlocks(edge)&&this.bumpMeleeSlot()!==undefined&&this.visible(e)&&this.shotClear(p,e))return true;return this.fail('敵人擋住去路，先開火。');}return !skillActive(p,'anchor')||this.fail('下錨中無法移動，請先解除。');
     }
     if(type==='recoverObjective')return this.nearbyObjectives.some(t=>t.id===arg)||this.fail('附近沒有可回收的機密資料。');
@@ -292,9 +292,9 @@ export class Game {
         if(!this.passable(x,y))return this.fail(this.solid(x,y)?'掩體或油桶擋住去路。可以繞行或射擊破壞。':'前方是牆壁。');
         const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);
         if(e){this.target=e.id;return this.fail('敵人擋住去路，先開火。');}
-        // Re-check the shove at resolution; a faster unit may have taken the only free tile.
+        // Re-check the swap at resolution; a faster enemy may have disabled the ally in the meantime.
         const ally=this.activeAllies.find(a=>a.x===x&&a.y===y);
-        if(ally){const cell=!pushReason(this,ally,arg)&&pushCell(this,ally,arg);if(!cell)return false;pushAlly(this,ally,cell);}
+        if(ally){if(swapReason(this,ally))return false;swapWithPlayer(this,ally);}
         p.vaultExposed=vaultable(edge);if(p.vaultExposed)this.log('翻越矮隔板：至下次自身行動前，被射擊命中 +20。',true);
         p.x=x;p.y=y;p.facing=[dx,dy];p.moveDelta=[dx,dy];this.pickup();success=true;break;
       }

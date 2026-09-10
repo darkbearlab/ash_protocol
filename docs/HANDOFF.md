@@ -1,4 +1,11 @@
-# 快速接手：ASH PROTOCOL 3.37.0
+# 快速接手：ASH PROTOCOL 3.38.0
+
+## 3.38.0：換位解決窄口卡點（Claude 開發，使用者決定）
+
+- 規格：[ALLIES.md](ALLIES.md)「3.38 換位」；報告：[qa/results/2026-09-11-claude-3.38.0-allies-iteration.md](../qa/results/2026-09-11-claude-3.38.0-allies-iteration.md)。
+- `src/allies.js`：移除 `pushCell`／`pushReason`／`pushAlly`，改為 `swapReason`／`swapWithPlayer`；`stepToward` 無進展時可 `swapPast`（只在追擊、留守、返回時），條件在 `canTrade`／`attackFrom`；`slotTurn`（WeakMap，不存檔）決定被換者放棄本回合或下一回合。
+- `src/game.js`：移動驗證與執行兩處改呼叫換位。存檔不變。
+- 推動已移除，使用者表示要觀察是否需要以其他形式回來。
 
 ## 3.37.0：德魯伊寵物可回收（Claude 開發，使用者決定）
 

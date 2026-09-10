@@ -1,7 +1,7 @@
 import {ENEMY_TYPES,SIZE} from './data.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
-import {activeTrait,validTraits,validCombatMemory,initiative} from './traits.js';
+import {activeTrait,validTraits,validCombatMemory} from './traits.js';
 import {validControl} from './throwables.js';
 import {validCombatModifiers} from './actor-stats.js';
 
@@ -139,9 +139,13 @@ export function commandPet(g,point){
  const a=currentAllies(g).find(a=>a.kind==='pet');if(!a||g.player.prepared.skill!=='pet_command'||g.player.control.disabled||!point||!Number.isInteger(point.x)||!Number.isInteger(point.y)||!g.seen[point.y]?.[point.x]||!g.passable(point.x,point.y)||distance(point,g.player)>TETHER)return false;
  a.order=distance(point,g.player)===0?null:{x:point.x,y:point.y};g.log(a.order?'寵物收到留守指令，下次自身行動執行。':'寵物返回跟隨。');return true;
 }
+// The world turn in which each ally last reached its queue slot, so a displaced ally gives up exactly one
+// opportunity: this turn's if it is still to come, otherwise the next. Session-only; turns never span a reload.
+const slotTurn=new WeakMap();
+const restFor=(g,a)=>slotTurn.get(a)===g.turn?g.turn+1:g.turn;
 export function allyAct(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return;
- a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return;
+ slotTurn.set(a,g.turn);a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return;
  const w=allyWeapon(a),linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
  const shot=linked&&(a.kind!=='drone'||a.ammo>0)?targets.find(e=>distance(a,e)<=w.range&&g.shotClear(a,e)&&(!w.melee||g.canCross(a,e))):null;
  const attack=e=>{
@@ -152,47 +156,67 @@ export function allyAct(g,a){
  };
  const beside=goal=>q=>distance(q,goal)<=1;
  if(a.kind==='drone'&&a.sourceId==='drone_sentry'){if(shot)attack(shot);return;}
- if(!linked){stepToward(g,a,g.player,beside(g.player),linked);return;}
+ // Swapping past another ally is for real errands (rejoining, a commanded tile, a fight); idle following just queues.
+ if(!linked){stepToward(g,a,g.player,beside(g.player),linked,true);return;}
  // A hold order walks first; if the way is shut, fight from here rather than idle.
- if(a.order&&distance(a,a.order)>0){if(!stepToward(g,a,a.order,q=>key(q)===key(a.order),linked)&&shot)attack(shot);return;}
+ if(a.order&&distance(a,a.order)>0){if(!stepToward(g,a,a.order,q=>key(q)===key(a.order),linked,true)&&shot)attack(shot);return;}
  // Engaged allies keep the fight inside the tether; the short leash would make melee pets pace back and forth.
  if(shot){attack(shot);return;}
  const chase=a.kind!=='drone'&&!a.order?targets.find(e=>distance(e,g.player)<=leash(a)):null;
  // Walk to the nearest tile that can actually attack, not to the target's side: ranged allies stop at range.
- if(chase){stepToward(g,a,chase,q=>distance(q,chase)<=w.range&&g.shotClear(q,chase)&&(!w.melee||g.canCross(q,chase)),linked);return;}
+ if(chase){stepToward(g,a,chase,q=>distance(q,chase)<=w.range&&g.shotClear(q,chase)&&(!w.melee||g.canCross(q,chase)),linked,true);return;}
  if((a.kind==='drone'||!a.order)&&distance(a,g.player)>FOLLOW_RANGE[a.kind==='drone'?'drone':'other'])stepToward(g,a,g.player,beside(g.player),linked);
 }
 // One step toward a tile that satisfies reached. When none is reachable (taken, or behind another ally),
 // close in on goal by walking distance instead of freezing; never step to a tile that is no closer.
-function stepToward(g,a,goal,reached,linked){
+function stepToward(g,a,goal,reached,linked,swap=false){
  const cells=routeCells(g,a,{actor:a,limit:18,maxPlayerDistance:Math.max(leash(a),distance(a,g.player))}).filter(q=>q.first&&(distance(q,g.player)<=leash(a)||!linked));
  let dest=cells.filter(reached).sort((b,c)=>b.d-c.d)[0];
  if(!dest){
   const walk=new Map(routeCells(g,goal,{actor:a,ignoreActors:true}).map(q=>[key(q),q.d])),far=q=>walk.get(key(q))??Infinity,here=far(a);
   dest=cells.filter(q=>far(q)<here).sort((b,c)=>far(b)-far(c)||b.d-c.d)[0];
+  // Still no progress: the way on is another ally's tile. Trade places when that costs the other ally nothing it is doing.
+  if(!dest)return swap&&swapPast(g,a,far,here,linked);
  }
- if(!dest)return false;
  const next=dest.first,edge=barrierBetween(g.barriers,a,next);
  if(edgeBlocks(edge)&&!vaultable(edge)){g.setDoor(edge,true);return true;}
  const old={x:a.x,y:a.y};Object.assign(a,next);a.moveDelta=[a.x-old.x,a.y-old.y];a.moved=true;a.vaultExposed=vaultable(edge);return true;
 }
-// Walking into an ally pushes it one tile along the move, else to a free side tile; never back onto the player,
-// never across a closed door or rail. The shove replaces the ally's own action for one world turn.
-export function pushCell(g,a,[dx,dy]){
- const cells=[[dx,dy],...DIRECTIONS.filter(([x,y])=>x*dx+y*dy===0)].map(([x,y])=>({x:a.x+x,y:a.y+y})).filter(n=>g.passable(n.x,n.y,a)&&g.canCross(a,n)&&!occupied(g,n,a));
- return cells.find(n=>!g.hazards.some(h=>key(h)===key(n)))||cells[0]||null;
+// The enemy an ally would attack from a tile: the nearest it could hit from there, or only the given one.
+function attackFrom(g,b,from,only=null){
+ const w=allyWeapon(b),at={...b,x:from.x,y:from.y};
+ if(!connected(g,at)||b.kind==='drone'&&b.ammo<=0)return null;
+ return (only?[only]:g.enemies).filter(e=>e.hp>0&&distance(at,e)<=w.range&&g.sight(at,e)&&g.shotClear(at,e)&&(!w.melee||g.canCross(at,e))).sort((x,y)=>distance(at,x)-distance(at,y)||x.id.localeCompare(y.id))[0]||null;
 }
-export function pushReason(g,a,dir){
+// Another ally may take b's tile only if b is free to move, is not holding a commanded spot, and can still
+// attack whatever it is attacking now from a's tile. That last rule also keeps two allies from swapping back.
+function canTrade(g,b,a){
+ if(b.kind==='drone'&&b.sourceId==='drone_sentry'||b.control?.disabled||b.order||b.restTurn===g.turn)return false;
+ if(!g.passable(a.x,a.y,b)||!g.passable(b.x,b.y,a)||distance(a,g.player)>leash(b))return false;
+ const now=attackFrom(g,b,b);return !now||Boolean(attackFrom(g,b,a,now));
+}
+function swapPast(g,a,far,here,linked){
+ const b=currentAllies(g).find(b=>b!==a&&distance(a,b)===1&&far(b)<here&&g.canCross(a,b)&&(distance(b,g.player)<=leash(a)||!linked)&&canTrade(g,b,a));
+ if(!b)return false;
+ const from={x:a.x,y:a.y},to={x:b.x,y:b.y};
+ Object.assign(a,{...to,moveDelta:[to.x-from.x,to.y-from.y],moved:true,vaultExposed:false});
+ Object.assign(b,{...from,moveDelta:[from.x-to.x,from.y-to.y],moved:true,vaultExposed:false,restTurn:restFor(g,b)});
+ g.log(`${allyName(a)}與${allyName(b)}交換位置。`);return true;
+}
+// Walking into an ally trades places with it (NetHack-style). The ally lands on the tile the player is leaving,
+// which is always free, so allies can never box the player in. Refused for fixed sentries, disabled allies and
+// across rails; the ally gives up one action.
+export function swapReason(g,a){
  if(a.kind==='drone'&&a.sourceId==='drone_sentry')return '哨兵無人機固定原地，請繞行或回收。';
- if(a.control?.disabled)return `${allyName(a)}失能中，無法推開。`;
- if(!g.canCross(g.player,a))return '隔著矮隔板無法推開友軍。';
- return pushCell(g,a,dir)?'':`${allyName(a)}沒有空位可以讓開。`;
+ if(a.control?.disabled)return `${allyName(a)}失能中，無法換位。`;
+ if(!g.canCross(g.player,a))return '隔著矮隔板無法與友軍換位。';
+ if(!g.passable(g.player.x,g.player.y,a))return `${allyName(a)}無法站到你的位置。`;
+ return '';
 }
-export function pushAlly(g,a,cell){
- // An ally that already acted this world turn (faster than the player) gives up its next action instead.
- const rest=initiative(a)<initiative(g.player)?g.turn+1:g.turn;
- Object.assign(a,{moveDelta:[cell.x-a.x,cell.y-a.y],x:cell.x,y:cell.y,moved:true,vaultExposed:false,restTurn:rest});
- g.log(`${allyName(a)}被推開讓路，放棄一次行動。`);
+export function swapWithPlayer(g,a){
+ const p=g.player,from={x:a.x,y:a.y};
+ Object.assign(a,{x:p.x,y:p.y,moveDelta:[p.x-from.x,p.y-from.y],moved:true,vaultExposed:false,restTurn:restFor(g,a)});
+ g.log(`${allyName(a)}與你交換位置，放棄一次行動。`);
 }
 // Runs once per paid world turn. A packed pet heals; once whole, and only while its skill is prepared,
 // it steps out beside the player like a deployment and waits for the next turn to act.
