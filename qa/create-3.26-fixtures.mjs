@@ -9,5 +9,6 @@ const melee=arena(),enemy=makeEnemy('rifleman',11,10,'bump-target');enemy.hp=ene
 const door=Game.restore(melee.serialize());door.barriers=[makeBarrier('door',door.player,door.enemies[0],'edge-closed-door')];await save('door-before-melee',door);
 const lines=arena();for(let x=7;x<=14;x++){lines.grid[7][x]=0;lines.grid[14][x]=0;}for(let y=7;y<=14;y++){lines.grid[y][7]=0;lines.grid[y][14]=0;}
 lines.end={x:10,y:13};lines.props=[{id:'box',type:'cover',x:12,y:11,hp:65,maxHp:65},{id:'barrel',type:'barrel',x:12,y:12,hp:25,maxHp:25}];lines.barriers=[makeBarrier('door',{x:10,y:10},{x:11,y:10},'edge-test-door'),makeBarrier('partition',{x:10,y:11},{x:11,y:11},'edge-test-partition')];await save('boundary-gallery',lines);
+const corridor=arena();corridor.grid=Array.from({length:SIZE},(_,y)=>Array(SIZE).fill(y===10?1:0));corridor.lighting=corridor.grid.map(r=>r.map(()=>1));corridor.seen=corridor.grid.map(r=>r.map(()=>false));corridor.end={x:20,y:10};corridor.barriers=[makeBarrier('door',corridor.player,{x:11,y:10},'edge-corridor')];await save('open-contour-corridor',corridor);
 await save('natural-bulwark',new Game(326,[],0,'bulwark','onyx'));
-console.log('Four 3.26 fixtures generated. Artificial enemy HP 300 is for playback checks, not balance evidence.');
+console.log('Five 3.26 fixtures generated. Artificial enemy HP 300 is for playback checks, not balance evidence.');

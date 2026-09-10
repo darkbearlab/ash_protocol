@@ -50,12 +50,12 @@ test('death or disability before bump prevents the strike; fast player can strik
 test('boundary lines follow visible walkable ground, not enemies, items, dark-room or fog edges',()=>{
   const g=arena();g.visibleTiles=new Set(['10,10','11,10']);const before=g.serialize();assert.deepEqual(movementBoundaries(g),[]);assert.equal(g.serialize(),before);
   add(g);g.visibleTiles=new Set(['10,10','11,10']);g.items=[{type:'med',x:11,y:10}];g.lighting[10][11]=0;assert.deepEqual(movementBoundaries(g),[]);
-  g.grid[9][10]=0;assert.deepEqual(movementBoundaries(g),[{x1:9.5,y1:9.5,x2:10.5,y2:9.5}]);
+  g.grid[9][10]=0;g.visibleTiles.add('10,9');assert.deepEqual(movementBoundaries(g),[{x1:9.15,y1:9.5,x2:10.5,y2:9.5}]);
   g.grid[9][10]=1;g.props=[{type:'cover',x:11,y:10,hp:30,maxHp:30}];assert.equal(movementBoundaries(g).length,1);g.visibleTiles.delete('11,10');assert.deepEqual(movementBoundaries(g),[]);
   g.visibleTiles.add('11,10');g.props[0].hp=0;assert.deepEqual(movementBoundaries(g),[]);
 });
-test('closed doors/partitions have one shared edge, opening or destroying clears it, unseen edges stay hidden',()=>{
-  const g=arena(),door=makeBarrier('door',g.player,{x:11,y:10},'d');g.barriers=[door];g.visibleTiles=new Set(['10,10','11,10']);assert.equal(movementBoundaries(g).length,1);
+test('doors never cap contours; closed partitions still have a shared edge and unseen edges stay hidden',()=>{
+  const g=arena(),door=makeBarrier('door',g.player,{x:11,y:10},'d');g.barriers=[door];g.visibleTiles=new Set(['10,10','11,10']);assert.deepEqual(movementBoundaries(g),[]);
   door.open=true;assert.deepEqual(movementBoundaries(g),[]);door.open=false;door.hp=0;assert.deepEqual(movementBoundaries(g),[]);
   door.type='partition';door.hp=90;assert.equal(movementBoundaries(g).length,1);g.visibleTiles.clear();assert.deepEqual(movementBoundaries(g),[]);
 });
@@ -67,4 +67,29 @@ test('optional white overlay renders after wall art and does not mutate saves',(
 test('settings stores boundary preference through namespace helpers and module is precached',async()=>{
   const source=await readFile(new URL('../src/controller.js',import.meta.url),'utf8');assert.ok(source.includes("read('ash-movement-boundaries')==='on'"));assert.ok(source.includes("write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off')"));
   assert.ok((await readFile(new URL('../sw.js',import.meta.url),'utf8')).includes('./src/movement-boundaries.js'));
+});
+
+test('corridor sides continue straight across a door or fog without reading hidden layout',()=>{
+  const g=arena();g.grid[9][10]=0;g.grid[11][10]=0;g.visibleTiles=new Set(['10,10','10,9','10,11','9,10']);
+  const before=g.serialize(),lines=movementBoundaries(g);assert.equal(lines.length,2);
+  for(const line of lines){assert.equal(line.x1,9.5);assert.equal(line.x2,10.85);assert.equal(line.y1,line.y2);}
+  assert.equal(g.serialize(),before);
+  // Hidden room shapes/props must not influence the schematic continuation.
+  g.grid[10][12]=0;g.props=[{type:'cover',x:11,y:10,hp:65,maxHp:65}];assert.deepEqual(movementBoundaries(g),lines);
+  g.grid[10][12]=1;g.props=[];g.visibleTiles.add('11,10');const door=makeBarrier('door',g.player,{x:11,y:10},'edge-portal');g.barriers=[door];
+  assert.deepEqual(movementBoundaries(g),lines);door.open=true;assert.deepEqual(movementBoundaries(g),lines);
+  g.barriers=[];assert.ok(movementBoundaries(g).every(e=>e.x2===10.5),'known open space has no guessed contour extension');
+});
+test('fog itself never closes an opening; an actual wall face remains a real boundary',()=>{
+  const g=arena();g.visibleTiles=new Set(['10,10']);assert.deepEqual(movementBoundaries(g),[]);
+  g.grid[10][11]=0;assert.equal(movementBoundaries(g).length,1);
+});
+
+test('open contour extensions follow all four cardinal passage directions without joining across the opening',()=>{
+  for(const [dx,dy]of [[1,0],[-1,0],[0,1],[0,-1]]){
+    const g=arena(),nx=-dy,ny=dx;g.visibleTiles=new Set(['10,10',(10-dx)+','+(10-dy)]);
+    for(const sign of [-1,1]){g.grid[10+ny*sign][10+nx*sign]=0;g.visibleTiles.add((10+nx*sign)+','+(10+ny*sign));}
+    const edges=movementBoundaries(g);assert.equal(edges.length,2);
+    for(const e of edges){const along=[(e.x1-10)*dx+(e.y1-10)*dy,(e.x2-10)*dx+(e.y2-10)*dy].sort((a,b)=>a-b);assert.ok(Math.abs(along[0]+.5)<1e-9);assert.ok(Math.abs(along[1]-.85)<1e-9);}
+  }
 });
