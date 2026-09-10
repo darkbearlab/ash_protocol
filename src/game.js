@@ -218,7 +218,7 @@ export class Game {
       else if(type==='commandPet')return commandPet(this,arg);
       return true;
     }
-    const doubleAttack=skillActive(p,'anchor')&&['fire','bumpMelee','grenade'].includes(type),previousChain=p.fireChain?{...p.fireChain}:null;
+    const doubleAttack=skillActive(p,'anchor')&&['fire','bumpMelee'].includes(type),previousChain=p.fireChain?{...p.fireChain}:null;
     const fireIntent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:null,floor=this.floor,queue=initiativeQueue(p,this.enemies,this.activeAllies),playerSpeed=queue.find(q=>q.actor===p).speed;
     if(doubleAttack){
       queue.find(q=>q.actor===p).speed=1;
@@ -236,7 +236,7 @@ export class Game {
       if(actor===p){
         if(doubleAttack&&!anchorExtra&&type==='fire')p.fireChain=previousChain?{...previousChain}:null;
         if(type==='fire')this.target=fireIntent.id; // Track identity, never switch to another enemy.
-        const success=this.executePlayer(type,fireIntent||arg,{committedThrow:doubleAttack});
+        const success=this.executePlayer(type,fireIntent||arg);
         if(!success)this.log('局勢已改變，行動未能完成；本回合已消耗。');
         p.guard=success&&type==='wait';p.moved=success&&type==='move';p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
         this.reveal();
@@ -270,7 +270,7 @@ export class Game {
       this.log(`${def.name}啟動：持續 ${def.duration} 回合，冷卻 ${def.cooldown} 回合。`);this.reveal();return true;
     });
   }
-  executePlayer(type,arg,{committedThrow=false}={}){
+  executePlayer(type,arg){
     const p=this.player;
     let success=false;
     p.guard=false;p.moved=false;p.moveDelta=[0,0];if(type!=='fire')p.fireChain=null;
@@ -301,7 +301,7 @@ export class Game {
         if(p.hp===p.maxHp&&p.poison===0)return this.fail('生命值已滿。');
         p.meds--;p.hp=Math.min(p.maxHp,p.hp+45+p.healBonus);p.poison=0;
         this.log(`使用醫療包，回復 ${45+p.healBonus} 生命並清除中毒。`);success=true;break;
-      case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted,committedThrow));break;
+      case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
       case 'weapon': {
         const index=arg===undefined?p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length]:Number(arg);
         if(!p.owned.includes(index))return this.fail('背包裡沒有這把武器。');
@@ -428,11 +428,11 @@ export class Game {
     this.log(prop.type==='barrel'?'油桶被引爆！':'掩體已摧毀。');
     if(prop.type==='barrel')this.explode(prop,2,45);
   }
-  throwGrenade(pos,committed=false) {
+  throwGrenade(pos) {
     const p=this.player,id=pos?.grenade??p.prepared.grenade,def=GRENADES[id];
     if(!def||p[def.resource]<=0)return this.fail('預備的投擲物已用盡。');
     if(!pos||!Number.isInteger(pos.x)||!Number.isInteger(pos.y)||this.grid[pos.y]?.[pos.x]!==1)return this.fail('先選擇可見地板或敵人作為投擲位置。');
-    if(distance(p,pos)>5||(!committed&&!this.visible(pos)))return this.fail('投擲位置需在視線內 5 格以內。');
+    if(distance(p,pos)>5||!this.visible(pos))return this.fail('投擲位置需在視線內 5 格以內。');
     p[def.resource]--;p.stats.grenades++;this.log(`投擲${def.name}。`);
     this.effects.push({type:'shot',style:'grenade',color:def.color,from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     if(id==='frag')this.explode(pos,2,55+p.blastBonus);

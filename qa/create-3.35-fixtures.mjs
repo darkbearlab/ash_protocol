@@ -9,5 +9,5 @@ async function save(name,g,legacy=false){g.runId='qa-anchor-'+name;g.reveal();co
 await save('natural-bulwark',new Game(335,[],0,'bulwark','onyx'));
 const g=arena();await save('toggle-ready',g);await save('legacy-v24',g,true);g.action('skill','anchor');await save('anchored-empty',g);
 enemy(g,14,10);await save('two-phase-fire',g);g.player.ammo[6]=4;await save('partial-magazine',g);g.player.ammo[6]=30;
-g.enemies[0].x=11;await save('two-phase-fist',g);g.enemies=[];g.player.smoke=2;g.player.prepared.grenade='smoke';await save('double-smoke',g);
+g.enemies[0].x=11;await save('two-phase-fist',g);g.enemies=[];g.player.smoke=2;g.player.prepared.grenade='smoke';await save('single-smoke',g);
 console.log('Eight 3.35 fixtures generated and restore-validated.');

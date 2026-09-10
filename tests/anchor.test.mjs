@@ -59,11 +59,11 @@ test('both equipped melee and integrated bump strikes repeat with independent hi
 test('a target leaving melee range after the normal strike makes the slow strike miss without walking',()=>{
  const g=anchored(),e=foe(g,{x:11});g.rng=Object.assign(()=>0,{state:()=>0});g.enemyAct=()=>{e.x=14;g.reveal();};g.action('move',[1,0]);assert.equal(e.hp,930);assert.equal(g.player.x,10);assert.equal(g.effects.filter(e=>e.style==='slash').length,2);
 });
-test('all four throwable types consume separate stock at the same committed point; smoke does not cancel its own second throw',()=>{
+test('anchor leaves all four throwable types at one use in the original slow phase',()=>{
  for(const [id,resource] of [['frag','grenades'],['smoke','smoke'],['emp','emp'],['stun','stun']]){
-  const g=anchored(),p=g.player;p[resource]=2;g.action('prepare',{category:'grenade',id});const t=g.turn;
-  assert.ok(g.action('usePrepared',{category:'grenade',target:{x:14,y:10}}));assert.equal(p[resource],0);assert.equal(p.stats.grenades,2);assert.equal(g.turn,t+1);assert.equal(g.effects.filter(e=>e.style==='grenade').length,2);
-  if(id==='smoke')assert.equal(g.smoke.length,2);
+  const g=anchored(),p=g.player;p[resource]=2;g.action('prepare',{category:'grenade',id});const t=g.turn,before=[];foe(g,{x:17});g.enemyAct=()=>before.push(p.stats.grenades);
+  assert.ok(g.action('usePrepared',{category:'grenade',target:{x:14,y:10}}));assert.equal(p[resource],1);assert.equal(p.stats.grenades,1);assert.equal(g.turn,t+1);assert.equal(g.effects.filter(e=>e.style==='grenade').length,1);assert.deepEqual(before,[0]);
+  if(id==='smoke')assert.equal(g.smoke.length,1);
  }
  const g=anchored();g.player.grenades=1;assert.ok(g.action('grenade',{x:14,y:10}));assert.equal(g.player.grenades,0);assert.equal(g.player.stats.grenades,1);
 });
@@ -74,9 +74,9 @@ test('disability skips both attacks but counts one lost round, and immunity decr
  const g=anchored(),p=g.player;foe(g);g.enemyAct=()=>{};p.control.disabled=1;assert.ok(g.action('fire'));assert.equal(p.stats.shots,0);assert.deepEqual(p.control,{disabled:0,immune:2});
  g.action('fire');assert.equal(p.stats.shots,6);assert.equal(p.control.immune,1);assert.ok(skillActive(p,'anchor'));
 });
-test('mid-round disruption cancels the slow attack without clearing anchor, and self-stun prevents a second grenade',()=>{
+test('mid-round disruption cancels the slow attack without clearing anchor, and a single self-stun grenade retains normal disability timing',()=>{
  const g=anchored(),p=g.player;foe(g);g.enemyAct=()=>applyDisruption(p,'biological');assert.ok(g.action('fire'));assert.equal(p.stats.shots,3);assert.equal(p.control.disabled,1);assert.ok(skillActive(p,'anchor'));
- const h=anchored();h.player.stun=2;h.action('prepare',{category:'grenade',id:'stun'});h.action('grenade',{x:11,y:10});assert.equal(h.player.stun,1);assert.equal(h.player.control.disabled,1);
+ const h=anchored();h.player.stun=2;h.action('prepare',{category:'grenade',id:'stun'});h.action('grenade',{x:11,y:10});assert.equal(h.player.stun,1);assert.equal(h.player.control.disabled,2);
 });
 test('anchor does not duplicate allies, healing, reload, waits or free weapon swaps and cannot be disabled by unpreparing',()=>{
  const g=anchored(),p=g.player,e=foe(g),a=addAlly(g,'drone','drone',{sourceId:'drone_sentry',point:{x:11,y:10}});a.ammo=8;a.bornTurn=1;g.enemyAct=()=>{};g.rng=Object.assign(()=>0,{state:()=>0});g.action('fire');assert.equal(a.ammo,7);
