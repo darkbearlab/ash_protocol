@@ -38,10 +38,15 @@ export class Renderer {
     const p=this.project(b.x,b.y),vertical=b.axis==='x',half=scale*.5,color=b.hp<=0?'#65746b':b.open?'#8ad2bb':b.type==='door'?'#dec184':'#9da99d';
     const segment=(a,z,width)=>this.line(p.x+(vertical?0:a),p.y+(vertical?a:0),p.x+(vertical?0:z),p.y+(vertical?z:0),color,width);
     if(b.hp<=0){segment(-half,-half*.72,3);segment(half*.72,half,3);return;}
-    if(b.open){segment(-half,-half*.62,5);segment(half*.62,half,5);return;}
-    if(this.terrain(b.type,p,b,Math.round(scale),vertical?0:1)){if(b.hp<b.maxHp)this.box(p.x-7,p.y+half-4,14*b.hp/b.maxHp,2,'#e6bd82');return;}
+    if(b.open){segment(-half,-half*.62,5);segment(half*.62,half,5);this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
+    if(this.terrain(b.type,p,b,Math.round(scale),vertical?0:1)){this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     segment(-half,half,7);segment(-half+2,half-2,3);
     if(b.type==='door'){this.box(p.x-3,p.y-3,6,6,'#283e36');this.box(p.x-1,p.y-1,2,2,'#f2d691');}
+    this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');
+  }
+  objectHealth(object,x,y,width=24,color='#cad396'){
+    if(!(object.hp>0&&object.hp<object.maxHp))return;
+    this.box(x,y,width,2,'#17281f');this.box(x,y,width*object.hp/object.maxHp,2,color);
   }
   line(x1,y1,x2,y2,color,width=1){const c=this.ctx;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.strokeStyle=color;c.lineWidth=width;c.stroke();}
   glow(x,y,r,color){const c=this.ctx,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'transparent');c.fillStyle=g;c.fillRect(x-r,y-r,2*r,2*r);}
@@ -198,7 +203,7 @@ export class Renderer {
   }
   furniture(a,p){
     const m=this.game.props.find(o=>o.id===p.moduleId);
-    if(this.terrain(p.style,a,p,Math.round(this.tile),m?.rotation||0)){this.box(a.x-12,a.y-this.tile*.44,24,2,'#17281f');this.box(a.x-12,a.y-this.tile*.44,24*p.hp/p.maxHp,2,'#cad396');return;}
+    if(this.terrain(p.style,a,p,Math.round(this.tile),m?.rotation||0)){this.objectHealth(p,a.x-12,a.y-this.tile*.44);return;}
 
     const u=Math.max(1,Math.floor(this.tile/22)),x=Math.round(a.x)-8*u,y=Math.round(a.y)-8*u;
     const rect=(dx,dy,w,h,color)=>this.box(x+dx*u,y+dy*u,w*u,h*u,color);
@@ -209,7 +214,7 @@ export class Renderer {
     if(p.style==='scanner'){rect(1,1,14,10,'#859b91');rect(3,3,10,6,'#193c34');rect(4,4,6,1,'#9bceaa');rect(4,7,8,1,'#70aa90');rect(6,11,4,2,'#576a60');rect(3,13,10,2,'#9ea982');}
     if(p.style==='locker'){rect(1,0,14,16,'#879681');rect(2,1,5,14,'#536553');rect(9,1,5,14,'#63765c');rect(5,6,1,4,'#d0c49b');rect(10,6,1,4,'#d0c49b');for(let i=0;i<2;i++)rect(3+i*7,2,3,1,'#adbaa2');}
     if(p.style==='bench'){rect(0,2,16,11,'#889174');rect(1,3,14,8,'#b3b69a');rect(2,13,3,2,'#485c48');rect(11,13,3,2,'#485c48');rect(8,4,5,5,'#587363');rect(2,5,3,3,'#d2d4bb');rect(3,6,2,1,'#64533d');}
-    this.box(a.x-12,y-4,24,2,'#17281f');this.box(a.x-12,y-4,24*p.hp/p.maxHp,2,'#cad396');
+    this.objectHealth(p,a.x-12,y-4);
   }
   prop(a,p,time){
     if(p.type==='module'){const q=modulePoint(p,0,1);if(this.game.visibleTiles.has(`${q.x},${q.y}`)){const pos=this.project(q.x,q.y);this.text(MODULE_TYPES[p.theme].code,pos.x,pos.y+this.tile*.3,MODULE_TYPES[p.theme].color,8);}return;}
@@ -225,13 +230,13 @@ export class Renderer {
       this.box(x+u,y+5*u,2*u,2*u,'#e2d8ac');this.box(x+13*u,y+5*u,2*u,2*u,'#e2d8ac');this.text(info.symbol,a.x,a.y+3*u,info.color,9*u);return;
     }
 if((p.hp>0||p.type==='terminal')&&this.terrain(p.type,a,p)){
-      if(p.type==='cover'){this.box(a.x-12,a.y-16,24,2,'#17281f');this.box(a.x-12,a.y-16,24*p.hp/p.maxHp,2,'#cad396');}
+      this.objectHealth(p,a.x-12,a.y-16);
       if(p.type==='terminal'&&p.used)this.box(a.x-8,a.y-9,16,12,'#17241ad0');return;
     }
-if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){if(p.type==='cover'){this.box(a.x-12,a.y-16,24,2,'#17281f');this.box(a.x-12,a.y-16,24*p.hp/p.maxHp,2,'#cad396');}if(p.type==='terminal'&&p.used)this.box(a.x-8,a.y-7,15,10,'#17241ab0');return;}if(p.type==='terminal'){this.box(a.x-13,a.y-13,26,27,'#263c34','#75977755');this.box(a.x-9,a.y-10,18,12,p.used?'#354339':'#82b6a0');this.line(a.x-7,a.y+7,a.x+7,a.y+7,'#9da77955',2);if(!p.used)this.glow(a.x,a.y-4,20,'#9ee3b41a');return;}
+if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,a.x-12,a.y-16);if(p.type==='terminal'&&p.used)this.box(a.x-8,a.y-7,15,10,'#17241ab0');return;}if(p.type==='terminal'){this.box(a.x-13,a.y-13,26,27,'#263c34','#75977755');this.box(a.x-9,a.y-10,18,12,p.used?'#354339':'#82b6a0');this.line(a.x-7,a.y+7,a.x+7,a.y+7,'#9da77955',2);if(!p.used)this.glow(a.x,a.y-4,20,'#9ee3b41a');return;}
     if(p.hp<=0){this.box(a.x-13,a.y-5,9,8,'#6f705751');this.box(a.x+2,a.y+3,12,6,'#85775a51');return;}
-    if(p.type==='barrel'){const c=this.ctx;c.fillStyle='#795032';c.beginPath();c.ellipse(a.x,a.y,10,13,0,0,Math.PI*2);c.fill();this.box(a.x-9,a.y-7,18,3,'#ca8b4f');this.box(a.x-9,a.y+6,18,3,'#ce9859');this.text('!',a.x,a.y+4,'#ffdaa0',12);return;}
-    const t=this.tile;this.box(a.x-t*.4,a.y-t*.35+5,t*.8,t*.7,'#17281f99');this.box(a.x-t*.4,a.y-t*.35,t*.8,t*.7,'#717354','#aea87988');this.box(a.x-t*.32,a.y-t*.27,t*.64,t*.54,'#525c40','#93966f66');this.line(a.x-t*.29,a.y-t*.23,a.x+t*.29,a.y+t*.23,'#b6b17999',2);this.line(a.x+t*.29,a.y-t*.23,a.x-t*.29,a.y+t*.23,'#b6b17999',2);this.box(a.x-12,a.y-t*.39,24,2,'#17281f');this.box(a.x-12,a.y-t*.39,24*p.hp/p.maxHp,2,'#c4c394');
+    if(p.type==='barrel'){const c=this.ctx;c.fillStyle='#795032';c.beginPath();c.ellipse(a.x,a.y,10,13,0,0,Math.PI*2);c.fill();this.box(a.x-9,a.y-7,18,3,'#ca8b4f');this.box(a.x-9,a.y+6,18,3,'#ce9859');this.text('!',a.x,a.y+4,'#ffdaa0',12);this.objectHealth(p,a.x-12,a.y-16);return;}
+    const t=this.tile;this.box(a.x-t*.4,a.y-t*.35+5,t*.8,t*.7,'#17281f99');this.box(a.x-t*.4,a.y-t*.35,t*.8,t*.7,'#717354','#aea87988');this.box(a.x-t*.32,a.y-t*.27,t*.64,t*.54,'#525c40','#93966f66');this.line(a.x-t*.29,a.y-t*.23,a.x+t*.29,a.y+t*.23,'#b6b17999',2);this.line(a.x+t*.29,a.y-t*.23,a.x-t*.29,a.y+t*.23,'#b6b17999',2);this.objectHealth(p,a.x-12,a.y-t*.39,24,'#c4c394');
   }
   actor(a,type,time,e) {
     const c=this.ctx,player=type==='player',def=ENEMY_TYPES[type],large=type==='boss'||type==='warden',s=this.tile/45*(large?1.15:1);

@@ -1,4 +1,12 @@
-# 快速接手：ASH PROTOCOL 3.22.2
+# 快速接手：ASH PROTOCOL 3.22.3
+
+## 最新接手：3.22.3 受傷物件血條／掩體規則清點
+
+- 使用者要求可破壞物件除非受傷不顯示血條。renderer.objectHealth 共用條件 0 < hp < maxHp：掩體箱、六家具、油桶、門／隔板，生成圖／舊圖／程式回退一致；受傷的開門也顯示。角色血條和目標卡耐久文字未改。
+- 依 game.protectingCover、combat.wallCover／shotChance、barriers.edgeCover 清點到 [COVER_RULES.md](COVER_RULES.md)，沒有改戰鬥公式或角色被動。
+- 要注意：掩體為相對攻擊者的方向判定；門／隔板優先於牆再箱子，只取一個。候選掩體線沒有指定敵人，不保證對所有敵人有效。只有 drone 預設 no_cover，獸類／大型／Bulwark 仍可有掩體。
+- 近戰目前不對稱：玩家動力拳固定 99% 且無視掩體；敵近戰固定 97% 不吃射擊命中懲罰，但 damagePlayer 仍可能吃掩體減傷。爆炸免掩體減傷但仍受牆／封閉門的幾何阻隔。本批只記錄，不順便改規則。
+- save v17／profile v4／backup v1、原素材與 0.5＋1 格牆／遮擋不變；全套 273 項與 build 通過，真機顯示交驗證紙條。外部頭像與私人紙條保留未追蹤。
 
 ## 最新接手：3.22.2 牆遮擋戰場內容
 
