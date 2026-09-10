@@ -1,4 +1,9 @@
-# 快速接手：ASH PROTOCOL 3.35.6
+# 快速接手：ASH PROTOCOL 3.35.7
+
+## 3.35.7：任務共用說明拆進各任務（Claude 開發）
+
+- 部署清單下方的共用段落移除，依任務拆進 `controller.js` 的 `MISSION_NOTES`，接在 `MISSIONS[].text` 後面顯示。
+- **新增任務時**：若它的 `text` 沒寫到第 3 層封鎖官、青色菱形或回收耗時，請在 `MISSION_NOTES` 補一句；沒補也能正常顯示，只是少了提醒。不要把這些寫進 `MISSIONS[].text`，它同時是抵達任務樓層的提示。
 
 ## 3.35.6：選擇任務畫面精簡（Claude 開發）
 
