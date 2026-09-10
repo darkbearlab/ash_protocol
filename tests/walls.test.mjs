@@ -20,7 +20,7 @@ test('every wall brick has a half-tile face plus full-tile cap in all 16 neighbo
 });
 test('solid caps project half a tile upward and never change with exploration; context is restored',()=>{
   const g=arena();g.grid[3][3]=0;const image={complete:true,naturalWidth:128},c=context();c.globalAlpha=.36;
-  let q=drawWall(c,g,3,3,32,{x:112,y:112},image);assert.equal(q.capTop,80);assert.deepEqual(c.calls.filter(c=>c[0]==='image').map(c=>c[1]),[.36,.36]);assert.equal(c.globalAlpha,.36);
+  let q=drawWall(c,g,3,3,32,{x:112,y:112},image);assert.equal(q.capTop,80);assert.deepEqual(c.calls.filter(c=>c[0]==='image').map(c=>c[1]),[.36,.36]);assert.equal(c.globalAlpha,.36);assert.deepEqual(c.calls[0],['rect',1,96,80,32,48]);
   g.seen[2][3]=false;q=drawWall(context(),g,3,3,32,{x:112,y:112},image);assert.equal(q.capTop,80);
   g.grid[2][3]=0;g.seen[2][3]=true;assert.equal(wallGeometry(g,3,3,32,{x:112,y:112}).capTop,80);
   const fallback=context();drawWall(fallback,g,3,3,32,{x:112,y:112},null);assert.ok(fallback.calls.some(c=>c[0]==='rect'));assert.equal(fallback.globalAlpha,1);
@@ -31,11 +31,11 @@ test('64 face/cap combinations remain independent, safe and deterministic withou
   const a=arena();a.rooms=[{x:2,y:2,w:3,h:3,wallStyle:{}}];for(let face=0;face<8;face++)for(let cap=0;cap<8;cap++){a.rooms[0].wallStyle={face:WALL_FACES[face],cap:WALL_CAPS[cap]};assert.deepEqual(wallStyle(a,3,3),{face:'W'+String(face+1).padStart(2,'0'),cap:'W'+String(cap+9).padStart(2,'0')});}
   a.rooms[0].wallStyle={face:'../../bad',cap:'bogus'};assert.deepEqual(wallStyle(a,3,3,'unknown'),wallStyle(a,3,3,'industrial'));
 });
-test('full battlefield draw stages walls before props and actors and retains cardinal picking',()=>{
-  const g=new Game(321);g.player.x=10;g.player.y=10;g.grid[10][11]=0;g.grid[10][10]=1;g.seen[10][10]=true;g.visibleTiles.add('10,10');g.props.push({id:'test',type:'cover',x:10,y:10,hp:65,maxHp:65});
-  const stages=[],gradient={addColorStop(){}},ctx=new Proxy({globalAlpha:1,createRadialGradient(){return gradient;}},{get(o,k){return k in o?o[k]:()=>{};},set(o,k,v){o[k]=v;return true;}});
-  const r=Object.create(Renderer.prototype);Object.assign(r,{ctx,game:g,tile:38,w:300,h:400,dpr:1,camera:{x:10,y:10},effects:[],reduceMotion:true,targetingEnabled:false,terrain(){return true;},wall(){stages.push('wall');},prop(){stages.push('prop');},actor(){stages.push('actor');},corpse(){},item(){},drawBarrier(){},hazard(){},exit(){},terrainReady:true});
-  r.draw(0);assert.ok(stages.indexOf('wall')>=0);assert.ok(stages.lastIndexOf('wall')<stages.indexOf('prop'));assert.ok(stages.lastIndexOf('wall')<stages.indexOf('actor'));
+test('full battlefield draw stages walls after props, actors and effects and retains cardinal picking',()=>{
+  const g=new Game(321);g.player.x=10;g.player.y=10;g.grid[10][11]=0;g.grid[10][10]=1;g.seen[10][10]=true;g.visibleTiles.add('10,10');g.traces=[{x:10,y:10,kind:'blood',variant:0,rotation:0}];g.props.push({id:'test',type:'cover',x:10,y:10,hp:65,maxHp:65});
+  const stages=[],gradient={addColorStop(){}},ctx=new Proxy({globalAlpha:1,fillRect(){if(this.fillStyle==='#54292b')stages.push('trace');},createRadialGradient(){return gradient;}},{get(o,k){return k in o?o[k]:()=>{};},set(o,k,v){o[k]=v;return true;}});
+  const r=Object.create(Renderer.prototype);Object.assign(r,{ctx,game:g,tile:38,w:300,h:400,dpr:1,camera:{x:10,y:10},effects:[{type:'fall',time:0,from:{x:10,y:10},to:{x:10,y:10}}],reduceMotion:true,targetingEnabled:false,effectSprite(){stages.push('effect');},terrain(){return true;},wall(){stages.push('wall');},prop(){stages.push('prop');},actor(){stages.push('actor');},corpse(){},item(){},drawBarrier(){},hazard(){},exit(){},terrainReady:true});
+  r.draw(0);assert.ok(stages.indexOf('wall')>=0);assert.ok(stages.indexOf('wall')>stages.lastIndexOf('prop'));assert.ok(stages.indexOf('wall')>stages.lastIndexOf('actor'));assert.ok(stages.includes('trace'));assert.ok(stages.indexOf('wall')>stages.lastIndexOf('trace'));assert.ok(stages.includes('effect'));assert.ok(stages.indexOf('wall')>stages.lastIndexOf('effect'));
   const p=r.project(11,10);assert.deepEqual(r.unproject(p.x,p.y),{x:11,y:10});assert.equal(p.y,200);assert.equal(p.x,188);
 });
 test('generated wall PNGs match their manifest and share an indexed RGB555 palette; offline resources included',async()=>{

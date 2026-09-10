@@ -1,4 +1,6 @@
-# ASH PROTOCOL / 灰燼協定 3.22.1
+# ASH PROTOCOL / 灰燼協定 3.22.2
+
+3.22.2：修正人物、戰鬥痕跡與特效浮到牆上的問題；牆現在遮住重疊的戰場內容，保留 0.5＋1 格比例與目前色調。
 
 3.22.1：每塊牆固定下方 0.5 格立面＋上方 1 格實心頂板，總高 1.5 格；保留改善後的明度層次。[素材審核頁](https://darkbearlab.github.io/ash_protocol/material-review.html) 可選地板／立面／頂板用途、預覽並下載選用設定；[操作說明](art/materials/README.md)。原圖、存檔和規則保留。
 

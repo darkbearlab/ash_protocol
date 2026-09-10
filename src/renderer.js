@@ -99,11 +99,6 @@ export class Renderer {
       const module=g.props.find(m=>m.type==='module'&&moduleCells(m).some(q=>q.x===x&&q.y===y));if(module&&!this.terrainReady)this.moduleFloor(a,module);
       floorCells.push({a,left,top,x,y});c.globalAlpha=1;
     }
-    // Ground first, raised walls second, all readable floor contents and actors last.
-    for(const {a,x,y}of wallCells){
-      c.globalAlpha=[[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.visibleTiles?.has((x+dx)+','+(y+dy)))?1:.36;
-      this.wall(a,x,y);c.globalAlpha=1;
-    }
     for(const {a,left,top,x,y}of floorCells){
       c.globalAlpha=g.visibleTiles?.has(x+','+y)?1:.36;
       for(const trace of traceCells.get(x+','+y)||[])drawTrace(c,trace,a.x,a.y,t);
@@ -169,6 +164,11 @@ export class Renderer {
     }
     this.effects=this.effects.filter(e=>time-e.time<700);
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}
+    // Walls occlude all world-space content, including actors, traces and transient effects.
+    for(const {a,x,y}of wallCells){
+      c.globalAlpha=[[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.visibleTiles?.has((x+dx)+','+(y+dy)))?1:.36;
+      this.wall(a,x,y);c.globalAlpha=1;
+    }
 
   }
   terrain(role,a,point,size=Math.round(this.tile),rotation=0){

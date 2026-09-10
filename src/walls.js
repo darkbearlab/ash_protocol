@@ -38,6 +38,8 @@ export function drawWall(ctx,g,x,y,tile,center,images,theme='industrial',tones=n
     }else{ctx.fillStyle=fallback;ctx.fillRect(q.left,top,q.width,height);}
   };
   ctx.save();ctx.imageSmoothingEnabled=false;
+  // Fog dims the wall texture over an opaque backing, never reveals content underneath.
+  const opacity=ctx.globalAlpha;ctx.globalAlpha=1;ctx.fillStyle='#142020';ctx.fillRect(q.left,q.capTop,q.width,q.bottom-q.capTop);ctx.globalAlpha=opacity;
   // Draw every complete brick; the normal back-to-front pass handles physical overlap.
   texture(style.face,q.groundTop,q.faceHeight,'#35433f');ctx.fillStyle='#111e22';ctx.fillRect(q.left,q.bottom-2,q.width,2);
   ctx.save();
