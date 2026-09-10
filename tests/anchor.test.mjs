@@ -16,9 +16,9 @@ function foe(g,{x=14,y=10,speed=0}={}){const e=makeEnemy('rifleman',x,y,'anchor-
 function anchored(){const g=arena();assert.ok(toggle(g));return g;}
 
 test('Bulwark learns a paid toggle; activation and release each occur at the original slow phase',()=>{
- const g=arena(),p=g.player;assert.equal(p.prepared.skill,'anchor');assert.equal(skillStatus(p,'anchor'),'啟動 · 1 回合');
+ const g=arena(),p=g.player;assert.equal(p.prepared.skill,'anchor');assert.equal(skillStatus(p,'anchor'),'啟動');
  const seen=[];foe(g);g.enemyAct=()=>seen.push(skillActive(p,'anchor'));
- assert.ok(toggle(g));assert.equal(g.turn,2);assert.ok(skillActive(p,'anchor'));assert.equal(skillStatus(p,'anchor'),'解除 · 1 回合');
+ assert.ok(toggle(g));assert.equal(g.turn,2);assert.ok(skillActive(p,'anchor'));assert.equal(skillStatus(p,'anchor'),'解除');
  assert.ok(p.traits.some(t=>t.source===ANCHOR_SOURCE&&t.id==='clumsy'));
  assert.ok(toggle(g));assert.equal(g.turn,3);assert.deepEqual(seen,[false,true]);assert.equal(skillActive(p,'anchor'),false);assert.ok(activeTrait(p,'clumsy'));assert.ok(!p.traits.some(t=>t.source===ANCHOR_SOURCE));
 });
