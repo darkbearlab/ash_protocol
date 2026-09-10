@@ -1,4 +1,8 @@
-# 快速接手：ASH PROTOCOL 3.35.4
+# 快速接手：ASH PROTOCOL 3.35.5
+
+## 3.35.5：開機文字改為靜態（Claude 開發）
+
+- 使用者要求 `INITIALIZING` 不閃爍，只保留平平的文字；刪除 `boot-blink` 與其 reduced-motion 規則。12 秒重新整理提示不變。未改規則或存檔。
 
 ## 3.35.4：開機遮罩（Claude 開發）
 

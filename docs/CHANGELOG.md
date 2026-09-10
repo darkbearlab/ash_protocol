@@ -1,5 +1,11 @@
 # 更新紀錄
 
+## 3.35.5：開機文字改為靜態
+
+- 依使用者要求，`INITIALIZING` 移除閃爍（`boot-blink`），改為靜止文字。原本只為這個閃爍設的 `prefers-reduced-motion` 規則一併移除。
+- 12 秒後浮出的重新整理提示維持不變（零時長、只延遲顯示，不是動態效果）。
+- 只改 `expansion.css` 與版號；未改規則或存檔，save v24／profile v4／backup v1 不變。
+
 ## 3.35.4：開機遮罩，不再先閃戰鬥介面
 
 - **原因**：`index.html` 的戰鬥介面是靜態 HTML，唯一腳本是延後執行的 `<script type="module">`。瀏覽器先畫出 HTML＋CSS，再以瀑布方式抓 41 個模組，`showIntro()` 在 controller.js 最後一行才執行，中間這段就看到戰鬥介面空殼。Claude 冷載入實測：HTML 與 CSS 約 0.9 秒就緒，最後一個模組 5.7 秒才到，空窗約 4.9 秒（工具網路偏慢；有 Service Worker 快取時短很多，但首次開啟必定會閃）。
