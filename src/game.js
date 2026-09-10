@@ -133,6 +133,7 @@ export class Game {
   fail(text){this.log(text);return false;}
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
+  bumpMeleeSlot(){return this.player.owned.find(slot=>{const w=this.weaponAt(slot);return w.melee&&weaponSwitchTurns(w,this.weapon)===0&&weaponSwitchTurns(this.weapon,w)===0;});}
   actionCost(type,arg){return type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
   // Validate the intent before any actor acts: rejected input cannot scout fast enemies.
   validateAction(type,arg){
@@ -146,7 +147,7 @@ export class Game {
       const edge=barrierBetween(this.barriers,p,{x,y});
       if(edgeBlocks(edge)){if(edge.type==='door')return true;this.target=edge.id;return this.fail('隔板阻擋通行，可開火破壞。');}
       if(!this.passable(x,y))return this.fail('前方有牆壁或障礙。');
-      const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;return this.fail('敵人擋住去路，先開火。');}return true;
+      const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;if(this.bumpMeleeSlot()!==undefined&&this.visible(e)&&this.shotClear(p,e))return true;return this.fail('敵人擋住去路，先開火。');}return true;
     }
     if(type==='recoverObjective')return this.nearbyObjectives.some(t=>t.id===arg)||this.fail('附近沒有可回收的機密資料。');
     if(type==='openContainer')return this.nearbyContainers.some(c=>c.id===arg)||this.fail('附近沒有可開啟的補給箱。');
@@ -180,7 +181,12 @@ export class Game {
     if(type==='grenade'){const pos=arg||this.targeted;arg=pos?{x:pos.x,y:pos.y,grenade:p.prepared.grenade}:null;}
     if(!this.validateAction(type,arg))return false;
     if(p.control.disabled&&type!=='prepare'&&this.actionCost(type,arg)===0)return this.fail('失能中，按中央等待恢復。');
-    if(type==='move'){const edge=barrierBetween(this.barriers,p,{x:p.x+arg[0],y:p.y+arg[1]});if(edgeBlocks(edge)&&edge.type==='door'){type='door';arg={id:edge.id,open:true};}}
+    if(type==='move'){
+      const point={x:p.x+arg[0],y:p.y+arg[1]},edge=barrierBetween(this.barriers,p,point);
+      if(edgeBlocks(edge)&&edge.type==='door'){type='door';arg={id:edge.id,open:true};}
+      else {const enemy=this.enemies.find(e=>e.hp>0&&e.x===point.x&&e.y===point.y),slot=this.bumpMeleeSlot();
+        if(enemy&&slot!==undefined){type='bumpMelee';arg={id:enemy.id,x:enemy.x,y:enemy.y,slot};}}
+    }
     // Free preparation/equipment commits outside the turn queue and preserves all timed state.
     if(this.actionCost(type,arg)===0){
       if(type==='prepare')p.prepared[arg.category]=arg.id;
@@ -231,6 +237,7 @@ export class Game {
       case 'recoverObjective':success=this.recoverObjective(arg);break;
       case 'openContainer':success=presentStep(this,()=>this.openContainer(arg));break;
       case 'door':success=presentStep(this,()=>{const b=this.nearbyDoors.find(b=>b.id===arg.id);return this.setDoor(b,arg.open);});break;
+      case 'bumpMelee': this.target=arg.id;success=this.strike(arg,arg.slot);break;
       case 'fire': success=this.fire(arg);break;
       case 'reload': success=this.reload();break;
       case 'heal':
@@ -301,8 +308,8 @@ export class Game {
     if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
     return true;
   }
-  strike(intent=null) {
-    const p=this.player,w=this.weapon,target=this.targeted;
+  strike(intent=null,slot=this.player.weapon) {
+    const p=this.player,w=this.weaponAt(slot),target=this.targeted;
     if(!w.melee)return false;
     if(!intent&&(!target||distance(p,target)>1))return this.fail('近戰需要相鄰一格的目標。');
     const valid=target&&distance(p,target)<=1&&this.shotClear(p,target)&&(isBarrier(target)||this.canCross(p,target)),to=valid?target:intent;
@@ -311,7 +318,7 @@ export class Game {
       const chance=meleeChance(p,target,w.hitChance),hit=Boolean(valid)&&this.rng()*100<chance;
       this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:to.x,y:to.y},damage:0,miss:!hit});
       if(!hit){this.log(valid?`近戰揮擊未命中（${chance}%）。`:'原目標已離開近戰範圍，揮擊落空。');return;}
-      const d=this.weaponDamage();this.hitTarget(target,d.min+Math.floor(this.rng()*(d.max-d.min+1)),p,w.pierce||0);
+      const d=this.weaponDamage(slot);this.hitTarget(target,d.min+Math.floor(this.rng()*(d.max-d.min+1)),p,w.pierce||0,w);
     });
     return true;
   }
@@ -319,14 +326,14 @@ export class Game {
     if(activeTrait(target,'no_cover'))return null;
     return bestCover([edgeCover(this.barriers,target,attacker),wallCover(this.grid,target,attacker),...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,target)===1)],target,attacker);
   }
-  hitTarget(target,raw,attacker,pierce=0) {
-    if(this.props.includes(target)||isBarrier(target)){if(this.weapon.ammoType==='energy')addTrace(this,target,'scorch');this.damageProp(target,raw);return;}
-    const cover=this.weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
+  hitTarget(target,raw,attacker,pierce=0,weapon=this.weapon) {
+    if(this.props.includes(target)||isBarrier(target)){if(weapon.ammoType==='energy')addTrace(this,target,'scorch');this.damageProp(target,raw);return;}
+    const cover=weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
     let damage=raw;
     if(cover){damage*=1-coverEffects(cover,target,attacker).reduction*(1-pierce);if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));this.log('敵方掩體吸收了部分傷害。');}
     damage=Math.max(1,Math.round(damage-armor*(1-pierce)));
-    if(this.weapon.ammoType==='energy'&&activeTrait(target,'mechanical'))damage=Math.round(damage*1.2);
-    if(this.weapon.ammoType==='energy')addTrace(this,target,'scorch');
+    if(weapon.ammoType==='energy'&&activeTrait(target,'mechanical'))damage=Math.round(damage*1.2);
+    if(weapon.ammoType==='energy')addTrace(this,target,'scorch');
     this.hurt(target,reduceDirectDamage(target,damage));
   }
   hurt(e,damage) {
