@@ -6,13 +6,16 @@ import {validControl} from './throwables.js';
 import {validCombatModifiers} from './actor-stats.js';
 
 export const ALLY_SKILLS=['drone_follow','drone_sentry','pet_command','raise_dead'];
-export const TETHER=6,CARRY_DISTANCE=3,SUMMON_LIMIT=2;
+export const TETHER=6,CARRY_DISTANCE=3,SUMMON_LIMIT=3;
+// Necromancer (3.40, user decision): summons rise on their own every SUMMON_INTERVAL paid turns from anyone who
+// fell on this floor (weighted by how many fell, never used up), hunt within SUMMON_TETHER, and the skill rallies them.
+export const SUMMON_INTERVAL=4,SUMMON_TETHER=9,RALLY_TURNS=3;
 // Idle leash: with no fight to hold, allies drift back once farther than this. Engaged allies use the tether instead.
 export const FOLLOW_RANGE={drone:2,other:3};
 // Druid pet (3.37, user decision): a longer leash to reach real fights, and a downed pet is recovered
 // instead of revived; it heals while packed and steps back out once whole if the skill stays prepared.
 export const PET_TETHER=9,PET_REGEN=5,PET_MEDKIT_FRACTION=.5;
-export const leash=a=>a.kind==='pet'?PET_TETHER:TETHER;
+export const leash=a=>a.kind==='pet'?PET_TETHER:a.kind==='summon'?SUMMON_TETHER:TETHER;
 // Placeholder economy: keep price and healing shared by rules and inventory UI.
 export const DRONE_REPAIR_COST=10,DRONE_REPAIR_FRACTION=.5;
 // Engineer drone (3.39, user decision): one 90 HP chassis; a destroyed or abandoned one is replaced by building
@@ -45,7 +48,7 @@ export const allyName=a=>a.kind==='pet'?'伴生獵獸':a.kind==='drone'?(a.sourc
 export function allyWeapon(a){
  if(a.kind==='drone')return a.sourceId==='drone_sentry'?{id:'rifle',range:7,min:14,max:14,mag:8,ammoType:'rifle',accuracyBonus:-37}:{id:'rifle',range:7,min:12,max:12,mag:12,ammoType:'rifle',accuracyBonus:-30};
  const def=ENEMY_TYPES[a.type],melee=a.kind==='pet'||def.range===1;
- return {id:melee?'melee':a.type==='drone'?'plasma':'rifle',range:a.kind==='pet'?1:def.range,min:a.kind==='pet'?24:Math.max(8,Math.round(def.damage*.7)),max:a.kind==='pet'?28:Math.max(8,Math.round(def.damage*.7)),melee,hitChance:90,accuracyBonus:-22,ammoType:null,mag:0};
+ return {id:melee?'melee':a.type==='drone'?'plasma':'rifle',range:a.kind==='pet'?1:def.range,min:a.kind==='pet'?24:Math.max(8,def.damage),max:a.kind==='pet'?28:Math.max(8,def.damage),melee,hitChance:90,accuracyBonus:-22,ammoType:null,mag:0};
 }
 // Survivors use the same actor contract; missionId/sourceId can attach rescue objectives later.
 export function addAlly(g,kind,type,{sourceId=null,missionId=null,point=g.player,status='active'}={}){
@@ -54,7 +57,7 @@ export function addAlly(g,kind,type,{sourceId=null,missionId=null,point=g.player
  if(['pet','drone'].includes(kind)&&g.allies.some(a=>a.kind===kind)||kind==='summon'&&g.allies.filter(a=>a.kind==='summon'&&a.status==='active').length>=SUMMON_LIMIT)return null;
  if(status==='active'&&(!g.passable(point.x,point.y)||occupied(g,point)))return null;
  const a={...makeEnemy(type,point.x,point.y,`ally-${++g.allySerial}`,g.floor),kind,sourceId,missionId,floor:g.floor,status,order:null,ammo:0,bornTurn:g.turn};
- a.maxHp=a.hp=kind==='drone'?DRONE_HP:kind==='pet'?90:Math.max(32,Math.min(90,Math.round(a.hp*.75)));a.armor=kind==='pet'?1:0;
+ a.maxHp=a.hp=kind==='drone'?DRONE_HP:kind==='pet'?90:Math.max(32,Math.min(150,a.hp));a.armor=kind==='pet'?1:0;
  if(kind==='pet')a.traits=[{id:'biological',source:'ally:pet'},{id:'no_cover',source:'ally:pet'}];
  if(kind==='drone'){a.traits=[{id:'mechanical',source:'ally:drone'}];fitDrone(a);}
  g.allies.push(a);return a;
@@ -94,12 +97,15 @@ export function initializeAllies(g){
  if(g.player.character==='engineer')addAlly(g,'drone','drone',{sourceId:'drone_follow',status:'packed'});
  if(g.player.character==='druid'){const cell=routeCells(g,g.player,{limit:3,openDoors:false}).find(p=>p.d>0);if(cell)addAlly(g,'pet','crawler',{sourceId:'pet_command',point:cell});}
 }
-export const corpsePool=g=>g.enemies.filter(e=>e.hp<=0&&!e.raised&&!['boss','warden'].includes(e.type));
+// Everyone who fell on this floor, bosses excluded. One entry per death, so common enemies rise more often;
+// nothing is consumed (corpses marked raised by older versions still count).
+export const summonPool=g=>g.enemies.filter(e=>e.hp<=0&&!['boss','warden'].includes(e.type));
+const summonCount=g=>currentAllies(g).filter(a=>a.kind==='summon').length;
 // No working chassis to hand: none, destroyed, or left active on another floor. Building a new one replaces it.
 const droneLost=(g,a)=>!a||a.status==='destroyed'||a.floor!==g.floor&&a.status!=='packed';
 export function allySkillState(g,id){
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
- if(id==='raise_dead')return `召喚 ${currentAllies(g).filter(a=>a.kind==='summon').length}/${SUMMON_LIMIT} · 素材 ${corpsePool(g).length}`;
+ if(id==='raise_dead'){const n=summonCount(g),cd=g.player.skillState.raise_dead?.cooldown||0;return `召喚 ${n}/${SUMMON_LIMIT}${n>=SUMMON_LIMIT?'':!summonPool(g).length?' · 本層尚無倒下者':cd?` · ${cd} 回合後再起`:' · 回合結束再起'}`;}
  if(id!=='pet_command'&&droneLost(g,a))return `生產 · ${DRONE_BUILD_COST} 廢料`;
  if(!a)return '沒有夥伴';if(a.floor!==g.floor&&a.status!=='packed')return `留在 ${a.floor} 層`;
  if(a.status==='down')return '回收 · 相鄰 1 回合';
@@ -114,8 +120,9 @@ export function petSkillReason(g){
  return '';
 }
 export function canAllySkill(g,id){
- const p=g.player;if(!p.skills.includes(id)||p.prepared.skill!==id||p.skillState[id]?.cooldown||p.control.disabled)return false;
- if(id==='raise_dead')return g.allies.filter(a=>a.status!=='destroyed').length<32&&currentAllies(g).filter(a=>a.kind==='summon').length<SUMMON_LIMIT&&corpsePool(g).length>0&&routeCells(g,p,{limit:2,openDoors:false}).some(q=>q.d>0);
+ // raise_dead's cooldown now times the automatic rising, so it never blocks the free rally.
+ const p=g.player;if(!p.skills.includes(id)||p.prepared.skill!==id||id!=='raise_dead'&&p.skillState[id]?.cooldown||p.control.disabled)return false;
+ if(id==='raise_dead')return summonCount(g)>0;
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
  if(id!=='pet_command'&&droneLost(g,a))return p.scrap>=DRONE_BUILD_COST&&routeCells(g,p,{limit:2,openDoors:false}).some(q=>q.d>0);
  if(!a)return false;
@@ -127,13 +134,8 @@ export function canAllySkill(g,id){
 export function useAllySkill(g,id){
  if(!canAllySkill(g,id))return false;
  const p=g.player;
- if(id==='raise_dead'){
-  g.allies=g.allies.filter(a=>a.kind!=='summon'||a.status==='active');
-  const count=SUMMON_LIMIT-currentAllies(g).filter(a=>a.kind==='summon').length;
-  for(let i=0;i<count;i++){const pool=corpsePool(g),point=routeCells(g,p,{limit:2,openDoors:false}).find(q=>q.d>0);if(!pool.length||!point)break;
-   const corpse=pool[Math.floor(g.rng()*pool.length)],a=addAlly(g,'summon',corpse.type,{sourceId:id,point});if(!a)break;corpse.raised=true;g.log(`${allyName(a)}加入戰鬥。`);
-  }p.skillState[id].cooldown=4;return true;
- }
+ // Rally is a free order: for the next RALLY_TURNS paid turns summons stop hunting and come back beside the player.
+ if(id==='raise_dead'){for(const a of currentAllies(g))if(a.kind==='summon')a.rallyTurn=g.turn+RALLY_TURNS;g.log(`召喚物集結：${RALLY_TURNS} 回合內停止追擊、回到你身邊。`);return true;}
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
  if(id==='pet_command'){
   if(a.status==='down'){Object.assign(a,{status:'packed',order:null,control:{disabled:0,immune:0}});g.log(`伴生獵獸已收納：每回合回復 ${PET_REGEN} 生命，回滿且本技能預備中會自行歸隊。`);}
@@ -177,6 +179,8 @@ export function allyAct(g,a){
  if(a.kind==='drone'&&a.sourceId==='drone_sentry'){if(shot)attack(shot);else if(topUp)reload();return;}
  // Swapping past another ally is for real errands (rejoining, a commanded tile, a fight); idle following just queues.
  if(!linked){stepToward(g,a,g.player,beside(g.player),linked,true);return;}
+ // Rallied summons come back first and only fight once they are beside the player again.
+ if(a.kind==='summon'&&a.rallyTurn>=g.turn){if(distance(a,g.player)>2)stepToward(g,a,g.player,beside(g.player),linked,true);else if(shot)attack(shot);return;}
  // A hold order walks first; if the way is shut, fight from here rather than idle.
  if(a.order&&distance(a,a.order)>0){if(!stepToward(g,a,a.order,q=>key(q)===key(a.order),linked,true)&&shot)attack(shot);return;}
  // Engaged allies keep the fight inside the tether; the short leash would make melee pets pace back and forth.
@@ -238,6 +242,18 @@ export function swapWithPlayer(g,a){
  Object.assign(a,{x:p.x,y:p.y,moveDelta:[p.x-from.x,p.y-from.y],moved:true,vaultExposed:false,restTurn:restFor(g,a)});
  g.log(`${allyName(a)}與你交換位置，放棄一次行動。`);
 }
+// Runs once per paid world turn, before skills tick. When the rising timer is ready, the necromancer has room for
+// another summon and someone has fallen on this floor, one rises beside the player and acts from the next turn.
+export function tickSummons(g){
+ const p=g.player,state=p.skillState?.raise_dead;
+ if(!p.skills.includes('raise_dead')||!state||state.cooldown||p.control.disabled||summonCount(g)>=SUMMON_LIMIT)return false;
+ const pool=summonPool(g),cell=routeCells(g,p,{limit:2,openDoors:false}).find(q=>q.d>0);if(!pool.length||!cell)return false;
+ g.allies=g.allies.filter(a=>a.kind!=='summon'||a.status==='active');if(g.allies.length>=32)return false;
+ const a=addAlly(g,'summon',pool[Math.floor(g.rng()*pool.length)].type,{sourceId:'raise_dead',point:cell});if(!a)return false;
+ state.cooldown=SUMMON_INTERVAL;
+ g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.6,color:'#8ae9da',damage:0});
+ g.log(`${allyName(a)}自亡者中起身。`);return true;
+}
 // Runs once per paid world turn. A packed pet heals; once whole, and only while its skill is prepared,
 // it steps out beside the player like a deployment and waits for the next turn to act.
 export function tickPackedPet(g){
@@ -259,6 +275,7 @@ export function validAllies(g){
   if((a.status==='down'&&a.kind!=='pet')||(a.status==='packed'&&!['drone','pet'].includes(a.kind))||(a.status==='active'&&a.hp===0)||(['down','destroyed'].includes(a.status)&&a.hp!==0))return false;
   if(!Number.isInteger(a.armor)||a.armor<0||a.armor>20||!Number.isInteger(a.bornTurn)||a.bornTurn<1||a.bornTurn>g.turn||!validTraits(a.traits)||!validControl(a.control)||!validCombatMemory(a,g.turn)||!validCombatModifiers(a.combatModifiers)||typeof a.vaultExposed!=='boolean')return false;
   if(a.restTurn!==undefined&&(!Number.isInteger(a.restTurn)||a.restTurn<1||a.restTurn>g.turn+1))return false;
+  if(a.rallyTurn!==undefined&&(a.kind!=='summon'||!Number.isInteger(a.rallyTurn)||a.rallyTurn<1||a.rallyTurn>g.turn+RALLY_TURNS))return false;
   if(a.missionId!==null&&(typeof a.missionId!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(a.missionId)))return false;
   if(a.kind==='drone'&&!['drone_follow','drone_sentry'].includes(a.sourceId)||a.kind==='pet'&&a.sourceId!=='pet_command'||a.kind==='summon'&&a.sourceId!=='raise_dead'||a.kind==='survivor'&&a.sourceId!==null&&typeof a.sourceId!=='string')return false;
   if(a.order!==null&&(!a.order||![a.order.x,a.order.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)))return false;

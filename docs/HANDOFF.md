@@ -1,4 +1,12 @@
-# 快速接手：ASH PROTOCOL 3.39.0
+# 快速接手：ASH PROTOCOL 3.40.0
+
+## 3.40.0：死靈法師改版（Claude 開發，使用者決定）
+
+- 規格：[ALLIES.md](ALLIES.md)「死靈法師」；報告：[qa/results/2026-09-11-claude-3.40.0-allies-iteration.md](../qa/results/2026-09-11-claude-3.40.0-allies-iteration.md)。使用者決定已註記在 [ALLY_ITERATION_SCOPE.md](ALLY_ITERATION_SCOPE.md) 死靈法師段。
+- `src/allies.js`：`SUMMON_LIMIT` 3、`SUMMON_INTERVAL`／`SUMMON_TETHER`／`RALLY_TURNS`；`summonPool` 取代 `corpsePool`（不消耗、依死亡數加權）；`tickSummons` 自動起身；`raise_dead` 技能改為集結（寫入召喚物 `rallyTurn`），其冷卻欄位現在是起身計時器，`canAllySkill` 對它不檢查冷卻。
+- `src/game.js`：回合結束在 `tickPackedPet` 之後、`tickSkills` 之前呼叫 `tickSummons`。`src/skills.js`：`raise_dead` 改名「亡者集結」、cost 0。
+- `src/controller.js`：友軍技能在背包、按鈕提示改顯示 `allySkillState`。
+- 模擬腳本：`qa/necro-waves.mjs`（舊版會手動徵召，新版不按技能）。
 
 ## 3.39.0：工程師無人機改版（Claude 開發，使用者決定）
 

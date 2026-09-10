@@ -1,4 +1,4 @@
-import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickPackedPet,petSkillReason,fitDrone,DRONE_HP,DRONE_BUILD_COST} from './allies.js';
+import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickPackedPet,tickSummons,petSkillReason,fitDrone,DRONE_HP,DRONE_BUILD_COST} from './allies.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
@@ -163,7 +163,7 @@ export class Game {
     const p=this.player,w=this.weapon;
     if(type==='repairDrone')return !droneRepairReason(this,arg)||this.fail(droneRepairReason(this,arg));
     if(type==='commandPet')return Boolean(p.prepared.skill==='pet_command'&&this.activeAllies.some(a=>a.kind==='pet')&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&this.seen[arg.y]?.[arg.x]&&this.passable(arg.x,arg.y)&&distance(p,arg)<=6);
-    if(type==='skill')return (ALLY_SKILLS.includes(arg)?canAllySkill(this,arg):canUseSkill(p,arg))||this.fail((arg==='pet_command'&&p.prepared.skill===arg&&petSkillReason(this))||'技能無法啟動：請確認預備欄與冷卻狀態。');
+    if(type==='skill')return (ALLY_SKILLS.includes(arg)?canAllySkill(this,arg):canUseSkill(p,arg))||this.fail((arg==='pet_command'&&p.prepared.skill===arg&&petSkillReason(this))||(arg==='raise_dead'&&p.prepared.skill===arg&&!p.control.disabled&&'目前沒有召喚物可以集結。')||'技能無法啟動：請確認預備欄與冷卻狀態。');
     if(type==='prepare')return Boolean(arg&&canPrepare(p,arg.category,arg.id)&&p.prepared[arg.category]!==arg.id);
     if(type==='heal'&&p.prepared.item!=='medkit')return this.fail('請先在背包預備醫療包。');
     if(type==='grenade'&&!preparedEntry(p,'grenade'))return this.fail('請先在背包預備手榴彈。');
@@ -258,6 +258,8 @@ export class Game {
       if(p.hp>0)presentStep(this,()=>this.environmentTurn());
     }
     if(this.status==='playing'&&p.hp>0)presentStep(this,()=>{if(tickPackedPet(this))this.reveal();});
+    // Summons rise before skills tick, so the interval counts the rising turn like the old cast did.
+    if(this.status==='playing'&&p.hp>0)presentStep(this,()=>{if(tickSummons(this))this.reveal();});
     tickSkills(p);if(!skillActive(p,'early_warning'))this.sensorContacts=[];
     this.smoke=this.smoke.filter(s=>s.expires>this.turn);
     for(const actor of [p,...this.enemies,...this.activeAllies])tickTraits(actor);

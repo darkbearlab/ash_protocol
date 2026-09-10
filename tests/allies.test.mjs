@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
-import {SIZE} from '../src/data.js';
+import {SIZE,ENEMY_TYPES} from '../src/data.js';
 import {CHARACTERS} from '../src/characters.js';
-import {DRONE_REPAIR_COST,DRONE_BUILD_COST,DRONE_HP,SENTRY_ARMOR,droneRepairReason,addAlly,allyWeapon,allyAct,allySkillState,fitDrone,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,corpsePool,validAllies,PET_REGEN,PET_MEDKIT_FRACTION,PET_TETHER} from '../src/allies.js';
+import {DRONE_REPAIR_COST,DRONE_BUILD_COST,DRONE_HP,SENTRY_ARMOR,droneRepairReason,addAlly,allyWeapon,allyAct,allySkillState,fitDrone,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,summonPool,validAllies,PET_REGEN,PET_MEDKIT_FRACTION,PET_TETHER,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS} from '../src/allies.js';
 import {makeEnemy} from '../src/world.js';
 import {makeBarrier} from '../src/barriers.js';
 import {grantTrait} from '../src/traits.js';
@@ -70,9 +70,9 @@ test('a medkit adds half the pet health while packed for one turn; without one t
  assert.ok(use(g));assert.equal(g.turn,3);assert.equal(g.player.meds,0);assert.equal(a.hp,10+Math.ceil(a.maxHp*PET_MEDKIT_FRACTION)+PET_REGEN);
  const turn=g.turn,hp=a.hp;assert.equal(use(g),false);assert.equal(g.turn,turn);assert.equal(a.hp,hp);assert.match(g.logs[0].text,/醫療包/);
 });
-test('the pet chases up to nine tiles from the player while other allies keep the six-tile tether',()=>{
+test('the pet chases up to nine tiles from the player while survivors keep the six-tile tether',()=>{
  const g=arena('druid'),a=pet(g),e=enemy(g,18,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();for(let i=0;i<9;i++)g.action('wait');assert.ok(e.hp<500);assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=PET_TETHER);
- const n=arena('necromancer'),s=addAlly(n,'summon','crawler',{sourceId:'raise_dead',point:{x:11,y:10}}),f=enemy(n,18,10);f.hp=500;n.enemyAct=()=>{};n.reveal();for(let i=0;i<9;i++)n.action('wait');assert.equal(f.hp,500);
+ const n=arena('soldier'),s=addAlly(n,'survivor','crawler',{point:{x:11,y:10}}),f=enemy(n,18,10);f.hp=500;n.enemyAct=()=>{};n.reveal();for(let i=0;i<9;i++)n.action('wait');assert.equal(f.hp,500);
 });
 test('only pets and drones may be packed in a save; a v25 save loads unchanged and its first local read is kept verbatim',async()=>{
  const g=arena('necromancer'),s=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:11,y:10}}),raw=JSON.parse(g.serialize());raw.data.allies[0].status='packed';assert.equal(Game.restore(JSON.stringify(raw)),null);
@@ -83,12 +83,18 @@ test('only pets and drones may be packed in a save; a v25 save loads unchanged a
 test('a fast lethal hit cancels paid rescue and consumes no medkit',()=>{
  const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);const e=enemy(g,14);e.charge=true;e.windup=1;grantTrait(e,'fast','test:fast');g.player.hp=1;zero(g);g.reveal();const meds=g.player.meds;assert.ok(use(g));assert.equal(g.status,'dead');assert.equal(a.status,'down');assert.equal(g.player.meds,meds);
 });
-test('necro consumes distinct actual corpses, excludes bosses, refills only missing slots and cannot recycle summons',()=>{
- const g=arena('necromancer');for(const type of ['rifleman','crawler','warden'])enemy(g,14+g.enemies.length,10,type).hp=0;zero(g);assert.ok(use(g));assert.equal(g.activeAllies.length,2);assert.equal(g.enemies.filter(e=>e.raised).length,2);assert.equal(corpsePool(g).length,0);assert.equal(g.player.skillState.raise_dead.cooldown,3);
- const survivors=g.activeAllies;survivors[0].hp=7;g.damageAlly(survivors[1],999);for(let i=0;i<3;i++)g.action('wait');assert.equal(use(g),false);enemy(g,18,10,'raider').hp=0;assert.ok(use(g));assert.equal(g.activeAllies.length,2);assert.equal(survivors[0].hp,7);assert.ok(Game.restore(g.serialize()));
+test('necro summons rise on their own every four paid turns from anyone who fell here, up to three, bosses excluded, nothing consumed',()=>{
+ const g=arena('necromancer'),summons=()=>g.activeAllies.filter(a=>a.kind==='summon').length;for(const type of ['rifleman','crawler','warden'])enemy(g,14+g.enemies.length,10,type).hp=0;g.enemyAct=()=>{};
+ g.action('wait');assert.equal(summons(),1);assert.equal(g.player.skillState.raise_dead.cooldown,SUMMON_INTERVAL-1);assert.ok(g.activeAllies.every(a=>a.type!=='warden'));assert.equal(summonPool(g).length,2);assert.ok(g.enemies.every(e=>!e.raised));
+ const s=g.activeAllies[0];assert.equal(s.maxHp,Math.max(32,makeEnemy(s.type,0,0,'x').hp));assert.equal(allyWeapon(s).min,Math.max(8,ENEMY_TYPES[s.type].damage));
+ for(let i=0;i<SUMMON_INTERVAL-1;i++)g.action('wait');assert.equal(summons(),1);g.action('wait');assert.equal(summons(),2);
+ for(let i=0;i<SUMMON_INTERVAL*2;i++)g.action('wait');assert.equal(summons(),SUMMON_LIMIT);assert.ok(Game.restore(g.serialize()));
 });
-test('summon selection is deterministic across restore and new summons wait until next turn',()=>{
- const g=arena('necromancer');for(const type of ['rifleman','raider','crawler'])enemy(g,16+g.enemies.length,10,type).hp=0;const saved=Game.restore(g.serialize());assert.ok(saved);use(g);use(saved);assert.deepEqual(g.allies,saved.allies);assert.equal(g.rng.state(),saved.rng.state());assert.ok(g.allies.every(a=>a.bornTurn===g.turn));
+test('rising draws are weighted by how many fell, deterministic across restore, and the new summon waits for the next turn',()=>{
+ const fallen=g=>{for(let j=0;j<5;j++)enemy(g,14+j,12,'crawler').hp=0;enemy(g,20,12,'gunner').hp=0;g.enemyAct=()=>{};};
+ const g=arena('necromancer');fallen(g);const saved=Game.restore(g.serialize());saved.enemyAct=()=>{};g.action('wait');saved.action('wait');assert.deepEqual(g.allies,saved.allies);assert.equal(g.rng.state(),saved.rng.state());assert.equal(g.allies[0].bornTurn,g.turn);
+ const counts={crawler:0,gunner:0};for(let i=0;i<60;i++){const h=arena('necromancer');fallen(h);const r=i/60;h.rng=Object.assign(()=>r,{state:()=>1});h.action('wait');counts[h.allies[0].type]++;}
+ assert.deepEqual(counts,{crawler:50,gunner:10});
 });
 test('enemies select and damage closer allies, preserving player health',()=>{
  const g=arena('druid'),a=pet(g,{x:12,y:10}),e=enemy(g,15);a.order={x:12,y:10};e.charge=true;e.windup=1;g.reveal();zero(g);const hp=g.player.hp;g.action('wait');assert.equal(g.player.hp,hp);assert.ok(a.hp<90);assert.equal(g.enemyTarget(e),a);
@@ -216,6 +222,20 @@ test('a ground wreck stays behind on its floor and survives complete backup; the
  const copy=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa');assert.deepEqual(copy.game.allies,g.allies);
  const raw=JSON.parse(g.serialize());raw.data.allies[0].status='active';assert.equal(Game.restore(JSON.stringify(raw)),null);
  raw.data.allies[0].status='packed';raw.data.allies[0].hp=-1;assert.equal(Game.restore(JSON.stringify(raw)),null);
+});
+// 3.40 necromancer (user decision): automatic rising, a fallen pool that is never used up, and a free rally.
+test('summons hunt enemies up to nine tiles from the player',()=>{
+ const g=arena('necromancer'),s=addAlly(g,'summon','crawler',{sourceId:'raise_dead',point:{x:11,y:10}}),e=enemy(g,18,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
+ for(let i=0;i<9;i++)g.action('wait');assert.ok(e.hp<500);assert.ok(Math.abs(s.x-g.player.x)+Math.abs(s.y-g.player.y)<=SUMMON_TETHER);
+});
+test('rally is free, brings hunting summons back for three turns, then they hunt again; it needs a summon',()=>{
+ const g=arena('necromancer'),s=addAlly(g,'summon','crawler',{sourceId:'raise_dead',point:{x:11,y:10}}),e=enemy(g,17,10);e.hp=500;g.enemyAct=()=>{};g.reveal();
+ g.action('wait');g.action('wait');const out=s.x;assert.ok(out>=13);
+ const turn=g.turn,rng=g.rng.state();assert.ok(use(g));assert.equal(g.turn,turn);assert.equal(g.rng.state(),rng);assert.equal(s.rallyTurn,turn+RALLY_TURNS);
+ g.action('wait');assert.ok(s.x<out);g.action('wait');g.action('wait');assert.ok(Math.abs(s.x-g.player.x)+Math.abs(s.y-g.player.y)<=2);
+ g.action('wait');g.action('wait');assert.ok(s.x>=13);assert.ok(Game.restore(g.serialize()));
+ for(const bad of ['2',g.turn+RALLY_TURNS+1]){const raw=JSON.parse(g.serialize());raw.data.allies[0].rallyTurn=bad;assert.equal(Game.restore(JSON.stringify(raw)),null);}
+ const n=arena('necromancer');assert.equal(use(n),false);assert.equal(n.turn,1);assert.match(n.logs[0].text,/集結/);
 });
 // 3.39 engineer drone (user decision): rifle rounds, 90 HP, self-reload near the player, build instead of wreck recovery.
 test('drones reload themselves from rifle rounds within carry range when empty or idle at half, never beyond it',()=>{
