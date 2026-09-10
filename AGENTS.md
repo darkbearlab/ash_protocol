@@ -1,4 +1,5 @@
 # Project instructions
+- Current developer handoff: read `給Claude的交接.md`. Claude is authorized for balance values, global economy and menus; the older QA-only restriction applies only to QA assignments. Preserve the documented gameplay-rule and save-integrity boundaries.
 
 - Product: a mobile-browser, turn-based tactical shooter. Movement is screen-aligned up/down/left/right; never revert to diagonal/isometric controls.
 - Read `docs/HANDOFF.md` before substantial changes. Keep it, design notes and the changelog current.
