@@ -1,4 +1,9 @@
-# 快速接手：ASH PROTOCOL 3.35.7
+# 快速接手：ASH PROTOCOL 3.35.8
+
+## 3.35.8：任務說明改為固定位置（Claude 開發）
+
+- 選擇任務畫面：清單只列標題，選中任務的說明顯示在清單下方、「進階」上方的 `.mission-brief`。所有說明疊在同一格以保留最大高度，切換時版面不跳動。
+- 切換由 `document` 上的 `change` 監聽處理（限 `.mission-list` 內的 `name="mission"`）。取代 3.35.6 的列內展開。
 
 ## 3.35.7：任務共用說明拆進各任務（Claude 開發）
 
@@ -7,7 +12,7 @@
 
 ## 3.35.6：選擇任務畫面精簡（Claude 開發）
 
-- 任務說明只在選中的列展開（`.reveal-notes`，CSS `:has()`，不支援時全部顯示）；種子欄位收進「進階」摺疊（`.seed-advanced`），驗證失敗會自動展開。
+- 任務說明只在選中的列展開（`.reveal-notes`；**3.35.8 已改為清單下方固定區塊，此類別已移除**）；種子欄位收進「進階」摺疊（`.seed-advanced`），驗證失敗會自動展開。
 - 修正任務列名稱被排進頭像欄、層數看不見的問題（`.term-caret+.term-body` 跨欄）。
 - 只動 `showDeployMission()`、`deployOperator` 的錯誤處理與 `expansion.css`；`newGame()` 與部署草稿流程不變。未改規則或存檔。
 

@@ -175,8 +175,11 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .term-detail-body{display:grid;gap:5px;padding:2px 0 6px;border-left:1px solid #2a332c;padding-left:9px}
 .term-detail-body small{font:10px/1.6 var(--mono);color:#b7c2b6}
 .term-detail-body b{color:var(--text)}
-/* 任務清單：說明只在選中的那一列展開。不支援 :has() 的瀏覽器維持全部顯示，不會把說明藏到看不見。 */
-@supports selector(:has(*)){.reveal-notes .term-row{padding-bottom:2px}.reveal-notes .term-note{display:none}.reveal-notes .term-row:has(input:checked){padding-bottom:10px}.reveal-notes .term-row:has(input:checked) .term-note{display:block}}
+/* 任務清單只列標題；說明集中在清單下方。所有說明疊在同一格，高度取最長的一段，切換任務時下方不會跳動。 */
+.mission-list .term-row{padding-bottom:2px}
+.mission-brief{display:grid;margin:12px 0 0;padding:8px 0 8px 11px;border-left:1px solid #2a332c}
+.mission-brief>p{grid-area:1/1;margin:0;font:11px/1.6 var(--mono);color:#b7c2b6;visibility:hidden}
+.mission-brief>p.active{visibility:visible}
 .seed-advanced{margin:12px 0 0}
 .seed-advanced .seed-field{padding:2px 0 4px}
 /* 開機遮罩：模組載入完成、主選單開好之前不顯示戰鬥介面。底色與主選單相同，銜接無跳動。 */
