@@ -1,4 +1,12 @@
-# 快速接手：ASH PROTOCOL 3.36.0
+# 快速接手：ASH PROTOCOL 3.37.0
+
+## 3.37.0：德魯伊寵物可回收（Claude 開發，使用者決定）
+
+- 使用者決定取代授權文件的「醫療包救援」與「不增免費復活」，已註記在 [ALLY_ITERATION_SCOPE.md](ALLY_ITERATION_SCOPE.md)。規格：[ALLIES.md](ALLIES.md)「德魯伊」；報告：[qa/results/2026-09-11-claude-3.37.0-allies-iteration.md](../qa/results/2026-09-11-claude-3.37.0-allies-iteration.md)。
+- `src/allies.js`：`PET_TETHER`／`PET_REGEN`／`PET_MEDKIT_FRACTION`、`leash(a)` 取代寵物的 `TETHER`；`canRecoverPet`、`tickPackedPet`、`petSkillReason`；移除舊的 `rescueCell`。
+- `src/game.js`：寵物倒地／收納時技能耗 1 回合；每個付費回合結束呼叫 `tickPackedPet`（在環境結算之後）；save v26。
+- **save v26**：只放寬驗證（寵物可 packed），v25 不轉換；`storage.js` 首讀備份清單含 25。
+- 未改：其他友軍、敵人 AI、共用公式、無人機修復流程。
 
 ## 3.36.0：友軍第一輪 —— 卡點與跟隨（Claude 開發）
 

@@ -5,7 +5,7 @@ const defaults={hp:100,armor:0,plates:0,weaponCapacity:PACK_LIMIT,plateCapacity:
 // Stable IDs. Starter characters are free; no profile currency is spent.
 export const CHARACTERS={
   engineer:{...defaults,name:'Engineer',label:'工程師',text:'部署追隨或放置型僚機；共用一台機體，回收以備彈裝填，損毀可回收殘骸，收納後以廢料維修。',traits:['biological'],weapons:[2,1],skills:['drone_follow','drone_sentry'],prepared:{skill:'drone_follow'}},
-  druid:{...defaults,name:'Druid',label:'德魯伊',text:'與伴生獵獸同行。免費指揮位置，倒地後靠近以一個醫療包救援。',traits:['biological'],weapons:[0,1],skills:['pet_command'],prepared:{skill:'pet_command'}},
+  druid:{...defaults,name:'Druid',label:'德魯伊',text:'與伴生獵獸同行。免費指揮位置；獵獸倒地後相鄰回收，收納中自行回血並歸隊。',traits:['biological'],weapons:[0,1],skills:['pet_command'],prepared:{skill:'pet_command'}},
   necromancer:{...defaults,name:'Necromancer',label:'死靈法師',text:'消耗本層非頭目屍體，隨機補足至兩隻召喚物；未同行者換層消失。',traits:['biological'],weapons:[2,1],skills:['raise_dead'],prepared:{skill:'raise_dead'}},
   soldier:{...defaults,skills:['early_warning'],prepared:{skill:'early_warning'},combat:{rangedAccuracy:8},name:'Soldier',label:'士兵',text:'天生射擊命中 +8，利用掩體穩定壓制同一目標。',traits:['biological','braced','correction'],weapons:[0,1]},
   bulwark:{...defaults,name:'Bulwark',label:'重裝兵',text:'厚重動力裝甲承受火力，以輕機槍壓制、動力拳破陣。普通敵人先行動；可下錨固定位置，在普通與緩速各攻擊一次。',traits:['biological','large','clumsy','slow','heavy_armor'],weapons:[6,7],skills:['anchor'],prepared:{skill:'anchor'},hp:200,armor:6,plates:30},

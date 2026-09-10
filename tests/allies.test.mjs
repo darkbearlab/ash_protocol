@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {SIZE} from '../src/data.js';
 import {CHARACTERS} from '../src/characters.js';
-import {DRONE_REPAIR_COST,droneRepairReason,addAlly,allyWeapon,allyAct,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,corpsePool,validAllies} from '../src/allies.js';
+import {DRONE_REPAIR_COST,droneRepairReason,addAlly,allyWeapon,allyAct,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,corpsePool,validAllies,PET_REGEN,PET_MEDKIT_FRACTION,PET_TETHER} from '../src/allies.js';
 import {makeEnemy} from '../src/world.js';
 import {makeBarrier} from '../src/barriers.js';
 import {grantTrait} from '../src/traits.js';
@@ -47,12 +47,37 @@ test('pet destination commands are free, bounded, and execute on the next own op
  const g=arena('druid'),a=pet(g);const turn=g.turn,rng=g.rng.state();assert.ok(g.action('commandPet',{x:13,y:10}));assert.equal(g.turn,turn);assert.equal(g.rng.state(),rng);assert.equal(a.x,11);
  g.action('wait');assert.equal(a.x,12);g.action('wait');assert.equal(a.x,13);assert.equal(commandPet(g,{x:20,y:10}),false);assert.ok(g.action('commandPet',{x:10,y:10}));assert.equal(a.order,null);
 });
-test('pet rescue requires a medkit and adjacency, uses one turn and restores half hp',()=>{
- const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);assert.equal(a.status,'down');assert.equal(a.hp,0);const meds=g.player.meds;
- g.player.x=8;assert.equal(use(g),false);g.player.x=10;g.player.meds=0;assert.equal(use(g),false);g.player.meds=meds;assert.ok(use(g));assert.equal(g.turn,2);assert.equal(a.hp,45);assert.equal(g.player.meds,meds-1);assert.equal(a.status,'active');
+// 3.37 (user decision) replaces the medkit rescue: a downed pet is recovered, heals while packed and steps back out.
+test('a downed pet is recovered from an adjacent tile for one turn without medicine, then heals while packed',()=>{
+ const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);assert.equal(a.status,'down');assert.equal(a.hp,0);g.player.meds=0;
+ g.player.x=8;assert.equal(use(g),false);assert.equal(g.turn,1);assert.match(g.logs[0].text,/相鄰/);
+ g.player.x=10;assert.ok(use(g));assert.equal(g.turn,2);assert.equal(a.status,'packed');assert.equal(a.hp,PET_REGEN);assert.equal(g.player.meds,0);assert.ok(!g.localAllies.includes(a));assert.ok(Game.restore(g.serialize()));
 });
-test('standing on the downed pet revives into an adjacent free tile without overlap',()=>{
- const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);g.player.x=11;assert.ok(use(g));assert.notEqual(a.x+','+a.y,g.player.x+','+g.player.y);assert.ok(Game.restore(g.serialize()));
+test('standing on the downed pet recovers it; a packed pet leaves the map and travels with the player',()=>{
+ const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);g.player.x=11;assert.ok(use(g));assert.equal(a.status,'packed');
+ assert.ok(departAllies(g).includes(a.id));g.floor=2;g.player.x=5;g.player.y=5;arriveAllies(g,[a.id]);assert.equal(a.floor,2);assert.ok(validAllies(g));assert.ok(Game.restore(g.serialize()));
+});
+test('a packed pet heals on paid turns only and steps out beside the player once whole while its skill is prepared',()=>{
+ const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);assert.ok(use(g));a.hp=a.maxHp-2*PET_REGEN;
+ g.action('prepare',{category:'skill',id:null});assert.equal(a.hp,a.maxHp-2*PET_REGEN);
+ g.action('wait');g.action('wait');assert.equal(a.hp,a.maxHp);assert.equal(a.status,'packed');
+ g.action('prepare',{category:'skill',id:'pet_command'});assert.equal(a.status,'packed');g.action('wait');
+ assert.equal(a.status,'active');assert.equal(a.bornTurn,g.turn);assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=2);assert.notEqual(a.x+','+a.y,g.player.x+','+g.player.y);assert.ok(Game.restore(g.serialize()));
+});
+test('a medkit adds half the pet health while packed for one turn; without one the skill gives a reason and costs nothing',()=>{
+ const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);assert.ok(use(g));a.hp=10;g.player.meds=1;
+ assert.ok(use(g));assert.equal(g.turn,3);assert.equal(g.player.meds,0);assert.equal(a.hp,10+Math.ceil(a.maxHp*PET_MEDKIT_FRACTION)+PET_REGEN);
+ const turn=g.turn,hp=a.hp;assert.equal(use(g),false);assert.equal(g.turn,turn);assert.equal(a.hp,hp);assert.match(g.logs[0].text,/醫療包/);
+});
+test('the pet chases up to nine tiles from the player while other allies keep the six-tile tether',()=>{
+ const g=arena('druid'),a=pet(g),e=enemy(g,18,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();for(let i=0;i<9;i++)g.action('wait');assert.ok(e.hp<500);assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=PET_TETHER);
+ const n=arena('necromancer'),s=addAlly(n,'summon','crawler',{sourceId:'raise_dead',point:{x:11,y:10}}),f=enemy(n,18,10);f.hp=500;n.enemyAct=()=>{};n.reveal();for(let i=0;i<9;i++)n.action('wait');assert.equal(f.hp,500);
+});
+test('only pets and drones may be packed in a save; a v25 save loads unchanged and its first local read is kept verbatim',async()=>{
+ const g=arena('necromancer'),s=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:11,y:10}}),raw=JSON.parse(g.serialize());raw.data.allies[0].status='packed';assert.equal(Game.restore(JSON.stringify(raw)),null);
+ const d=arena('druid'),a=pet(d);a.hp=37;const old=JSON.parse(d.serialize());old.version=25;const text=JSON.stringify(old),memory=new Map([['qa-ash-save',text],['ash-save','untouched']]);
+ globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
+ const storage=await import('../src/storage.js?pet337'),restored=storage.loadGame();assert.ok(restored);assert.deepEqual(restored.allies,d.allies);assert.deepEqual(restored.player,d.player);assert.equal(restored.rng.state(),d.rng.state());assert.equal(memory.get('qa-ash-save-v25-backup'),text);assert.equal(memory.get('ash-save'),'untouched');
 });
 test('a fast lethal hit cancels paid rescue and consumes no medkit',()=>{
  const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);const e=enemy(g,14);e.charge=true;e.windup=1;grantTrait(e,'fast','test:fast');g.player.hp=1;zero(g);g.reveal();const meds=g.player.meds;assert.ok(use(g));assert.equal(g.status,'dead');assert.equal(a.status,'down');assert.equal(g.player.meds,meds);
@@ -225,7 +250,7 @@ test('two summons queue through a one-tile corridor instead of the rear one free
 });
 test('melee pets hold a fight inside the tether instead of pacing back to the idle leash',()=>{
  for(const k of [5,6]){const g=arena('druid'),a=pet(g),e=enemy(g,10+k,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
-  for(let i=0;i<8;i++){g.action('wait');assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=6);}assert.ok(e.hp<500,`enemy ${k} tiles out`);}
+  for(let i=0;i<8;i++){g.action('wait');assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=PET_TETHER);}assert.ok(e.hp<500,`enemy ${k} tiles out`);}
 });
 test('follow drones fire from their tile before closing the idle leash, and still never chase',()=>{
  const g=arena(),a=drone(g,{x:7,y:10});a.ammo=12;a.bornTurn=1;g.turn=2;enemy(g,11,11);zero(g);g.reveal();allyAct(g,a);assert.equal(a.x,7);assert.equal(a.ammo,11);

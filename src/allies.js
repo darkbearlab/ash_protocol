@@ -9,6 +9,10 @@ export const ALLY_SKILLS=['drone_follow','drone_sentry','pet_command','raise_dea
 export const TETHER=6,CARRY_DISTANCE=3,SUMMON_LIMIT=2;
 // Idle leash: with no fight to hold, allies drift back once farther than this. Engaged allies use the tether instead.
 export const FOLLOW_RANGE={drone:2,other:3};
+// Druid pet (3.37, user decision): a longer leash to reach real fights, and a downed pet is recovered
+// instead of revived; it heals while packed and steps back out once whole if the skill stays prepared.
+export const PET_TETHER=9,PET_REGEN=5,PET_MEDKIT_FRACTION=.5;
+export const leash=a=>a.kind==='pet'?PET_TETHER:TETHER;
 // Placeholder economy: keep price and healing shared by rules and inventory UI.
 export const DRONE_REPAIR_COST=10,DRONE_REPAIR_FRACTION=.5;
 export function droneRepairReason(g,id){
@@ -27,10 +31,13 @@ export function repairDrone(g,id){
  g.player.scrap-=DRONE_REPAIR_COST;a.hp=Math.min(a.maxHp,a.hp+Math.ceil(a.maxHp*DRONE_REPAIR_FRACTION));
  g.log(`消耗 ${DRONE_REPAIR_COST} 廢料，機體修復 +${a.hp-before} 生命；仍收納中。`);return true;
 }
-export const canRecoverWreck=(g,a)=>a.kind==='drone'&&a.status==='destroyed'&&a.floor===g.floor&&distance(g.player,a)<=1&&g.canCross(g.player,a)&&!g.enemies.some(e=>e.hp>0&&key(e)===key(a))&&!currentAllies(g).some(e=>key(e)===key(a));
+// A body on the floor can be picked up from the same or an adjacent tile with a clear edge, unless someone stands on it.
+const reachableBody=(g,a)=>a.floor===g.floor&&distance(g.player,a)<=1&&g.canCross(g.player,a)&&!g.enemies.some(e=>e.hp>0&&key(e)===key(a))&&!currentAllies(g).some(e=>key(e)===key(a));
+export const canRecoverWreck=(g,a)=>a.kind==='drone'&&a.status==='destroyed'&&reachableBody(g,a);
+export const canRecoverPet=(g,a)=>a.kind==='pet'&&a.status==='down'&&reachableBody(g,a);
 export const currentAllies=g=>(g.allies||[]).filter(a=>a.floor===g.floor&&a.status==='active'&&a.hp>0);
 export const localAllies=g=>(g.allies||[]).filter(a=>a.floor===g.floor&&['active','down','destroyed'].includes(a.status));
-export const connected=(g,a)=>a.status==='active'&&a.hp>0&&a.floor===g.floor&&distance(a,g.player)<=TETHER;
+export const connected=(g,a)=>a.status==='active'&&a.hp>0&&a.floor===g.floor&&distance(a,g.player)<=leash(a);
 export const allyName=a=>a.kind==='pet'?'伴生獵獸':a.kind==='drone'?(a.sourceId==='drone_sentry'?'哨兵無人機':'追隨無人機'):a.kind==='survivor'?'倖存友軍':`復生${ENEMY_TYPES[a.type].name}`;
 export function allyWeapon(a){
  if(a.kind==='drone')return a.sourceId==='drone_sentry'?{id:'rifle',range:7,min:14,max:14,mag:8,ammoType:'rifle',accuracyBonus:-37}:{id:'smg',range:5,min:10,max:10,mag:12,ammoType:'pistol',accuracyBonus:-42};
@@ -82,18 +89,26 @@ export function allySkillState(g,id){
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
  if(id==='raise_dead')return `召喚 ${currentAllies(g).filter(a=>a.kind==='summon').length}/${SUMMON_LIMIT} · 素材 ${corpsePool(g).length}`;
  if(!a)return '沒有夥伴';if(a.floor!==g.floor&&a.status!=='packed')return `留在 ${a.floor} 層`;if(a.status==='destroyed')return '回收殘骸 · 相鄰';
- if(a.status==='down')return '救援 · 醫療包 1';if(a.status==='packed')return a.hp?'部署 · 1 回合':'待修復 · 背包技能';
+ if(a.status==='down')return '回收 · 相鄰 1 回合';
+ if(a.kind==='pet'&&a.status==='packed')return a.hp<a.maxHp?`回血 ${a.hp}/${a.maxHp}${g.player.meds?' · 可用醫療包':''}`:'待歸隊 · 等空位';
+ if(a.status==='packed')return a.hp?'部署 · 1 回合':'待修復 · 背包技能';
  return a.kind==='pet'?'指揮／召回':a.sourceId!==id?'先回收原機型':`回收 ${a.ammo}/${allyWeapon(a).mag}`;
 }
-export function rescueCell(g,a){if(!occupied(g,a))return a;if(key(a)===key(g.player))return routeCells(g,g.player,{limit:1,openDoors:false}).find(q=>q.d>0)||null;return null;}
+export function petSkillReason(g){
+ const a=g.allies.find(a=>a.kind==='pet');if(!a)return '';
+ if(a.status==='down')return a.floor!==g.floor?`伴生獵獸倒在第 ${a.floor} 層。`:'伴生獵獸倒地：走到同格或相鄰格、中間沒有阻隔時才能回收。';
+ if(a.status==='packed')return a.hp>=a.maxHp?'伴生獵獸已滿血，身邊有空位就會歸隊。':'伴生獵獸收納回血中；沒有醫療包可以加速。';
+ return '';
+}
 export function canAllySkill(g,id){
  const p=g.player;if(!p.skills.includes(id)||p.prepared.skill!==id||p.skillState[id]?.cooldown||p.control.disabled)return false;
  if(id==='raise_dead')return g.allies.filter(a=>a.status!=='destroyed').length<32&&currentAllies(g).filter(a=>a.kind==='summon').length<SUMMON_LIMIT&&corpsePool(g).length>0&&routeCells(g,p,{limit:2,openDoors:false}).some(q=>q.d>0);
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');if(!a)return false;
+ // Pet: recover when down, spend a medkit to speed healing while packed, command while active.
+ if(id==='pet_command')return a.status==='down'?canRecoverPet(g,a):a.status==='packed'?a.hp<a.maxHp&&p.meds>0:a.status==='active'&&a.floor===g.floor;
  if(a.status==='destroyed')return canRecoverWreck(g,a);
  if(a.status==='packed')return a.hp>0&&routeCells(g,p,{limit:2,openDoors:false}).some(q=>q.d>0);
  if(a.floor!==g.floor)return false;
- if(id==='pet_command')return a.status==='active'||a.status==='down'&&p.meds>0&&distance(p,a)<=1&&g.canCross(p,a)&&Boolean(rescueCell(g,a));
  return a.sourceId===id&&carryCandidates(g).includes(a);
 }
 export function useAllySkill(g,id){
@@ -108,7 +123,8 @@ export function useAllySkill(g,id){
  }
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
  if(id==='pet_command'){
-  if(a.status==='down'){const cell=rescueCell(g,a);a.x=cell.x;a.y=cell.y;p.meds--;a.hp=Math.ceil(a.maxHp*.5);a.status='active';a.control={disabled:0,immune:0};a.bornTurn=g.turn;g.log('消耗醫療包，寵物恢復一半生命。');}
+  if(a.status==='down'){Object.assign(a,{status:'packed',order:null,control:{disabled:0,immune:0}});g.log(`伴生獵獸已收納：每回合回復 ${PET_REGEN} 生命，回滿且本技能預備中會自行歸隊。`);}
+  else if(a.status==='packed'){const before=a.hp;p.meds--;a.hp=Math.min(a.maxHp,a.hp+Math.ceil(a.maxHp*PET_MEDKIT_FRACTION));g.log(`消耗醫療包，伴生獵獸回復 ${a.hp-before} 生命。`);}
   else a.order=null;
  }else if(a.status==='destroyed'){
   a.status='packed';a.order=null;g.log('殘骸已收納；到背包技能分頁消耗廢料修復。');
@@ -141,7 +157,7 @@ export function allyAct(g,a){
  if(a.order&&distance(a,a.order)>0){if(!stepToward(g,a,a.order,q=>key(q)===key(a.order),linked)&&shot)attack(shot);return;}
  // Engaged allies keep the fight inside the tether; the short leash would make melee pets pace back and forth.
  if(shot){attack(shot);return;}
- const chase=a.kind!=='drone'&&!a.order?targets.find(e=>distance(e,g.player)<=TETHER):null;
+ const chase=a.kind!=='drone'&&!a.order?targets.find(e=>distance(e,g.player)<=leash(a)):null;
  // Walk to the nearest tile that can actually attack, not to the target's side: ranged allies stop at range.
  if(chase){stepToward(g,a,chase,q=>distance(q,chase)<=w.range&&g.shotClear(q,chase)&&(!w.melee||g.canCross(q,chase)),linked);return;}
  if((a.kind==='drone'||!a.order)&&distance(a,g.player)>FOLLOW_RANGE[a.kind==='drone'?'drone':'other'])stepToward(g,a,g.player,beside(g.player),linked);
@@ -149,7 +165,7 @@ export function allyAct(g,a){
 // One step toward a tile that satisfies reached. When none is reachable (taken, or behind another ally),
 // close in on goal by walking distance instead of freezing; never step to a tile that is no closer.
 function stepToward(g,a,goal,reached,linked){
- const cells=routeCells(g,a,{actor:a,limit:18,maxPlayerDistance:Math.max(TETHER,distance(a,g.player))}).filter(q=>q.first&&(distance(q,g.player)<=TETHER||!linked));
+ const cells=routeCells(g,a,{actor:a,limit:18,maxPlayerDistance:Math.max(leash(a),distance(a,g.player))}).filter(q=>q.first&&(distance(q,g.player)<=leash(a)||!linked));
  let dest=cells.filter(reached).sort((b,c)=>b.d-c.d)[0];
  if(!dest){
   const walk=new Map(routeCells(g,goal,{actor:a,ignoreActors:true}).map(q=>[key(q),q.d])),far=q=>walk.get(key(q))??Infinity,here=far(a);
@@ -178,6 +194,17 @@ export function pushAlly(g,a,cell){
  Object.assign(a,{moveDelta:[cell.x-a.x,cell.y-a.y],x:cell.x,y:cell.y,moved:true,vaultExposed:false,restTurn:rest});
  g.log(`${allyName(a)}被推開讓路，放棄一次行動。`);
 }
+// Runs once per paid world turn. A packed pet heals; once whole, and only while its skill is prepared,
+// it steps out beside the player like a deployment and waits for the next turn to act.
+export function tickPackedPet(g){
+ const a=g.allies.find(a=>a.kind==='pet'&&a.status==='packed');if(!a)return false;
+ a.hp=Math.min(a.maxHp,a.hp+PET_REGEN);
+ if(a.hp<a.maxHp||g.player.prepared.skill!=='pet_command')return false;
+ const cell=routeCells(g,g.player,{limit:2,openDoors:false}).find(q=>q.d>0);if(!cell)return false;
+ Object.assign(a,{x:cell.x,y:cell.y,floor:g.floor,status:'active',order:null,bornTurn:g.turn,moved:false,moveDelta:[0,0],vaultExposed:false});
+ g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.6,color:'#8ae9da',damage:0});
+ g.log('伴生獵獸生命已滿，自行歸隊。');return true;
+}
 export function validAllies(g){
  if(!Array.isArray(g.allies)||g.allies.length>32||!Number.isSafeInteger(g.allySerial)||g.allySerial<0)return false;
  const ids=new Set([...g.enemies,...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])].map(e=>e.id)),occupiedCells=new Set();
@@ -185,7 +212,7 @@ export function validAllies(g){
   if(!a||!['drone','pet','summon','survivor'].includes(a.kind)||!ENEMY_TYPES[a.type]||!/^ally-[1-9][0-9]*$/.test(a.id)||Number(a.id.slice(5))>g.allySerial||ids.has(a.id)||!['active','packed','down','destroyed'].includes(a.status))return false;ids.add(a.id);
   if(!Number.isInteger(a.floor)||a.floor<1||a.floor>6||![a.x,a.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)||!Number.isInteger(a.hp)||!Number.isInteger(a.maxHp)||a.maxHp<1||a.maxHp>500||a.hp<0||a.hp>a.maxHp||!Number.isInteger(a.ammo)||a.ammo<0||a.ammo>allyWeapon(a).mag)return false;
   if(a.kind==='summon'&&['boss','warden'].includes(a.type)||a.kind==='drone'&&a.type!=='drone')return false;
-  if((a.status==='down'&&a.kind!=='pet')||(a.status==='packed'&&a.kind!=='drone')||(a.status==='active'&&a.hp===0)||(['down','destroyed'].includes(a.status)&&a.hp!==0))return false;
+  if((a.status==='down'&&a.kind!=='pet')||(a.status==='packed'&&!['drone','pet'].includes(a.kind))||(a.status==='active'&&a.hp===0)||(['down','destroyed'].includes(a.status)&&a.hp!==0))return false;
   if(!Number.isInteger(a.armor)||a.armor<0||a.armor>20||!Number.isInteger(a.bornTurn)||a.bornTurn<1||a.bornTurn>g.turn||!validTraits(a.traits)||!validControl(a.control)||!validCombatMemory(a,g.turn)||!validCombatModifiers(a.combatModifiers)||typeof a.vaultExposed!=='boolean')return false;
   if(a.restTurn!==undefined&&(!Number.isInteger(a.restTurn)||a.restTurn<1||a.restTurn>g.turn+1))return false;
   if(a.missionId!==null&&(typeof a.missionId!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(a.missionId)))return false;
