@@ -1,5 +1,9 @@
 # 給 Claude：開發接手與規則層分工
 
+## 新增授權：三職業友軍迭代
+
+使用者要求 Claude 多輪處理工程師／死靈法師／德魯伊的位置控制、卡點與戰力。先讀 [三職業迭代範圍](docs/ALLY_ITERATION_SCOPE.md)：允許局部友軍 AI／尋路／讓路／指揮與必要引擎接線，這是下文規則禁改條款的明確例外，範圍內不必再請 Codex 批准。共用戰鬥／回合、資源守恆與保存保障保持；候選玩法尚未實作。
+
 更新：2026-09-10。這是使用者為節省 Codex 週額度而授權的新分工，供 Claude 開發使用，不只是 QA 紙條。
 
 ## 先讀這裡
@@ -18,12 +22,12 @@
 ## 接手基準與檔案位置
 
 - 主專案：`C:\codex_projects\shooter_roguelike`。
-- 已發布遊戲：**3.31.0**，遊戲提交 `1c8da407160450dd5108affeaf065410ce6b4bd5`，main／Pages 已成功。這份交接文件會是後續文件提交，遊戲版本不變。
-- 保存：save **v24**、profile **v4**、完整 backup **v1**。411 項 Node 測試、build 通過，80 項預快取無缺件；這是 Codex 的引擎／建置結果，不是手機或平衡驗收。
+- 本次文件基準遊戲：**3.35.8**，main 提交 `d3c4ac4`；往後以最新 HANDOFF 與 origin/main 為準。這份交接文件會是後續文件提交，遊戲版本不變。
+- 保存：save **v25**、profile **v4**、完整 backup **v1**。最近完整回歸記錄為 432 項 Node 測試、build 通過；這是 Codex 的引擎／建置結果，不是手機或平衡驗收。
 - 正式倉庫：https://github.com/darkbearlab/ash_protocol 。遊玩：https://darkbearlab.github.io/ash_protocol/ 。QA 一律 `?test=1`。
 - Claude 既有隔離工作樹：`C:\codex_projects\shooter_roguelike\.claude\worktrees\codex-project-handoff-c04775`。以 `git worktree list` 確認實際路徑與分支，不假定該樹已追上 main。
 - 外部回報優先找 `.claude/worktrees/*/qa/results/`，交接也找 `.claude/worktrees/*/docs/HANDOFF.md`；不要找不到主樹報告就宣稱缺件。另一人的工作樹只讀，合併透過 Git，不直接改對方檔案。
-- 最新已讀外部報告是 `qa/results/2026-09-10-claude-3.30-allies.md`：402 原測＋30 獨立引擎測試通過、無規則缺陷；耗回合瀏覽器播放、完整自然局等尚未驗。本次查找尚未發現 3.31 報告；如果之後新增，先讀它，不沿用本快照結論。
+- 最新已讀外部報告是 `qa/results/2026-09-10-claude-3.30-allies.md`：402 原測＋30 獨立引擎測試通過、無規則缺陷；耗回合瀏覽器播放、完整自然局等尚未驗。後續 3.31-repair 報告已讀（411＋23 項及部分瀏覽器驗證通過，殘骸實機操作等未測），main 亦有 3.35-anchor-doors 報告（432＋20 項通過，部分播放因工具限制未驗）。請按版本找最新報告，不把規則測試當自然平衡驗收。
 - 根目錄 `給Codex的紙條.md` 是 3.1.1 時期的舊收尾紀錄，不是最新發布狀態。外部未追蹤頭像 `art/portraits-custom/`、`assets/pixel/portraits/custom/` 與私人紙條原樣保留，不順手 git add、刪除或接入。頭像接入先前被延後，待使用者重新排程。
 
 ## 可以自主處理的範圍
@@ -44,6 +48,8 @@
 全域經濟可能需要擴充 profile／購買流程，這**不表示所有儲存程式都禁改**。可對新商品／欄位做局部擴充，補遷移及還原測試，保留原資料與交易保障；若必須重寫帳本、存檔所有權或戰鬥模型，先拆出規則需求交回討論。`unlocks` 有資料接口不等於解鎖商店已做好；目前六角色免費，不自行把使用者已能玩的角色改成付費。
 
 ## 留給使用者與 Codex 討論的規則層
+
+以下以 [三職業迭代範圍](docs/ALLY_ITERATION_SCOPE.md) 的局部開放為例外；該文件未開放的共用規則仍依此節。
 
 遇到以下需求，先寫具體提案或問題重現，繼續完成不依賴它的 UI／數值工作；不要為了避免打擾而偷偷換規則，也不必讓一個規則疑點阻擋整批不相關工作。
 
