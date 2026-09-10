@@ -1,3 +1,4 @@
+import {bestCover,coverEffects} from './cover.js';
 import {addTrace,spentCase,validTraces} from './traces.js';
 import {newMission,prepareMission,validMission,missionObjects,missionTarget,missionSummary,exitBlocked} from './missions.js';
 import {validModules} from './modules.js';
@@ -311,14 +312,13 @@ export class Game {
   }
   protectingCover(target,attacker) {
     if(activeTrait(target,'no_cover'))return null;
-    const dx=attacker.x-target.x,dy=attacker.y-target.y;
-    return edgeCover(this.barriers,target,attacker)||wallCover(this.grid,target,attacker)||this.props.find(o=>o.type==='cover'&&o.hp>0&&distance(o,target)===1&&((o.x-target.x)*dx+(o.y-target.y)*dy)>0);
+    return bestCover([edgeCover(this.barriers,target,attacker),wallCover(this.grid,target,attacker),...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,target)===1)],target,attacker);
   }
   hitTarget(target,raw,attacker,pierce=0) {
     if(this.props.includes(target)||isBarrier(target)){if(this.weapon.ammoType==='energy')addTrace(this,target,'scorch');this.damageProp(target,raw);return;}
     const cover=this.weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
     let damage=raw;
-    if(cover){damage*=1-.45*(1-pierce);if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));this.log('敵方掩體吸收了部分傷害。');}
+    if(cover){damage*=1-coverEffects(cover,target,attacker).reduction*(1-pierce);if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));this.log('敵方掩體吸收了部分傷害。');}
     damage=Math.max(1,Math.round(damage-armor*(1-pierce)));
     if(this.weapon.ammoType==='energy'&&activeTrait(target,'mechanical'))damage=Math.round(damage*1.2);
     if(this.weapon.ammoType==='energy')addTrace(this,target,'scorch');
@@ -395,7 +395,7 @@ export class Game {
   damagePlayer(raw,label,attacker=null,blast=false) {
     const p=this.player,cover=!blast&&attacker?this.protectingCover(p,attacker):null;
     let damage=raw;
-    if(cover){damage*=.55;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));}
+    if(cover){damage*=1-coverEffects(cover,p,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));}
     damage=reduceDirectDamage(p,Math.max(1,Math.round(damage-p.armor)));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
     const absorbed=Math.min(p.plates||0,Math.floor(damage/2));p.plates=(p.plates||0)-absorbed;damage-=absorbed;
     p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');this.log(`${label}${cover?'（掩體減傷）':''}${absorbed?`（護甲板吸收 ${absorbed}）`:''}，生命 −${damage}。`,true);

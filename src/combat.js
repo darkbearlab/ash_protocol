@@ -1,4 +1,5 @@
-import {blockedBetween,edgeAdjacent,edgeBlocks,isBarrier} from './barriers.js';
+import {bestCover,coverEffects} from './cover.js';
+import {blockedBetween,edgeAdjacent,edgeBlocks} from './barriers.js';
 import {sizeModifier,movementModifier,activeTrait,correctionBonus,sidestepPenalty} from './traits.js';
 // Symmetric, bounded corner leaning. The player and AI use the same geometry.
 import {DIRECTIONS,distance,lineOfSight} from './world.js';
@@ -22,26 +23,19 @@ export function combatSight(grid,a,b,barriers=[],channel='sight') {
   return false;
 }
 export function wallCover(grid,target,attacker) {
-  const dx=attacker.x-target.x,dy=attacker.y-target.y;
-  return adjacentWalls(grid,target).find(w=>{
-    const wx=w.x-target.x,wy=w.y-target.y,dot=wx*dx+wy*dy;
-    if(dot>0)return true;
-    if(dot<0)return false;
-    // A flat wall parallel to a shot gives no protection; its open end does.
-    return grid[w.y+Math.sign(dy)]?.[w.x+Math.sign(dx)]===1;
-  });
+  return bestCover(adjacentWalls(grid,target),target,attacker);
 }
 export const bracingBonus=(game,attacker,target)=>activeTrait(attacker,'braced')&&game.protectingCover(attacker,target)?12:0;
 export function shotChance(game,attacker,target) {
-  if(attacker===game.player&&game.weapon.melee)return {chance:game.weapon.hitChance,base:game.weapon.hitChance,bracedBonus:0,trackingBonus:0,sidePenalty:0,accuracyBonus:0,movePenalty:0,coverPenalty:0,focusBonus:0,evasionPenalty:0,cover:null,moving:Boolean(target.moved),distance:distance(attacker,target)};
-  const cover=game.protectingCover(target,attacker);
+  if(attacker===game.player&&game.weapon.melee)return {chance:game.weapon.hitChance,base:game.weapon.hitChance,bracedBonus:0,trackingBonus:0,sidePenalty:0,accuracyBonus:0,movePenalty:0,coverPenalty:0,coverEfficiency:0,coverReduction:0,focusBonus:0,evasionPenalty:0,cover:null,moving:Boolean(target.moved),distance:distance(attacker,target)};
+  const cover=game.protectingCover(target,attacker),protection=coverEffects(cover,target,attacker);
   const moving=Boolean(target.moved);
   const weapon=attacker===game.player?game.weapon:null,accuracyBonus=weapon?.accuracyBonus||0;
-  const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)-(weapon?.tracking||0)):0,coverPenalty=cover?(cover.type==='wall'||isBarrier(cover)?42:35):0;
+  const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)-(weapon?.tracking||0)):0,coverPenalty=protection.penalty;
   const focusBonus=attacker.focus?15:0,evasionPenalty=target.evasive?15:0;
   const bracedBonus=bracingBonus(game,attacker,target),trackingBonus=correctionBonus(attacker,target===game.player?'player':target.id,game.turn),sideBase=sidestepPenalty(attacker,target);
   // In the open, lateral evasion must match wall cover even against tracking.
   const sidePenalty=sideBase?Math.max(sideBase,cover?0:42-movePenalty):0;
   const chance=Math.max(10,Math.min(99,base+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty));
-  return {chance,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
+  return {chance,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }

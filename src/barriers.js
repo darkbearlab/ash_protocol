@@ -1,3 +1,4 @@
+import {bestCover} from './cover.js';
 // An edge belongs to both adjacent floor cells. axis is its normal, not its tangent.
 export const BARRIER_TYPES={
   door:{name:'隔離門',maxHp:60,openable:true,destructible:true,move:true,sight:true,shot:true,blast:true,cover:true},
@@ -18,15 +19,7 @@ export function barrierBetween(barriers,a,b){
 }
 export const blockedBetween=(edges,a,b,channel='move')=>edgeBlocks(barrierBetween(edges,a,b),channel);
 export function edgeCover(edges,target,attacker){
-  const dx=attacker.x-target.x,dy=attacker.y-target.y;
-  return edges?.find(b=>{
-    if(!edgeBlocks(b,'cover')||!edgeAdjacent(b,target))return false;
-    const nx=b.x-target.x,ny=b.y-target.y,dot=nx*dx+ny*dy;
-    if(dot>0)return true;if(dot<0)return false;
-    // A parallel shot is protected only at an exposed end of the partition.
-    const adjacent={...b,x:b.x+(b.axis==='y'?Math.sign(dx):0),y:b.y+(b.axis==='x'?Math.sign(dy):0)};
-    return !edges.some(other=>other!==b&&edgeKey(other)===edgeKey(adjacent)&&edgeBlocks(other,'cover'));
-  })||null;
+  return bestCover((edges||[]).filter(b=>edgeBlocks(b,'cover')&&edgeAdjacent(b,target)),target,attacker)||null;
 }
 export function barrierFace(b,from){return edgeCells(b).sort((a,c)=>(Math.abs(a.x-from.x)+Math.abs(a.y-from.y))-(Math.abs(c.x-from.x)+Math.abs(c.y-from.y)))[0];}
 export function firstBarrierOnRay(edges,from,to,channel='shot'){
