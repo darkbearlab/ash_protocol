@@ -131,3 +131,12 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .upgrade-card button:disabled{background:#26302b;color:#6f7a71;cursor:default}
 .upgrade-card.unlocked{border-color:#2a332c;background:#111614}
 .upgrade-card.unlocked .upgrade-tier{color:#6f7a71}
+.upgrade-section{border-top:1px solid var(--line);margin-top:14px}
+.upgrade-section summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 2px;cursor:pointer;list-style:none;min-height:44px;box-sizing:border-box}
+.upgrade-section summary::-webkit-details-marker{display:none}
+.upgrade-section summary::after{content:'+';font:13px var(--mono);color:var(--orange);line-height:1}
+.upgrade-section[open] summary::after{content:'−'}
+.upgrade-section summary .eyebrow{margin:0}
+.upgrade-section summary small{margin-left:auto;margin-right:10px;font:10px var(--mono);color:var(--muted)}
+.upgrade-section summary:hover .eyebrow,.upgrade-section summary:focus-visible .eyebrow{color:var(--text)}
+.upgrade-section .upgrade-grid{margin-top:0;margin-bottom:12px}
