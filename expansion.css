@@ -213,3 +213,12 @@ body.booting .boot-screen{display:flex;position:fixed;inset:0;flex-direction:col
 .title-warning{margin:14px 0 0;font:11px/1.6 var(--mono);color:#ffb39f}
 .orientation-note{margin:18px 0 6px;font-size:11px;color:var(--muted)}
 #orientation-guard .modal-button{display:block;width:auto;min-height:44px;margin:0 auto;padding:0 16px}
+
+/* Run build summaries live inside the scrolling modal, never in the battle HUD. */
+.run-perks{margin:10px 0;padding:8px 0;border-block:1px solid #46523e;min-width:0}
+.run-perks h3{margin:0 0 5px;font-size:12px;line-height:1.3}
+.run-perks ul{display:flex;flex-wrap:wrap;gap:5px 12px;list-style:none;margin:0;padding:0}
+.run-perks li{display:flex;align-items:center;flex-wrap:wrap;gap:4px;font-size:11px;line-height:1.4;max-width:100%}
+.perk-pips{display:inline-block;letter-spacing:1px;font-size:11px;line-height:1.4;overflow-wrap:anywhere}
+dialog .perk .perk-pips{color:#bdc8ad;margin-left:5px}
+dialog .perk .perk-next{color:var(--orange);font-weight:900}
