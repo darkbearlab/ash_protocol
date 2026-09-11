@@ -19,7 +19,7 @@ test('new classes start with bound integrated melee, correct stats/supplies and 
   const turn=g.turn;assert.ok(g.action('weapon',g.player.owned[1]));assert.ok(g.action('weapon',slot));assert.equal(g.turn,turn);assert.equal(g.action('salvage',slot),false);
   assert.ok(Game.restore(g.serialize()));
  }
- const b=arena(),n=arena('ninja');assert.equal(b.player.maxHp,160);assert.equal(b.player.armor,3);assert.equal(n.player.grenades,0);assert.equal(n.player.smoke,2);assert.equal(n.player.stun,1);
+ const b=arena(),n=arena('ninja');assert.equal(b.player.maxHp,160);assert.equal(b.player.armor,3);assert.equal(n.player.grenades,0);assert.equal(n.player.smoke,4);assert.equal(n.player.stun,1);
 });
 test('bump melee keeps equipped gun and position, earns lifesteal only on actual post-mitigation HP loss',()=>{
  const g=arena();noEnemyActions(g);g.player.weapon=1;g.player.hp=40;const e=enemy(g,'rifleman',11,10,10);assert.ok(g.action('move',[1,0]));assert.equal(g.player.weapon,1);assert.equal(g.player.x,10);assert.equal(g.player.hp,42);assert.equal(e.hp<=0,true);assert.equal(g.player.battleSpirit.stacks,1);

@@ -1,7 +1,7 @@
 // 3.47.1 melee-class interface (Claude): button words, status line, bag header, target card and texts.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,SIZE,makeEnemy} from '../src/engine.js';
+import {Game,SIZE,makeEnemy,WEAPONS} from '../src/engine.js';
 import {TRAITS} from '../src/traits.js';
 import {SKILLS} from '../src/skills.js';
 import {MELEE_TUNING,GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN} from '../src/melee-classes.js';
@@ -63,6 +63,9 @@ test('melee passive and skill texts quote the live tuning numbers',()=>{
  assert.match(SKILLS.camouflage.text,new RegExp(`${CAMO_DURATION} 次.*−${T.camoEvasion}.*冷卻 ${CAMO_COOLDOWN}`));
 });
 
-test('ninja starts with smoke in the throw slot; berserker keeps frag',()=>{
- assert.equal(arena('ninja').player.prepared.grenade,'smoke');assert.equal(arena('berserker').player.prepared.grenade,'frag');
+// 3.47.2, user call: the SMG kit was too weak, so katana + precision rifle and four smoke; stun stays, capacity +2 like Recon.
+test('ninja kit: katana and precision rifle, four smoke and one stun inside a +2 throw capacity, smoke prepared',()=>{
+ const n=arena('ninja');assert.deepEqual(n.player.owned.map(i=>WEAPONS[i].id),['katana','sniper']);assert.equal(n.player.ammo[n.player.owned[1]],WEAPONS[n.player.owned[1]].mag);
+ assert.equal(n.player.smoke,4);assert.equal(n.player.stun,1);assert.equal(n.ammoCapacity('grenade'),6);n.trimGrenades();assert.equal(n.player.smoke+n.player.stun,5,'nothing trimmed');
+ assert.equal(n.player.prepared.grenade,'smoke');assert.equal(arena('berserker').player.prepared.grenade,'frag');
 });
