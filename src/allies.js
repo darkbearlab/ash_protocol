@@ -1,3 +1,4 @@
+import {floorLimit} from './endless.js';
 import {ENEMY_TYPES,SIZE} from './data.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
@@ -285,7 +286,7 @@ export function validAllies(g){
  const ids=new Set([...g.enemies,...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])].map(e=>e.id)),occupiedCells=new Set();
  for(const a of g.allies){
   if(!a||!['drone','pet','summon','survivor'].includes(a.kind)||!ENEMY_TYPES[a.type]||!/^ally-[1-9][0-9]*$/.test(a.id)||Number(a.id.slice(5))>g.allySerial||ids.has(a.id)||!['active','packed','down','destroyed'].includes(a.status))return false;ids.add(a.id);
-  if(!Number.isInteger(a.floor)||a.floor<1||a.floor>6||![a.x,a.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)||!Number.isInteger(a.hp)||!Number.isInteger(a.maxHp)||a.maxHp<1||a.maxHp>500||a.hp<0||a.hp>a.maxHp||!Number.isInteger(a.ammo)||a.ammo<0||a.ammo>allyWeapon(a).mag)return false;
+  if(!Number.isInteger(a.floor)||a.floor<1||a.floor>floorLimit(g)||![a.x,a.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)||!Number.isInteger(a.hp)||!Number.isInteger(a.maxHp)||a.maxHp<1||a.maxHp>500||a.hp<0||a.hp>a.maxHp||!Number.isInteger(a.ammo)||a.ammo<0||a.ammo>allyWeapon(a).mag)return false;
   if(a.kind==='summon'&&['boss','warden'].includes(a.type)||a.kind==='drone'&&a.type!=='drone')return false;
   if((a.status==='down'&&a.kind!=='pet')||(a.status==='packed'&&!['drone','pet'].includes(a.kind))||(a.status==='active'&&a.hp===0)||(['down','destroyed'].includes(a.status)&&a.hp!==0))return false;
   if(!Number.isInteger(a.armor)||a.armor<0||a.armor>20||!Number.isInteger(a.bornTurn)||a.bornTurn<1||a.bornTurn>g.turn||!validTraits(a.traits)||!validControl(a.control)||!validCombatMemory(a,g.turn)||!validCombatModifiers(a.combatModifiers)||typeof a.vaultExposed!=='boolean')return false;

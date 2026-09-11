@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.47.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.49.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -27,7 +27,7 @@
 ## 啟動與測試
 
 1. `npm start`，開 http://localhost:5173。純 Node、原生 ES modules，沒有第三方套件。瀏覽器 QA 一律加 `?test=1`，存檔放在 `qa-` 開頭的鍵，不碰正式任務。
-2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.47.0 為 503 項。
+2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.49.0 為 527 項。
 3. `npm run build`：產生 `dist/`，相容 GitHub Pages 的 `/ash_protocol/` 子路徑，推上 main 後自動部署。
 4. 模擬腳本（人工場景，不代表自然平衡）：`qa/ally-scenes.mjs`、`qa/pet-waves.mjs`、`qa/drone-waves.mjs`、`qa/necro-waves.mjs`、`qa/grenade-control.mjs`。都可帶 src 目錄參數比較新舊版。`npm run balance -- 24` 是較舊的無畫面遊玩機器人。
 5. 場景存檔產生器：`qa/create-*.mjs`，產物在 `qa/fixtures/`（已忽略，不提交）。
@@ -79,8 +79,8 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v29**（`data.js` 的 `SAVE_VERSION`）。舊版 1～28 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
-- 個人紀錄 `ash-profile`：profile **v4**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
+- 單局 `ash-save`：save **v30**（`data.js` 的 `SAVE_VERSION`）。舊版 1～29 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 個人紀錄 `ash-profile`：profile **v5**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
 - `saveGame()` 回傳是否寫入成功；失敗時介面顯示「⚠ 未存檔」。
@@ -125,3 +125,5 @@
 3.47.1（Claude）接上介面：選角、鉤鎖落點預覽與按鈕文字、狀態列、目標卡、背包標題、說明文字。顯示邏輯放在 src/melee-ui.js，測試在 tests/melee-ui.test.mjs。被動說明的數字是字面值（traits.js 不能匯入 melee-classes.js，會循環），調整 MELEE_TUNING 時要一起改，測試會擋。
 
 3.48：玩家八職業有獨立灰色站姿／死亡圖集。`src/class-art.js` 提供座標，renderer.classSprite 使用演出快照的職業。來源與製程見 `art/classes-v1/README.md`；其他單位仍用既有圖集。
+
+3.49：等級20截止三選一，21起自動封頂補給；無盡任務與六層設定循環、深層敵人成長。src/endless.js集中常數；data.floorInfo共用樓層設定。save30保留歷史超限強化，profile5新增endless.best/byCharacter，備份外層1不變。詳見ENDLESS.md；Claude接UI與平衡。

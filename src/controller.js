@@ -4,7 +4,7 @@ import {SKILLS,skillActive,skillStatus,canUseSkill} from './skills.js';
 import {boundaryOpacityPercent} from './movement-boundaries.js';
 import {actorStat,clampHit,combatStatSummary} from './actor-stats.js';
 import {isDark} from './lighting.js';
-import {missionDepth,returning,MISSIONS,validMissionId,missionDefinition,missionProgress} from './missions.js';
+import {missionDepth,returning,MISSIONS,RANDOM_MISSION_IDS,validMissionId,missionDefinition,missionProgress} from './missions.js';
 import {isContainer,containerName} from './containers.js';
 import {ammoName,magazineLabel} from './weapons.js';
 import {deploymentPortraits,portraitMarkup,validPortrait} from './portraits.js';
@@ -22,7 +22,7 @@ import {VERSION} from './version.js';
 import {TRAITS,traitLabels,startingTraits,initiative} from './traits.js';
 import {AMMUNITION,AMMO_IDS,CARRY_COSTS,capacity,TERMINAL_AMMO,carryingSpent} from './ammunition.js';
 import {captureAction,planPresentation,Playback} from './presentation.js';
-import {Game,WEAPONS,FLOORS,FLOOR_INFO,PERKS,ENEMY_TYPES,LORE,enemyName,distance} from './engine.js';
+import {Game,WEAPONS,FLOORS,floorInfo,PERKS,ENEMY_TYPES,LORE,enemyName,distance} from './engine.js';
 import {Renderer} from './render.js';
 import {AudioFX} from './audio.js';
 import {landscapeTouch} from './layout.js';
@@ -76,7 +76,7 @@ function skillLabel(view,id){
 function update(view=renderer.game) {
   const p=view.player,w=view.weapon,reserve=p[view.reserveKey()]??0;
   const progress=missionProgress(view);$('#sector-title').textContent=`${pad(view.floor)} / ${returning(view)?'回程 · ':''}${missionDefinition(view).name}${view.floor===missionDepth(view)?' '+progress.done+'/'+progress.total:''}`;
-  $('#sector-title').title=`${FLOORS[view.floor-1]} · ${view.missionSummary}；點此查看任務`;$('#sector-title').setAttribute('aria-label',$('#sector-title').title);
+  $('#sector-title').title=`${floorInfo(view.floor).name} · ${view.missionSummary}；點此查看任務`;$('#sector-title').setAttribute('aria-label',$('#sector-title').title);
   $('#turn').textContent=String(view.turn).padStart(3,'0');
   $('#mobile-hp-bar').style.width=`${Math.max(0,p.hp)/p.maxHp*100}%`;$('#mobile-hp').textContent=`${Math.max(0,p.hp)} / ${p.maxHp}`;
   $('#mobile-plates-bar').style.width=`${(p.plates||0)/view.plateCapacity*100}%`;$('#mobile-plates').textContent=`${p.plates||0} / ${view.plateCapacity}`;lowHealth(p);
@@ -145,7 +145,7 @@ function act(type,arg) {
   if(success||(type!=='grenade'&&!(type==='usePrepared'&&arg?.category==='grenade')))cancelAim();update();return success;
 }
 function move(dx,dy){if(renderer.mode==='pet'){setPetAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='drone'){setDroneAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='grenade'){const pos={x:renderer.aim.x+dx,y:renderer.aim.y+dy};setAim(pos);}else act('move',[dx,dy]);}
-function floorToast(){notify(`第 ${game.floor} 層 · ${FLOORS[game.floor-1]}：${returning(game)?game.missionSummary:game.floor===missionDepth(game)?missionDefinition(game).text:FLOOR_INFO[game.floor-1].text}`);}
+function floorToast(){notify(`第 ${game.floor} 層 · ${floorInfo(game.floor).name}：${returning(game)?game.missionSummary:game.floor===missionDepth(game)?missionDefinition(game).text:floorInfo(game.floor).text}`);}
 function cancelAim(){renderer.mode=null;renderer.aim=null;updateAim();}
 function setAim(pos){if(distance(pos,game.player)<=5&&game.grid[pos.y]?.[pos.x]===1&&game.visible(pos)){renderer.aim=pos;updateAim();}else notify('投擲落點需在視線內 5 格以內。');}
 function interactions(view=renderer.game){return [...view.nearbyObjectives.map(t=>({label:'回收機密',action:`objective:${t.id}`})),...view.nearbyContainers.map(c=>({label:`開${view.containerLabel(c)}`,action:`case:${c.id}`})),...view.nearbyDoors.map(b=>({label:view.doorLabel(b),action:`door:${b.id}`})),...(view.groundWeapon?[{label:'拾取',action:'bag'}]:[]),...(view.nearbyTerminal?[{label:'終端',action:'terminal'}]:[]),...(view.canTouch(view.exitPoint)?[{label:view.exitBlocked?'電梯鎖定':view.exitLabel+(view.allyTravelSummary?' · '+view.allyTravelSummary:''),action:'descend'}]:[])];}
@@ -194,7 +194,7 @@ function showIntro(){
 // Deployment is a three-step flow. The draft carries the mission and seed
 // between screens; newGame() itself is unchanged.
 let deployDraft={mode:null,mission:null,seed:undefined};
-const MISSION_IDS=Object.keys(MISSIONS);
+const MISSION_IDS=RANDOM_MISSION_IDS;
 const orderedCharacters=()=>[...OPERATOR_ORDER.filter(id=>CHARACTERS[id]),...Object.keys(CHARACTERS).filter(id=>!OPERATOR_ORDER.includes(id))];
 const randomSeed=()=>Math.floor(Math.random()*1000000000);
 const pick=list=>list[Math.floor(Math.random()*list.length)];
@@ -269,8 +269,8 @@ function missionDetails(){
   }).join(''):'';
   return `<p><strong>${game.missionSummary}</strong><br>${def.text}</p>${targets}`;
 }
-function showMission(){modal(`<div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2>${FLOORS[game.floor-1]}</h2>${missionDetails()}<p>回收：靠近青色 D 資料匣後，按右下互動，耗 1 回合。爆炸不會毀掉任務資料；收下後不占容量。指定殲滅：青色菱形敵人，任何原因死亡都計入；普通敵人不代替指定目標。原路回收需沿各層入口上樓，到第 1 層入口撤離；其他任務完成後前往綠色電梯。</p><button class="modal-button" data-modal="close">返回戰場</button>`);}
-function showMap(){modal(`<div class="eyebrow">SECTOR ${pad(game.floor)} / ${FLOORS[game.floor-1]}</div><h2>樓層地圖</h2>${missionDetails()}<canvas id="overview" width="324" height="324" aria-label="已探索地圖，橙色為角色、紅色為可見敵人、綠色為已發現電梯"></canvas><p>橙：角色 · 紅：敵人 · 綠：電梯 · 青：任務目標 · 方框：鎖定目標<br>金色小點：已發現補給；彩色方框：未開補給箱；金線／青色門框：關門／開門，灰線：隔板。淡色地框：生活模組；亮綠小方塊：補給站（使用後暗綠）。只顯示已探索區域，查看不耗回合。</p><button class="modal-button" data-modal="close">返回戰場 →</button>`);renderer.drawMap($('#overview'));}
+function showMission(){modal(`<div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2>${floorInfo(game.floor).name}</h2>${missionDetails()}<p>回收：靠近青色 D 資料匣後，按右下互動，耗 1 回合。爆炸不會毀掉任務資料；收下後不占容量。指定殲滅：青色菱形敵人，任何原因死亡都計入；普通敵人不代替指定目標。原路回收需沿各層入口上樓，到第 1 層入口撤離；其他任務完成後前往綠色電梯。</p><button class="modal-button" data-modal="close">返回戰場</button>`);}
+function showMap(){modal(`<div class="eyebrow">SECTOR ${pad(game.floor)} / ${floorInfo(game.floor).name}</div><h2>樓層地圖</h2>${missionDetails()}<canvas id="overview" width="324" height="324" aria-label="已探索地圖，橙色為角色、紅色為可見敵人、綠色為已發現電梯"></canvas><p>橙：角色 · 紅：敵人 · 綠：電梯 · 青：任務目標 · 方框：鎖定目標<br>金色小點：已發現補給；彩色方框：未開補給箱；金線／青色門框：關門／開門，灰線：隔板。淡色地框：生活模組；亮綠小方塊：補給站（使用後暗綠）。只顯示已探索區域，查看不耗回合。</p><button class="modal-button" data-modal="close">返回戰場 →</button>`);renderer.drawMap($('#overview'));}
 
 function updateOrientation(raise=false){
   // Primary pointer, not any pointer: a touch laptop has a touchscreen but cannot rotate (3.44).

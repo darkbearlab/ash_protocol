@@ -1,3 +1,4 @@
+import {PROFILE_VERSION} from '../src/progression.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
@@ -34,7 +35,7 @@ test('each type has its own three purchases; other capacities, ammunition and tu
 });
 test('legacy group purchases are refunded once, preserve the grant ledger, and support new spending',async()=>{
   const {storage:s,memory}=await storageHarness(),old=legacyProfile();old.protocolRuns.previous={earned:200,recorded:true};memory.set('qa-ash-profile',JSON.stringify(old));
-  assert.equal(s.profile().protocol.balance,200);assert.equal(s.profile().version,4);assert.deepEqual(s.profile().upgrades.carrying,carryLevels(0));
+  assert.equal(s.profile().protocol.balance,200);assert.equal(s.profile().version,PROFILE_VERSION);assert.deepEqual(s.profile().upgrades.carrying,carryLevels(0));
   assert.equal(memory.get('qa-ash-profile-v3-backup'),JSON.stringify(old));assert.deepEqual(s.profile().protocolRuns,old.protocolRuns);
   s.purchaseCarrying(null,'shell',0);assert.equal(s.profile().protocol.balance,180);assert.equal(s.profile().upgrades.carrying.shell,1);assert.equal(s.profile().protocol.earned,200);
   assert.equal(normalizeProfile(s.profile()).protocol.balance,180);

@@ -46,7 +46,8 @@ export function planPresentation(steps,{reduceMotion=false}={}){
   for(const [index,step]of steps.entries()){
     const flights=step.effects.filter(e=>e.type==='shot'||e.type==='enemyShot');
     const visuals=flights.flatMap(e=>projectileVisuals(e,reduceMotion));
-    const impacts=step.effects.filter(e=>e.type!=='shot'&&e.type!=='enemyShot');
+    const rewards=step.effects.filter(e=>e.type==='capSupply');
+    const impacts=step.effects.filter(e=>e.type!=='shot'&&e.type!=='enemyShot'&&e.type!=='capSupply');
     const travel=Math.max(0,...visuals.map(e=>e.delay+e.travel));
     events.push({time,state:step.before,effects:visuals});
     for(const e of flights)if(e.damage>0||e.miss)impacts.push({...e,type:e.miss?'miss':'impact',style:undefined,from:e.to});
@@ -55,9 +56,14 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     // A brief impact flash precedes the grey corpse's settling motion.
     for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0});
     time+=travel;
-    events.push({time,state:step.after,effects:impacts.map(e=>({...e,quiet:reduceMotion}))});
+    // The kill settles before cap resources/logs appear. Rules already committed them;
+    // only this presentation copy hides the pending visual reward.
+    const prior=rewards[0]?.beforeSupply;
+    const impactState=prior?Object.assign(Object.create(Object.getPrototypeOf(step.after)),step.after,{player:{...step.after.player,...prior.resources},items:prior.items,logs:prior.logs}):step.after;
+    events.push({time,state:impactState,effects:impacts.map(e=>({...e,quiet:reduceMotion}))});
     const burstContinues=flights.some(e=>['smg','lmg','thunder'].includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&['smg','lmg','thunder'].includes(e.weaponId));
     time+=reduceMotion?120:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
+    if(rewards.length){events.push({time,state:step.after,effects:rewards.map(({beforeSupply,...e})=>e)});time+=reduceMotion?60:IMPACT_MS;}
   }
   return {events,duration:time};
 }

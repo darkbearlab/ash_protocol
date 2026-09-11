@@ -1,6 +1,6 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 29;
+export const SAVE_VERSION = 30;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -31,6 +31,7 @@ export const FLOOR_INFO = [
   { color:'#de885a', subtitle:'THERMAL FORGE', text:'熔爐地板炙熱。重裝單位與狙擊手守住長廊。', hazard:'fire' },
   { color:'#d56e60', subtitle:'ABYSS CORE', text:'摧毀核心守衛。避開紅色轟炸標記，再啟動撤離。', hazard:'fire', boss:'boss' },
 ];
+export function floorInfo(floor){const index=((floor-1)%FLOORS.length+FLOORS.length)%FLOORS.length;return {...FLOOR_INFO[index],name:FLOORS[index],cycleFloor:index+1,weapon:[2,3,4,5,3,4][index]};}
 export const ENEMY_TYPES = {
   rifleman:{name:'斷訊槍兵',hp:22,damage:17,range:7,armor:0,color:'#9fba81',xp:1,fragile:true,rapid:true,seekCover:true,role:'低耐久、自動步槍連續壓制。先找牆角或掩體，再優先擊殺。'},
   raider:{name:'破口突擊兵',hp:18,damage:21,range:5,armor:0,color:'#d4b185',xp:1,fragile:true,rapid:true,seekCover:true,role:'近距離高傷害、低生命。與槍兵交叉火力，勿停在暴露通道。'},

@@ -9,3 +9,5 @@ export * from './barriers.js';
 export * from './containers.js';
 
 export * from './modules.js';
+
+export * from './endless.js';

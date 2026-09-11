@@ -1,9 +1,10 @@
+import {ENDLESS_TUNING,extraEnemies,eliteChance,scaleEnemy} from './endless.js';
 import {createLighting} from './lighting.js';
 import {selectSupplyStations,addLivingModules} from './modules.js';
 import {packSupplies} from './containers.js';
 import {vaultable,blockedBetween,barrierBetween,makeBarrier,edgeCells,edgeKey} from './barriers.js';
-import {startingTraits} from './traits.js';
-import {SIZE,ENEMY_TYPES,FLOOR_INFO,WEAPONS,RARE_ARMORY} from './data.js';
+import {startingTraits,grantTrait} from './traits.js';
+import {SIZE,ENEMY_TYPES,floorInfo,WEAPONS,RARE_ARMORY} from './data.js';
 import {weaponUnlocked} from './progression.js';
 export function random(seed) {
   let a=seed>>>0;
@@ -33,7 +34,7 @@ export function lineOfSight(grid,a,b,barriers=[],channel='sight') {
   }return false;
 }
 export function makeEnemy(type,x,y,id,floor=1) {
-  const def=ENEMY_TYPES[type],hp=def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4));
+  const def=ENEMY_TYPES[type],hp=scaleEnemy(def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp');
   return {id,type,x,y,hp,maxHp:hp,vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
 }
 export function generate(seed,floor=1,unlocks=[]) {
@@ -65,13 +66,16 @@ export function generate(seed,floor=1,unlocks=[]) {
     else{const top=a.y<b.y?a:b,doorY=top.y+top.h,ax=a.cx+Math.floor(rng()*3)-1,bx=b.cx+Math.floor(rng()*3)-1;carve({x:ax,y:a.cy},{x:ax,y:doorY});carve({x:ax,y:doorY},{x:bx,y:doorY});carve({x:bx,y:doorY},{x:bx,y:b.cy});}
   }
   const start={x:rooms[startRoom].cx,y:rooms[startRoom].cy},end={x:rooms[endRoom].cx,y:rooms[endRoom].cy};
-  const enemies=[],items=[],props=[],hazards=[],info=FLOOR_INFO[floor-1];
+  const enemies=[],items=[],props=[],hazards=[],info=floorInfo(floor);
   const pool=floor<=2?['rifleman','rifleman','raider','gunner','drone','crawler']:['rifleman','rifleman','raider','raider','gunner','drone','brute','sniper','bomber'];
+  if(floor>6)pool.push(...ENDLESS_TUNING.heavyExtra);
+  const spawnEnemy=(type,x,y,id)=>{const e=makeEnemy(type,x,y,id,floor);if(floor>6&&!['boss','warden'].includes(type)&&rng()<eliteChance(floor)){const options=ENDLESS_TUNING.eliteTraits.filter(id=>!e.traits.some(t=>t.id===id));if(options.length)grantTrait(e,options[Math.floor(rng()*options.length)],'endless:elite');}return e;};
   rooms.forEach((r,i)=>{
     const posts=[[r.x+1,r.y+1],[r.x+r.w-2,r.y+1],[r.x+r.w-2,r.y+r.h-2],[r.x+1,r.y+r.h-2]];
-    if(i!==startRoom)for(let j=0;j<(3+(floor>=3&&rng()<.45?1:0));j++) {
+    if(floor>6)posts.push([r.x+2,r.y+1],[r.x+1,r.y+3],[r.x+r.w-2,r.y+3]);
+    if(i!==startRoom)for(let j=0;j<(3+extraEnemies(floor)+(floor>=3&&rng()<.45?1:0));j++) {
       const type=i===endRoom&&j===0&&info.boss?info.boss:pool[Math.floor(rng()*pool.length)];
-      enemies.push(makeEnemy(type,...posts[j],`${floor}-${i}-${j}`,floor));
+      enemies.push(spawnEnemy(type,...posts[j],`${floor}-${i}-${j}`,floor));
     }
     props.push({id:`${floor}-cover-${i}`,x:r.x+1,y:r.y+2,type:'cover',hp:65,maxHp:65});
     if(i%3===1)props.push({id:`${floor}-barrel-${i}`,x:r.x+r.w-1,y:r.y+r.h-2,type:'barrel',hp:18,maxHp:18});
@@ -79,7 +83,7 @@ export function generate(seed,floor=1,unlocks=[]) {
     if(i===startRoom||i%2===0)items.push({x:r.x+1,y:r.y+r.h-2,type:i===startRoom?'med':['ammo','pistol','shell'][Math.floor(i/2)%3]});
     if(i===1||i===6)items.push({x:r.x+r.w-2,y:r.y+r.h-2,type:'grenade',amount:1});
     if(i===2||i===7)items.push({x:r.x+2,y:r.y+r.h-2,type:'scrap',amount:18});
-    if(i===rewardRooms[0])items.push({x:r.cx,y:r.cy-1,type:'lore',floor});
+    if(floor<=6&&i===rewardRooms[0])items.push({x:r.cx,y:r.cy-1,type:'lore',floor});
     if(info.hazard&&i!==startRoom&&i%2===1)hazards.push({x:r.x+r.w-2,y:r.y+2,type:info.hazard});
     if(r.supply==='ammo'){items.push({x:r.cx-1,y:r.cy,type:'ammo',amount:20,cache:true},{x:r.cx,y:r.cy,type:'energy',amount:12,cache:true},{x:r.cx+1,y:r.cy,type:'ordnance',amount:3,cache:true},{x:r.cx-1,y:r.cy+1,type:'pistol',amount:24,cache:true},{x:r.cx+1,y:r.cy+1,type:'shell',amount:6,cache:true});}
     if(r.supply)items.push({x:r.cx,y:r.cy+1,type:{ammo:'emp',medical:'stun',armor:'smoke'}[r.supply],amount:1,cache:true});
@@ -87,13 +91,13 @@ export function generate(seed,floor=1,unlocks=[]) {
     if(r.supply==='armor')items.push({x:r.cx,y:r.cy,type:'armor',amount:20,cache:true});
   });
   // Guaranteed weapon discoveries, placed off the critical path so full packs never block progress.
-  const preferred=floor===1?2:floor===2?3:floor===3?4:floor===4?5:floor===5?3:4;
+  const preferred=info.weapon;
   const unlocked=WEAPONS.map((w,i)=>({w,i})).filter(({w})=>w.unlockId&&weaponUnlocked(w,unlocks));
   const weapon=unlocked.length&&rng()<.25?unlocked[Math.floor(rng()*unlocked.length)].i:preferred;
   const armory=rooms[rewardRooms[0]];items.push({x:armory.cx,y:armory.cy+1,type:'weapon',weapon});
   if(floor>=RARE_ARMORY.minFloor&&rng()<RARE_ARMORY.chance)items.push({x:armory.cx,y:armory.cy+1,type:'weapon',weapon:RARE_ARMORY.weapon});
   if(floor>=3){const r=rooms[startRoom];items.push({x:r.x+r.w-2,y:r.y+r.h-2,type:'energy',amount:18});items.push({x:r.x+r.w-2,y:r.y+1,type:'ordnance',amount:4});}
-  const spawn=rooms[startRoom];enemies.unshift(makeEnemy('rifleman',spawn.x+spawn.w-1,spawn.y+1,`${floor}-scout`,floor));
+  const spawn=rooms[startRoom];enemies.unshift(spawnEnemy('rifleman',spawn.x+spawn.w-1,spawn.y+1,`${floor}-scout`,floor));
   // Doorways can now enter from any side. Never place a solid prop or hazard on a connecting lane.
   for(let i=props.length-1;i>=0;i--)if(props[i].hp>0&&corridors.has(key(props[i])))props.splice(i,1);
   for(let i=hazards.length-1;i>=0;i--)if(corridors.has(key(hazards[i])))hazards.splice(i,1);

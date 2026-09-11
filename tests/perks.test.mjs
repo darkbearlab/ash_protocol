@@ -4,8 +4,8 @@ import {Game,PERKS} from '../src/engine.js';
 import {drawPerks,eligiblePerks} from '../src/perks.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
-const ready=(seed=12)=>{const g=new Game(seed);g.pendingPerks=2;return g;};
-const offer=(g,id)=>{g.pendingPerks=Math.max(1,g.pendingPerks);g.perkDraft={index:g.perkPicks,ids:[id]};return g.choosePerk(id);};
+const ready=(seed=12)=>{const g=new Game(seed);g.player.level=3;g.pendingPerks=2;return g;};
+const offer=(g,id)=>{g.pendingPerks=Math.max(1,g.pendingPerks);g.player.level=Math.max(g.player.level,g.perkPicks+g.pendingPerks+1);g.perkDraft={index:g.perkPicks,ids:[id]};return g.choosePerk(id);};
 test('offers are distinct, reproducible, frozen across reads and reloads, and independent from battle RNG',()=>{
  const g=ready(),state=g.rng.state(),ids=g.perkChoices.map(o=>o.id);assert.equal(new Set(ids).size,3);
  const h=ready();for(let i=0;i<50;i++)h.rng();assert.deepEqual(h.perkChoices.map(o=>o.id),ids);

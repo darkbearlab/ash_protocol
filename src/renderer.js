@@ -14,7 +14,7 @@ import {isBarrier,edgeCells} from './barriers.js';
 import {areaCells} from './throwables.js';
 import {cameraFrame} from './camera.js';
 import {targetCardPlacement,actorObstacle} from './target-card.js';
-import {SIZE,FLOOR_INFO,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance} from './engine.js';
+import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance} from './engine.js';
 
 // Orthographic board: world +x = screen right, world +y = screen down.
 // Pixel atlases use nearest-neighbor drawing, with procedural missing-image fallbacks.
@@ -86,7 +86,7 @@ export class Renderer {
     const traceCells=new Map();for(const trace of g.traces){const k=trace.x+','+trace.y;if(!traceCells.has(k))traceCells.set(k,[]);traceCells.get(k).push(trace);}
     c.setTransform(this.dpr,0,0,this.dpr,0,0);c.globalAlpha=1;c.imageSmoothingEnabled=false;
     this.box(0,0,this.w,this.h,'#10191a');
-    const palette=FLOOR_INFO[g.floor-1],radial=c.createRadialGradient(this.w/2,this.h/2,30,this.w/2,this.h/2,this.w*.65);
+    const palette=floorInfo(g.floor),radial=c.createRadialGradient(this.w/2,this.h/2,30,this.w/2,this.h/2,this.w*.65);
     radial.addColorStop(0,'#354337');radial.addColorStop(1,'#101819');c.fillStyle=radial;c.fillRect(0,0,this.w,this.h);
     const floorCells=[],wallCells=[];
     const minX=Math.max(0,Math.floor(this.camera.x-this.w/t/2-1)),maxX=Math.min(SIZE-1,Math.ceil(this.camera.x+this.w/t/2+1));
