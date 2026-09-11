@@ -12,3 +12,7 @@
 未來疊色：成品 RGB 完全相等，適合先以 multiply 色調映射，再用原 alpha 遮罩（不要整格加色塊）。深色輪廓與亮度層次要保留。這輪預設直接呈現灰色，沒有新增角色染色設定或存檔欄位。
 
 renderer 的 `classSprite` 依 presentation 中的 player.character 選圖；迷彩、倒下時序與牆遮擋維持。敵人與友軍的既有圖集不變。尚未做人眼手機戰場驗收，請特別看忍者在暗房的辨識度、重裝兵遮擋感、各死亡姿態。
+
+## 3.48.1 站姿修訂
+
+狂戰士與忍者站姿改讀 source-melee-standing-v2.png（真 alpha，無需去背景），提示見 PROMPT-melee-standing-v2.md。雙手握柄，斧刃與刀尖朝斜上方；以寬度 56% 的空隙分格。仍用原灰階／縮放管線，其他十四張 PNG 位元組不變。

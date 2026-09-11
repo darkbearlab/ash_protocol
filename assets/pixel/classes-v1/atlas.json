@@ -13,6 +13,7 @@
     239
   ],
   "source_sha256": "33df14f276fbfb470cb2d4d8e9ab31c8200253f02a20f437d2a000442bd4f47b",
+  "melee_source_sha256": "f3e62240518bddb59d34128eb11a8e481baa6f4bdc12e6a6275ccf5f499ed963",
   "sprites": {
     "soldier": {
       "x": 0,
@@ -61,14 +62,14 @@
       "y": 32,
       "w": 32,
       "h": 32,
-      "sha256": "bb576381e5e12b38ffd5c59980209b8c4775e3609ca4eb75a16861a803e76bcd"
+      "sha256": "af77b046b2d9c17fbf941006e269da2ab13a810e6debb58ac33dfe3fd99d2567"
     },
     "ninja": {
       "x": 96,
       "y": 32,
       "w": 32,
       "h": 32,
-      "sha256": "3d3cac3816c03ee0b782b16488add6506db419f5dbc8eec47996116f8eae01e4"
+      "sha256": "2bbf42230465bc47e5616f827b2f9853b807d0a1d9c2b2ef1bef5fc22fdbbec3"
     },
     "dead-soldier": {
       "x": 0,

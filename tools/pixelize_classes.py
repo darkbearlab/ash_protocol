@@ -11,6 +11,7 @@ import hashlib, json
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'assets/pixel/classes-v1'
 SOURCE = ROOT / 'art/classes-v1/source-atlas.png'
+MELEE_SOURCE = ROOT / 'art/classes-v1/source-melee-standing-v2.png'
 NAMES = ['soldier', 'recon', 'engineer', 'druid', 'necromancer', 'bulwark', 'berserker', 'ninja']
 GRAY = [16, 33, 58, 82, 115, 148, 181, 214, 239]
 # Hand-reviewed cell borders: generated feet cross the nominal quarter rows.
@@ -47,7 +48,7 @@ def indexed(cell, size=None, gain=1):
 
 def build():
     OUT.mkdir(parents=True,exist_ok=True); source=Image.open(SOURCE)
-    atlas=Image.new('RGBA',(128,128)); meta={'tileSize':32,'columns':4,'palette':GRAY,'source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'sprites':{}}
+    atlas=Image.new('RGBA',(128,128)); meta={'tileSize':32,'columns':4,'palette':GRAY,'source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'melee_source_sha256':hashlib.sha256(MELEE_SOURCE.read_bytes()).hexdigest(),'sprites':{}}
     for i in range(16):
         row,col=divmod(i,4); name=NAMES[i%8]; dead=i>=8; key=('dead-' if dead else '')+name
         if name=='soldier':
@@ -55,6 +56,11 @@ def build():
             sprite=indexed(Image.open(original).convert('RGBA'),gain=1.6)
         else:
             cell=clear_matte(source.crop((COLS[row][col],ROWS[row],COLS[row][col+1],ROWS[row+1])))
+            if not dead and name in ['berserker','ninja']:
+                replacement=Image.open(MELEE_SOURCE).convert('RGBA')
+                # Hand-reviewed gap between figures; the axe crosses the nominal middle.
+                split=round(replacement.width*.56)
+                cell=replacement.crop((0 if name=='berserker' else split,0,split if name=='berserker' else replacement.width,replacement.height))
             # Keep large bodies large, rather than normalizing every silhouette to equal width.
             limit=(30,28) if name=='bulwark' else (29,27) if name=='berserker' else (27,26)
             sprite=indexed(cell,limit)
