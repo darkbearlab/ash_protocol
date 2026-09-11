@@ -57,6 +57,8 @@
 | `src/renderer.js`、`src/render.js`、`src/camera.js` | Canvas 繪製、點擊座標、特效；鏡頭取景 |
 | `src/target-card.js`、`src/layout.js`、`src/movement-boundaries.js` | 目標資訊卡；直向判斷；移動邊界白線 |
 | `src/walls.js`、`src/themes.js`、`src/materials.js`、`src/material-selection.js`、`src/art-tone.js`、`src/traces.js`、`src/portraits.js` | 牆、房間主題、素材選用、色調、戰鬥痕跡、隨局頭像（純外觀，不影響規則與戰鬥亂數） |
+| `src/class-art.js`、`src/operator-color.js` | 八職業灰色精靈座標；塗裝顏色與套色（本機顯示設定，不進存檔） |
+| `src/melee-classes.js`、`src/melee-ui.js` | 狂戰士／忍者規則（鉤鎖、戰意、嗜血、刃藏、伏擊、單挑、迷彩閃避）；它們的介面文字與狀態顯示 |
 | `src/audio.js`、`src/material-review.js` | 合成音效；選材頁（`material-review.html`） |
 | `index.html`、`style.css`、`expansion.css` | 頁面與樣式 |
 | `sw.js` | 離線快取；新增 `src/` 模組要加進 `FILES`（測試會擋） |

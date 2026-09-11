@@ -1,6 +1,6 @@
 {
   "name": "ash-protocol",
-  "version": "3.48.1",
+  "version": "3.48.2",
   "private": true,
   "type": "module",
   "scripts": { "start": "node server.mjs", "dev": "node server.mjs", "build": "node tools/build.mjs", "test": "node --test tests/*.test.mjs", "bump": "node tools/bump-version.mjs", "balance": "node tools/balance.mjs", "materials": "node tools/materials.mjs", "art": "python tools/pixelize.py" }

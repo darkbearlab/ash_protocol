@@ -76,7 +76,11 @@ test('camouflage and duel affect both hit channels, duel uses currently visible 
 test('ambush conditions are ORed, camo alone never triggers, and a miss still shortens inactive cooldown',()=>{
  const g=arena('ninja');noEnemyActions(g);const e=enemy(g);assert.equal(ambushReady(g,e),false);skill(g);assert.equal(ambushReady(g,e),false);g.player.skillState.camouflage={remaining:0,cooldown:7};
  e.control.disabled=1;assert.equal(ambushReady(g,e),true);g.rng=Object.assign(()=>.999,{state:()=>0});g.action('fire');assert.equal(g.player.skillState.camouflage.cooldown,5);assert.equal(e.hp,1000);
- e.control.disabled=0;g.lighting[10][10]=0;assert.equal(ambushReady(g,e),true);g.lighting[10][10]=1;g.sight=()=>false;assert.equal(ambushReady(g,e),true);
+ e.control.disabled=0;g.lighting[10][10]=0;assert.equal(ambushReady(g,e),true);g.lighting[10][10]=1;
+ // 3.48.2 user call: smoke on either tile or an unaware target replaces "target cannot see you", which never held in melee reach.
+ const sight=g.sight;g.sight=()=>false;assert.equal(ambushReady(g,e),false);g.sight=sight;
+ g.smoke=[{cells:[{x:e.x,y:e.y}],expires:g.turn+2}];assert.equal(ambushReady(g,e),true);g.smoke=[{cells:[{x:10,y:10}],expires:g.turn+2}];assert.equal(ambushReady(g,e),true);g.smoke=[];
+ e.alert=false;assert.equal(ambushReady(g,e),true);e.alert=true;assert.equal(ambushReady(g,e),false);
 });
 test('ambush scales a melee hit by 1.5 and attacks do not break active camouflage',()=>{
  const g=arena('ninja');noEnemyActions(g);const e=enemy(g);g.lighting[10][10]=0;skill(g);assert.ok(g.action('fire'));assert.equal(e.hp,955);assert.equal(g.player.skillState.camouflage.remaining,4);assert.equal(g.player.skillState.camouflage.cooldown,0);

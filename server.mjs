@@ -8,7 +8,7 @@ http.createServer(async (req,res) => {
     let pathname = decodeURIComponent(new URL(req.url,'http://localhost').pathname);
     if(pathname==='/ash_protocol'){res.writeHead(302,{Location:'/ash_protocol/'});return res.end();}
     if(pathname.startsWith('/ash_protocol/'))pathname=pathname.slice('/ash_protocol'.length);
-    const publicFile = pathname === '/' || ['/index.html','/material-review.html','/style.css','/expansion.css','/manifest.webmanifest','/sw.js'].includes(pathname) || /^\/(src\/[a-z0-9-]+\.js|assets\/(?:pixel\/(?:(?:terrain-v1|walls-v1|portraits)\/)?)?[a-z0-9-]+\.(svg|png|json))$/.test(pathname);
+    const publicFile = pathname === '/' || ['/index.html','/material-review.html','/style.css','/expansion.css','/manifest.webmanifest','/sw.js'].includes(pathname) || /^\/(src\/[a-z0-9-]+\.js|assets\/(?:pixel\/(?:(?:terrain-v1|walls-v1|portraits|classes-v1)\/)?)?[a-z0-9-]+\.(svg|png|json))$/.test(pathname);
     if (!publicFile) { res.writeHead(404); return res.end('Not found'); }
     const file = path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));
     if (!file.startsWith(root+path.sep)) { res.writeHead(403); return res.end(); }

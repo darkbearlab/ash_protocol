@@ -21,7 +21,7 @@ export const TRAITS={
  bloodlust:{name:'嗜血',text:'近戰造成的實際生命傷害，20% 回復為你的生命（不含溢出）。'},
  battle_spirit:{name:'戰意',text:'近戰擊殺 +1 層、最多 5 層，每層受到的直接傷害 −5%；5 回合沒有近戰擊殺後，每 2 回合掉一層。'},
  blade_stash:{name:'刃藏',text:'背包每有一把近戰武器（含斧頭），所有攻擊傷害 +10%、受到的直接傷害 −10%。'},
- ambush:{name:'伏擊',text:'目標失能、目標看不到你，或你站在暗處時，近戰傷害 ×1.5；每次觸發讓光學迷彩冷卻 −1（迷彩生效中不減）。'},
+ ambush:{name:'伏擊',text:'目標失能、目標或你站在煙霧中、目標還沒發現你，或你站在暗處時，近戰傷害 ×1.5；每次觸發讓光學迷彩冷卻 −1（迷彩生效中不減）。'},
  duelist:{name:'單挑',text:'只有一名已發現你的敵人看得到你時，射擊與近戰迴避 +15。'},
 };
 export function hasTrait(actor,id){return (actor?.traits||[]).some(t=>t.id===id);}

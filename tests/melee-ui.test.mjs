@@ -50,6 +50,8 @@ test('target card names the grapple mode and a ready ambush',()=>{
  dash.player.skillState.grapple.cooldown=2;assert.ok(!targetDetails(dash).state.includes('鉤鎖'),'no hint while cooling down');
  const n=arena('ninja');enemy(n,'rifleman',11,10);assert.ok(!targetDetails(n).state.includes(`伏擊 ×${MELEE_TUNING.ambush}`));
  n.lighting[10][10]=0;n.reveal();assert.ok(targetDetails(n).state.includes(`伏擊 ×${MELEE_TUNING.ambush}`));
+ // 3.48.2: smoke on the adjacent target is enough, so the card and status line agree with the strike.
+ const s=arena('ninja');const t=enemy(s,'rifleman',11,10);s.smoke=[{cells:[{x:11,y:10},{x:12,y:10}],expires:s.turn+3}];s.reveal();assert.ok(targetDetails(s).state.includes(`伏擊 ×${MELEE_TUNING.ambush}`));assert.ok(meleeStatus(s).includes(`伏擊 ×${MELEE_TUNING.ambush}`));
 });
 
 test('melee passive and skill texts quote the live tuning numbers',()=>{

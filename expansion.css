@@ -182,6 +182,22 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .term-detail-body{display:grid;gap:5px;padding:2px 0 6px;border-left:1px solid #2a332c;padding-left:9px}
 .term-detail-body small{font:10px/1.6 var(--mono);color:#b7c2b6}
 .term-detail-body b{color:var(--text)}
+/* 3.48.2 行動員清單多一欄職業圖像；塗裝選擇在清單下方，大圖預覽目前選的職業。 */
+.operator-list .term-pick{grid-template-columns:14px 26px 32px 1fr}
+.term-sprite{display:block;width:32px;height:32px;line-height:0}
+.term-sprite canvas,.color-preview{width:32px;height:32px;image-rendering:pixelated}
+.color-row{display:flex;align-items:center;gap:12px;margin-top:8px}
+.color-preview{flex:0 0 64px;width:64px;height:64px;background:#131816;border:1px solid var(--line)}
+.color-swatches{flex:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px}
+.color-swatch{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:48px;cursor:pointer}
+.color-swatch input{position:absolute;opacity:0;width:1px;height:1px}
+.color-swatch span{width:22px;height:22px;border-radius:50%;background:var(--swatch);border:2px solid #0d110f;box-shadow:0 0 0 1px var(--line)}
+.color-swatch span.swatch-none{background:linear-gradient(135deg,#a3a8a2 0 48%,#4d534d 52% 100%)}
+.color-swatch small{font:9px var(--mono);color:var(--muted);white-space:nowrap}
+.color-swatch input:checked+span{box-shadow:0 0 0 2px var(--orange)}
+.color-swatch input:checked~small{color:var(--orange)}
+.color-swatch:focus-within span{outline:1px solid var(--orange);outline-offset:3px}
+.color-note{margin:8px 0 0;font:10px/1.6 var(--mono);color:var(--muted)}
 /* 任務清單只列標題；說明集中在清單下方。所有說明疊在同一格，高度取最長的一段，切換任務時下方不會跳動。 */
 .mission-list .term-row{padding-bottom:2px}
 .mission-brief{display:grid;margin:12px 0 0;padding:8px 0 8px 11px;border-left:1px solid #2a332c}

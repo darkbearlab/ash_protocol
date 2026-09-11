@@ -10,7 +10,10 @@ export const bladeCount=p=>activeTrait(p,'blade_stash')?p.owned.filter(slot=>WEA
 export const bladeMultiplier=p=>1+bladeCount(p)*MELEE_TUNING.bladeDamage;
 export function meleeDefense(p,damage){const spirit=activeTrait(p,'battle_spirit')?(p.battleSpirit?.stacks||0):0;return Math.max(1,Math.ceil(damage*Math.max(0,1-bladeCount(p)*MELEE_TUNING.bladeReduction)*(1-spirit*MELEE_TUNING.spiritReduction)));}
 export function tickSpirit(g){const s=g.player.battleSpirit;if(!s?.stacks||s.lastKill===null)return;const elapsed=g.turn-s.lastKill;if(elapsed>=MELEE_TUNING.spiritDelay&&(elapsed-MELEE_TUNING.spiritDelay)%MELEE_TUNING.spiritInterval===0)s.stacks--;}
-export function ambushReady(g,target){const p=g.player;return Boolean(target&&g.enemies.includes(target)&&activeTrait(p,'ambush')&&(target.control?.disabled>0||!g.sight(target,p)||isDark(g,p)));}
+// Ambush (3.48.2, user call): target disabled, target or ninja standing in smoke, target not yet alert, or the ninja in the dark.
+// Smoke is checked by position: adjacent units always see each other, so the old "target cannot see you" test never fired in melee reach.
+export const inSmoke=(g,pos)=>Boolean(g.smoke?.some(s=>s.cells.some(q=>q.x===pos.x&&q.y===pos.y)));
+export function ambushReady(g,target){const p=g.player;return Boolean(target&&g.enemies.includes(target)&&activeTrait(p,'ambush')&&(target.control?.disabled>0||inSmoke(g,target)||inSmoke(g,p)||!target.alert||isDark(g,p)));}
 export function shortenCamo(p){const s=p.skillState?.camouflage;if(s&&!s.remaining)s.cooldown=Math.max(0,s.cooldown-MELEE_TUNING.ambushCooldown);}
 export function meleeReward(g,target,before){const p=g.player,actual=Math.max(0,before-Math.max(0,target.hp));if(actual<=0)return;
  if(p.hp>0&&activeTrait(p,'bloodlust'))healActor(p,Math.floor(actual*MELEE_TUNING.bloodlust));
