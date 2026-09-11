@@ -91,6 +91,11 @@ test('necro summons rise on their own every four paid turns from anyone who fell
  for(let i=0;i<SUMMON_INTERVAL-1;i++)g.action('wait');assert.equal(summons(),1);g.action('wait');assert.equal(summons(),2);
  for(let i=0;i<SUMMON_INTERVAL*2;i++)g.action('wait');assert.equal(summons(),SUMMON_LIMIT);assert.ok(Game.restore(g.serialize()));
 });
+test('machines never rise: dead drones and cyborgs stay out of the pool, so a floor of fallen machines raises nothing',()=>{
+ const g=arena('necromancer'),summons=()=>g.activeAllies.filter(a=>a.kind==='summon').length;enemy(g,14,10,'drone').hp=0;const c=enemy(g,15,10,'rifleman');grantTrait(c,'mechanical','test:cyborg');c.hp=0;g.enemyAct=()=>{};
+ assert.equal(summonPool(g).length,0);g.action('wait');assert.equal(summons(),0);assert.match(allySkillState(g,'raise_dead'),/尚無可起身/);
+ enemy(g,16,10,'crawler').hp=0;assert.deepEqual(summonPool(g).map(e=>e.type),['crawler']);g.action('wait');assert.equal(summons(),1);assert.equal(g.activeAllies[0].type,'crawler');
+});
 test('rising draws are weighted by how many fell, deterministic across restore, and the new summon waits for the next turn',()=>{
  const fallen=g=>{for(let j=0;j<5;j++)enemy(g,14+j,12,'crawler').hp=0;enemy(g,20,12,'gunner').hp=0;g.enemyAct=()=>{};};
  const g=arena('necromancer');fallen(g);const saved=Game.restore(g.serialize());saved.enemyAct=()=>{};g.action('wait');saved.action('wait');assert.deepEqual(g.allies,saved.allies);assert.equal(g.rng.state(),saved.rng.state());assert.equal(g.allies[0].bornTurn,g.turn);

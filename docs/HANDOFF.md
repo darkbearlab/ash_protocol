@@ -1,4 +1,9 @@
-# 快速接手：ASH PROTOCOL 3.43.0
+# 快速接手：ASH PROTOCOL 3.43.1
+
+## 3.43.1：死靈法師召喚池排除機械（Claude 開發，使用者決定）
+
+- `src/allies.js` `summonPool` 多一個條件 `!activeTrait(e,'mechanical')`；技能狀態文字改為「本層尚無可起身的屍體」。`src/skills.js`／`src/characters.js` 說明加註非機械。報告：[qa/results/2026-09-11-claude-3.43.1-necro-pool.md](../qa/results/2026-09-11-claude-3.43.1-necro-pool.md)。
+- 機械死靈法師變種只是構想，記在 [ALLIES.md](ALLIES.md) 後續候選與授權文件，未授權實作。
 
 ## 3.43.0：左上護甲條與低血量警告（Claude 開發，使用者要求）
 

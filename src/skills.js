@@ -5,7 +5,7 @@ export const SKILLS={
  drone_follow:{name:'追隨僚機',short:'僚機',icon:'◇',action:'skill',cost:1,duration:0,cooldown:0,text:'一台機體，部署／靠近回收各 1 回合；部署或生產時點選你身邊 2 步內的位置。90 HP，步槍彈 12 發、射程 7。閒置時貼在你身邊，可隨時換位；離你 3 步內會自己用你的步槍備彈換彈。繩索 6 格，不主動追擊；受傷時回收後到技能頁花廢料維修，損毀後按技能花 30 廢料生產新機。'},
  drone_sentry:{name:'放置哨兵',short:'哨兵',icon:'▣',action:'skill',cost:1,duration:0,cooldown:0,text:'與追隨僚機共用機體。部署或生產時點選你身邊 2 步內的位置。90 HP、裝甲 5、可利用掩體；8 發步槍彈、射程 7，不移動；超出 6 格停止運作。3 格可通路內可回收、隨行並自己換彈；損毀後按技能花 30 廢料生產新機。'},
  pet_command:{name:'伴生指揮',short:'指揮',icon:'♧',action:'skill',cost:0,duration:0,cooldown:0,text:'點技能後選已探索 6 格內位置，或點自己召回；指令免費，下次寵物行動執行。寵物追擊 9 格內敵人。倒地後同格或相鄰按技能花 1 回合回收，不耗醫療包；收納中每回合回 5 生命，回滿且本技能預備中自行歸隊。收納時按技能可花醫療包 1、1 回合立即回半血。'},
- raise_dead:{name:'亡者集結',short:'集結',icon:'♧',action:'skill',cost:0,duration:0,cooldown:4,text:'被動：每 4 回合自動從本層倒下過的非頭目敵人中抽一隻起身（倒下越多的種類越常出現，屍體不消耗），最多 3 隻，出現在你身邊、下回合才行動；HP 與傷害同原敵人，主動追擊離你 9 格內看得到的敵人。按技能免費集結：3 回合內召喚物停止追擊、回到你身邊，換層前使用。未同行者換層消失。'},
+ raise_dead:{name:'亡者集結',short:'集結',icon:'♧',action:'skill',cost:0,duration:0,cooldown:4,text:'被動：每 4 回合自動從本層倒下過的非頭目、非機械敵人中抽一隻起身（倒下越多的種類越常出現，屍體不消耗），最多 3 隻，出現在你身邊、下回合才行動；HP 與傷害同原敵人，主動追擊離你 9 格內看得到的敵人。按技能免費集結：3 回合內召喚物停止追擊、回到你身邊，換層前使用。未同行者換層消失。'},
  early_warning:{name:'預警',short:'預警',icon:'⌖',action:'skill',cost:0,duration:1,cooldown:5,radius:8,text:'免費掃描 8 格內敵人，穿牆顯示當下位置光點，維持至下一次耗回合行動結束；不追蹤移動、不提供射線。被掃描敵人立刻得知你的位置。冷卻 5 次耗回合行動。'},signal_break:{name:'訊號斷層',short:'斷層',icon:'⌁',action:'skill',cost:0,duration:3,cooldown:6,text:'免費啟動，3 次耗回合行動內敵人無法更新你的位置；仍會搜索最後目擊處。冷卻從啟動起算 6 次耗回合行動。已鎖定的狙擊與轟炸仍會落下，下樓結束效果但不重置冷卻。'}};
 export const initialSkillState=ids=>Object.fromEntries(ids.map(id=>[id,{remaining:0,cooldown:0}]));
 export const skillActive=(player,id='signal_break')=>(player.skillState?.[id]?.remaining||0)>0;

@@ -99,8 +99,9 @@ export function initializeAllies(g){
  if(g.player.character==='druid'){const cell=routeCells(g,g.player,{limit:3,openDoors:false}).find(p=>p.d>0);if(cell)addAlly(g,'pet','crawler',{sourceId:'pet_command',point:cell});}
 }
 // Everyone who fell on this floor, bosses excluded. One entry per death, so common enemies rise more often;
-// nothing is consumed (corpses marked raised by older versions still count).
-export const summonPool=g=>g.enemies.filter(e=>e.hp<=0&&!['boss','warden'].includes(e.type));
+// nothing is consumed (corpses marked raised by older versions still count). Machines never rise (3.43.1):
+// anything with the mechanical keyword stays a wreck, cyborgs included. A machine-raising variant is only an idea.
+export const summonPool=g=>g.enemies.filter(e=>e.hp<=0&&!['boss','warden'].includes(e.type)&&!activeTrait(e,'mechanical'));
 const summonCount=g=>currentAllies(g).filter(a=>a.kind==='summon').length;
 // No working chassis to hand: none, destroyed, or left active on another floor. Building a new one replaces it.
 const droneLost=(g,a)=>!a||a.status==='destroyed'||a.floor!==g.floor&&a.status!=='packed';
@@ -118,7 +119,7 @@ export const dronePlaces=(g,id)=>['drone_follow','drone_sentry'].includes(id)&&(
 const placeCell=(g,point)=>point?droneCells(g).find(q=>q.x===point.x&&q.y===point.y)||null:defaultDroneCell(g);
 export function allySkillState(g,id){
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
- if(id==='raise_dead'){const n=summonCount(g),cd=g.player.skillState.raise_dead?.cooldown||0;return `召喚 ${n}/${SUMMON_LIMIT}${n>=SUMMON_LIMIT?'':!summonPool(g).length?' · 本層尚無倒下者':cd?` · ${cd} 回合後再起`:' · 回合結束再起'}`;}
+ if(id==='raise_dead'){const n=summonCount(g),cd=g.player.skillState.raise_dead?.cooldown||0;return `召喚 ${n}/${SUMMON_LIMIT}${n>=SUMMON_LIMIT?'':!summonPool(g).length?' · 本層尚無可起身的屍體':cd?` · ${cd} 回合後再起`:' · 回合結束再起'}`;}
  if(id!=='pet_command'&&droneLost(g,a))return `生產 · ${DRONE_BUILD_COST} 廢料`;
  if(!a)return '沒有夥伴';if(a.floor!==g.floor&&a.status!=='packed')return `留在 ${a.floor} 層`;
  if(a.status==='down')return '回收 · 相鄰 1 回合';
