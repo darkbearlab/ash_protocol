@@ -48,3 +48,7 @@ python tools/pixelize.py --source art/source-aftermath.png --aftermath --remove-
 `npm test` 直接讀取 兩組共 32 張 PNG 的 IHDR、PLTE、tRNS 和 SHA-256，確認 32×32、4-bit 索引、最多 16 色、RGB5 色階与透明索引。不依賴「看起來像像素」的主觀判斷。
 
 限制：目前每個角色只有一個向下的静態姿勢，玩家方向以小標記表示，還沒有四向動畫；地板和牆仍為程式化方格。
+
+## 3.48 八職業灰色精靈
+
+玩家改用獨立 `classes-v1/atlas.png`，各職業站姿與倒地各一張；士兵保留舊輪廓轉灰。32×32、九階中性灰＋透明，適合日後疊色。來源、提示、預覽與重建說明見 [classes-v1 README](../art/classes-v1/README.md)，管線為 `tools/pixelize_classes.py`，座標入口為 `src/class-art.js`。不改敵人、友軍、戰鬥與存檔。

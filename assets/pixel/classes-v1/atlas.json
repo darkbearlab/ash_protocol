@@ -1,0 +1,130 @@
+{
+  "tileSize": 32,
+  "columns": 4,
+  "palette": [
+    16,
+    33,
+    58,
+    82,
+    115,
+    148,
+    181,
+    214,
+    239
+  ],
+  "source_sha256": "33df14f276fbfb470cb2d4d8e9ab31c8200253f02a20f437d2a000442bd4f47b",
+  "sprites": {
+    "soldier": {
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "sha256": "a180b8daa021262b3c6cec9e7b2f8e8e7d3fd76fd1ceab1fb4aba9386dc2d70a"
+    },
+    "recon": {
+      "x": 32,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "sha256": "759f0b23749332189b7c2871d9b84fb353ba4d02da994ff29d91585c7280de91"
+    },
+    "engineer": {
+      "x": 64,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "sha256": "a27c0d3a2a5b931c77caaaf5b49ba1de26daa33166fc1f375345ba2c5ca2ffe6"
+    },
+    "druid": {
+      "x": 96,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "sha256": "9b84c34d3010284e2a95ba7a68bff9e6fc8f637a84500e32188169ec55f5da76"
+    },
+    "necromancer": {
+      "x": 0,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "sha256": "b34c5d92b20c15170ec3f84f53cd7b685a213cc92bbd98b94295abe4059ad97c"
+    },
+    "bulwark": {
+      "x": 32,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "sha256": "b98eea71d7717cdc1a2e3c7b2ae6a2d04b2c3f201b20d86ca6e2c42fc018be15"
+    },
+    "berserker": {
+      "x": 64,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "sha256": "bb576381e5e12b38ffd5c59980209b8c4775e3609ca4eb75a16861a803e76bcd"
+    },
+    "ninja": {
+      "x": 96,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "sha256": "3d3cac3816c03ee0b782b16488add6506db419f5dbc8eec47996116f8eae01e4"
+    },
+    "dead-soldier": {
+      "x": 0,
+      "y": 64,
+      "w": 32,
+      "h": 32,
+      "sha256": "852c198002f89c1b4b3f991a7ded2f0fd1b09465f859554f778d8b2e86aa87fb"
+    },
+    "dead-recon": {
+      "x": 32,
+      "y": 64,
+      "w": 32,
+      "h": 32,
+      "sha256": "08cfa45802d0592c42c11e5303fec6b48f821a8ac552b0514c3333b7a9eafe4c"
+    },
+    "dead-engineer": {
+      "x": 64,
+      "y": 64,
+      "w": 32,
+      "h": 32,
+      "sha256": "e07112807b931c0e999cbadb7ac40bdb3e77a2652be0ec5cc5661c1da29d46b4"
+    },
+    "dead-druid": {
+      "x": 96,
+      "y": 64,
+      "w": 32,
+      "h": 32,
+      "sha256": "ff769b19e45a91f8c26917ff5dfc8c1d4fb38fef76feb561b030b4d47df536b9"
+    },
+    "dead-necromancer": {
+      "x": 0,
+      "y": 96,
+      "w": 32,
+      "h": 32,
+      "sha256": "c4d6b401b2e9e184cc388b7b604086fdfb372f1cdd11562c743b710fd88df7d6"
+    },
+    "dead-bulwark": {
+      "x": 32,
+      "y": 96,
+      "w": 32,
+      "h": 32,
+      "sha256": "92a01bf542934a9f94db5b4f590a3d6321bd339198d14b7c152c4eefe81329dc"
+    },
+    "dead-berserker": {
+      "x": 64,
+      "y": 96,
+      "w": 32,
+      "h": 32,
+      "sha256": "20ad75d30273b7067e8c2d3cfd5ff513f82141a6e54f61cbb0dd770cdeaeae2b"
+    },
+    "dead-ninja": {
+      "x": 96,
+      "y": 96,
+      "w": 32,
+      "h": 32,
+      "sha256": "ec89cc7bcfdb970b0296f59cffe93182cfba1a902fdcc89252460d4aa109ff20"
+    }
+  }
+}

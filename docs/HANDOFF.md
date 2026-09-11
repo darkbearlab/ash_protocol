@@ -121,3 +121,5 @@
 3.47：狂戰士與忍者的規則已完成，介面留Claude。新增 src/melee-classes.js 管理鉤鎖、戰意、嗜血、刃藏、伏擊與特殊迴避；skillState 支援效果結束後才倒冷卻。save v29補battleSpirit，舊資料保留。詳見 MELEE_CLASSES.md 與本輪報告。
 
 3.47.1（Claude）接上介面：選角、鉤鎖落點預覽與按鈕文字、狀態列、目標卡、背包標題、說明文字。顯示邏輯放在 src/melee-ui.js，測試在 tests/melee-ui.test.mjs。被動說明的數字是字面值（traits.js 不能匯入 melee-classes.js，會循環），調整 MELEE_TUNING 時要一起改，測試會擋。
+
+3.48：玩家八職業有獨立灰色站姿／死亡圖集。`src/class-art.js` 提供座標，renderer.classSprite 使用演出快照的職業。來源與製程見 `art/classes-v1/README.md`；其他單位仍用既有圖集。
