@@ -46,9 +46,16 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .battle-notice{height:28px;min-height:28px;max-height:28px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .loadout-bar{height:44px;min-height:44px;max-height:44px;overflow:hidden}
 #status-effects{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.vitals-bar{position:absolute;inset:6px;display:block;min-height:0;padding:0;border:0;background:none;pointer-events:none}
-.mobile-health{position:absolute;top:0;left:0;width:108px;min-width:0;padding:5px;background:#142019aa;font-size:9px}
-#level{position:absolute;top:32px;left:0;background:#142019aa;padding:3px 5px}
+.vitals-bar{position:absolute;inset:6px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:0;padding:0;border:0;background:none;pointer-events:none}
+.mobile-health{position:static;flex:none;width:108px;min-width:0;padding:5px;background:#142019aa;font-size:9px}
+#level{position:static;background:#142019aa;padding:3px 5px}
+/* 3.43: armor plates sit under health; the level tag stacks below instead of a fixed offset. */
+.mobile-health .plates{margin-top:4px}.mobile-health span.plates{display:inline-block}.mobile-health i#mobile-plates-bar{background:#93bfd1}
+/* 3.43: at half health or less the battlefield edges pulse red; update() deepens it as health falls. */
+.low-health{--danger:0;position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity .4s;will-change:opacity;box-shadow:inset 0 0 calc(var(--board-size,320px)*(.07 + .3*var(--danger))) calc(var(--board-size,320px)*(.012 + .12*var(--danger))) rgba(214,36,30,var(--edge,.45))}
+.low-health.on{opacity:1;animation:low-health-pulse var(--pulse,1.6s) ease-in-out infinite}
+@keyframes low-health-pulse{0%,100%{opacity:.45}50%{opacity:1}}
+@media(prefers-reduced-motion:reduce){.low-health.on{animation:none;opacity:.8}}
 .map-tools{position:absolute;bottom:0;right:0;gap:2px;pointer-events:auto}
 .map-tools .map-button{width:32px;min-width:32px;height:32px;background:#17251bbb;font-size:18px}
 

@@ -1,4 +1,11 @@
-# 快速接手：ASH PROTOCOL 3.42.0
+# 快速接手：ASH PROTOCOL 3.43.0
+
+## 3.43.0：左上護甲條與低血量警告（Claude 開發，使用者要求）
+
+- 報告：[qa/results/2026-09-11-claude-3.43.0-hud-vitals.md](../qa/results/2026-09-11-claude-3.43.0-hud-vitals.md)。
+- `index.html`：`.mobile-health` 內新增 `#mobile-plates`／`#mobile-plates-bar`；`#viewport` 內 canvas 之後新增 `#low-health`（`aria-hidden`、不接點擊）。
+- `expansion.css`（3.1.1 區塊）：`.vitals-bar` 改直向 flex，`.mobile-health`／`#level` 不再絕對定位；`.low-health` 以 `--board-size` 與 `--danger` 計算內陰影深度，`low-health-pulse` 動畫，`prefers-reduced-motion` 時不閃。
+- `src/controller.js`：`update()` 寫入護甲板數值並呼叫 `lowHealth(p)`，後者設定 `--danger`（0＝剛好一半，1＝歸零）、`--edge` 透明度、`--pulse` 週期。演出中 `update(event.state)` 也會更新。
 
 ## 3.42.0：震撼彈／EMP 失能延長（Claude 開發，使用者要求）
 
