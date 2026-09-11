@@ -9,11 +9,14 @@
 2026-09-09 使用者要求降低操作成本：瀏覽器／手機驗證交給使用者或其他 AI，見 [驗證紙條](../給驗證者的紙條.md)；開發端執行必要規則測試、build、main 推送與部署狀態確認。純文件交接不重跑遊戲測試。3.2.0 已獲授權開發；勿將尚未執行的外部 QA 標為通過。
 
 1. 將 UI 驗證情境交接給使用者／其他 AI，指定 `?test=1` 隔離頁面並列出未測項目。
-2. `npm test`、`npm run build` 必須成功。
-3. 更新 HANDOFF、DESIGN 和 CHANGELOG。
-4. `git status` 確認沒有秘密、暫存檔或未預期檔案。
-5. commit 後推至 origin/main；若用了分支，先正常合併到 main，禁止覆蓋遠端歷史。
-6. 確認 `.github/workflows/pages.yml` 成功；線上 BUILD 與素材載入由接手驗證者確認。
+2. 版本號：`npm run bump -- x.y.z`，一次改 `package.json`、`src/version.js`、`sw.js` 的快取名稱（3.44.1 起）。說明頁與設定的 BUILD 字樣讀 `src/version.js`；`tests/release.test.mjs` 會在三者不一致時失敗。
+3. `npm test`、`npm run build` 必須成功。
+4. 更新 CHANGELOG、對應的規格文件與報告，以及驗證紙條最新一段；HANDOFF 只在架構或流程改變時更新。
+5. `git status` 確認沒有秘密、暫存檔或未預期檔案。
+6. commit 後推至 origin/main；若用了分支，先正常合併到 main，禁止覆蓋遠端歷史。
+7. 確認 `.github/workflows/pages.yml` 成功；線上 BUILD 與素材載入由接手驗證者確認。
+
+新增 `src/` 模組時，同步加進 `sw.js` 的 `FILES`（`tests/save-safety.test.mjs` 會檢查）。
 
 ## 自動部署
 

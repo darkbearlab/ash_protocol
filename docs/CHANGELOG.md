@@ -1,5 +1,12 @@
 # 更新紀錄
 
+## 3.44.1：版本號單一來源（Claude，使用者同意的提案）
+
+- 版本號只寫在 `src/version.js`；說明頁與設定的 BUILD 字樣讀它。
+- `npm run bump -- x.y.z` 一次改 `package.json`、`src/version.js`、`sw.js` 快取名稱；本版就是用它從 3.44.0 改成 3.44.1。
+- 新測試 `tests/release.test.mjs`：三處版本不一致、或 BUILD 字樣又寫死數字時失敗。共 466 項通過；build 通過。遊戲內容沒有變。
+- 發版流程見 [RELEASE.md](RELEASE.md)。
+
 ## 3.44.0：盤點後修正（Claude，使用者要求）
 
 報告：[qa/results/2026-09-11-claude-3.44.0-audit-fixes.md](../qa/results/2026-09-11-claude-3.44.0-audit-fixes.md)。
