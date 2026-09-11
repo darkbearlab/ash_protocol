@@ -119,3 +119,5 @@
 3.46 平衡補充：重裝兵／死靈法師「難以治療」，既有局載入補唯一角色來源，save v28 不變。新增生命恢復入口請走 traits.js 的 healActor，計入升級加成後再減半；詳見 TRAITS.md。
 
 3.47：狂戰士與忍者的規則已完成，介面留Claude。新增 src/melee-classes.js 管理鉤鎖、戰意、嗜血、刃藏、伏擊與特殊迴避；skillState 支援效果結束後才倒冷卻。save v29補battleSpirit，舊資料保留。詳見 MELEE_CLASSES.md 與本輪報告。
+
+3.47.1（Claude）接上介面：選角、鉤鎖落點預覽與按鈕文字、狀態列、目標卡、背包標題、說明文字。顯示邏輯放在 src/melee-ui.js，測試在 tests/melee-ui.test.mjs。被動說明的數字是字面值（traits.js 不能匯入 melee-classes.js，會循環），調整 MELEE_TUNING 時要一起改，測試會擋。

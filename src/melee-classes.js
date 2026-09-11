@@ -16,22 +16,24 @@ export function meleeReward(g,target,before){const p=g.player,actual=Math.max(0,
  if(p.hp>0&&activeTrait(p,'bloodlust'))healActor(p,Math.floor(actual*MELEE_TUNING.bloodlust));
  if(target.hp<=0&&activeTrait(p,'battle_spirit'))p.battleSpirit={stacks:Math.min(MELEE_TUNING.spiritMax,p.battleSpirit.stacks+1),lastKill:g.turn};
 }
+// Duel: exactly one alert enemy within its sensing range can see the ninja right now. Shared with the status line.
+export const duelActive=g=>{const p=g.player;return activeTrait(p,'duelist')&&g.enemies.filter(e=>e.hp>0&&e.alert&&distance(e,p)<=Math.max(10,ENEMY_TYPES[e.type].range)&&g.sight(e,p)).length===1;};
 export function defensiveEvasion(g,attacker,target){
  if(target!==g.player||!g.enemies.includes(attacker))return 0;
  const p=g.player;let bonus=p.skillState?.camouflage?.remaining>0?MELEE_TUNING.camoEvasion:0;
- if(activeTrait(p,'duelist')&&g.enemies.filter(e=>e.hp>0&&e.alert&&distance(e,p)<=Math.max(10,ENEMY_TYPES[e.type].range)&&g.sight(e,p)).length===1)bonus+=MELEE_TUNING.duelist;
+ if(duelActive(g))bonus+=MELEE_TUNING.duelist;
  return bonus;
 }
 export function grapplePlan(g,id=g.target){
  const p=g.player,e=g.enemies.find(e=>e.id===id&&e.hp>0),slot=p.owned.find(i=>g.weaponAt(i).id==='axe');
  if(slot===undefined)return {reason:'需要綁定斧頭。'};
- if(!e||distance(p,e)>GRAPPLE_RANGE||!g.visible(e))return {reason:'鉤鎖需要視線內五格的存活敵人。'};
+ if(!e||distance(p,e)>GRAPPLE_RANGE||!g.visible(e))return {reason:`鉤鎖需要先鎖定 ${GRAPPLE_RANGE} 格內、看得到的敵人。`};
  const dash=activeTrait(e,'large')||['boss','warden'].includes(e.type),mover=dash?p:e,anchor=dash?e:p;
  // Straight swept path, with occupied/solid cells excluded; diagonal corner crossing must have an open side.
  const grid=g.grid.map(row=>row.slice());for(let y=0;y<grid.length;y++)for(let x=0;x<grid[y].length;x++)if(g.solid(x,y))grid[y][x]=0;
  for(const a of [p,...g.enemies.filter(a=>a.hp>0),...g.activeAllies])if(a!==mover)grid[a.y][a.x]=0;
  const choices=DIRECTIONS.map(([dx,dy])=>({x:anchor.x+dx,y:anchor.y+dy})).filter(q=>g.passable(q.x,q.y)&&grid[q.y]?.[q.x]===1&&g.canCross(q,anchor)&&lineOfSight(grid,mover,q,g.barriers,'move')).sort((a,b)=>distance(a,mover)-distance(b,mover));
- if(!choices.length)return {reason:'沒有可到達的近戰落點。'};
+ if(!choices.length)return {reason:'沒有可到達的近戰落點：身邊或目標旁都被擋住。'};
  return {enemy:e,mover,point:choices[0],dash,slot};
 }
 export function useGrapple(g,id){

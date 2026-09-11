@@ -19,8 +19,8 @@ export const WEAPONS = [
   {id:'lmg',weaponClass:'lmg',name:'堡壘輕機槍',type:'LIGHT MACHINE GUN',code:'LM–30',min:18,max:22,range:7,mag:30,file:'lmg',ammoType:'rifle',burst:3,desc:'使用步槍彈，每次三連發，適合持續壓制。'},
   {id:'powerfist',weaponClass:'melee',name:'震擊動力拳',type:'POWER GAUNTLET',code:'PF–01',min:70,max:90,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,hitChance:99,pierce:.5,desc:'相鄰一格近戰，命中 99%，無限使用、無須裝填。無視掩體，穿透 50% 裝甲。裝甲內建，雙向切換免費；不能拆解或交換，可改裝至 +3。'},
   {id:'thunder',weaponClass:'burst_launcher',name:'雷鳴爆彈槍',type:'BURST GRENADE RIFLE',code:'TB–09',min:24,max:30,range:6,mag:9,file:'thunder',ammoType:'ordnance',burst:3,explosive:true,lootOnly:true,desc:'三連發爆彈，每發命中後爆炸半徑 1 格；會自傷及引爆油桶。使用榴彈彈藥，僅能探索拾取。'},
-  {id:'axe',weaponClass:'melee',name:'狂戰斧',type:'BOUND AXE',code:'AX–01',min:44,max:54,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'berserker',hitChance:92,pierce:.3,desc:'綁定近戰武器。'},
-  {id:'katana',weaponClass:'melee',name:'忍刀',type:'BOUND BLADE',code:'KT–01',min:30,max:36,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'ninja',hitChance:95,desc:'綁定近戰武器。'},
+  {id:'axe',weaponClass:'melee',name:'狂戰斧',type:'BOUND AXE',code:'AX–01',min:44,max:54,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'berserker',hitChance:92,pierce:.3,desc:'狂戰士綁定近戰武器，不能拆解或交換。相鄰一格，命中 92%，穿透 30% 裝甲，無限使用。'},
+  {id:'katana',weaponClass:'melee',name:'忍刀',type:'BOUND BLADE',code:'KT–01',min:30,max:36,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'ninja',hitChance:95,desc:'忍者綁定近戰武器，不能拆解或交換。相鄰一格，命中 95%，無限使用。'},
 ];
 export const FLOORS = ['軌道轉運站','污染冷卻區','軍械封鎖區','生化培養艙','高壓熔爐','深淵反應核心'];
 export const FLOOR_INFO = [

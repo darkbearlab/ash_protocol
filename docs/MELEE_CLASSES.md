@@ -1,6 +1,6 @@
 # 近戰職業：狂戰士與忍者（規格）
 
-- 狀態：使用者 2026-09-11 確認設計，**3.47.0 規則已實作；介面待 Claude**。
+- 狀態：使用者 2026-09-11 確認設計，**3.47.0 規則已實作，3.47.1 介面已接上**。平衡模擬尚未做；伏擊「目標看不到你」的條件待使用者決定（見文末）。
 - 分工：**Codex 只負責把職業做出來**：角色與武器資料、被動與技能規則、存檔、測試。**介面由 Claude 接手**：按鈕、選目標、狀態顯示、說明文字。
 - 標「暫定」的數字是起始值，實作後由 Claude 用模擬調整。
 - 兩個職業和現有六個一樣免費，不接主選單的解鎖。
@@ -128,3 +128,26 @@ save v29，profile v4／backup v1。v1–28 只補 battleSpirit 空狀態，保�
 `node qa/create-3.47-fixtures.mjs` 生成九份 `qa/fixtures/3.47/`：natural-berserker／natural-ninja、grapple-pull／grapple-dash／grapple-blocked、spirit-decay、camo-final-turn、ambush-dark、legacy-v28。全部以Game.restore驗證，可用現有匯入頁載入，僅 `?test=1`。自然配給場景才可作自然局試玩，其他為人工機制場景。
 
 本輪503項Node測試（21項新增）與build通過；未做瀏覽器／手機／自然平衡。完整程式入口、範圍與未完成介面見 `qa/results/2026-09-11-codex-3.47-melee-classes.md`。Claude 繼續按本規格做介面與模擬，不自行把光學迷彩當不可見。
+
+## 3.47.1 介面（Claude）
+
+- **選角**：OPERATOR_ORDER 在重裝兵之後加入狂戰士、忍者。角色說明、技能說明、五個被動、斧頭與忍刀的說明都改成完整規則；技能說明讀 GRAPPLE_RANGE／GRAPPLE_COOLDOWN／CAMO_DURATION／CAMO_COOLDOWN／MELEE_TUNING。traits.js 不能反向匯入 melee-classes.js（會循環），被動說明寫的是字面數字，改由 `tests/melee-ui.test.mjs` 檢查和常數一致。
+- **鉤鎖**：技能鈕讀 `grapplePlan()`，顯示「拉近」「衝刺」「太遠」（鎖定目標超過 5 格）、「無落點」「無目標」，冷卻中照舊顯示冷卻。可用時地圖上從移動者畫虛線到落點，落點畫框、標「拉」或「衝」；瞄準收起時不畫。目標卡最前面加「鉤鎖 · 拉近／衝刺」。介面只讀計畫、不改結果。
+- **狀態列**（放最前面，避免窄螢幕被切掉）：
+  - 「戰意 N（k 回合後 −1）」：k 是還要幾次付費行動才掉下一層，與 tickSpirit 的實際時點一致。
+  - 「迷彩 N」：剩餘付費行動次數。
+  - 「伏擊 ×1.5」：目前鎖定的敵人符合 ambushReady 時才顯示。
+  - 「單挑 +15」：duelActive 成立時顯示；判定已抽成 melee-classes.js 的 `duelActive`，與 defensiveEvasion 共用，規則不變。
+- **其他**：
+  - 迷彩生效時忍者圖像變半透明，外框與 YOU 標籤照舊。
+  - 背包標題列出「刃藏 N 把 · 攻擊 +x% · 受傷 −x%」與「戰意 N 層 · 受傷 −x%」。
+  - 作戰指南新增兩職業段落，兵種配給的生命／裝甲改讀角色資料。
+  - 近戰武器的裝填鈕提示改用武器名稱。
+- **資料修正**：忍者 `prepared.grenade='smoke'`。原本忍者預備著一顆也沒有的破片彈，要先進背包切換才能丟煙霧。只影響新局；舊局的預備欄照舊，可在背包自行切換。
+- 顯示邏輯集中在 `src/melee-ui.js`（grappleLabel／spiritFadeIn／meleeStatus／meleeSummary），controller 只負責組字串。
+
+### 待決定：伏擊「目標看不到你」在近戰距離幾乎不成立
+
+近戰只能打上下左右相鄰的格子，但相鄰的兩個單位一定互相看得到：戰術視線在距離 1 時會忽略煙霧，所以就算兩人都站在煙霧裡也一樣。結果三個伏擊條件裡，「目標看不到你」這一條實際上不會觸發，只有斜角或隔兩格這類打不到的距離才成立。使用者原本想要的是「一方在煙霧中」。
+
+建議改法（屬規則層，交 Codex）：把條件改成「目標或忍者站在煙霧格內」，也可以再加上「目標尚未發現你」。細節與重現步驟見 [qa/results/2026-09-11-claude-3.47-melee-ui.md](../qa/results/2026-09-11-claude-3.47-melee-ui.md)。

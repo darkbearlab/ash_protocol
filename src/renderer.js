@@ -138,6 +138,8 @@ export class Renderer {
     for(const ally of g.localAllies||[])if(g.seen[ally.y]?.[ally.x]){const a=this.project(ally.x,ally.y);if(ally.hp>0&&ally.status==='active'){this.actor(a,ally.type,time,ally);this.box(a.x-t*.36,a.y-t*.36,t*.72,t*.72,'#64e7cf18','#83efd1');this.text(ally.kind==='pet'?'PET':ally.kind==='summon'?'SUM':'ALLY',a.x,a.y+t*.55,connected(g,ally)?'#9df4d5':'#a5a5a5',8);}else {this.corpse(a,ally.type);this.text(ally.status==='down'?'回收 +':'×',a.x,a.y+12,'#e3cf86',10);}}
     if(this.mode==='pet'&&this.aim){const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b52a','#9cedca');this.text('指令',a.x,a.y+4,'#a9f3d5',10);}
     if(this.mode==='drone'&&this.aim){for(const q of droneCells(g)){const a=this.project(q.x,q.y);this.box(a.x-t*.4,a.y-t*.4,t*.8,t*.8,'#7fd8b50f','#7fd8b566');}const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b53a','#9cedca');this.text('部署',a.x,a.y+4,'#a9f3d5',10);}
+    // Grapple preview (3.47.1): the tile the berserker or the pulled enemy lands on before the strike.
+    const hook=this.targetingEnabled?this.grapplePreview:null;if(hook){const a=this.project(hook.from.x,hook.from.y),b=this.project(hook.point.x,hook.point.y);c.setLineDash([4,4]);this.line(a.x,a.y,b.x,b.y,'#e6c07a99',1.5);c.setLineDash([]);this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,'#e6c07a24','#f0cf8a');this.text(hook.dash?'衝':'拉',b.x,b.y+4,'#ffe0a3',10);}
     const target=this.targetingEnabled?g.targeted:null;if(target){const a=this.project(target.x,target.y),r=t*.43;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(a.x+dx*r,a.y+dy*r,a.x+dx*(r-7),a.y+dy*r,'#f1b07c',1.5);this.line(a.x+dx*r,a.y+dy*r,a.x+dx*r,a.y+dy*(r-7),'#f1b07c',1.5);}}
     for(const fx of this.effects) {
       const elapsed=time-fx.time-(fx.delay||0),age=elapsed/650;if(age<0||age>1)continue;
@@ -275,7 +277,8 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     if(this.sprites.complete&&this.sprites.naturalWidth&&this.spriteNames.includes(spriteType)){
       const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));
       if(player){this.box(a.x-17,a.y-17,34,34,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(a.x,a.y,20,0,Math.PI*2);c.stroke();}}
-      c.save();c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;this.sprite(spriteType,a,size);c.restore();
+      // Optical camouflage (3.47.1): the ninja's sprite fades while it is active; the frame and label stay readable.
+      c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;this.sprite(spriteType,a,size);c.restore();
       if(e.control?.disabled){this.box(a.x-size/2,a.y-size/2,size,size,'#b9d5e94f');this.text(`×${e.control.disabled}`,a.x+this.tile*.35,a.y-10,'#d6edff',11);}
       if(player){this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);const f=e.facing||[0,1];this.box(a.x+f[0]*18-1,a.y+f[1]*18-1,3,3,'#ffe3ab');}
       else{this.box(a.x-13,a.y-this.tile*.45,26,3,'#17271e');this.box(a.x-13,a.y-this.tile*.45,26*e.hp/e.maxHp,3,e.charge?'#f2b779':def.color);if(e.charge)this.text(e.type==='sniper'?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
