@@ -11,7 +11,8 @@ export const TETHER=6,CARRY_DISTANCE=3,SUMMON_LIMIT=3;
 // fell on this floor (weighted by how many fell, never used up), hunt within SUMMON_TETHER, and the skill rallies them.
 export const SUMMON_INTERVAL=4,SUMMON_TETHER=9,RALLY_TURNS=3;
 // Idle leash: with no fight to hold, allies drift back once farther than this. Engaged allies use the tether instead.
-export const FOLLOW_RANGE={drone:2,other:3};
+// The follow drone stays adjacent (3.41) so the player can always swap it into position.
+export const FOLLOW_RANGE={drone:1,other:3};
 // Druid pet (3.37, user decision): a longer leash to reach real fights, and a downed pet is recovered
 // instead of revived; it heals while packed and steps back out once whole if the skill stays prepared.
 export const PET_TETHER=9,PET_REGEN=5,PET_MEDKIT_FRACTION=.5;
@@ -103,6 +104,18 @@ export const summonPool=g=>g.enemies.filter(e=>e.hp<=0&&!['boss','warden'].inclu
 const summonCount=g=>currentAllies(g).filter(a=>a.kind==='summon').length;
 // No working chassis to hand: none, destroyed, or left active on another floor. Building a new one replaces it.
 const droneLost=(g,a)=>!a||a.status==='destroyed'||a.floor!==g.floor&&a.status!=='packed';
+// Drone placement (3.41): free tiles within two route steps of the player, never through a closed door.
+export const droneCells=g=>routeCells(g,g.player,{limit:2,openDoors:false}).filter(q=>q.d>0);
+// Without a chosen tile the drone lands beside the player, level with them relative to where they face:
+// out in front it draws the first volley, behind it is what the fixed search order used to pick.
+// With no side tile (a corridor) it goes in front before behind.
+export function defaultDroneCell(g){
+ const [fx,fy]=g.player.facing||[0,-1],ahead=q=>(q.x-g.player.x)*fx+(q.y-g.player.y)*fy;
+ return droneCells(g).sort((a,b)=>a.d-b.d||Math.abs(ahead(a))-Math.abs(ahead(b))||ahead(b)-ahead(a))[0]||null;
+}
+// Whether this drone skill would put a chassis down now: deploy the packed one, or build a replacement.
+export const dronePlaces=(g,id)=>['drone_follow','drone_sentry'].includes(id)&&(droneLost(g,g.allies.find(a=>a.kind==='drone'))||g.allies.find(a=>a.kind==='drone').status==='packed');
+const placeCell=(g,point)=>point?droneCells(g).find(q=>q.x===point.x&&q.y===point.y)||null:defaultDroneCell(g);
 export function allySkillState(g,id){
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
  if(id==='raise_dead'){const n=summonCount(g),cd=g.player.skillState.raise_dead?.cooldown||0;return `召喚 ${n}/${SUMMON_LIMIT}${n>=SUMMON_LIMIT?'':!summonPool(g).length?' · 本層尚無倒下者':cd?` · ${cd} 回合後再起`:' · 回合結束再起'}`;}
@@ -131,7 +144,8 @@ export function canAllySkill(g,id){
  if(a.status==='packed')return a.hp>0&&routeCells(g,p,{limit:2,openDoors:false}).some(q=>q.d>0);
  return a.sourceId===id&&carryCandidates(g).includes(a);
 }
-export function useAllySkill(g,id){
+// point: a player-chosen placement tile for deploy/build; if it is no longer free the skill fails and nothing changes.
+export function useAllySkill(g,id,point=null){
  if(!canAllySkill(g,id))return false;
  const p=g.player;
  // Rally is a free order: for the next RALLY_TURNS paid turns summons stop hunting and come back beside the player.
@@ -142,10 +156,10 @@ export function useAllySkill(g,id){
   else if(a.status==='packed'){const before=a.hp;p.meds--;a.hp=Math.min(a.maxHp,a.hp+Math.ceil(a.maxHp*PET_MEDKIT_FRACTION));g.log(`消耗醫療包，伴生獵獸回復 ${a.hp-before} 生命。`);}
   else a.order=null;
  }else if(droneLost(g,a)){
-  const cell=routeCells(g,p,{limit:2,openDoors:false}).find(q=>q.d>0);g.allies=g.allies.filter(x=>x!==a);p.scrap-=DRONE_BUILD_COST;
+  const cell=placeCell(g,point);if(!cell)return false;g.allies=g.allies.filter(x=>x!==a);p.scrap-=DRONE_BUILD_COST;
   const fresh=addAlly(g,'drone','drone',{sourceId:id,point:cell});reloadDrone(g,fresh);g.log(`消耗 ${DRONE_BUILD_COST} 廢料生產新機，${allyName(fresh)}已部署。`);
  }else if(a.status==='packed'){
-  const cell=routeCells(g,p,{limit:2,openDoors:false}).find(q=>q.d>0);if(a.sourceId!==id&&a.ammo){g.receiveAmmo(allyWeapon(a).ammoType,a.ammo);a.ammo=0;}Object.assign(a,{x:cell.x,y:cell.y,sourceId:id,floor:g.floor,status:'active',order:null,bornTurn:g.turn});
+  const cell=placeCell(g,point);if(!cell)return false;if(a.sourceId!==id&&a.ammo){g.receiveAmmo(allyWeapon(a).ammoType,a.ammo);a.ammo=0;}Object.assign(a,{x:cell.x,y:cell.y,sourceId:id,floor:g.floor,status:'active',order:null,bornTurn:g.turn});
   fitDrone(a);reloadDrone(g,a);g.log(`${allyName(a)}已部署。`);
  }else{a.status='packed';reloadDrone(g,a);g.log('機體已回收，使用備彈補充彈匣；傷勢保留。');}
  return true;

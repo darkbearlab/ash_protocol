@@ -1,4 +1,12 @@
-# 快速接手：ASH PROTOCOL 3.40.0
+# 快速接手：ASH PROTOCOL 3.41.0
+
+## 3.41.0：追隨僚機貼身、部署落點自選（Claude 開發，使用者決定）
+
+- 規格：[ALLIES.md](ALLIES.md)「3.41 貼身跟隨與自選落點」；報告：[qa/results/2026-09-11-claude-3.41.0-allies-iteration.md](../qa/results/2026-09-11-claude-3.41.0-allies-iteration.md)。屬授權文件「位置控制」「距離參數」範圍，已在 [ALLY_ITERATION_SCOPE.md](ALLY_ITERATION_SCOPE.md) 工程師段加註。
+- `src/allies.js`：`FOLLOW_RANGE.drone` 2→1；`droneCells`（2 步可通路空格，不穿關門）、`defaultDroneCell`（以面向並排→前→後）、`dronePlaces`（這次技能會放下機體：部署收納機或生產新機）；`useAllySkill(g,id,point)` 第三參數為落點，缺省用預設格。
+- `src/game.js`：新行動 `placeDrone {id,x,y}`，驗證預備技能、`dronePlaces`、`canAllySkill` 與落點在 `droneCells` 內；結算在 `presentStep` 內重驗，快敵先占落點則不部署、不收費。
+- `src/controller.js`：`renderer.mode='drone'` 選點模式（`skill`／`move`／`pointerup`／`interact`／`updateAim`、`setDroneAim`），沒有空格時照舊直接呼叫技能。`src/renderer.js` 畫合法格與「部署」游標。
+- 模擬：`qa/drone-waves.mjs` 的重新部署走預設格，可用來比較預設落點；`qa/ally-scenes.mjs` E2 反映貼身跟隨。
 
 ## 3.40.0：死靈法師改版（Claude 開發，使用者決定）
 

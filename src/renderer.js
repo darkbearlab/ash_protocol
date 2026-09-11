@@ -1,4 +1,4 @@
-import {allyName,connected} from './allies.js';
+import {allyName,connected,droneCells} from './allies.js';
 import {movementBoundaries,boundaryOpacityPercent} from './movement-boundaries.js';
 import {isDark,floorShading} from './lighting.js';
 import {ArtToneCache} from './art-tone.js';
@@ -137,6 +137,7 @@ export class Renderer {
     for(const e of g.visibleEnemies){const a=this.project(e.x,e.y);this.actor(a,e.type,time,e);if(missionTarget(g,e))this.text('◇',a.x-this.tile*.35,a.y-8,'#88f3ff',12);}
     for(const ally of g.localAllies||[])if(g.seen[ally.y]?.[ally.x]){const a=this.project(ally.x,ally.y);if(ally.hp>0&&ally.status==='active'){this.actor(a,ally.type,time,ally);this.box(a.x-t*.36,a.y-t*.36,t*.72,t*.72,'#64e7cf18','#83efd1');this.text(ally.kind==='pet'?'PET':ally.kind==='summon'?'SUM':'ALLY',a.x,a.y+t*.55,connected(g,ally)?'#9df4d5':'#a5a5a5',8);}else {this.corpse(a,ally.type);this.text(ally.status==='down'?'回收 +':'×',a.x,a.y+12,'#e3cf86',10);}}
     if(this.mode==='pet'&&this.aim){const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b52a','#9cedca');this.text('指令',a.x,a.y+4,'#a9f3d5',10);}
+    if(this.mode==='drone'&&this.aim){for(const q of droneCells(g)){const a=this.project(q.x,q.y);this.box(a.x-t*.4,a.y-t*.4,t*.8,t*.8,'#7fd8b50f','#7fd8b566');}const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b53a','#9cedca');this.text('部署',a.x,a.y+4,'#a9f3d5',10);}
     const target=this.targetingEnabled?g.targeted:null;if(target){const a=this.project(target.x,target.y),r=t*.43;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(a.x+dx*r,a.y+dy*r,a.x+dx*(r-7),a.y+dy*r,'#f1b07c',1.5);this.line(a.x+dx*r,a.y+dy*r,a.x+dx*r,a.y+dy*(r-7),'#f1b07c',1.5);}}
     for(const fx of this.effects) {
       const elapsed=time-fx.time-(fx.delay||0),age=elapsed/650;if(age<0||age>1)continue;

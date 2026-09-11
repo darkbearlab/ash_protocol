@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {SIZE,ENEMY_TYPES} from '../src/data.js';
 import {CHARACTERS} from '../src/characters.js';
-import {DRONE_REPAIR_COST,DRONE_BUILD_COST,DRONE_HP,SENTRY_ARMOR,droneRepairReason,addAlly,allyWeapon,allyAct,allySkillState,fitDrone,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,summonPool,validAllies,PET_REGEN,PET_MEDKIT_FRACTION,PET_TETHER,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS} from '../src/allies.js';
+import {DRONE_REPAIR_COST,DRONE_BUILD_COST,DRONE_HP,SENTRY_ARMOR,droneRepairReason,addAlly,allyWeapon,allyAct,allySkillState,fitDrone,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,summonPool,validAllies,PET_REGEN,PET_MEDKIT_FRACTION,PET_TETHER,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,defaultDroneCell} from '../src/allies.js';
 import {makeEnemy} from '../src/world.js';
 import {makeBarrier} from '../src/barriers.js';
 import {grantTrait} from '../src/traits.js';
@@ -222,6 +222,26 @@ test('a ground wreck stays behind on its floor and survives complete backup; the
  const copy=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa');assert.deepEqual(copy.game.allies,g.allies);
  const raw=JSON.parse(g.serialize());raw.data.allies[0].status='active';assert.equal(Game.restore(JSON.stringify(raw)),null);
  raw.data.allies[0].status='packed';raw.data.allies[0].hp=-1;assert.equal(Game.restore(JSON.stringify(raw)),null);
+});
+// 3.41: the follow drone stays adjacent, and deploying or building a drone takes a chosen tile.
+test('the follow drone stays adjacent: two tiles away it steps back beside the player',()=>{
+ const g=arena(),a=drone(g,{x:12,y:10});a.ammo=12;a.bornTurn=1;g.turn=2;allyAct(g,a);assert.equal(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y),1);
+});
+test('a drone is deployed or built on a chosen free tile within two steps; other tiles are refused without spending time',()=>{
+ const g=arena(),a=drone(g,{x:10,y:10},'packed');enemy(g,11,10).hp=500;g.enemyAct=()=>{};
+ for(const bad of [{x:10,y:13},{x:11,y:10}])assert.equal(g.action('placeDrone',{id:'drone_follow',...bad}),false);assert.equal(g.turn,1);assert.equal(a.status,'packed');
+ assert.ok(g.action('placeDrone',{id:'drone_follow',x:10,y:8}));assert.deepEqual([a.status,a.x,a.y,g.turn,a.ammo],['active',10,8,2,12]);
+ assert.equal(g.action('placeDrone',{id:'drone_follow',x:9,y:10}),false);assert.equal(g.turn,2);
+ const h=arena(),c=drone(h,{x:15,y:10});h.damageAlly(c,999);h.player.scrap=40;assert.ok(h.action('placeDrone',{id:'drone_follow',x:8,y:10}));
+ const n=h.allies.find(x=>x.kind==='drone');assert.deepEqual([n.x,n.y,n.status,h.player.scrap],[8,10,'active',10]);assert.ok(Game.restore(h.serialize()));
+});
+test('without a chosen tile the drone lands beside the player; in a corridor in front, never behind',()=>{
+ const f=arena(),b=drone(f,{x:10,y:10},'packed');f.player.facing=[0,1];assert.equal(defaultDroneCell(f).d,1);assert.ok(use(f));assert.deepEqual([b.x,b.y],[11,10]);
+ const c=arena(),k=drone(c,{x:10,y:10},'packed');c.grid=c.grid.map(r=>r.map(()=>0));for(let x=5;x<=15;x++)c.grid[10][x]=1;c.player.facing=[-1,0];assert.ok(use(c));assert.deepEqual([k.x,k.y],[9,10]);
+});
+test('a fast enemy taking the chosen tile first cancels the committed placement; nothing is spent but the turn',()=>{
+ const g=arena(),a=drone(g,{x:10,y:10},'packed'),e=enemy(g,12,10);e.hp=500;e.alert=true;grantTrait(e,'fast','test:place');g.enemyAct=x=>{if(x===e){e.x=11;e.y=10;}};
+ const rifle=g.player.reserve;assert.ok(g.action('placeDrone',{id:'drone_follow',x:11,y:10}));assert.equal(g.turn,2);assert.equal(a.status,'packed');assert.equal(g.player.reserve,rifle);
 });
 // 3.40 necromancer (user decision): automatic rising, a fallen pool that is never used up, and a free rally.
 test('summons hunt enemies up to nine tiles from the player',()=>{
