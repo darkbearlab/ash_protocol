@@ -1,3 +1,4 @@
+import {ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks} from './perks.js';
 import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickPackedPet,tickSummons,petSkillReason,fitDrone,DRONE_HP,DRONE_BUILD_COST,droneCells,dronePlaces} from './allies.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
@@ -22,7 +23,7 @@ import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
 
-const freshPlayer=()=>({character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,prepared:defaultPrepared(),skills:[],skillState:{},traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,prepared:defaultPrepared(),skills:[],skillState:{},traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=e=>ENEMY_TYPES[e.type]?.name||'未知單位';
 
 export class Game {
@@ -35,7 +36,7 @@ export class Game {
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
     this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
-    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.logs=[];this.status='playing';this.pendingPerks=0;this.effects=[];this.loadFloor();initializeAllies(this);this.reveal();
+    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.logs=[];this.status='playing';this.pendingPerks=0;this.perkPicks=0;this.perkDraft=null;this.effects=[];this.loadFloor();initializeAllies(this);this.reveal();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   loadFloor() {
@@ -56,7 +57,7 @@ export class Game {
   fireChance(target){if(this.weapon.melee)return meleeChance(this.player,target,this.weapon.hitChance);return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.weapon.closeRange&&distance(this.player,target)<=this.weapon.closeRange?this.weapon.closeAccuracy:0)+actorStat(this.player,'rangedAccuracy')+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)-lightingEffects(this,this.player,target).penalty));}
   get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.teamVisible(e));}
   get targeted(){return [...this.enemies,...this.props,...this.barriers].find(e=>e.id===this.target&&e.hp>0&&this.teamVisible(e));}
-  get perkChoices(){const start=(this.seed+this.player.level*3)%PERKS.length;return [0,1,3].map(n=>PERKS[(start+n)%PERKS.length]);}
+  get perkChoices(){return ensurePerks(this);}
   get exitPoint(){return exitPoint(this);}
   get exitLabel(){return exitLabel(this);}
   get deepestFloor(){return deepestFloor(this);}
@@ -152,7 +153,7 @@ export class Game {
   dropGrenade(id,amount){const def=GRENADES[id],p=this.player,item=this.items.find(o=>o.type===def.item&&distance(o,p)===0);if(item)item.amount=(item.amount??1)+amount;else this.items.push({x:p.x,y:p.y,type:def.item,amount});}
   trimGrenades(){let excess=grenadeTotal(this.player)-this.ammoCapacity('grenade');for(const [id,def]of Object.entries(GRENADES)){const n=Math.min(Math.max(0,excess),this.player[def.resource]);if(n){this.player[def.resource]-=n;this.dropGrenade(id,n);excess-=n;}}}
   supplyPack(amounts){for(const [type,amount]of Object.entries(amounts))this.receiveAmmo(type,amount);}
-  weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index),close=target&&w.closeRange&&distance(this.player,target)<=w.closeRange,bonus=this.player.bonus+(this.player.upgrades[index]||0)*5;return {min:(close?w.closeMin:w.min)+bonus,max:(close?w.closeMax:w.max)+bonus};}
+  weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index),close=target&&w.closeRange&&distance(this.player,target)<=w.closeRange,bonus=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5;return {min:(close?w.closeMin:w.min)+bonus,max:(close?w.closeMax:w.max)+bonus};}
   fail(text){this.log(text);return false;}
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
@@ -670,19 +671,13 @@ export class Game {
     this.loadFloor();arriveAllies(this,companions);this.reveal();this.supplyPack({rifle:20,pistol:24,shell:6,energy:10,ordnance:2});this.log(`進入${FLOORS[this.floor-1]}。生命 +25，補充各類備彈。`);return true;
   }
   choosePerk(id) {
-    if(!this.pendingPerks||!PERKS.some(o=>o.id===id))return false;
-    const p=this.player;
-    if(id==='damage')p.bonus+=6;
-    if(id==='health'){p.maxHp+=25;p.hp=Math.min(p.maxHp,p.hp+40);}
-    if(id==='armor')p.armor+=3;
-    if(id==='med'){p.meds+=2;this.supplyPack({grenade:2,rifle:24,pistol:24,shell:6});}
-    if(id==='blast')p.blastBonus+=18;
-    if(id==='scavenger'){p.scavenger++;p.scrap+=15;}
-    if(id==='medic'){p.healBonus+=20;p.meds++;}
-    if(id==='hazmat'){p.hazmat+=5;p.poison=0;}
-    this.pendingPerks--;this.log(`模組已安裝：${PERKS.find(x=>x.id===id).name}。`);return true;
+    if(this.status!=='playing'||!this.pendingPerks)return false;
+    const offer=this.perkChoices.find(o=>o.id===id);
+    if(!offer||!eligiblePerks(this).some(o=>o.id===id))return false;
+    applyPerk(this,offer);this.pendingPerks--;this.perkPicks++;this.perkDraft=null;ensurePerks(this);
+    this.log(`模組已安裝：${offer.name}。`);return true;
   }
-  serialize(){const {rng,effects,visibleTiles,...data}=this;return JSON.stringify({version:SAVE_VERSION,data,rngState:rng.state()});}
+  serialize(){ensurePerks(this);const {rng,effects,visibleTiles,...data}=this;return JSON.stringify({version:SAVE_VERSION,data,rngState:rng.state()});}
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
@@ -790,8 +785,11 @@ export class Game {
         if(!Number.isInteger(item.slot)||p.weaponBases[item.slot]!==item.weapon||locations.has(item.slot))return null;
         locations.add(item.slot);
       }
+      if(version>=28&&(!Object.hasOwn(data.player,'perks')||!Object.hasOwn(data.player,'perkWeaponBonus')))return null;
+      if(version<28)migratePerks(g);
+      if(!validPerks(g))return null;
       if(!validAllies(g))return null;
-      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,...frame,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,x:frame.start.x,y:frame.start.y,fireChain:null}}})))))return null;
+      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...frame,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,x:frame.start.x,y:frame.start.y,fireChain:null}}})))))return null;
       // Weapon slots belong to the run, including weapons left on archived floors.
       for(const frame of Object.values(g.floorStates))for(const item of frame.items)if(item.type==='weapon'){
         if(locations.has(item.slot))return null;locations.add(item.slot);

@@ -48,7 +48,7 @@ test('floor and perk supplies preserve overflow on the current floor and never e
   const g=arena();for(const [type,info]of Object.entries(AMMUNITION))g.player[info.key]=g.ammoCapacity(type);
   g.end={x:10,y:10};assert.equal(g.action('interact'),true);assert.equal(g.floor,2);
   for(const type of AMMO_IDS){assert.ok(g.items.some(i=>i.type===AMMUNITION[type].item&&i.x===g.player.x&&i.y===g.player.y));assert.equal(g.player[AMMUNITION[type].key],g.ammoCapacity(type));}
-  g.pendingPerks=1;const grenades=stock(g,'grenade');assert.equal(g.choosePerk('med'),true);assert.equal(stock(g,'grenade'),grenades+2);
+  g.pendingPerks=1;g.perkDraft={index:g.perkPicks,ids:['med']};const grenades=stock(g,'grenade');assert.equal(g.choosePerk('med'),true);assert.equal(stock(g,'grenade'),grenades+2);
   assert.equal(g.player.grenades,g.ammoCapacity('grenade'));
 });
 

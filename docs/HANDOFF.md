@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.44.1**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.45.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -27,7 +27,7 @@
 ## 啟動與測試
 
 1. `npm start`，開 http://localhost:5173。純 Node、原生 ES modules，沒有第三方套件。瀏覽器 QA 一律加 `?test=1`，存檔放在 `qa-` 開頭的鍵，不碰正式任務。
-2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.44.1 為 466 項。
+2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.45.0 為 478 項。
 3. `npm run build`：產生 `dist/`，相容 GitHub Pages 的 `/ash_protocol/` 子路徑，推上 main 後自動部署。
 4. 模擬腳本（人工場景，不代表自然平衡）：`qa/ally-scenes.mjs`、`qa/pet-waves.mjs`、`qa/drone-waves.mjs`、`qa/necro-waves.mjs`、`qa/grenade-control.mjs`。都可帶 src 目錄參數比較新舊版。`npm run balance -- 24` 是較舊的無畫面遊玩機器人。
 5. 場景存檔產生器：`qa/create-*.mjs`，產物在 `qa/fixtures/`（已忽略，不提交）。
@@ -51,6 +51,7 @@
 | `src/missions.js`、`src/retreat.js` | 任務合約與目標；三層往返的樓層保存與增援 |
 | `src/weapons.js`、`src/ammunition.js`、`src/prepared.js` | 武器詞條；彈種、攜帶上限、永久攜行價格；背包預備欄 |
 | `src/progression.js`、`src/storage.js`、`src/backup.js` | 協定點數與個人紀錄（`PROFILE_VERSION`）；本機存檔、QA 隔離、讀前備份、還原；完整備份 |
+| `src/perks.js` | 局內升級獨立抽選、階數、效果與舊檔遷移；詳見 [PERKS.md](PERKS.md) |
 | `src/daily.js`、`src/version.js` | 每日任務種子；遊戲版本（唯一來源） |
 | `src/presentation.js` | 回合演出：快照與時序 |
 | `src/renderer.js`、`src/render.js`、`src/camera.js` | Canvas 繪製、點擊座標、特效；鏡頭取景 |
@@ -76,7 +77,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v27**（`data.js` 的 `SAVE_VERSION`）。舊版 1～26 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v28**（`data.js` 的 `SAVE_VERSION`）。舊版 1～27 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v4**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -87,7 +88,9 @@
 
 依 [RELEASE.md](RELEASE.md)：改版本號 → `npm test`、`npm run build` → 更新 CHANGELOG、規格、報告、紙條最新段 → 只 stage 本批檔案 → 推上 main（不強推）→ 確認這個 SHA 的 Pages run 成功 → 報告補發布紀錄。
 
-## 近期重點（3.36～3.44.1）
+## 近期重點（3.36～3.45.0）
+
+- **3.45.0** 通用升級十一項，永久三階、資源無限；獨立隨機、60% 已選優先名額、保存當次選項、引擎驗證。save v28；職業專屬與主選單升級另議。
 
 - **3.36～3.41 三職業友軍**：
   - 3.36 走不到改走最近、交戰不折返。

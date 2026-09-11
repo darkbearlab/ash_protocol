@@ -21,7 +21,7 @@
 | 武器 | [WEAPONS.md](WEAPONS.md) | 武器實例、詞條、改裝 | 3.14.0 |
 | 彈藥與攜行 | [AMMUNITION.md](AMMUNITION.md) | 五類備彈、攜帶上限、永久攜行升級 | 3.25.0 |
 | 背包與預備 | [PREPARED.md](PREPARED.md) | 四個分頁、獨立預備欄 | 3.27.0 |
-| 局內升級 | [PERKS.md](PERKS.md) | 升級三選一的組合、角色參數對照 | 3.35.3 |
+| 局內升級 | [PERKS.md](PERKS.md) | 獨立隨機、已選加權、通用十一項、上限與保存 | 3.45.0 |
 | 門與隔板 | [BARRIERS.md](BARRIERS.md) | 格間障礙物、門、矮隔板翻越、斜角開關門 | 3.35.2 |
 | 補給箱 | [CONTAINERS.md](CONTAINERS.md) | 開箱、內容固定、落地拾取 | 3.18.0 |
 | 生活模組與補給站 | [LIVING_MODULES.md](LIVING_MODULES.md) | 衛浴、門禁、哨站，補給站分布 | 3.18.0 |

@@ -1,6 +1,6 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 27;
+export const SAVE_VERSION = 28;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -41,15 +41,19 @@ export const ENEMY_TYPES = {
   warden:{ name:'封鎖官', hp:180, damage:19, range:6, armor:5, color:'#d9aa70', xp:4, mechanical:true, role:'具紅外線可穿煙，但也怕震撼彈。攻擊需蓄勢，掉落稀有軍械。' },
   boss:{ name:'核心守衛', hp:280, damage:22, range:7, armor:7, color:'#df785f', xp:6, mechanical:true, role:'反應核心頭目。交替槍擊與延遲轟炸，離開紅色標記。' },
 };
+// Stable IDs; append content without changing saved offers. null cap means consumable reward.
 export const PERKS = [
-  {id:'damage',name:'武器增幅',text:'武器每發／每次近戰傷害 +6。'},
-  {id:'health',name:'生存本能',text:'最大生命 +25，立即回復 40 生命。'},
-  {id:'armor',name:'複合裝甲',text:'每次直接受傷減少 3 點。'},
-  {id:'med',name:'戰地補給',text:'獲得 2 醫療包、2 手榴彈與分類備彈。'},
-  {id:'blast',name:'爆破專家',text:'手榴彈與爆炸武器傷害 +18。'},
-  {id:'scavenger',name:'資源回收',text:'擊殺與撿到的廢料 +50%，立即獲得 15 廢料。'},
-  {id:'medic',name:'急救訓練',text:'醫療包回復量 +20；立即獲得 1 醫療包。'},
-  {id:'hazmat',name:'密封防護',text:'環境與中毒傷害 −5，立即解除中毒。'},
+  {id:'damage',name:'武器增幅',cap:3,effect:'weapon',amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'},
+  {id:'health',name:'生存本能',cap:3,effect:'health',amount:25,heal:40,text:'最大生命 +25，立即回復 40 生命。'},
+  {id:'armor',name:'複合裝甲',cap:3,effect:'stat',stat:'armor',amount:3,text:'每次直接受傷減少 3 點。'},
+  {id:'med',name:'戰地補給',cap:null,effect:'supply',text:'獲得 2 醫療包、2 手榴彈與分類備彈；超量彈藥留在腳下。'},
+  {id:'blast',name:'爆破專家',cap:3,effect:'stat',stat:'blastBonus',amount:18,text:'破片手榴彈與爆炸武器傷害 +18。'},
+  {id:'scavenger',name:'資源回收',cap:3,effect:'scavenger',amount:1,text:'擊殺與撿到的廢料 +50%，立即獲得 15 廢料。'},
+  {id:'medic',name:'急救訓練',cap:3,effect:'medic',amount:20,text:'醫療包回復量 +20；立即獲得 1 醫療包。'},
+  {id:'hazmat',name:'密封防護',cap:3,effect:'hazmat',amount:5,text:'環境與中毒傷害 −5，立即解除中毒；第 3 階免疫現有環境傷害。'},
+  {id:'accuracy',name:'精準射擊',cap:3,effect:'combat',stats:['rangedAccuracy'],amount:8,text:'射擊命中 +8 個百分點。'},
+  {id:'evasion',name:'戰術閃避',cap:3,effect:'combat',stats:['rangedEvasion'],amount:8,text:'被射擊命中 −8 個百分點。'},
+  {id:'melee',name:'格鬥訓練',cap:3,effect:'combat',stats:['meleeAccuracy','meleeEvasion'],amount:8,text:'近戰命中與近戰迴避各 +8 個百分點。'},
 ];
 export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
 export const LORE = [
