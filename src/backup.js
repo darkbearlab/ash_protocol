@@ -3,7 +3,7 @@ import {validPortrait} from './portraits.js';
 import {validCharacter} from './characters.js';
 import {CARRY_COSTS,validCarryLevels,carryingSpent} from './ammunition.js';
 import {Game} from './game.js';
-import {normalizeProfile,creditProtocol} from './progression.js';
+import {normalizeProfile,creditProtocol,PROFILE_VERSION} from './progression.js';
 import {SIZE,SUPPLY_NAMES} from './data.js';
 
 export const BACKUP_LIMIT=5_000_000;
@@ -13,7 +13,7 @@ const id=v=>typeof v==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(v)&&!['__proto__'
 const requireValue=(ok,message)=>{if(!ok)throw new Error(message);};
 
 export function validateProfile(raw){
-  requireValue(object(raw)&&[2,3,4].includes(raw.version),'全局紀錄版本不相容。');
+  requireValue(object(raw)&&Number.isInteger(raw.version)&&raw.version>=2&&raw.version<=PROFILE_VERSION,'全局紀錄版本不相容。');
   requireValue(['runs','wins','bestKills','bestFloor'].every(k=>count(raw[k]))&&raw.wins<=raw.runs&&raw.bestFloor>=1&&raw.bestFloor<=6,'任務紀錄數值無效。');
   requireValue(object(raw.protocol)&&count(raw.protocol.balance)&&count(raw.protocol.earned)&&raw.protocol.balance<=raw.protocol.earned,'協定點數數值無效。');
   if(raw.version===3){requireValue(object(raw.upgrades)&&count(raw.upgrades.carrying)&&raw.upgrades.carrying<=CARRY_COSTS.length,'攜行升級資料無效。');requireValue(raw.protocol.earned-raw.protocol.balance>=CARRY_COSTS.slice(0,raw.upgrades.carrying).reduce((a,b)=>a+b,0),'攜行升級與點數支出不符。');}

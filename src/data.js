@@ -1,6 +1,9 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
 export const SAVE_VERSION = 27;
+// Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
+// can never silently drop the previous one from the list (3.44).
+export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
 export const PACK_LIMIT = 3;
 export const PLATE_CAPACITY = 30;
 export const SUPPLY_ROOMS={ammo:{name:'彈藥庫',color:'#d9bd7b'},medical:{name:'醫療室',color:'#a9d9ac'},armor:{name:'裝甲庫',color:'#92c4df'}};
@@ -22,7 +25,7 @@ export const FLOOR_INFO = [
   { color:'#a4b484', subtitle:'TRANSIT HUB', text:'轉運站仍有備用物資。熟悉掩體，收集裝備。', hazard:null },
   { color:'#73b8a0', subtitle:'COOLANT WORKS', text:'綠色污染格會造成傷害。保持距離，別踩進毒液。', hazard:'acid' },
   { color:'#cead71', subtitle:'ARMORY LOCKDOWN', text:'擊敗封鎖官才能開啟電梯。軍械箱內有新式武器。', hazard:null, boss:'warden' },
-  { color:'#bc89b6', subtitle:'BIO CULTURE', text:'自爆單位會引爆周遭油桶，並留下危險區域。', hazard:'acid' },
+  { color:'#bc89b6', subtitle:'BIO CULTURE', text:'自爆單位會引爆周遭油桶；地面散布綠色毒液。', hazard:'acid' },
   { color:'#de885a', subtitle:'THERMAL FORGE', text:'熔爐地板炙熱。重裝單位與狙擊手守住長廊。', hazard:'fire' },
   { color:'#d56e60', subtitle:'ABYSS CORE', text:'摧毀核心守衛。避開紅色轟炸標記，再啟動撤離。', hazard:'fire', boss:'boss' },
 ];
@@ -44,7 +47,7 @@ export const PERKS = [
   {id:'armor',name:'複合裝甲',text:'每次直接受傷減少 3 點。'},
   {id:'med',name:'戰地補給',text:'獲得 2 醫療包、2 手榴彈與分類備彈。'},
   {id:'blast',name:'爆破專家',text:'手榴彈與爆炸武器傷害 +18。'},
-  {id:'scavenger',name:'資源回收',text:'之後獲得的廢料 +50%，立即獲得 15 廢料。'},
+  {id:'scavenger',name:'資源回收',text:'擊殺與撿到的廢料 +50%，立即獲得 15 廢料。'},
   {id:'medic',name:'急救訓練',text:'醫療包回復量 +20；立即獲得 1 醫療包。'},
   {id:'hazmat',name:'密封防護',text:'環境與中毒傷害 −5，立即解除中毒。'},
 ];

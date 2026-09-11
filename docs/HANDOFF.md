@@ -1,4 +1,17 @@
-# 快速接手：ASH PROTOCOL 3.43.1
+# 快速接手：ASH PROTOCOL 3.44.0
+
+## 3.44.0：盤點後修正（Claude 開發，使用者要求）
+
+- 報告：[qa/results/2026-09-11-claude-3.44.0-audit-fixes.md](../qa/results/2026-09-11-claude-3.44.0-audit-fixes.md)，內含 20～22（主資料夾、文件瘦身、版本號）的提案與觀察清單。
+- `src/data.js` `LEGACY_SAVE_VERSIONS` 由 `SAVE_VERSION` 推算，`game.js` 讀檔與 `storage.js` 讀前備份共用；`src/progression.js` `PROFILE_VERSION`，`backup.js` 接受 2～它。**之後升版只改常數，並記得寫遷移。**
+- `src/storage.js`：`write()` 成功會恢復 `storage.available`（還原未完成時除外）；`saveGame()` 回傳是否全部寫入。
+- `src/controller.js`：
+  - `persist()` 包住存檔，失敗時顯示 `#save-warning` 並排程 `showSaveWarning()`。
+  - `notify(text,{extra,danger})`；訊息列的 `.log-button` 與點擊開 `showLog()`。
+  - 直向判斷改用 `(pointer: coarse)` 並有 `orientationOverride`。
+  - 說明頁數字改讀常數。
+- `src/daily.js`：`dailySeed`／`dailyMission`（原本在 controller）。新增模組要加進 `sw.js` 的 `FILES`，`tests/save-safety.test.mjs` 會檢查。
+- `src/skills.js` 匯入友軍常數組字串；`raise_dead.cooldown`＝`SUMMON_INTERVAL`；技能可選 `card` 欄位供升級頁顯示。`src/throwables.js` 常數移到 `GRENADES` 之前，說明組字串。
 
 ## 3.43.1：死靈法師召喚池排除機械（Claude 開發，使用者決定）
 

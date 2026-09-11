@@ -3,18 +3,18 @@ import {distance,lineOfSight,key} from './world.js';
 import {combatSight} from './combat.js';
 
 export const SMOKE_DURATION=5;
-
-// Keywords select reactions; they do not imply armor, size, or allegiance.
-export const GRENADES={
-  frag:{name:'破片手榴彈',short:'破片彈',icon:'◉',resource:'grenades',item:'grenade',cost:12,amount:2,color:'#c8d692',action:'grenade',text:'射程 5、半徑 2。造成爆炸傷害，會自傷及引爆油桶。'},
-  smoke:{name:'煙霧彈',short:'煙霧彈',icon:'≋',resource:'smoke',item:'smoke',cost:12,amount:1,color:'#a9bbcb',action:'grenade',text:'射程 5、半徑 2，持續 5 輪（含投擲當輪）。阻斷無紅外線者的視線，煙內僅見相鄰格；紅外線可穿煙，不減傷。'},
-  emp:{name:'EMP 彈',short:'EMP',icon:'ϟ',resource:'emp',item:'emp',keyword:'mechanical',cost:15,amount:1,color:'#81dce9',action:'grenade',text:'射程 5、半徑 2。機械中斷蓄勢並跳過 4 次行動（通常含投擲當回合），頭目 2 次；恢復後免疫 2 次行動。不扣生命。'},
-  stun:{name:'震撼彈',short:'震撼彈',icon:'✦',resource:'stun',item:'stun',keyword:'biological',cost:15,amount:1,color:'#eee0a0',action:'grenade',text:'射程 5、半徑 2。生物或有夜視／紅外線者中斷蓄勢並跳過 4 次行動（通常含投擲當回合），頭目 2 次；恢復後免疫 2 次行動。會震暈自己，同樣 4 次。'},
-};
 // Disruption length in the target's own opportunities (3.42: 2→4, bosses 1→2). A target that has not acted yet
 // in the throw turn spends its first skip there, answering nothing, so the thrower gets DISRUPT_TURNS-1 unanswered
 // follow-ups; at the old length of 2 that was a single one, and a boss's single skip only cancelled the reply.
 export const DISRUPT_TURNS=4,BOSS_DISRUPT_TURNS=2,DISRUPT_IMMUNITY=2;
+
+// Keywords select reactions; they do not imply armor, size, or allegiance.
+export const GRENADES={
+  frag:{name:'破片手榴彈',short:'破片彈',icon:'◉',resource:'grenades',item:'grenade',cost:12,amount:2,color:'#c8d692',action:'grenade',text:'射程 5、半徑 2。造成爆炸傷害，會自傷及引爆油桶。'},
+  smoke:{name:'煙霧彈',short:'煙霧彈',icon:'≋',resource:'smoke',item:'smoke',cost:12,amount:1,color:'#a9bbcb',action:'grenade',text:`射程 5、半徑 2，持續 ${SMOKE_DURATION} 輪（含投擲當輪）。阻斷無紅外線者的視線，煙內僅見相鄰格；紅外線可穿煙，不減傷。`},
+  emp:{name:'EMP 彈',short:'EMP',icon:'ϟ',resource:'emp',item:'emp',keyword:'mechanical',cost:15,amount:1,color:'#81dce9',action:'grenade',text:`射程 5、半徑 2。機械中斷蓄勢並跳過 ${DISRUPT_TURNS} 次行動（通常含投擲當回合），頭目 ${BOSS_DISRUPT_TURNS} 次；恢復後免疫 ${DISRUPT_IMMUNITY} 次行動。不扣生命。`},
+  stun:{name:'震撼彈',short:'震撼彈',icon:'✦',resource:'stun',item:'stun',keyword:'biological',cost:15,amount:1,color:'#eee0a0',action:'grenade',text:`射程 5、半徑 2。生物或有夜視／紅外線者中斷蓄勢並跳過 ${DISRUPT_TURNS} 次行動（通常含投擲當回合），頭目 ${BOSS_DISRUPT_TURNS} 次；恢復後免疫 ${DISRUPT_IMMUNITY} 次行動。會震暈自己，同樣 ${DISRUPT_TURNS} 次。`},
+};
 export const grenadeTotal=p=>Object.values(GRENADES).reduce((n,g)=>n+(p[g.resource]||0),0);
 export const grenadeByItem=type=>Object.keys(GRENADES).find(id=>GRENADES[id].item===type);
 export const controlState=()=>({disabled:0,immune:0});

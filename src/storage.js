@@ -3,27 +3,31 @@ import {AMMUNITION,CARRY_COSTS,carryLevels,carryingSpent} from './ammunition.js'
 import {Game} from './engine.js';
 import {normalizeProfile,creditProtocol} from './progression.js';
 import {makeBackup,decodeBackup} from './backup.js';
+import {LEGACY_SAVE_VERSIONS} from './data.js';
 export const storage={available:true,recoveryPending:false};
 // Browser QA uses a separate namespace, never the user's campaign.
 export const TEST_MODE=typeof location!=='undefined'&&new URLSearchParams(location.search).get('test')==='1';
 const storageKey=key=>TEST_MODE?`qa-${key}`:key;
 export const backupNamespace=TEST_MODE?'qa':'live';
 export function read(key){try{return localStorage.getItem(storageKey(key));}catch{storage.available=false;return null;}}
-export function write(key,value){try{localStorage.setItem(storageKey(key),value);return true;}catch{storage.available=false;return false;}}
+// A later successful write clears an earlier failure (e.g. space was freed), unless a restore is still pending.
+export function write(key,value){try{localStorage.setItem(storageKey(key),value);if(!storage.recoveryPending)storage.available=true;return true;}catch{storage.available=false;return false;}}
 export function loadGame(){
   if(!recoverRestore()){try{return decodeBackup(read('ash-restore-journal'),backupNamespace).game;}catch{return null;}}
-  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26].includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}const game=Game.restore(raw);if(game)game.setCarryLevel(profile().upgrades.carrying);return game;
+  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if(LEGACY_SAVE_VERSIONS.includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}const game=Game.restore(raw);if(game)game.setCarryLevel(profile().upgrades.carrying);return game;
 }
+// Returns whether everything was written, so the UI can warn when progress is not being kept (3.44).
 export function saveGame(game){
-  if(storage.recoveryPending)return;
+  if(storage.recoveryPending)return false;
   if(game.status==='playing'){
-    write('ash-save',game.serialize());
-    const p=profile();if(creditProtocol(p,game)>0)write('ash-profile',JSON.stringify(p));
-  }else{
-    // Commit rewards and result together before discarding the last playable save.
-    recordResult(game);
-    if(storage.available)try{localStorage.removeItem(storageKey('ash-save'));}catch{storage.available=false;}
+    let ok=write('ash-save',game.serialize());
+    const p=profile();if(creditProtocol(p,game)>0)ok=write('ash-profile',JSON.stringify(p))&&ok;
+    return ok;
   }
+  // Commit rewards and result together before discarding the last playable save; a failed write keeps the save.
+  recordResult(game);
+  if(storage.available)try{localStorage.removeItem(storageKey('ash-save'));}catch{storage.available=false;}
+  return storage.available;
 }
 export function profile(){try{
   if(storage.recoveryPending)return decodeBackup(read('ash-restore-journal'),backupNamespace).snapshot.profile;
