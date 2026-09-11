@@ -18,6 +18,11 @@ export const TRAITS={
   no_cover:{name:'無法利用掩體',short:'無掩體',text:'無法取得牆角／箱體的命中保護與減傷，牆壁仍阻擋視線。'},
   fast:{name:'快速',opposite:'slow',text:'快速階段行動，每回合仍只有一次行動。'},
   slow:{name:'緩速',opposite:'fast',text:'緩速階段行動；與快速同時存在時按普通速度結算。'},
+ bloodlust:{name:'嗜血',text:'近戰實際生命傷害的20%回復生命。'},
+ battle_spirit:{name:'戰意',text:'近戰擊殺疊直接減傷，最多五層。'},
+ blade_stash:{name:'刃藏',text:'每把攜帶近戰武器增加10%攻擊傷害及直接減傷。'},
+ ambush:{name:'伏擊',text:'符合伏擊條件時近戰傷害增加並縮短迷彩冷卻。'},
+ duelist:{name:'單挑',text:'僅一名已發現自己的敵人可見自己時，射擊與近戰迴避增加。'},
 };
 export function hasTrait(actor,id){return (actor?.traits||[]).some(t=>t.id===id);}
 export function activeTrait(actor,id){return hasTrait(actor,id)&&!hasTrait(actor,TRAITS[id]?.opposite);}

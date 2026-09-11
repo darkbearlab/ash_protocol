@@ -13,7 +13,7 @@
 | 被動與行動順序 | [TRAITS.md](TRAITS.md) | 獨立被動、反向抵銷、快速／普通／緩速 | 3.25.0 |
 | 職業 | [CHARACTERS.md](CHARACTERS.md) | 兵種數值、起始配給、角色被動 | 3.35.0 |
 | 重裝兵 | [BULWARK.md](BULWARK.md) | 重裝兵、輕機槍、動力拳 | 3.35.1 |
-| 近戰職業（規格，待實作） | [MELEE_CLASSES.md](MELEE_CLASSES.md) | 狂戰士（鉤鎖、嗜血、戰意、刃藏）與忍者（光學迷彩、伏擊、單挑）；Codex 做規則，Claude 做介面 | 規格 2026-09-11 |
+| 近戰職業 | [MELEE_CLASSES.md](MELEE_CLASSES.md) | 狂戰士／忍者規則與Claude介面接手 | 3.47.0 |
 | 主動技能 | [SKILLS.md](SKILLS.md) | 下錨、預警、訊號斷層 | 3.35.1 |
 | 友軍 | [ALLIES.md](ALLIES.md) | 工程師機體、德魯伊寵物、死靈召喚、繩索、換位、存檔 | 3.43.1 |
 | 友軍迭代授權 | [ALLY_ITERATION_SCOPE.md](ALLY_ITERATION_SCOPE.md) | Claude 迭代三職業的範圍，以及使用者決定的覆寫紀錄 | 3.43.1 |

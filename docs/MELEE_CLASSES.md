@@ -1,6 +1,6 @@
 # 近戰職業：狂戰士與忍者（規格）
 
-- 狀態：使用者 2026-09-11 確認設計，**待 Codex 實作**。
+- 狀態：使用者 2026-09-11 確認設計，**3.47.0 規則已實作；介面待 Claude**。
 - 分工：**Codex 只負責把職業做出來**：角色與武器資料、被動與技能規則、存檔、測試。**介面由 Claude 接手**：按鈕、選目標、狀態顯示、說明文字。
 - 標「暫定」的數字是起始值，實作後由 Claude 用模擬調整。
 - 兩個職業和現有六個一樣免費，不接主選單的解鎖。
@@ -105,3 +105,26 @@
 - 實作後的平衡模擬：兩職業與其他職業受到的傷害與清場速度比較。
 
 Codex 只要保證規則可以透過現有入口使用：鉤鎖用 `usePrepared` 技能加上目前鎖定的目標，迷彩用 `usePrepared` 技能；失敗時用 `fail()` 回報原因即可，文字由 Claude 之後修飾。
+
+## 3.47.0 規則交付與補充判定
+
+- 角色 ID 追加 berserker／ninja；武器索引9 axe／10 katana（舊0–8不動）。沿用 powerfist 素材，不另做介面／美術。CHARACTERS 可建角，但 controller 的 OPERATOR_ORDER／選角與其他UI由Claude加入，不宣稱目前已能從選角頁點選。
+- 規則主模組 `src/melee-classes.js`，調整常數 MELEE_TUNING、GRAPPLE_RANGE／GRAPPLE_COOLDOWN、CAMO_DURATION／CAMO_COOLDOWN。鉤鎖技能 ID grapple，迷彩 ID camouflage。
+- 鉤鎖：`game.target=enemy.id` 後 `game.action('usePrepared',{category:'skill'})`。也可 action('skill','grapple')；必須已學會並預備。`game.grapplePlan()` 回傳 reason 或 enemy／mover／point／dash／slot，供介面預覽，無 RNG／狀態變更。初始失敗 fail 回報且不耗回合；承諾後只追原ID，失效仍耗回合但不開始技能冷卻。
+- 鉤鎖落點依距離最近，等距依上右下左。移動為直線掃掠，不繞路、不穿實牆、實心物件、完整阻路邊或單位；斜角至少一側可通行。目標已相鄰時可原地斬擊。允許毒／熱落點，按原環境時點結算；不自動拾取移動路上的物品。大型使用 activeTrait，另列 boss／warden，不變更其體型。
+- 拉動後清敵人 charge／windup／aim／focusTarget／fireChain；若沒有實際移動則不清。移動和攻擊各自 presentStep，目標若活著仍保留本輪原速度行動機會，不額外失能。拉／衝設 moved，moveDelta=[0,0] 表示強制位移不取得側身方向加成，也符合既有存檔的單步記憶限制。
+- 鉤鎖耗1回合，冷卻4含施放輪（完成顯示3），不增加普通攻擊回合。斧頭透過 strike 進行，保留已裝備槍械。嗜血／戰意／刃藏均可觸發。
+- 嗜血以近戰命中後實際HP損失計，排除道具、射擊、友軍、物件、溢出。經healActor；如果擊殺爆破體的連鎖爆炸已殺死玩家，不用吸血把玩家救活。戰意僅自己近戰擊殺增加，最多5。
+- 戰意資料 `player.battleSpirit={stacks,lastKill}`。lastKill 是世界付費回合號，擊殺當輪不算等待；第5個後續付費回合末掉一層，之後每2回合末掉一層。免費操作／選升級不消退，換層不重置。直接傷害在固定裝甲後乘刃藏與戰意，向上取整至少1，再沿原重裝防護／等待／護甲板流程；環境與中毒照舊。
+- 刃藏依 owned 近戰槽數計，原始攻擊傷害乘 1+0.1×數量後四捨五入。射擊／近戰／破片／玩家爆炸武器都適用，只加一次；油桶連鎖與環境不是自己的攻擊，不乘。防禦乘 max(0,1−0.1×數量)；與戰意相乘，不相加。角色自帶斧頭算一把。weaponDamage 仍為基礎與武器升級範圍，介面如需最終加成，可用 bladeMultiplier／ambushReady 預覽，勿把乘數再寫回基礎值。
+- 迷彩是命中減益、不隱藏感知；`game.defensiveEvasion(attacker,target)` 包含迷彩30／單挑15，實際射擊與近戰皆從最終命中公式扣除再夾10–99。單挑計算此刻存活、alert、敵人感知距離內且 sight 成立的敵人數，恰好1才有效；失能不自動等於失去視線。
+- 迷彩用 `usePrepared` 技能免費啟動，remaining5／cooldown0。第五次付費行動的敵人階段仍受保護，回合末 remaining0／cooldown10；後續10次付費行動才倒完。失能消耗的付費回合也計入。換層保留迷彩並照常計入一次付費行動，不能藉換層重置或縮短。攻擊不解除。
+- 伏擊三條件任一成立只乘一次1.5；在有效近戰嘗試開始時判定（無效目標／離開範圍不算）。即使擲失手仍縮短未生效迷彩的冷卻1，另有正常回合倒數；迷彩生效中不縮短。光學迷彩不會讓 sight 變false。倍率先於防禦扣算，仍擲命中。
+
+## 保存與外部驗收入口（3.47.0）
+
+save v29，profile v4／backup v1。v1–28 只補 battleSpirit 空狀態，保留原角色／物資／RNG，不贈送新職業技能或裝備。既有 skillState 兩欄沿用，camouflage 允許 remaining>0 且 cooldown=0，拒絕負冷卻／生效同時倒冷卻；戰意層數0–5、lastKill合法。新綁定武器要求本職業恰好持有一把，其他職業不可攜帶；仍可改裝，不能拆／換出。完整備份與樓層保存驗證同步。
+
+`node qa/create-3.47-fixtures.mjs` 生成九份 `qa/fixtures/3.47/`：natural-berserker／natural-ninja、grapple-pull／grapple-dash／grapple-blocked、spirit-decay、camo-final-turn、ambush-dark、legacy-v28。全部以Game.restore驗證，可用現有匯入頁載入，僅 `?test=1`。自然配給場景才可作自然局試玩，其他為人工機制場景。
+
+本輪503項Node測試（21項新增）與build通過；未做瀏覽器／手機／自然平衡。完整程式入口、範圍與未完成介面見 `qa/results/2026-09-11-codex-3.47-melee-classes.md`。Claude 繼續按本規格做介面與模擬，不自行把光學迷彩當不可見。

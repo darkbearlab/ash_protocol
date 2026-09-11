@@ -10,6 +10,8 @@ export const CHARACTERS={
   soldier:{...defaults,skills:['early_warning'],prepared:{skill:'early_warning'},combat:{rangedAccuracy:8},name:'Soldier',label:'士兵',text:'天生射擊命中 +8，利用掩體穩定壓制同一目標。',traits:['biological','braced','correction'],weapons:[0,1]},
   bulwark:{...defaults,name:'Bulwark',label:'重裝兵',text:'厚重動力裝甲承受火力，以輕機槍壓制、動力拳破陣。普通敵人先行動；可下錨固定位置，在普通與緩速各攻擊一次。',traits:['biological','large','clumsy','slow','heavy_armor','difficult_healing'],weapons:[6,7],skills:['anchor'],prepared:{skill:'anchor'},hp:200,armor:6,plates:30},
   recon:{...defaults,combat:{rangedEvasion:10},carryBonus:{grenade:2},supplies:{grenades:0,smoke:2,emp:2},skills:['signal_break'],prepared:{grenade:'smoke',skill:'signal_break'},name:'Recon',label:'偵察兵',text:'天生射擊迴避 +10、投擲容量 +2，煙霧／EMP 各兩顆；夜視與紅外線支援側身作戰。',traits:['biological','sidestep','quick_reload','night_vision','infrared'],weapons:[2,1]},
+  berserker:{...defaults,name:'Berserker',label:'狂戰士',text:'近戰職業。',hp:160,armor:3,combat:{rangedAccuracy:-10},traits:['biological','bloodlust','battle_spirit','blade_stash'],weapons:[9,1],skills:['grapple'],prepared:{skill:'grapple'}},
+  ninja:{...defaults,name:'Ninja',label:'忍者',text:'近戰職業。',combat:{rangedEvasion:10},traits:['biological','sidestep','night_vision','ambush','duelist'],weapons:[10,2],skills:['camouflage'],prepared:{skill:'camouflage'},supplies:{grenades:0,smoke:2,stun:1}},
 };
 export const validCharacter=id=>typeof id==='string'&&Object.hasOwn(CHARACTERS,id);
 export const characterName=id=>{const c=CHARACTERS[id]||CHARACTERS.soldier;return `${c.name} · ${c.label}`;};

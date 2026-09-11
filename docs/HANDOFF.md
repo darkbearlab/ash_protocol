@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.46.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.47.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -27,7 +27,7 @@
 ## 啟動與測試
 
 1. `npm start`，開 http://localhost:5173。純 Node、原生 ES modules，沒有第三方套件。瀏覽器 QA 一律加 `?test=1`，存檔放在 `qa-` 開頭的鍵，不碰正式任務。
-2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.45.0 為 478 項。
+2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.47.0 為 503 項。
 3. `npm run build`：產生 `dist/`，相容 GitHub Pages 的 `/ash_protocol/` 子路徑，推上 main 後自動部署。
 4. 模擬腳本（人工場景，不代表自然平衡）：`qa/ally-scenes.mjs`、`qa/pet-waves.mjs`、`qa/drone-waves.mjs`、`qa/necro-waves.mjs`、`qa/grenade-control.mjs`。都可帶 src 目錄參數比較新舊版。`npm run balance -- 24` 是較舊的無畫面遊玩機器人。
 5. 場景存檔產生器：`qa/create-*.mjs`，產物在 `qa/fixtures/`（已忽略，不提交）。
@@ -77,7 +77,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v28**（`data.js` 的 `SAVE_VERSION`）。舊版 1～27 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v29**（`data.js` 的 `SAVE_VERSION`）。舊版 1～28 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v4**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -117,3 +117,5 @@
 觀察中的項目見願望清單「觀察中」，尚未驗證的項目見驗證紙條「尚未驗證總表」。從來沒有在真手機上驗證過；所有瀏覽器檢查都是 Chromium 模擬。
 
 3.46 平衡補充：重裝兵／死靈法師「難以治療」，既有局載入補唯一角色來源，save v28 不變。新增生命恢復入口請走 traits.js 的 healActor，計入升級加成後再減半；詳見 TRAITS.md。
+
+3.47：狂戰士與忍者的規則已完成，介面留Claude。新增 src/melee-classes.js 管理鉤鎖、戰意、嗜血、刃藏、伏擊與特殊迴避；skillState 支援效果結束後才倒冷卻。save v29補battleSpirit，舊資料保留。詳見 MELEE_CLASSES.md 與本輪報告。
