@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {skillActive,skillStatus,ANCHOR_SOURCE} from '../src/skills.js';
 import {grantTrait,activeTrait} from '../src/traits.js';
-import {applyDisruption} from '../src/throwables.js';
+import {applyDisruption,DISRUPT_TURNS} from '../src/throwables.js';
 import {makeBarrier} from '../src/barriers.js';
 import {addAlly} from '../src/allies.js';
 import {captureAction,planPresentation} from '../src/presentation.js';
@@ -75,8 +75,8 @@ test('disability skips both attacks but counts one lost round, and immunity decr
  g.action('fire');assert.equal(p.stats.shots,6);assert.equal(p.control.immune,1);assert.ok(skillActive(p,'anchor'));
 });
 test('mid-round disruption cancels the slow attack without clearing anchor, and a single self-stun grenade retains normal disability timing',()=>{
- const g=anchored(),p=g.player;foe(g);g.enemyAct=()=>applyDisruption(p,'biological');assert.ok(g.action('fire'));assert.equal(p.stats.shots,3);assert.equal(p.control.disabled,1);assert.ok(skillActive(p,'anchor'));
- const h=anchored();h.player.stun=2;h.action('prepare',{category:'grenade',id:'stun'});h.action('grenade',{x:11,y:10});assert.equal(h.player.stun,1);assert.equal(h.player.control.disabled,2);
+ const g=anchored(),p=g.player;foe(g);g.enemyAct=()=>applyDisruption(p,'biological');assert.ok(g.action('fire'));assert.equal(p.stats.shots,3);assert.equal(p.control.disabled,DISRUPT_TURNS-1);assert.ok(skillActive(p,'anchor'));
+ const h=anchored();h.player.stun=2;h.action('prepare',{category:'grenade',id:'stun'});h.action('grenade',{x:11,y:10});assert.equal(h.player.stun,1);assert.equal(h.player.control.disabled,DISRUPT_TURNS);
 });
 test('anchor does not duplicate allies, healing, reload, waits or free weapon swaps and cannot be disabled by unpreparing',()=>{
  const g=anchored(),p=g.player,e=foe(g),a=addAlly(g,'drone','drone',{sourceId:'drone_sentry',point:{x:11,y:10}});a.ammo=8;a.bornTurn=1;g.enemyAct=()=>{};g.rng=Object.assign(()=>0,{state:()=>0});g.action('fire');assert.equal(a.ammo,7);

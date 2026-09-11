@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy,ENEMY_TYPES} from '../src/engine.js';
 import {activeTrait,grantTrait} from '../src/traits.js';
-import {GRENADES,grenadeTotal,applyDisruption,areaCells} from '../src/throwables.js';
+import {GRENADES,grenadeTotal,applyDisruption,areaCells,DISRUPT_TURNS,BOSS_DISRUPT_TURNS} from '../src/throwables.js';
 import {captureAction,planPresentation} from '../src/presentation.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
@@ -31,35 +31,36 @@ test('plasma reactions follow mechanical keyword, even on a different species',(
 test('EMP hits machines only and stun hits biology only; neither damages HP, cover or barrels',()=>{
   for(const [id,type,other]of [['emp','drone','rifleman'],['stun','rifleman','drone']]){
     const g=arena(),a=enemy(g,type),b=enemy(g,other,14,11);g.props=[{type:'barrel',id:'barrel',x:15,y:10,hp:18}];equip(g,id);
-    assert.ok(toss(g));assert.equal(a.control.disabled,1);assert.equal(a.charge,false);assert.equal(b.control.disabled,0);assert.equal(a.hp,500);assert.equal(b.hp,500);assert.equal(g.props[0].hp,18);assert.equal(g.player[GRENADES[id].resource],0);assert.equal(g.player.stats.grenades,1);
+    assert.ok(toss(g));assert.equal(a.control.disabled,DISRUPT_TURNS-1);assert.equal(a.charge,false);assert.equal(b.control.disabled,0);assert.equal(a.hp,500);assert.equal(b.hp,500);assert.equal(g.props[0].hp,18);assert.equal(g.player[GRENADES[id].resource],0);assert.equal(g.player.stats.grenades,1);
     assert.equal(g.effects.some(f=>f.type==='blast'),false);
   }
 });
-test('two lost opportunities are preserved across every player and enemy speed combination',()=>{
+test('every lost opportunity is preserved across every player and enemy speed combination',()=>{
   for(const ps of [null,'fast','slow'])for(const es of [null,'fast','slow']){
     const g=arena(),e=enemy(g,'drone');if(ps)grantTrait(g.player,ps,'test');if(es)grantTrait(e,es,'test');
-    let acts=0;g.enemyAct=()=>acts++;equip(g,'emp');toss(g);g.action('wait');g.action('wait');g.action('wait');
+    let acts=0;g.enemyAct=()=>acts++;equip(g,'emp');toss(g);for(let i=0;i<=DISRUPT_TURNS;i++)g.action('wait');
     assert.equal(acts,2,`${ps}/${es}`);assert.equal(e.control.disabled,0);
   }
 });
 test('recovery immunity prevents refreshing, including alternating EMP and stun on a cyborg',()=>{
   const g=arena(),e=enemy(g,'drone');grantTrait(e,'biological','test');assert.ok(applyDisruption(e,'mechanical'));
-  assert.equal(applyDisruption(e,'biological'),false);g.action('wait');g.action('wait');assert.deepEqual(e.control,{disabled:0,immune:2});
+  assert.equal(applyDisruption(e,'biological'),false);for(let i=0;i<DISRUPT_TURNS;i++)g.action('wait');assert.deepEqual(e.control,{disabled:0,immune:2});
   for(const remaining of [1,0]){assert.equal(applyDisruption(e,'biological'),false);g.action('wait');assert.equal(e.control.immune,remaining);}
   assert.ok(applyDisruption(e,'biological'));
 });
-test('bosses lose one opportunity and previously marked bombardments are not cancelled',()=>{
-  for(const type of ['warden','boss']){const g=arena(),e=enemy(g,type);g.marks=[{x:10,y:10,due:2}];equip(g,'emp');toss(g);assert.deepEqual(e.control,{disabled:0,immune:2});assert.equal(e.charge,false);assert.ok(g.player.hp<500);assert.ok(g.effects.some(f=>f.type==='blast'));}
+test('bosses lose fewer opportunities and previously marked bombardments are not cancelled',()=>{
+  for(const type of ['warden','boss']){const g=arena(),e=enemy(g,type);g.marks=[{x:10,y:10,due:2}];equip(g,'emp');toss(g);assert.deepEqual(e.control,{disabled:BOSS_DISRUPT_TURNS-1,immune:0});assert.equal(e.charge,false);assert.ok(g.player.hp<500);assert.ok(g.effects.some(f=>f.type==='blast'));
+   for(let i=1;i<BOSS_DISRUPT_TURNS;i++)g.action('wait');assert.deepEqual(e.control,{disabled:0,immune:2});}
 });
 test('self-stun requires paid waits, cancels defensive bonuses, and cannot softlock a Recon',()=>{
-  const g=arena('recon');g.player.ammo[2]=1;equip(g,'stun');assert.ok(toss(g,10,10));assert.equal(g.player.control.disabled,2);assert.equal(g.player.hp,500);
+  const g=arena('recon');g.player.ammo[2]=1;equip(g,'stun');assert.ok(toss(g,10,10));assert.equal(g.player.control.disabled,DISRUPT_TURNS);assert.equal(g.player.hp,500);
   const before=g.turn;assert.equal(g.action('reload'),false);assert.ok(g.action('prepare',{category:'grenade',id:'smoke'}));assert.equal(g.turn,before);
-  for(const remaining of [1,0]){assert.ok(g.action('wait'));assert.equal(g.player.control.disabled,remaining);assert.equal(g.player.guard,false);}
-  assert.ok(g.action('reload'));assert.equal(g.turn,before+2);assert.ok(g.player.ammo[2]>1);
+  for(let remaining=DISRUPT_TURNS-1;remaining>=0;remaining--){assert.ok(g.action('wait'));assert.equal(g.player.control.disabled,remaining);assert.equal(g.player.guard,false);}
+  assert.ok(g.action('reload'));assert.equal(g.turn,before+DISRUPT_TURNS);assert.ok(g.player.ammo[2]>1);
 });
 test('disruption prevents execution, but smoke before the player phase still spends committed ammunition',()=>{
   const g=arena(),e=enemy(g);grantTrait(e,'fast','test');const mag=g.player.ammo[0];g.enemyAct=()=>applyDisruption(g.player,'biological');
-  assert.ok(g.action('fire'));assert.equal(g.player.ammo[0],mag);assert.equal(g.turn,2);assert.equal(g.player.control.disabled,1);
+  assert.ok(g.action('fire'));assert.equal(g.player.ammo[0],mag);assert.equal(g.turn,2);assert.equal(g.player.control.disabled,DISRUPT_TURNS-1);
   const fog=arena(),hider=enemy(fog);grantTrait(hider,'fast','test');fog.enemyAct=()=>{fog.smoke=[{cells:areaCells(fog.grid,{x:12,y:10}),expires:fog.turn+2}];};
   const ammo=fog.player.ammo[0];assert.ok(fog.action('fire'));assert.equal(fog.player.ammo[0],ammo-1);assert.equal(hider.hp,500);assert.ok(fog.effects.some(f=>f.type==='shot'&&f.miss));
 });

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy,generate} from '../src/engine.js';
 import {fullLighting,createLighting,isDark} from '../src/lighting.js';
 import {grantTrait,activeTrait} from '../src/traits.js';
-import {applyDisruption,skipDisabled,areaCells} from '../src/throwables.js';
+import {applyDisruption,skipDisabled,areaCells,DISRUPT_TURNS,BOSS_DISRUPT_TURNS} from '../src/throwables.js';
 import {makeBarrier} from '../src/barriers.js';
 import {targetDetails} from '../src/target-card.js';
 import {snapshot,captureAction,planPresentation} from '../src/presentation.js';
@@ -84,14 +84,14 @@ test('stun affects either sense on any body once, with shared EMP immunity and b
   for(const body of [null,'biological','mechanical'])for(const ids of [[],['night_vision'],['infrared'],['night_vision','infrared']]){
     const g=arena(),e=enemy(g);e.traits=[];if(body)grantTrait(e,body,'qa');for(const id of ids)grantTrait(e,id,'qa');
     const affected=body==='biological'||ids.length>0;
-    assert.equal(applyDisruption(e,'biological'),affected);assert.equal(e.control.disabled,affected?2:0);assert.equal(e.hp,500);
-    if(affected){assert.equal(applyDisruption(e,'biological'),false);skipDisabled(e);skipDisabled(e);assert.equal(e.control.immune,2);assert.equal(applyDisruption(e,'mechanical'),false);}
+    assert.equal(applyDisruption(e,'biological'),affected);assert.equal(e.control.disabled,affected?DISRUPT_TURNS:0);assert.equal(e.hp,500);
+    if(affected){assert.equal(applyDisruption(e,'biological'),false);for(let i=0;i<DISRUPT_TURNS;i++)skipDisabled(e);assert.equal(e.control.immune,2);assert.equal(applyDisruption(e,'mechanical'),false);}
   }
-  const w=makeEnemy('warden',1,1,'w');assert.ok(applyDisruption(w,'biological'));assert.equal(w.control.disabled,1);
+  const w=makeEnemy('warden',1,1,'w');assert.ok(applyDisruption(w,'biological'));assert.equal(w.control.disabled,BOSS_DISRUPT_TURNS);
 });
 test('actual stun grenade reaches infrared machines and self, but not ordinary machines',()=>{
   const g=arena('recon'),sensed=enemy(g,'warden',12,10),plain=enemy(g,'drone',12,11);g.player.stun=1;g.player.prepared.grenade='stun';g.reveal();
-  assert.ok(g.action('grenade',{x:11,y:10}));assert.equal(g.player.control.disabled,2);assert.equal(sensed.control.immune,2);assert.equal(plain.control.disabled,0);
+  assert.ok(g.action('grenade',{x:11,y:10}));assert.equal(g.player.control.disabled,DISRUPT_TURNS);assert.equal(sensed.control.disabled,BOSS_DISRUPT_TURNS-1);assert.equal(plain.control.disabled,0);
 });
 test('aim card labels darkness or night vision, props use darkness, melee ignores it',()=>{
   const g=arena(),e=enemy(g);g.lighting[e.y][e.x]=0;g.reveal();assert.match(targetDetails(g).state,/暗區 −40/);

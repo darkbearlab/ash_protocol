@@ -1,4 +1,10 @@
-# 快速接手：ASH PROTOCOL 3.41.0
+# 快速接手：ASH PROTOCOL 3.42.0
+
+## 3.42.0：震撼彈／EMP 失能延長（Claude 開發，使用者要求）
+
+- 規格：[THROWABLES.md](THROWABLES.md)「3.42」；報告：[qa/results/2026-09-11-claude-3.42.0-grenade-control.md](../qa/results/2026-09-11-claude-3.42.0-grenade-control.md)。
+- `src/throwables.js`：新常數 `DISRUPT_TURNS`=4、`BOSS_DISRUPT_TURNS`=2、`DISRUPT_IMMUNITY`=2；`applyDisruption`／`skipDisabled`／`validControl` 改用常數，驗證上限失能 4、免疫 2。道具說明更新；`src/controller.js` 說明頁同步。下方 3.15 段落的「兩次／一次」為歷史值。
+- 測試改引用常數，之後調數值只要改常數。模擬：`qa/grenade-control.mjs`（直接開火／破片／震撼或 EMP 三種開場）。
 
 ## 3.41.0：追隨僚機貼身、部署落點自選（Claude 開發，使用者決定）
 
