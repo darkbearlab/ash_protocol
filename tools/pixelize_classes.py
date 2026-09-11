@@ -11,7 +11,14 @@ import hashlib, json
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'assets/pixel/classes-v1'
 SOURCE = ROOT / 'art/classes-v1/source-atlas.png'
-MELEE_SOURCE = ROOT / 'art/classes-v1/source-melee-standing-v2.png'
+MELEE_SOURCE = ROOT / 'art/classes-v1/source-melee-standing-v2.png'  # 3.48.1 standing pair, kept for history
+# 3.48.3 (user pick): berserker B1 from a two-figure sheet, a single-figure high-tech ninja N2-1, and matching fallen poses.
+# Split columns are the hand-checked centres of the empty gap between the two figures.
+MELEE_V3 = {'berserker': (ROOT / 'art/classes-v1/source-berserker-v3.png', 'left', 732),
+            'ninja': (ROOT / 'art/classes-v1/source-ninja-v3.png', 'whole', None),
+            'dead-berserker': (ROOT / 'art/classes-v1/source-melee-dead-v3.png', 'left', 784),
+            'dead-ninja': (ROOT / 'art/classes-v1/source-melee-dead-v3.png', 'right', 784)}
+DEAD_V3_GAIN = 1.2  # the fallen sheet renders darker than the v1 atlas; lift it to the same grey range
 NAMES = ['soldier', 'recon', 'engineer', 'druid', 'necromancer', 'bulwark', 'berserker', 'ninja']
 GRAY = [16, 33, 58, 82, 115, 148, 181, 214, 239]
 # Hand-reviewed cell borders: generated feet cross the nominal quarter rows.
@@ -48,7 +55,7 @@ def indexed(cell, size=None, gain=1):
 
 def build():
     OUT.mkdir(parents=True,exist_ok=True); source=Image.open(SOURCE)
-    atlas=Image.new('RGBA',(128,128)); meta={'tileSize':32,'columns':4,'palette':GRAY,'source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'melee_source_sha256':hashlib.sha256(MELEE_SOURCE.read_bytes()).hexdigest(),'sprites':{}}
+    atlas=Image.new('RGBA',(128,128)); meta={'tileSize':32,'columns':4,'palette':GRAY,'source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'melee_v3_sha256':{key:hashlib.sha256(path.read_bytes()).hexdigest() for key,(path,_,_) in MELEE_V3.items()},'sprites':{}}
     for i in range(16):
         row,col=divmod(i,4); name=NAMES[i%8]; dead=i>=8; key=('dead-' if dead else '')+name
         if name=='soldier':
@@ -56,14 +63,14 @@ def build():
             sprite=indexed(Image.open(original).convert('RGBA'),gain=1.6)
         else:
             cell=clear_matte(source.crop((COLS[row][col],ROWS[row],COLS[row][col+1],ROWS[row+1])))
-            if not dead and name in ['berserker','ninja']:
-                replacement=Image.open(MELEE_SOURCE).convert('RGBA')
-                # Hand-reviewed gap between figures; the axe crosses the nominal middle.
-                split=round(replacement.width*.56)
-                cell=replacement.crop((0 if name=='berserker' else split,0,split if name=='berserker' else replacement.width,replacement.height))
+            gain=1
+            if key in MELEE_V3:
+                path,side,split=MELEE_V3[key]; sheet=Image.open(path).convert('RGBA')
+                cell=sheet if side=='whole' else sheet.crop((0,0,split,sheet.height)) if side=='left' else sheet.crop((split,0,sheet.width,sheet.height))
+                gain=DEAD_V3_GAIN if dead else 1
             # Keep large bodies large, rather than normalizing every silhouette to equal width.
             limit=(30,28) if name=='bulwark' else (29,27) if name=='berserker' else (27,26)
-            sprite=indexed(cell,limit)
+            sprite=indexed(cell,limit,gain)
         file=OUT/f'{key}.png'; sprite.save(file,transparency=0,bits=4,optimize=True)
         atlas.alpha_composite(sprite.convert('RGBA'),(col*32,row*32))
         meta['sprites'][key]={'x':col*32,'y':row*32,'w':32,'h':32,'sha256':hashlib.sha256(file.read_bytes()).hexdigest()}

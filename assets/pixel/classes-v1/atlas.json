@@ -13,7 +13,12 @@
     239
   ],
   "source_sha256": "33df14f276fbfb470cb2d4d8e9ab31c8200253f02a20f437d2a000442bd4f47b",
-  "melee_source_sha256": "f3e62240518bddb59d34128eb11a8e481baa6f4bdc12e6a6275ccf5f499ed963",
+  "melee_v3_sha256": {
+    "berserker": "1254faa6244a4de46296a765400f6c817b732438d8539bf5a3a039069704ce63",
+    "ninja": "4bd657105b585e9c5a914af5e528d350cc02e706cbd6edfdaa19643c93f63be8",
+    "dead-berserker": "04f24d2fb98ca5bce6a00d314d1a0de80ca0ad9d4cff2d9fc5eb5c9e0ef37d6f",
+    "dead-ninja": "04f24d2fb98ca5bce6a00d314d1a0de80ca0ad9d4cff2d9fc5eb5c9e0ef37d6f"
+  },
   "sprites": {
     "soldier": {
       "x": 0,
@@ -62,14 +67,14 @@
       "y": 32,
       "w": 32,
       "h": 32,
-      "sha256": "af77b046b2d9c17fbf941006e269da2ab13a810e6debb58ac33dfe3fd99d2567"
+      "sha256": "a12cf5e72ae5f1dd9c3c822288ab832cdff8d3ac2d78a5452dd9cf3579d4fca0"
     },
     "ninja": {
       "x": 96,
       "y": 32,
       "w": 32,
       "h": 32,
-      "sha256": "2bbf42230465bc47e5616f827b2f9853b807d0a1d9c2b2ef1bef5fc22fdbbec3"
+      "sha256": "5c541f1770b0031baf16c6fba4cb2f75583bb7927c61f8067d4c006b70800ad8"
     },
     "dead-soldier": {
       "x": 0,
@@ -118,14 +123,14 @@
       "y": 96,
       "w": 32,
       "h": 32,
-      "sha256": "20ad75d30273b7067e8c2d3cfd5ff513f82141a6e54f61cbb0dd770cdeaeae2b"
+      "sha256": "9e16e2cf445b5291f1f15a95aa3184df5962acfe21106e5795d3797d8ee5199c"
     },
     "dead-ninja": {
       "x": 96,
       "y": 96,
       "w": 32,
       "h": 32,
-      "sha256": "ec89cc7bcfdb970b0296f59cffe93182cfba1a902fdcc89252460d4aa109ff20"
+      "sha256": "1fcbfbdbc2b5441f930d25d18c814dcda8a30235d85de4b7120edda10220fa82"
     }
   }
 }

@@ -16,3 +16,12 @@ renderer 的 `classSprite` 依 presentation 中的 player.character 選圖；迷
 ## 3.48.1 站姿修訂
 
 狂戰士與忍者站姿改讀 source-melee-standing-v2.png（真 alpha，無需去背景），提示見 PROMPT-melee-standing-v2.md。雙手握柄，斧刃與刀尖朝斜上方；以寬度 56% 的空隙分格。仍用原灰階／縮放管線，其他十四張 PNG 位元組不變。
+
+## 3.48.3 狂戰士／忍者 v3（Claude，使用者選圖）
+
+- 狂戰士站姿：`source-berserker-v3.png` 左半，分割欄 732。斧頭扛在右肩，左手握拳。
+- 忍者站姿：`source-ninja-v3.png` 整張。高科技密封頭盔、合身裝甲，沒有領巾，刀收在左腰、右手搭在刀柄上。
+- 兩人倒地：`source-melee-dead-v3.png`，分割欄 784。原圖較暗，縮圖時亮度 ×1.2，對齊 v1 倒地圖的灰階範圍。
+- 三張都是真透明，不需要去背。其他十二張 PNG 位元組不變；v2 來源保留作紀錄，不再使用。
+- 提示詞與工具設定見 [PROMPT-melee-v3.md](PROMPT-melee-v3.md)，沒選的候選見 [candidates/](candidates/README.md)。
+

@@ -54,3 +54,5 @@ python tools/pixelize.py --source art/source-aftermath.png --aftermath --remove-
 玩家改用獨立 `classes-v1/atlas.png`，各職業站姿與倒地各一張；士兵保留舊輪廓轉灰。32×32、九階中性灰＋透明，適合日後疊色。來源、提示、預覽與重建說明見 [classes-v1 README](../art/classes-v1/README.md)，管線為 `tools/pixelize_classes.py`，座標入口為 `src/class-art.js`。不改敵人、友軍、戰鬥與存檔。
 
 3.48.2 起玩家可在新任務的行動員畫面選塗裝顏色（`src/operator-color.js`）。renderer 把灰階依明暗對應到「陰影 → 顏色 → 高光」後快取成小畫布，站姿與倒地共用；選「原色」就畫原本的灰圖。所以重畫這組圖時要維持中性灰與透明背景，灰階範圍大致落在 16～181，顏色對應才會正確。
+
+3.48.3：狂戰士與忍者的站姿、倒地換成使用者選的新造型（本機 _gptImageCaller 產圖，同一套縮圖流程），提示詞見 `art/classes-v1/PROMPT-melee-v3.md`，備用候選在 `art/classes-v1/candidates/`。
