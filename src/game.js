@@ -1,3 +1,4 @@
+import {healActor} from './traits.js';
 import {ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks} from './perks.js';
 import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickPackedPet,tickSummons,petSkillReason,fitDrone,DRONE_HP,DRONE_BUILD_COST,droneCells,dronePlaces} from './allies.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
@@ -315,8 +316,8 @@ export class Game {
       case 'heal':
         if(p.meds<=0)return this.fail('醫療包已用盡。');
         if(p.hp===p.maxHp&&p.poison===0)return this.fail('生命值已滿。');
-        p.meds--;p.hp=Math.min(p.maxHp,p.hp+45+p.healBonus);p.poison=0;
-        this.log(`使用醫療包，回復 ${45+p.healBonus} 生命並清除中毒。`);success=true;break;
+        p.meds--;const recovered=healActor(p,45+p.healBonus);p.poison=0;
+        this.log(`使用醫療包，回復 ${recovered} 生命並清除中毒。`);success=true;break;
       case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
       case 'weapon': {
         const index=arg===undefined?p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length]:Number(arg);
@@ -643,7 +644,7 @@ export class Game {
     if(p.scrap<cost)return this.fail(`終端需要 ${cost} 廢料。`);
     if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return this.fail('生命值已滿。');
     p.scrap-=cost;terminal.used=true;
-    if(option==='heal'){p.hp=Math.min(p.maxHp,p.hp+60);p.poison=0;}
+    if(option==='heal'){healActor(p,60);p.poison=0;}
     if(option==='ammo')this.supplyPack({rifle:24,pistol:24,shell:6,energy:12,ordnance:3});
     if(TERMINAL_AMMO[option])this.receiveAmmo(option,TERMINAL_AMMO[option].amount);
     if(grenadeByItem(option)){const id=grenadeByItem(option);this.receiveGrenade(id,GRENADES[id].amount);}
@@ -667,8 +668,8 @@ export class Game {
       this.log(`返回${FLOORS[this.floor-1]}：物資與戰場保持原狀，沒有換層補給。`);return true;
     }
     if(missionDefinition(this).returnTrip)this.floorStates[this.floor]=archiveFloor(this);
-    this.floor++;if(advanceTurn)this.turn++;p.hp=Math.min(p.maxHp,p.hp+25);
-    this.loadFloor();arriveAllies(this,companions);this.reveal();this.supplyPack({rifle:20,pistol:24,shell:6,energy:10,ordnance:2});this.log(`進入${FLOORS[this.floor-1]}。生命 +25，補充各類備彈。`);return true;
+    this.floor++;if(advanceTurn)this.turn++;const recovered=healActor(p,25);
+    this.loadFloor();arriveAllies(this,companions);this.reveal();this.supplyPack({rifle:20,pistol:24,shell:6,energy:10,ordnance:2});this.log(`進入${FLOORS[this.floor-1]}。生命 +${recovered}，補充各類備彈。`);return true;
   }
   choosePerk(id) {
     if(this.status!=='playing'||!this.pendingPerks)return false;
@@ -739,6 +740,8 @@ export class Game {
         p.prepared={...p.prepared,skill:p.prepared.skill||'anchor'};
         p.skillState={...p.skillState,anchor:{remaining:0,cooldown:0}};
       }
+      // Balance-only passive: existing trait schema, preserve HP/resources and avoid duplicate sources.
+      if(['bulwark','necromancer'].includes(p.character)&&!p.traits.some(t=>t.id==='difficult_healing'&&t.source===`character:${p.character}`))grantTrait(p,'difficult_healing',`character:${p.character}`);
       if(!validAnchor(p))return null;
       if(!validSkillState(p)||![version>=22?data.player:p,...data.enemies].every(a=>typeof a.vaultExposed==='boolean'))return null;
       if(!Array.isArray(data.sensorContacts)||data.sensorContacts.length>256||data.sensorContacts.some(q=>!point(q))||(!skillActive(p,'early_warning')&&data.sensorContacts.length))return null;

@@ -1,3 +1,4 @@
+import {healActor} from './traits.js';
 import {PERKS} from './data.js';
 import {random} from './world.js';
 export const REPEAT_CHANCE=.6;
@@ -22,7 +23,7 @@ export function applyPerk(g,o){
  const p=g.player;
  switch(o.effect){
  case 'weapon':p.perkWeaponBonus+=o.amount;break;
- case 'health':p.maxHp+=o.amount;p.hp=Math.min(p.maxHp,p.hp+o.heal);break;
+ case 'health':p.maxHp+=o.amount;healActor(p,o.heal);break;
  case 'stat':p[o.stat]+=o.amount;break;
  case 'supply':p.meds+=2;g.supplyPack({grenade:2,rifle:24,pistol:24,shell:6});break;
  case 'scavenger':p.scavenger+=o.amount;p.scrap+=15;break;

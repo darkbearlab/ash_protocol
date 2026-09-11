@@ -1,6 +1,7 @@
 import {ENEMY_TYPES} from './data.js';
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const TRAITS={
+ difficult_healing:{name:'難以治療',text:'生命恢復在計入升級加成後減半，向下取整；不影響生命上限與護甲板。'},
   night_vision:{name:'夜視',text:'忽略目標暗區的射擊命中懲罰；會受震撼彈失能，不穿煙。'},
   infrared:{name:'紅外線',text:'看穿煙霧，仍受牆與門阻擋；會受震撼彈失能，不抵銷暗區懲罰。'},
   biological:{name:'生物',text:'會受到震撼彈的失能效果；可與機械同時存在。'},
@@ -64,3 +65,6 @@ export function validCombatMemory(actor,turn){
 }
 
 export const reduceDirectDamage=(actor,damage)=>activeTrait(actor,'heavy_armor')?Math.max(1,Math.ceil(damage*.75)):damage;
+
+export const healingAmount=(actor,amount)=>activeTrait(actor,'difficult_healing')?Math.floor(amount/2):amount;
+export function healActor(actor,amount){const before=actor.hp;actor.hp=Math.min(actor.maxHp,actor.hp+healingAmount(actor,amount));return actor.hp-before;}

@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.45.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.46.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -115,3 +115,5 @@
 ## 已知限制
 
 觀察中的項目見願望清單「觀察中」，尚未驗證的項目見驗證紙條「尚未驗證總表」。從來沒有在真手機上驗證過；所有瀏覽器檢查都是 Chromium 模擬。
+
+3.46 平衡補充：重裝兵／死靈法師「難以治療」，既有局載入補唯一角色來源，save v28 不變。新增生命恢復入口請走 traits.js 的 healActor，計入升級加成後再減半；詳見 TRAITS.md。
