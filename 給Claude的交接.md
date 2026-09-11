@@ -14,20 +14,20 @@
 
 讀取順序：
 
-1. 根目錄 [AGENTS.md](AGENTS.md) 與 [docs/HANDOFF.md](docs/HANDOFF.md) 最上方的新版本摘要。
+1. 根目錄 [AGENTS.md](AGENTS.md) 與 [docs/HANDOFF.md](docs/HANDOFF.md)（3.44.1 起改為現況手冊：分工、模組地圖、存檔與版本、發版；逐版經過看 CHANGELOG）。
 2. [使用者願望清單.txt](使用者願望清單.txt)：目前排序、已完成、延後、待定。歷史提案不等於本輪授權。
-3. 本次功能對應規格（下表）；[docs/DESIGN.md](docs/DESIGN.md)、[docs/CHANGELOG.md](docs/CHANGELOG.md) 可追溯取捨。較新規格取代舊版內容，不能復原已取消的設計。
-4. [給驗證者的紙條.md](給驗證者的紙條.md) 及最新 `qa/results/` 報告。先看版本與受測 SHA，再看通過／未測項。
+3. 本次功能對應規格（下表）；[docs/DESIGN.md](docs/DESIGN.md) 是規格索引，[docs/CHANGELOG.md](docs/CHANGELOG.md) 可追溯取捨，舊的逐版段落原文在 `docs/archive/`。較新規格取代舊版內容，不能復原已取消的設計。
+4. [給驗證者的紙條.md](給驗證者的紙條.md)（最新一批＋尚未驗證總表）及最新 `qa/results/` 報告。先看版本與受測 SHA，再看通過／未測項。
 
 ## 接手基準與檔案位置
 
 - 主專案：`C:\codex_projects\shooter_roguelike`。
-- 本次文件基準遊戲：**3.35.8**，main 提交 `d3c4ac4`；往後以最新 HANDOFF 與 origin/main 為準。這份交接文件會是後續文件提交，遊戲版本不變。
-- 保存：save **v25**、profile **v4**、完整 backup **v1**。最近完整回歸記錄為 432 項 Node 測試、build 通過；這是 Codex 的引擎／建置結果，不是手機或平衡驗收。
+- 本文件最初以遊戲 **3.35.8**（main `d3c4ac4`）為基準；2026-09-11 更新到 **3.44.1**。往後以 HANDOFF 與 origin/main 為準。
+- 保存：save **v27**、profile **v4**、完整 backup **v1**（版本清單已改為由常數推算，見 HANDOFF「存檔與版本」）。3.44.1 回歸為 466 項 Node 測試、build 通過；這是引擎／建置結果，不是手機或平衡驗收。
 - 正式倉庫：https://github.com/darkbearlab/ash_protocol 。遊玩：https://darkbearlab.github.io/ash_protocol/ 。QA 一律 `?test=1`。
 - Claude 既有隔離工作樹：`C:\codex_projects\shooter_roguelike\.claude\worktrees\codex-project-handoff-c04775`。以 `git worktree list` 確認實際路徑與分支，不假定該樹已追上 main。
 - 外部回報優先找 `.claude/worktrees/*/qa/results/`，交接也找 `.claude/worktrees/*/docs/HANDOFF.md`；不要找不到主樹報告就宣稱缺件。另一人的工作樹只讀，合併透過 Git，不直接改對方檔案。
-- 最新已讀外部報告是 `qa/results/2026-09-10-claude-3.30-allies.md`：402 原測＋30 獨立引擎測試通過、無規則缺陷；耗回合瀏覽器播放、完整自然局等尚未驗。後續 3.31-repair 報告已讀（411＋23 項及部分瀏覽器驗證通過，殘骸實機操作等未測），main 亦有 3.35-anchor-doors 報告（432＋20 項通過，部分播放因工具限制未驗）。請按版本找最新報告，不把規則測試當自然平衡驗收。
+- 報告都在 `qa/results/`，檔名含日期與版本；3.36～3.44 是 Claude 自己的開發報告，每份末尾有發布紀錄。尚未驗證的項目彙整在驗證紙條的總表。請按版本找最新報告，不把規則測試當自然平衡驗收。
 - 根目錄 `給Codex的紙條.md` 是 3.1.1 時期的舊收尾紀錄，不是最新發布狀態。外部未追蹤頭像 `art/portraits-custom/`、`assets/pixel/portraits/custom/` 與私人紙條原樣保留，不順手 git add、刪除或接入。頭像接入先前被延後，待使用者重新排程。
 
 ## 可以自主處理的範圍
@@ -67,13 +67,13 @@
 | 角色配給、命中迴避修正 | `src/characters.js` 的 CHARACTERS、BASE_SUPPLIES；`src/actor-stats.js` | `docs/CHARACTERS.md`、`tests/characters.test.mjs` |
 | 武器／敵人／掉落 | `src/data.js` 的 WEAPONS、ENEMY_TYPES、ENEMY_LOOT；`src/weapons.js` 的詞條；部分常數在 `src/game.js` | `docs/WEAPONS.md`、`docs/BULWARK.md`、`tests/weapons.test.mjs` |
 | 彈藥容量與商店價格 | `src/ammunition.js` 的 AMMUNITION、CARRY_COSTS、TERMINAL_AMMO | `docs/AMMUNITION.md`；五種備彈分開，投擲物共用上限 |
-| 無人機平衡／修復 | `src/allies.js` 的 DRONE_REPAIR_COST、DRONE_REPAIR_FRACTION、allyWeapon、addAlly；行動邏輯勿混改 | `docs/ALLIES.md`、`tests/allies.test.mjs`、`qa/create-3.31-fixtures.mjs` |
+| 友軍平衡 | `src/allies.js` 的 DRONE_*、PET_*、SUMMON_*、TETHER、FOLLOW_RANGE、allyWeapon、addAlly；3.39 起機體損毀改為花廢料生產新機（不再回收殘骸） | `docs/ALLIES.md`、`docs/ALLY_ITERATION_SCOPE.md`、`tests/allies.test.mjs`、`qa/*-waves.mjs`、`qa/ally-scenes.mjs` |
 | 技能／投擲物強度 | `src/skills.js` 的 SKILLS、`src/throwables.js`、`src/lighting.js` | `docs/SKILLS.md`、`docs/THROWABLES.md`、`docs/LIGHTING.md` |
 | 協定點數／永久升級 | `src/progression.js` 的 PROTOCOL_REWARDS、normalizeProfile、creditProtocol；`src/storage.js` 的 purchaseCarrying、recordResult；`src/ammunition.js` | `docs/PROGRESSION.md`、`docs/PROFILE_BACKUP.md`、`tests/progression-storage.test.mjs`、`tests/backup.test.mjs`、`tests/ammunition.test.mjs` |
 | 菜單、按鈕、HUD | `src/controller.js`、`index.html`、`style.css`、`expansion.css`、`src/layout.js`、`src/target-card.js` | `docs/PREPARED.md`、最新驗證紙條；保留 modalAction→act→Game.action 管線 |
 | 畫面／動畫／素材 | `src/renderer.js`、`src/presentation.js`、`src/themes.js`、`src/materials.js`、`src/walls.js`、`src/portraits.js` | `docs/PIXEL_ART.md`、`docs/TERRAIN.md`、`docs/MATERIALS.md`、`docs/WALLS.md`、`docs/PORTRAITS.md` |
 | 規則定位只讀參考 | `src/game.js`、`src/combat.js`、`src/cover.js`、`src/traits.js`、`src/world.js`、`src/barriers.js`、`src/retreat.js`、`src/missions.js` | 對應 COVER_RULES／TRAITS／BARRIERS／RETREAT／MISSIONS 規格 |
-| 發布 | `package.json`、`src/controller.js` 的 BUILD、`sw.js` 的 CACHE／FILES、`tools/build.mjs`、`.github/workflows/pages.yml` | `docs/RELEASE.md` |
+| 發布 | `npm run bump -- x.y.z`（改 `package.json`、`src/version.js`、`sw.js` 的 CACHE）；`sw.js` 的 FILES、`tools/build.mjs`、`.github/workflows/pages.yml` | `docs/RELEASE.md`、`tests/release.test.mjs` |
 
 先用 `rg` 找定義及呼叫端，避免只改說明未改實際值，或 UI 與引擎各抄一份價格。可以做小範圍、保持行為不變的數值抽常數；不要為了改價先重構整個引擎。
 
@@ -93,7 +93,7 @@
 2. 開發分支做範圍內變更。對碰到的程式行為／經濟守恆跑相關測試；數值預期可依新設計更新，不能把不相容失敗都當過時測試刪除。常數修改可能有多個測試與說明引用，要一起更新。
 3. 遊戲變更發布前 `npm test`、`npm run build` 通過。只改本類交接文件不重跑本機遊戲測試，依 `docs/RELEASE.md`；main 的 CI 仍自動測試建置。不要反覆跑無關自然局代理消耗額度。
 4. UI 可由 Claude 驗證，真人手機／自然平衡交使用者；若工具影格迴圈凍結，報告未測，不改正式規則來適應工具。需新依賴或 schema 才增加相應測試；不要給純文案寫鏡像測試。
-5. 更新 HANDOFF 最新段、CHANGELOG、相關規格／DESIGN、願望清單與驗證紙條；不要只把歷史往上堆卻留下「未做」的舊代辦。遊戲更新同步顯示版號及快取；純文件交接不升遊戲版號。
+5. 更新 CHANGELOG、相關規格、報告、願望清單與驗證紙條最新段；HANDOFF 只在架構或流程改變時更新（3.44.1 起）。不要只把歷史往上堆卻留下「未做」的舊代辦。遊戲更新用 `npm run bump` 同步版號及快取；純文件交接不升遊戲版號。
 6. 查看 diff，只 stage 本批確定的檔案，避免 `git add .` 收進別人的頭像、QA 腳本與私人紙條。`qa/fixtures/`、`qa/browser/`、`qa/node/` 已忽略；必要可重現的產品回歸測試放 `tests/`、生成器放 `qa/create-*.mjs`，可以隨開發提交。
 7. 將完成變更正常合併 main 並 `git push origin main`。已獲持續發布授權，不必為正常提交再請示。另一人工作樹不直接寫；若 main 被另一活動工作樹持有，可用 GitHub PR 正常合併或獨立整合工作樹／分支基於最新 origin/main 產出可快轉提交後 `git push origin HEAD:main`，不 force push。遠端已前進就 fetch、合併解衝突並重驗受影響項，不覆蓋。
 8. `python tools/github-release.py status` 用既有 Git Credential Manager 查固定倉庫；或看 Actions。確認**本次 main SHA**對應 run 為 completed／success，不只看首頁 HTTP 200／舊綠燈。已有 Pages 設定不用重設；憑證不輸出或寫入文件。無憑證／權限時交付已完成提交與阻礙，不宣稱推送成功。

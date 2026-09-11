@@ -1,4 +1,8 @@
-# ASH PROTOCOL / 灰燼協定 3.31.0
+# ASH PROTOCOL / 灰燼協定
+
+直向手機瀏覽器的回合制戰術射擊 roguelike。目前版本見 `src/version.js`（3.44.1），遊玩：https://darkbearlab.github.io/ash_protocol/ 。
+
+文件導覽：現況手冊 [docs/HANDOFF.md](docs/HANDOFF.md)、規格索引 [docs/DESIGN.md](docs/DESIGN.md)、每版變更 [docs/CHANGELOG.md](docs/CHANGELOG.md)、驗收紙條 [給驗證者的紙條.md](給驗證者的紙條.md)。3.36 之後的版本摘要只記在 CHANGELOG；下方各版段落是 3.35 以前的歷史說明。
 
 3.35.1：重裝兵新增「下錨」，啟動／解除各 1 回合。固定位置時自己的武器射擊與動力拳於普通／緩速各攻擊一次，各付彈藥；投擲物與友軍不加倍。保留 Claude 3.34.1 選單，升級頁仍維持佔位。舊局可繼續，詳見 [技能規格](docs/SKILLS.md)。
 

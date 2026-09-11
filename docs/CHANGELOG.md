@@ -6,6 +6,12 @@
 - `npm run bump -- x.y.z` 一次改 `package.json`、`src/version.js`、`sw.js` 快取名稱；本版就是用它從 3.44.0 改成 3.44.1。
 - 新測試 `tests/release.test.mjs`：三處版本不一致、或 BUILD 字樣又寫死數字時失敗。共 466 項通過；build 通過。遊戲內容沒有變。
 - 發版流程見 [RELEASE.md](RELEASE.md)。
+- **文件整理**（同版另一個提交，不影響遊戲）：
+  - `docs/HANDOFF.md` 改為現況手冊：分工、模組地圖、存檔與版本、發版。
+  - `docs/DESIGN.md` 改為規格索引，後半的核心規則搬到 `docs/CORE_RULES.md`。
+  - 驗證紙條只留最新一批，另加「尚未驗證總表」。
+  - 舊的逐版段落原文封存在 `docs/archive/`。
+  - 另外更新 README、〈給Claude的交接〉、AGENTS.md 與願望清單裡的過時內容。
 
 ## 3.44.0：盤點後修正（Claude，使用者要求）
 
