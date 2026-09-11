@@ -1,4 +1,4 @@
-import {isEndless,ENDLESS_MAX_FLOOR} from './endless.js';
+import {isEndless,ENDLESS_MAX_FLOOR,ENDLESS_DISPLAY_FLOORS,MAX_LEVEL} from './endless.js';
 import {FLOORS,SIZE} from './data.js';
 import {reachable,key,distance} from './world.js';
 
@@ -10,7 +10,7 @@ export const MISSIONS={
   retrieval:{name:'機密回收',kind:'recover',count:1,text:'第 6 層找到 1 份機密資料，靠近後互動回收，再從電梯撤離。'},
   roundtrip:{name:'原路回收',kind:'recover',count:1,depth:3,returnTrip:true,text:'深入三層，回收機密並擊敗封鎖官，沿原路返回第 1 層入口撤離。回程各層一次傳送增援，不補發物資、回血或彈藥。'},
   archive:{name:'分散檔案',kind:'recover',count:3,text:'第 6 層從不同房間回收 3 份機密資料，再從電梯撤離。'},
-  endless:{name:'無盡深入',kind:'endless',count:0,depth:ENDLESS_MAX_FLOOR,text:'持續深入，直到死亡。'}
+  endless:{name:'無盡深入',kind:'endless',count:0,depth:ENDLESS_MAX_FLOOR,text:`沒有撤離：每層電梯都通往更深處，直到陣亡。第 7 層起敵人更多、更強，還可能帶精英特性；等級 ${MAX_LEVEL} 封頂後，升級改發補給。`}
 };
 export const RANDOM_MISSION_IDS=Object.keys(MISSIONS).filter(id=>id!=='endless');
 export const validMissionId=id=>typeof id==='string'&&Object.hasOwn(MISSIONS,id);
@@ -65,7 +65,7 @@ export function exitBlocked(g){
 }
 export function missionSummary(g){
   const def=missionDefinition(g),{done,total}=missionProgress(g);
-  if(isEndless(g))return `${def.name} · 深度 ${g.floor}`;
+  if(isEndless(g))return `${def.name} · 第 ${g.floor} / ${ENDLESS_DISPLAY_FLOORS} 層`;
   if(returning(g))return `${def.name} · 回程 ${g.floor} → 1 · ${g.floor===1?'前往入口撤離':'返回本層入口上樓'}`;
   return `${def.name} · ${g.floor<missionDepth(g)?`目標位於第 ${missionDepth(g)} 層`:`${done}/${total} · ${done===total?'前往撤離電梯':def.kind==='recover'?'尋找青色資料匣':def.kind==='hunt'?'殲滅標記目標':'摧毀核心守衛'}`}`;
 }
