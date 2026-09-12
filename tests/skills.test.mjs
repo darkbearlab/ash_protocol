@@ -21,7 +21,7 @@ function enemy(g,type='rifleman',x=14,y=10){const e=makeEnemy(type,x,y,'skill-'+
 test('Recon alone starts with learned, prepared, ready signal break and normal supplies',()=>{
   const g=arena();assert.deepEqual(g.player.skills,['signal_break']);assert.equal(g.player.prepared.skill,'signal_break');
   assert.deepEqual(state(g),{remaining:0,cooldown:0});assert.ok(canUseSkill(g.player,'signal_break'));
-  assert.equal(g.player.emp,2);assert.equal(g.player.smoke,2);assert.equal(g.player.meds,2);
+  assert.equal(g.player.emp,0);assert.equal(g.player.stun,2);assert.equal(g.player.smoke,2);assert.equal(g.player.meds,2);
   for(const id of ['bulwark']){const other=arena(id);assert.deepEqual(other.player.skills,['anchor']);assert.equal(canUseSkill(other.player,'signal_break'),false);assert.equal(other.turn,1);}
 });
 

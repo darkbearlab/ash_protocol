@@ -16,7 +16,7 @@ test('Soldier and Recon have separate passives and starting kits, with distinct 
   const soldier=arena(),recon=arena('recon');assert.equal(soldier.player.character,'soldier');assert.deepEqual(soldier.player.owned,[0,1]);assert.deepEqual(recon.player.owned,[2,1]);assert.equal(recon.player.weapon,2);assert.equal(recon.player.ammo[2],18);assert.equal(recon.player.ammo[0],0);
   assert.deepEqual(soldier.player.traits.map(t=>t.id),CHARACTERS.soldier.traits);assert.deepEqual(recon.player.traits.map(t=>t.id),CHARACTERS.recon.traits);
   for(const key of ['hp','maxHp','meds','pistol','shell','reserve','armor','scrap'])assert.equal(soldier.player[key],recon.player[key],key);
-  assert.equal(soldier.player.grenades,2);assert.equal(recon.player.grenades,0);assert.equal(recon.player.smoke,2);assert.equal(recon.player.emp,2);assert.equal(recon.ammoCapacity('grenade'),6);assert.equal(recon.player.prepared.grenade,'smoke');assert.equal(recon.protocol.earned,0);assert.match(characterName('recon'),/Recon/);assert.throws(()=>arena('unknown'));
+  assert.equal(soldier.player.grenades,2);assert.equal(recon.player.grenades,0);assert.equal(recon.player.smoke,2);assert.equal(recon.player.emp,0);assert.equal(recon.player.stun,2);assert.equal(recon.ammoCapacity('grenade'),6);assert.equal(recon.player.prepared.grenade,'smoke');assert.equal(recon.protocol.earned,0);assert.match(characterName('recon'),/Recon/);assert.throws(()=>arena('unknown'));
 });
 test('braced uses the shooter-facing cover direction, applies symmetrically and respects no-cover',()=>{
   const g=arena(),e=enemy(g);coverTarget(g);assert.equal(g.accuracy(g.player,e).chance,70);assert.equal(g.accuracy(g.player,e).bracedBonus,0);

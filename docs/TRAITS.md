@@ -109,3 +109,10 @@ removeTraitSource(actor, 'effect:cryo'); // 只移除此來源
 `weaponStats(base, affix, actor)` 的第三參數可選；`range` 是最遠射程，派生欄位 `burstRange` 是正常連發區上限。`volleyAt` 決定發數，不改 `weapon.burst`，避免改變每發強化加成的除數。距離採既有戰鬥距離。快速敵人移動後用結算位置判定；失去可見目標時用承諾座標判定並扣彈，不轉打其他敵人。
 
 存檔仍為 v32，沿用 traits 結構；讀取舊偵察兵存檔補一次來源，不改生命、裝備、彈藥或亂數。等待效果不變。測試見 `tests/recon-extended-burst.test.mjs`。
+
+
+## 3.68.0：戰術配給（偵察兵原生被動）
+
+使用者決定：新任務起始兩煙霧、兩震撼，零 EMP／破片彈；技能與預備煙霧不變。`tactical_supply` 由 `character:recon` 提供。每次角色等級增加（2～20 級）經 `receiveGrenade('smoke',1)` 給一顆，不額外耗回合；容量不足仍獲得，溢出留在玩家腳下並可合併地面堆疊。選三選一不再發一次、滿級經驗補給不觸發，連升多級則各給一顆。
+
+沿用 traits 與 items 存檔結構，不升 save 版本。舊偵察兵讀取時補一次被動，保留手中的 EMP／震撼與其他資源，不追補過去等級。最大自然產量為起始 2 顆加 19 次升級配給；地圖補給另計。側身精通保留，掉煙霧／取得量加成先擱置，距離衰減另討論。測試 `tests/recon-supply.test.mjs`；驗收場景 `qa/create-recon-supply-scenes.mjs`。

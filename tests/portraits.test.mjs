@@ -29,7 +29,7 @@ test('portrait persists through save, next floor and full backup; v9 migration i
   assert.equal(Game.restore(g.serialize()).player.portrait,'silver');
   const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;
   assert.deepEqual(restored.player,g.player);
-  const old=JSON.parse(g.serialize());old.version=9;old.data.player.smoke=0;old.data.player.emp=0;delete old.data.player.portrait;
+  const old=JSON.parse(g.serialize());old.version=9;old.data.player.smoke=0;old.data.player.emp=0;old.data.player.stun=0;delete old.data.player.portrait;
   const a=Game.restore(JSON.stringify(old)),b=Game.restore(JSON.stringify(old));
   assert.equal(a.player.portrait,portraitForLegacy(g.runId));assert.equal(a.player.portrait,b.player.portrait);
   const {portrait,...player}=a.player;assert.deepEqual(player,old.data.player);assert.equal(a.rng.state(),g.rng.state());

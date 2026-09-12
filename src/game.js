@@ -455,7 +455,7 @@ export class Game {
     // The number stops at MAX_LEVEL (3.52.0, user call). Past it the threshold stays at the level-20 cost and each
     // one hands over supplies instead of a pick, so the HUD can simply read MAX.
     const p=this.player;
-    while(p.level<MAX_LEVEL&&p.xp>=p.level+2){p.xp-=p.level+2;p.level++;if(this.perkPicks+this.pendingPerks<perkLimit(p.level))this.pendingPerks++;}
+    while(p.level<MAX_LEVEL&&p.xp>=p.level+2){p.xp-=p.level+2;p.level++;if(activeTrait(p,'tactical_supply')){this.log('戰術配給：煙霧彈 +1。');this.receiveGrenade('smoke',1);}if(this.perkPicks+this.pendingPerks<perkLimit(p.level))this.pendingPerks++;}
     while(p.level>=MAX_LEVEL&&p.xp>=MAX_LEVEL+2){p.xp-=MAX_LEVEL+2;giveCapSupply(this);}
     if(e.type==='bomber')this.explode(e,1,scaleEnemy(30,this.floor,'damage'));
     if(e.type==='warden'||e.type==='boss')this.awardProtocol(e.type,`${this.floor}:${e.id}`);
@@ -796,6 +796,7 @@ export class Game {
       }
       // Existing trait schema: retrofit the class passive without changing resources or RNG.
       if(p.character==='recon'&&!p.traits.some(t=>t.id==='extended_burst'&&t.source==='character:recon'))grantTrait(p,'extended_burst','character:recon');
+      if(p.character==='recon'&&!p.traits.some(t=>t.id==='tactical_supply'&&t.source==='character:recon'))grantTrait(p,'tactical_supply','character:recon');
       // Balance-only passive: existing trait schema, preserve HP/resources and avoid duplicate sources.
       if(['bulwark','necromancer'].includes(p.character)&&!p.traits.some(t=>t.id==='difficult_healing'&&t.source===`character:${p.character}`))grantTrait(p,'difficult_healing',`character:${p.character}`);
       if(version<29)p.battleSpirit=freshSpirit();
