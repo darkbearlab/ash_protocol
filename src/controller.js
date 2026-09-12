@@ -135,7 +135,7 @@ function act(type,arg) {
     if(steps.length){
       renderer.effects=[];
       playback=new Playback(planPresentation(steps,{reduceMotion:renderer.reduceMotion}),event=>{
-        renderer.game=event.state;renderer.addEffects(event.effects);update();
+        renderer.game=event.state;renderer.addEffects(event.effects,playback.elapsed-event.time);update();
         if(event.effects.some(e=>['slash','claw'].includes(e.style)))audio.play('melee');
         else if(event.effects.some(e=>e.type==='enemyShot'||(e.type==='shot'&&e.style!=='grenade')))audio.play('fire');
         if(navigator.vibrate&&event.effects.some(e=>e.type==='impact'||e.type==='blast'))navigator.vibrate(25);

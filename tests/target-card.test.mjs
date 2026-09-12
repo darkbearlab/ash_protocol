@@ -55,7 +55,7 @@ test('renderer invalidates placement when camera moves and rounds measured card 
   const game=arena();game.enemies=[makeEnemy('rifleman',14,10,'e')];game.reveal();
   const attributes=new Map(),link={setAttribute:(k,v)=>attributes.set(k,v),removeAttribute:k=>attributes.delete(k)};
   const card={hidden:false,style:{},classList:{toggle(){}},getBoundingClientRect:()=>({height:77.4})};
-  const renderer=Object.assign(Object.create(Renderer.prototype),{game,w:320,h:320,tile:32,camera:{x:10,y:10},sprites:{complete:true,naturalWidth:128},targetUI:{card,link,path:link,dirty:true}});
+  const renderer=Object.assign(Object.create(Renderer.prototype),{game,effects:[],time:0,w:320,h:320,tile:32,camera:{x:10,y:10},sprites:{complete:true,naturalWidth:128},targetUI:{card,link,path:link,dirty:true}});
   renderer.placeTargetCard();const frame=renderer.targetUI.frame;
   assert.equal(renderer.targetUI.height,78);assert.equal(card.style.visibility,'visible');
   renderer.camera.x=11;renderer.placeTargetCard();assert.notEqual(renderer.targetUI.frame,frame);

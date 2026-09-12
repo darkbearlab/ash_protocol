@@ -1,3 +1,4 @@
+import {actorMoves} from './actor-visuals.js';
 // Presentation observes one synchronous turn. Snapshots never roll back rules or RNG.
 const observers=new WeakMap();
 export function snapshot(game){
@@ -11,7 +12,7 @@ export function presentStep(game,action,quietActor=null){
   const state=quietActor?{x:quietActor.x,y:quietActor.y,charge:quietActor.charge,windup:quietActor.windup,visible:game.visible(quietActor)}:null;
   const result=action();
   const changed=state&&(state.visible||game.visible(quietActor))&&(state.x!==quietActor.x||state.y!==quietActor.y||state.charge!==quietActor.charge||state.windup!==quietActor.windup);
-  if(game.effects.length>start||changed)steps.push({before,after:snapshot(game),effects:structuredClone(game.effects.slice(start))});
+  if(game.effects.length>start||changed||actorMoves(before,game).length)steps.push({before,after:snapshot(game),effects:structuredClone(game.effects.slice(start))});
   return result;
 }
 export function captureAction(game,action){
@@ -44,12 +45,13 @@ export function projectileVisuals(effect,reduceMotion=false){
 export function planPresentation(steps,{reduceMotion=false}={}){
   const events=[];let time=0;
   for(const [index,step]of steps.entries()){
+    const moves=reduceMotion?[]:actorMoves(step.before,step.after);
     const flights=step.effects.filter(e=>e.type==='shot'||e.type==='enemyShot');
     const visuals=flights.flatMap(e=>projectileVisuals(e,reduceMotion));
     const rewards=step.effects.filter(e=>e.type==='capSupply');
     const impacts=step.effects.filter(e=>e.type!=='shot'&&e.type!=='enemyShot'&&e.type!=='capSupply');
-    const travel=Math.max(0,...visuals.map(e=>e.delay+e.travel));
-    events.push({time,state:step.before,effects:visuals});
+    const travel=Math.max(0,...visuals.map(e=>e.delay+e.travel),...moves.map(e=>e.travel));
+    events.push({time,state:step.before,effects:[...moves,...visuals]});
     for(const e of flights)if(e.damage>0||e.miss)impacts.push({...e,type:e.miss?'miss':'impact',style:undefined,from:e.to});
     const deaths=[...step.after.enemies,...(step.after.allies||[])].filter(e=>e.hp<=0&&[...step.before.enemies,...(step.before.allies||[])].some(b=>b.id===e.id&&b.hp>0));
     if(step.before.player.hp>0&&step.after.player.hp<=0)deaths.push({...step.after.player,type:'player'});
@@ -62,7 +64,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const impactState=prior?Object.assign(Object.create(Object.getPrototypeOf(step.after)),step.after,{player:{...step.after.player,...prior.resources},items:prior.items,logs:prior.logs}):step.after;
     events.push({time,state:impactState,effects:impacts.map(e=>({...e,quiet:reduceMotion}))});
     const burstContinues=flights.some(e=>['smg','lmg','thunder'].includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&['smg','lmg','thunder'].includes(e.weaponId));
-    time+=reduceMotion?120:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
+    time+=!flights.length&&!impacts.length&&!rewards.length?0:reduceMotion?120:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
     if(rewards.length){events.push({time,state:step.after,effects:rewards.map(({beforeSupply,...e})=>e)});time+=reduceMotion?60:IMPACT_MS;}
   }
   return {events,duration:time};

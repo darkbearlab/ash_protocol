@@ -29,7 +29,7 @@ test('lethal shot is saved immediately, but living target and HP remain until pr
 test('burst shots resolve separately, then enemy fire waits for both impacts',()=>{
   const g=arena(),e=enemy(g,'brute',100);g.player.weapon=2;g.player.owned.push(2);g.player.ammo[2]=2;
   const shooter=enemy(g,'rifleman',22,10,14);shooter.charge=true;shooter.windup=1;g.target=e.id;
-  const {steps}=captureAction(g,()=>g.action('fire'));assert.equal(steps.length,3);
+  const recorded=captureAction(g,()=>g.action('fire'));const steps=recorded.steps.filter(s=>s.effects.some(e=>['shot','enemyShot'].includes(e.type)));assert.equal(steps.length,3);
   assert.equal(steps[0].effects[0].type,'shot');assert.equal(steps[1].effects[0].type,'shot');assert.equal(steps[2].effects[0].type,'enemyShot');
   assert.ok(steps[0].after.enemies[0].hp<steps[0].before.enemies[0].hp);
   assert.equal(steps[1].before.enemies[0].hp,steps[0].after.enemies[0].hp);
@@ -91,7 +91,7 @@ test('weapon classes have distinct cosmetic projectile counts and every projecti
   for(const [weapon,count]of [[0,3],[1,6],[2,6],[3,1],[4,1],[5,1]]){
     const g=arena();enemy(g,'brute',1000,13,10);g.player.weapon=weapon;
     if(!g.player.owned.includes(weapon))g.player.owned.push(weapon);g.player.ammo[weapon]=10;
-    const {steps}=captureAction(g,()=>g.action('fire')),plan=planPresentation(steps);
+    const {steps}=captureAction(g,()=>g.action('fire')),plan=planPresentation(steps.filter(s=>s.effects.length));
     const visuals=plan.events.flatMap(e=>e.effects).filter(e=>e.type==='shot');assert.equal(visuals.length,count);
     assert.equal(g.player.ammo[weapon],weapon===2?8:9,'cosmetic tracers never consume ammunition');
     for(let i=0;i<plan.events.length;i+=2){const launch=plan.events[i],impact=plan.events[i+1];
