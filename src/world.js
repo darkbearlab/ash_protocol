@@ -1,3 +1,4 @@
+import {addRuntimePopulation} from './runtime-enemies.js';
 import {MAP_RECIPES} from './map-recipes-data.js';
 import {orderedRecipes,recipeGroups} from './map-recipes.js';
 import {SLOT_RECIPES,furnishMap} from './map-slots.js';
@@ -42,12 +43,12 @@ export function lineOfSight(grid,a,b,barriers=[],channel='sight') {
   }return false;
 }
 export function makeEnemy(type,x,y,id,floor=1) {
-  const def=ENEMY_TYPES[type],hp=scaleEnemy(def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp');
-  return {id,type,x,y,hp,maxHp:hp,vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
+  const def=ENEMY_TYPES[type],hp=def.expendable?def.hp:scaleEnemy(def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp');
+  return {id,type,x,y,hp,maxHp:hp,...(def.expendable?{expendable:true,reinforcement:true,actionDelay:0}:{}),vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[]){return generateWithRecipes(seed,floor,unlocks,MAP_RECIPES);}
+export function generate(seed,floor=1,unlocks=[]){return addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES),seed,floor,generationSafe);}
 export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=MAP_RECIPES){
   if(!recipes.length)return generateLegacy(seed,floor,unlocks);
   if(recipes.some(r=>r.layout)){
@@ -214,7 +215,7 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null) {
 }
 export function reachable(map,start,{openDoors=true}={}) {
   const queue=[start],seen=new Set([key(start)]);
-  for(let i=0;i<queue.length;i++)for(const [dx,dy]of DIRECTIONS){const p={x:queue[i].x+dx,y:queue[i].y+dy},edge=barrierBetween(map.barriers,queue[i],p);if(blockedBetween(map.barriers,queue[i],p)&&!(openDoors&&edge.type==='door')&&!vaultable(edge))continue;if(map.grid[p.y]?.[p.x]===1&&!seen.has(key(p))&&!map.props.some(o=>o.hp>0&&(o.type==='cover'||o.type==='barrel')&&o.x===p.x&&o.y===p.y)){seen.add(key(p));queue.push(p);}}
+  for(let i=0;i<queue.length;i++)for(const [dx,dy]of DIRECTIONS){const p={x:queue[i].x+dx,y:queue[i].y+dy},edge=barrierBetween(map.barriers,queue[i],p);if(blockedBetween(map.barriers,queue[i],p)&&!(openDoors&&edge.type==='door')&&!vaultable(edge))continue;if(map.grid[p.y]?.[p.x]===1&&!seen.has(key(p))&&!map.props.some(o=>o.hp>0&&(o.type==='cover'||o.type==='barrel'||o.type==='nest')&&o.x===p.x&&o.y===p.y)){seen.add(key(p));queue.push(p);}}
   return seen;
 }
 export function generationSafe(map){

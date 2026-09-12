@@ -35,11 +35,11 @@ class Sidestep extends Game{executeEnemy(e){e.x=10;e.y=11;return false;}}
 test('committed bump follows original identity if it remains adjacent',()=>{
   const g=arena('bulwark',Sidestep),e=add(g);assert.ok(g.action('move',[1,0]));assert.ok(e.hp<500);assert.ok(g.effects.some(f=>f.weaponId==='powerfist'&&f.to.y===11));assert.equal(g.player.weapon,6);
 });
-test('no eligible melee rejects collision without spending, closed door opens first, partitions and diagonals reject',()=>{
-  const s=arena('soldier');add(s);const turn=s.turn;assert.equal(s.action('move',[1,0]),false);assert.equal(s.turn,turn);
+test('no eligible melee falls back to unarmed, closed door opens first, partitions and diagonals reject',()=>{
+  const s=arena('soldier');add(s);const turn=s.turn;assert.equal(s.action('move',[1,0]),true);assert.equal(s.turn,turn+1);assert.equal(s.player.x,10);assert.ok(s.effects.some(e=>e.weaponId==='unarmed'));
   const g=arena(),e=add(g);const door=makeBarrier('door',g.player,e,'door');g.barriers=[door];g.reveal();assert.ok(g.action('move',[1,0]));assert.equal(door.open,true);assert.equal(e.hp,500);assert.equal(g.player.x,10);
   g.barriers=[makeBarrier('partition',g.player,e,'partition')];g.reveal();const before=g.turn;assert.equal(g.action('move',[1,0]),false);assert.equal(g.action('move',[1,1]),false);assert.equal(g.turn,before);
-  const base=g.weaponAt.bind(g);g.barriers=[];g.weaponAt=slot=>({...base(slot),integrated:false});assert.equal(g.bumpMeleeSlot(),undefined);
+  const base=g.weaponAt.bind(g);g.barriers=[];g.weaponAt=slot=>({...base(slot),integrated:false});assert.equal(g.weaponAt(g.bumpMeleeSlot()).unarmed,true);
 });
 test('death or disability before bump prevents the strike; fast player can strike first and death presentation precedes upgrade',()=>{
   const g=arena();add(g);g.player.hp=1;assert.ok(g.action('move',[1,0]));assert.equal(g.status,'dead');assert.ok(!g.effects.some(f=>f.weaponId==='powerfist'));

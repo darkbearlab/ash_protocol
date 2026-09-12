@@ -31,7 +31,7 @@ test('walking into a closed door opens it for one turn without movement or waiti
 });
 test('closed doors open before checking hidden occupancy; partitions reject movement without consuming time',()=>{
   const g=arena(true),b=gate(g);enemy(g);assert.ok(g.action('move',[1,0]));assert.equal(b.open,true);assert.equal(g.player.x,10);
-  assert.equal(g.action('move',[1,0]),false);assert.equal(g.turn,2);
+  assert.equal(g.action('move',[1,0]),true);assert.equal(g.turn,3);assert.equal(g.player.x,10);assert.ok(g.effects.some(e=>e.weaponId==='unarmed'));
   const wall=arena(),p=gate(wall,'partition');assert.equal(wall.action('move',[1,0]),false);assert.equal(wall.turn,1);assert.equal(wall.target,p.id);assert.equal(wall.action('door',{id:p.id,open:true}),false);
 });
 test('open intent never becomes movement or a closing toggle when an earlier enemy changes that door',()=>{

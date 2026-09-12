@@ -1,3 +1,4 @@
+import {enemyRoom} from './runtime-enemies.js';
 import {MAP_FIELDS,validMapMetadata} from './map-geometry.js';
 import {SIZE} from './data.js';
 import {distance,key,reachable,makeEnemy} from './world.js';
@@ -44,7 +45,7 @@ export function resolveRetreatWave(g){
   const pending=[];
   for(const spawn of g.reinforcements){
     if(spawn.due>g.turn){pending.push(spawn);continue;}
-    if(!g.passable(spawn.x,spawn.y)||key(g.player)===key(spawn)||g.activeAllies.some(a=>key(a)===key(spawn))||g.enemies.some(e=>e.hp>0&&key(e)===key(spawn))){pending.push({...spawn,due:g.turn+1});continue;}
+    if(!enemyRoom(g)||!g.passable(spawn.x,spawn.y)||key(g.player)===key(spawn)||g.activeAllies.some(a=>key(a)===key(spawn))||g.enemies.some(e=>e.hp>0&&key(e)===key(spawn))){pending.push({...spawn,due:g.turn+1});continue;}
     const e=makeEnemy(spawn.type,spawn.x,spawn.y,spawn.id,g.floor);e.reinforcement=true;g.enemies.push(e);
     // Perception is established by reveal, including smoke and signal break.
     g.effects.push({type:'pulse',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},radius:.7,color:'#83e4e9',damage:0});

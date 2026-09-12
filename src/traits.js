@@ -39,6 +39,8 @@ export function validTraits(traits){return Array.isArray(traits)&&traits.length<
 export const bodyKeyword=type=>ENEMY_TYPES[type]?.mechanical?'mechanical':'biological';
 export function startingTraits(type,floor=1){
   const ids=type==='drone'?['no_cover']:type==='brute'?['large']:type==='crawler'&&floor>=4?['fast']:[];
+  if(type==='fodder')ids.push('slow','no_cover');
+  if(type==='brood')ids.push('fast','no_cover');
   if(type==='sniper')ids.push('night_vision');
   if(type==='warden')ids.push('infrared');
   ids.push(bodyKeyword(type));

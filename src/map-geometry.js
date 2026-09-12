@@ -1,6 +1,6 @@
 import {validateRecipe,recipeGroups} from './map-recipes.js';
 // Room identity is independent of lattice position. No RNG or game imports.
-export const MAP_GENERATION=7;
+export const MAP_GENERATION=8;
 export const MAP_FIELDS=['cells','openings','annexes','generation','slots'];
 const key=p=>`${p.x},${p.y}`;
 const point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y);
@@ -64,6 +64,10 @@ function validAnnexes(map){
 // so footprints describe ownership, not the current set of walkable floor tiles.
 export function validMapMetadata(map,custom=false){
   if(MAP_FIELDS.every(k=>map[k]===undefined))return true;
+  if(map.generation?.version===8){
+    if(map.generation.recipeId!=='runtime-v8'||![2,3,4,5,6,7].includes(map.generation.base?.version))return false;
+    return validMapMetadata({...map,generation:map.generation.base});
+  }
   if(map.generation?.version===7){
     try{validateRecipe(map.generation.recipe);}catch{return false;}
     if(map.generation.recipeId!==map.generation.recipe.id||!Array.isArray(map.annexes))return false;

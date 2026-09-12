@@ -16,7 +16,7 @@ test('routes vary entrances, exits and connections; reward rooms remain reachabl
     for(const [a,b]of m.links)assert.ok(m.cells.some(c=>c.roomId===a&&m.cells.some(d=>d.roomId===b&&Math.abs(c.row-d.row)+Math.abs(c.col-d.col)===1)));
     for(const item of m.items)assert.ok(seen.has(key(item)));
     for(const terminal of m.props.filter(o=>o.type==='terminal'))assert.ok([...seen].some(k=>{const [x,y]=k.split(',').map(Number);return distance({x,y},terminal)<=1;}));
-    assert.equal(m.enemies.length,25);assert.ok(m.mainRoute.length>=3);
+    assert.equal(m.enemies.filter(e=>!e.expendable).length,25);assert.equal(m.enemies.filter(e=>e.expendable).length,2);assert.ok(m.mainRoute.length>=3);
     assert.deepEqual(generate(seed,1),m);
   }
   assert.ok(starts.size>=4);assert.ok(ends.size>=4);assert.ok(routes.size>=30);

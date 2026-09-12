@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.68.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.69.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -27,7 +27,7 @@
 ## 啟動與測試
 
 1. `npm start`，開 http://localhost:5173。純 Node、原生 ES modules，沒有第三方套件。瀏覽器 QA 一律加 `?test=1`，存檔放在 `qa-` 開頭的鍵，不碰正式任務。
-2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.68.0 為 607 項（職業強化的既有驗證範圍見下方 3.60 段）。
+2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.69.0 為 616 項（職業強化的既有驗證範圍見下方 3.60 段）。
 3. `npm run recipes`：驗證 maps/recipes/*.json 並編譯靜態配方池；start／build 自動執行。
 4. `npm run build`：產生 `dist/`，相容 GitHub Pages 的 `/ash_protocol/` 子路徑，推上 main 後自動部署。
 5. 模擬腳本（人工場景，不代表自然平衡）：`qa/ally-scenes.mjs`、`qa/pet-waves.mjs`、`qa/drone-waves.mjs`、`qa/necro-waves.mjs`、`qa/grenade-control.mjs`。都可帶 src 目錄參數比較新舊版。`npm run balance -- 24` 是較舊的無畫面遊玩機器人。
@@ -44,7 +44,7 @@
 | `src/engine.js` | 穩定匯出入口，UI、測試、工具共用 |
 | `src/game.js` | `Game` 類別：行動驗證與結算、敵人 AI、爆炸、背包、樓層切換、存檔序列化與遷移 |
 | `src/data.js` | 內容與數值：武器、敵人、樓層、升級、資料片段；`SAVE_VERSION`、`LEGACY_SAVE_VERSIONS` |
-| `src/world.js` | 亂數、視線、生成流程、敵人建立；generate 預設 v2 第六階段，generateWithRecipes(..., []) 保留 v1 |
+| `src/world.js` | 亂數、視線、生成流程、敵人建立；generate 預設 v2 第六階段加執行期內容，generateWithRecipes(..., []) 保留 v1 |
 | `src/map-recipes.js`、`src/map-recipes-data.js` | 第六階段 JSON 格式／權重抽選與編譯池；maps/recipes/README.md 說明使用方法，世代 7 保存配方副本 |
 | `src/map-slots.js` | 第五階段：槽位／任務預留、油桶重排、大房間模組與空貨櫃；完整回退，世代 6 |
 | `src/scenery.js`、`src/barrier-art.js` | 分段車輛／家具定義與實體遮擋、隔板半格高投影／接柱及雙軸門框；素材與製程見 art/scenery-v1、art/doors-v1 |
@@ -89,7 +89,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v32**（`data.js` 的 `SAVE_VERSION`）。舊版 1～31 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v33**（`data.js` 的 `SAVE_VERSION`）。舊版 1～32 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v5**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -158,3 +158,8 @@
 - 單局全域的 `mapGenerations` 記所有經歷過的世代（例如 `[1,2]`），結算複製到 history。同一個每日種子跨世代不能直接比較；部署種類／日期目前沒有獨立保存，因此這個欄位適用所有局，UI 由 Claude 接上。
 - 手工 QA 若換掉 rooms，應一併移除 cells/openings/annexes/generation/slots；測試共用 `tests/helpers/arena.mjs`，不要放寬正式存檔驗證。
 - 原有勝率回歸固定使用 LegacyGame；v2 機器人另驗行動合法與結束，3.61.0 觀察到 Recon 種子 1～12 無勝局。這是待人工檢視的難度變化，沒有調整武器、敵人數值或放寬 v1 勝率斷言。
+
+
+### 3.69 執行期批次
+
+`runtime-enemies.js`：新圖雜兵／巢穴、共享 64 活敵人上限、6 雜兵上限、巢穴驗證。`unarmed.js`：虛擬徒手。save v33 的 `pursuit` 是全局行動狀態，舊檔補 0；巢穴狀態與子代在原 props／enemies 保存，FLOOR_FIELDS 已涵蓋。免費追擊不進佇列、不推進任何時鐘；攻擊目標不限。傷害來源必須明確傳遞，不能靠「目前是玩家回合」歸屬擊殺。生還友軍／召喚物擊殺不授予追擊。詳見 MAPGEN 第 19 節及本批 QA 紙條。

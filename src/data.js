@@ -1,6 +1,6 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 32;
+export const SAVE_VERSION = 33;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -33,6 +33,8 @@ export const FLOOR_INFO = [
 ];
 export function floorInfo(floor){const index=((floor-1)%FLOORS.length+FLOORS.length)%FLOORS.length;return {...FLOOR_INFO[index],name:FLOORS[index],cycleFloor:index+1,weapon:[2,3,4,5,3,4][index]};}
 export const ENEMY_TYPES = {
+  fodder:{name:'失能遊蕩者',hp:6,damage:2,range:1,armor:0,color:'#a0a184',xp:0,expendable:true,role:'緩速、每兩次行動機會活動一次。徒手可清理，擊殺獲得追擊。'},
+  brood:{name:'裂隙幼蟲',hp:6,damage:4,range:1,armor:0,color:'#cfac7c',xp:0,expendable:true,role:'巢穴釋出的快速幼蟲。沒有戰利品，擊殺獲得追擊。'},
   rifleman:{name:'斷訊槍兵',hp:22,damage:17,range:7,armor:0,color:'#9fba81',xp:1,fragile:true,rapid:true,seekCover:true,role:'低耐久、自動步槍連續壓制。先找牆角或掩體，再優先擊殺。'},
   raider:{name:'破口突擊兵',hp:18,damage:21,range:5,armor:0,color:'#d4b185',xp:1,fragile:true,rapid:true,seekCover:true,role:'近距離高傷害、低生命。與槍兵交叉火力，勿停在暴露通道。'},
   crawler:{ name:'裂隙獵犬', hp:32, damage:9, range:1, armor:0, color:'#bd9667', xp:1, role:'接近後蓄勢撕咬。拉開一格即可避開攻擊。' },

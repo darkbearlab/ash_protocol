@@ -132,7 +132,7 @@ export class Renderer {
       if(distance(p,{x,y})===1&&g.passable(x,y)&&!g.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))this.box(left+3,top+3,t-6,t-6,'#b0ba8010','#b1c48a3b');
       const room=g.rooms?.find(r=>r.supply&&r.cx===x&&r.cy===y);if(room){const sign=SUPPLY_ROOMS[room.supply];if(sign)this.text(sign.name,a.x,a.y-this.tile*.4,sign.color,9);}
       if(g.exitPoint.x===x&&g.exitPoint.y===y)this.exit(a,time);
-      for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y)this.corpse(a,dead.type);
+      for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y)this.corpse(a,dead.type==='fodder'?'rifleman':dead.type==='brood'?'crawler':dead.type);
       for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)this.prop(a,prop,time);
       for(const prop of g.props)if(!isContainer(prop)&&prop.x===x&&prop.y===y)this.prop(a,prop,time);
       for(const weapon of [false,true])for(const item of g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.item(a,item,time);
@@ -273,6 +273,8 @@ export class Renderer {
     this.objectHealth(p,a.x-12,y-4);
   }
   prop(a,p,time){
+    if(p.type==='nest'){const t=this.tile;this.box(a.x-t*.35,a.y-t*.2,t*.7,t*.45,p.hp>0?'#65513c':'#353329');if(p.hp>0){this.box(a.x-t*.23,a.y-t*.32,t*.46,t*.42,p.nest.active?'#b38c65':'#827259');this.box(a.x-t*.12,a.y-t*.12,t*.24,t*.16,'#241e1a');this.objectHealth(p,a.x-12,a.y-t*.4);if(p.nest.active)this.text(String(p.nest.remaining),a.x,a.y+t*.37,'#d4b992',8);}return;}
+
     if(p.type==='module'){const q=modulePoint(p,0,1);if(this.game.visibleTiles.has(`${q.x},${q.y}`)){const pos=this.project(q.x,q.y);this.text(MODULE_TYPES[p.theme].code,pos.x,pos.y+this.tile*.3,MODULE_TYPES[p.theme].color,8);}return;}
     if(p.style&&p.hp>0){this.furniture(a,p);return;}
 
@@ -296,9 +298,9 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
   }
   actor(a,type,time,e) {
     const c=this.ctx,dark=isDark(this.game,this.unproject(a.x,a.y)),player=type==='player',def=ENEMY_TYPES[type],large=type==='boss'||type==='warden',s=this.tile/45*(large?1.15:1);
-    const spriteType=type==='gunner'?'rifleman':type;
+    const spriteType=type==='gunner'||type==='fodder'?'rifleman':type==='brood'?'crawler':type;
     if(this.sprites.complete&&this.sprites.naturalWidth&&this.spriteNames.includes(spriteType)){
-      const size=spriteSize(this.tile);
+      const size=spriteSize(this.tile)*(type==='brood'?.65:type==='fodder'?.8:1);
       if(player){this.box(a.x-17,a.y-17,34,34,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(a.x,a.y,20,0,Math.PI*2);c.stroke();}}
       // Optical camouflage (3.47.1): the ninja's sprite fades while it is active; the frame and label stay readable.
       c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;if(!player||!this.classSprite(a,size,e.character,false,dark))this.sprite(spriteType,a,size,dark);c.restore();
