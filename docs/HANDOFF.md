@@ -27,7 +27,7 @@
 ## 啟動與測試
 
 1. `npm start`，開 http://localhost:5173。純 Node、原生 ES modules，沒有第三方套件。瀏覽器 QA 一律加 `?test=1`，存檔放在 `qa-` 開頭的鍵，不碰正式任務。
-2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.53.0 為 546 項。
+2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.60.0 為 549 項（3.55～3.60 的職業專屬升級尚未附測試，見下方 3.60 段）。
 3. `npm run build`：產生 `dist/`，相容 GitHub Pages 的 `/ash_protocol/` 子路徑，推上 main 後自動部署。
 4. 模擬腳本（人工場景，不代表自然平衡）：`qa/ally-scenes.mjs`、`qa/pet-waves.mjs`、`qa/drone-waves.mjs`、`qa/necro-waves.mjs`、`qa/grenade-control.mjs`。都可帶 src 目錄參數比較新舊版。`npm run balance -- 24` 是較舊的無畫面遊玩機器人。
 5. 場景存檔產生器：`qa/create-*.mjs`，產物在 `qa/fixtures/`（已忽略，不提交）。
@@ -131,3 +131,11 @@
 3.49：等級20截止三選一，21起自動封頂補給；無盡任務與六層設定循環、深層敵人成長。src/endless.js集中常數；data.floorInfo共用樓層設定。save30保留歷史超限強化，profile5新增endless.best/byCharacter，備份外層1不變。詳見ENDLESS.md；Claude接UI與平衡。
 
 3.57.0：save v31 新增 classPerkMisses（0～2），職業選單保底計數；舊檔遷移 0、待選卡保留。完整備份沿用原封裝。
+
+3.50～3.52（Claude 介面與經濟）：地上的武器可就地拆解；精靈圖跟著地圖等比縮放（`spriteSize` 在 src/target-card.js，渲染與遮蔽共用）；背包版面緊湊化並依彈種上色；局內升級新增「裝甲回收」（`plateDrop` 在 src/perks.js）；等級數字停在 20 顯示 MAX，之後每 22 經驗發一份封頂補給。無盡介面文字集中在 src/endless-ui.js。
+
+3.54（Claude 介面）：背包、樓層地圖、☰ 選單右上加關閉鈕（`modal(html,wide,title,closable)` 依內容是否含 `data-modal="close"` 自動判定，升級三選一維持必選）；撞隔板不再搶走敵人鎖定；「永久攜行升級」只留在主選單，結算與 ☰ 都移除。
+
+3.55～3.60：八職業各三項局內升級全部進池，save v31 的 `classPerkMisses`（抽選保底）與 save v32 的 `shadowSteps`（忍者影步）。規格見 CLASS_PERKS.md。**Codex 這批沒有附自動測試**，Claude 的程式驗證（22 項獨立檢查全過）在 `qa/results/2026-09-12-claude-3.60-class-perks-qa.md`，同檔記了兩個介面缺口：影步剩餘步數沒進狀態列、技能說明仍顯示基礎值。
+
+道具：2026-09-12 定案的設計紀錄在 [ITEMS.md](ITEMS.md)（消耗／佩戴／任務型、現成鉤子、成本分級）。尚未開工；開工時要一次規劃存檔欄位，不要一項升一次版本。
