@@ -1,5 +1,5 @@
 // Room identity is independent of lattice position. No RNG or game imports.
-export const MAP_GENERATION=4;
+export const MAP_GENERATION=5;
 export const MAP_FIELDS=['cells','openings','annexes','generation'];
 const key=p=>`${p.x},${p.y}`;
 const point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y);
@@ -22,10 +22,53 @@ export function collapseCellLinks(cells,edges){
 }
 export function describeRooms(rooms,cells){return rooms.map((r,id)=>({...r,id,cellIds:cells.filter(c=>c.roomId===id).map(c=>c.id),footprint:roomTiles(r)}));}
 
+export const ANNEX_TYPES=['platform','dock','balcony'];
+export const ANNEX_SIDES=['north','east','south','west'];
+export function annexBounds(map,roomId,side){
+  const r=map.rooms[roomId],height=map.grid.length,width=map.grid[0]?.length;
+  if(!r||!ANNEX_SIDES.includes(side))return null;
+  const edge={north:c=>c.row===0,east:c=>c.col===2,south:c=>c.row===2,west:c=>c.col===0}[side];
+  if(!map.cells.some(c=>c.roomId===roomId&&edge(c)))return null;
+  const rect={north:{x:r.x,y:0,w:r.w,h:r.y},east:{x:r.x+r.w,y:r.y,w:width-r.x-r.w,h:r.h},south:{x:r.x,y:r.y+r.h,w:r.w,h:height-r.y-r.h},west:{x:0,y:r.y,w:r.x,h:r.h}}[side];
+  return rect.w>0&&rect.h>0?rect:null;
+}
+export function annexBorder(map,roomId,side){
+  const r=map.rooms[roomId];if(!annexBounds(map,roomId,side))return [];
+  const horizontal=side==='north'||side==='south';
+  return Array.from({length:horizontal?r.w:r.h},(_,i)=>{
+    const inside=horizontal?{x:r.x+i,y:side==='north'?r.y:r.y+r.h-1}:{x:side==='west'?r.x:r.x+r.w-1,y:r.y+i};
+    const [dx,dy]={north:[0,-1],east:[1,0],south:[0,1],west:[-1,0]}[side];
+    return {inside,outside:{x:inside.x+dx,y:inside.y+dy}};
+  });
+}
+
+function validAnnexes(map){
+  if(!Array.isArray(map.annexes)||map.annexes.length<1||map.annexes.length>2)return false;
+  const ids=new Set(),rooms=new Set(),occupied=new Set(map.rooms.flatMap(roomTiles).map(key)),rails=new Set();
+  for(const a of map.annexes){
+    if(typeof a.id!=='string'||!/^annex-[a-zA-Z0-9_-]{1,80}$/.test(a.id)||ids.has(a.id)||!ANNEX_TYPES.includes(a.type)||!Number.isInteger(a.roomId)||rooms.has(a.roomId))return false;
+    const bounds=annexBounds(map,a.roomId,a.side);if(!bounds)return false;
+    const expected=new Set(roomTiles(bounds).map(key)),border=annexBorder(map,a.roomId,a.side);
+    if(!Array.isArray(a.footprint)||a.footprint.length!==expected.size||!Array.isArray(a.openings)||a.openings.length!==2||!Array.isArray(a.barrierIds)||a.barrierIds.length!==border.length-2)return false;
+    for(const p of a.footprint){if(!point(p)||!expected.delete(key(p))||occupied.has(key(p)))return false;occupied.add(key(p));}
+    const gates=new Set();for(const g of a.openings){if(!point(g?.inside)||!point(g?.outside)||!border.some(b=>key(b.inside)===key(g.inside)&&key(b.outside)===key(g.outside))||gates.has(key(g.inside)))return false;gates.add(key(g.inside));}
+    if(Math.abs(a.openings[0].inside.x-a.openings[1].inside.x)+Math.abs(a.openings[0].inside.y-a.openings[1].inside.y)<3)return false;
+    for(const id of a.barrierIds){if(typeof id!=='string'||!/^edge-annex-[a-zA-Z0-9_-]{1,80}$/.test(id)||rails.has(id))return false;rails.add(id);}
+    ids.add(a.id);rooms.add(a.roomId);
+  }
+  return true;
+}
+
 // Optional extensions: old v32 floors have none. Terrain can change during play,
 // so footprints describe ownership, not the current set of walkable floor tiles.
 export function validMapMetadata(map){
   if(MAP_FIELDS.every(k=>map[k]===undefined))return true;
+  if(map.generation?.version===5){
+    // Validate the unchanged underlying skeleton/openings with its original
+    // schema. No recursive v5 descriptors: an annex pass can only wrap v2–v4.
+    if(map.generation.recipeId!=='edge-annexes-v5'||![2,3,4].includes(map.generation.base?.version))return false;
+    return validMapMetadata({...map,annexes:[],generation:map.generation.base})&&validAnnexes(map);
+  }
   if(!map.generation||!Number.isInteger(map.generation.version)||!({2:['grid-v2'],3:['long-halls-v3','hangar-v3'],4:['warehouse-v4','laboratory-v4']}[map.generation.version]?.includes(map.generation.recipeId)))return false;
   const skeleton=map.generation.version===4?map.generation.skeleton:map.generation.recipeId;
   if(!['grid-v2','long-halls-v3','hangar-v3'].includes(skeleton))return false;

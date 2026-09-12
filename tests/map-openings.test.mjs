@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generate,generateWithRecipes,reachable,generationSafe,key} from '../src/world.js';
+import {generateWithRecipes,reachable,generationSafe,key} from '../src/world.js';
 import {MERGED_RECIPES} from '../src/map-merging.js';
 import {OPENING_RECIPES,openingRequest,addOpenings,openingInvariants,roomInterface} from '../src/map-openings.js';
-import {roomAt,validMapMetadata,MAP_FIELDS} from '../src/map-geometry.js';
+import {roomAt,validMapMetadata,MAP_FIELDS,MAP_GENERATION} from '../src/map-geometry.js';
 import {barrierBetween,edgeCells} from '../src/barriers.js';
 import {allSupplies} from '../src/containers.js';
 import {eligibleMissionEnemy} from '../src/map-population.js';
@@ -11,6 +11,7 @@ import {Game} from '../src/game.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
+const generate=(seed,floor=1)=>generateWithRecipes(seed,floor,[],OPENING_RECIPES);
 const base=(seed,floor=1)=>generateWithRecipes(seed,floor,[],MERGED_RECIPES);
 const pair=ids=>[...ids].sort((a,b)=>a-b).join('-');
 const roster=m=>m.enemies.map(({type,hp,maxHp,traits})=>JSON.stringify({type,hp,maxHp,traits})).sort();
@@ -80,16 +81,17 @@ test('new passages share corridor lighting and leave module doors, partitions an
 test('opened/destroyed connection doors and generation-three archives survive actual return travel and backup',()=>{
   class PhaseTwoGame extends Game{generateFloor(){return base(this.seed,this.floor);}}
   const old=new PhaseTwoGame(1,[],0,'recon','onyx','roundtrip'),original=Object.fromEntries([...MAP_FIELDS,'grid','props','barriers'].map(k=>[k,structuredClone(old[k])]));
-  const g=Game.restore(old.serialize());Object.assign(g.player,g.exitPoint);assert.ok(g.descend());assert.equal(g.generation.version,4);assert.deepEqual(g.mapGenerations,[3,4]);
+  const g=Game.restore(old.serialize());Object.assign(g.player,g.exitPoint);assert.ok(g.descend());assert.equal(g.generation.version,MAP_GENERATION);assert.deepEqual(g.mapGenerations,[3,MAP_GENERATION]);
   const doors=g.barriers.filter(b=>b.id.startsWith('edge-opening-'));assert.ok(doors.length>=2);g.setDoor(doors[0],true);g.damageProp(doors[1],999);
   const floorTwo=structuredClone(g.barriers);Object.assign(g.player,g.exitPoint);assert.ok(g.descend());for(const e of g.enemies)e.hp=0;Object.assign(g.player,g.mission.targets[0]);g.recoverObjective(g.mission.targets[0].id);
   const back=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;
   Object.assign(back.player,back.exitPoint);assert.ok(back.descend());assert.deepEqual(back.barriers,floorTwo);
-  Object.assign(back.player,back.exitPoint);assert.ok(back.descend());for(const [field,value]of Object.entries(original))assert.deepEqual(back[field],value);assert.deepEqual(back.mapGenerations,[3,4]);
+  Object.assign(back.player,back.exitPoint);assert.ok(back.descend());for(const [field,value]of Object.entries(original))assert.deepEqual(back[field],value);assert.deepEqual(back.mapGenerations,[3,MAP_GENERATION]);
 });
 
 test('generation-four metadata rejects detached mouths, discontinuous paths and forged fully gated connections',()=>{
-  const g=new Game(1);assert.equal(g.generation.version,4);
+  class PhaseThreeGame extends Game{generateFloor(){return generate(this.seed,this.floor);}}
+  const g=new PhaseThreeGame(1);assert.equal(g.generation.version,4);
   for(const mutate of [d=>d.generation.skeleton='unknown',d=>d.openings[0].mouths[0]={x:0,y:0},d=>d.openings[0].path.splice(1,0,{x:0,y:0}),d=>d.openings.forEach(o=>o.barrierIds=['forged']),d=>d.links.push(d.links[0])]){
     const raw=JSON.parse(g.serialize());mutate(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);
   }

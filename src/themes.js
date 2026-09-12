@@ -7,13 +7,17 @@ export const THEMES={
   industrial:{atlas,tile:32,columns:4,roles},
   sanitary:{atlas,tile:32,columns:4,roles:{...roles,floor:2}},
   security:{atlas,tile:32,columns:4,roles:{...roles,floor:3}},
-  utility:{atlas,tile:32,columns:4,roles:{...roles,floor:1}}
+  utility:{atlas,tile:32,columns:4,roles:{...roles,floor:1}},
+  platform:{atlas,tile:32,columns:4,roles:{...roles,floor:1}},
+  dock:{atlas,tile:32,columns:4,roles:{...roles,floor:3}},
+  balcony:{atlas,tile:32,columns:4,roles:{...roles,floor:2}}
 };
 const moduleTheme={restroom:'sanitary',checkpoint:'security',guardpost:'utility'};
 export function themeAt(game,point){
   const m=game.props.find(p=>p.type==='module'&&point.x>=p.x&&point.x<p.x+2&&point.y>=p.y&&point.y<p.y+2);
   const r=game.rooms?.find(r=>roomContains(r,point));
-  const id=m?.visualTheme||moduleTheme[m?.theme]||r?.visualTheme||'industrial';
+  const annex=game.annexes?.find(a=>a.footprint.some(p=>p.x===point.x&&p.y===point.y));
+  const id=m?.visualTheme||moduleTheme[m?.theme]||annex?.type||r?.visualTheme||'industrial';
   return Object.hasOwn(THEMES,id)?id:'industrial';
 }
 export function resolveSprite(theme,role){

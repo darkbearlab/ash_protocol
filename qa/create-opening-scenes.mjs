@@ -20,7 +20,7 @@ for(const recipe of OPENING_RECIPES){
 let triple;
 for(let seed=1;seed<=100&&!triple;seed++)for(const floor of [1,3,6]){
   const g=new Game(seed,[],0,'recon','onyx');if(floor!==1){g.floor=floor;g.loadFloor();}
-  if(g.generation.version===4&&g.links.some(link=>g.openings.filter(o=>link.every(id=>o.rooms.includes(id))).length===3)){triple=g;break;}
+  if(g.generation.version>=4&&g.links.some(link=>g.openings.filter(o=>link.every(id=>o.rooms.includes(id))).length===3)){triple=g;break;}
 }
 if(!triple)throw new Error('Missing triple-opening scene');save('openings-triple',inspect(triple));
 for(const [name,floor,mission]of [['openings-sweep',6,'sweep'],['openings-archive',6,'archive'],['openings-endless-60',60,'endless']]){
