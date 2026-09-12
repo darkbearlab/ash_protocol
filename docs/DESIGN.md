@@ -20,6 +20,7 @@
 | 友軍 | [ALLIES.md](ALLIES.md) | 工程師機體、德魯伊寵物、死靈召喚、繩索、換位、存檔 | 3.43.1 |
 | 友軍迭代授權 | [ALLY_ITERATION_SCOPE.md](ALLY_ITERATION_SCOPE.md) | Claude 迭代三職業的範圍，以及使用者決定的覆寫紀錄 | 3.43.1 |
 | 投擲物 | [THROWABLES.md](THROWABLES.md) | 破片、煙霧、EMP、震撼、失能與免疫 | 3.42.0 |
+| 地圖骨架 | [MAPGEN.md](MAPGEN.md) | 格位與房間分離、合併房、邊緣附屬區、多連接口、威脅預算與槽位（規格草案，交 Codex） | — |
 | 道具 | [ITEMS.md](ITEMS.md) | 消耗／佩戴／任務型道具的設計定案、現成鉤子與成本分級（討論紀錄，未開工） | — |
 | 照明與感知 | [LIGHTING.md](LIGHTING.md) | 暗區、夜視、紅外線、震撼弱點 | 3.42.0 |
 | 武器 | [WEAPONS.md](WEAPONS.md) | 武器實例、詞條、改裝 | 3.14.0 |
