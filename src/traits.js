@@ -2,6 +2,7 @@ import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {ENEMY_TYPES} from './data.js';
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const TRAITS={
+  extended_burst:{name:'延伸點射',text:'僅衝鋒槍：原射程外再延伸 2 格，延伸區每次只射 1 發、消耗 1 發彈藥。射程詞條先計入原射程，兩發區與單發區一起順延。'},
  difficult_healing:{name:'難以治療',text:'生命恢復在計入升級加成後減半，向下取整；不影響生命上限與護甲板。'},
   night_vision:{name:'夜視',text:'忽略目標暗區的射擊命中懲罰；會受震撼彈失能，不穿煙。'},
   infrared:{name:'紅外線',text:'看穿煙霧，仍受牆與門阻擋；會受震撼彈失能，不抵銷暗區懲罰。'},

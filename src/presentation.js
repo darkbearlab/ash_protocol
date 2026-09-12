@@ -37,7 +37,7 @@ const enemyWeapon={rifleman:'rifle',raider:'smg',gunner:'shotgun',sniper:'sniper
 export const FLIGHT_MS=125,IMPACT_MS=130,DEATH_MS=220;
 export function projectileVisuals(effect,reduceMotion=false){
   const id=effect.style==='grenade'?'grenade':effect.weaponId||enemyWeapon[effect.attackerType]||'rifle';
-  const spec=WEAPON_VISUALS[id]||WEAPON_VISUALS.rifle;
+  const base=WEAPON_VISUALS[id]||WEAPON_VISUALS.rifle,spec=effect.singleShot?{...base,count:1,spread:0}:base;
   return Array.from({length:reduceMotion?1:spec.count},(_,i)=>({...effect,damage:0,miss:false,missPath:effect.miss,
     style:spec.style||effect.style||(id==='melee'?(effect.attackerType==='crawler'?'claw':'slash'):'bullet'),travel:reduceMotion?70:spec.flight,delay:reduceMotion?0:i*spec.stagger,
     spread:reduceMotion?0:spec.spread*(i-(spec.count-1)/2)/Math.max(1,(spec.count-1)/2),quiet:reduceMotion}));

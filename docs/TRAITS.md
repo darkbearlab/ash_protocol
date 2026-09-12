@@ -100,3 +100,12 @@ removeTraitSource(actor, 'effect:cryo'); // 只移除此來源
 ## 保留：非現實世界來源
 
 2026-09-10 使用者提出地獄／亞空間／異空間等關鍵字，僅記錄，名稱／ID／相剋與效果尚未定案；不綁定生物／機械或移動能力，也未加入 TRAITS catalog。傳送與地底鑽出增援的區分、地獄傳送演出見 [OTHERWORLD.md](OTHERWORLD.md)。
+
+
+## 3.67.0：偵察兵「延伸點射」
+
+被動 ID `extended_burst`，來源 `character:recon`。只對 `weaponClass: smg` 生效，不適用其他手槍彈武器。先計入射程詞條，再將射程外推 2 格：標準衝鋒槍 1～5 格兩發、6～7 格單發；長管型 1～7 格兩發、8～9 格單發。每發各耗一發彈藥，不另加單發傷害。
+
+`weaponStats(base, affix, actor)` 的第三參數可選；`range` 是最遠射程，派生欄位 `burstRange` 是正常連發區上限。`volleyAt` 決定發數，不改 `weapon.burst`，避免改變每發強化加成的除數。距離採既有戰鬥距離。快速敵人移動後用結算位置判定；失去可見目標時用承諾座標判定並扣彈，不轉打其他敵人。
+
+存檔仍為 v32，沿用 traits 結構；讀取舊偵察兵存檔補一次來源，不改生命、裝備、彈藥或亂數。等待效果不變。測試見 `tests/recon-extended-burst.test.mjs`。

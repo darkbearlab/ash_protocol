@@ -1,3 +1,4 @@
+import {singleShotAt,volleyAt} from './weapons.js';
 import {objectSightGrid} from './scenery.js';
 import {MAP_FIELDS,validMapMetadata,validGenerationHistory} from './map-geometry.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
@@ -63,7 +64,7 @@ export class Game {
   grapplePlan(id=this.target){return grapplePlan(this,id);}
   get allyTravelSummary(){const near=carryCandidates(this).length,total=this.activeAllies.length;return total?`帶${near} 留${total-near}`:'';}
   get weapon(){return this.weaponAt(this.player.weapon);}
-  weaponAt(slot){return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot]);}
+  weaponAt(slot){return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot],this.player);}
   fireChance(target){if(this.weapon.melee)return this.meleeAccuracy(this.player,target,this.weapon.hitChance);return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.weapon.closeRange&&distance(this.player,target)<=this.weapon.closeRange?this.weapon.closeAccuracy:0)+actorStat(this.player,'rangedAccuracy')+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)-lightingEffects(this,this.player,target).penalty));}
   get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.teamVisible(e));}
   get targeted(){return [...this.enemies,...this.props,...this.barriers].find(e=>e.id===this.target&&e.hp>0&&this.teamVisible(e));}
@@ -370,10 +371,10 @@ export class Game {
     // A committed shot still fires at the last confirmed tile if its target is lost.
     if(intent&&(!e||distance(p,e)>w.range||!this.shotClear(p,e))){
       p.facing=[Math.sign(intent.x-p.x),Math.sign(intent.y-p.y)];
-      const shots=Math.min(w.burst||1,p.ammo[p.weapon]);
+      const singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),p.ammo[p.weapon]);
       for(let i=0;i<shots;i++)presentStep(this,()=>{
         p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
-        this.effects.push({type:'shot',weaponId:w.id,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:intent.x,y:intent.y},damage:0,miss:true,color:w.ammoType==='energy'?'#8ae9da':null});
+        this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:intent.x,y:intent.y},damage:0,miss:true,color:w.ammoType==='energy'?'#8ae9da':null});
       });
       if(this.enemies.some(e=>e.id===intent.id))recordShot(p,intent.id,this.turn);else p.fireChain=null;
       this.log(`原目標已失去有效射線，向最後確認位置開火落空，消耗 ${shots} 發。`);
@@ -383,7 +384,7 @@ export class Game {
     if(distance(p,e)>w.range)return this.fail('目標超出射程，靠近再開火。');
     if(p.ammo[p.weapon]<=0)return this.fail('彈匣已空，請裝填。');
     p.facing=[Math.sign(e.x-p.x),Math.sign(e.y-p.y)];
-    const shots=Math.min(w.burst||1,p.ammo[p.weapon]);
+    const singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),p.ammo[p.weapon]);
     for(let i=0;i<shots;i++) {
       if(e.hp<=0||p.hp<=0)break;
       presentStep(this,()=>{
@@ -391,7 +392,7 @@ export class Game {
         const range=this.weaponDamage(p.weapon,e),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
         const chance=this.fireChance(e);
         const hit=this.rng()*100<chance;
-        this.effects.push({type:'shot',weaponId:w.id,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
+        this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
         if(!hit){this.log(`射擊未命中（命中率 ${chance}%）。`);if(w.explosive)this.log('榴彈偏離目標，未在戰場內爆炸。');return;}
         if(w.explosive)this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)));
         else this.hitTarget(e,damage,p,w.pierce||0);
@@ -793,6 +794,8 @@ export class Game {
         p.prepared={...p.prepared,skill:p.prepared.skill||'anchor'};
         p.skillState={...p.skillState,anchor:{remaining:0,cooldown:0}};
       }
+      // Existing trait schema: retrofit the class passive without changing resources or RNG.
+      if(p.character==='recon'&&!p.traits.some(t=>t.id==='extended_burst'&&t.source==='character:recon'))grantTrait(p,'extended_burst','character:recon');
       // Balance-only passive: existing trait schema, preserve HP/resources and avoid duplicate sources.
       if(['bulwark','necromancer'].includes(p.character)&&!p.traits.some(t=>t.id==='difficult_healing'&&t.source===`character:${p.character}`))grantTrait(p,'difficult_healing',`character:${p.character}`);
       if(version<29)p.battleSpirit=freshSpirit();
