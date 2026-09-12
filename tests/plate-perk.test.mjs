@@ -17,7 +17,7 @@ function kill(g,type,value=.99){const calls=counting(g,value);const e=makeEnemy(
 
 test('perk data: three tiers, appended, and the immediate plates respect the cap',()=>{
  assert.ok(perk&&perk.cap===3&&perk.effect==='plating'&&perk.amount===10);
- assert.equal(PERKS.at(-1).id,'plating','appended at the end of the list');
+ assert.equal(PERKS[11].id,'plating','keeps its original appended index when later content is added');
  const g=arena();g.player.plates=0;applyPerk(g,perk);assert.equal(g.player.plates,10);
  g.player.plates=g.plateCapacity-4;applyPerk(g,perk);assert.equal(g.player.plates,g.plateCapacity,'never above the plate capacity');
  assert.equal(g.player.perks.plating,2);
