@@ -173,7 +173,8 @@ function skill(){if(renderer.mode==='pet'||renderer.mode==='drone'){cancelAim();
 function grenade(){if(renderer.mode==='grenade'){cancelAim();return;}const entry=preparedEntry(game.player,'grenade');if(!entry){notify('請先在背包預備手榴彈。');return;}if(game.player[entry.resource]<=0){notify(`${entry.name}已用盡。`);return;}renderer.mode='grenade';const locked=game.targeted,e=isBarrier(locked)?barrierFace(locked,game.player):locked;renderer.aim=e&&distance(e,game.player)<=5?{x:e.x,y:e.y}:{x:game.player.x,y:game.player.y};updateAim();}
 function toggleTargeting(){renderer.targetingEnabled=!renderer.targetingEnabled;write('ash-targeting',renderer.targetingEnabled?'on':'off');update();}
 function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify('附近沒有可見敵人。');return;}game.target=list[(list.findIndex(x=>x.id===game.target)+1)%list.length].id;update();}
-function modal(html,wide=false,title=false){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
+// The corner × appears on screens that already offer a way back, so the player never has to scroll to leave (3.54.0).
+function modal(html,wide=false,title=false,closable=html.includes('data-modal="close"')){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal').classList.toggle('closable',closable);$('#modal-content').innerHTML=html;if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
 function close(){if(!entered){showIntro();return;}if(game.pendingPerks){showPerks();return;}if(game.status!=='playing'){$('#modal').close();return;}$('#modal').close();$('#battle').focus({preventScroll:true});}
 function modalAction(type,arg){close();act(type,arg);}
 
