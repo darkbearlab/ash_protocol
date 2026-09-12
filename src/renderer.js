@@ -13,7 +13,7 @@ import {isContainer,CONTAINER_KINDS} from './containers.js';
 import {isBarrier,edgeCells} from './barriers.js';
 import {areaCells} from './throwables.js';
 import {cameraFrame} from './camera.js';
-import {targetCardPlacement,actorObstacle} from './target-card.js';
+import {targetCardPlacement,actorObstacle,spriteSize} from './target-card.js';
 import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance} from './engine.js';
 
 // Orthographic board: world +x = screen right, world +y = screen down.
@@ -222,7 +222,7 @@ export class Renderer {
   effectSprite(name,a,size=32,angle=0){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);c.drawImage(name.startsWith('dead-')&&this.corpseReady?this.corpseAtlas:this.aftermath,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
   // The operator colour (3.48.2) tints the grey class art from a cached canvas; without one the grey cell is drawn as is.
   classSprite(a,size,character,dead=false){const image=this.classSprites;if(!image?.complete||!image.naturalWidth)return false;const r=classSpriteRect(character,dead),tinted=tintedSprite(image,r,this.operatorColor,this.tintCache),c=this.ctx;c.drawImage(tinted||image,tinted?0:r.x,tinted?0:r.y,r.w,r.h,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
-  corpse(a,type,character){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));const c=this.ctx;c.save();const drawn=(type==='player'&&this.classSprite(a,size,character,true))||this.effectSprite('dead-'+(type==='gunner'?'rifleman':type),a,size);c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
+  corpse(a,type,character){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=spriteSize(this.tile);const c=this.ctx;c.save();const drawn=(type==='player'&&this.classSprite(a,size,character,true))||this.effectSprite('dead-'+(type==='gunner'?'rifleman':type),a,size);c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
   wall(a,x,y){
     const g=this.game,adjacent=[[0,1],[0,-1],[1,0],[-1,0]].map(([dx,dy])=>({x:x+dx,y:y+dy})).find(p=>g.grid[p.y]?.[p.x]===1);
     return drawWall(this.ctx,g,x,y,this.tile,a,this.terrainImages,themeAt(g,adjacent||{x,y}),this.artTones);
@@ -280,7 +280,7 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     const c=this.ctx,player=type==='player',def=ENEMY_TYPES[type],large=type==='boss'||type==='warden',s=this.tile/45*(large?1.15:1);
     const spriteType=type==='gunner'?'rifleman':type;
     if(this.sprites.complete&&this.sprites.naturalWidth&&this.spriteNames.includes(spriteType)){
-      const size=this.tile<30?16:32*Math.max(1,Math.floor(this.tile/32));
+      const size=spriteSize(this.tile);
       if(player){this.box(a.x-17,a.y-17,34,34,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(a.x,a.y,20,0,Math.PI*2);c.stroke();}}
       // Optical camouflage (3.47.1): the ninja's sprite fades while it is active; the frame and label stay readable.
       c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;if(!player||!this.classSprite(a,size,e.character))this.sprite(spriteType,a,size);c.restore();

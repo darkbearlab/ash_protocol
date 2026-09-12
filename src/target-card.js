@@ -24,9 +24,12 @@ export function targetDetails(game){
 }
 
 const overlap=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
+// Sprites follow the tile size (3.50.0). The old 32/16 step made actors jump out of scale when the camera
+// zoomed out for a distant target.
+export const spriteSize=tile=>Math.max(12,Math.round(tile*.84));
 // Include sprite, health bar and charge marker at every rendered zoom.
 export function actorObstacle(point,tile,fallback=false){
-  const size=tile<30?16:32*Math.max(1,Math.floor(tile/32));
+  const size=spriteSize(tile);
   const extent=fallback?tile*.8:0;
   const rx=Math.max(18,size/2+3,tile*.38+10,extent),top=Math.max(24,size/2+3,tile*.45+5,extent),bottom=Math.max(20,size/2+3,tile*.58+4,extent);
   return {x:point.x-rx,y:point.y-top,w:rx*2,h:top+bottom};

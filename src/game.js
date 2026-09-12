@@ -196,6 +196,7 @@ export class Game {
     if(type==='weapon')return (p.owned.includes(Number(arg))&&Number(arg)!==p.weapon)||this.fail('無法換裝此武器。');
     if(type==='salvage')return (p.owned.includes(Number(arg))&&p.owned.length>1&&!this.weaponAt(Number(arg)).locked)||this.fail('無法拆解此武器。');
     if(type==='takeWeapon')return (Boolean(this.nearbyWeapon(Number(arg)))&&p.owned.length<this.weaponCapacity)||this.fail('附近沒有這把武器或背包已滿。');
+    if(type==='salvageGround')return (Boolean(this.nearbyWeapon(Number(arg)))&&!this.weaponAt(Number(arg)).locked)||this.fail('附近沒有這把武器，或它不能拆解。');
     if(type==='replaceWeapon')return (Boolean(this.nearbyWeapon(arg?.take))&&p.owned.includes(arg?.leave)&&!this.weaponAt(arg.leave).locked)||this.fail('要交換的武器已不在原處。');
     if(type==='upgrade'){const level=p.upgrades[p.weapon];return (level<3&&p.scrap>=25+level*15)||this.fail('改裝已滿或廢料不足。');}
     if(type==='terminal'){
@@ -334,6 +335,7 @@ export class Game {
       }
       case 'salvage':success=this.salvage(Number(arg));break;
       case 'takeWeapon':success=this.takeWeapon(Number(arg));break;
+      case 'salvageGround':success=this.salvageGround(Number(arg));break;
       case 'replaceWeapon':success=this.replaceWeapon(arg);break;
       case 'upgrade':success=this.upgrade();break;
       case 'terminal':success=this.useTerminal(arg);break;
@@ -636,6 +638,18 @@ export class Game {
     this.receiveAmmo(this.weaponAt(index).ammoType,p.ammo[index]);p.ammo[index]=0;p.owned=p.owned.filter(i=>i!==index);
     p.scrap+=20+(p.upgrades[index]||0)*10;p.upgrades[index]=0;p.stats.salvaged++;
     if(p.weapon===index)p.weapon=p.owned[0];this.log(`拆解${this.weaponAt(index).name}，回收彈匣與廢料。`);return true;
+  }
+  // Salvage a dropped weapon without picking it up (3.50.0, user request): same yield as the pack version,
+  // so a full pack can still turn loot into scrap and magazine ammunition.
+  salvageGround(slot) {
+    const p=this.player,item=this.nearbyWeapon(slot);
+    if(!item)return this.fail('附近沒有這把武器。');
+    const w=this.weaponAt(slot);
+    if(w.locked)return this.fail('固定武器不能拆解。');
+    this.receiveAmmo(w.ammoType,p.ammo[slot]);p.ammo[slot]=0;
+    const scrap=20+(p.upgrades[slot]||0)*10;p.scrap+=scrap;p.upgrades[slot]=0;p.stats.salvaged++;
+    this.items=this.items.filter(o=>o!==item);
+    this.log(`就地拆解${w.name}，回收彈匣與 ${scrap} 廢料。`);return true;
   }
   upgrade() {
     const p=this.player,level=p.upgrades[p.weapon]||0,cost=25+level*15;
