@@ -2,7 +2,7 @@ import {classPerkRank} from './class-perks.js';
 import {MAX_LEVEL,perkLimit,floorLimit,isEndless,scaleEnemy,giveCapSupply,PROTOCOL_EVENT_LIMIT} from './endless.js';
 import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambushReady,shortenCamo,meleeReward,defensiveEvasion,grapplePlan,useGrapple,MELEE_TUNING} from './melee-classes.js';
 import {healActor} from './traits.js';
-import {ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
+import {recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
 import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickPackedPet,tickSummons,petSkillReason,fitDrone,DRONE_HP,DRONE_BUILD_COST,droneCells,dronePlaces} from './allies.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
@@ -40,7 +40,7 @@ export class Game {
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
     this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
-    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.logs=[];this.status='playing';this.pendingPerks=0;this.perkPicks=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];this.loadFloor();initializeAllies(this);this.reveal();
+    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.logs=[];this.status='playing';this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];this.loadFloor();initializeAllies(this);this.reveal();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   loadFloor() {
@@ -708,7 +708,7 @@ export class Game {
     if(this.status!=='playing'||!this.pendingPerks||this.perkPicks>=perkLimit(this.player.level)||this.perkPicks+this.pendingPerks>perkLimit(this.player.level))return false;
     const offer=this.perkChoices.find(o=>o.id===id);
     if(!offer||!eligiblePerks(this).some(o=>o.id===id))return false;
-    applyPerk(this,offer);this.pendingPerks--;this.perkPicks++;this.perkDraft=null;ensurePerks(this);
+    recordPerkOffer(this);applyPerk(this,offer);this.pendingPerks--;this.perkPicks++;this.perkDraft=null;ensurePerks(this);
     this.log(`模組已安裝：${offer.name}。`);return true;
   }
   serialize(){ensurePerks(this);const {rng,effects,visibleTiles,...data}=this;return JSON.stringify({version:SAVE_VERSION,data,rngState:rng.state()});}
@@ -827,9 +827,10 @@ export class Game {
       if(version>=28&&(!Object.hasOwn(data.player,'perks')||!Object.hasOwn(data.player,'perkWeaponBonus')))return null;
       if(version<28)migratePerks(g);
       if(version<30){if(![g.pendingPerks,g.perkPicks].every(n=>Number.isSafeInteger(n)&&n>=0))return null;g.legacyPerkPicks=g.perkPicks>perkLimit(p.level)?g.perkPicks:0;const kept=Math.max(0,Math.min(g.pendingPerks,perkLimit(p.level)-g.perkPicks));if(kept!==g.pendingPerks)g.perkDraft=null;g.pendingPerks=kept;}
+      if(version<31)g.classPerkMisses=0;
       if(!validPerks(g))return null;
       if(!validAllies(g))return null;
-      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...frame,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,fireChain:null}}})))))return null;
+      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...frame,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,fireChain:null}}})))))return null;
       // Weapon slots belong to the run, including weapons left on archived floors.
       for(const frame of Object.values(g.floorStates))for(const item of frame.items)if(item.type==='weapon'){
         if(locations.has(item.slot))return null;locations.add(item.slot);

@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.55.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.57.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -129,3 +129,5 @@
 3.48：玩家八職業有獨立灰色站姿／死亡圖集。`src/class-art.js` 提供座標，renderer.classSprite 使用演出快照的職業。來源與製程見 `art/classes-v1/README.md`；其他單位仍用既有圖集。
 
 3.49：等級20截止三選一，21起自動封頂補給；無盡任務與六層設定循環、深層敵人成長。src/endless.js集中常數；data.floorInfo共用樓層設定。save30保留歷史超限強化，profile5新增endless.best/byCharacter，備份外層1不變。詳見ENDLESS.md；Claude接UI與平衡。
+
+3.57.0：save v31 新增 classPerkMisses（0～2），職業選單保底計數；舊檔遷移 0、待選卡保留。完整備份沿用原封裝。

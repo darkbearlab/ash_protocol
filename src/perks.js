@@ -3,7 +3,8 @@ import {perkLimit} from './endless.js';
 import {healActor} from './traits.js';
 import {PERKS} from './data.js';
 import {random} from './world.js';
-export const REPEAT_CHANCE=.6;
+export const REPEAT_CHANCE=.6,CLASS_CHANCE=.5,CLASS_MISS_LIMIT=2;
+const isClass=o=>Boolean(o.characters?.length);
 const count=(p,id)=>p.perks[id]||0;
 // Future content may restrict characters or provide an eligibility predicate.
 export const eligiblePerks=g=>PERKS.filter(o=>(o.cap===null||count(g.player,o.id)<o.cap)&&(!o.characters||o.characters.includes(g.player.character))&&(!o.eligible||o.eligible(g)));
@@ -18,6 +19,10 @@ export function drawPerks(g){
  const take=list=>{const o=list[Math.floor(rng()*list.length)];ids.push(o.id);pool.splice(pool.indexOf(o),1);};
  const repeat=pool.filter(o=>o.cap!==null&&count(g.player,o.id)>0);
  if(rng()<REPEAT_CHANCE&&repeat.length)take(repeat);
+ const classPool=pool.filter(isClass);
+ if(classPool.length){const prioritize=(g.classPerkMisses||0)>=CLASS_MISS_LIMIT||rng()<CLASS_CHANCE;
+  if(prioritize&&!ids.some(id=>isClass(PERKS.find(o=>o.id===id))))take(classPool);
+ }
  while(ids.length<3&&pool.length)take(pool);
  for(let i=ids.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]];}
  return {index:g.perkPicks,ids};
@@ -26,6 +31,10 @@ export function ensurePerks(g){
  if(!g.pendingPerks||g.perkPicks>=perkLimit(g.player.level)){g.perkDraft=null;return [];}
  if(!g.perkDraft)g.perkDraft=drawPerks(g);
  return g.perkDraft.ids.map(id=>PERKS.find(o=>o.id===id));
+}
+export function recordPerkOffer(g){
+ const available=eligiblePerks(g).some(isClass),offered=g.perkDraft?.ids.some(id=>isClass(PERKS.find(o=>o.id===id)));
+ g.classPerkMisses=!available||offered?0:Math.min(CLASS_MISS_LIMIT,(g.classPerkMisses||0)+1);
 }
 export function applyPerk(g,o){
  const p=g.player;
@@ -57,6 +66,7 @@ export function migratePerks(g){
 }
 export function validPerks(g){
  const integer=n=>Number.isSafeInteger(n)&&n>=0&&n<=10000000,p=g.player,d=g.perkDraft;
+ if(!Number.isInteger(g.classPerkMisses)||g.classPerkMisses<0||g.classPerkMisses>CLASS_MISS_LIMIT)return false;
  if(!integer(g.pendingPerks)||!integer(g.perkPicks)||!integer(p.perkWeaponBonus)||!p.perks||typeof p.perks!=='object'||Array.isArray(p.perks))return false;
  if(!integer(p.level)||p.level<1||!integer(p.xp)||!integer(g.legacyPerkPicks))return false;
  if(g.legacyPerkPicks?(g.perkPicks!==g.legacyPerkPicks||g.pendingPerks!==0||g.legacyPerkPicks>p.level-1):g.perkPicks+g.pendingPerks>perkLimit(p.level))return false;
