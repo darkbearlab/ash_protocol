@@ -14,6 +14,7 @@
 | 職業 | [CHARACTERS.md](CHARACTERS.md) | 兵種數值、起始配給、角色被動 | 3.35.0 |
 | 重裝兵 | [BULWARK.md](BULWARK.md) | 重裝兵、輕機槍、動力拳 | 3.35.1 |
 | 近戰職業 | [MELEE_CLASSES.md](MELEE_CLASSES.md) | 狂戰士／忍者規則與Claude介面接手 | 3.47.0 |
+| 職業專屬升級 | [CLASS_PERKS.md](CLASS_PERKS.md) | 八職業各三項局內升級（規格，待實作） | — |
 | 無盡模式 | [ENDLESS.md](ENDLESS.md) | 等級上限 20、無盡任務、第 7 層以後的成長與紀錄（3.49規則完成，介面與平衡待Claude） | `tests/endless.test.mjs` |
 | 主動技能 | [SKILLS.md](SKILLS.md) | 下錨、預警、訊號斷層 | 3.35.1 |
 | 友軍 | [ALLIES.md](ALLIES.md) | 工程師機體、德魯伊寵物、死靈召喚、繩索、換位、存檔 | 3.43.1 |
