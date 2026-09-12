@@ -1,3 +1,4 @@
+import {roomContains} from './map-geometry.js';
 import {makeBarrier,barrierBetween,edgeCells} from './barriers.js';
 
 export const FURNITURE={toilet:{name:'衛浴設備',hp:35},sink:{name:'洗手台',hp:40},counter:{name:'門禁櫃檯',hp:70},scanner:{name:'檢查設備',hp:45},locker:{name:'置物櫃',hp:75},bench:{name:'值勤桌',hp:55}};
@@ -30,12 +31,12 @@ export function addLivingModules(map,seed,floor,{corridors,reachable}){
   for(let slot=0;slot<2;slot++){
     const theme=themes[(offset+slot)%themes.length],def=MODULE_TYPES[theme];let placed=false;
     const order=map.rooms.map((r,i)=>({r,i})).filter(({i})=>i!==map.startRoom&&!used.has(i));
-    order.sort((a,b)=>((a.i+seed+floor)%9)-((b.i+seed+floor)%9));
+    order.sort((a,b)=>((a.i+seed+floor)%map.rooms.length)-((b.i+seed+floor)%map.rooms.length));
     for(const {r,i}of order){
       if(placed)break;
       for(let y=r.y;y<r.y+r.h-1&&!placed;y++)for(let x=r.x;x<r.x+r.w-1&&!placed;x++)for(let rotation=0;rotation<4&&!placed;rotation++){
         const marker={id:`module-${floor}-${slot}`,type:'module',theme,x,y,rotation,indestructible:true};
-        if(!clear(marker))continue;
+        if(!moduleCells(marker).every(p=>roomContains(r,p))||!clear(marker))continue;
         const furniture=def.furniture.map((style,n)=>({...modulePoint(marker,n,0),id:`${marker.id}-${n}`,type:'cover',style,moduleId:marker.id,hp:FURNITURE[style].hp,maxHp:FURNITURE[style].hp}));
         if(furniture.some(p=>corridors.has(key(p))||map.barriers.some(b=>edgeCells(b).some(q=>key(q)===key(p)))))continue;
         const cells=moduleCells(marker),priorProps=map.props,priorEdges=map.barriers,edges=[];

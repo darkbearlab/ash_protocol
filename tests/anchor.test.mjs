@@ -1,3 +1,4 @@
+import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
@@ -10,7 +11,7 @@ import {captureAction,planPresentation} from '../src/presentation.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
-function arena(){const g=new Game(335,[],0,'bulwark','onyx');g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());g.seen=g.grid.map(r=>r.map(()=>true));for(const k of ['allies','enemies','props','items','barriers','hazards','marks','rooms','traces','smoke'])g[k]=[];Object.assign(g.player,{x:10,y:10,hp:200,maxHp:200});g.start={x:5,y:5};g.end={x:20,y:20};g.reveal();return g;}
+function arena(){const g=new Game(335,[],0,'bulwark','onyx');g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());g.seen=g.grid.map(r=>r.map(()=>true));for(const k of ['allies','enemies','props','items','barriers','hazards','marks','rooms','traces','smoke'])g[k]=[];clearGeneratedMap(g);Object.assign(g.player,{x:10,y:10,hp:200,maxHp:200});g.start={x:5,y:5};g.end={x:20,y:20};g.reveal();return g;}
 const toggle=g=>g.action('usePrepared',{category:'skill'});
 function foe(g,{x=14,y=10,speed=0}={}){const e=makeEnemy('rifleman',x,y,'anchor-enemy-'+g.enemies.length);Object.assign(e,{hp:1000,maxHp:1000,alert:true});if(speed)grantTrait(e,speed<0?'fast':'slow','test:anchor');g.enemies.push(e);g.reveal();g.target=e.id;return e;}
 function anchored(){const g=arena();assert.ok(toggle(g));return g;}

@@ -1,3 +1,4 @@
+import {roomContains} from './map-geometry.js';
 import {approved,materialSprite} from './materials.js';
 // Semantic roles decouple room/module layout from sprite sheets. Cosmetic only.
 const atlas=new URL('../assets/pixel/terrain-v1/atlas.png',import.meta.url).href;
@@ -11,7 +12,7 @@ export const THEMES={
 const moduleTheme={restroom:'sanitary',checkpoint:'security',guardpost:'utility'};
 export function themeAt(game,point){
   const m=game.props.find(p=>p.type==='module'&&point.x>=p.x&&point.x<p.x+2&&point.y>=p.y&&point.y<p.y+2);
-  const r=game.rooms?.find(r=>point.x>=r.x&&point.x<r.x+r.w&&point.y>=r.y&&point.y<r.y+r.h);
+  const r=game.rooms?.find(r=>roomContains(r,point));
   const id=m?.visualTheme||moduleTheme[m?.theme]||r?.visualTheme||'industrial';
   return Object.hasOwn(THEMES,id)?id:'industrial';
 }

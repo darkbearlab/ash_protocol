@@ -45,7 +45,7 @@ function resultProfile(game,p=profile()){if(game.status==='playing'||storage.rec
   if(p.protocolRuns[id].recorded)return p;
   p.protocolRuns[id].recorded=true;p.runs++;p.wins+=Number(game.status==='won');
   if(game.mission.id!=='endless')p.bestFloor=Math.min(6,Math.max(p.bestFloor,deepestFloor(game)));recordEndless(p,game);p.bestKills=Math.max(p.bestKills,game.player.kills);
-  p.history.unshift({id,mission:game.mission.id,portrait:game.player.portrait,character:game.player.character,seed:game.seed,floor:deepestFloor(game),level:game.player.level,kills:game.player.kills,turn:game.turn,won:game.status==='won',outcome:game.status,protocol:game.protocol.earned,date:new Date().toISOString()});
+  p.history.unshift({id,mapGenerations:[...(game.mapGenerations||[game.generation?.version||1])],mission:game.mission.id,portrait:game.player.portrait,character:game.player.character,seed:game.seed,floor:deepestFloor(game),level:game.player.level,kills:game.player.kills,turn:game.turn,won:game.status==='won',outcome:game.status,protocol:game.protocol.earned,date:new Date().toISOString()});
   p.history=p.history.slice(0,10);return p;
 }
 

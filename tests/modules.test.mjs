@@ -1,3 +1,4 @@
+import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,generate,reachable,makeBarrier} from '../src/engine.js';
@@ -8,7 +9,7 @@ import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 import {targetDetails} from '../src/target-card.js';
 
-function arena(){const g=new Game(318);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.props=[];g.enemies=[];g.items=[];g.hazards=[];g.marks=[];g.smoke=[];g.rooms=[];g.end={x:20,y:20};g.reveal();return g;}
+function arena(){const g=new Game(318);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.props=[];g.enemies=[];g.items=[];g.hazards=[];g.marks=[];g.smoke=[];g.rooms=[];clearGeneratedMap(g);g.end={x:20,y:20};g.reveal();return g;}
 function module(g,theme='checkpoint',rotation=0){const m={id:'module-test',type:'module',theme,x:11,y:10,rotation,indestructible:true};g.props.push(m,...MODULE_TYPES[theme].furniture.map((style,n)=>({...modulePoint(m,n,0),id:`${m.id}-${n}`,type:'cover',style,moduleId:m.id,hp:FURNITURE[style].hp,maxHp:FURNITURE[style].hp})));return m;}
 
 test('600 floors retain one or two distinct modules and exactly one main-route and one side-route station',()=>{

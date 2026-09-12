@@ -1,3 +1,4 @@
+import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
@@ -7,7 +8,7 @@ import {normalizeProfile} from '../src/progression.js';
 
 function arena(character='soldier'){
   const g=new Game(325,[],0,character);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());
-  for(const key of ['barriers','props','items','hazards','marks','enemies','smoke','rooms'])g[key]=[];
+  for(const key of ['barriers','props','items','hazards','marks','enemies','smoke','rooms'])g[key]=[];clearGeneratedMap(g);
   Object.assign(g.player,{x:10,y:10});g.end={x:20,y:20};g.reveal();return g;
 }
 function enemy(g,type='rifleman',x=14,y=10){const e=makeEnemy(type,x,y,'stats-target');e.hp=e.maxHp=1000;e.alert=true;e.charge=true;g.enemies.push(e);g.target=e.id;g.reveal();return e;}

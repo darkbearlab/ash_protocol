@@ -1,3 +1,4 @@
+import {roomTiles,roomContains,roomAt} from './map-geometry.js';
 import {activeTrait} from './traits.js';
 
 export const DARK_PENALTY=40;
@@ -6,13 +7,13 @@ export const fullLighting=grid=>grid.map(row=>row.map(()=>1));
 export function createLighting(grid,rooms,start,seed,floor,corridors=[]){
   const light=fullLighting(grid);
   const hash=i=>{let n=(seed^Math.imul(floor,2654435761)^Math.imul(i+1,2246822519))>>>0;n=Math.imul(n^(n>>>16),2246822519);return (n^(n>>>13))>>>0;};
-  const dark=rooms.map((room,i)=>({room,i,rank:hash(i)})).filter(({room:r})=>!(start.x>=r.x&&start.x<r.x+r.w&&start.y>=r.y&&start.y<r.y+r.h)).sort((a,b)=>a.rank-b.rank||a.i-b.i).slice(0,3);
-  for(const {room:r}of dark)for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++)if(grid[y]?.[x]===1)light[y][x]=0;
-  const roomAt=p=>rooms.findIndex(r=>p.x>=r.x&&p.x<r.x+r.w&&p.y>=r.y&&p.y<r.y+r.h),assigned=new Set();
+  const dark=rooms.map((room,i)=>({room,i,rank:hash(i)})).filter(({room:r})=>!roomContains(r,start)).sort((a,b)=>a.rank-b.rank||a.i-b.i).slice(0,3);
+  for(const {room:r}of dark)for(const {x,y}of roomTiles(r))if(grid[y]?.[x]===1)light[y][x]=0;
+  const assigned=new Set();
   for(const [i,path]of corridors.entries()){
     const endpoints=path.rooms.map(index=>rooms[index]),chosen=endpoints[hash(i+rooms.length)%2];
     const value=light[chosen.cy??chosen.y][chosen.cx??chosen.x];
-    for(const p of path.cells){const k=p.x+','+p.y;if(grid[p.y]?.[p.x]===1&&roomAt(p)<0&&!assigned.has(k)){light[p.y][p.x]=value;assigned.add(k);}}
+    for(const p of path.cells){const k=p.x+','+p.y;if(grid[p.y]?.[p.x]===1&&roomAt(rooms,p)<0&&!assigned.has(k)){light[p.y][p.x]=value;assigned.add(k);}}
   }
   return light;
 }

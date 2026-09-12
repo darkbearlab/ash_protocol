@@ -1,3 +1,4 @@
+import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
@@ -10,7 +11,7 @@ import {normalizeProfile} from '../src/progression.js';
 function arena(character='recon'){
   const g=new Game(327,[],0,character,'onyx');
   g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());
-  for(const key of ['barriers','props','items','hazards','marks','enemies','smoke','rooms','traces'])g[key]=[];
+  for(const key of ['barriers','props','items','hazards','marks','enemies','smoke','rooms','traces'])g[key]=[];clearGeneratedMap(g);
   Object.assign(g.player,{x:10,y:10});g.end={x:20,y:20};g.reveal();return g;
 }
 const use=g=>g.action('usePrepared',{category:'skill'});

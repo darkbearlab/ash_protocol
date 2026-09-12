@@ -1,3 +1,4 @@
+import {clearGeneratedMap} from './helpers/arena.mjs';
 import {allSupplies} from '../src/containers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -11,7 +12,7 @@ import {normalizeProfile} from '../src/progression.js';
 function arena(character='soldier'){
   const g=new Game(315,[],0,character);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));
   Object.assign(g.player,{x:10,y:10,grenades:0,hp:500,maxHp:500});
-  g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rooms=[];
+  g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rooms=[];clearGeneratedMap(g);
   g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();return g;
 }
 function enemy(g,type='rifleman',x=14,y=10){const e=makeEnemy(type,x,y,`${type}-${g.enemies.length}`);e.hp=e.maxHp=500;e.alert=true;e.charge=true;e.windup=1;g.enemies.push(e);g.reveal();return e;}

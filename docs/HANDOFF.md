@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.60.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.61.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -43,7 +43,8 @@
 | `src/engine.js` | 穩定匯出入口，UI、測試、工具共用 |
 | `src/game.js` | `Game` 類別：行動驗證與結算、敵人 AI、爆炸、背包、樓層切換、存檔序列化與遷移 |
 | `src/data.js` | 內容與數值：武器、敵人、樓層、升級、資料片段；`SAVE_VERSION`、`LEGACY_SAVE_VERSIONS` |
-| `src/world.js` | 亂數、視線、地圖生成、敵人建立 |
+| `src/world.js` | 亂數、視線、生成流程、敵人建立；generate 預設 v2 第一階段，generateWithRecipes(..., []) 保留 v1 |
+| `src/map-geometry.js`、`src/map-population.js` | 格位／房間／輪廓與可選存檔欄位；威脅分配、任務名額保障、哨位與 expendable 資格 |
 | `src/combat.js`、`src/cover.js` | 敵我共用的牆角探身、掩護、命中率；掩體角度效率 |
 | `src/traits.js`、`src/actor-stats.js` | 被動規則與行動順序（`initiativeQueue`）；命中／迴避修正通道 |
 | `src/characters.js`、`src/skills.js` | 職業與起始配給；主動技能定義與狀態 |
@@ -81,7 +82,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v30**（`data.js` 的 `SAVE_VERSION`）。舊版 1～29 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v32**（`data.js` 的 `SAVE_VERSION`）。舊版 1～31 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v5**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -139,3 +140,14 @@
 3.55～3.60：八職業各三項局內升級全部進池，save v31 的 `classPerkMisses`（抽選保底）與 save v32 的 `shadowSteps`（忍者影步）。規格見 CLASS_PERKS.md。**Codex 這批沒有附自動測試**，Claude 的程式驗證（22 項獨立檢查全過）在 `qa/results/2026-09-12-claude-3.60-class-perks-qa.md`，同檔記了兩個介面缺口：影步剩餘步數沒進狀態列、技能說明仍顯示基礎值。
 
 道具：2026-09-12 定案的設計紀錄在 [ITEMS.md](ITEMS.md)（消耗／佩戴／任務型、現成鉤子、成本分級）。尚未開工；開工時要一次規劃存檔欄位，不要一項升一次版本。
+
+## 地圖骨架 v2（3.61.0 起）
+
+- 第 1 階段完成；`docs/MAPGEN.md` 第 13 節是實作現況與後續邊界。
+- `cells` 指向房間 ID，`rooms` 保留包圍矩形並帶 `cellIds/footprint`。範圍查詢使用 `roomContains/roomTiles/roomAt`，舊檔仍可用矩形。
+- `openings` 描述生成時的通道，`barrierIds` 是歷史關聯，不是現在門的通行狀態；現在通行一律讀 grid/barriers。第 1 階段沿用原門規則，第 3 階段才套無門通道保障。
+- `MAP_FIELDS` 納入 `FLOOR_FIELDS`，但屬可選欄位；`REQUIRED_FLOOR_FIELDS` 保持既有必填。返回舊樓層時要清掉現層描述，不能 Object.assign 後殘留。
+- save v32 不升版：缺少 v2 描述不重生；存在則驗證。每次改生成結果要遞增生成世代，並保留既有世代的讀取支援。
+- 單局全域的 `mapGenerations` 記所有經歷過的世代（例如 `[1,2]`），結算複製到 history。同一個每日種子跨世代不能直接比較；部署種類／日期目前沒有獨立保存，因此這個欄位適用所有局，UI 由 Claude 接上。
+- 手工 QA 若換掉 rooms，應一併移除 cells/openings/annexes/generation；測試共用 `tests/helpers/arena.mjs`，不要放寬正式存檔驗證。
+- 原有勝率回歸固定使用 LegacyGame；v2 機器人另驗行動合法與結束，3.61.0 觀察到 Recon 種子 1～12 無勝局。這是待人工檢視的難度變化，沒有調整武器、敵人數值或放寬 v1 勝率斷言。

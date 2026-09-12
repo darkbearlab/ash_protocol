@@ -22,8 +22,8 @@ function safeMove(g,predicate) {
   const p=g.player;
   return [[0,-1],[1,0],[0,1],[-1,0]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy,step:[dx,dy]})).filter(n=>g.passable(n.x,n.y)&&g.canCross(p,n)&&!g.hazards.some(h=>distance(h,n)===0)&&!g.enemies.some(e=>e.hp>0&&distance(e,n)===0)&&predicate(n)).sort((a,b)=>g.visibleEnemies.filter(e=>e.charge&&distance(e,a)<=1).length-g.visibleEnemies.filter(e=>e.charge&&distance(e,b)<=1).length)[0]?.step;
 }
-export function play(seed,maxActions=1800,character='soldier') {
-  const g=new Game(seed,[],0,character);let invalid=0,actions=0;
+export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
+  const g=new GameType(seed,[],0,character);let invalid=0,actions=0;
   const act=(type,arg)=>{actions++;if(!g.action(type,arg))invalid++;};
   for(let i=0;i<maxActions&&g.status==='playing';i++) {
     const p=g.player;

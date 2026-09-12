@@ -1,3 +1,4 @@
+import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
@@ -12,7 +13,7 @@ import {targetDetails} from '../src/target-card.js';
 import {Renderer} from '../src/renderer.js';
 function arena(character='soldier'){
  const g=new Game(329,[],0,character,'onyx');g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());
- for(const k of ['enemies','props','items','barriers','hazards','marks','rooms','traces','smoke'])g[k]=[];
+ for(const k of ['enemies','props','items','barriers','hazards','marks','rooms','traces','smoke'])g[k]=[];clearGeneratedMap(g);
  Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500});g.start={x:5,y:5};g.end={x:20,y:20};g.reveal();return g;
 }
 const enemy=(g,x=14,y=10,type='rifleman')=>{const e=makeEnemy(type,x,y,'qa-'+g.enemies.length);e.hp=e.maxHp=500;g.enemies.push(e);return e;};

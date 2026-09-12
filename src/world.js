@@ -1,3 +1,5 @@
+import {MAP_GENERATION,latticeCells,cellNeighbors,collapseCellLinks,describeRooms} from './map-geometry.js';
+import {placePopulation,reservationPosts} from './map-population.js';
 import {ENDLESS_TUNING,extraEnemies,eliteChance,scaleEnemy} from './endless.js';
 import {createLighting} from './lighting.js';
 import {selectSupplyStations,addLivingModules} from './modules.js';
@@ -37,7 +39,18 @@ export function makeEnemy(type,x,y,id,floor=1) {
   const def=ENEMY_TYPES[type],hp=scaleEnemy(def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp');
   return {id,type,x,y,hp,maxHp:hp,vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
 }
-export function generate(seed,floor=1,unlocks=[]) {
+// Phase one has one built-in skeleton. Empty pools explicitly select v1.
+export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
+export function generate(seed,floor=1,unlocks=[]){return generateWithRecipes(seed,floor,unlocks,PHASE_ONE_RECIPES);}
+export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=PHASE_ONE_RECIPES){
+  if(!recipes.length)return generateLegacy(seed,floor,unlocks);
+  if(recipes.some(r=>r.id!=='grid-v2'))throw new Error('Unsupported phase-one recipe');
+  const map=generateBase(seed,floor,unlocks,true);
+  if(!map||!generationSafe(map))return generateLegacy(seed,floor,unlocks);
+  return map;
+}
+export function generateLegacy(seed,floor=1,unlocks=[]){return generateBase(seed,floor,unlocks,false);}
+function generateBase(seed,floor,unlocks,v2) {
   const rng=random(seed+floor*7919),grid=Array.from({length:SIZE},()=>Array(SIZE).fill(0)),rooms=[];
   for(let ry=0;ry<3;ry++)for(let rx=0;rx<3;rx++) {
     const w=6+Math.floor(rng()*2),h=6+Math.floor(rng()*2),x=rx*8+2,y=ry*8+2;
@@ -45,13 +58,15 @@ export function generate(seed,floor=1,unlocks=[]) {
     for(let j=y;j<y+h;j++)for(let i=x;i<x+w;i++)grid[j][i]=1;
   }
   const shuffled=list=>{const result=[...list];for(let i=result.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[result[i],result[j]]=[result[j],result[i]];}return result;};
-  const neighbors=i=>[i%3>0?i-1:-1,i%3<2?i+1:-1,i>=3?i-3:-1,i<6?i+3:-1].filter(n=>n>=0);
-  const startRoom=[0,2,6,8][Math.floor(rng()*4)],links=[],visited=new Set([startRoom]),stack=[startRoom];
+  const cells=latticeCells(),neighbors=i=>cellNeighbors(cells,i);
+  if(v2)rooms.splice(0,rooms.length,...describeRooms(rooms,cells));
+  const startCell=[0,2,6,8][Math.floor(rng()*4)],startRoom=cells[startCell].roomId,visited=new Set([startCell]),stack=[startCell];let links=[];
   // Random spanning tree, then up to two loops. Retain a leaf for optional exploration.
   while(stack.length){const a=stack.at(-1),options=neighbors(a).filter(n=>!visited.has(n));if(!options.length){stack.pop();continue;}const b=options[Math.floor(rng()*options.length)];links.push([a,b]);visited.add(b);stack.push(b);}
   const degree=i=>links.filter(edge=>edge.includes(i)).length;
-  const candidates=shuffled(rooms.flatMap((_,a)=>neighbors(a).filter(b=>b>a&&!links.some(e=>e.includes(a)&&e.includes(b))).map(b=>[a,b])));
-  for(const [a,b]of candidates){if(links.length>=10)break;const leaves=rooms.filter((_,i)=>i!==startRoom&&degree(i)+(i===a||i===b?1:0)===1);if(leaves.length)links.push([a,b]);}
+  const candidates=shuffled(cells.flatMap(({id:a})=>neighbors(a).filter(b=>b>a&&!links.some(e=>e.includes(a)&&e.includes(b))).map(b=>[a,b])));
+  for(const [a,b]of candidates){if(links.length>=cells.length+1)break;const leaves=cells.filter(({id})=>id!==startCell&&degree(id)+(id===a||id===b?1:0)===1);if(leaves.length)links.push([a,b]);}
+  links=collapseCellLinks(cells,links);
   const parents=new Map([[startRoom,null]]),queue=[startRoom];
   for(let i=0;i<queue.length;i++)for(const edge of links.filter(e=>e.includes(queue[i]))){const b=edge.find(n=>n!==queue[i]);if(!parents.has(b)){parents.set(b,queue[i]);queue.push(b);}}
   const endRoom=queue.at(-1),mainRoute=[];for(let i=endRoom;i!==null;i=parents.get(i))mainRoute.unshift(i);
@@ -62,7 +77,7 @@ export function generate(seed,floor=1,unlocks=[]) {
   const carve=(a,b)=>{let x=a.x,y=a.y;grid[y][x]=1;corridors.add(`${x},${y}`);path.cells.push({x,y});while(x!==b.x){x+=Math.sign(b.x-x);grid[y][x]=1;corridors.add(`${x},${y}`);path.cells.push({x,y});}while(y!==b.y){y+=Math.sign(b.y-y);grid[y][x]=1;corridors.add(`${x},${y}`);path.cells.push({x,y});}};
   for(const [ai,bi]of links){path={rooms:[ai,bi],cells:[]};corridorPaths.push(path);const a=rooms[ai],b=rooms[bi];
     // Offset entrances break long straight firing lanes; only cardinal neighboring rooms connect.
-    if(Math.floor(ai/3)===Math.floor(bi/3)){const left=a.x<b.x?a:b,doorX=left.x+left.w,ay=a.cy+Math.floor(rng()*3)-1,by=b.cy+Math.floor(rng()*3)-1;carve({x:a.cx,y:ay},{x:doorX,y:ay});carve({x:doorX,y:ay},{x:doorX,y:by});carve({x:doorX,y:by},{x:b.cx,y:by});}
+    if(a.y===b.y){const left=a.x<b.x?a:b,doorX=left.x+left.w,ay=a.cy+Math.floor(rng()*3)-1,by=b.cy+Math.floor(rng()*3)-1;carve({x:a.cx,y:ay},{x:doorX,y:ay});carve({x:doorX,y:ay},{x:doorX,y:by});carve({x:doorX,y:by},{x:b.cx,y:by});}
     else{const top=a.y<b.y?a:b,doorY=top.y+top.h,ax=a.cx+Math.floor(rng()*3)-1,bx=b.cx+Math.floor(rng()*3)-1;carve({x:ax,y:a.cy},{x:ax,y:doorY});carve({x:ax,y:doorY},{x:bx,y:doorY});carve({x:bx,y:doorY},{x:bx,y:b.cy});}
   }
   const start={x:rooms[startRoom].cx,y:rooms[startRoom].cy},end={x:rooms[endRoom].cx,y:rooms[endRoom].cy};
@@ -71,11 +86,11 @@ export function generate(seed,floor=1,unlocks=[]) {
   if(floor>6)pool.push(...ENDLESS_TUNING.heavyExtra);
   const spawnEnemy=(type,x,y,id)=>{const e=makeEnemy(type,x,y,id,floor);if(floor>6&&!['boss','warden'].includes(type)&&rng()<eliteChance(floor)){const options=ENDLESS_TUNING.eliteTraits.filter(id=>!e.traits.some(t=>t.id===id));if(options.length)grantTrait(e,options[Math.floor(rng()*options.length)],'endless:elite');}return e;};
   rooms.forEach((r,i)=>{
-    const posts=[[r.x+1,r.y+1],[r.x+r.w-2,r.y+1],[r.x+r.w-2,r.y+r.h-2],[r.x+1,r.y+r.h-2]];
-    if(floor>6)posts.push([r.x+2,r.y+1],[r.x+1,r.y+3],[r.x+r.w-2,r.y+3]);
+    const posts=reservationPosts(r,{legacy:!v2,deep:floor>6});
     if(i!==startRoom)for(let j=0;j<(3+extraEnemies(floor)+(floor>=3&&rng()<.45?1:0));j++) {
       const type=i===endRoom&&j===0&&info.boss?info.boss:pool[Math.floor(rng()*pool.length)];
-      enemies.push(spawnEnemy(type,...posts[j],`${floor}-${i}-${j}`,floor));
+      const post=posts[j];if(!post)throw new Error("Legacy enemy post capacity exceeded");
+      enemies.push(spawnEnemy(type,post.x,post.y,`${floor}-${i}-${j}`,floor));
     }
     props.push({id:`${floor}-cover-${i}`,x:r.x+1,y:r.y+2,type:'cover',hp:65,maxHp:65});
     if(i%3===1)props.push({id:`${floor}-barrel-${i}`,x:r.x+r.w-1,y:r.y+r.h-2,type:'barrel',hp:18,maxHp:18});
@@ -144,6 +159,12 @@ export function generate(seed,floor=1,unlocks=[]) {
     }
   }
   packSupplies(map,floor);selectSupplyStations(map,floor);
+  if(v2){
+    map.cells=cells;
+    map.openings=corridorPaths.map((p,i)=>({id:`opening-${floor}-${i}`,rooms:p.rooms,cells:[...new Map(p.cells.map(c=>[key(c),c])).values()],barrierIds:map.barriers.filter(b=>b.type==='door'&&edgeCells(b).every(c=>p.cells.some(q=>key(q)===key(c)))).map(b=>b.id)}));
+    map.annexes=[];map.generation={version:MAP_GENERATION,recipeId:'grid-v2'};
+  }
+  if(v2&&!placePopulation(map,reachable(map,map.start),floor))return null;
   addLivingModules(map,seed,floor,{corridors,reachable});map.lighting=createLighting(grid,rooms,start,seed,floor,corridorPaths);
   // Two low rails per floor, independent of gameplay RNG. Existing sealed rooms stay sealed.
   for(const [i,r]of rooms.entries()){
@@ -159,4 +180,12 @@ export function reachable(map,start,{openDoors=true}={}) {
   const queue=[start],seen=new Set([key(start)]);
   for(let i=0;i<queue.length;i++)for(const [dx,dy]of DIRECTIONS){const p={x:queue[i].x+dx,y:queue[i].y+dy},edge=barrierBetween(map.barriers,queue[i],p);if(blockedBetween(map.barriers,queue[i],p)&&!(openDoors&&edge.type==='door')&&!vaultable(edge))continue;if(map.grid[p.y]?.[p.x]===1&&!seen.has(key(p))&&!map.props.some(o=>o.hp>0&&(o.type==='cover'||o.type==='barrel')&&o.x===p.x&&o.y===p.y)){seen.add(key(p));queue.push(p);}}
   return seen;
+}
+export function generationSafe(map){
+  const seen=reachable(map,map.start),all=reachable({...map,props:[]},map.start);
+  const destinations=[map.start,map.end,...map.enemies,...map.items,...map.props.filter(p=>p.type==='container'||p.type==='terminal')];
+  const corridors=new Set((map.openings||[]).flatMap(o=>o.cells.map(key)));
+  return destinations.every(p=>Number.isInteger(p.x)&&Number.isInteger(p.y)&&seen.has(key(p)))&&all.size===map.grid.flat().filter(n=>n===1).length&&
+    new Set(map.enemies.map(e=>e.id)).size===map.enemies.length&&new Set(map.enemies.map(key)).size===map.enemies.length&&
+    ![...map.props.filter(p=>p.hp>0),...map.hazards].some(p=>corridors.has(key(p)));
 }

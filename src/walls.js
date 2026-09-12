@@ -1,3 +1,4 @@
+import {roomTiles} from './map-geometry.js';
 // Raised walls are cosmetic: ground-grid movement, visibility and cover stay unchanged.
 import {WALL_ATLAS,approved,materialSprite,MATERIAL_SELECTION} from './materials.js';
 export {WALL_ATLAS};
@@ -11,7 +12,7 @@ function hash(value){let n=2166136261;for(const c of value)n=Math.imul(n^c.charC
 
 export function wallStyle(g,x,y,theme='industrial',selection=MATERIAL_SELECTION){
   // Pick the first adjacent room in saved order. Panels in one room share a cap.
-  const room=g.rooms?.find(r=>x>=r.x-1&&x<=r.x+r.w&&y>=r.y-1&&y<=r.y+r.h);
+  const room=g.rooms?.find(r=>Array.isArray(r.footprint)?roomTiles(r).some(p=>Math.abs(p.x-x)<=1&&Math.abs(p.y-y)<=1):x>=r.x-1&&x<=r.x+r.w&&y>=r.y-1&&y<=r.y+r.h);
   const seed=hash(`${g.seed}:${g.floor}:${room?.x??0}:${room?.y??0}`),pair=defaults[theme]||defaults.industrial;
   const explicit=room?.wallStyle,face=WALL_FACES.indexOf(explicit?.face),cap=WALL_CAPS.indexOf(explicit?.cap);
   const fi=face>=0?face:((x+y*3)%5===0?4+(seed%4):pair[0]),ci=cap>=0?cap:(seed%3===0?4+((seed>>>4)%4):pair[1]);

@@ -1,3 +1,5 @@
+import {roomTiles,roomContains} from './map-geometry.js';
+import {REQUIRED_TARGET_ROOMS,eligibleMissionEnemy} from './map-population.js';
 import {isEndless,ENDLESS_MAX_FLOOR,ENDLESS_DISPLAY_FLOORS,MAX_LEVEL} from './endless.js';
 import {FLOORS,SIZE} from './data.js';
 import {reachable,key,distance} from './world.js';
@@ -6,10 +8,10 @@ import {reachable,key,distance} from './world.js';
 export const MISSIONS={
   extraction:{name:'核心撤離',kind:'extraction',count:0,text:'深入六層，擊敗第 3 層封鎖官與第 6 層核心守衛，再從電梯撤離。'},
   hunt:{name:'定點清除',kind:'hunt',count:1,text:'第 6 層殲滅 1 名指定敵人，再從電梯撤離；核心守衛不是必要目標。'},
-  sweep:{name:'獵殺名單',kind:'hunt',count:3,text:'第 6 層殲滅分布在不同房間的 3 名指定敵人，再從電梯撤離。'},
+  sweep:{name:'獵殺名單',kind:'hunt',count:REQUIRED_TARGET_ROOMS,text:'第 6 層殲滅分布在不同房間的 3 名指定敵人，再從電梯撤離。'},
   retrieval:{name:'機密回收',kind:'recover',count:1,text:'第 6 層找到 1 份機密資料，靠近後互動回收，再從電梯撤離。'},
   roundtrip:{name:'原路回收',kind:'recover',count:1,depth:3,returnTrip:true,text:'深入三層，回收機密並擊敗封鎖官，沿原路返回第 1 層入口撤離。回程各層一次傳送增援，不補發物資、回血或彈藥。'},
-  archive:{name:'分散檔案',kind:'recover',count:3,text:'第 6 層從不同房間回收 3 份機密資料，再從電梯撤離。'},
+  archive:{name:'分散檔案',kind:'recover',count:REQUIRED_TARGET_ROOMS,text:'第 6 層從不同房間回收 3 份機密資料，再從電梯撤離。'},
   endless:{name:'無盡深入',kind:'endless',count:0,depth:ENDLESS_MAX_FLOOR,text:`沒有撤離：每層電梯都通往更深處，直到陣亡。第 7 層起敵人更多、更強，還可能帶精英特性；等級 ${MAX_LEVEL} 封頂後，升級改發補給。`}
 };
 export const RANDOM_MISSION_IDS=Object.keys(MISSIONS).filter(id=>id!=='endless');
@@ -24,16 +26,15 @@ export function prepareMission(g){
   const accessible=reachable(g,g.start),rooms=g.rooms.map((r,i)=>({...r,index:i})).filter(r=>r.index!==g.startRoom);
   // Seeded room rotation is independent of all loot and battle random rolls.
   const offset=g.seed%rooms.length,ordered=[...rooms.slice(offset),...rooms.slice(0,offset)];
-  const inside=(p,r)=>p.x>=r.x&&p.x<r.x+r.w&&p.y>=r.y&&p.y<r.y+r.h;
+  const inside=(p,r)=>roomContains(r,p);
   m.targets=[];
   for(const r of ordered){
     if(m.targets.length===def.count)break;
     if(def.kind==='hunt'){
-      const e=g.enemies.find(e=>e.hp>0&&e.type!=='boss'&&e.type!=='warden'&&inside(e,r)&&accessible.has(key(e)));
+      const e=g.enemies.find(e=>e.hp>0&&eligibleMissionEnemy(e)&&inside(e,r)&&accessible.has(key(e)));
       if(e)m.targets.push({id:e.id});
     }else{
-      const cells=[];
-      for(let y=r.y;y<r.y+r.h;y++)for(let x=r.x;x<r.x+r.w;x++)cells.push({x,y});
+      const cells=[...roomTiles(r)];
       const p=cells.sort((a,b)=>distance(a,{x:r.cx,y:r.cy})-distance(b,{x:r.cx,y:r.cy})).find(p=>accessible.has(key(p))&&distance(p,g.end)>1&&![...g.props,...g.items,...g.enemies,...g.hazards].some(o=>key(o)===key(p)));
       if(p)m.targets.push({id:`objective-${m.targets.length+1}`,...p,done:false});
     }

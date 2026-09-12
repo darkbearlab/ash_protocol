@@ -1,3 +1,4 @@
+import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,generate,reachable,makeEnemy,makeBarrier} from '../src/engine.js';
@@ -7,7 +8,7 @@ import {captureAction,planPresentation} from '../src/presentation.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
-function arena(){const g=new Game(317);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.props=[];g.enemies=[];g.items=[];g.hazards=[];g.marks=[];g.smoke=[];g.rooms=[];g.end={x:20,y:20};Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500});g.reveal();return g;}
+function arena(){const g=new Game(317);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.props=[];g.enemies=[];g.items=[];g.hazards=[];g.marks=[];g.smoke=[];g.rooms=[];clearGeneratedMap(g);g.end={x:20,y:20};Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500});g.reveal();return g;}
 function box(g,x=11,y=10,contents=[{type:'ammo',amount:20}]){const c={id:`case-test-${g.props.length}`,type:'container',kind:'ammo',x,y,opened:false,indestructible:true,contents};g.props.push(c);return c;}
 
 test('opening is one paid action, keeps position, clears waiting, and moves contents to ground exactly once',()=>{

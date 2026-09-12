@@ -1,11 +1,13 @@
+import {MAP_FIELDS,validMapMetadata} from './map-geometry.js';
 import {SIZE} from './data.js';
 import {distance,key,reachable,makeEnemy} from './world.js';
 import {missionDefinition,missionObjects,returning} from './missions.js';
 
 // Only floor-owned state is archived. Player, mission, rewards and RNG stay global.
-export const FLOOR_FIELDS=['grid','lighting','rooms','start','end','startRoom','endRoom','links','mainRoute','rewardRooms','enemies','items','props','hazards','marks','barriers','seen','smoke','traces','reinforcements'];
+export const REQUIRED_FLOOR_FIELDS=['grid','lighting','rooms','start','end','startRoom','endRoom','links','mainRoute','rewardRooms','enemies','items','props','hazards','marks','barriers','seen','smoke','traces','reinforcements'];
+export const FLOOR_FIELDS=[...REQUIRED_FLOOR_FIELDS,...MAP_FIELDS];
 export function archiveFloor(g){
-  const frame=structuredClone(Object.fromEntries([['savedTurn',g.turn],...FLOOR_FIELDS.map(k=>[k,g[k]])]));
+  const frame=structuredClone(Object.fromEntries([['savedTurn',g.turn],...FLOOR_FIELDS.filter(k=>g[k]!==undefined).map(k=>[k,g[k]])]));
   // The departure action has already advanced the global clock. Expired smoke
   // cannot be resurrected when this floor is resumed later.
   frame.smoke=frame.smoke.filter(s=>s.expires>g.turn);
@@ -14,7 +16,7 @@ export function archiveFloor(g){
   return frame;
 }
 export function resumedFloor(frame,turn){
-  const state=structuredClone(frame),elapsed=turn-state.savedTurn;delete state.savedTurn;
+  const state={...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...structuredClone(frame)},elapsed=turn-state.savedTurn;delete state.savedTurn;
   for(const cloud of state.smoke)cloud.expires+=elapsed;
   for(const mark of state.marks)mark.due+=elapsed;
   for(const spawn of state.reinforcements)spawn.due+=elapsed;
@@ -64,7 +66,7 @@ export function validRetreatState(g,checkFloor){
     ids.add(spawn.id);
   }
   for(const [floor,frame]of Object.entries(g.floorStates)){
-    if(!object(frame)||Object.keys(frame).length!==FLOOR_FIELDS.length+1||!FLOOR_FIELDS.every(k=>Object.hasOwn(frame,k))||!Number.isInteger(frame.savedTurn)||frame.savedTurn<1||frame.savedTurn>g.turn)return false;
+    if(!object(frame)||Object.keys(frame).some(k=>k!=='savedTurn'&&!FLOOR_FIELDS.includes(k))||!REQUIRED_FLOOR_FIELDS.every(k=>Object.hasOwn(frame,k))||!validMapMetadata(frame)||!Number.isInteger(frame.savedTurn)||frame.savedTurn<1||frame.savedTurn>g.turn)return false;
     if(!Array.isArray(frame.grid)||frame.grid.length!==SIZE||frame.grid.some(row=>!Array.isArray(row)||row.length!==SIZE||row.some(v=>v!==0&&v!==1)))return false;
     if(!Array.isArray(frame.rooms)||!frame.rooms.length||frame.rooms.length>SIZE*SIZE||frame.rooms.some(r=>!object(r)||!['x','y','w','h','cx','cy'].every(k=>Number.isInteger(r[k]))||r.x<0||r.y<0||r.w<1||r.h<1||r.x+r.w>SIZE||r.y+r.h>SIZE))return false;
     const roomIndex=i=>Number.isInteger(i)&&i>=0&&i<frame.rooms.length;

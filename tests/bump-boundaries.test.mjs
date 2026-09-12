@@ -1,3 +1,4 @@
+import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -8,7 +9,7 @@ import {captureAction,planPresentation} from '../src/presentation.js';
 import {grantTrait} from '../src/traits.js';
 import {Renderer} from '../src/renderer.js';
 
-function arena(character='bulwark',Type=Game){const g=new Type(326,[],0,character);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());for(const key of ['barriers','props','items','hazards','marks','enemies','smoke','rooms','traces'])g[key]=[];Object.assign(g.player,{x:10,y:10});g.end={x:20,y:20};g.rng=Object.assign(()=>.5,{state:()=>42});g.reveal();return g;}
+function arena(character='bulwark',Type=Game){const g=new Type(326,[],0,character);g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());for(const key of ['barriers','props','items','hazards','marks','enemies','smoke','rooms','traces'])g[key]=[];clearGeneratedMap(g);Object.assign(g.player,{x:10,y:10});g.end={x:20,y:20};g.rng=Object.assign(()=>.5,{state:()=>42});g.reveal();return g;}
 function add(g,x=11,y=10,id='bump'){const e=makeEnemy('rifleman',x,y,id);e.hp=e.maxHp=500;e.alert=true;e.charge=true;g.enemies.push(e);g.reveal();return e;}
 
 test('bump uses free integrated melee, pays one turn, preserves gun/ammo and does not move or retain aim bonuses',()=>{

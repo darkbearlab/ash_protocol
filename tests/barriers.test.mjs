@@ -1,3 +1,4 @@
+import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy,generate,reachable,lineOfSight,combatSight,random} from '../src/engine.js';
@@ -12,7 +13,7 @@ import {normalizeProfile} from '../src/progression.js';
 
 function arena(corridor=false,character='soldier'){
   const g=new Game(316,[],0,character);g.barriers=[];g.grid=Array.from({length:SIZE},(_,y)=>Array(SIZE).fill(corridor&&y!==10?0:1));
-  Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.smoke=[];g.rooms=[];
+  Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.smoke=[];g.rooms=[];clearGeneratedMap(g);
   g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();return g;
 }
 function gate(g,type='door',a={x:10,y:10},b={x:11,y:10}){const e=makeBarrier(type,a,b,`edge-test-${g.barriers.length}`);g.barriers.push(e);g.reveal();return e;}

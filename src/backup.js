@@ -1,3 +1,4 @@
+import {validGenerationHistory} from './map-geometry.js';
 import {ENDLESS_MAX_FLOOR} from './endless.js';
 import {validMissionId} from './missions.js';
 import {validPortrait} from './portraits.js';
@@ -26,7 +27,7 @@ export function validateProfile(raw){
     requireValue(id(key)&&object(value)&&count(value.earned)&&typeof value.recorded==='boolean','點數發放紀錄無效。');total+=value.earned;
   }
   requireValue(Number.isSafeInteger(total)&&total<=raw.protocol.earned,'點數發放紀錄與累計不符。');
-  requireValue(Array.isArray(raw.history)&&raw.history.length<=10&&raw.history.every(r=>object(r)&&id(r.id)&&['seed','floor','kills','turn'].every(k=>count(r[k]))&&r.floor>=1&&r.floor<=(r.mission==='endless'?ENDLESS_MAX_FLOOR:6)&&(r.level===undefined||count(r.level)&&r.level>=1)&&(r.mission!=='endless'||r.won===false)&&r.turn>=1&&typeof r.won==='boolean'&&(r.outcome===undefined||['won','dead','abandoned'].includes(r.outcome))&&(r.mission===undefined||validMissionId(r.mission))&&(r.character===undefined||validCharacter(r.character))&&(r.portrait===undefined||validPortrait(r.portrait))&&typeof r.date==='string'&&Number.isFinite(Date.parse(r.date))&&(r.protocol===undefined||count(r.protocol))),'最近任務紀錄無效。');
+  requireValue(Array.isArray(raw.history)&&raw.history.length<=10&&raw.history.every(r=>object(r)&&id(r.id)&&['seed','floor','kills','turn'].every(k=>count(r[k]))&&(r.mapGenerations===undefined||validGenerationHistory(r.mapGenerations))&&r.floor>=1&&r.floor<=(r.mission==='endless'?ENDLESS_MAX_FLOOR:6)&&(r.level===undefined||count(r.level)&&r.level>=1)&&(r.mission!=='endless'||r.won===false)&&r.turn>=1&&typeof r.won==='boolean'&&(r.outcome===undefined||['won','dead','abandoned'].includes(r.outcome))&&(r.mission===undefined||validMissionId(r.mission))&&(r.character===undefined||validCharacter(r.character))&&(r.portrait===undefined||validPortrait(r.portrait))&&typeof r.date==='string'&&Number.isFinite(Date.parse(r.date))&&(r.protocol===undefined||count(r.protocol))),'最近任務紀錄無效。');
   if(raw.version>=5){
     const record=r=>r===null||object(r)&&Object.keys(r).length===3&&count(r.floor)&&r.floor>=1&&r.floor<=ENDLESS_MAX_FLOOR&&count(r.level)&&r.level>=1&&count(r.kills);
     requireValue(object(raw.endless)&&record(raw.endless.best)&&object(raw.endless.byCharacter)&&Object.entries(raw.endless.byCharacter).every(([id,r])=>validCharacter(id)&&r!==null&&record(r)),'無盡紀錄無效。');
