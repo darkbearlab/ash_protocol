@@ -180,7 +180,10 @@ export class Game {
       if(!Array.isArray(arg)||!Number.isInteger(arg[0])||!Number.isInteger(arg[1])||Math.abs(arg[0])+Math.abs(arg[1])!==1)return false;
       const [dx,dy]=arg,x=p.x+dx,y=p.y+dy;
       const edge=barrierBetween(this.barriers,p,{x,y});
-      if(edgeBlocks(edge)&&!vaultable(edge)){if(edge.type==='door')return true;this.target=edge.id;return this.fail('隔板阻擋通行，可開火破壞。');}
+      // Bumping a partition points it out so it can be shot, but it never steals a live enemy lock (3.54.1).
+      if(edgeBlocks(edge)&&!vaultable(edge)){if(edge.type==='door')return true;
+        if(this.enemies.some(e=>e.id===this.target&&e.hp>0))return this.fail('隔板阻擋通行。想破壞它，先點隔板鎖定。');
+        this.target=edge.id;return this.fail('隔板阻擋通行，可開火破壞。');}
       if(!this.passable(x,y))return this.fail('前方有牆壁或障礙。');
       const ally=this.activeAllies.find(a=>a.x===x&&a.y===y);
       if(ally){if(skillActive(p,'anchor'))return this.fail('下錨中無法移動，請先解除。');const reason=swapReason(this,ally);return !reason||this.fail(reason);}
