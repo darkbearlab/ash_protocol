@@ -75,7 +75,7 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 @keyframes target-alert{0%,100%{background:#293323;color:#c4d1b3}50%{background:#b46935;color:#fff0cf;border-color:#ffcb80}}
 @media(prefers-reduced-motion:reduce){.loadout-bar .enemy-alert{animation:none;background:#87532b;color:#fff0cf;border-color:#ffcb80}}
 
-.pack-ammo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:12px 0}.pack-ammo span{display:flex;flex-direction:column;gap:3px;padding:8px;background:#25342b;font-size:11px;color:#bed0b8}.pack-ammo b{font:13px var(--mono);color:#e8ce98}
+.pack-ammo{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;margin:8px 0}.pack-ammo span{display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 2px;background:#25342b linear-gradient(var(--tint-bg),var(--tint-bg));border-top:2px solid var(--tint);font-size:9px;color:#c8d6bf;text-align:center}.pack-ammo i{font-style:normal;white-space:nowrap}.pack-ammo small{font-size:9px;color:#9fae95}.pack-ammo b{font:12px var(--mono);color:var(--tint)}
 
 .weapon-comparison{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}.weapon-comparison th,.weapon-comparison td{padding:6px 3px;text-align:left;border-bottom:1px solid #91ab8133}.weapon-comparison thead{color:#9dcdb8}.weapon-comparison tbody th{font-weight:400}.ground-loot small{display:block}.pack-weapon h3,.ground-loot strong{overflow-wrap:anywhere}
 

@@ -1,11 +1,14 @@
 // Stable resource IDs. `reserve` / item `ammo` remain rifle rounds for old tools.
+// tint: one colour per ammunition type (3.50.1). The pack's reserve chips and each weapon card read it, so a
+// weapon's colour tells you which reserve it drains. MELEE_TINT covers the weapons that never reload.
+export const MELEE_TINT='#8ea88c';
 export const AMMUNITION={
-  pistol:{name:'手槍彈',short:'手槍彈',key:'pistol',item:'pistol',base:120,step:30,pickup:24},
-  rifle:{name:'步槍彈',short:'步槍彈',key:'reserve',item:'ammo',base:72,step:18,pickup:16},
-  shell:{name:'霰彈',short:'霰彈',key:'shell',item:'shell',base:24,step:6,pickup:6},
-  energy:{name:'能量電池',short:'電池',key:'energy',item:'energy',base:36,step:9,pickup:12},
-  ordnance:{name:'發射器榴彈',short:'榴彈',key:'ordnance',item:'ordnance',base:8,step:2,pickup:4},
-  grenade:{name:'手榴彈',short:'手榴彈',key:'grenades',item:'grenade',base:4,step:1,pickup:1}
+  pistol:{name:'手槍彈',short:'手槍彈',tint:'#7fa9dd',key:'pistol',item:'pistol',base:120,step:30,pickup:24},
+  rifle:{name:'步槍彈',short:'步槍彈',tint:'#d9b46a',key:'reserve',item:'ammo',base:72,step:18,pickup:16},
+  shell:{name:'霰彈',short:'霰彈',tint:'#e08a63',key:'shell',item:'shell',base:24,step:6,pickup:6},
+  energy:{name:'能量電池',short:'電池',tint:'#62c6c9',key:'energy',item:'energy',base:36,step:9,pickup:12},
+  ordnance:{name:'發射器榴彈',short:'榴彈',tint:'#b58ad8',key:'ordnance',item:'ordnance',base:8,step:2,pickup:4},
+  grenade:{name:'手榴彈',short:'手榴彈',tint:'#c3cf7c',key:'grenades',item:'grenade',base:4,step:1,pickup:1}
 };
 export const AMMO_IDS=['pistol','rifle','shell','energy','ordnance'];
 export const CARRY_COSTS=[20,40,70];
