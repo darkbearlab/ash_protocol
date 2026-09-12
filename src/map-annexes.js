@@ -69,3 +69,13 @@ export function addAnnexes(base,seed,floor,checks){
   map.generation={version:5,recipeId:'edge-annexes-v5',base:structuredClone(base.generation)};
   return map;
 }
+export function addRequestedAnnexes(base,seed,floor,requests,checks){
+  let map=structuredClone(base);
+  for(const [i,request]of requests.entries()){
+    const candidate=annexCandidates(map,seed,floor).find(c=>c.roomId===request.roomId&&c.side===request.side);
+    if(!candidate)return null;
+    const next=placeAnnex(map,{...candidate,type:request.type},floor,i);
+    if(!annexesSafe(next,base,checks))return null;map=next;
+  }
+  return map;
+}

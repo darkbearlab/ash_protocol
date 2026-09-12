@@ -1,0 +1,8 @@
+{
+  "id": "central-hangar",
+  "name": "大型機庫",
+  "theme": "utility",
+  "layout": [["A","B","C"],["D","E","E"],["F","E","E"]],
+  "openings": {"default":[1,2],"large":[2,3]},
+  "doorRatio": 0.3
+}

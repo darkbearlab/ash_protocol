@@ -45,7 +45,7 @@ test('zero stock keeps its selection, and invalid usage never advances the queue
   g.player.meds=1;g.enemies=[];assert.equal(g.action('usePrepared',{category:'item'}),true);assert.equal(g.player.meds,0);assert.equal(g.player.prepared.item,'medkit');
 });
 test('prepared healing still respects fast lethal attacks and turn ordering',()=>{
-  const g=arena();fastEnemy(g);g.player.hp=1;const meds=g.player.meds;
+  const g=arena();fastEnemy(g);g.rng=()=>0;g.player.hp=1;const meds=g.player.meds;
   assert.equal(g.action('usePrepared',{category:'item'}),true);assert.equal(g.status,'dead');assert.equal(g.player.meds,meds);assert.equal(g.turn,2);
 });
 class HandgunHookGame extends Game{weaponAt(slot){const w=super.weaponAt(slot);return slot===1?{...w,weaponClass:'pistol'}:w;}}

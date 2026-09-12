@@ -1,0 +1,9 @@
+{
+  "id": "workshops",
+  "name": "雙翼工坊",
+  "theme": "industrial",
+  "weight": 2,
+  "layout": [["A","B","C"],["D","D","E"],["F","G","G"]],
+  "openings": {"default":[2,2],"large":[2,3]},
+  "doorRatio": 0.2
+}

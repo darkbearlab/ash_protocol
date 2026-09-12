@@ -63,7 +63,7 @@ test('candidate rejection is transactional, illegal groups are refused, and fall
 
 test('saved generation two floor survives a current-generation trip and complete backup without regeneration',()=>{
   class PhaseOneGame extends Game{generateFloor(){return phaseOne(this.seed,this.floor);}}
-  const old=new PhaseOneGame(2,[],0,'recon','onyx','roundtrip');
+  const old=new PhaseOneGame(1,[],0,'recon','onyx','roundtrip');
   const original=Object.fromEntries(['grid','rooms','props','barriers',...MAP_FIELDS].map(k=>[k,structuredClone(old[k])]));
   const g=Game.restore(old.serialize());assert.ok(g);Object.assign(g.player,g.exitPoint);assert.ok(g.descend());
   assert.deepEqual(g.mapGenerations,[2,MAP_GENERATION]);assert.equal(g.generation.version,MAP_GENERATION);

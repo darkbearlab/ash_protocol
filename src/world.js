@@ -1,8 +1,10 @@
+import {MAP_RECIPES} from './map-recipes-data.js';
+import {orderedRecipes,recipeGroups} from './map-recipes.js';
 import {SLOT_RECIPES,furnishMap} from './map-slots.js';
 import {latticeCells,cellNeighbors,collapseCellLinks,describeRooms} from './map-geometry.js';
 import {MERGED_RECIPES,selectMergeRecipe,mergePlans,mergeMap} from './map-merging.js';
 import {OPENING_RECIPES,addOpenings} from './map-openings.js';
-import {ANNEX_RECIPES,addAnnexes} from './map-annexes.js';
+import {ANNEX_RECIPES,addAnnexes,addRequestedAnnexes} from './map-annexes.js';
 import {placePopulation,reservationPosts} from './map-population.js';
 import {ENDLESS_TUNING,extraEnemies,eliteChance,scaleEnemy} from './endless.js';
 import {createLighting} from './lighting.js';
@@ -45,9 +47,13 @@ export function makeEnemy(type,x,y,id,floor=1) {
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[]){return generateWithRecipes(seed,floor,unlocks,SLOT_RECIPES);}
-export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=SLOT_RECIPES){
+export function generate(seed,floor=1,unlocks=[]){return generateWithRecipes(seed,floor,unlocks,MAP_RECIPES);}
+export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=MAP_RECIPES){
   if(!recipes.length)return generateLegacy(seed,floor,unlocks);
+  if(recipes.some(r=>r.layout)){
+    for(const recipe of orderedRecipes(seed,floor,recipes)){const map=generateCustom(seed,floor,unlocks,recipe);if(map)return map;}
+    return generateWithRecipes(seed,floor,unlocks,SLOT_RECIPES);
+  }
   if(recipes.some(r=>!['grid-v2',...MERGED_RECIPES.map(r=>r.id),...OPENING_RECIPES.map(r=>r.id),...ANNEX_RECIPES.map(r=>r.id),...SLOT_RECIPES.map(r=>r.id)].includes(r.id)))throw new Error('Unsupported skeleton recipe');
   const chosen=selectMergeRecipe(seed,floor,recipes),openingRecipe=OPENING_RECIPES.find(r=>r.id===chosen.id);
   if(chosen.id==='furnished-v6'){const base=generateWithRecipes(seed,floor,unlocks,ANNEX_RECIPES);return base.generation?(furnishMap(base,seed,floor,{reachable,generationSafe})||base):base;}
@@ -62,7 +68,24 @@ export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=SLOT_RECIPES
   return map;
 }
 export function generateLegacy(seed,floor=1,unlocks=[]){return generateBase(seed,floor,unlocks,false);}
-function generateBase(seed,floor,unlocks,v2) {
+function generateCustom(seed,floor,unlocks,recipe){
+  const groups=recipeGroups(recipe),endpoints=groups.filter(([label,ids])=>ids.length===1&&!recipe.annex?.[label]).map(([,ids])=>ids[0]);
+  if(endpoints.length<2)return null;
+  const checks={reachable,generationSafe},base=generateBase(seed,floor,unlocks,true,endpoints,groups.map(([,ids])=>ids));
+  if(!base||!generationSafe(base))return null;
+  let map=mergeMap(base,[],seed,floor,'hangar-v3',checks,groups.map(([,ids])=>ids));if(!map)return null;
+  const ids=Object.fromEntries(groups.map(([label],i)=>[label,i])),openings={};
+  for(const [label,range]of Object.entries(recipe.openings||{}))openings[label.includes('-')?label.split('-').map(l=>ids[l]).sort((a,b)=>a-b).join('-'):label]=range;
+  map=addOpenings(map,seed,floor,{id:recipe.id,openings,doorRatio:recipe.doorRatio??.3},checks);if(!map)return null;
+  // Omitted annex means no annex. Explicit requests must all succeed or the
+  // complete recipe is rejected; its identity never claims a partial layout.
+  if(Object.keys(recipe.annex||{}).length){map=addRequestedAnnexes(map,seed,floor,Object.entries(recipe.annex).map(([label,value])=>{const [type,side]=value.split('-');return {roomId:ids[label],type,side};}),checks);if(!map)return null;}
+  map=furnishMap(map,seed,floor,checks);if(!map)return null;
+  for(const r of map.rooms)r.visualTheme=recipe.theme??'industrial';
+  map.generation={version:7,recipeId:recipe.id,recipe:structuredClone(recipe)};
+  return generationSafe(map)?map:null;
+}
+function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null) {
   const rng=random(seed+floor*7919),grid=Array.from({length:SIZE},()=>Array(SIZE).fill(0)),rooms=[];
   for(let ry=0;ry<3;ry++)for(let rx=0;rx<3;rx++) {
     const w=6+Math.floor(rng()*2),h=6+Math.floor(rng()*2),x=rx*8+2,y=ry*8+2;
@@ -72,7 +95,7 @@ function generateBase(seed,floor,unlocks,v2) {
   const shuffled=list=>{const result=[...list];for(let i=result.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[result[i],result[j]]=[result[j],result[i]];}return result;};
   const cells=latticeCells(),neighbors=i=>cellNeighbors(cells,i);
   if(v2)rooms.splice(0,rooms.length,...describeRooms(rooms,cells));
-  const startCell=[0,2,6,8][Math.floor(rng()*4)],startRoom=cells[startCell].roomId,visited=new Set([startCell]),stack=[startCell];let links=[];
+  const startOptions=endpoints||[0,2,6,8],startCell=startOptions[Math.floor(rng()*startOptions.length)],startRoom=cells[startCell].roomId,visited=new Set([startCell]),stack=[startCell];let links=[];
   // Random spanning tree, then up to two loops. Retain a leaf for optional exploration.
   while(stack.length){const a=stack.at(-1),options=neighbors(a).filter(n=>!visited.has(n));if(!options.length){stack.pop();continue;}const b=options[Math.floor(rng()*options.length)];links.push([a,b]);visited.add(b);stack.push(b);}
   const degree=i=>links.filter(edge=>edge.includes(i)).length;
@@ -81,9 +104,10 @@ function generateBase(seed,floor,unlocks,v2) {
   links=collapseCellLinks(cells,links);
   const parents=new Map([[startRoom,null]]),queue=[startRoom];
   for(let i=0;i<queue.length;i++)for(const edge of links.filter(e=>e.includes(queue[i]))){const b=edge.find(n=>n!==queue[i]);if(!parents.has(b)){parents.set(b,queue[i]);queue.push(b);}}
-  const endRoom=queue.at(-1),mainRoute=[];for(let i=endRoom;i!==null;i=parents.get(i))mainRoute.unshift(i);
-  const rewardRooms=shuffled(rooms.map((_,i)=>i).filter(i=>!mainRoute.includes(i))).slice(0,3);
-  for(const i of shuffled(rooms.map((_,i)=>i).filter(i=>i!==startRoom&&i!==endRoom&&!rewardRooms.includes(i))))if(rewardRooms.length<3)rewardRooms.push(i);
+  const endRoom=queue.filter(id=>!endpoints||endpoints.includes(id)).at(-1),mainRoute=[];for(let i=endRoom;i!==null;i=parents.get(i))mainRoute.unshift(i);
+  const differentReward=(id,chosen)=>!groups||!groups.some(ids=>ids.includes(id)&&chosen.some(i=>ids.includes(i)));
+  const rewardRooms=[];for(const id of shuffled(rooms.map((_,i)=>i).filter(i=>!mainRoute.includes(i))))if(rewardRooms.length<3&&differentReward(id,rewardRooms))rewardRooms.push(id);
+  for(const i of shuffled(rooms.map((_,i)=>i).filter(i=>i!==startRoom&&i!==endRoom&&!rewardRooms.includes(i))))if(rewardRooms.length<3&&differentReward(i,rewardRooms))rewardRooms.push(i);
   rewardRooms.forEach((i,n)=>rooms[i].supply=['ammo','medical','armor'][n]);
   const corridors=new Set(),corridorPaths=[];let path;
   const carve=(a,b)=>{let x=a.x,y=a.y;grid[y][x]=1;corridors.add(`${x},${y}`);path.cells.push({x,y});while(x!==b.x){x+=Math.sign(b.x-x);grid[y][x]=1;corridors.add(`${x},${y}`);path.cells.push({x,y});}while(y!==b.y){y+=Math.sign(b.y-y);grid[y][x]=1;corridors.add(`${x},${y}`);path.cells.push({x,y});}};

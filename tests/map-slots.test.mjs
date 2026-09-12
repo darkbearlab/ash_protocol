@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
-import {Game} from '../src/game.js';
-import {generate,generateWithRecipes,generationSafe,reachable,key,makeEnemy} from '../src/world.js';
+import {Game as CurrentGame} from '../src/game.js';
+import {generateWithRecipes,generationSafe,reachable,key,makeEnemy} from '../src/world.js';
 import {ANNEX_RECIPES} from '../src/map-annexes.js';
-import {furnishMap,slotSafety,buildModule} from '../src/map-slots.js';
+import {SLOT_RECIPES,furnishMap,slotSafety,buildModule} from '../src/map-slots.js';
 import {validMapMetadata,MAP_FIELDS,roomAt} from '../src/map-geometry.js';
 import {moduleCells,validModules} from '../src/modules.js';
 import {allSupplies,validContainers} from '../src/containers.js';
@@ -20,6 +20,8 @@ import {partitionGeometry,drawPartition} from '../src/barrier-art.js';
 import {Renderer} from '../src/renderer.js';
 import {snapshot} from '../src/presentation.js';
 
+const generate=(seed,floor=1)=>generateWithRecipes(seed,floor,[],SLOT_RECIPES);
+class Game extends CurrentGame{generateFloor(){return generateWithRecipes(this.seed,this.floor,this.unlockedWeapons,SLOT_RECIPES);}static restore(raw){const g=super.restore(raw);if(g)Object.setPrototypeOf(g,this.prototype);return g;}}
 const base=(seed,floor=1)=>generateWithRecipes(seed,floor,[],ANNEX_RECIPES),checks={reachable,generationSafe};
 function arena(theme='garage'){
   const g=new Game(11,[],0,'soldier','onyx');clearGeneratedMap(g);

@@ -1,5 +1,5 @@
 import {SCENERY_ATLAS} from './scenery.js';
-import {drawPartition,partitionGeometry} from './barrier-art.js';
+import {drawPartition,partitionGeometry,DOOR_ATLAS,drawDoor,doorGeometry,barrierJunctions,drawJunction} from './barrier-art.js';
 import {actorPosition,DarkActorCache} from './actor-visuals.js';
 import {CLASS_ATLAS,classSpriteRect} from './class-art.js';
 import {DEFAULT_OPERATOR_COLOR,tintedSprite} from './operator-color.js';
@@ -27,7 +27,7 @@ export class Renderer {
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.last=0;this.time=0;
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
-    const scenery=new Image();scenery.src=SCENERY_ATLAS;this.terrainImages.set(SCENERY_ATLAS,scenery);
+    for(const url of [SCENERY_ATLAS,DOOR_ATLAS]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
     this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;this.terrainImages.set(WALL_ATLAS,this.wallImage);this.artTones=new ArtToneCache();
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
     this.classSprites=new Image();this.classSprites.src=CLASS_ATLAS;this.operatorColor=DEFAULT_OPERATOR_COLOR;this.tintCache=new Map();
@@ -48,8 +48,8 @@ export class Renderer {
   hitBarrier(x,y){
     return this.game.barriers.filter(b=>b.hp>0&&this.game.visible(b)).map(b=>{
       const p=this.project(b.x,b.y),normal=Math.abs(b.axis==='x'?x-p.x:y-p.y),along=Math.abs(b.axis==='x'?y-p.y:x-p.x);
-      const q=['partition','low_partition'].includes(b.type)?partitionGeometry(b,p,this.tile):null;
-      return {b,normal,hit:q?x>=q.left-2&&x<=q.left+q.width+2&&y>=q.top-2&&y<=q.bottom+2:normal<=Math.min(10,this.tile*.23)&&along<=this.tile*.47};
+      const boxes=b.type==='door'?doorGeometry(b,p,this.tile):[partitionGeometry(b,p,this.tile)];
+      return {b,normal,hit:boxes.some(q=>x>=q.left-2&&x<=q.left+q.width+2&&y>=q.top-2&&y<=q.bottom+2)};
     }).filter(o=>o.hit).sort((a,b)=>a.normal-b.normal)[0]?.b;
   }
   drawBarrier(b,scale=this.tile){
@@ -57,6 +57,7 @@ export class Renderer {
     const segment=(a,z,width)=>this.line(p.x+(vertical?0:a),p.y+(vertical?a:0),p.x+(vertical?0:z),p.y+(vertical?z:0),color,width);
     if(b.hp<=0){segment(-half,-half*.72,3);segment(half*.72,half,3);return;}
     if(b.type==='low_partition'||b.type==='partition'){const q=drawPartition(this.ctx,b,p,scale,this.terrainImages);this.objectHealth(b,p.x-7,q.top-4,14);return;}
+    if(b.type==='door'){const boxes=drawDoor(this.ctx,b,p,scale,this.terrainImages);this.objectHealth(b,p.x-7,Math.min(...boxes.map(q=>q.top))-4,14,'#e6bd82');return;}
     if(b.open){segment(-half,-half*.62,5);segment(half*.62,half,5);this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     if(this.terrain(b.type,p,b,Math.round(scale),vertical?0:1)){this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     segment(-half,half,7);segment(-half+2,half-2,3);
@@ -139,7 +140,7 @@ export class Renderer {
       for(const cloud of g.smoke)if(cloud.cells.some(q=>q.x===x&&q.y===y)){this.box(left+1,top+1,t-2,t-2,'#abc1cd66');for(let n=0;n<3;n++)this.box(left+5+n*7,top+8+(x+y+n)%3*6,11,5,'#d4dfe84a');this.text(String(Math.max(1,cloud.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#d3e2ed',8);}
       c.globalAlpha=1;
     }
-    for(const b of g.barriers)if(!['partition','low_partition'].includes(b.type)&&edgeCells(b).some(q=>g.seen[q.y]?.[q.x])){c.globalAlpha=g.visible(b)?1:.35;this.drawBarrier(b);c.globalAlpha=1;}
+
     for(const spawn of g.reinforcements||[])if(g.visible(spawn))this.markArea(spawn,0,'#70dce833','#94f0eeaa','+'+Math.max(1,spawn.due-g.turn));
     for(const m of g.marks)this.markArea(m,1,'#e969494f','#f8996977',String(Math.max(1,m.due-g.turn)));
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
@@ -197,7 +198,9 @@ export class Renderer {
     this.effects=this.effects.filter(e=>time-e.time<700);
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}
     // Raised partitions share the wall occlusion layer; footprints remain on ground edges.
-    for(const b of [...g.barriers].sort((a,b)=>a.y-b.y))if(['partition','low_partition'].includes(b.type)&&edgeCells(b).some(q=>g.seen[q.y]?.[q.x])){c.globalAlpha=g.visible(b)?1:.35;this.drawBarrier(b);c.globalAlpha=1;}
+    const seenBarriers=g.barriers.filter(b=>edgeCells(b).some(q=>g.seen[q.y]?.[q.x]));
+    const barriers=[...seenBarriers.map(b=>({b,y:b.y+(b.axis==='x'?.5:.08)})),...barrierJunctions(seenBarriers).map(j=>({j,y:j.y+.081}))].sort((a,b)=>a.y-b.y);
+    for(const {b,j}of barriers){c.globalAlpha=(b?g.visible(b):j.edges.some(e=>g.visible(e)))?1:.35;if(b)this.drawBarrier(b);else drawJunction(c,j,this.project(j.x,j.y),this.tile,this.terrainImages);c.globalAlpha=1;}
     // Walls occlude all world-space content, including actors, traces and transient effects.
     for(const {a,x,y}of wallCells){
       c.globalAlpha=[[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.visibleTiles?.has((x+dx)+','+(y+dy)))?1:.36;

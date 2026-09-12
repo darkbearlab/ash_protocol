@@ -25,8 +25,8 @@ export function mergePlans(base,seed,floor,recipeId){
     .sort((a,b)=>b.ids.length-a.ids.length||a.rank-b.rank).map(({ids})=>ids);
 }
 
-function remapRooms(map,merged){
-  const groups=map.cells.filter(c=>!merged.includes(c.id)||c.id===merged[0]).map(c=>merged.includes(c.id)?merged:[c.id]);
+function remapRooms(map,merged,customGroups){
+  const groups=customGroups||map.cells.filter(c=>!merged.includes(c.id)||c.id===merged[0]).map(c=>merged.includes(c.id)?merged:[c.id]);
   const owner=new Map();groups.forEach((ids,id)=>ids.forEach(cell=>owner.set(cell,id)));
   const oldRooms=map.rooms;
   map.rooms=groups.map((ids,id)=>{
@@ -43,7 +43,7 @@ function remapRooms(map,merged){
   map.openings=map.openings.map(o=>({...o,rooms:o.rooms.map(id=>owner.get(id))})).filter(o=>o.rooms[0]!==o.rooms[1]);
   // Multiple openings belong to phase three. Do not accidentally introduce them
   // by collapsing two external edges onto the same pair of rooms.
-  if(map.openings.length!==map.links.length)return false;
+  if(!customGroups&&map.openings.length!==map.links.length)return false;
   map.startRoom=owner.get(map.startRoom);map.endRoom=owner.get(map.endRoom);
   map.rewardRooms=map.rewardRooms.map(id=>owner.get(id));
   const parents=new Map([[map.startRoom,null]]),queue=[map.startRoom];
@@ -116,19 +116,19 @@ function relocateEdges(map,groups,corridors,reachable){
 
 // Transactional transform: reject the complete candidate, never a partial room.
 // Reachability is injected so world.js remains the sole movement-geometry owner.
-export function mergeMap(base,ids,seed,floor,recipeId,{reachable,generationSafe}){
-  const legal=mergePlans(base,seed,floor,recipeId).some(plan=>plan.length===ids.length&&plan.every((id,i)=>id===ids[i]));
+export function mergeMap(base,ids,seed,floor,recipeId,{reachable,generationSafe},customGroups=null){
+  const legal=customGroups||mergePlans(base,seed,floor,recipeId).some(plan=>plan.length===ids.length&&plan.every((id,i)=>id===ids[i]));
   if(!legal)return null;
-  const map=structuredClone(base);if(!remapRooms(map,ids))return null;
-  const hall=map.rooms.find(r=>r.cellIds.length>1);
+  const map=structuredClone(base);if(!remapRooms(map,ids,customGroups))return null;
+  const halls=map.rooms.filter(r=>r.cellIds.length>1);
   map.props=map.props.filter(p=>p.type!=='module'&&!p.moduleId);
-  const displaced=map.barriers.filter(b=>!b.id.startsWith('edge-module-')&&edgeCells(b).every(p=>roomContains(hall,p)));
-  map.barriers=map.barriers.filter(b=>!b.id.startsWith('edge-module-')&&!edgeCells(b).every(p=>roomContains(hall,p)));
+  const displaced=map.barriers.filter(b=>!b.id.startsWith('edge-module-')&&halls.some(hall=>edgeCells(b).every(p=>roomContains(hall,p))));
+  map.barriers=map.barriers.filter(b=>!b.id.startsWith('edge-module-')&&!halls.some(hall=>edgeCells(b).every(p=>roomContains(hall,p))));
   const corridors=new Set(map.openings.flatMap(o=>o.cells.map(key)));
   const compartment=displaced.filter(b=>b.id.startsWith(`edge-${floor}-cell-`));
   const groups=[...(compartment.length?[compartment]:[]),...displaced.filter(b=>b.type==='low_partition').map(b=>[b])];
   if(!relocateEdges(map,groups,corridors,reachable))return null;
-  if(!centralCover(map,hall,corridors)||!relocateStations(map,floor,corridors)||!placePopulation(map,reachable(map,map.start),floor))return null;
+  if(!halls.every(hall=>centralCover(map,hall,corridors))||!relocateStations(map,floor,corridors)||!placePopulation(map,reachable(map,map.start),floor))return null;
   // Keep enclosed life modules in the remaining single rooms; halls stay open.
   if(!addLivingModules(map,seed,floor,{corridors,reachable,roomFilter:r=>r.cellIds.length===1}))return null;
   map.lighting=createLighting(map.grid,map.rooms,map.start,seed,floor,map.openings);

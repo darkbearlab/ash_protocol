@@ -381,3 +381,38 @@ Codex 規劃中被採納的四個判斷：合併上限 2 格（2×2 每層一間
 - generation={version:6,recipeId:'furnished-v6',base:上一層描述}；slots=[{id,kind,roomId,x,y,refId?}] 已加入 MAP_FIELDS／FLOOR_FIELDS。描述驗證限制唯一槽位、合法地板／房間、種類與至少三房目標。refId 是歷史參照，不因開箱或部件破壞失效。
 - save v32／profile v5／backup v1 不變：新狀態都在已保存地圖／props／barriers 及可選 slots；已存樓層不重新生成。舊格式缺 slots 不補內容，切回舊層清除現層 slots。已存 style／模組座標與耐久勿原地修改，需新增 ID 或明確遷移。
 - 下一批依原計畫為外部骨架配方池；巢穴／雜兵／追擊／徒手獨立批次。附屬區的外觀重新設計暫待使用者方向。
+
+
+## 18. 第六階段與隔板接角／門素材（3.66.0，2026-09-13）
+
+### JSON 配方與生成
+
+- maps/recipes/*.json 是內容入口，完整格式、限制及範例見同目錄 README.md。tools/recipes.mjs 驗證後產生 src/map-recipes-data.js；start／build 自動編譯，也可 npm run recipes。前端同步讀 ES module，不在 generate 內 fetch，也不使用戰鬥亂數。
+- 正式 generate 使用 MAP_RECIPES。獨立種子／樓層／ID 雜湊產生依 weight 排序的候選；floors 以實際樓層篩選，包含無盡模式。已放三份：雙翼工坊、2×2 大型機庫、雙合併房的碼頭側線。
+- groups 依 layout 首次出現順序產生穩定 roomId，同字母可占相鄰兩格，最多一間 2×2；可有多個雙格合併。入口出口從未合併、未指定附屬區的單格房選取。
+- 主線、連線與獎勵房重新映射；合併前就把三類補給保留在不同最終房間。保留至少三房合格敵人與 objective 槽位，敵人仍依既有 roster／面積分配，不把無盡 HP／攻擊曲線再乘進數量，不修改戰鬥或掉落常數。
+- openings 的 A-B 覆寫轉成實際 roomId，沿用既有通道間距／無門路／門比例次序。形狀不容許的開口數仍受幾何上限限制。theme 寫入 rooms.visualTheme，生活模組／附屬區局部主題優先。
+- annex 省略時無附屬區；明確指定時，所有要求都要能完整放入，否則整份配方失敗。不改本來的月台／碼頭／陽台視覺，等待使用者重新定向。
+- 交易流程：先準備對應端點的單格骨架，合併／重排，再連接口、指定附屬區及槽位家具。每步保留原可達性安全網。失敗試同池下一份；全失敗或該樓層無適用配方時回退完整第五階段。池真正為空時走 v1 相容基準。
+- 不接受未知 JSON 欄位、錯誤房形／外側面／非相鄰房的開口覆寫。JSON 檔與編譯後 JS 應一起提交；空池、相同種子、來源檔與編譯檔一致性有測試。
+
+### 保存／世代
+
+- generation={version:7,recipeId,recipe:配方完整副本}；rooms／cells／openings／annexes／slots 仍使用既有形狀。新增多組合併驗證，不修改世代 2～6 的形狀限制。
+- 存檔驗證依保存的配方副本比對房間，不依目前 JSON 池；日後配方刪除或改版，舊樓層仍可讀。所有 MAP_FIELDS 已在 FLOOR_FIELDS，返回與完整備份均保存。
+- save v32／profile v5／backup v1 不變。MAP_GENERATION 可讀上限為 7，mapGenerations 記實際世代（安全回退可能仍是 6 或更早），每日種子跨世代不可直接比較。
+
+### 接角與門的演出
+
+- barrierJunctions 依活邊界端點找 L／T／十字交界，補同高共用接柱；直線不加柱，毀壞後不殘留幽靈接角。開門仍保留端框，能和隔板相接，中央不補蓋。
+- 門採半格高立面與窄頂板；雙軸投影，不旋轉立面。門、隔板與接柱按底緣深度畫在人物／痕跡／特效上方，再由一般牆覆蓋。點擊區跟隨實際門面／端框，原關門綠線、開門雙綠點保持。
+- GPT Image 原圖／提示詞在 art/doors-v1；tools/pixelize_doors.py 輸出 32px indexed、24 色 RGB555、不抖色的四片材質。接柱沿用上批隔板材質，沒有新增碰撞、HP 或掩體規則。
+- server.mjs 補上 scenery-v1／doors-v1 的靜態檔白名單；Service Worker 快取新圖集及配方模組。
+
+### 驗證與後續
+
+- tests/map-recipes.test.mjs：JSON／加權／空池與適用範圍、三種子至 60 層的八條不變條件、三房任務與三類補給、跨世代往返備份、刪除配方後的讀檔、偽造描述拒絕。
+- tests/barrier-art.test.mjs：L／T／十字／毀壞與開門端框、半格投影／點擊間隙、素材格式及來源雜湊。
+- 舊第五階段形狀測試固定 SLOT_RECIPES；附屬區舊測試固定 ANNEX_RECIPES，舊存檔及破壞斷言保留。Recon 命中場景明確全亮，先手致死場景指定命中亂數，不依賴某個地圖種子的光照／亂數。
+- node qa/create-recipe-scenes.mjs 產生七份 QA 檔，只在 ?test=1 匯入。真手機、接角／門的觀感由使用者與 Claude 驗收。
+- 接下來仍是獨立的執行期擴充批次：巢穴／雜兵、所有來源的存活上限、追擊代幣、全職業虛擬徒手。本批沒有提前接入。

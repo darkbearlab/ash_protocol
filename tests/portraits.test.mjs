@@ -58,7 +58,7 @@ test('v9 original is backed up in QA and portrait history survives full profile 
   backup.profile.history[0].portrait='invalid';assert.throws(()=>decodeBackup(JSON.stringify(backup),'qa'));
 });
 test('exposed lateral movement matches stationary wall protection for every weapon affix, size and movement trait',()=>{
-  const g=new Game(313);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.props=[];g.player.x=10;g.player.y=10;g.player.traits=[];
+  const g=new Game(313);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());g.props=[];g.player.x=10;g.player.y=10;g.player.traits=[];
   const e=makeEnemy('rifleman',14,10,'target');grantTrait(e,'sidestep','test');
   for(let weapon=0;weapon<6;weapon++)for(const affix of [null,...Object.keys(AFFIXES)])for(const movement of [null,'agile','clumsy'])for(const size of [null,'large','small']){
     g.player.weapon=weapon;g.player.affixes[weapon]=affix;e.traits=[{id:'sidestep',source:'test'}];
@@ -69,7 +69,7 @@ test('exposed lateral movement matches stationary wall protection for every weap
   }
 });
 test('Recon exposed sidestep plus innate evasion is 45%, stacks with agility, ends with a paid action and adds no cover damage reduction',()=>{
-  const g=new Game(313,[],0,'recon');g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.props=[];g.player.x=10;g.player.y=10;
+  const g=new Game(313,[],0,'recon');g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());g.props=[];g.player.x=10;g.player.y=10;
   const e=makeEnemy('rifleman',14,10,'east');g.player.moved=true;g.player.moveDelta=[0,1];
   assert.equal(g.accuracy(e,g.player).chance,45);assert.ok(!g.protectingCover(g.player,e));
   grantTrait(g.player,'agile','test');assert.equal(g.accuracy(e,g.player).chance,32);

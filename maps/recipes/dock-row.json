@@ -1,0 +1,11 @@
+{
+  "id": "dock-row",
+  "name": "碼頭側線",
+  "theme": "dock",
+  "floors": [3, 999],
+  "weight": 2,
+  "layout": [["A","A","B"],["C","D","E"],["F","G","G"]],
+  "annex": {"A":"platform-north","G":"dock-south"},
+  "openings": {"default":[1,2],"A-B":[2,3]},
+  "doorRatio": 0.3
+}

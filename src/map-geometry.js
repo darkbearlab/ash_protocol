@@ -1,5 +1,6 @@
+import {validateRecipe,recipeGroups} from './map-recipes.js';
 // Room identity is independent of lattice position. No RNG or game imports.
-export const MAP_GENERATION=6;
+export const MAP_GENERATION=7;
 export const MAP_FIELDS=['cells','openings','annexes','generation','slots'];
 const key=p=>`${p.x},${p.y}`;
 const point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y);
@@ -61,8 +62,16 @@ function validAnnexes(map){
 
 // Optional extensions: old v32 floors have none. Terrain can change during play,
 // so footprints describe ownership, not the current set of walkable floor tiles.
-export function validMapMetadata(map){
+export function validMapMetadata(map,custom=false){
   if(MAP_FIELDS.every(k=>map[k]===undefined))return true;
+  if(map.generation?.version===7){
+    try{validateRecipe(map.generation.recipe);}catch{return false;}
+    if(map.generation.recipeId!==map.generation.recipe.id||!Array.isArray(map.annexes))return false;
+    const groups=recipeGroups(map.generation.recipe);
+    if(!Array.isArray(map.rooms)||map.rooms.length!==groups.length||groups.some(([,ids],i)=>JSON.stringify(ids)!==JSON.stringify(map.rooms[i]?.cellIds))||map.rooms[map.startRoom]?.cellIds.length!==1||map.rooms[map.endRoom]?.cellIds.length!==1)return false;
+    if(map.rooms.some(r=>!Array.isArray(r.footprint)||r.footprint.length!==r.w*r.h||r.footprint.some(p=>p.x<r.x||p.x>=r.x+r.w||p.y<r.y||p.y>=r.y+r.h)))return false;
+    return validMapMetadata({...map,slots:undefined,annexes:[],generation:{version:4,recipeId:'warehouse-v4',skeleton:'custom-v7'}},true)&&(!map.annexes?.length||validAnnexes(map))&&validSlots(map);
+  }
   if(map.generation?.version===6){
     if(map.generation.recipeId!=='furnished-v6'||![2,3,4,5].includes(map.generation.base?.version))return false;
     return validMapMetadata({...map,slots:undefined,generation:map.generation.base})&&validSlots(map);
@@ -76,7 +85,7 @@ export function validMapMetadata(map){
   }
   if(!map.generation||!Number.isInteger(map.generation.version)||!({2:['grid-v2'],3:['long-halls-v3','hangar-v3'],4:['warehouse-v4','laboratory-v4']}[map.generation.version]?.includes(map.generation.recipeId)))return false;
   const skeleton=map.generation.version===4?map.generation.skeleton:map.generation.recipeId;
-  if(!['grid-v2','long-halls-v3','hangar-v3'].includes(skeleton))return false;
+  if(!(custom&&skeleton==='custom-v7')&&!['grid-v2','long-halls-v3','hangar-v3'].includes(skeleton))return false;
   if(!Array.isArray(map.rooms)||!map.rooms.length||!Array.isArray(map.cells)||map.cells.length!==9||!Array.isArray(map.openings)||!Array.isArray(map.annexes)||map.annexes.length)return false;
   const inBounds=p=>point(p)&&p.x>=0&&p.y>=0&&p.y<map.grid.length&&p.x<map.grid[p.y].length;
   const owned=new Set(),lattice=new Set();
@@ -89,7 +98,7 @@ export function validMapMetadata(map){
     if(c.id!==id||!Number.isInteger(c.row)||!Number.isInteger(c.col)||c.row<0||c.row>2||c.col<0||c.col>2||lattice.has(`${c.row},${c.col}`)||!map.rooms[c.roomId]?.cellIds.includes(id))return false;
     lattice.add(`${c.row},${c.col}`);
   }
-  if(map.generation.version>=3&&skeleton!=='grid-v2'){
+  if(!custom&&map.generation.version>=3&&skeleton!=='grid-v2'){
     const merged=map.rooms.filter(r=>r.cellIds.length>1);
     if(merged.length!==1||map.rooms[map.startRoom]?.cellIds.length!==1||map.rooms[map.endRoom]?.cellIds.length!==1)return false;
     const r=merged[0],cells=r.cellIds.map(id=>map.cells[id]);

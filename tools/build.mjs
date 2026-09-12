@@ -1,3 +1,5 @@
+import {compileRecipes} from './recipes.mjs';
+await compileRecipes();
 import {compileMaterials} from './materials.mjs';
 await compileMaterials();
 import {cp,mkdir,rm,writeFile,readdir,readFile} from 'node:fs/promises';
