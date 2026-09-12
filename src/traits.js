@@ -1,3 +1,4 @@
+import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {ENEMY_TYPES} from './data.js';
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const TRAITS={
@@ -69,7 +70,11 @@ export function validCombatMemory(actor,turn){
     (c===null||(c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.targetId==='string'&&c.targetId.length>0&&c.targetId.length<=100&&Number.isInteger(c.turn)&&c.turn>=1&&c.turn<=turn&&Number.isInteger(c.count)&&c.count>=1&&c.count<=3));
 }
 
-export const reduceDirectDamage=(actor,damage)=>activeTrait(actor,'heavy_armor')?Math.max(1,Math.ceil(damage*.75)):damage;
+export function reduceDirectDamage(actor,damage){
+ const heavy=activeTrait(actor,'heavy_armor'),plate=actor.plates>0?classPerkRank(actor,'bulwark_plating'):0,anchor=actor.skillState?.anchor?.remaining>0?classPerkRank(actor,'bulwark_anchor'):0;
+ if(!heavy&&!plate&&!anchor)return damage;
+ return Math.max(1,Math.ceil(damage*(heavy ? .75 : 1)*(1-plate*CLASS_PERK_TUNING.plating)*(1-anchor*CLASS_PERK_TUNING.anchor)));
+}
 
 export const healingAmount=(actor,amount)=>activeTrait(actor,'difficult_healing')?Math.floor(amount/2):amount;
 export function healActor(actor,amount){const before=actor.hp;actor.hp=Math.min(actor.maxHp,actor.hp+healingAmount(actor,amount));return actor.hp-before;}
