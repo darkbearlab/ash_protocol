@@ -57,6 +57,7 @@ export const PERKS = [
   {id:'accuracy',name:'精準射擊',cap:3,effect:'combat',stats:['rangedAccuracy'],amount:8,text:'射擊命中 +8 個百分點。'},
   {id:'evasion',name:'戰術閃避',cap:3,effect:'combat',stats:['rangedEvasion'],amount:8,text:'被射擊命中 −8 個百分點。'},
   {id:'melee',name:'格鬥訓練',cap:3,effect:'combat',stats:['meleeAccuracy','meleeEvasion'],amount:8,text:'近戰命中與近戰迴避各 +8 個百分點。'},
+  {id:'plating',name:'裝甲回收',cap:3,effect:'plating',amount:10,text:'有裝甲的敵人掉落護甲板的機率 +15 個百分點（基礎 20%），一般敵人也有 6% 機率掉落 5 點；立即獲得 10 護甲板。'},
 ];
 export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
 export const LORE = [

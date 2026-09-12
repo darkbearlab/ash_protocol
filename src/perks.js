@@ -6,6 +6,13 @@ export const REPEAT_CHANCE=.6;
 const count=(p,id)=>p.perks[id]||0;
 // Future content may restrict characters or provide an eligibility predicate.
 export const eligiblePerks=g=>PERKS.filter(o=>(o.cap===null||count(g.player,o.id)<o.cap)&&(!o.characters||o.characters.includes(g.player.character))&&(!o.eligible||o.eligible(g)));
+// Armour-plate salvage (3.51.0): armoured enemies drop far more often, ordinary ones start dropping at all.
+// The chance is derived from the stored perk count, so no new save field is needed. A zero chance must not
+// roll at all, or an unmodified run would consume a different random stream than before.
+export const PLATE_DROP={base:.2,perTier:.15,plainPerTier:.06,amount:10,plainAmount:5};
+export const plateDrop=(player,armoured)=>{const tiers=count(player,'plating');
+ return armoured?{chance:PLATE_DROP.base+PLATE_DROP.perTier*tiers,amount:PLATE_DROP.amount}
+  :{chance:PLATE_DROP.plainPerTier*tiers,amount:PLATE_DROP.plainAmount};};
 export function drawPerks(g){
  const rng=random((g.seed^Math.imul(g.perkPicks+1,0x9e3779b1)^0x5045524b)>>>0),pool=eligiblePerks(g),ids=[];
  const take=list=>{const o=list[Math.floor(rng()*list.length)];ids.push(o.id);pool.splice(pool.indexOf(o),1);};
@@ -30,6 +37,7 @@ export function applyPerk(g,o){
  case 'scavenger':p.scavenger+=o.amount;p.scrap+=15;break;
  case 'medic':p.healBonus+=o.amount;p.meds++;break;
  case 'hazmat':p.hazmat+=o.amount;p.poison=0;break;
+ case 'plating':p.plates=Math.min(g.plateCapacity,(p.plates||0)+o.amount);break;
  case 'combat':p.combatModifiers={...p.combatModifiers};for(const key of o.stats)p.combatModifiers[key]=Math.min(100,(p.combatModifiers[key]||0)+o.amount);break;
  default:throw new Error('Unknown perk effect');
  }
