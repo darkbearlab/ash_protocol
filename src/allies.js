@@ -51,7 +51,7 @@ export const localAllies=g=>(g.allies||[]).filter(a=>a.floor===g.floor&&['active
 export const connected=(g,a)=>a.status==='active'&&a.hp>0&&a.floor===g.floor&&distance(a,g.player)<=leash(a);
 export const allyName=a=>a.kind==='pet'?'伴生獵獸':a.kind==='drone'?(a.sourceId==='drone_sentry'?'哨兵無人機':'追隨無人機'):a.kind==='survivor'?'倖存友軍':`復生${ENEMY_TYPES[a.type].name}`;
 export function allyWeapon(a,player=null){
- if(a.kind==='drone')return a.sourceId==='drone_sentry'?{id:'rifle',range:7,min:14,max:14,mag:8,ammoType:'rifle',accuracyBonus:-37}:{id:'rifle',range:7,min:12,max:12,mag:12,ammoType:'rifle',accuracyBonus:-30};
+ if(a.kind==='drone'){const rank=classPerkRank(player,'engineer_firecontrol'),sentry=a.sourceId==='drone_sentry',damage=(sentry?14:12)+rank*CLASS_PERK_TUNING.fireDamage;return {id:'rifle',range:7,min:damage,max:damage,mag:sentry?8:12,ammoType:'rifle',accuracyBonus:(sentry?-37:-30)+rank*CLASS_PERK_TUNING.fireAccuracy};}
  const bonus=a.kind==='summon'?classPerkRank(player,'necro_blades')*CLASS_PERK_TUNING.blades:0,def=ENEMY_TYPES[a.type],melee=a.kind==='pet'||def.range===1;
  return {id:melee?'melee':a.type==='drone'?'plasma':'rifle',range:a.kind==='pet'?1:def.range,min:a.kind==='pet'?24:Math.max(8,def.damage)+bonus,max:a.kind==='pet'?28:Math.max(8,def.damage)+bonus,melee,hitChance:90,accuracyBonus:-22,ammoType:null,mag:0};
 }
@@ -64,14 +64,16 @@ export function addAlly(g,kind,type,{sourceId=null,missionId=null,point=g.player
  const a={...makeEnemy(type,point.x,point.y,`ally-${++g.allySerial}`,g.floor),kind,sourceId,missionId,floor:g.floor,status,order:null,ammo:0,bornTurn:g.turn};
  a.maxHp=a.hp=kind==='drone'?DRONE_HP:kind==='pet'?90:Math.max(32,Math.min(150,a.hp));a.armor=kind==='pet'?1:0;
  if(kind==='pet')a.traits=[{id:'biological',source:'ally:pet'},{id:'no_cover',source:'ally:pet'}];
- if(kind==='drone'){a.traits=[{id:'mechanical',source:'ally:drone'}];fitDrone(a);}
+ if(kind==='drone'){a.traits=[{id:'mechanical',source:'ally:drone'}];fitDrone(a,g.player);a.hp=a.maxHp;}
  g.allies.push(a);return a;
 }
 // Mode-dependent chassis fit. The hovering follow drone ignores cover; the placed sentry uses cover and plating.
 // Art note (3.39): the sentry still draws the hovering drone sprite; it should later read as a ground turret.
-export function fitDrone(a){
+export function fitDrone(a,player=null){
  const sentry=a.sourceId==='drone_sentry';
- a.armor=sentry?SENTRY_ARMOR:0;
+ const rank=classPerkRank(player,'engineer_frame');
+ a.armor=(sentry?SENTRY_ARMOR:0)+rank*CLASS_PERK_TUNING.frameArmor;
+ if(player)a.maxHp=DRONE_HP+rank*CLASS_PERK_TUNING.frameHp;
  a.traits=a.traits.filter(t=>!(t.id==='no_cover'&&t.source==='ally:drone'));if(!sentry)a.traits.push({id:'no_cover',source:'ally:drone'});
 }
 export const occupied=(g,p,except=null)=>[g.player,...g.enemies.filter(e=>e.hp>0),...currentAllies(g)].some(a=>a!==except&&key(a)===key(p));
@@ -165,7 +167,7 @@ export function useAllySkill(g,id,point=null){
   const fresh=addAlly(g,'drone','drone',{sourceId:id,point:cell});reloadDrone(g,fresh);g.log(`消耗 ${DRONE_BUILD_COST} 廢料生產新機，${allyName(fresh)}已部署。`);
  }else if(a.status==='packed'){
   const cell=placeCell(g,point);if(!cell)return false;if(a.sourceId!==id&&a.ammo){g.receiveAmmo(allyWeapon(a).ammoType,a.ammo);a.ammo=0;}Object.assign(a,{x:cell.x,y:cell.y,sourceId:id,floor:g.floor,status:'active',order:null,bornTurn:g.turn});
-  fitDrone(a);reloadDrone(g,a);g.log(`${allyName(a)}已部署。`);
+  fitDrone(a,g.player);reloadDrone(g,a);g.log(`${allyName(a)}已部署。`);
  }else{a.status='packed';reloadDrone(g,a);g.log('機體已回收，使用備彈補充彈匣；傷勢保留。');}
  return true;
 }

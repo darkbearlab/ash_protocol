@@ -1,3 +1,4 @@
+import {fitDrone} from './allies.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {perkLimit} from './endless.js';
 import {healActor} from './traits.js';
@@ -39,7 +40,7 @@ export function recordPerkOffer(g){
 export function applyPerk(g,o){
  const p=g.player;
  switch(o.effect){
- case 'passive':if(o.id==='necro_haste'&&p.skillState?.raise_dead)p.skillState.raise_dead.cooldown=Math.max(0,p.skillState.raise_dead.cooldown-CLASS_PERK_TUNING.haste);break;
+ case 'passive':if(o.id==='engineer_salvage')p.scrap+=CLASS_PERK_TUNING.salvageGrant;if(o.id==='necro_haste'&&p.skillState?.raise_dead)p.skillState.raise_dead.cooldown=Math.max(0,p.skillState.raise_dead.cooldown-CLASS_PERK_TUNING.haste);break;
  case 'weapon':p.perkWeaponBonus+=o.amount;break;
  case 'health':p.maxHp+=o.amount;healActor(p,o.heal);break;
  case 'stat':p[o.stat]+=o.amount;break;
@@ -52,6 +53,7 @@ export function applyPerk(g,o){
  default:throw new Error('Unknown perk effect');
  }
  p.perks[o.id]=count(p,o.id)+1;
+ if(o.id==='engineer_frame')for(const a of g.allies)if(a.kind==='drone')fitDrone(a,p);
 }
 export function migratePerks(g){
  const p=g.player;p.perks={};p.perkWeaponBonus=0;
