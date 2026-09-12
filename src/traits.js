@@ -23,7 +23,8 @@ export const TRAITS={
  battle_spirit:{name:'戰意',text:'近戰擊殺 +1 層、最多 5 層，每層受到的直接傷害 −5%；5 回合沒有近戰擊殺後，每 2 回合掉一層。'},
  blade_stash:{name:'刃藏',text:'背包每有一把近戰武器（含斧頭），所有攻擊傷害 +10%、受到的直接傷害 −10%。'},
  ambush:{name:'伏擊',text:'目標失能、目標或你站在煙霧中、目標還沒發現你，或你站在暗處時，近戰傷害 ×1.5；每次觸發讓光學迷彩冷卻 −1（迷彩生效中不減）。'},
- duelist:{name:'單挑',text:'只有一名已發現你的敵人看得到你時，射擊與近戰迴避 +15。'},
+  duelist:{name:'單挑',text:'只有一名已發現你的敵人看得到你時，射擊與近戰迴避 +15。'},
+  exposed:{name:'標定',text:'被預警標定，暫時削弱對士兵的攻防。'},
 };
 export function hasTrait(actor,id){return (actor?.traits||[]).some(t=>t.id===id);}
 export function activeTrait(actor,id){return hasTrait(actor,id)&&!hasTrait(actor,TRAITS[id]?.opposite);}
@@ -52,22 +53,23 @@ export function removeTraitSource(actor,source){actor.traits=(actor.traits||[]).
 
 export function correctionBonus(actor,targetId,turn){
   const c=actor.fireChain;
-  return activeTrait(actor,'correction')&&c&&c.targetId===targetId&&(c.turn===turn||c.turn===turn-1)?c.count*8:0;
+  return activeTrait(actor,'correction')&&c&&c.targetId===targetId&&(c.turn===turn||c.turn===turn-1)?Math.min(c.count*8,24+classPerkRank(actor,'soldier_braced')*CLASS_PERK_TUNING.correctionCap):0;
 }
+export const correctionLimit=actor=>3+classPerkRank(actor,'soldier_braced');
 export function recordShot(actor,targetId,turn){
   if(!activeTrait(actor,'correction')){actor.fireChain=null;return;}
   const c=actor.fireChain;
-  actor.fireChain={targetId,turn,count:c?.targetId===targetId&&c.turn===turn-1?Math.min(3,c.count+1):1};
+  actor.fireChain={targetId,turn,count:c?.targetId===targetId&&c.turn===turn-1?Math.min(correctionLimit(actor),c.count+1):1};
 }
 export function sidestepPenalty(attacker,target){
   if(!target.moved||!activeTrait(target,'sidestep')||!target.moveDelta)return 0;
   const [mx,my]=target.moveDelta,dx=attacker.x-target.x,dy=attacker.y-target.y;
-  return Math.abs(mx*dy-my*dx)>Math.abs(mx*dx+my*dy)?20:0;
+  return Math.abs(mx*dy-my*dx)>Math.abs(mx*dx+my*dy)?20+classPerkRank(target,'recon_sidestep')*CLASS_PERK_TUNING.sidestep:0;
 }
 export function validCombatMemory(actor,turn){
   const d=actor.moveDelta,c=actor.fireChain;
   return Array.isArray(d)&&d.length===2&&d.every(Number.isInteger)&&Math.abs(d[0])+Math.abs(d[1])<=1&&
-    (c===null||(c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.targetId==='string'&&c.targetId.length>0&&c.targetId.length<=100&&Number.isInteger(c.turn)&&c.turn>=1&&c.turn<=turn&&Number.isInteger(c.count)&&c.count>=1&&c.count<=3));
+    (c===null||(c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.targetId==='string'&&c.targetId.length>0&&c.targetId.length<=100&&Number.isInteger(c.turn)&&c.turn>=1&&c.turn<=turn&&Number.isInteger(c.count)&&c.count>=1&&c.count<=correctionLimit(actor)));
 }
 
 export function reduceDirectDamage(actor,damage){

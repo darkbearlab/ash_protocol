@@ -16,6 +16,7 @@ export function tickSpirit(g){const p=g.player,s=p.battleSpirit;if(!s?.stacks||s
 // Smoke is checked by position: adjacent units always see each other, so the old "target cannot see you" test never fired in melee reach.
 export const inSmoke=(g,pos)=>Boolean(g.smoke?.some(s=>s.cells.some(q=>q.x===pos.x&&q.y===pos.y)));
 export function ambushReady(g,target){const p=g.player;return Boolean(target&&g.enemies.includes(target)&&activeTrait(p,'ambush')&&(target.control?.disabled>0||inSmoke(g,target)||inSmoke(g,p)||!target.alert||isDark(g,p)));}
+export const ambushMultiplier=p=>MELEE_TUNING.ambush+classPerkRank(p,'ninja_ambush')*CLASS_PERK_TUNING.ambush;
 export function shortenCamo(p){const s=p.skillState?.camouflage;if(s&&!s.remaining)s.cooldown=Math.max(0,s.cooldown-MELEE_TUNING.ambushCooldown);}
 export function meleeReward(g,target,before){const p=g.player,actual=Math.max(0,before-Math.max(0,target.hp));if(actual<=0)return;
  if(p.hp>0&&activeTrait(p,'bloodlust'))healActor(p,Math.floor(actual*(MELEE_TUNING.bloodlust+classPerkRank(p,'berserker_thirst')*CLASS_PERK_TUNING.thirst)));

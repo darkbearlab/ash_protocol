@@ -1,11 +1,11 @@
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {MAX_LEVEL,perkLimit,floorLimit,isEndless,scaleEnemy,giveCapSupply,PROTOCOL_EVENT_LIMIT} from './endless.js';
-import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambushReady,shortenCamo,meleeReward,defensiveEvasion,grapplePlan,useGrapple,MELEE_TUNING} from './melee-classes.js';
+import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambushReady,ambushMultiplier,shortenCamo,meleeReward,defensiveEvasion,grapplePlan,useGrapple,MELEE_TUNING} from './melee-classes.js';
 import {healActor} from './traits.js';
 import {recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
 import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickPackedPet,tickSummons,petSkillReason,fitDrone,DRONE_HP,DRONE_BUILD_COST,droneCells,dronePlaces} from './allies.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
-import {toggleAnchor,validAnchor,SKILLS,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
+import {toggleAnchor,validAnchor,SKILLS,skillValues,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
 import {fullLighting,validLighting,lightingEffects} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
@@ -18,7 +18,7 @@ import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {SMOKE_DURATION,GRENADES,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
 import {defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns} from './prepared.js';
-import {grantTrait,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
+import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
 import {presentStep} from './presentation.js';
@@ -40,11 +40,11 @@ export class Game {
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
     this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
-    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.logs=[];this.status='playing';this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];this.loadFloor();initializeAllies(this);this.reveal();
+    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.logs=[];this.status='playing';this.shadowSteps=0;this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];this.loadFloor();initializeAllies(this);this.reveal();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   loadFloor() {
-    endSkillEffects(this.player);this.sensorContacts=[];this.player.vaultExposed=false;
+    endSkillEffects(this.player);this.sensorContacts=[];this.shadowSteps=0;this.player.vaultExposed=false;
     Object.assign(this,generate(this.seed,this.floor,this.unlockedWeapons));this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.focus=false;this.player.evasive=false;
@@ -222,6 +222,8 @@ export class Game {
     }
     if(type==='weapon'&&arg===undefined)arg=p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length];
     if(type==='grenade'){const pos=arg||this.targeted;arg=pos?{x:pos.x,y:pos.y,grenade:p.prepared.grenade}:null;}
+    if(type==='move'&&this.shadowSteps>0)return p.control.disabled?this.fail('失能中無法使用影步。'):this.shadowMove(arg);
+    if(this.shadowSteps>0)this.shadowSteps=0;
     if(!this.validateAction(type,arg))return false;
     if(p.control.disabled&&type!=='prepare'&&this.actionCost(type,arg)===0)return this.fail('失能中，按中央等待恢復。');
     if(type==='move'){
@@ -289,8 +291,8 @@ export class Game {
         this.effects.push({type:'pulse',from:{x:this.player.x,y:this.player.y},to:{x:this.player.x,y:this.player.y},radius:.6,color:'#e6c281',damage:0});
         this.log(skillActive(this.player,'anchor')?'下錨完成：固定位置，攻擊於普通與緩速各一次。':'下錨已解除，可以移動。');return true;
       }
-      const def=SKILLS[id],p=this.player;p.skillState[id]={remaining:def.duration,cooldown:def.cooldownAfterEffect?0:def.cooldown};
-      if(id==='early_warning'){this.sensorContacts=this.enemies.filter(e=>e.hp>0&&distance(p,e)<=def.radius).map(e=>{e.alert=true;e.lastKnown={x:p.x,y:p.y};return {x:e.x,y:e.y};});this.log(`預警取得 ${this.sensorContacts.length} 個位置；敵人已得知你的位置。`,true);}
+      const p=this.player,def=skillValues(p,id);p.skillState[id]={remaining:def.duration,cooldown:def.cooldownAfterEffect?0:def.cooldown};
+      if(id==='early_warning'){this.sensorContacts=this.enemies.filter(e=>e.hp>0&&distance(p,e)<=def.radius).map(e=>{e.alert=true;e.lastKnown={x:p.x,y:p.y};if(classPerkRank(p,'soldier_marked'))grantTrait(e,'exposed','skill:early_warning',2);return {x:e.x,y:e.y};});this.log(`預警取得 ${this.sensorContacts.length} 個位置；敵人已得知你的位置。`,true);}
       this.effects.push({type:'pulse',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},radius:.6,color:'#8ae9da',damage:0});
       this.log(`${def.name}啟動：持續 ${def.duration} 回合，冷卻 ${def.cooldown} 回合。`);this.reveal();return true;
     });
@@ -401,12 +403,21 @@ export class Game {
     const valid=target&&distance(p,target)<=1&&this.shotClear(p,target)&&(isBarrier(target)||this.canCross(p,target)),to=valid?target:intent;
     p.fireChain=null;p.facing=[Math.sign(to.x-p.x),Math.sign(to.y-p.y)];
     presentStep(this,()=>{
-      const ambush=Boolean(valid)&&ambushReady(this,target);if(ambush)shortenCamo(p);
+      const ambush=Boolean(valid)&&ambushReady(this,target);if(ambush&&!this.shadowBonus)shortenCamo(p);
       const chance=this.meleeAccuracy(p,target,w.hitChance),hit=Boolean(valid)&&this.rng()*100<chance;
       this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:to.x,y:to.y},damage:0,miss:!hit});
       if(!hit){this.log(valid?`近戰揮擊未命中（${chance}%）。`:'原目標已離開近戰範圍，揮擊落空。');return;}
-      const d=this.weaponDamage(slot);this.hitTarget(target,Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?MELEE_TUNING.ambush:1)),p,w.pierce||0,w);
+      const d=this.weaponDamage(slot);this.hitTarget(target,Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)),p,w.pierce||0,w);
+      const shadow=classPerkRank(p,'ninja_shadowstep');if(ambush&&shadow&&!this.shadowBonus){this.shadowSteps=shadow>=2?2:1;this.log(`影步就緒：可免費移動 ${this.shadowSteps} 格。`);}
     });
+    return true;
+  }
+  shadowMove(delta){
+    const p=this.player;if(!Array.isArray(delta)||delta.length!==2||!delta.every(Number.isInteger)||Math.abs(delta[0])+Math.abs(delta[1])!==1)return this.fail('影步需要選擇相鄰方向。');
+    const point={x:p.x+delta[0],y:p.y+delta[1]},edge=barrierBetween(this.barriers,p,point);
+    if(!this.passable(point.x,point.y)||!this.canCross(p,point)||vaultable(edge)||occupied(this,point))return this.fail('影步落點必須是沒有障礙與單位的平地。');
+    presentStep(this,()=>{Object.assign(p,{x:point.x,y:point.y,facing:[...delta],moved:true,moveDelta:[...delta]});this.shadowSteps--;this.pickup();this.reveal();this.log(this.shadowSteps?`影步尚可移動 ${this.shadowSteps} 格。`:'影步移動結束。');});
+    if(this.shadowSteps===0&&classPerkRank(p,'ninja_shadowstep')>=3){const target=[this.targeted,...this.enemies].find((e,i,a)=>e&&e.hp>0&&distance(p,e)<=1&&this.canCross(p,e)&&a.indexOf(e)===i);if(target){const slot=this.bumpMeleeSlot();if(slot!==undefined){const before=target.hp;this.target=target.id;this.shadowBonus=true;this.strike({id:target.id,x:target.x,y:target.y},slot);this.shadowBonus=false;if(before>0&&target.hp<=0){const cam=p.skillState?.camouflage;if(cam?.remaining)cam.remaining=Math.min(skillValues(p,'camouflage').duration,cam.remaining+CLASS_PERK_TUNING.shadowDuration);else if(cam)cam.cooldown=Math.max(0,cam.cooldown-CLASS_PERK_TUNING.shadowCooldown);}}}}
     return true;
   }
   protectingCover(target,attacker) {
@@ -417,7 +428,7 @@ export class Game {
     if(attacker===this.player)raw=Math.round(raw*bladeMultiplier(attacker));
     if(this.props.includes(target)||isBarrier(target)){if(weapon.ammoType==='energy')addTrace(this,target,'scorch');this.damageProp(target,raw);return;}
     const cover=weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
-    let damage=raw;
+    let damage=raw;if(attacker===this.player&&!weapon.melee&&!this.sight(target,attacker))damage*=1+classPerkRank(attacker,'recon_unseen')*CLASS_PERK_TUNING.unseen;if(attacker===this.player&&activeTrait(target,'exposed'))damage*=1+classPerkRank(attacker,'soldier_marked')*CLASS_PERK_TUNING.markedDamage;
     if(cover){damage*=1-coverEffects(cover,target,attacker).reduction*(1-pierce);if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35));this.log('敵方掩體吸收了部分傷害。');}
     damage=Math.max(1,Math.round(damage-armor*(1-pierce)));
     if(weapon.ammoType==='energy'&&activeTrait(target,'mechanical'))damage=Math.round(damage*1.2);
@@ -693,7 +704,7 @@ export class Game {
     if(returning(this)&&this.floor>1&&!arrival)return this.fail('上一層入口暫無安全落腳處。');
     this.awardProtocol('floor',this.floor);
     if((returning(this)&&this.floor===1)||(!isEndless(this)&&!missionDefinition(this).returnTrip&&this.floor===missionDepth(this))){this.awardProtocol('extraction','win');this.status='won';this.log(this.missionSummary+'。撤離成功。');return true;}
-    const companions=departAllies(this);
+    this.shadowSteps=0;for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
     if(returning(this)){
       if(advanceTurn)this.turn++;
       Object.assign(this,resumedFloor(frame,this.turn));delete this.floorStates[next];this.floor=next;
@@ -829,6 +840,8 @@ export class Game {
       if(version<28)migratePerks(g);
       if(version<30){if(![g.pendingPerks,g.perkPicks].every(n=>Number.isSafeInteger(n)&&n>=0))return null;g.legacyPerkPicks=g.perkPicks>perkLimit(p.level)?g.perkPicks:0;const kept=Math.max(0,Math.min(g.pendingPerks,perkLimit(p.level)-g.perkPicks));if(kept!==g.pendingPerks)g.perkDraft=null;g.pendingPerks=kept;}
       if(version<31)g.classPerkMisses=0;
+      if(version<32)g.shadowSteps=0;
+      if(!Number.isInteger(g.shadowSteps)||g.shadowSteps<0||g.shadowSteps>2||g.shadowSteps>0&&classPerkRank(p,'ninja_shadowstep')===0)return null;
       if(!validPerks(g))return null;
       if(!validAllies(g))return null;
       if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...frame,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,fireChain:null}}})))))return null;

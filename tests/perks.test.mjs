@@ -26,7 +26,7 @@ test('seed samples exceed the old eight combinations and repeat bias favors unfi
   const g={seed,perkPicks:0,player:{character:'soldier',perks:{accuracy:1}}};const ids=drawPerks(g).ids;
   sets.add([...ids].sort().join(','));repeat+=ids.includes('accuracy');g.player.perks={med:10};plain+=drawPerks(g).ids.includes('med');
  }
- assert.ok(sets.size>100);assert.ok(repeat/2500>.65&&repeat/2500<.8);assert.ok(plain/2500>.2&&plain/2500<.35);
+ assert.ok(sets.size>100);assert.ok(repeat/2500>.65&&repeat/2500<.8);assert.ok(plain/2500>.1&&plain/2500<.3);
 });
 test('all permanent ranks capped; only supply remains and repeated resource rewards cannot softlock',()=>{
  const g=ready();for(const o of PERKS)if(o.cap!==null)g.player.perks[o.id]=o.cap;

@@ -1,6 +1,7 @@
 import {GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN,MELEE_TUNING} from './melee-classes.js';
 import {grantTrait,removeTraitSource} from './traits.js';
 import {TETHER,CARRY_DISTANCE,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,PET_TETHER,PET_REGEN,PET_MEDKIT_FRACTION,DRONE_HP,DRONE_BUILD_COST,SENTRY_ARMOR,allyWeapon} from './allies.js';
+import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 // Ally skill texts read the tuning constants, so a balance change cannot leave them stale (3.44).
 const FOLLOW=allyWeapon({kind:'drone',sourceId:'drone_follow'}),SENTRY=allyWeapon({kind:'drone',sourceId:'drone_sentry'});
 // Active skills are separate from passive traits and item quantities.
@@ -17,17 +18,18 @@ export const SKILLS={
 };
 export const initialSkillState=ids=>Object.fromEntries(ids.map(id=>[id,{remaining:0,cooldown:0}]));
 export const skillActive=(player,id='signal_break')=>(player.skillState?.[id]?.remaining||0)>0;
+export function skillValues(player,id){const d=SKILLS[id],rank=classPerkRank(player,id==='early_warning'?'soldier_overwatch':id==='signal_break'?'recon_blackout':id==='camouflage'?'ninja_overload':'');if(id==='early_warning')return {...d,radius:d.radius+rank*CLASS_PERK_TUNING.overwatchRadius,cooldown:Math.max(2,d.cooldown-rank*CLASS_PERK_TUNING.overwatchCooldown)};if(id==='signal_break')return {...d,duration:d.duration+rank*CLASS_PERK_TUNING.blackoutDuration,cooldown:Math.max(3,d.cooldown-rank*CLASS_PERK_TUNING.blackoutCooldown)};if(id==='camouflage')return {...d,duration:d.duration+rank*CLASS_PERK_TUNING.overloadDuration,cooldown:Math.max(4,d.cooldown-rank*CLASS_PERK_TUNING.overloadCooldown)};return d;}
 export const canUseSkill=(player,id)=>Object.hasOwn(SKILLS,id)&&player.skills.includes(id)&&player.prepared.skill===id&&(SKILLS[id].toggle||!player.skillState?.[id]?.remaining)&&!player.skillState?.[id]?.cooldown;
 export function skillStatus(player,id){const state=player.skillState?.[id];if(SKILLS[id]?.toggle)return state?.remaining?'解除':'啟動';return state?.remaining?`生效 ${state.remaining}`:state?.cooldown?`冷卻 ${state.cooldown}`:'就緒';}
-export function tickSkills(player){for(const [id,state] of Object.entries(player.skillState)){if(SKILLS[id]?.toggle)continue;if(SKILLS[id]?.cooldownAfterEffect&&state.remaining){state.remaining--;if(!state.remaining)state.cooldown=SKILLS[id].cooldown;continue;}state.remaining=Math.max(0,state.remaining-1);state.cooldown=Math.max(0,state.cooldown-1);}}
+export function tickSkills(player){for(const [id,state] of Object.entries(player.skillState)){const def=skillValues(player,id);if(def?.toggle)continue;if(def?.cooldownAfterEffect&&state.remaining){state.remaining--;if(!state.remaining)state.cooldown=def.cooldown;continue;}state.remaining=Math.max(0,state.remaining-1);state.cooldown=Math.max(0,state.cooldown-1);}}
 export function endSkillEffects(player){for(const [id,state] of Object.entries(player.skillState))if(!SKILLS[id]?.toggle&&!SKILLS[id]?.cooldownAfterEffect)state.remaining=0;}
 export function validSkillState(player){
   const states=player.skillState;
   if(!states||typeof states!=='object'||Array.isArray(states)||Object.keys(states).length!==player.skills.length)return false;
   return player.skills.every(id=>{
-    const state=states[id],def=SKILLS[id];
+    const state=states[id],def=skillValues(player,id);
     return def&&state&&typeof state==='object'&&!Array.isArray(state)&&Object.keys(state).length===2&&
-      Number.isInteger(state.remaining)&&state.remaining>=0&&state.remaining<=def.duration&&Number.isInteger(state.cooldown)&&state.cooldown>=0&&(def.toggle?state.cooldown===0:def.cooldownAfterEffect?(state.remaining===0||state.cooldown===0):state.cooldown>=state.remaining)&&state.cooldown<=def.cooldown;
+      Number.isInteger(state.remaining)&&state.remaining>=0&&state.remaining<=def.duration&&Number.isInteger(state.cooldown)&&state.cooldown>=0&&(def.toggle?state.cooldown===0:def.cooldownAfterEffect?(state.remaining===0||state.cooldown===0):state.cooldown>=state.remaining-Math.max(0,def.duration-def.cooldown))&&state.cooldown<=def.cooldown;
   });
 }
 

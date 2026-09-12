@@ -1,6 +1,6 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 31;
+export const SAVE_VERSION = 32;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -73,6 +73,15 @@ export const PERKS = [
   {id:'druid_beast',name:'獵獸體質',characters:['druid'],cap:3,effect:'passive',text:'寵物最大生命 +25、收納時每回合額外回復 3。'},
   {id:'druid_claws',name:'獵獸利爪',characters:['druid'],cap:3,effect:'passive',text:'寵物傷害 +4、近戰命中 +5 個百分點。'},
   {id:'druid_symbiosis',name:'共生',characters:['druid'],cap:3,effect:'passive',text:'寵物每次擊殺敵人，你回復 4 生命；每階累加。'},
+  {id:'soldier_overwatch',name:'廣域預警',characters:['soldier'],cap:3,effect:'passive',text:'預警半徑 +2、冷卻 −1（最低 2）。'},
+  {id:'soldier_marked',name:'標定弱化',characters:['soldier'],cap:3,effect:'passive',text:'預警標定 2 回合；每階使其受到你的傷害 +10%、對你的命中 −6。'},
+  {id:'soldier_braced',name:'架槍精通',characters:['soldier'],cap:3,effect:'passive',text:'架槍命中 +5、著彈修正上限 +8。'},
+  {id:'recon_unseen',name:'隱蔽射手',characters:['recon'],cap:3,effect:'passive',text:'射擊目標看不到你時，每階傷害 +12%。'},
+  {id:'recon_blackout',name:'斷層延長',characters:['recon'],cap:3,effect:'passive',text:'訊號斷層持續 +1、冷卻 −1（最低 3）。'},
+  {id:'recon_sidestep',name:'側身精通',characters:['recon'],cap:3,effect:'passive',text:'側身使敵人命中每階再 −6，暴露下限同步放寬。'},
+  {id:'ninja_shadowstep',name:'影步',characters:['ninja'],cap:3,effect:'passive',text:'伏擊命中後取得免費移動；二階延長至 2 格，三階結束時可追加伏擊。'},
+  {id:'ninja_ambush',name:'伏擊精通',characters:['ninja'],cap:3,effect:'passive',text:'伏擊傷害倍率每階 +0.15。'},
+  {id:'ninja_overload',name:'光學過載',characters:['ninja'],cap:3,effect:'passive',text:'迷彩持續 +1、冷卻 −2（最低 4）。'},
 ];
 export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
 export const LORE = [
