@@ -1,3 +1,4 @@
+import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {floorLimit} from './endless.js';
 import {ENEMY_TYPES,SIZE} from './data.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
@@ -16,6 +17,8 @@ export const SUMMON_INTERVAL=4,SUMMON_TETHER=9,RALLY_TURNS=3;
 export const FOLLOW_RANGE={drone:1,other:3};
 // Druid pet (3.37, user decision): a longer leash to reach real fights, and a downed pet is recovered
 // instead of revived; it heals while packed and steps back out once whole if the skill stays prepared.
+export const summonLimit=p=>SUMMON_LIMIT+classPerkRank(p,'necro_horde')*CLASS_PERK_TUNING.horde;
+export const summonInterval=p=>Math.max(1,SUMMON_INTERVAL-classPerkRank(p,'necro_haste')*CLASS_PERK_TUNING.haste);
 export const PET_TETHER=9,PET_REGEN=5,PET_MEDKIT_FRACTION=.5;
 export const leash=a=>a.kind==='pet'?PET_TETHER:a.kind==='summon'?SUMMON_TETHER:TETHER;
 // Placeholder economy: keep price and healing shared by rules and inventory UI.
@@ -47,16 +50,16 @@ export const currentAllies=g=>(g.allies||[]).filter(a=>a.floor===g.floor&&a.stat
 export const localAllies=g=>(g.allies||[]).filter(a=>a.floor===g.floor&&['active','down','destroyed'].includes(a.status));
 export const connected=(g,a)=>a.status==='active'&&a.hp>0&&a.floor===g.floor&&distance(a,g.player)<=leash(a);
 export const allyName=a=>a.kind==='pet'?'伴生獵獸':a.kind==='drone'?(a.sourceId==='drone_sentry'?'哨兵無人機':'追隨無人機'):a.kind==='survivor'?'倖存友軍':`復生${ENEMY_TYPES[a.type].name}`;
-export function allyWeapon(a){
+export function allyWeapon(a,player=null){
  if(a.kind==='drone')return a.sourceId==='drone_sentry'?{id:'rifle',range:7,min:14,max:14,mag:8,ammoType:'rifle',accuracyBonus:-37}:{id:'rifle',range:7,min:12,max:12,mag:12,ammoType:'rifle',accuracyBonus:-30};
- const def=ENEMY_TYPES[a.type],melee=a.kind==='pet'||def.range===1;
- return {id:melee?'melee':a.type==='drone'?'plasma':'rifle',range:a.kind==='pet'?1:def.range,min:a.kind==='pet'?24:Math.max(8,def.damage),max:a.kind==='pet'?28:Math.max(8,def.damage),melee,hitChance:90,accuracyBonus:-22,ammoType:null,mag:0};
+ const bonus=a.kind==='summon'?classPerkRank(player,'necro_blades')*CLASS_PERK_TUNING.blades:0,def=ENEMY_TYPES[a.type],melee=a.kind==='pet'||def.range===1;
+ return {id:melee?'melee':a.type==='drone'?'plasma':'rifle',range:a.kind==='pet'?1:def.range,min:a.kind==='pet'?24:Math.max(8,def.damage)+bonus,max:a.kind==='pet'?28:Math.max(8,def.damage)+bonus,melee,hitChance:90,accuracyBonus:-22,ammoType:null,mag:0};
 }
 // Survivors use the same actor contract; missionId/sourceId can attach rescue objectives later.
 export function addAlly(g,kind,type,{sourceId=null,missionId=null,point=g.player,status='active'}={}){
  if(!['drone','pet','summon','survivor'].includes(kind)||!ENEMY_TYPES[type]||g.allies.length>=32)return null;
  if(!['active','packed'].includes(status)||status==='packed'&&kind!=='drone'||kind==='summon'&&['boss','warden'].includes(type)||kind==='drone'&&type!=='drone')return null;
- if(['pet','drone'].includes(kind)&&g.allies.some(a=>a.kind===kind)||kind==='summon'&&g.allies.filter(a=>a.kind==='summon'&&a.status==='active').length>=SUMMON_LIMIT)return null;
+ if(['pet','drone'].includes(kind)&&g.allies.some(a=>a.kind===kind)||kind==='summon'&&g.allies.filter(a=>a.kind==='summon'&&a.status==='active').length>=summonLimit(g.player))return null;
  if(status==='active'&&(!g.passable(point.x,point.y)||occupied(g,point)))return null;
  const a={...makeEnemy(type,point.x,point.y,`ally-${++g.allySerial}`,g.floor),kind,sourceId,missionId,floor:g.floor,status,order:null,ammo:0,bornTurn:g.turn};
  a.maxHp=a.hp=kind==='drone'?DRONE_HP:kind==='pet'?90:Math.max(32,Math.min(150,a.hp));a.armor=kind==='pet'?1:0;
@@ -120,7 +123,7 @@ export const dronePlaces=(g,id)=>['drone_follow','drone_sentry'].includes(id)&&(
 const placeCell=(g,point)=>point?droneCells(g).find(q=>q.x===point.x&&q.y===point.y)||null:defaultDroneCell(g);
 export function allySkillState(g,id){
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
- if(id==='raise_dead'){const n=summonCount(g),cd=g.player.skillState.raise_dead?.cooldown||0;return `召喚 ${n}/${SUMMON_LIMIT}${n>=SUMMON_LIMIT?'':!summonPool(g).length?' · 本層尚無可起身的屍體':cd?` · ${cd} 回合後再起`:' · 回合結束再起'}`;}
+ if(id==='raise_dead'){const n=summonCount(g),cd=g.player.skillState.raise_dead?.cooldown||0;return `召喚 ${n}/${summonLimit(g.player)}${n>=summonLimit(g.player)?'':!summonPool(g).length?' · 本層尚無可起身的屍體':cd?` · ${cd} 回合後再起`:' · 回合結束再起'}`;}
  if(id!=='pet_command'&&droneLost(g,a))return `生產 · ${DRONE_BUILD_COST} 廢料`;
  if(!a)return '沒有夥伴';if(a.floor!==g.floor&&a.status!=='packed')return `留在 ${a.floor} 層`;
  if(a.status==='down')return '回收 · 相鄰 1 回合';
@@ -178,7 +181,7 @@ const restFor=(g,a)=>slotTurn.get(a)===g.turn?g.turn+1:g.turn;
 export function allyAct(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return;
  slotTurn.set(a,g.turn);a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return;
- const w=allyWeapon(a),linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
+ const w=allyWeapon(a,g.player),linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
  const shot=linked&&(a.kind!=='drone'||a.ammo>0)?targets.find(e=>distance(a,e)<=w.range&&g.shotClear(a,e)&&(!w.melee||g.canCross(a,e))):null;
  const attack=e=>{
   if(a.kind==='drone')a.ammo--;
@@ -262,11 +265,11 @@ export function swapWithPlayer(g,a){
 // another summon and someone has fallen on this floor, one rises beside the player and acts from the next turn.
 export function tickSummons(g){
  const p=g.player,state=p.skillState?.raise_dead;
- if(!p.skills.includes('raise_dead')||!state||state.cooldown||p.control.disabled||summonCount(g)>=SUMMON_LIMIT)return false;
+ if(!p.skills.includes('raise_dead')||!state||state.cooldown||p.control.disabled||summonCount(g)>=summonLimit(g.player))return false;
  const pool=summonPool(g),cell=routeCells(g,p,{limit:2,openDoors:false}).find(q=>q.d>0);if(!pool.length||!cell)return false;
  g.allies=g.allies.filter(a=>a.kind!=='summon'||a.status==='active');if(g.allies.length>=32)return false;
  const a=addAlly(g,'summon',pool[Math.floor(g.rng()*pool.length)].type,{sourceId:'raise_dead',point:cell});if(!a)return false;
- state.cooldown=SUMMON_INTERVAL;
+ state.cooldown=summonInterval(p);
  g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.6,color:'#8ae9da',damage:0});
  g.log(`${allyName(a)}自亡者中起身。`);return true;
 }
@@ -297,5 +300,5 @@ export function validAllies(g){
   if(a.order!==null&&(!a.order||![a.order.x,a.order.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)))return false;
   if(a.status==='active'){if(a.floor===g.floor&&(key(a)===key(g.player)||g.enemies.some(e=>e.hp>0&&key(e)===key(a))))return false;const k=a.floor+':'+key(a);if(occupiedCells.has(k))return false;occupiedCells.add(k);const grid=a.floor===g.floor?g.grid:g.floorStates?.[a.floor]?.grid;if(grid&&grid[a.y]?.[a.x]!==1)return false;}
  }
- return g.allies.filter(a=>a.kind==='pet').length<=1&&g.allies.filter(a=>a.kind==='drone').length<=1&&g.allies.filter(a=>a.kind==='summon'&&a.status==='active').length<=SUMMON_LIMIT;
+ return g.allies.filter(a=>a.kind==='pet').length<=1&&g.allies.filter(a=>a.kind==='drone').length<=1&&g.allies.filter(a=>a.kind==='summon'&&a.status==='active').length<=summonLimit(g.player);
 }

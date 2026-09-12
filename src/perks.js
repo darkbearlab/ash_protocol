@@ -30,7 +30,7 @@ export function ensurePerks(g){
 export function applyPerk(g,o){
  const p=g.player;
  switch(o.effect){
- case 'passive':break;
+ case 'passive':if(o.id==='necro_haste'&&p.skillState?.raise_dead)p.skillState.raise_dead.cooldown=Math.max(0,p.skillState.raise_dead.cooldown-CLASS_PERK_TUNING.haste);break;
  case 'weapon':p.perkWeaponBonus+=o.amount;break;
  case 'health':p.maxHp+=o.amount;healActor(p,o.heal);break;
  case 'stat':p[o.stat]+=o.amount;break;

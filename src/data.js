@@ -64,6 +64,9 @@ export const PERKS = [
   {id:'berserker_fury',name:'狂怒堆疊',characters:['berserker'],cap:3,effect:'passive',text:'戰意層數上限 +1。'},
   {id:'berserker_endure',name:'血怒不退',characters:['berserker'],cap:3,effect:'passive',text:'戰意開始衰減的延遲 +2 回合、每層衰減間隔 +1 回合。'},
   {id:'berserker_thirst',name:'嗜血狂歡',characters:['berserker'],cap:3,effect:'passive',text:'近戰吸血 +8 個百分點（基礎 20%）。'},
+  {id:'necro_horde',name:'群葬',characters:['necromancer'],cap:3,effect:'passive',text:'同時存在的召喚物上限 +1（基礎 3）。'},
+  {id:'necro_haste',name:'速葬',characters:['necromancer'],cap:3,effect:'passive',text:'自動起身間隔 −1 次付費行動（基礎 4，下限 1）；目前倒數同步縮短。'},
+  {id:'necro_blades',name:'亡者利刃',characters:['necromancer'],cap:3,effect:'passive',text:'所有召喚物的近戰與射擊傷害 +4；不增加耐久。'},
 ];
 export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
 export const LORE = [

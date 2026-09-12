@@ -53,7 +53,7 @@ export class Game {
   }
   get activeAllies(){return currentAllies(this);}
   get localAllies(){return localAllies(this);}
-  actorWeapon(actor){return actor.kind?allyWeapon(actor):null;}
+  actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):null;}
   meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b));}
   defensiveEvasion(a,b){return defensiveEvasion(this,a,b);}
   grapplePlan(id=this.target){return grapplePlan(this,id);}
