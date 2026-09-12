@@ -430,7 +430,11 @@ export class Game {
     this.player.kills++;this.player.xp+=ENEMY_TYPES[e.type]?.xp||1;
     this.player.scrap+=Math.round((e.type==='boss'||e.type==='warden'?35:3)*(1+this.player.scavenger*.5));
     this.log(`${enemyName(e)}已消滅。`);if(missionTarget(this,e))this.log(this.missionSummary+'。');
-    while(this.player.xp>=this.player.level+2){this.player.xp-=this.player.level+2;this.player.level++;if(this.player.level<=MAX_LEVEL&&this.perkPicks+this.pendingPerks<perkLimit(this.player.level))this.pendingPerks++;else if(this.player.level>MAX_LEVEL)giveCapSupply(this);}
+    // The number stops at MAX_LEVEL (3.52.0, user call). Past it the threshold stays at the level-20 cost and each
+    // one hands over supplies instead of a pick, so the HUD can simply read MAX.
+    const p=this.player;
+    while(p.level<MAX_LEVEL&&p.xp>=p.level+2){p.xp-=p.level+2;p.level++;if(this.perkPicks+this.pendingPerks<perkLimit(p.level))this.pendingPerks++;}
+    while(p.level>=MAX_LEVEL&&p.xp>=MAX_LEVEL+2){p.xp-=MAX_LEVEL+2;giveCapSupply(this);}
     if(e.type==='bomber')this.explode(e,1,scaleEnemy(30,this.floor,'damage'));
     if(e.type==='warden'||e.type==='boss')this.awardProtocol(e.type,`${this.floor}:${e.id}`);
     if(e.reinforcement)return; // Retreat waves add pressure, not replacement supplies.

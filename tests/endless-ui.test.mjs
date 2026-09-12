@@ -13,15 +13,16 @@ test('the UI shows 666 floors while the rule limit stays separate',()=>{
 });
 
 test('level label marks the cap; the title explains what comes after it',()=>{
- assert.equal(levelLabel(MAX_LEVEL-1),'LV.19');assert.equal(levelLabel(MAX_LEVEL),'LV.20 封頂');assert.equal(levelLabel(25),'LV.25 封頂');
- assert.doesNotMatch(levelTitle(19,3),/封頂/);assert.match(levelTitle(22,5),/經驗 5 \/ 24；20 級已封頂/);
+ assert.equal(levelLabel(MAX_LEVEL-1),'LV.19');assert.equal(levelLabel(MAX_LEVEL),'LV.20 MAX');
+ assert.equal(levelLabel(25),'LV.20 MAX','a legacy number above the cap still reads MAX');
+ assert.doesNotMatch(levelTitle(19,3),/上限/);assert.match(levelTitle(20,5),/經驗 5 \/ 22；已達等級上限，之後每 22 點經驗/);
 });
 
 // The log line is what the message bar shows after the kill settles, so it carries the contents itself.
 test('cap supply log names every item of the real supply',()=>{
  assert.equal(capSupplyText().split('、').length,Object.keys(CAP_SUPPLY).length);assert.ok(capSupplyText().startsWith(`醫療包 +${CAP_SUPPLY.meds}、手榴彈 +${CAP_SUPPLY.grenade}`));
- const g=new Game(4903,[],0,'soldier','onyx','endless');g.player.level=21;giveCapSupply(g);
- assert.equal(g.logs[0].text,`等級 21：獲得封頂補給（${capSupplyText()}；超量彈藥留在腳下）。`);
+ const g=new Game(4903,[],0,'soldier','onyx','endless');giveCapSupply(g);
+ assert.equal(g.logs[0].text,`獲得封頂補給（${capSupplyText()}；超量彈藥留在腳下）。`);
 });
 
 test('endless arrival text: no tutorial line past floor 6 and no extraction wording on core floors',()=>{

@@ -10,9 +10,9 @@ const run=(floor=1,character='soldier')=>{const g=new Game(349,[],0,character,'o
 const rank=(g,level)=>{g.player.level=level;g.player.xp=0;g.perkPicks=Math.min(level-1,19);g.player.perks={med:g.perkPicks};g.pendingPerks=0;g.perkDraft=null;};
 const kill=g=>{const e=makeEnemy('rifleman',g.player.x,g.player.y,'xp-victim');g.enemies.push(e);g.hurt(e,e.hp);};
 
-test('levels 2–20 grant exactly nineteen picks; subsequent levels each grant capped resources, no RNG reroll or paid turn',()=>{
+test('levels 2–20 grant exactly nineteen picks; past the cap the level freezes and every 22 experience grants capped resources, no RNG reroll or paid turn',()=>{
  const g=run();rank(g,19);g.player.xp=20;kill(g);assert.equal(g.player.level,20);assert.equal(g.pendingPerks,1);assert.ok(g.choosePerk(g.perkChoices[0].id));assert.equal(g.perkPicks,19);
- const before=g.player.meds,turn=g.turn;g.player.xp=22+23+24-1;kill(g);assert.equal(g.player.level,23);assert.equal(g.pendingPerks,0);assert.deepEqual(g.perkChoices,[]);assert.equal(g.player.meds,before+CAP_SUPPLY.meds*3);assert.equal(g.turn,turn);
+ const before=g.player.meds,turn=g.turn;g.player.xp=22+23+24-1;kill(g);assert.equal(g.player.level,20);assert.equal(g.pendingPerks,0);assert.deepEqual(g.perkChoices,[]);assert.equal(g.player.meds,before+CAP_SUPPLY.meds*3);assert.equal(g.turn,turn);
  assert.equal(g.logs.filter(l=>l.text.includes('獲得封頂補給')).length,3);assert.equal(g.effects.filter(e=>e.type==='capSupply').length,3);
  g.pendingPerks=1;g.perkDraft={index:19,ids:['med']};assert.equal(g.choosePerk('med'),false);
 });
@@ -21,7 +21,7 @@ test('cap supplies use existing overflow rules, never add perk ranks, and reload
  const before={...g.player.perks},turn=g.turn;for(const [id,field]of [['rifle','reserve'],['pistol','pistol'],['shell','shell']])g.player[field]=g.ammoCapacity(id);g.player.grenades=g.ammoCapacity('grenade');
  const totals=type=>g.items.filter(i=>i.type===type&&key(i)===key(g.player)).reduce((s,i)=>s+(i.amount||0),0),shell=totals('shell'),grenade=totals('grenade');kill(g);
  assert.equal(totals('shell'),shell+CAP_SUPPLY.shell);assert.equal(totals('grenade'),grenade+CAP_SUPPLY.grenade);assert.deepEqual(g.player.perks,before);assert.equal(g.turn,turn);
- const h=Game.restore(g.serialize());assert.ok(h);assert.deepEqual(h.player,g.player);assert.equal(h.player.level,26);
+ const h=Game.restore(g.serialize());assert.ok(h);assert.deepEqual(h.player,g.player);assert.equal(h.player.level,25,'a number above the cap survives but never grows');
 });
 test('cap reward presentation waits until the kill settles; rule resources are already committed',()=>{
  const g=run();rank(g,20);g.player.xp=21;const meds=g.player.meds;
@@ -89,7 +89,10 @@ test('actual ranged and melee enemy attacks use deep-floor growth before defense
 test('all modes limit a full level progression to nineteen choices',()=>{
  for(const mission of Object.keys(MISSIONS)){
   const g=new Game(349,[],0,'soldier','onyx',mission);g.enemies=[];
-  for(let level=2;level<=22;level++){g.player.xp=g.player.level+1;kill(g);assert.equal(g.player.level,level);if(level<=MAX_LEVEL){assert.equal(g.pendingPerks,1);assert.ok(g.choosePerk(g.perkChoices[0].id));}else assert.equal(g.pendingPerks,0);}
+  for(let level=2;level<=MAX_LEVEL;level++){g.player.xp=g.player.level+1;kill(g);assert.equal(g.player.level,level);assert.equal(g.pendingPerks,1);assert.ok(g.choosePerk(g.perkChoices[0].id));}
+  // Past the cap the number stops; each MAX_LEVEL+2 experience buys supplies instead of a choice.
+  for(let extra=1;extra<=2;extra++){const meds=g.player.meds;g.player.xp=MAX_LEVEL+1;kill(g);
+   assert.equal(g.player.level,MAX_LEVEL);assert.equal(g.pendingPerks,0);assert.equal(g.player.meds,meds+CAP_SUPPLY.meds);}
   assert.equal(g.perkPicks,19);
  }
 });

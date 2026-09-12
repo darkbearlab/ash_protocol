@@ -19,6 +19,6 @@ export function giveCapSupply(g){
   const beforeSupply={resources:Object.fromEntries(['meds','grenades','reserve','pistol','shell','energy','ordnance'].map(k=>[k,g.player[k]])),items:structuredClone(g.items),logs:structuredClone(g.logs)};
   const {meds,...ammo}=CAP_SUPPLY;
   g.player.meds+=meds;g.supplyPack(ammo);
-  g.log(`等級 ${g.player.level}：獲得封頂補給（${capSupplyText()}；超量彈藥留在腳下）。`);
+  g.log(`獲得封頂補給（${capSupplyText()}；超量彈藥留在腳下）。`);
   g.effects.push({type:'capSupply',beforeSupply,level:g.player.level,from:{x:g.player.x,y:g.player.y},to:{x:g.player.x,y:g.player.y},damage:0});
 }
