@@ -1,4 +1,4 @@
-import {fitDrone} from './allies.js';
+import {fitDrone,petMaxHp} from './allies.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {perkLimit} from './endless.js';
 import {healActor} from './traits.js';
@@ -54,6 +54,7 @@ export function applyPerk(g,o){
  }
  p.perks[o.id]=count(p,o.id)+1;
  if(o.id==='engineer_frame')for(const a of g.allies)if(a.kind==='drone')fitDrone(a,p);
+ if(o.id==='druid_beast')for(const a of g.allies)if(a.kind==='pet')a.maxHp=petMaxHp(p);
 }
 export function migratePerks(g){
  const p=g.player;p.perks={};p.perkWeaponBonus=0;

@@ -423,6 +423,7 @@ export class Game {
     if(weapon.ammoType==='energy'&&activeTrait(target,'mechanical'))damage=Math.round(damage*1.2);
     if(weapon.ammoType==='energy')addTrace(this,target,'scorch');
     const before=target.hp;this.hurt(target,reduceDirectDamage(target,damage));
+    if(before>0&&target.hp<=0&&attacker?.kind==='pet')healActor(this.player,classPerkRank(this.player,'druid_symbiosis')*CLASS_PERK_TUNING.symbiosisHeal);
     if(attacker===this.player&&weapon.melee)meleeReward(this,target,before);
   }
   hurt(e,damage) {

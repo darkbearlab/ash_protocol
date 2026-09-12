@@ -70,6 +70,9 @@ export const PERKS = [
   {id:'engineer_salvage',name:'戰場回收',characters:['engineer'],cap:3,effect:'passive',text:'每次擊殺額外 +2 廢料；立即獲得 15 廢料。'},
   {id:'engineer_frame',name:'機體強化',characters:['engineer'],cap:3,effect:'passive',text:'無人機最大生命 +20、裝甲 +1。已有機體立即增加上限，不直接修復。'},
   {id:'engineer_firecontrol',name:'火控校準',characters:['engineer'],cap:3,effect:'passive',text:'無人機射擊命中 +8 個百分點、傷害 +3。'},
+  {id:'druid_beast',name:'獵獸體質',characters:['druid'],cap:3,effect:'passive',text:'寵物最大生命 +25、收納時每回合額外回復 3。'},
+  {id:'druid_claws',name:'獵獸利爪',characters:['druid'],cap:3,effect:'passive',text:'寵物傷害 +4、近戰命中 +5 個百分點。'},
+  {id:'druid_symbiosis',name:'共生',characters:['druid'],cap:3,effect:'passive',text:'寵物每次擊殺敵人，你回復 4 生命；每階累加。'},
 ];
 export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
 export const LORE = [

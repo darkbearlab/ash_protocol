@@ -20,6 +20,8 @@ export const FOLLOW_RANGE={drone:1,other:3};
 export const summonLimit=p=>SUMMON_LIMIT+classPerkRank(p,'necro_horde')*CLASS_PERK_TUNING.horde;
 export const summonInterval=p=>Math.max(1,SUMMON_INTERVAL-classPerkRank(p,'necro_haste')*CLASS_PERK_TUNING.haste);
 export const PET_TETHER=9,PET_REGEN=5,PET_MEDKIT_FRACTION=.5;
+export const petMaxHp=p=>90+classPerkRank(p,'druid_beast')*CLASS_PERK_TUNING.beastHp;
+export const petRegen=p=>PET_REGEN+classPerkRank(p,'druid_beast')*CLASS_PERK_TUNING.beastRegen;
 export const leash=a=>a.kind==='pet'?PET_TETHER:a.kind==='summon'?SUMMON_TETHER:TETHER;
 // Placeholder economy: keep price and healing shared by rules and inventory UI.
 export const DRONE_REPAIR_COST=10,DRONE_REPAIR_FRACTION=.5;
@@ -52,8 +54,8 @@ export const connected=(g,a)=>a.status==='active'&&a.hp>0&&a.floor===g.floor&&di
 export const allyName=a=>a.kind==='pet'?'伴生獵獸':a.kind==='drone'?(a.sourceId==='drone_sentry'?'哨兵無人機':'追隨無人機'):a.kind==='survivor'?'倖存友軍':`復生${ENEMY_TYPES[a.type].name}`;
 export function allyWeapon(a,player=null){
  if(a.kind==='drone'){const rank=classPerkRank(player,'engineer_firecontrol'),sentry=a.sourceId==='drone_sentry',damage=(sentry?14:12)+rank*CLASS_PERK_TUNING.fireDamage;return {id:'rifle',range:7,min:damage,max:damage,mag:sentry?8:12,ammoType:'rifle',accuracyBonus:(sentry?-37:-30)+rank*CLASS_PERK_TUNING.fireAccuracy};}
- const bonus=a.kind==='summon'?classPerkRank(player,'necro_blades')*CLASS_PERK_TUNING.blades:0,def=ENEMY_TYPES[a.type],melee=a.kind==='pet'||def.range===1;
- return {id:melee?'melee':a.type==='drone'?'plasma':'rifle',range:a.kind==='pet'?1:def.range,min:a.kind==='pet'?24:Math.max(8,def.damage)+bonus,max:a.kind==='pet'?28:Math.max(8,def.damage)+bonus,melee,hitChance:90,accuracyBonus:-22,ammoType:null,mag:0};
+ const summonBonus=a.kind==='summon'?classPerkRank(player,'necro_blades')*CLASS_PERK_TUNING.blades:0,clawRank=a.kind==='pet'?classPerkRank(player,'druid_claws'):0,def=ENEMY_TYPES[a.type],melee=a.kind==='pet'||def.range===1;
+ return {id:melee?'melee':a.type==='drone'?'plasma':'rifle',range:a.kind==='pet'?1:def.range,min:a.kind==='pet'?24+clawRank*CLASS_PERK_TUNING.clawDamage:Math.max(8,def.damage)+summonBonus,max:a.kind==='pet'?28+clawRank*CLASS_PERK_TUNING.clawDamage:Math.max(8,def.damage)+summonBonus,melee,hitChance:90+(a.kind==='pet'?clawRank*CLASS_PERK_TUNING.clawAccuracy:0),accuracyBonus:-22,ammoType:null,mag:0};
 }
 // Survivors use the same actor contract; missionId/sourceId can attach rescue objectives later.
 export function addAlly(g,kind,type,{sourceId=null,missionId=null,point=g.player,status='active'}={}){
@@ -62,7 +64,7 @@ export function addAlly(g,kind,type,{sourceId=null,missionId=null,point=g.player
  if(['pet','drone'].includes(kind)&&g.allies.some(a=>a.kind===kind)||kind==='summon'&&g.allies.filter(a=>a.kind==='summon'&&a.status==='active').length>=summonLimit(g.player))return null;
  if(status==='active'&&(!g.passable(point.x,point.y)||occupied(g,point)))return null;
  const a={...makeEnemy(type,point.x,point.y,`ally-${++g.allySerial}`,g.floor),kind,sourceId,missionId,floor:g.floor,status,order:null,ammo:0,bornTurn:g.turn};
- a.maxHp=a.hp=kind==='drone'?DRONE_HP:kind==='pet'?90:Math.max(32,Math.min(150,a.hp));a.armor=kind==='pet'?1:0;
+ a.maxHp=a.hp=kind==='drone'?DRONE_HP:kind==='pet'?petMaxHp(g.player):Math.max(32,Math.min(150,a.hp));a.armor=kind==='pet'?1:0;
  if(kind==='pet')a.traits=[{id:'biological',source:'ally:pet'},{id:'no_cover',source:'ally:pet'}];
  if(kind==='drone'){a.traits=[{id:'mechanical',source:'ally:drone'}];fitDrone(a,g.player);a.hp=a.maxHp;}
  g.allies.push(a);return a;
@@ -159,7 +161,7 @@ export function useAllySkill(g,id,point=null){
  if(id==='raise_dead'){for(const a of currentAllies(g))if(a.kind==='summon')a.rallyTurn=g.turn+RALLY_TURNS;g.log(`召喚物集結：${RALLY_TURNS} 回合內停止追擊、回到你身邊。`);return true;}
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
  if(id==='pet_command'){
-  if(a.status==='down'){Object.assign(a,{status:'packed',order:null,control:{disabled:0,immune:0}});g.log(`伴生獵獸已收納：每回合回復 ${PET_REGEN} 生命，回滿且本技能預備中會自行歸隊。`);}
+  if(a.status==='down'){Object.assign(a,{status:'packed',order:null,control:{disabled:0,immune:0}});g.log(`伴生獵獸已收納：每回合回復 ${petRegen(p)} 生命，回滿且本技能預備中會自行歸隊。`);}
   else if(a.status==='packed'){const before=a.hp;p.meds--;a.hp=Math.min(a.maxHp,a.hp+Math.ceil(a.maxHp*PET_MEDKIT_FRACTION));g.log(`消耗醫療包，伴生獵獸回復 ${a.hp-before} 生命。`);}
   else a.order=null;
  }else if(droneLost(g,a)){
@@ -279,7 +281,7 @@ export function tickSummons(g){
 // it steps out beside the player like a deployment and waits for the next turn to act.
 export function tickPackedPet(g){
  const a=g.allies.find(a=>a.kind==='pet'&&a.status==='packed');if(!a)return false;
- a.hp=Math.min(a.maxHp,a.hp+PET_REGEN);
+ a.hp=Math.min(a.maxHp,a.hp+petRegen(g.player));
  if(a.hp<a.maxHp||g.player.prepared.skill!=='pet_command')return false;
  const cell=routeCells(g,g.player,{limit:2,openDoors:false}).find(q=>q.d>0);if(!cell)return false;
  Object.assign(a,{x:cell.x,y:cell.y,floor:g.floor,status:'active',order:null,bornTurn:g.turn,moved:false,moveDelta:[0,0],vaultExposed:false});
