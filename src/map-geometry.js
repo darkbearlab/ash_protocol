@@ -1,5 +1,5 @@
 // Room identity is independent of lattice position. No RNG or game imports.
-export const MAP_GENERATION=2;
+export const MAP_GENERATION=3;
 export const MAP_FIELDS=['cells','openings','annexes','generation'];
 const key=p=>`${p.x},${p.y}`;
 const point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y);
@@ -26,7 +26,7 @@ export function describeRooms(rooms,cells){return rooms.map((r,id)=>({...r,id,ce
 // so footprints describe ownership, not the current set of walkable floor tiles.
 export function validMapMetadata(map){
   if(MAP_FIELDS.every(k=>map[k]===undefined))return true;
-  if(!map.generation||!Number.isInteger(map.generation.version)||map.generation.version<2||map.generation.version>MAP_GENERATION||map.generation.recipeId!=='grid-v2')return false;
+  if(!map.generation||!Number.isInteger(map.generation.version)||!({2:['grid-v2'],3:['long-halls-v3','hangar-v3']}[map.generation.version]?.includes(map.generation.recipeId)))return false;
   if(!Array.isArray(map.rooms)||!map.rooms.length||!Array.isArray(map.cells)||map.cells.length!==9||!Array.isArray(map.openings)||!Array.isArray(map.annexes)||map.annexes.length)return false;
   const inBounds=p=>point(p)&&p.x>=0&&p.y>=0&&p.y<map.grid.length&&p.x<map.grid[p.y].length;
   const owned=new Set(),lattice=new Set();
@@ -38,6 +38,14 @@ export function validMapMetadata(map){
   for(const [id,c]of map.cells.entries()){
     if(c.id!==id||!Number.isInteger(c.row)||!Number.isInteger(c.col)||c.row<0||c.row>2||c.col<0||c.col>2||lattice.has(`${c.row},${c.col}`)||!map.rooms[c.roomId]?.cellIds.includes(id))return false;
     lattice.add(`${c.row},${c.col}`);
+  }
+  if(map.generation.version===3){
+    const merged=map.rooms.filter(r=>r.cellIds.length>1);
+    if(merged.length!==1||map.rooms[map.startRoom]?.cellIds.length!==1||map.rooms[map.endRoom]?.cellIds.length!==1)return false;
+    const r=merged[0],cells=r.cellIds.map(id=>map.cells[id]);
+    const rows=new Set(cells.map(c=>c.row)),cols=new Set(cells.map(c=>c.col));
+    if(r.footprint.length!==r.w*r.h||r.footprint.some(p=>p.x<r.x||p.x>=r.x+r.w||p.y<r.y||p.y>=r.y+r.h))return false;
+    if(map.generation.recipeId==='long-halls-v3'?(cells.length!==2||Math.abs(cells[0].row-cells[1].row)+Math.abs(cells[0].col-cells[1].col)!==1):(cells.length!==4||rows.size!==2||cols.size!==2||Math.max(...rows)-Math.min(...rows)!==1||Math.max(...cols)-Math.min(...cols)!==1))return false;
   }
   const ids=new Set();
   for(const o of map.openings){

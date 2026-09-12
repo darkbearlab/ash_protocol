@@ -1,9 +1,10 @@
+import {fullLighting} from '../src/lighting.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {cameraFrame} from '../src/camera.js';
 
-function arena(){const g=new Game(70);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.hazards=[];g.marks=[];g.items=[];g.reveal();return g;}
+function arena(){const g=new Game(70);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=fullLighting(g.grid);Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.hazards=[];g.marks=[];g.items=[];g.reveal();return g;}
 test('square camera centers player and fits any visible target, even maximum zoom',()=>{
   const p={x:13,y:13};for(const side of [128,200,318,388,665,1022])for(const zoom of [.65,1,1.6])for(let dx=-10;dx<=10;dx++)for(let dy=-10;dy<=10;dy++){
     const target={x:p.x+dx,y:p.y+dy},f=cameraFrame(p,target,null,side,side,zoom);

@@ -1,4 +1,5 @@
-import {MAP_GENERATION,latticeCells,cellNeighbors,collapseCellLinks,describeRooms} from './map-geometry.js';
+import {latticeCells,cellNeighbors,collapseCellLinks,describeRooms} from './map-geometry.js';
+import {MERGED_RECIPES,selectMergeRecipe,mergePlans,mergeMap} from './map-merging.js';
 import {placePopulation,reservationPosts} from './map-population.js';
 import {ENDLESS_TUNING,extraEnemies,eliteChance,scaleEnemy} from './endless.js';
 import {createLighting} from './lighting.js';
@@ -41,12 +42,16 @@ export function makeEnemy(type,x,y,id,floor=1) {
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[]){return generateWithRecipes(seed,floor,unlocks,PHASE_ONE_RECIPES);}
-export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=PHASE_ONE_RECIPES){
+export function generate(seed,floor=1,unlocks=[]){return generateWithRecipes(seed,floor,unlocks,MERGED_RECIPES);}
+export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=MERGED_RECIPES){
   if(!recipes.length)return generateLegacy(seed,floor,unlocks);
-  if(recipes.some(r=>r.id!=='grid-v2'))throw new Error('Unsupported phase-one recipe');
+  if(recipes.some(r=>!['grid-v2',...MERGED_RECIPES.map(r=>r.id)].includes(r.id)))throw new Error('Unsupported skeleton recipe');
   const map=generateBase(seed,floor,unlocks,true);
   if(!map||!generationSafe(map))return generateLegacy(seed,floor,unlocks);
+  const recipe=selectMergeRecipe(seed,floor,recipes);
+  if(recipe.id!=='grid-v2')for(const ids of mergePlans(map,seed,floor,recipe.id)){
+    const merged=mergeMap(map,ids,seed,floor,recipe.id,{reachable,generationSafe});if(merged)return merged;
+  }
   return map;
 }
 export function generateLegacy(seed,floor=1,unlocks=[]){return generateBase(seed,floor,unlocks,false);}
@@ -162,7 +167,7 @@ function generateBase(seed,floor,unlocks,v2) {
   if(v2){
     map.cells=cells;
     map.openings=corridorPaths.map((p,i)=>({id:`opening-${floor}-${i}`,rooms:p.rooms,cells:[...new Map(p.cells.map(c=>[key(c),c])).values()],barrierIds:map.barriers.filter(b=>b.type==='door'&&edgeCells(b).every(c=>p.cells.some(q=>key(q)===key(c)))).map(b=>b.id)}));
-    map.annexes=[];map.generation={version:MAP_GENERATION,recipeId:'grid-v2'};
+    map.annexes=[];map.generation={version:2,recipeId:'grid-v2'};
   }
   if(v2&&!placePopulation(map,reachable(map,map.start),floor))return null;
   addLivingModules(map,seed,floor,{corridors,reachable});map.lighting=createLighting(grid,rooms,start,seed,floor,corridorPaths);

@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.61.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.62.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -27,7 +27,7 @@
 ## 啟動與測試
 
 1. `npm start`，開 http://localhost:5173。純 Node、原生 ES modules，沒有第三方套件。瀏覽器 QA 一律加 `?test=1`，存檔放在 `qa-` 開頭的鍵，不碰正式任務。
-2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.60.0 為 549 項（3.55～3.60 的職業專屬升級尚未附測試，見下方 3.60 段）。
+2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.62.0 為 567 項（職業強化的既有驗證範圍見下方 3.60 段）。
 3. `npm run build`：產生 `dist/`，相容 GitHub Pages 的 `/ash_protocol/` 子路徑，推上 main 後自動部署。
 4. 模擬腳本（人工場景，不代表自然平衡）：`qa/ally-scenes.mjs`、`qa/pet-waves.mjs`、`qa/drone-waves.mjs`、`qa/necro-waves.mjs`、`qa/grenade-control.mjs`。都可帶 src 目錄參數比較新舊版。`npm run balance -- 24` 是較舊的無畫面遊玩機器人。
 5. 場景存檔產生器：`qa/create-*.mjs`，產物在 `qa/fixtures/`（已忽略，不提交）。
@@ -43,7 +43,8 @@
 | `src/engine.js` | 穩定匯出入口，UI、測試、工具共用 |
 | `src/game.js` | `Game` 類別：行動驗證與結算、敵人 AI、爆炸、背包、樓層切換、存檔序列化與遷移 |
 | `src/data.js` | 內容與數值：武器、敵人、樓層、升級、資料片段；`SAVE_VERSION`、`LEGACY_SAVE_VERSIONS` |
-| `src/world.js` | 亂數、視線、生成流程、敵人建立；generate 預設 v2 第一階段，generateWithRecipes(..., []) 保留 v1 |
+| `src/world.js` | 亂數、視線、生成流程、敵人建立；generate 預設 v2 第二階段，generateWithRecipes(..., []) 保留 v1 |
+| `src/map-merging.js` | 第二階段內建合併候選、整組複製與回退；重排圖形、哨位、中央掩體、隔間／矮隔板、補給站及光照 |
 | `src/map-geometry.js`、`src/map-population.js` | 格位／房間／輪廓與可選存檔欄位；威脅分配、任務名額保障、哨位與 expendable 資格 |
 | `src/combat.js`、`src/cover.js` | 敵我共用的牆角探身、掩護、命中率；掩體角度效率 |
 | `src/traits.js`、`src/actor-stats.js` | 被動規則與行動順序（`initiativeQueue`）；命中／迴避修正通道 |

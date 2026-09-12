@@ -10,10 +10,10 @@ test('routes vary entrances, exits and connections; reward rooms remain reachabl
   const starts=new Set(),ends=new Set(),routes=new Set();
   for(let seed=1;seed<=100;seed++){
     const m=generate(seed,1),seen=reachable(m,m.start);starts.add(key(m.start));ends.add(key(m.end));routes.add(JSON.stringify(m.links));
-    assert.ok(m.links.length>=9);assert.equal(m.rewardRooms.length,3);
+    assert.ok(m.links.length>=m.rooms.length-1);assert.equal(m.rewardRooms.length,3);
     assert.ok(m.rewardRooms.some(i=>!m.mainRoute.includes(i)));
     assert.equal(new Set(m.rewardRooms.map(i=>m.rooms[i].supply)).size,3);
-    for(const [a,b]of m.links)assert.equal(Math.abs(a%3-b%3)+Math.abs(Math.floor(a/3)-Math.floor(b/3)),1);
+    for(const [a,b]of m.links)assert.ok(m.cells.some(c=>c.roomId===a&&m.cells.some(d=>d.roomId===b&&Math.abs(c.row-d.row)+Math.abs(c.col-d.col)===1)));
     for(const item of m.items)assert.ok(seen.has(key(item)));
     for(const terminal of m.props.filter(o=>o.type==='terminal'))assert.ok([...seen].some(k=>{const [x,y]=k.split(',').map(Number);return distance({x,y},terminal)<=1;}));
     assert.equal(m.enemies.length,25);assert.ok(m.mainRoute.length>=3);

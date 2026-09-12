@@ -1,8 +1,9 @@
+import {fullLighting} from '../src/lighting.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,FLOORS,WEAPONS,generate,reachable,key,makeEnemy,lineOfSight} from '../src/engine.js';
 
-function arena(){const g=new Game(42);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.reveal();return g;}
+function arena(){const g=new Game(42);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=fullLighting(g.grid);Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.reveal();return g;}
 const cover=(x,y)=>({id:'box',type:'cover',x,y,hp:65,maxHp:65});
 
 test('600 generated floors: cover never traps player, exit, enemies or items',()=>{

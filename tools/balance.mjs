@@ -23,7 +23,7 @@ function safeMove(g,predicate) {
   return [[0,-1],[1,0],[0,1],[-1,0]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy,step:[dx,dy]})).filter(n=>g.passable(n.x,n.y)&&g.canCross(p,n)&&!g.hazards.some(h=>distance(h,n)===0)&&!g.enemies.some(e=>e.hp>0&&distance(e,n)===0)&&predicate(n)).sort((a,b)=>g.visibleEnemies.filter(e=>e.charge&&distance(e,a)<=1).length-g.visibleEnemies.filter(e=>e.charge&&distance(e,b)<=1).length)[0]?.step;
 }
 export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
-  const g=new GameType(seed,[],0,character);let invalid=0,actions=0;
+  const g=new GameType(seed,[],0,character);let invalid=0,actions=0,huntingBossFloor=null;
   const act=(type,arg)=>{actions++;if(!g.action(type,arg))invalid++;};
   for(let i=0;i<maxActions&&g.status==='playing';i++) {
     const p=g.player;
@@ -51,7 +51,10 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     const needs=[...g.items.filter(needed),...crates].sort((a,b)=>distance(p,a)-distance(p,b));
     const boss=g.enemies.find(e=>(e.type==='boss'||e.type==='warden')&&e.hp>0);
     let goal=needs.find(n=>route(g,n))||g.end;
-    if(boss&&distance(p,g.end)<=5){const adjacent=[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dy])=>({x:boss.x+dx,y:boss.y+dy}));goal=adjacent.find(n=>route(g,n))||g.end;}
+    // A detour can leave the five-tile trigger radius. Keep pursuing that boss
+    // instead of alternating the exit route and boss route on consecutive turns.
+    if(boss&&distance(p,g.end)<=5)huntingBossFloor=g.floor;
+    if(boss&&huntingBossFloor===g.floor){const adjacent=[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dy])=>({x:boss.x+dx,y:boss.y+dy}));goal=adjacent.find(n=>route(g,n))||g.end;}
     // Approach an occupied corridor instead of waiting because the entire route is blocked.
     // Still never issue a move into an enemy; a closed door may be opened from here.
     const approach=route(g,goal,{ignoreEnemies:true});

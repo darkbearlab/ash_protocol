@@ -18,7 +18,7 @@ export function selectSupplyStations(map,floor){
   map.props=map.props.filter(p=>p.type!=='terminal'||keep.has(p.id));
   return {main,side};
 }
-export function addLivingModules(map,seed,floor,{corridors,reachable}){
+export function addLivingModules(map,seed,floor,{corridors,reachable,roomFilter=()=>true}){
   const occupied=p=>[...map.props,...map.items,...map.enemies,...map.hazards,map.start,map.end].some(o=>key(o)===key(p));
   const clear=(m)=>moduleCells(m).every(p=>map.grid[p.y]?.[p.x]===1&&!occupied(p));
   const connected=()=>{
@@ -30,7 +30,7 @@ export function addLivingModules(map,seed,floor,{corridors,reachable}){
   // Try a closed restroom first when selected. Other modules are open alcoves.
   for(let slot=0;slot<2;slot++){
     const theme=themes[(offset+slot)%themes.length],def=MODULE_TYPES[theme];let placed=false;
-    const order=map.rooms.map((r,i)=>({r,i})).filter(({i})=>i!==map.startRoom&&!used.has(i));
+    const order=map.rooms.map((r,i)=>({r,i})).filter(({r,i})=>i!==map.startRoom&&!used.has(i)&&roomFilter(r));
     order.sort((a,b)=>((a.i+seed+floor)%map.rooms.length)-((b.i+seed+floor)%map.rooms.length));
     for(const {r,i}of order){
       if(placed)break;

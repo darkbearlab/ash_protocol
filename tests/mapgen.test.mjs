@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {Game} from '../src/game.js';
-import {generate,generateLegacy,generateWithRecipes,generationSafe,reachable,key,makeEnemy} from '../src/world.js';
-import {MAP_FIELDS,roomTiles,roomContains,roomAt,latticeCells,cellNeighbors,collapseCellLinks,validMapMetadata} from '../src/map-geometry.js';
+import {generate,generateLegacy,generateWithRecipes,PHASE_ONE_RECIPES,generationSafe,reachable,key,makeEnemy} from '../src/world.js';
+import {MAP_FIELDS,MAP_GENERATION,roomTiles,roomContains,roomAt,latticeCells,cellNeighbors,collapseCellLinks,validMapMetadata} from '../src/map-geometry.js';
 import {allocateThreat,contourPosts,reservationPosts,placePopulation,eligibleMissionEnemy} from '../src/map-population.js';
 import {archiveFloor,resumedFloor} from '../src/retreat.js';
 import {prepareMission} from '../src/missions.js';
@@ -28,7 +28,7 @@ test('lattice adjacency and collapsed room graph do not depend on room IDs or ni
 
 test('v2 ordinary and endless floors through 60 satisfy phase-one invariants without falling back',()=>{
   for(let seed=1;seed<=2;seed++)for(let floor=1;floor<=60;floor++){
-    const m=generate(seed,floor),old=generateLegacy(seed,floor),message=`seed ${seed}, floor ${floor}`;
+    const m=generateWithRecipes(seed,floor,[],PHASE_ONE_RECIPES),old=generateLegacy(seed,floor),message=`seed ${seed}, floor ${floor}`;
     assert.equal(m.generation?.version,2,message);assert.ok(validMapMetadata(m),message);
     assert.ok(generationSafe(m),message); // Invariants 1–3, plus unique positions/IDs.
     assert.equal(m.cells.length,9);assert.ok(m.rooms.every(r=>r.cellIds.length===1));
@@ -95,7 +95,7 @@ test('old v32 floor metadata is optional, mixed archives restore and returning d
   const g=new Game(42,[],0,'recon','onyx','roundtrip'),raw=JSON.parse(g.serialize());
   for(const k of MAP_FIELDS)delete raw.data[k];delete raw.data.mapGenerations;
   const old=Game.restore(JSON.stringify(raw));assert.ok(old);assert.deepEqual(old.mapGenerations,[1]);assert.deepEqual(old.grid,g.grid);
-  const oldFrame=archiveFloor(old);descend(old);assert.deepEqual(old.mapGenerations,[1,2]);
+  const oldFrame=archiveFloor(old);descend(old);assert.deepEqual(old.mapGenerations,[1,MAP_GENERATION]);
   assert.ok(Game.restore(old.serialize()));
   const state=resumedFloor(oldFrame,old.turn);Object.assign(old,state);for(const k of MAP_FIELDS)assert.equal(old[k],undefined);
   assert.deepEqual(old.rooms,g.rooms); // No regeneration or decoration inserted.
