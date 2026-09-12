@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.64.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.65.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -27,7 +27,7 @@
 ## 啟動與測試
 
 1. `npm start`，開 http://localhost:5173。純 Node、原生 ES modules，沒有第三方套件。瀏覽器 QA 一律加 `?test=1`，存檔放在 `qa-` 開頭的鍵，不碰正式任務。
-2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.64.0 為 581 項（職業強化的既有驗證範圍見下方 3.60 段）。
+2. `npm test`：Node 內建測試，`tests/*.test.mjs`，3.65.0 為 591 項（職業強化的既有驗證範圍見下方 3.60 段）。
 3. `npm run build`：產生 `dist/`，相容 GitHub Pages 的 `/ash_protocol/` 子路徑，推上 main 後自動部署。
 4. 模擬腳本（人工場景，不代表自然平衡）：`qa/ally-scenes.mjs`、`qa/pet-waves.mjs`、`qa/drone-waves.mjs`、`qa/necro-waves.mjs`、`qa/grenade-control.mjs`。都可帶 src 目錄參數比較新舊版。`npm run balance -- 24` 是較舊的無畫面遊玩機器人。
 5. 場景存檔產生器：`qa/create-*.mjs`，產物在 `qa/fixtures/`（已忽略，不提交）。
@@ -43,7 +43,9 @@
 | `src/engine.js` | 穩定匯出入口，UI、測試、工具共用 |
 | `src/game.js` | `Game` 類別：行動驗證與結算、敵人 AI、爆炸、背包、樓層切換、存檔序列化與遷移 |
 | `src/data.js` | 內容與數值：武器、敵人、樓層、升級、資料片段；`SAVE_VERSION`、`LEGACY_SAVE_VERSIONS` |
-| `src/world.js` | 亂數、視線、生成流程、敵人建立；generate 預設 v2 第四階段，generateWithRecipes(..., []) 保留 v1 |
+| `src/world.js` | 亂數、視線、生成流程、敵人建立；generate 預設 v2 第五階段，generateWithRecipes(..., []) 保留 v1 |
+| `src/map-slots.js` | 第五階段：槽位／任務預留、油桶重排、大房間模組與空貨櫃；完整回退，世代 6 |
+| `src/scenery.js`、`src/barrier-art.js` | 分段車輛／家具定義與實體遮擋、隔板半格高投影；素材與製程見 art/scenery-v1 |
 | `src/map-annexes.js` | 第四階段：實算外圈寬度、附屬區／兩口／矮欄杆、母房照明與安全回退；世代 5 包含下層描述，見 MAPGEN 第 16 節 |
 | `src/map-openings.js` | 第三階段：界面、連接口區域／通路、間距、配方開口數與門比例；完整回退，世代 4 |
 | `src/map-merging.js` | 第二階段內建合併候選、整組複製與回退；重排圖形、哨位、中央掩體、隔間／矮隔板、補給站及光照 |
@@ -152,5 +154,5 @@
 - `MAP_FIELDS` 納入 `FLOOR_FIELDS`，但屬可選欄位；`REQUIRED_FLOOR_FIELDS` 保持既有必填。返回舊樓層時要清掉現層描述，不能 Object.assign 後殘留。
 - save v32 不升版：缺少 v2 描述不重生；存在則驗證。每次改生成結果要遞增生成世代，並保留既有世代的讀取支援。
 - 單局全域的 `mapGenerations` 記所有經歷過的世代（例如 `[1,2]`），結算複製到 history。同一個每日種子跨世代不能直接比較；部署種類／日期目前沒有獨立保存，因此這個欄位適用所有局，UI 由 Claude 接上。
-- 手工 QA 若換掉 rooms，應一併移除 cells/openings/annexes/generation；測試共用 `tests/helpers/arena.mjs`，不要放寬正式存檔驗證。
+- 手工 QA 若換掉 rooms，應一併移除 cells/openings/annexes/generation/slots；測試共用 `tests/helpers/arena.mjs`，不要放寬正式存檔驗證。
 - 原有勝率回歸固定使用 LegacyGame；v2 機器人另驗行動合法與結束，3.61.0 觀察到 Recon 種子 1～12 無勝局。這是待人工檢視的難度變化，沒有調整武器、敵人數值或放寬 v1 勝率斷言。

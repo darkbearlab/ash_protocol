@@ -1,6 +1,6 @@
 // Room identity is independent of lattice position. No RNG or game imports.
-export const MAP_GENERATION=5;
-export const MAP_FIELDS=['cells','openings','annexes','generation'];
+export const MAP_GENERATION=6;
+export const MAP_FIELDS=['cells','openings','annexes','generation','slots'];
 const key=p=>`${p.x},${p.y}`;
 const point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y);
 export function roomTiles(room){
@@ -63,6 +63,11 @@ function validAnnexes(map){
 // so footprints describe ownership, not the current set of walkable floor tiles.
 export function validMapMetadata(map){
   if(MAP_FIELDS.every(k=>map[k]===undefined))return true;
+  if(map.generation?.version===6){
+    if(map.generation.recipeId!=='furnished-v6'||![2,3,4,5].includes(map.generation.base?.version))return false;
+    return validMapMetadata({...map,slots:undefined,generation:map.generation.base})&&validSlots(map);
+  }
+  if(map.slots!==undefined)return false;
   if(map.generation?.version===5){
     // Validate the unchanged underlying skeleton/openings with its original
     // schema. No recursive v5 descriptors: an annex pass can only wrap v2–v4.
@@ -116,3 +121,13 @@ export function validMapMetadata(map){
   return true;
 }
 export const validGenerationHistory=value=>Array.isArray(value)&&value.length>0&&value.length<=MAP_GENERATION&&new Set(value).size===value.length&&value.every(n=>Number.isInteger(n)&&n>=1&&n<=MAP_GENERATION);
+
+function validSlots(map){
+  if(!Array.isArray(map.slots)||map.slots.length>729)return false;
+  const ids=new Set(),cells=new Set();
+  for(const s of map.slots){
+    if(!s||typeof s.id!=='string'||!/^slot-[a-zA-Z0-9_-]{1,90}$/.test(s.id)||ids.has(s.id)||!['terminal','objective','weapon','supply','barrel','module','cache'].includes(s.kind)||!Number.isInteger(s.roomId)||!map.rooms[s.roomId]||!point(s)||!roomContains(map.rooms[s.roomId],s)||map.grid[s.y]?.[s.x]!==1||cells.has(key(s))||s.refId!==undefined&&(typeof s.refId!=='string'||s.refId.length>100))return false;
+    ids.add(s.id);cells.add(key(s));
+  }
+  return new Set(map.slots.filter(s=>s.kind==='objective').map(s=>s.roomId)).size>=3;
+}

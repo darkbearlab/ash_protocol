@@ -1,3 +1,4 @@
+import {objectSightGrid} from './scenery.js';
 import {activeTrait} from './traits.js';
 import {distance,lineOfSight,key} from './world.js';
 import {combatSight} from './combat.js';
@@ -34,18 +35,19 @@ export function skipDisabled(actor){
   actor.fireChain=null;actor.moved=false;actor.moveDelta=[0,0];
   return true;
 }
-export function areaCells(grid,pos,radius=2,barriers=[]){
+export function areaCells(grid,pos,radius=2,barriers=[],game=null){
   const cells=[];
-  for(let y=pos.y-radius;y<=pos.y+radius;y++)for(let x=pos.x-radius;x<=pos.x+radius;x++)if(distance(pos,{x,y})<=radius&&lineOfSight(grid,pos,{x,y},barriers,'blast'))cells.push({x,y});
+  for(let y=pos.y-radius;y<=pos.y+radius;y++)for(let x=pos.x-radius;x<=pos.x+radius;x++)if(distance(pos,{x,y})<=radius&&lineOfSight(game?objectSightGrid(game,pos,{x,y}):grid,pos,{x,y},barriers,'blast'))cells.push({x,y});
   return cells;
 }
 const sightCache=new WeakMap();
 export function tacticalSight(game,a,b){
-  if(activeTrait(a,'infrared')||!game.smoke?.length||distance(a,b)<=1)return combatSight(game.grid,a,b,game.barriers);
+  const grid=objectSightGrid(game,a,b);
+  if(activeTrait(a,'infrared')||!game.smoke?.length||distance(a,b)<=1)return combatSight(grid,a,b,game.barriers);
   let cache=sightCache.get(game);
-  if(!cache||cache.grid!==game.grid||cache.clouds!==game.smoke){
-    const cells=new Set(game.smoke.flatMap(s=>s.cells.map(key))),blocked=game.grid.map((row,y)=>row.map((v,x)=>cells.has(`${x},${y}`)?0:v));
-    cache={grid:game.grid,clouds:game.smoke,cells,blocked};sightCache.set(game,cache);
+  if(!cache||cache.grid!==grid||cache.clouds!==game.smoke){
+    const cells=new Set(game.smoke.flatMap(s=>s.cells.map(key))),blocked=grid.map((row,y)=>row.map((v,x)=>cells.has(`${x},${y}`)?0:v));
+    cache={grid,clouds:game.smoke,cells,blocked};sightCache.set(game,cache);
   }
   if(cache.cells.has(key(a))||cache.cells.has(key(b)))return false;
   return combatSight(cache.blocked,a,b,game.barriers);

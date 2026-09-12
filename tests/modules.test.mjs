@@ -1,7 +1,10 @@
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,SIZE,generate,reachable,makeBarrier} from '../src/engine.js';
+import {Game,SIZE,reachable,makeBarrier} from '../src/engine.js';
+import {generateWithRecipes} from '../src/world.js';
+import {ANNEX_RECIPES} from '../src/map-annexes.js';
+const generate=(seed,floor)=>generateWithRecipes(seed,floor,[],ANNEX_RECIPES);
 import {MODULE_TYPES,FURNITURE,moduleCells,modulePoint,validModules,addLivingModules} from '../src/modules.js';
 import {allSupplies} from '../src/containers.js';
 import {TERMINAL_AMMO} from '../src/ammunition.js';

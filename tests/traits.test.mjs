@@ -1,3 +1,4 @@
+import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy,combatSight} from '../src/engine.js';
@@ -7,7 +8,7 @@ import {targetDetails} from '../src/target-card.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
-function arena(Type=Game){const g=new Type(310);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.rng=Object.assign(()=>0,{state:()=>0});/* Cancel Soldier innate +8 to isolate this rule. */g.player.combatModifiers={rangedAccuracy:-8};g.reveal();return g;}
+function arena(Type=Game){const g=new Type(310);clearGeneratedMap(g);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.rng=Object.assign(()=>0,{state:()=>0});/* Cancel Soldier innate +8 to isolate this rule. */g.player.combatModifiers={rangedAccuracy:-8};g.reveal();return g;}
 function enemy(g,id,x=14,y=10,type='rifleman'){const e=makeEnemy(type,x,y,id);e.hp=e.maxHp=500;e.alert=true;g.enemies.push(e);g.reveal();return e;}
 function trait(actor,id,turns){assert.equal(grantTrait(actor,id,`test:${id}`,turns),true);}
 

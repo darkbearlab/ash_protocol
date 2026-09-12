@@ -83,7 +83,7 @@ test('save and full backup preserve opened cases and ground loot; v13 does not c
 });
 test('malformed container IDs, contents and states are rejected before a save can replace progress',()=>{
   const g=arena();box(g);
-  for(const mutate of [d=>d.props.push({...d.props[0]}),d=>d.props[0].contents[0].amount=-1,d=>d.props[0].contents[0].type='weapon',d=>d.props[0].opened=true,d=>d.props[0].contents=[],d=>d.props[0].kind='unknown',d=>d.props[0].hp=60,d=>d.props[0].indestructible=false,d=>d.props[0].x=.5,d=>d.props[0].id='case-<html>',d=>d.props[0].contents[0].slot=1]){
+  for(const mutate of [d=>d.props.push({...d.props[0]}),d=>d.props[0].contents[0].amount=-1,d=>d.props[0].contents[0].type='weapon',d=>d.props[0].opened=true,d=>d.props[0].contents=[],d=>d.props[0].kind='invalid-kind',d=>d.props[0].hp=60,d=>d.props[0].indestructible=false,d=>d.props[0].x=.5,d=>d.props[0].id='case-<html>',d=>d.props[0].contents[0].slot=1]){
     const value=JSON.parse(g.serialize());mutate(value.data);assert.equal(Game.restore(JSON.stringify(value)),null);
   }
 });

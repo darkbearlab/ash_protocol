@@ -1,12 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generate,generateWithRecipes,reachable,generationSafe,key} from '../src/world.js';
+import {generateWithRecipes,reachable,generationSafe,key} from '../src/world.js';
 import {OPENING_RECIPES} from '../src/map-openings.js';
 import {addAnnexes,annexCandidates,annexesSafe} from '../src/map-annexes.js';
-import {annexBounds,annexBorder,validMapMetadata,MAP_FIELDS,roomAt} from '../src/map-geometry.js';
+import {annexBounds,annexBorder,validMapMetadata,MAP_FIELDS,roomAt,MAP_GENERATION} from '../src/map-geometry.js';
 import {barrierBetween,edgeCells,edgeBlocks,vaultable,validBarriers} from '../src/barriers.js';
 import {moduleCells} from '../src/modules.js';
-import {Game} from '../src/game.js';
+import {Game as CurrentGame} from '../src/game.js';
+import {ANNEX_RECIPES} from '../src/map-annexes.js';
+const generate=(seed,floor=1)=>generateWithRecipes(seed,floor,[],ANNEX_RECIPES);
+class Game extends CurrentGame{generateFloor(){return generate(this.seed,this.floor);}}
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 import {themeAt,resolveSprite} from '../src/themes.js';
@@ -84,12 +87,12 @@ test('archived annex geometry and destroyed rails survive actual return and full
   class PhaseThreeGame extends Game{generateFloor(){return base(this.seed,this.floor);}}
   const old=new PhaseThreeGame(1,[],0,'recon','onyx','roundtrip'),fields=[...MAP_FIELDS,'grid','barriers','lighting'];
   const first=Object.fromEntries(fields.map(k=>[k,structuredClone(old[k])]));
-  const g=Game.restore(old.serialize());Object.assign(g.player,g.exitPoint);assert.ok(g.descend());assert.equal(g.generation.version,5);
+  const g=Game.restore(old.serialize());Object.assign(g.player,g.exitPoint);assert.ok(g.descend());assert.equal(g.generation.version,MAP_GENERATION);
   g.damageProp(g.barriers.find(b=>g.annexes[0].barrierIds.includes(b.id)),999);const second=Object.fromEntries(fields.map(k=>[k,structuredClone(g[k])]));
   Object.assign(g.player,g.exitPoint);assert.ok(g.descend());for(const e of g.enemies)e.hp=0;Object.assign(g.player,g.mission.targets[0]);g.recoverObjective(g.mission.targets[0].id);
   const copy=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;
   Object.assign(copy.player,copy.exitPoint);assert.ok(copy.descend());for(const [k,v]of Object.entries(second))assert.deepEqual(copy[k],v,k);
-  Object.assign(copy.player,copy.exitPoint);assert.ok(copy.descend());for(const [k,v]of Object.entries(first))assert.deepEqual(copy[k],v,k);assert.deepEqual(copy.mapGenerations,[4,5]);
+  Object.assign(copy.player,copy.exitPoint);assert.ok(copy.descend());for(const [k,v]of Object.entries(first))assert.deepEqual(copy[k],v,k);assert.deepEqual(copy.mapGenerations,[4,MAP_GENERATION]);
 });
 
 test('three annex themes use existing distinct floor sprites and survive presentation snapshots',()=>{

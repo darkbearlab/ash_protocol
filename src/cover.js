@@ -1,4 +1,5 @@
 // Angles measured from the defender toward the adjacent cover.
+import {fullProp} from './scenery.js';
 // Compare forward/lateral components exactly; no atan or rounded degrees at thresholds.
 export function coverEfficiency(cover,target,attacker){
   if(!cover)return 0;
@@ -9,7 +10,7 @@ export function coverEfficiency(cover,target,attacker){
 }
 export function coverEffects(cover,target,attacker){
   const efficiency=coverEfficiency(cover,target,attacker);
-  const strong=cover&&['wall','door','partition'].includes(cover.type);
+  const strong=cover&&(['wall','door','partition'].includes(cover.type)||fullProp(cover));
   return {efficiency,penalty:Math.round((strong?42:35)*efficiency),reduction:.45*efficiency};
 }
 export function bestCover(candidates,target,attacker){

@@ -1,3 +1,4 @@
+import {objectSightGrid} from './scenery.js';
 import {MAP_FIELDS,validMapMetadata,validGenerationHistory} from './map-geometry.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {MAX_LEVEL,perkLimit,floorLimit,isEndless,scaleEnemy,giveCapSupply,PROTOCOL_EVENT_LIMIT} from './endless.js';
@@ -87,7 +88,7 @@ export class Game {
   visible(e){return distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e));}
   teamVisible(e){return this.visible(e)||this.activeAllies.some(a=>connected(this,a)&&distance(a,e)<=8&&this.sight(a,e));}
   sight(a,b){return !(b===this.player&&a!==this.player&&skillActive(this.player))&&tacticalSight(this,a,b);}
-  shotClear(a,b){return combatSight(this.grid,a,b,isBarrier(b)?this.barriers.filter(e=>e!==b):this.barriers,'shot');}
+  shotClear(a,b){return combatSight(objectSightGrid(this,a,b),a,b,isBarrier(b)?this.barriers.filter(e=>e!==b):this.barriers,'shot');}
   canCross(a,b){return !blockedBetween(this.barriers,a,b);}
   canRoute(a,b){const edge=barrierBetween(this.barriers,a,b);return !edgeBlocks(edge)||edge.type==='door'||vaultable(edge);}
   canTouch(point){return distance(this.player,point)<=1&&this.canCross(this.player,point);}
@@ -105,6 +106,7 @@ export class Game {
     const pos=this.containerDrop(c),contents=c.contents;c.opened=true;c.contents=[];
     this.items.push(...contents.map(i=>({...i,...pos})));
     this.effects.push({type:'unpack',from:{x:c.x,y:c.y},to:pos,damage:0});
+    if(!contents.length){this.log(`${containerName(c)}已開啟，裡面是空的。`);return true;}
     this.log(`${containerName(c)}已開啟，補給${distance(pos,this.player)===0?'留在腳下，移開再走回拾取':'落在地上，走上去拾取'}。`);return true;
   }
   canOperateDoor(b){
@@ -480,6 +482,7 @@ export class Game {
     addTrace(this,prop,'debris');
     this.log(prop.type==='barrel'?'油桶被引爆！':'掩體已摧毀。');
     if(prop.type==='barrel')this.explode(prop,2,45);
+    if(prop.style)this.reveal();
   }
   throwGrenade(pos) {
     const p=this.player,id=pos?.grenade??p.prepared.grenade,def=GRENADES[id];
@@ -490,7 +493,7 @@ export class Game {
     this.effects.push({type:'shot',style:'grenade',color:def.color,from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     if(id==='frag')this.explode(pos,2,Math.round((55+p.blastBonus)*bladeMultiplier(p)));
     else {
-      const cells=areaCells(this.grid,pos,2,this.barriers),affected=new Set(cells.map(key));
+      const cells=areaCells(this.grid,pos,2,this.barriers,this),affected=new Set(cells.map(key));
       this.effects.push({type:'pulse',radius:2,color:def.color,from:{x:pos.x,y:pos.y},to:{x:pos.x,y:pos.y}});
       if(id==='smoke'){this.smoke=[...this.smoke,{cells,expires:this.turn+SMOKE_DURATION-1}];this.log('煙霧展開：阻斷無紅外線者的視線，爆炸仍可傷害。');}
       else for(const actor of [p,...this.enemies,...this.activeAllies])if(affected.has(key(actor))&&applyDisruption(actor,def.keyword)){
@@ -504,11 +507,11 @@ export class Game {
   explode(center,radius,damage) {
     const origin={x:center.x,y:center.y};
     this.effects.push({type:'blast',from:origin,to:origin,damage:0,radius});
-    const affected=p=>distance(origin,p)<=radius&&lineOfSight(this.grid,origin,p,this.barriers,'blast');
+    const affected=p=>distance(origin,p)<=radius&&lineOfSight(objectSightGrid(this,origin,p),origin,p,this.barriers,'blast');
     // Freeze shielding for this blast before destroying any of its barriers.
-    for(const cell of areaCells(this.grid,origin,radius,this.barriers))addTrace(this,cell,'scorch');
+    for(const cell of areaCells(this.grid,origin,radius,this.barriers,this))addTrace(this,cell,'scorch');
     const hitProps=this.props.filter(o=>o.hp>0&&affected(o)),hitEnemies=this.enemies.filter(e=>e.hp>0&&affected(e)),hitPlayer=affected(this.player),hitAllies=this.activeAllies.filter(affected);
-    const hitEdges=this.barriers.filter(b=>b.hp>0&&distance(origin,b)<=radius&&lineOfSight(this.grid,origin,b,this.barriers.filter(e=>e!==b),'blast'));
+    const hitEdges=this.barriers.filter(b=>b.hp>0&&distance(origin,b)<=radius&&lineOfSight(objectSightGrid(this,origin,b),origin,b,this.barriers.filter(e=>e!==b),'blast'));
     for(const b of hitEdges)this.damageProp(b,damage);
     // Mark barrels as destroyed before recursion, so chain reactions terminate.
     for(const prop of hitProps)this.damageProp(prop,damage);

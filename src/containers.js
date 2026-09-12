@@ -1,5 +1,6 @@
 // Low floor cases: walkable, no cover or destruction. Contents move to ground exactly once.
 export const CONTAINER_KINDS={
+  unknown:{name:'未識別貨櫃',color:'#94bbc3',symbol:'?'},
   ammo:{name:'彈藥箱',color:'#d9bd7b',symbol:'R'},medical:{name:'醫療箱',color:'#a9d9ac',symbol:'+'},
   armor:{name:'護甲箱',color:'#92c4df',symbol:'▣'},ordnance:{name:'投擲物箱',color:'#b8c694',symbol:'G'},
   salvage:{name:'廢料箱',color:'#c5a171',symbol:'◇'},supply:{name:'補給箱',color:'#c9c6ac',symbol:'·'},
@@ -38,7 +39,7 @@ export function validContainers(props,grid,otherIds=[]){
     if(++count>128||typeof p.id!=='string'||!/^case-[a-zA-Z0-9_-]{1,90}$/.test(p.id)||ids.has(p.id))return false;
     if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||grid[p.y]?.[p.x]!==1||positions.has(`${p.x},${p.y}`))return false;
     if(!Object.hasOwn(CONTAINER_KINDS,p.kind)||typeof p.opened!=='boolean'||p.indestructible!==true||p.hp!==undefined||p.maxHp!==undefined)return false;
-    if(!Array.isArray(p.contents)||p.contents.length>32||(p.opened?p.contents.length!==0:p.contents.length===0))return false;
+    if(!Array.isArray(p.contents)||p.contents.length>32||(p.opened?p.contents.length!==0:p.contents.length===0&&p.kind!=='unknown'))return false;
     if(p.contents.some(i=>!i||!types.has(i.type)||(i.amount!==undefined&&(!Number.isSafeInteger(i.amount)||i.amount<=0||i.amount>10000000))||(i.cache!==undefined&&i.cache!==true)||Object.keys(i).some(k=>!['type','amount','cache'].includes(k))))return false;
     ids.add(p.id);positions.add(`${p.x},${p.y}`);
   }return true;

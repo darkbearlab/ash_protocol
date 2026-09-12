@@ -1,15 +1,18 @@
 import {roomContains} from './map-geometry.js';
+import {SCENERY_FURNITURE,LARGE_MODULE_TYPES} from './scenery.js';
 import {makeBarrier,barrierBetween,edgeCells} from './barriers.js';
 
-export const FURNITURE={toilet:{name:'衛浴設備',hp:35},sink:{name:'洗手台',hp:40},counter:{name:'門禁櫃檯',hp:70},scanner:{name:'檢查設備',hp:45},locker:{name:'置物櫃',hp:75},bench:{name:'值勤桌',hp:55}};
+export const FURNITURE={toilet:{name:'衛浴設備',hp:35},sink:{name:'洗手台',hp:40},counter:{name:'門禁櫃檯',hp:70},scanner:{name:'檢查設備',hp:45},locker:{name:'置物櫃',hp:75},bench:{name:'值勤桌',hp:55},...SCENERY_FURNITURE};
 export const MODULE_TYPES={
   restroom:{name:'衛浴間',code:'WC',color:'#9ccbc8',furniture:['toilet','sink']},
   checkpoint:{name:'門禁櫃檯',code:'ACCESS',color:'#d1bc85',furniture:['counter','scanner']},
   guardpost:{name:'值勤哨站',code:'POST',color:'#a7b797',furniture:['locker','bench']},
+  ...LARGE_MODULE_TYPES,
 };
 const dirs=[[0,-1],[1,0],[0,1],[-1,0]],key=p=>`${p.x},${p.y}`;
 export const modulePoint=(m,x,y)=>{for(let i=0;i<m.rotation;i++)[x,y]=[1-y,x];return {x:m.x+x,y:m.y+y};};
-export const moduleCells=m=>[[0,0],[1,0],[0,1],[1,1]].map(([x,y])=>modulePoint(m,x,y));
+export const moduleParts=m=>MODULE_TYPES[m.theme].parts||MODULE_TYPES[m.theme].furniture.map((style,x)=>({style,x,y:0}));
+export const moduleCells=m=>{const [w,h]=MODULE_TYPES[m.theme]?.size||[2,2];return Array.from({length:w*h},(_,i)=>modulePoint(m,i%w,Math.floor(i/w)));};
 export function selectSupplyStations(map,floor){
   const main=map.mainRoute[Math.floor(map.mainRoute.length/2)];
   const side=map.rewardRooms.find(i=>!map.mainRoute.includes(i))??map.rooms.findIndex((_,i)=>!map.mainRoute.includes(i));
@@ -26,7 +29,7 @@ export function addLivingModules(map,seed,floor,{corridors,reachable,roomFilter=
     for(let y=0;y<map.grid.length;y++)for(let x=0;x<map.grid[y].length;x++)if(map.grid[y][x]===1&&!solid.has(`${x},${y}`)&&!seen.has(`${x},${y}`))return false;
     return [...map.items,...map.enemies,map.end,...map.props.filter(p=>p.type==='container'||p.type==='terminal')].every(p=>seen.has(key(p)));
   };
-  const themes=Object.keys(MODULE_TYPES),offset=(seed+floor)%themes.length,used=new Set();let count=0;
+  const themes=['restroom','checkpoint','guardpost'],offset=(seed+floor)%themes.length,used=new Set();let count=0;
   // Try a closed restroom first when selected. Other modules are open alcoves.
   for(let slot=0;slot<2;slot++){
     const theme=themes[(offset+slot)%themes.length],def=MODULE_TYPES[theme];let placed=false;
@@ -55,15 +58,16 @@ export function addLivingModules(map,seed,floor,{corridors,reachable,roomFilter=
   return count;
 }
 export function validModules(props,grid,otherIds=[]){
-  const modules=props.filter(p=>p.type==='module'),ids=new Set(otherIds),cells=new Set();if(modules.length>2)return false;
+  const modules=props.filter(p=>p.type==='module'),ids=new Set(otherIds),cells=new Set();if(modules.length>6)return false;
   for(const m of modules){
     if(typeof m.id!=='string'||!/^module-[a-zA-Z0-9_-]{1,80}$/.test(m.id)||ids.has(m.id)||!Object.hasOwn(MODULE_TYPES,m.theme)||!Number.isInteger(m.x)||!Number.isInteger(m.y)||!Number.isInteger(m.rotation)||m.rotation<0||m.rotation>3||m.indestructible!==true||m.hp!==undefined)return false;
+    if(MODULE_TYPES[m.theme].size&&m.rotation!==0)return false;
     for(const p of moduleCells(m)){if(grid[p.y]?.[p.x]!==1||cells.has(key(p)))return false;cells.add(key(p));}ids.add(m.id);
-    for(const [n,style]of MODULE_TYPES[m.theme].furniture.entries()){
-      const p=props.find(p=>p.id===`${m.id}-${n}`),pos=modulePoint(m,n,0);
+    for(const [n,part]of moduleParts(m).entries()){
+      const {style}=part,p=props.find(p=>p.id===`${m.id}-${n}`),pos=modulePoint(m,part.x,part.y);
       if(!p||p.moduleId!==m.id||p.style!==style||p.type!=='cover'||p.x!==pos.x||p.y!==pos.y||p.maxHp!==FURNITURE[style].hp||!Number.isFinite(p.hp)||p.hp>p.maxHp||p.indestructible)return false;
     }
   }
   const furnishings=props.filter(p=>p.style!==undefined||p.moduleId!==undefined),names=new Set();
-  return furnishings.every(p=>{if(names.has(p.id))return false;names.add(p.id);return modules.some(m=>m.id===p.moduleId&&MODULE_TYPES[m.theme].furniture.some((style,n)=>style===p.style&&p.id===`${m.id}-${n}`));});
+  return furnishings.every(p=>{if(names.has(p.id))return false;names.add(p.id);return modules.some(m=>m.id===p.moduleId&&moduleParts(m).some((part,n)=>part.style===p.style&&p.id===`${m.id}-${n}`));});
 }

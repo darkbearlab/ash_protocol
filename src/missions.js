@@ -34,7 +34,8 @@ export function prepareMission(g){
       const e=g.enemies.find(e=>e.hp>0&&eligibleMissionEnemy(e)&&inside(e,r)&&accessible.has(key(e)));
       if(e)m.targets.push({id:e.id});
     }else{
-      const cells=[...roomTiles(r)];
+      const reserved=g.slots?.filter(s=>s.kind==='objective'&&s.roomId===r.index);
+      const cells=g.slots?reserved.map(({x,y})=>({x,y})):[...roomTiles(r)];
       const p=cells.sort((a,b)=>distance(a,{x:r.cx,y:r.cy})-distance(b,{x:r.cx,y:r.cy})).find(p=>accessible.has(key(p))&&distance(p,g.end)>1&&![...g.props,...g.items,...g.enemies,...g.hazards].some(o=>key(o)===key(p)));
       if(p)m.targets.push({id:`objective-${m.targets.length+1}`,...p,done:false});
     }

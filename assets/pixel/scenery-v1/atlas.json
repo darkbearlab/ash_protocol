@@ -1,0 +1,145 @@
+{
+  "source_sha256": "cd3d97eed4a16b31648747272b14ea07586827a5c3dee12aa75980d10f001fb1",
+  "pillow": "12.2.0",
+  "cropBoxes": [
+    [
+      0,
+      0,
+      627,
+      893
+    ],
+    [
+      627,
+      0,
+      1254,
+      893
+    ],
+    [
+      0,
+      893,
+      314,
+      1254
+    ],
+    [
+      314,
+      893,
+      627,
+      1254
+    ],
+    [
+      627,
+      893,
+      940,
+      1254
+    ],
+    [
+      940,
+      893,
+      1254,
+      1254
+    ]
+  ],
+  "rgbBits": 5,
+  "colors": 32,
+  "sampling": "nearest",
+  "alphaThreshold": 224,
+  "dither": false,
+  "sprites": {
+    "rover_0": {
+      "x": 0,
+      "y": 0,
+      "size": 32,
+      "sha256": "e34ae1072778ca5e02ff44e79bb6fca8f6509d76ebd46dbbb909d74549ce0ff8"
+    },
+    "rover_1": {
+      "x": 32,
+      "y": 0,
+      "size": 32,
+      "sha256": "9c92d3100cf30478cbfea19a987d81cd2b070c3a2e3f7aab0558ae3823cd8d39"
+    },
+    "shuttle_0": {
+      "x": 64,
+      "y": 0,
+      "size": 32,
+      "sha256": "1030c32bb01b88693400364113cb5f895db52b52416e0808c97a2d8482c10885"
+    },
+    "shuttle_1": {
+      "x": 96,
+      "y": 0,
+      "size": 32,
+      "sha256": "e511bcfea6207a5c86aa860f7c423df6e8979ec15450937c2c665a07f21ebd41"
+    },
+    "rover_2": {
+      "x": 0,
+      "y": 32,
+      "size": 32,
+      "sha256": "fcc7e87755693b5fb82d285abeb14b3f8b06fc380ad993f1a01e747a83acd250"
+    },
+    "rover_3": {
+      "x": 32,
+      "y": 32,
+      "size": 32,
+      "sha256": "50c0aad31be35fc62771839610a8c407b9b6b7158aca2e2819d3c394c94071df"
+    },
+    "shuttle_2": {
+      "x": 64,
+      "y": 32,
+      "size": 32,
+      "sha256": "3c5f1d46735dedc2d0e4d4c3d0eb5b05eee719184934a8d2654d3d873ab47407"
+    },
+    "shuttle_3": {
+      "x": 96,
+      "y": 32,
+      "size": 32,
+      "sha256": "ec727c1b2757405c70f0fa340591bfe519c744ead02cdeb7aa619b10a02a5023"
+    },
+    "rover_4": {
+      "x": 0,
+      "y": 64,
+      "size": 32,
+      "sha256": "f047dd818d479a31e4ec7ced30528d1f7615815323262db5d719d27ed03f9b13"
+    },
+    "rover_5": {
+      "x": 32,
+      "y": 64,
+      "size": 32,
+      "sha256": "aff2ce619186fdda2b2fc257ae1347e4bc0a707e1e8ac09af8f9b6627900e86c"
+    },
+    "shuttle_4": {
+      "x": 64,
+      "y": 64,
+      "size": 32,
+      "sha256": "6a1b161805843880aed04eef9314454f8ad08ac0e6bd961094f71e00018e4237"
+    },
+    "shuttle_5": {
+      "x": 96,
+      "y": 64,
+      "size": 32,
+      "sha256": "86cc999474c9055171cd348c2af83b665c86664154b435d20151068affc784c7"
+    },
+    "desk": {
+      "x": 0,
+      "y": 96,
+      "size": 32,
+      "sha256": "87bf75f4ca6dd6685ada9e0f8369e66cffff3e44593ba2b95c7fc7e85617617f"
+    },
+    "pallet": {
+      "x": 32,
+      "y": 96,
+      "size": 32,
+      "sha256": "4100c7dd413bfe46cf1c5d7a7d36ba7fea71965381fd9308339eaa839bd3e252"
+    },
+    "panel-face": {
+      "x": 64,
+      "y": 96,
+      "size": 32,
+      "sha256": "6e9ac030cf4369979edacc585dd92cc0b8029b86c0862e879f0b127565b2a6dd"
+    },
+    "panel-cap": {
+      "x": 96,
+      "y": 96,
+      "size": 32,
+      "sha256": "992d0db8fba08c7c99eef985a531cdc0c12c6bc547ed187381e3bdfb43b3de64"
+    }
+  }
+}

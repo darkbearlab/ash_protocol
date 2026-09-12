@@ -1,3 +1,5 @@
+import {SCENERY_ATLAS} from './scenery.js';
+import {drawPartition,partitionGeometry} from './barrier-art.js';
 import {actorPosition,DarkActorCache} from './actor-visuals.js';
 import {CLASS_ATLAS,classSpriteRect} from './class-art.js';
 import {DEFAULT_OPERATOR_COLOR,tintedSprite} from './operator-color.js';
@@ -25,6 +27,7 @@ export class Renderer {
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.last=0;this.time=0;
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
+    const scenery=new Image();scenery.src=SCENERY_ATLAS;this.terrainImages.set(SCENERY_ATLAS,scenery);
     this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;this.terrainImages.set(WALL_ATLAS,this.wallImage);this.artTones=new ArtToneCache();
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
     this.classSprites=new Image();this.classSprites.src=CLASS_ATLAS;this.operatorColor=DEFAULT_OPERATOR_COLOR;this.tintCache=new Map();
@@ -42,12 +45,18 @@ export class Renderer {
   visualActor(actor){return actorPosition(actor,actor===this.game.player?'player':actor.id,this.game.floor,this.effects,this.time,this.reduceMotion);}
   projectActor(actor){const p=this.visualActor(actor);return this.project(p.x,p.y);}
   unproject(px,py){return {x:Math.round((px-this.w/2)/this.tile+this.camera.x),y:Math.round((py-this.h/2)/this.tile+this.camera.y)};}
-  hitBarrier(x,y){return this.game.barriers.filter(b=>b.hp>0&&this.game.visible(b)).map(b=>{const p=this.project(b.x,b.y);return {b,normal:Math.abs(b.axis==='x'?x-p.x:y-p.y),along:Math.abs(b.axis==='x'?y-p.y:x-p.x)};}).filter(o=>o.normal<=Math.min(10,this.tile*.23)&&o.along<=this.tile*.47).sort((a,b)=>a.normal-b.normal)[0]?.b;}
+  hitBarrier(x,y){
+    return this.game.barriers.filter(b=>b.hp>0&&this.game.visible(b)).map(b=>{
+      const p=this.project(b.x,b.y),normal=Math.abs(b.axis==='x'?x-p.x:y-p.y),along=Math.abs(b.axis==='x'?y-p.y:x-p.x);
+      const q=['partition','low_partition'].includes(b.type)?partitionGeometry(b,p,this.tile):null;
+      return {b,normal,hit:q?x>=q.left-2&&x<=q.left+q.width+2&&y>=q.top-2&&y<=q.bottom+2:normal<=Math.min(10,this.tile*.23)&&along<=this.tile*.47};
+    }).filter(o=>o.hit).sort((a,b)=>a.normal-b.normal)[0]?.b;
+  }
   drawBarrier(b,scale=this.tile){
     const p=this.project(b.x,b.y),vertical=b.axis==='x',half=scale*.5,color=b.hp<=0?'#65746b':b.open?'#8ad2bb':b.type==='door'?'#dec184':'#9da99d';
     const segment=(a,z,width)=>this.line(p.x+(vertical?0:a),p.y+(vertical?a:0),p.x+(vertical?0:z),p.y+(vertical?z:0),color,width);
     if(b.hp<=0){segment(-half,-half*.72,3);segment(half*.72,half,3);return;}
-    if(b.type==='low_partition'){segment(-half,half,4);for(const n of [-.38,0,.38]){const x=p.x+(vertical?0:scale*n),y=p.y+(vertical?scale*n:0);this.box(x-2,y-2,4,4,'#d1c197');}this.objectHealth(b,p.x-7,p.y+half-4,14);return;}
+    if(b.type==='low_partition'||b.type==='partition'){const q=drawPartition(this.ctx,b,p,scale,this.terrainImages);this.objectHealth(b,p.x-7,q.top-4,14);return;}
     if(b.open){segment(-half,-half*.62,5);segment(half*.62,half,5);this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     if(this.terrain(b.type,p,b,Math.round(scale),vertical?0:1)){this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     segment(-half,half,7);segment(-half+2,half-2,3);
@@ -130,7 +139,7 @@ export class Renderer {
       for(const cloud of g.smoke)if(cloud.cells.some(q=>q.x===x&&q.y===y)){this.box(left+1,top+1,t-2,t-2,'#abc1cd66');for(let n=0;n<3;n++)this.box(left+5+n*7,top+8+(x+y+n)%3*6,11,5,'#d4dfe84a');this.text(String(Math.max(1,cloud.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#d3e2ed',8);}
       c.globalAlpha=1;
     }
-    for(const b of g.barriers)if(edgeCells(b).some(q=>g.seen[q.y]?.[q.x])){c.globalAlpha=g.visible(b)?1:.35;this.drawBarrier(b);c.globalAlpha=1;}
+    for(const b of g.barriers)if(!['partition','low_partition'].includes(b.type)&&edgeCells(b).some(q=>g.seen[q.y]?.[q.x])){c.globalAlpha=g.visible(b)?1:.35;this.drawBarrier(b);c.globalAlpha=1;}
     for(const spawn of g.reinforcements||[])if(g.visible(spawn))this.markArea(spawn,0,'#70dce833','#94f0eeaa','+'+Math.max(1,spawn.due-g.turn));
     for(const m of g.marks)this.markArea(m,1,'#e969494f','#f8996977',String(Math.max(1,m.due-g.turn)));
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
@@ -187,6 +196,8 @@ export class Renderer {
     }
     this.effects=this.effects.filter(e=>time-e.time<700);
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}
+    // Raised partitions share the wall occlusion layer; footprints remain on ground edges.
+    for(const b of [...g.barriers].sort((a,b)=>a.y-b.y))if(['partition','low_partition'].includes(b.type)&&edgeCells(b).some(q=>g.seen[q.y]?.[q.x])){c.globalAlpha=g.visible(b)?1:.35;this.drawBarrier(b);c.globalAlpha=1;}
     // Walls occlude all world-space content, including actors, traces and transient effects.
     for(const {a,x,y}of wallCells){
       c.globalAlpha=[[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.visibleTiles?.has((x+dx)+','+(y+dy)))?1:.36;
@@ -316,7 +327,7 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     if(!player){this.box(a.x-13,a.y-this.tile*.45,26,3,'#17271e');this.box(a.x-13,a.y-this.tile*.45,26*e.hp/e.maxHp,3,e.charge?'#f2b779':def.color);if(e.charge)this.text(e.type==='sniper'?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
     else this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);
   }
-  markArea(center,radius,fill,stroke,label){const g=this.game,t=this.tile;for(const {x,y} of areaCells(g.grid,center,radius,g.barriers)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}if(label){const a=this.project(center.x,center.y);this.text(label,a.x,a.y+5,'#ffd3a4',17);}}
+  markArea(center,radius,fill,stroke,label){const g=this.game,t=this.tile;for(const {x,y} of areaCells(g.grid,center,radius,g.barriers,g)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}if(label){const a=this.project(center.x,center.y);this.text(label,a.x,a.y+5,'#ffd3a4',17);}}
   drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?(isDark(g,{x,y})?'#343e62':'#809672'):(isDark(g,{x,y})?'#232a40':'#384b3a');c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const m of g.props.filter(p=>p.type==='module'))for(const q of moduleCells(m))if(g.seen[q.y]?.[q.x]){c.strokeStyle=MODULE_TYPES[m.theme].color+'88';c.lineWidth=1;c.strokeRect(q.x*k+1,q.y*k+1,k-2,k-2);}for(const station of g.props.filter(p=>p.type==='terminal'&&g.seen[p.y]?.[p.x])){c.fillStyle=station.used?'#526c62':'#a3e3c0';c.fillRect(station.x*k+3,station.y*k+3,k-6,k-6);}for(const b of g.barriers)if(b.hp>0&&edgeCells(b).some(p=>g.seen[p.y]?.[p.x])){const x=(b.x+.5)*k,y=(b.y+.5)*k;c.strokeStyle=b.open?'#8ad2bb':b.type==='door'?'#dec184':'#bdc7bd';c.lineWidth=2;c.beginPath();c.moveTo(x-(b.axis==='y'?k/2:0),y-(b.axis==='x'?k/2:0));c.lineTo(x+(b.axis==='y'?k/2:0),y+(b.axis==='x'?k/2:0));c.stroke();}for(const box of g.props.filter(o=>isContainer(o)&&!o.opened&&g.seen[o.y]?.[o.x])){c.strokeStyle=CONTAINER_KINDS[box.kind].color;c.lineWidth=2;c.strokeRect(box.x*k+3,box.y*k+3,Math.max(3,k-6),Math.max(3,k-6));}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.exitPoint,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),...(g.localAllies||[]).map(a=>[a,a.hp>0?'#83efd1':'#b5a774']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}for(const o of [...missionObjects(g).filter(t=>!t.done),...g.visibleEnemies.filter(e=>missionTarget(g,e))])if(g.seen[o.y]?.[o.x]){c.strokeStyle='#88f3ff';c.lineWidth=2;c.strokeRect(o.x*k+1,o.y*k+1,k-2,k-2);}const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
   addEffects(effects,elapsed=0){this.effects.push(...effects.map(e=>({...e,time:this.time-Math.max(0,elapsed)})));this.effects=this.effects.slice(-64);}
 }
