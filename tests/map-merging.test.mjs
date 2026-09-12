@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {generate,generateWithRecipes,PHASE_ONE_RECIPES,generationSafe,reachable,key} from '../src/world.js';
-import {mergeMap,mergePlans} from '../src/map-merging.js';
-import {MAP_FIELDS,roomContains,roomAt,validMapMetadata} from '../src/map-geometry.js';
+import {generateWithRecipes,PHASE_ONE_RECIPES,generationSafe,reachable,key} from '../src/world.js';
+import {mergeMap,mergePlans,MERGED_RECIPES} from '../src/map-merging.js';
+import {MAP_FIELDS,MAP_GENERATION,roomContains,roomAt,validMapMetadata} from '../src/map-geometry.js';
 import {eligibleMissionEnemy} from '../src/map-population.js';
 import {allSupplies} from '../src/containers.js';
 import {edgeCells} from '../src/barriers.js';
@@ -10,6 +10,7 @@ import {Game} from '../src/game.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
+const generate=(seed,floor=1)=>generateWithRecipes(seed,floor,[],MERGED_RECIPES);
 const phaseOne=(seed,floor=1)=>generateWithRecipes(seed,floor,[],PHASE_ONE_RECIPES);
 const roster=map=>map.enemies.map(({type,hp,maxHp,traits})=>JSON.stringify({type,hp,maxHp,traits})).sort();
 
@@ -60,22 +61,23 @@ test('candidate rejection is transactional, illegal groups are refused, and fall
   assert.throws(()=>generateWithRecipes(2,1,[],[{id:'unknown'}]),/Unsupported/);
 });
 
-test('saved generation two floor survives a generation three trip and complete backup without regeneration',()=>{
+test('saved generation two floor survives a current-generation trip and complete backup without regeneration',()=>{
   class PhaseOneGame extends Game{generateFloor(){return phaseOne(this.seed,this.floor);}}
   const old=new PhaseOneGame(2,[],0,'recon','onyx','roundtrip');
   const original=Object.fromEntries(['grid','rooms','props','barriers',...MAP_FIELDS].map(k=>[k,structuredClone(old[k])]));
   const g=Game.restore(old.serialize());assert.ok(g);Object.assign(g.player,g.exitPoint);assert.ok(g.descend());
-  assert.deepEqual(g.mapGenerations,[2,3]);assert.equal(g.generation.version,3);
+  assert.deepEqual(g.mapGenerations,[2,MAP_GENERATION]);assert.equal(g.generation.version,MAP_GENERATION);
   Object.assign(g.player,g.exitPoint);assert.ok(g.descend());for(const e of g.enemies)e.hp=0;
   Object.assign(g.player,g.mission.targets[0]);g.recoverObjective(g.mission.targets[0].id);
   const copy=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;
   for(let i=0;i<2;i++){Object.assign(copy.player,copy.exitPoint);assert.ok(copy.descend());}
   for(const [k,v]of Object.entries(original))assert.deepEqual(copy[k],v,k);
-  assert.deepEqual(copy.mapGenerations,[2,3]);assert.equal(copy.generation.version,2);
+  assert.deepEqual(copy.mapGenerations,[2,MAP_GENERATION]);assert.equal(copy.generation.version,2);
 });
 
 test('generation three rejects invalid merge topology and recipe ownership on import',()=>{
-  const game=new Game(2);
+  class PhaseTwoGame extends Game{generateFloor(){return generate(this.seed,this.floor);}}
+  const game=new PhaseTwoGame(2);
   for(const mutate of [d=>d.generation.recipeId='grid-v2',d=>d.generation.version='3',d=>d.startRoom=d.rooms.find(r=>r.cellIds.length>1).id,d=>d.rooms.find(r=>r.cellIds.length>1).footprint.pop(),d=>d.generation.recipeId=d.generation.recipeId==='hangar-v3'?'long-halls-v3':'hangar-v3']){
     const raw=JSON.parse(game.serialize());mutate(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);
   }

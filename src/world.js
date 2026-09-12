@@ -1,5 +1,6 @@
 import {latticeCells,cellNeighbors,collapseCellLinks,describeRooms} from './map-geometry.js';
 import {MERGED_RECIPES,selectMergeRecipe,mergePlans,mergeMap} from './map-merging.js';
+import {OPENING_RECIPES,addOpenings} from './map-openings.js';
 import {placePopulation,reservationPosts} from './map-population.js';
 import {ENDLESS_TUNING,extraEnemies,eliteChance,scaleEnemy} from './endless.js';
 import {createLighting} from './lighting.js';
@@ -42,10 +43,12 @@ export function makeEnemy(type,x,y,id,floor=1) {
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[]){return generateWithRecipes(seed,floor,unlocks,MERGED_RECIPES);}
-export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=MERGED_RECIPES){
+export function generate(seed,floor=1,unlocks=[]){return generateWithRecipes(seed,floor,unlocks,OPENING_RECIPES);}
+export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=OPENING_RECIPES){
   if(!recipes.length)return generateLegacy(seed,floor,unlocks);
-  if(recipes.some(r=>!['grid-v2',...MERGED_RECIPES.map(r=>r.id)].includes(r.id)))throw new Error('Unsupported skeleton recipe');
+  if(recipes.some(r=>!['grid-v2',...MERGED_RECIPES.map(r=>r.id),...OPENING_RECIPES.map(r=>r.id)].includes(r.id)))throw new Error('Unsupported skeleton recipe');
+  const chosen=selectMergeRecipe(seed,floor,recipes),openingRecipe=OPENING_RECIPES.find(r=>r.id===chosen.id);
+  if(openingRecipe){const base=generateWithRecipes(seed,floor,unlocks,MERGED_RECIPES);return base.generation?(addOpenings(base,seed,floor,{...openingRecipe,...chosen},{reachable,generationSafe})||base):base;}
   const map=generateBase(seed,floor,unlocks,true);
   if(!map||!generationSafe(map))return generateLegacy(seed,floor,unlocks);
   const recipe=selectMergeRecipe(seed,floor,recipes);

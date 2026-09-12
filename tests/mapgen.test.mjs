@@ -95,7 +95,7 @@ test('old v32 floor metadata is optional, mixed archives restore and returning d
   const g=new Game(42,[],0,'recon','onyx','roundtrip'),raw=JSON.parse(g.serialize());
   for(const k of MAP_FIELDS)delete raw.data[k];delete raw.data.mapGenerations;
   const old=Game.restore(JSON.stringify(raw));assert.ok(old);assert.deepEqual(old.mapGenerations,[1]);assert.deepEqual(old.grid,g.grid);
-  const oldFrame=archiveFloor(old);descend(old);assert.deepEqual(old.mapGenerations,[1,MAP_GENERATION]);
+  const oldFrame=archiveFloor(old);descend(old);assert.deepEqual(old.mapGenerations,[1,generate(old.seed,old.floor).generation.version]);
   assert.ok(Game.restore(old.serialize()));
   const state=resumedFloor(oldFrame,old.turn);Object.assign(old,state);for(const k of MAP_FIELDS)assert.equal(old[k],undefined);
   assert.deepEqual(old.rooms,g.rooms); // No regeneration or decoration inserted.
