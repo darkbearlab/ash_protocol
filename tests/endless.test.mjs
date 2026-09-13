@@ -60,7 +60,7 @@ test('current save rejects excess picks, wrong floor mode, corrupt legacy allowa
  const ordinary=JSON.parse(new Game(4).serialize());ordinary.version=29;delete ordinary.data.legacyPerkPicks;assert.equal(Game.restore(JSON.stringify(ordinary)).legacyPerkPicks,0);
 });
 test('large protocol ledgers remain deduplicated and roundtrip in full backups with deep allies',()=>{
- const g=run(60,'druid');rank(g,25);for(const a of g.allies){a.floor=60;a.status='packed';}
+ const g=run(60,'druid');rank(g,25);for(const a of g.allies){a.floor=60;a.status='arriving';a.x=g.player.x;a.y=g.player.y;}
  for(let f=1;f<150;f++)g.awardProtocol('floor',f);const earned=g.protocol.earned;for(let f=1;f<150;f++)g.awardProtocol('floor',f);assert.equal(g.protocol.earned,earned);
  const h=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.ok(h);assert.equal(h.floor,60);assert.equal(h.protocol.events.length,149);assert.equal(h.allies[0].floor,60);
  const raw=JSON.parse(g.serialize());raw.data.protocol.events=Array(PROTOCOL_EVENT_LIMIT+1).fill('floor:1');assert.equal(Game.restore(JSON.stringify(raw)),null);

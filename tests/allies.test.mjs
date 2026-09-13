@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {SIZE,ENEMY_TYPES} from '../src/data.js';
 import {CHARACTERS} from '../src/characters.js';
-import {DRONE_REPAIR_COST,DRONE_BUILD_COST,DRONE_HP,SENTRY_ARMOR,droneRepairReason,addAlly,allyWeapon,allyAct,allySkillState,fitDrone,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,summonPool,validAllies,PET_REGEN,PET_MEDKIT_FRACTION,PET_TETHER,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,defaultDroneCell} from '../src/allies.js';
+import {DRONE_REPAIR_COST,DRONE_BUILD_COST,DRONE_HP,SENTRY_ARMOR,droneRepairReason,addAlly,allyWeapon,allyAct,allySkillState,fitDrone,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,summonPool,validAllies,PET_TETHER,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,defaultDroneCell} from '../src/allies.js';
 import {makeEnemy} from '../src/world.js';
 import {makeBarrier} from '../src/barriers.js';
 import {grantTrait} from '../src/traits.js';
@@ -14,7 +14,7 @@ import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 function arena(character='engineer'){
  const g=new Game(330,[],0,character,'onyx');g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());g.seen=g.grid.map(r=>r.map(()=>true));
- for(const k of ['allies','enemies','props','items','barriers','hazards','marks','rooms','traces','smoke'])g[k]=[];clearGeneratedMap(g);g.allySerial=0;Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500});g.start={x:5,y:5};g.end={x:20,y:20};g.reveal();return g;
+ for(const k of ['allies','enemies','props','items','barriers','hazards','marks','rooms','traces','smoke'])g[k]=[];clearGeneratedMap(g);g.allySerial=0;g.player.petBond=null;Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500});g.start={x:5,y:5};g.end={x:20,y:20};g.reveal();return g;
 }
 const drone=(g,point={x:11,y:10},status='active',sourceId='drone_follow')=>addAlly(g,'drone','drone',{point,status,sourceId});
 const pet=(g,point={x:11,y:10})=>addAlly(g,'pet','crawler',{point,sourceId:'pet_command'});
@@ -50,40 +50,19 @@ test('pet destination commands are free, bounded, and execute on the next own op
  const g=arena('druid'),a=pet(g);const turn=g.turn,rng=g.rng.state();assert.ok(g.action('commandPet',{x:13,y:10}));assert.equal(g.turn,turn);assert.equal(g.rng.state(),rng);assert.equal(a.x,11);
  g.action('wait');assert.equal(a.x,12);g.action('wait');assert.equal(a.x,13);assert.equal(commandPet(g,{x:20,y:10}),false);assert.ok(g.action('commandPet',{x:10,y:10}));assert.equal(a.order,null);
 });
-// 3.37 (user decision) replaces the medkit rescue: a downed pet is recovered, heals while packed and steps back out.
-test('a downed pet is recovered from an adjacent tile for one turn without medicine, then heals while packed',()=>{
- const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);assert.equal(a.status,'down');assert.equal(a.hp,0);g.player.meds=0;
- g.player.x=8;assert.equal(use(g),false);assert.equal(g.turn,1);assert.match(g.logs[0].text,/相鄰/);
- g.player.x=10;assert.ok(use(g));assert.equal(g.turn,2);assert.equal(a.status,'packed');assert.equal(a.hp,PET_REGEN);assert.equal(g.player.meds,0);assert.ok(!g.localAllies.includes(a));assert.ok(Game.restore(g.serialize()));
-});
-test('standing on the downed pet recovers it; a packed pet leaves the map and travels with the player',()=>{
- const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);g.player.x=11;assert.ok(use(g));assert.equal(a.status,'packed');
- assert.ok(departAllies(g).includes(a.id));g.floor=2;g.player.x=5;g.player.y=5;arriveAllies(g,[a.id]);assert.equal(a.floor,2);assert.ok(validAllies(g));assert.ok(Game.restore(g.serialize()));
-});
-test('a packed pet heals on paid turns only and steps out beside the player once whole while its skill is prepared',()=>{
- const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);assert.ok(use(g));a.hp=a.maxHp-2*PET_REGEN;
- g.action('prepare',{category:'skill',id:null});assert.equal(a.hp,a.maxHp-2*PET_REGEN);
- g.action('wait');g.action('wait');assert.equal(a.hp,a.maxHp);assert.equal(a.status,'packed');
- g.action('prepare',{category:'skill',id:'pet_command'});assert.equal(a.status,'packed');g.action('wait');
- assert.equal(a.status,'active');assert.equal(a.bornTurn,g.turn);assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=2);assert.notEqual(a.x+','+a.y,g.player.x+','+g.player.y);assert.ok(Game.restore(g.serialize()));
-});
-test('a medkit adds half the pet health while packed for one turn; without one the skill gives a reason and costs nothing',()=>{
- const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);assert.ok(use(g));a.hp=10;g.player.meds=1;
- assert.ok(use(g));assert.equal(g.turn,3);assert.equal(g.player.meds,0);assert.equal(a.hp,10+Math.ceil(a.maxHp*PET_MEDKIT_FRACTION)+PET_REGEN);
- const turn=g.turn,hp=a.hp;assert.equal(use(g),false);assert.equal(g.turn,turn);assert.equal(a.hp,hp);assert.match(g.logs[0].text,/醫療包/);
-});
+// Superseded recovery cases are covered by pet-feeding.test.mjs (3.72).
 test('the pet chases up to nine tiles from the player while survivors keep the six-tile tether',()=>{
  const g=arena('druid'),a=pet(g),e=enemy(g,18,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();for(let i=0;i<9;i++)g.action('wait');assert.ok(e.hp<500);assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=PET_TETHER);
  const n=arena('soldier'),s=addAlly(n,'survivor','crawler',{point:{x:11,y:10}}),f=enemy(n,18,10);f.hp=500;n.enemyAct=()=>{};n.reveal();for(let i=0;i<9;i++)n.action('wait');assert.equal(f.hp,500);
 });
-test('only pets and drones may be packed in a save; a v25 save loads unchanged and its first local read is kept verbatim',async()=>{
+test('only drones may be packed in a save; a v25 save loads unchanged and its first local read is kept verbatim',async()=>{
  const g=arena('necromancer'),s=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:11,y:10}}),raw=JSON.parse(g.serialize());raw.data.allies[0].status='packed';assert.equal(Game.restore(JSON.stringify(raw)),null);
  const d=arena('druid'),a=pet(d);a.hp=37;const old=JSON.parse(d.serialize());old.version=25;const text=JSON.stringify(old),memory=new Map([['qa-ash-save',text],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
  const storage=await import('../src/storage.js?pet337'),restored=storage.loadGame();assert.ok(restored);assert.deepEqual(restored.allies,d.allies);assert.deepEqual(restored.player,d.player);assert.equal(restored.rng.state(),d.rng.state());assert.equal(memory.get('qa-ash-save-v25-backup'),text);assert.equal(memory.get('ash-save'),'untouched');
 });
-test('a fast lethal hit cancels paid rescue and consumes no medkit',()=>{
- const g=arena('druid'),a=pet(g);g.damageAlly(a,1000);const e=enemy(g,14);e.charge=true;e.windup=1;grantTrait(e,'fast','test:fast');g.player.hp=1;zero(g);g.reveal();const meds=g.player.meds;assert.ok(use(g));assert.equal(g.status,'dead');assert.equal(a.status,'down');assert.equal(g.player.meds,meds);
+test('a fast lethal hit cancels paid feeding and consumes no medkit',()=>{
+ const g=arena('druid'),a=pet(g);a.hp=20;const e=enemy(g,7);e.charge=true;e.windup=1;grantTrait(e,'fast','test:fast');g.player.hp=1;zero(g);g.reveal();const meds=g.player.meds;assert.ok(g.action('feedPet',{optionId:'medkit'}));assert.equal(g.status,'dead');assert.equal(a.status,'active');assert.equal(g.player.meds,meds);
 });
 test('necro summons rise on their own every four paid turns from anyone who fell here, up to three, bosses excluded, nothing consumed',()=>{
  const g=arena('necromancer'),summons=()=>g.activeAllies.filter(a=>a.kind==='summon').length;for(const type of ['rifleman','crawler','warden'])enemy(g,14+g.enemies.length,10,type).hp=0;g.enemyAct=()=>{};
@@ -123,11 +102,11 @@ test('carry uses a three-step traversable route, closed walls or doors prevent p
  const g=arena(),a=drone(g,{x:12,y:10});assert.ok(carryCandidates(g).includes(a));for(let y=0;y<SIZE;y++)g.grid[y][11]=0;assert.equal(carryCandidates(g).includes(a),false);
 });
 test('departure removes abandoned summons only and arrivals preserve ammo and injury',()=>{
- const g=arena(),a=drone(g,{x:11,y:10}),b=pet(g,{x:17,y:10});a.hp=12;a.ammo=4;const s=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:18,y:10}}),ids=departAllies(g);assert.ok(!g.allies.includes(s));assert.ok(g.allies.includes(b));g.floor=2;g.player.x=5;g.player.y=5;arriveAllies(g,ids);assert.equal(a.floor,2);assert.equal(a.hp,12);assert.equal(a.ammo,4);assert.equal(b.floor,1);assert.ok(validAllies(g));
+ const g=arena(),a=drone(g,{x:11,y:10}),b=pet(g,{x:17,y:10});a.hp=12;a.ammo=4;const s=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:18,y:10}}),ids=departAllies(g);assert.ok(!g.allies.includes(s));assert.ok(g.allies.includes(b));g.floor=2;g.player.x=5;g.player.y=5;arriveAllies(g,ids);assert.equal(a.floor,2);assert.equal(a.hp,12);assert.equal(a.ammo,4);assert.equal(b.floor,2);assert.ok(validAllies(g));
 });
-test('roundtrip preserves abandoned pet and permits reunion, without reinitializing a second pet',()=>{
- const g=new Game(331,[],0,'druid','onyx','roundtrip'),a=g.allies[0];a.hp=37;const original={x:a.x,y:a.y};Object.assign(g.player,g.exitPoint);assert.ok(g.descend());assert.equal(a.floor,1);assert.equal(g.allies.length,1);assert.ok(Game.restore(g.serialize()));
- g.mission.returning=true;g.mission.targets=[{id:'objective-1',x:g.start.x,y:g.start.y,done:true}];g.mission.reinforced=[];Object.assign(g.player,g.start);g.enemies.forEach(e=>e.hp=0);assert.ok(g.descend());assert.equal(g.floor,1);assert.equal(a.hp,37);assert.deepEqual({x:a.x,y:a.y},original);assert.ok(g.localAllies.includes(a));
+test('roundtrip transports the pet and preserves growth, without reinitializing a second pet',()=>{
+ const g=new Game(331,[],0,'druid','onyx','roundtrip'),a=g.allies[0];a.hp=37;const original={x:a.x,y:a.y};Object.assign(g.player,g.exitPoint);assert.ok(g.descend());assert.equal(a.floor,2);assert.equal(g.allies.length,1);assert.ok(Game.restore(g.serialize()));
+ g.mission.returning=true;g.mission.targets=[{id:'objective-1',x:g.start.x,y:g.start.y,done:true}];g.mission.reinforced=[];Object.assign(g.player,g.start);g.enemies.forEach(e=>e.hp=0);assert.ok(g.descend());assert.equal(g.floor,1);assert.equal(a.hp,37);assert.equal(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y),1);assert.ok(g.localAllies.includes(a));
 });
 test('survivor hook records independent source and mission IDs and uses the same combat/persistence',()=>{
  const g=arena('soldier'),a=addAlly(g,'survivor','rifleman',{point:{x:11,y:10},sourceId:'rescue-room',missionId:'rescue-01'});assert.ok(a);const restored=Game.restore(g.serialize());assert.ok(restored);assert.equal(restored.allies[0].missionId,'rescue-01');assert.equal(restored.player.character,'soldier');

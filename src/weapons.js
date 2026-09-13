@@ -35,3 +35,7 @@ export function rollAffix(base,seed){
 
 export const ammoName=w=>w.melee?'無限使用':AMMUNITION[w.ammoType].name;
 export const magazineLabel=(w,rounds)=>w.melee?'∞':`${rounds}/${w.mag}`;
+
+// Shared dismantling/feeding value; magazine ammunition is handled separately.
+export const salvageValue=(p,slot)=>20+(p.upgrades[slot]||0)*10;
+export const canSalvageOwned=(g,slot)=>Number.isInteger(slot)&&g.player.owned.includes(slot)&&g.player.owned.length>1&&!g.weaponAt(slot).locked;

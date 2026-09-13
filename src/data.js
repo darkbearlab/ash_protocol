@@ -1,6 +1,6 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 34;
+export const SAVE_VERSION = 35;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -72,8 +72,8 @@ export const PERKS = [
   {id:'engineer_salvage',name:'戰場回收',characters:['engineer'],cap:3,effect:'passive',text:'每次擊殺額外 +2 廢料；立即獲得 15 廢料。'},
   {id:'engineer_frame',name:'機體強化',characters:['engineer'],cap:3,effect:'passive',text:'無人機最大生命 +20、裝甲 +1。已有機體立即增加上限，不直接修復。'},
   {id:'engineer_firecontrol',name:'火控校準',characters:['engineer'],cap:3,effect:'passive',text:'無人機射擊命中 +8 個百分點、傷害 +3。'},
-  {id:'druid_beast',name:'獵獸體質',characters:['druid'],cap:3,effect:'passive',text:'寵物最大生命 +25、收納時每回合額外回復 3。'},
-  {id:'druid_claws',name:'獵獸利爪',characters:['druid'],cap:3,effect:'passive',text:'寵物傷害 +4、近戰命中 +5 個百分點。'},
+  {id:'druid_beast',name:'飽食',characters:['druid'],cap:3,effect:'passive',text:'胃容量 +10 燃料，射擊與排出消耗減少 10%。'},
+  {id:'druid_claws',name:'飢餓',characters:['druid'],cap:3,effect:'passive',text:'胃空時獵獸近戰傷害 +25%。'},
   {id:'druid_symbiosis',name:'共生',characters:['druid'],cap:3,effect:'passive',text:'寵物每次擊殺敵人，你回復 4 生命；每階累加。'},
   {id:'soldier_overwatch',name:'廣域預警',characters:['soldier'],cap:3,effect:'passive',text:'預警半徑 +2、冷卻 −1（最低 2）。'},
   {id:'soldier_marked',name:'標定弱化',characters:['soldier'],cap:3,effect:'passive',text:'預警標定 2 回合；每階使其受到你的傷害 +10%、對你的命中 −6。'},

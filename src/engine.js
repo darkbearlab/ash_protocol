@@ -11,3 +11,5 @@ export * from './containers.js';
 export * from './modules.js';
 
 export * from './endless.js';
+
+export {petFeedingState,petFeedQuote,PET_FEEDING_TUNING} from './pet-growth.js';

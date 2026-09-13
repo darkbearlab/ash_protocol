@@ -22,6 +22,7 @@ export function captureAction(game,action){
 }
 // Cosmetic projectiles per resolved shot; these never affect ammunition or damage.
 export const WEAPON_VISUALS={
+  pet_turret:{count:1,stagger:0,spread:0,flight:85,style:'bullet'},
   thunder:{count:1,flight:100,stagger:0,spread:0,style:'grenade'},
   lmg:{count:2,flight:60,stagger:15,spread:.07,style:'bullet'},
   powerfist:{count:1,flight:100,stagger:0,spread:0,style:'slash'},
@@ -54,7 +55,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const travel=Math.max(0,...visuals.map(e=>e.delay+e.travel),...moves.map(e=>e.travel));
     events.push({time,state:step.before,effects:[...moves,...visuals]});
     for(const e of flights)if(e.damage>0||e.miss)impacts.push({...e,type:e.miss?'miss':'impact',style:undefined,from:e.to});
-    const deaths=[...step.after.enemies,...(step.after.allies||[])].filter(e=>e.hp<=0&&[...step.before.enemies,...(step.before.allies||[])].some(b=>b.id===e.id&&b.hp>0));
+    const deaths=[...step.after.enemies,...(step.after.allies||[])].filter(e=>e.kind!=='pet'&&e.hp<=0&&[...step.before.enemies,...(step.before.allies||[])].some(b=>b.id===e.id&&b.hp>0));
     if(step.before.player.hp>0&&step.after.player.hp<=0)deaths.push({...step.after.player,type:'player'});
     // A brief impact flash precedes the grey corpse's settling motion.
     for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0});

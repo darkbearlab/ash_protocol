@@ -1,6 +1,6 @@
-# 德魯伊餵養（規格草案，2026-09-13）
+# 德魯伊餵養（3.72.0 規則實作，2026-09-13）
 
-- 狀態：**使用者決定的設計（2026-09-13 定案），交給 Codex 提出實作規劃。**
+- 狀態：**3.72.0 規則層完成；Claude 接餵食介面，數值待人工遊玩調整。**
 - 取代：3.37「倒地、回收與自行歸隊」、收納機制、收納中用醫療包，以及德魯伊的兩個職業升級。
 - 數值：**各階門檻、冷卻長度、每次行動吃多少燃料、重生生命等數字一律由 Codex 決定**，本規格只定規則形狀（使用者指示）。
 
@@ -116,3 +116,67 @@
 
 - 規則、存檔、遷移、測試：Codex。
 - 介面：Claude。技能分頁的餵食清單（每種資源一份一份餵，含醫療包）、胃的容量顯示、四條線的進度與階數、重生倒數。請 Codex 提供可讀的狀態欄位，形狀可比照 `CORNER_TACTICS.md` 的介面交接段。
+
+## 11. 3.72.0 規則實作與 Claude 介面接線
+
+規則已實作；餵食清單、狀態顯示與說明頁由 Claude 接續。本版不新增技能分頁 UI。
+
+### 模組與入口
+
+`src/pet-growth.js` 集中成長、燃料、報價、重生、存檔驗證；所有暫定數值在 `PET_FEEDING_TUNING`。
+`engine.js` 匯出 `petFeedingState`、`petFeedQuote` 供介面使用。沿用既有 action → 演出 → 存檔流程，不直接改 player 或 allies。
+
+```js
+const state = petFeedingState(game); // 無羈絆時 null
+const quote = petFeedQuote(game, {optionId:'ammo:pistol'});
+game.action('feedPet', {optionId:'ammo:pistol'}); // 每次 1 付費回合
+game.action('feedPet', {optionId:'weapon', weaponSlot:1});
+game.action('setPetOutput', {kind:'smoke'}); // 三階才可，免費
+```
+
+- `optionId`：`ammo:pistol/rifle/shell/energy/ordnance`（擇一）、`life`、`plates`、`weapon`、`grenade:frag/smoke/emp/stun`（擇一）、`medkit`。
+- `state`：`actorId/status/hp/maxHp`；`fuel:{stored,capacity,scale,displayValue}`；`growth:{vitality,armor,turret,extrusion}`，各線含 `progress/rank/nextThreshold/capped`；`reviveRemaining`；`output:{kind,remaining,ready,fuelCost,selectableKinds}`；`options` 是所有資源與持有武器的報價。
+- 每份報價包含 `action`（可直接傳給 feedPet）、`allowed/reason`、`resource/amount/cost/gain/overflow`；武器另有 `weaponSlot`，成長資源有 `line`。燃料 gain 以整數 ticks 表示，生命／板／武器／投擲物各自採該線單位。介面不要重算價格或合法性。
+- `output.ready` 表示計時歸零；仍需足夠燃料才會產出。不要把它顯示成已經產出。選種類不是餵食，不扣資源。
+- 相鄰採上下左右、不可隔關門／隔板。允許技能未預備時餵食，但玩家必須擁有伴生技能。失能、重生、待選升級或無法相鄰時拒絕。
+- 成功動作提交前會再次驗證：快速敵人若改變局勢，回合仍付出，但飼料不扣。追擊代幣不能支付餵食。
+- 保留 `commandPet`／伴生技能的免費召回；已移除寵物回收／收納路徑。`PET_REGEN`、`PET_MEDKIT_FRACTION` 暫留相容匯出，只供舊 controller 文字引用，沒有規則用途；Claude 更新該處後可移除。
+- **待接 UI**：controller 技能頁目前尚未辨識 `reforming/arriving`，舊說明頁仍含收納文字；請改由上述 state 顯示，並刪除舊收納說明。角色／技能資料與升級名稱已更新。
+
+### 初版數值與時間語意
+
+| 項目 | 值 |
+| --- | --- |
+| 胃 | 30 燃料；1 燃料 = 72 ticks = 1 廢料購買力 |
+| 每次餵彈 | 最多手槍18／步槍12／霰彈4／能量6／重彈1；資源或胃不足時縮小份量 |
+| 體質累積門檻 | 20／50／90 生命；每次5；餵後至少 max(25, ceil(玩家最大生命 ×40%)) |
+| 體質效果 | 最大生命90→150；戰鬥回血3；每個實際樓層一次致命留1HP |
+| 裝甲門檻／效果 | 10／25／50 板；每次最多5；裝甲1→4、可用掩體、直接傷害再減20% |
+| 砲台門檻 | 20／60／120 拆解價值；武器值20＋改裝階數×10 |
+| 砲台效果 | 射程5／傷害14–18；二階7／20–24；三階兩發；命中修正−22；每發2燃料 |
+| 排出門檻 | 1／3／6 顆投擲物 |
+| 排出效果 | 每12付費回合；二階8；三階可選種類；每次12燃料 |
+| 重生 | 死亡後8個完整付費回合；回復最大生命25%（向下取整） |
+| 醫療包 | 治療最大生命50%（向上取整），走 healActor |
+| 飽食／飢餓 | 每階胃+10、兩種消耗−10%；胃完全空時咬擊傷害每階+25% |
+
+燃料使用整數避免浮點漂移；折扣後消耗向上取整。終端價格由 `TERMINAL_AMMO` 讀取；若日後調到無法以72整除的價格，需一併調整燃料刻度與遷移，不能直接引入小數存檔。
+生命與裝甲是被動，不吃燃料；餵生命提高上限也不補當前 HP。武器彈匣退回玩家備彈，溢出走原有落地規則，不進胃、不給廢料。最後一份超過門檻的量以 overflow 揭露，滿三階後拒絕再餵。
+
+射擊優先順序：相鄰可咬目標優先咬；否則有燃料的砲台射擊；否則依原有 combatStep 接近敵人。每發各自扣燃料、追蹤原目標、檢查射線；承諾後失去射線仍扣燃料。第一發擊殺不再發第二發。射擊照常 recordExposure，延用轉角／分流規則。此版沒有依飼料武器類別換射法。
+
+戰鬥回血：最近2回合內自己攻擊或遭受攻擊（未命中也算）時，付費回合末回血；環境地板傷害不算交戰。裝甲三階額外減傷不套地板危害，但套直接爆炸。
+排出倒數只在身體活動時推進；未準備技能也照常運作。燃料不足停在0，不累積欠帳；補燃料後當輪末可產一顆。投擲物落在寵物腳下，玩家滿載不影響產出。死亡重設排出時鐘；沒有收納與死亡中餵食。
+死亡當輪不扣重生倒數。倒數歸零無相鄰空位就等待，騰出空位後再歸隊；出現當輪不行動。換層保留成長／胃／倒數，重新在玩家身邊放置；機體與召喚物規則不變。
+
+### 存檔 v35
+
+`player.petBond` 保存單一寵物 ID、四條累積進度（階數推導不重複保存）、整數 fuel、fedThrowables 計數、outputChoice/outputRemaining、reviveRemaining/diedTurn/lastCombatTurn、tenacityUsedFloors。身體仍在 `allies`，status 為 active／reforming／arriving；後兩者不參與佇列、視野、碰撞或屍體繪製。arriving 表示活體等待換層落腳，reforming 表示死亡倒數。
+
+v34 以前初始化零成長、零燃料；active 保留生命，packed 在玩家身邊展開，down／destroyed 進8回合重生；留在舊層的寵物帶回。超過新上限的舊生命只裁切、不治療。`druid_beast/druid_claws` ID 與既有階數、待選卡保留，改解釋成飽食／飢餓。
+完整 backup v1/profile v5 不變，內容透過 v35 驗證與遷移。羈絆與身體都是全局，不放進 FLOOR_FIELDS；封存樓層的遞迴驗證使用空 allies 與 null petBond，避免重複寵物。致命保護記已使用樓層，原路返回不重置。
+
+### 驗證
+
+`tests/pet-feeding.test.mjs` 對應第8節全部15條；`tests/allies.test.mjs` 更新被取代的回收測試，保留機體／召喚／倖存者回歸；endless 測試改用新等待落腳狀態。
+`node qa/create-pet-feeding-scenes.mjs` 產生 `qa/fixtures/pet-*.json`：feeding、turret、extrusion、reforming、legacy-packed、legacy-down。只在 `?test=1` 匯入，勿碰正式任務。新 UI 尚未接好，Claude 可先以模組 API 驗證規則，再測技能頁。

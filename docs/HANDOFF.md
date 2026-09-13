@@ -90,7 +90,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v34**（`data.js` 的 `SAVE_VERSION`）。舊版 1～33 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v35**（`data.js` 的 `SAVE_VERSION`）。舊版 1～34 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v5**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -172,3 +172,5 @@ sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩�
 3.71：生成點最後一次成功產出後 hp 歸零，保留 prop 作為殘跡與子代來源；不新增存檔欄位。nest-art.js 管理雙風格 32px 素材與塌陷演出，來源／管線見 art/nests-v1/README.md。
 
 2026-09-13 工作指示整理：依使用者指定的 [OpenAI 文章](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra)，AGENTS 改為按需文件入口，驗證依風險分配且沿用未變動程式的通過結果。純文件走 RELEASE 的輕量交付；原有分工、保存保障與遊戲發布要求保留。這是專案指示調整，沒有修改全域模型設定或內建技能，也沒有宣稱已量測 token 節省比例。
+
+3.72.0：`pet-growth.js` 管理德魯伊羈絆（player.petBond）、四條餵養成長、燃料、重生、只讀 UI 報價。save v35 遷移 packed/down 寵物；羈絆與身體皆全局，勿加入 FLOOR_FIELDS。餵食介面尚待 Claude 接線，API／數值／測試場景見 [DRUID_FEEDING.md](DRUID_FEEDING.md) 第11節。
