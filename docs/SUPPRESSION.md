@@ -280,3 +280,12 @@ game.action('usePrepared',{category:'skill',target:{x,y}});
 | pinned | 玩家 3 層、鄰格敵人；拒絕走路但仍能撞擊近戰 |
 
 手動測試需自行考慮隨機未命中；場景沒有改正式命中率。自然局武器耗彈與鎖定強度、375px 版面、區域確認與真手機仍待 Claude／使用者驗收。本輪沒有替 Claude 寫上述介面。
+
+### 12.5 3.74.1 Claude 介面接線（已完成）
+
+- 學習資料：道具分頁的 `learningSection` 讀 `learningInventory`；使用與拆解呼叫 `learn`、`dismantleLearning`，成功後存檔並重畫，拆解先確認。
+- 被動清單沿用 traits，已包含 `learned:` 來源。
+- 地面 `learning` 物品：renderer 以紫色圖示繪製；補給名稱缺值時不畫標籤。
+- 層數：目標卡、玩家狀態列、地圖血條上方小點都讀 `suppressionState` 或 `suppressionStacks`。
+- 區域瞄準：新增 `suppress` 瞄準模式，合法性一律由 `suppressivePreview` 判定，確認走 `usePrepared` 的 skill 類別；回合前進即退出瞄準。
+

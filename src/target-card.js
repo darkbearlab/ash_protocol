@@ -1,3 +1,4 @@
+import {suppressionTag} from './suppression-ui.js';
 import {nestStyle,NEST_STYLES} from './runtime-enemies.js';
 import {lightingEffects} from './lighting.js';
 import {missionTarget} from './missions.js';
@@ -22,7 +23,7 @@ export function targetDetails(game){
     order:enemy&&(initiative(target)!==0||initiative(game.player)!==0)?(initiative(target)<initiative(game.player)?'行動在你之前':initiative(target)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',
     cover:melee?'近戰無視掩體':enemy?(activeTrait(target,'no_cover')?'無法利用掩體':aim.cover?(aim.coverEfficiency===.5?'半效 ':'')+(aim.cover.type==='low_partition'?'矮隔板掩護':isBarrier(aim.cover)?'隔間掩護':aim.cover.type==='wall'?'牆角掩護':aim.cover.style?'家具掩護':'箱體掩護'):'無掩護'):'可破壞物',
     attack,
-    state:[attack?.targetExposed?'轉角暴露':'',enemy&&target.petSuppressed?`壓制 −${target.petSuppressed}`:'',...(enemy?meleeHints(game,target):[]),aim.closeBonus?`近射 +${aim.closeBonus}`:'',aim.vaultBonus?`翻越破綻 +${aim.vaultBonus}`:'',!melee&&light.dark?(light.nightVision?'夜視抵銷暗區':'暗區 −40'):'',isBarrier(target)?target.type==='door'?(target.open?'門已開啟':'門已關閉'):target.type==='low_partition'?'可翻越 · 破綻 +20':'固定隔板':'',withinRange?'':withinDistance?(attack?.reason==='target_corner_hidden'?'轉角未暴露':'障礙阻擋'):'超出射程',aim.bracedBonus?`架槍 +${aim.bracedBonus}`:'',aim.trackingBonus?`修正 +${aim.trackingBonus}`:'',aim.sidePenalty?`側身 −${aim.sidePenalty}`:'',target.control?.disabled?`失能 ${target.control.disabled}`:'',target.control?.immune?`失能免疫 ${target.control.immune}`:'',target.moved?'移動中':'',target.charge?'即將攻擊':''].filter(Boolean).join(' · '),withinRange};
+    state:[attack?.targetExposed?'轉角暴露':'',enemy?suppressionTag(target):'',...(enemy?meleeHints(game,target):[]),aim.closeBonus?`近射 +${aim.closeBonus}`:'',aim.vaultBonus?`翻越破綻 +${aim.vaultBonus}`:'',!melee&&light.dark?(light.nightVision?'夜視抵銷暗區':'暗區 −40'):'',isBarrier(target)?target.type==='door'?(target.open?'門已開啟':'門已關閉'):target.type==='low_partition'?'可翻越 · 破綻 +20':'固定隔板':'',withinRange?'':withinDistance?(attack?.reason==='target_corner_hidden'?'轉角未暴露':'障礙阻擋'):'超出射程',aim.bracedBonus?`架槍 +${aim.bracedBonus}`:'',aim.trackingBonus?`修正 +${aim.trackingBonus}`:'',aim.sidePenalty?`側身 −${aim.sidePenalty}`:'',target.control?.disabled?`失能 ${target.control.disabled}`:'',target.control?.immune?`失能免疫 ${target.control.immune}`:'',target.moved?'移動中':'',target.charge?'即將攻擊':''].filter(Boolean).join(' · '),withinRange};
 }
 
 const overlap=(a,b)=>Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x))*Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));
