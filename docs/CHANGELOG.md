@@ -8,6 +8,7 @@
 - 移除已無規則用途的 `PET_REGEN`／`PET_MEDKIT_FRACTION` 相容匯出。效果文字直接讀 `PET_FEEDING_TUNING`，數值調整時不會不同步。
 - 開發伺服器補上巢穴素材（`assets/pixel/nests-v1`）的允許清單，修正本機 `?test=1` 看不到巢穴圖的 404；GitHub Pages 不受影響。
 - 顯示邏輯在 `src/pet-ui.js`，測試 `tests/pet-ui.test.mjs`。存檔、數值與規則不變。
+- 已部署：GitHub Pages run 34754792678 成功，線上 `src/version.js` 確認為 3.72.1；完整 659 項測試與 build 通過。
 
 ## 3.72.0 — 德魯伊餵養規則（2026-09-13）
 
