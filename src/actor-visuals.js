@@ -1,4 +1,10 @@
+import {cornerRay} from './corner.js';
 // Presentation only: world coordinates and saves always remain on integer tiles.
+export function cornerHidden(g,e){return e.hp>0&&g.enemies.includes(e)&&cornerRay(g,g.player,e).reason==='target_corner_hidden';}
+export function muteCornerPixels(data){
+  for(let i=0;i<data.length;i+=4){const gray=data[i]*.299+data[i+1]*.587+data[i+2]*.114;for(let k=0;k<3;k++)data[i+k]=Math.round((data[i+k]*.45+gray*.55)*.88);}
+  return data;
+}
 export const MOVE_MS=120;
 export const DARK_ACTOR_BRIGHTNESS=.55;
 const actors=g=>[g.player,...g.enemies,...(g.allies||[]).filter(a=>a.status==='active'&&a.floor===g.floor)];
@@ -21,11 +27,11 @@ export function actorPosition(actor,actorId,floor,effects,time,reduceMotion=fals
 }
 export function shadeActorPixels(data){for(let i=0;i<data.length;i+=4)for(let k=0;k<3;k++)data[i+k]=Math.round(data[i+k]*DARK_ACTOR_BRIGHTNESS);return data;}
 export class DarkActorCache{
-  constructor(){this.cache=new WeakMap();}
+  constructor(transform=shadeActorPixels){this.cache=new WeakMap();this.transform=transform;}
   get(image){
     if(this.cache.has(image))return this.cache.get(image);
     let result=image;
-    try{const canvas=document.createElement('canvas');canvas.width=image.naturalWidth||image.width;canvas.height=image.naturalHeight||image.height;const c=canvas.getContext('2d');c.drawImage(image,0,0);const pixels=c.getImageData(0,0,canvas.width,canvas.height);shadeActorPixels(pixels.data);c.putImageData(pixels,0,0);result=canvas;}catch{/* Unavailable canvas pixel access: preserve the original image. */}
+    try{const canvas=document.createElement('canvas');canvas.width=image.naturalWidth||image.width;canvas.height=image.naturalHeight||image.height;const c=canvas.getContext('2d');c.drawImage(image,0,0);const pixels=c.getImageData(0,0,canvas.width,canvas.height);this.transform(pixels.data);c.putImageData(pixels,0,0);result=canvas;}catch{/* Unavailable canvas pixel access: preserve the original image. */}
     this.cache.set(image,result);return result;
   }
 }

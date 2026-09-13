@@ -29,3 +29,27 @@ test('darkening changes RGB without changing alpha or hue direction, and caches 
  const prior=globalThis.document;let reads=0;const source={width:1,height:1};globalThis.document={createElement:()=>({getContext:()=>({drawImage(){},getImageData(){reads++;return {data:new Uint8ClampedArray([200,100,50,255])};},putImageData(){}})})};
  try{const cache=new DarkActorCache(),a=cache.get(source);assert.notEqual(a,source);assert.equal(cache.get(source),a);assert.equal(reads,1);}finally{globalThis.document=prior;}
 });
+
+// Corner presentation must not use ammo/range as a proxy for hiding.
+import {cornerHidden,muteCornerPixels} from '../src/actor-visuals.js';
+import {recordExposure} from '../src/corner.js';
+import {Renderer} from '../src/renderer.js';
+test('corner cue follows geometric exposure without changing game or marking dead/friendly actors',()=>{
+ const g=arena();Object.assign(g.player,{x:12,y:11});for(let y=0;y<=10;y++)g.grid[y][10]=0;
+ const e=makeEnemy('rifleman',9,10,'corner');g.enemies=[e];g.reveal();const saved=g.serialize();
+ assert.equal(cornerHidden(g,e),true);assert.equal(g.serialize(),saved);
+ recordExposure(g,e,g.player);assert.equal(cornerHidden(g,e),false);e.cornerExposure=null;
+ e.hp=0;assert.equal(cornerHidden(g,e),false);e.hp=10;g.enemies=[];assert.equal(cornerHidden(g,e),false);
+ g.enemies=[e];g.grid=g.grid.map(r=>r.map(()=>1));g.player.ammo[g.player.weapon]=0;
+ Object.assign(e,{x:22,y:11});g.reveal();assert.equal(cornerHidden(g,e),false,'open distant target with empty weapon is not corner-hidden');
+});
+test('corner tint preserves alpha and some color, including on dark sprites',()=>{
+ const p=new Uint8ClampedArray([220,90,30,255,100,80,60,33]);muteCornerPixels(p);
+ assert.equal(p[3],255);assert.equal(p[7],33);assert.ok(p[0]>p[1]&&p[1]>p[2]);assert.ok(p[0]-p[2]<190);assert.ok(p[0]>100);
+ shadeActorPixels(p);assert.equal(p[3],255);assert.ok(p[0]>p[1]);
+});
+test('battlefield corner badge uses text only for the selected target',()=>{
+ const labels=[],boxes=[];const r={tile:45,ctx:{save(){},restore(){},beginPath(){},arc(){},stroke(){}},line(){},box(...args){boxes.push(args);},text(...args){labels.push(args);}};
+ Renderer.prototype.cornerBadge.call(r,{x:100,y:100},false);assert.equal(labels.length,0);assert.equal(boxes[0][2],16);
+ Renderer.prototype.cornerBadge.call(r,{x:100,y:100},true);assert.equal(labels[0][0],'未露頭');assert.equal(boxes[1][2],58);
+});
