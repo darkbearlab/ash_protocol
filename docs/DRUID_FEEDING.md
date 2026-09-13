@@ -381,3 +381,7 @@ profile v5／backup v1 不變；新內容由 save v36 往返驗證。羈絆與�
 - 感知光點：renderer 把 `game.petSensorContacts` 併入原本的預警光點繪製。演出快照保留 Game 原型，這個 getter 在快照上一樣可用。不寫 seen，也不可鎖定。
 - 壓制：目標卡讀 `enemy.petSuppressed`。
 
+### 14.6 壓制節點改走統一規則（2026-09-14 使用者決定，未實作）
+
+砲台線 ◆2「壓制」的 `petSuppressed`（−15、下一次行動用掉）將被 [SUPPRESSION.md](SUPPRESSION.md) 的統一層數規則取代：命中率與傷害不變，每次射擊行動給目標保底 1 層。見該檔第 1、8 節。
+

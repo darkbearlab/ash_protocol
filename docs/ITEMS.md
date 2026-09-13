@@ -84,3 +84,8 @@
 ## 相關規格
 
 [PREPARED.md](PREPARED.md)（預備欄與 catalog 擴充規則）、[THROWABLES.md](THROWABLES.md)、[LIGHTING.md](LIGHTING.md)、[PERKS.md](PERKS.md)、[CLASS_PERKS.md](CLASS_PERKS.md)（質變卡的對照組）。
+
+## 2026-09-14 更新：未識別貨櫃內容池
+
+未識別貨櫃的內容（輕機槍、拾獲版斧頭與刀、各職業原生技能與被動、壓制射擊與連射的學習道具）定義在 [SUPPRESSION.md](SUPPRESSION.md) 第 5 節，取代本檔「內容先留空表」的描述。
+
