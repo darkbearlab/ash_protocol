@@ -14,7 +14,7 @@ export function combatStep(g,a,target,{range,melee=false,leash=Infinity,peers=[]
  const old=a.tactics;
  if(old&&(!same(old.target,target)||old.until<g.turn))a.tactics=null;
  const at=q=>({...a,x:q.x,y:q.y}),canFire=q=>investigate?distance(q,target)<=1&&g.canCross(q,target):distance(q,target)<=range&&g.sight(at(q),target)&&g.shotClear(at(q),target)&&(!melee||g.canCross(q,target));
- const flank=peers.some(b=>b!==a&&b.tactics?.goal&&b.tactics.until>=g.turn&&same(b.tactics.target,target)&&distance(a,b)<=5);
+ const flank=peers.some(b=>b!==a&&!b.control?.disabled&&b.tactics?.goal&&!same(b,b.tactics.goal)&&b.tactics.until>=g.turn&&same(b.tactics.target,target)&&distance(a,b)<=5);
  if(hold&&!melee&&flank&&(!old||g.turn>=(old.retryAfter||0))){
   a.tactics={target:{x:target.x,y:target.y},goal:null,until:g.turn+TACTICS.holdRetry,holdUntil:g.turn+TACTICS.holdTurns-1,retryAfter:g.turn+TACTICS.holdRetry};
  }
@@ -38,7 +38,11 @@ export function combatStep(g,a,target,{range,melee=false,leash=Infinity,peers=[]
    costs.set(k,cost);queue.push({...n,cost,d:q.d+1,first:q.first||n});
   }
  }
- if(!best){a.tactics=null;return null;}
+ if(!best){
+  // A failed route must not erase the hold retry limit and start another hold next turn.
+  a.tactics=old?.retryAfter>g.turn?{target:{x:target.x,y:target.y},goal:null,until:old.retryAfter,holdUntil:0,retryAfter:old.retryAfter}:null;
+  return null;
+ }
  const until=a.tactics&&same(a.tactics.target,target)?a.tactics.until:g.turn+TACTICS.planTurns;
  a.tactics={target:{x:target.x,y:target.y},goal:{x:best.x,y:best.y},until,holdUntil:0,retryAfter:old?.retryAfter||0};
  return {step:best.first,goal:a.tactics.goal};

@@ -112,3 +112,11 @@ test('exposure expires after the last eligible paid queue, before the next input
  const {g,e}=corner();g.enemyAct=()=>{};recordExposure(g,g.player,e);
  g.action('wait');assert.ok(g.player.cornerExposure);g.action('wait');assert.equal(g.player.cornerExposure,null);assert.equal(g.shotClear(e,g.player),false);
 });
+
+test('failed routes retain hold retry limits and disabled peers cannot justify holding',()=>{
+ const {g,e}=corner(),other=foe(g,12,12);other.tactics={target:{x:g.player.x,y:g.player.y},goal:{x:9,y:11},until:g.turn+24,holdUntil:0,retryAfter:0};
+ g.passable=()=>false;assert.ok(combatStep(g,e,g.player,{range:7,peers:g.enemies,hold:true}).hold);
+ g.turn+=2;assert.equal(combatStep(g,e,g.player,{range:7,peers:g.enemies,hold:true}),null);
+ g.turn++;assert.equal(combatStep(g,e,g.player,{range:7,peers:g.enemies,hold:true}),null);
+ e.tactics=null;other.control.disabled=2;assert.equal(combatStep(g,e,g.player,{range:7,peers:g.enemies,hold:true}),null);
+});

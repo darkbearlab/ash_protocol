@@ -6,7 +6,7 @@
 - 敵人優先可攻擊目標，堵口可短暫牽制並繞向其他交戰位置；有限搜尋、目的地預約，不讀隱藏目標即時位置。
 - 召喚物／寵物／倖存友軍共用位置規劃，繞過前排時保留最後位置；命令與繩索優先，哨兵不動、追隨機不主動追擊。
 - save v34；舊檔遷移與敵人樓層封存計時。提供 attackStatus 與 targetDetails.attack 給 Claude，原卡片補最小轉角原因文字。
-- 規格見 CORNER_TACTICS.md，五份手動場景見 qa/create-corner-scenes.mjs。完整 628 項測試與 build 通過，結果見本批 QA 報告。
+- 規格見 CORNER_TACTICS.md，五份手動場景見 qa/create-corner-scenes.mjs。完整 629 項測試與 build 通過，結果見本批 QA 報告。
 
 ## 3.69.0：巢穴、雜兵、追擊與全職業徒手
 
