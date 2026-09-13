@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.71.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.71.1**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -99,7 +99,7 @@
 
 ## 發版
 
-依 [RELEASE.md](RELEASE.md)：改版本號 → `npm test`、`npm run build` → 更新 CHANGELOG、規格、報告、紙條最新段 → 只 stage 本批檔案 → 推上 main（不強推）→ 確認這個 SHA 的 Pages run 成功 → 報告補發布紀錄。
+依 [RELEASE.md](RELEASE.md)：遊戲改動：改版本號 → 依風險執行測試與 build（完整 CI 必須通過）→ 更新 CHANGELOG、規格、報告、紙條最新段 → 只 stage 本批檔案 → 推上 main（不強推）→ 確認這個 SHA 的 Pages run 成功 → 報告補發布紀錄。
 
 ## 近期重點（3.36～3.45.0）
 
@@ -170,3 +170,5 @@
 sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩者合併。角落開火立即暴露，到當輪加兩個付費世界回合；敵我共用。友軍保留最後位置繞行，繩索／命令／哨兵限制保持。save v34 新增可選 cornerExposure／tactics，敵人封存計時平移，玩家與隨行友軍換層清除。UI API、驗證與 Claude 接手範圍見 [CORNER_TACTICS.md](CORNER_TACTICS.md)。
 
 3.71：生成點最後一次成功產出後 hp 歸零，保留 prop 作為殘跡與子代來源；不新增存檔欄位。nest-art.js 管理雙風格 32px 素材與塌陷演出，來源／管線見 art/nests-v1/README.md。
+
+2026-09-13 工作指示整理：依使用者指定的 [OpenAI 文章](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra)，AGENTS 改為按需文件入口，驗證依風險分配且沿用未變動程式的通過結果。純文件走 RELEASE 的輕量交付；原有分工、保存保障與遊戲發布要求保留。這是專案指示調整，沒有修改全域模型設定或內建技能，也沒有宣稱已量測 token 節省比例。

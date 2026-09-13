@@ -1,11 +1,17 @@
-# Project instructions
-- Current developer handoff: read `給Claude的交接.md`. Claude is authorized for balance values, global economy and menus; the older QA-only restriction applies only to QA assignments. Preserve the documented gameplay-rule and save-integrity boundaries.
+# ASH PROTOCOL
 
-- Product: a mobile-browser, turn-based tactical shooter. Movement is screen-aligned up/down/left/right; never revert to diagonal/isometric controls.
-- Read `docs/HANDOFF.md` before substantial changes. Since 3.44.1 it is a current-state handbook (roles, module map, save/version rules, release); per-version history lives in `docs/CHANGELOG.md`, and the old per-version sections of HANDOFF/DESIGN/the verification note were moved verbatim to `docs/archive/`. `docs/DESIGN.md` is now the spec index and core rules moved to `docs/CORE_RULES.md`. Per release update CHANGELOG, the relevant spec, the report and the latest section of `給驗證者的紙條.md`; update HANDOFF when architecture, save format or process changes. Bump versions with `npm run bump -- x.y.z`.
-- External AI verification may live in isolated worktrees. Also search `.claude/worktrees/*/docs/HANDOFF.md` and `.claude/worktrees/*/qa/results/` before concluding a handoff is missing. Read those reports without modifying the other agent's worktree; distinguish reported checks from checks run yourself.
-- The user requires every completed update to be published to `https://github.com/darkbearlab/ash_protocol` and integrated into **main**. Commit and push tested work to main (or merge a working branch into main), then verify the GitHub Pages deployment. Do not leave a finished change only on a feature branch. Never force-push main.
-- Preserve user saves. Browser QA uses `?test=1`; do not reset the real campaign.
-- Run relevant tests and `npm run build` before publishing. Keep client assets relative-path compatible with GitHub project Pages (`/ash_protocol/`).
-- User budgets work within a Plus five-hour window. Check usage during substantial work; leave capacity for tests, documentation, commit, push and deployment verification.
-- Gameplay correctness takes priority over optional art. When producing raster art, retain source prompts and the deterministic low-resolution/palette-processing pipeline.
+Mobile-browser, turn-based tactical shooter. Movement is screen-aligned up/down/left/right. Keep assets compatible with GitHub project Pages (`/ash_protocol/`).
+
+## Read only what the task needs
+- Use `docs/HANDOFF.md` for module boundaries, save ownership and current state; `docs/DESIGN.md` to locate a feature spec; `docs/CORE_RULES.md` for shared rules. Read relevant sections, not the entire documentation set before small edits. Reuse already-read context unless it changed.
+- For delegation or scope questions, use `給Claude的交接.md`: Claude owns balance, economy and menus; gameplay/save boundaries and the explicit ally-iteration exceptions remain in force. A QA-only assignment does not prohibit authorized development.
+- For requested QA reports, check `qa/results/` and `.claude/worktrees/*/qa/results/` (handoffs may also be in their `docs/HANDOFF.md`). Read other worktrees without editing them. Distinguish external reports from checks you ran.
+- Consult the wishlist for planning, not as authorization to implement unrelated items. Historical decisions are in CHANGELOG/archive; load them only to resolve a relevant question.
+
+## Complete the authorized work
+- Preserve user saves; browser QA uses `?test=1`. Save-format changes need migration and focused integrity checks.
+- Choose validation for the change. Reuse passing results for unchanged code; rerun when edits or failures warrant it. Local disposable-fixture tests and fixes within scope do not need repeated approval. Human/browser visual QA goes to the user or Claude with reproducible steps.
+- Use `docs/RELEASE.md` when shipping. Finish code updates with appropriate tests/build, documentation, main push and successful Pages deployment. Remote: `https://github.com/darkbearlab/ash_protocol`; never force-push main. Documentation-only delivery follows RELEASE's lightweight path.
+- Use `npm run bump -- x.y.z` for game releases. Update CHANGELOG, the affected spec/report and latest verification note; HANDOFF changes only for architecture, save/process changes or stale current-state facts.
+- Keep skills narrowly relevant, tool outputs bounded and independent reads batched. Preserve capacity for validation and delivery; check usage during substantial work.
+- Gameplay correctness precedes optional art. Raster assets retain source prompts and deterministic low-resolution/palette processing.
