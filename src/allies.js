@@ -15,7 +15,8 @@ export const TETHER=6,CARRY_DISTANCE=3,SUMMON_LIMIT=3;
 export const SUMMON_INTERVAL=4,SUMMON_TETHER=9,RALLY_TURNS=3;
 // Idle leash: with no fight to hold, allies drift back once farther than this. Engaged allies use the tether instead.
 // The follow drone stays adjacent (3.41) so the player can always swap it into position.
-export const FOLLOW_RANGE={drone:1,other:3};
+// Raised summons idle adjacent too (3.71.1, user decision), so the necromancer keeps the pack at hand.
+export const FOLLOW_RANGE={drone:1,summon:1,other:3};
 // Druid pet (3.37, user decision): a longer leash to reach real fights, and a downed pet is recovered
 // instead of revived; it heals while packed and steps back out once whole if the skill stays prepared.
 export const summonLimit=p=>SUMMON_LIMIT+classPerkRank(p,'necro_horde')*CLASS_PERK_TUNING.horde;
@@ -221,7 +222,7 @@ export function allyAct(g,a){
   if(plan?.step){const next=plan.step,edge=barrierBetween(g.barriers,a,next);if(edgeBlocks(edge)&&!vaultable(edge)){g.setDoor(edge,true);return;}const old={x:a.x,y:a.y};Object.assign(a,next);a.moveDelta=[a.x-old.x,a.y-old.y];a.moved=true;a.vaultExposed=vaultable(edge);a.cornerExposure=null;return;}
   stepToward(g,a,chase,q=>distance(q,chase)<=w.range&&g.sight({...a,...q},chase)&&g.shotClear({...a,...q},chase)&&(!w.melee||g.canCross(q,chase)),linked,true);return;
  }
- if((a.kind==='drone'||!a.order)&&distance(a,g.player)>FOLLOW_RANGE[a.kind==='drone'?'drone':'other'])stepToward(g,a,g.player,beside(g.player),linked);
+ if((a.kind==='drone'||!a.order)&&distance(a,g.player)>(FOLLOW_RANGE[a.kind]??FOLLOW_RANGE.other))stepToward(g,a,g.player,beside(g.player),linked);
 }
 // One step toward a tile that satisfies reached. When none is reachable (taken, or behind another ally),
 // close in on goal by walking distance instead of freezing; never step to a tile that is no closer.

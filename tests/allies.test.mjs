@@ -331,7 +331,9 @@ test('a pet holding a commanded tile is never traded aside by another ally',()=>
 });
 test('two summons queue through a one-tile corridor instead of the rear one freezing',()=>{
  const g=arena('necromancer');corridor(g,2,24);const A=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:9,y:10}}),B=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:8,y:10}});
- for(let i=0;i<8;i++)assert.ok(g.action('move',[1,0]));for(let i=0;i<4;i++)g.action('wait');assert.deepEqual([g.player.x-A.x,g.player.x-B.x],[3,4]);
+ for(let i=0;i<8;i++)assert.ok(g.action('move',[1,0]));for(let i=0;i<4;i++)g.action('wait');
+ // 3.71.1: summons idle adjacent, so the queue closes to 1 and 2 behind (was 3 and 4 at the old idle radius).
+ assert.deepEqual([g.player.x-A.x,g.player.x-B.x],[1,2]);
 });
 test('melee pets hold a fight inside the tether instead of pacing back to the idle leash',()=>{
  for(const k of [5,6]){const g=arena('druid'),a=pet(g),e=enemy(g,10+k,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
@@ -350,4 +352,12 @@ test('v23 original local save is backed up verbatim; a destroyed follow drone ha
  const expected=JSON.parse(JSON.stringify(g.allies));expected[0].ammo=0;assert.deepEqual(restored.allies,expected);
  assert.equal(restored.player.pistol,g.player.pistol+5);assert.deepEqual({...restored.player,pistol:g.player.pistol},g.player);assert.equal(restored.rng.state(),g.rng.state());assert.equal(memory.get('qa-ash-save-v23-backup'),raw);assert.equal(memory.get('ash-save'),'untouched');
  restored.player.scrap=DRONE_BUILD_COST;assert.ok(use(restored));
+});
+
+// 3.71.1: raised summons idle adjacent like the follow drone; the pet keeps its looser idle leash.
+test('an idle summon two tiles away steps beside the player, while an idle pet at the same distance stays put',()=>{
+ const g=arena('necromancer'),s=addAlly(g,'summon','rifleman',{point:{x:12,y:10},sourceId:'raise_dead'});s.bornTurn=1;g.turn=2;allyAct(g,s);
+ assert.equal(Math.abs(s.x-g.player.x)+Math.abs(s.y-g.player.y),1);
+ const h=arena('druid'),p=pet(h,{x:12,y:10});p.bornTurn=1;h.turn=2;allyAct(h,p);
+ assert.deepEqual([p.x,p.y],[12,10]);
 });
