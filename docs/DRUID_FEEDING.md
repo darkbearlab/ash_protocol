@@ -385,3 +385,6 @@ profile v5／backup v1 不變；新內容由 save v36 往返驗證。羈絆與�
 
 砲台線 ◆2「壓制」的 `petSuppressed`（−15、下一次行動用掉）將被 [SUPPRESSION.md](SUPPRESSION.md) 的統一層數規則取代：命中率與傷害不變，每次射擊行動給目標保底 1 層。見該檔第 1、8 節。
 
+
+
+3.74.0 更新：砲台 ◆2 的舊 petSuppressed 已移除，改為每次射擊保底 1 層統一壓制（不再套用於咬擊）；頭目減一、機械免疫、付費回合末減半。save v37 清除舊暫時效果，餵養進度保留。以 [SUPPRESSION 第11、12節](SUPPRESSION.md) 的規則與介面狀態為準。

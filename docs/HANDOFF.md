@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.71.1**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.74.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -90,7 +90,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v36**（`data.js` 的 `SAVE_VERSION`）。舊版 1～35 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v37**（`data.js` 的 `SAVE_VERSION`）。舊版 1～36 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v5**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -176,3 +176,5 @@ sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩�
 3.72.0：`pet-growth.js` 管理德魯伊羈絆（player.petBond）、四條餵養成長、燃料、重生、只讀 UI 報價。save v35 遷移 packed/down 寵物；羈絆與身體皆全局，勿加入 FLOOR_FIELDS。餵食介面尚待 Claude 接線，API／數值／測試場景見 [DRUID_FEEDING.md](DRUID_FEEDING.md) 第11節。
 
 3.73.0：德魯伊四線六節點、save v36 的煙霧樓層額度／堅守／固定感知座標與倒數。enemy.petSuppressed 按自身機會消耗，隨敵人封存；pet:vision 僅共享感官專用來源、不可清掉其他來源。只讀 UI API 見 DRUID_FEEDING 第14節；Claude 接 ◆ 節點樣式、感知光點與新狀態列。
+
+3.74.0：統一壓制／學習資料／貨櫃內容池。save v37 新增 player.learningItems 與可選 actor.suppression，清除舊 petSuppressed（含封存敵人）；profile5／backup1 不變。生成世代9，新貨櫃存定內容，舊箱不補抽。公開 API 與 Claude 介面工作見 SUPPRESSION 第11、12節。

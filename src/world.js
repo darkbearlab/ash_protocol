@@ -1,3 +1,4 @@
+import {fillUnknownContainers} from './learning-data.js';
 import {addRuntimePopulation} from './runtime-enemies.js';
 import {MAP_RECIPES} from './map-recipes-data.js';
 import {orderedRecipes,recipeGroups} from './map-recipes.js';
@@ -48,7 +49,7 @@ export function makeEnemy(type,x,y,id,floor=1) {
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[]){return addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES),seed,floor,generationSafe);}
+export function generate(seed,floor=1,unlocks=[]){return fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES),seed,floor,generationSafe),seed,floor);}
 export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=MAP_RECIPES){
   if(!recipes.length)return generateLegacy(seed,floor,unlocks);
   if(recipes.some(r=>r.layout)){

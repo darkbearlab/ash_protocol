@@ -14,3 +14,5 @@ DESIGN.md 後半的核心規則沒有封存，搬到了 [CORE_RULES.md](../CORE_
 
 - [3.44 前升級盤點](perks-to-3.44.md)：3.35.3 的舊參數與固定選項分析，3.45 已取代。
 - [3.44 驗證步驟](verification-notes-3.44.md)：前批紙條，未驗項仍在主紙條總表。
+
+- [3.49～3.73 驗證步驟](verification-notes-3.49-to-3.73.md)：前批紙條原文；3.74 壓制已取代舊 petSuppressed 語意。

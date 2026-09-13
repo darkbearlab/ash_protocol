@@ -1,3 +1,5 @@
+import {pinned,finishSuppression} from './suppression.js';
+import {petRank} from './pet-growth.js';
 import {PET_TETHER,petMoved,syncPetSenses,petReactions,newPetBond,petMaximum,petWeapon,petFuelCost,petCombat,transportPet,placePet} from './pet-growth.js';
 // Legacy UI exports; no longer used by pet rules. Claude will replace the old guide.
 import {combatStep} from './tactics.js';
@@ -105,8 +107,8 @@ export function arriveAllies(g,ids){
  }
 }
 export function initializeAllies(g){
- if(g.player.character==='engineer')addAlly(g,'drone','drone',{sourceId:'drone_follow',status:'packed'});
- if(g.player.character==='druid'){const a=addAlly(g,'pet','crawler',{sourceId:'pet_command',status:'arriving'});if(a)placePet(g,a);}
+ if(g.player.skills.includes('drone_follow')&&!g.allies.some(a=>a.kind==='drone'))addAlly(g,'drone','drone',{sourceId:'drone_follow',status:'packed'});
+ if(g.player.skills.includes('pet_command')&&!g.allies.some(a=>a.kind==='pet')){const a=addAlly(g,'pet','crawler',{sourceId:'pet_command',status:'arriving'});if(a)placePet(g,a);}
 }
 // Everyone who fell on this floor, bosses excluded. One entry per death, so common enemies rise more often;
 // nothing is consumed (corpses marked raised by older versions still count). Machines never rise (3.43.1):
@@ -189,19 +191,22 @@ function actAlly(g,a){
  if(a.kind==='pet'&&targets.some(e=>distance(a,e)===1&&g.shotClear(a,e)&&g.canCross(a,e)))w=petWeapon(g.player,true);
  const shot=linked&&(a.kind!=='drone'||a.ammo>0)?targets.find(e=>distance(a,e)<=w.range&&g.shotClear(a,e)&&(!w.melee||g.canCross(a,e))):null;
  const attack=e=>{
-  a.tactics=null;petCombat(g,a);
+  a.tactics=null;petCombat(g,a);let rounds=0;const hits=new Set();
   for(let i=0;i<(w.shots||1);i++){
    if(e.hp<=0)break;
    const chance=w.melee?g.meleeAccuracy(a,e,w.hitChance):g.accuracy(a,e).chance;
    if(a.kind==='pet'&&!w.melee){const cost=petFuelCost(g.player,'shot');if(g.player.petBond.fuel<cost)break;g.player.petBond.fuel-=cost;}
-   if(!w.melee)g.recordExposure(a,e);
+   if(!w.melee){rounds++;g.recordExposure(a,e);}
    if(a.kind==='drone')a.ammo--;
    const clear=g.sight(a,e)&&g.shotClear(a,e)&&distance(a,e)<=w.range&&(!w.melee||g.canCross(a,e));
    const hit=clear&&g.rng()*100<chance;
    g.effects.push({type:'shot',weaponId:w.id,style:w.melee?'claw':'bullet',from:{x:a.x,y:a.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:'#89e8c8'});
+   if(hit)hits.add(e);
    if(hit)g.hitTarget(e,w.min+Math.floor(g.rng()*(w.max-w.min+1)),a,0,w);else g.log(`${allyName(a)}射擊／攻擊落空。`);
   }
+  if(!w.melee)finishSuppression([e],hits,rounds,a.kind==='pet'&&petRank(g.player,'turret')>=2&&rounds>0?1:0);
  };
+ if(pinned(a)){if(shot)attack(shot);return;}
  const beside=goal=>q=>distance(q,goal)<=1;
  // Drones reload themselves from the player's rounds within carry range (3.39, user decision): when empty, or when
  // idle at half a magazine or less. It spends the drone's own action, never the player's.
@@ -232,6 +237,7 @@ function actAlly(g,a){
 // One step toward a tile that satisfies reached. When none is reachable (taken, or behind another ally),
 // close in on goal by walking distance instead of freezing; never step to a tile that is no closer.
 function stepToward(g,a,goal,reached,linked,swap=false){
+ if(pinned(a))return false;
  const cells=routeCells(g,a,{actor:a,limit:18,maxPlayerDistance:Math.max(leash(a),distance(a,g.player))}).filter(q=>q.first&&(distance(q,g.player)<=leash(a)||!linked));
  let dest=cells.filter(reached).sort((b,c)=>b.d-c.d)[0];
  if(!dest){
@@ -253,6 +259,7 @@ function attackFrom(g,b,from,only=null){
 // Another ally may take b's tile only if b is free to move, is not holding a commanded spot, and can still
 // attack whatever it is attacking now from a's tile. That last rule also keeps two allies from swapping back.
 function canTrade(g,b,a){
+ if(pinned(b)||pinned(a))return false;
  if(b.kind==='drone'&&b.sourceId==='drone_sentry'||b.control?.disabled||b.order||b.restTurn===g.turn)return false;
  if(!g.passable(a.x,a.y,b)||!g.passable(b.x,b.y,a)||distance(a,g.player)>leash(b))return false;
  const now=attackFrom(g,b,b);return !now||Boolean(attackFrom(g,b,a,now));
@@ -269,6 +276,7 @@ function swapPast(g,a,far,here,linked){
 // which is always free, so allies can never box the player in. Refused for fixed sentries, disabled allies and
 // across rails; the ally gives up one action.
 export function swapReason(g,a){
+ if(pinned(a)||pinned(g.player))return '壓制中無法換位。';
  if(a.kind==='drone'&&a.sourceId==='drone_sentry')return '哨兵無人機固定原地，請繞行或回收。';
  if(a.control?.disabled)return `${allyName(a)}失能中，無法換位。`;
  if(!g.canCross(g.player,a))return '隔著矮隔板無法與友軍換位。';

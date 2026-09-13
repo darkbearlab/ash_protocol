@@ -5,6 +5,8 @@ import {perkLimit} from './endless.js';
 import {healActor} from './traits.js';
 import {PERKS} from './data.js';
 import {random} from './world.js';
+export const AMMO_DROP={base:.35,perTier:.15,maxTier:3};
+export const ammoDropChance=p=>AMMO_DROP.base+AMMO_DROP.perTier*Math.min(AMMO_DROP.maxTier,p.perks?.ammo_recovery||0);
 export const REPEAT_CHANCE=.6,CLASS_CHANCE=.5,CLASS_MISS_LIMIT=2;
 const isClass=o=>Boolean(o.characters?.length);
 const count=(p,id)=>p.perks[id]||0;

@@ -13,7 +13,7 @@ export const PET_FEEDING_TUNING={fuelScale:72,capacity:30,capacityPerRank:10,dis
  shotCost:2,outputCost:12,outputIntervals:[24,24,16,16,10,10],reviveTurns:8,reviveFraction:.25,advancedReviveTurns:6,advancedReviveFraction:.4,medkitFraction:.5,
  lifePortion:5,lifeFloor:25,lifeFloorFraction:.4,platePortion:5,hungerPerRank:.25,
  ammoPortions:{pistol:18,rifle:12,shell:4,energy:6,ordnance:1},
- turret:[{range:3,min:8,max:12},{range:3,min:8,max:12},{range:7,min:20,max:24},{range:7,min:20,max:24},{range:7,min:26,max:30},{range:7,min:26,max:30}],accuracy:-22,advancedAccuracy:-12,suppressionPenalty:15};
+ turret:[{range:3,min:8,max:12},{range:3,min:8,max:12},{range:7,min:20,max:24},{range:7,min:20,max:24},{range:7,min:26,max:30},{range:7,min:26,max:30}],accuracy:-22,advancedAccuracy:-12};
 const T=PET_FEEDING_TUNING;
 export const petActor=g=>g.allies.find(a=>a.kind==='pet');
 export const petRank=(p,line)=>T.thresholds[line].filter(n=>(p?.petBond?.growth?.[line]||0)>=n).length;
@@ -112,7 +112,7 @@ export function feedPet(g,arg){
  const q=petFeedQuote(g,arg);if(!q.allowed)return g.fail(q.reason);
  const p=g.player,a=petActor(g),b=p.petBond;
  if(q.resource==='weapon'){
-  const slot=q.weaponSlot;g.receiveAmmo(g.weaponAt(slot).ammoType,p.ammo[slot]);p.ammo[slot]=0;p.upgrades[slot]=0;p.owned=p.owned.filter(i=>i!==slot);if(p.weapon===slot)p.weapon=p.owned[0];
+  const slot=q.weaponSlot;if(!g.weaponAt(slot).melee)g.receiveAmmo(g.weaponAt(slot).ammoType,p.ammo[slot]);p.ammo[slot]=0;p.upgrades[slot]=0;p.owned=p.owned.filter(i=>i!==slot);if(p.weapon===slot)p.weapon=p.owned[0];
  }else p[q.resource]-=q.amount;
  if(q.line){const prior=petRank(p,'extrusion');b.growth[q.line]+=q.gain;if(q.grenade)b.fedThrowables[q.grenade]++;
   if(petRank(p,'extrusion')>prior)b.outputRemaining=Math.min(b.outputRemaining,petOutputInterval(p));fitPet(g,a);
@@ -156,7 +156,7 @@ export function petNodes(p,line){
  const r=petRank(p,line),names={vitality:['強健','交戰回血','旺盛','撐住','再生','吸血'],armor:['披甲','堅守','硬化','感知敵人','韌性','看穿煙霧與黑暗'],turret:['砲台','壓制','延伸火力','精準','強化火力','一次兩發'],extrusion:['排出','指定種類','加速排出','危急煙霧','快速排出','守護煙霧']};
  const texts={vitality:[`生命上限 ${T.baseHp+T.hpBonus[1]}`,`交戰回血 ${T.regenByRank[2]}`,`生命上限 ${T.baseHp+T.hpBonus[3]}、交戰回血 ${T.regenByRank[3]}`,'每層一次致命留 1 HP',`重生 ${T.advancedReviveTurns} 回合、${T.advancedReviveFraction*100}% 生命`,`實際傷害 ${T.lifesteal*100}% 回復獵獸`],
  armor:[`裝甲 ${T.baseArmor+T.armorBonus[1]}、可利用掩體`,`原地行動後直接傷害再減 ${T.steadfastReduction*100}%`,`裝甲 ${T.baseArmor+T.armorBonus[3]}、直接傷害減 ${T.reductionByRank[3]*100}%`,`每 ${T.scanInterval} 回合掃描 ${T.scanRadius} 格、不暴露位置`,`失能次數減半、直接傷害減 ${T.reductionByRank[5]*100}%`,'繩索內共享夜視與紅外線'],
- turret:[`射程 ${T.turret[0].range}、傷害 ${T.turret[0].min}–${T.turret[0].max}`,`命中後目標下次行動命中 −${T.suppressionPenalty}`,`射程 ${T.turret[2].range}、傷害 ${T.turret[2].min}–${T.turret[2].max}`,'射擊忽略半效掩體',`傷害 ${T.turret[4].min}–${T.turret[4].max}、命中修正 ${T.advancedAccuracy}`,'一次兩發、逐發消耗燃料'],
+ turret:[`射程 ${T.turret[0].range}、傷害 ${T.turret[0].min}–${T.turret[0].max}`,'每次射擊保底 1 層壓制；頭目 −1、機械免疫',`射程 ${T.turret[2].range}、傷害 ${T.turret[2].min}–${T.turret[2].max}`,'射擊忽略半效掩體',`傷害 ${T.turret[4].min}–${T.turret[4].max}、命中修正 ${T.advancedAccuracy}`,'一次兩發、逐發消耗燃料'],
  extrusion:[`每 ${T.outputIntervals[0]} 回合排出`,'可指定排出種類',`每 ${T.outputIntervals[2]} 回合排出`,'獵獸低生命時每層一次煙霧',`每 ${T.outputIntervals[4]} 回合排出`,'德魯伊低生命時每層一次守護煙霧']};
  return T.thresholds[line].map((threshold,i)=>({index:i+1,major:i%2===1,name:names[line][i],text:texts[line][i],threshold,unlocked:r>i}));
 }
@@ -183,7 +183,7 @@ export function petDefense(g,a,damage){
 export function petHit(g,a,target,actual,weapon){
  if(!a||a.kind!=='pet'||!activePet(g)||a!==petActor(g))return;
  if(actual>0&&petRank(g.player,'vitality')>=6)healActor(a,Math.floor(actual*T.lifesteal));
- if(target.hp>0&&petRank(g.player,'turret')>=2)target.petSuppressed=T.suppressionPenalty;
+
 }
 function smokeAt(g,a,point,throwing){
  const to={x:point.x,y:point.y},from={x:a.x,y:a.y};

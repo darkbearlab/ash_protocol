@@ -1,3 +1,7 @@
+import {shotDamageAllowed,pinned,tickSuppression,finishSuppression,migrateSuppression} from './suppression.js';
+import {suppressiveReason,suppressiveFire} from './suppressive-fire.js';
+import {learningReason,useLearning,validLearningInventory} from './learning.js';
+import {validLearningId,LEARNING_ITEMS} from './learning-data.js';
 import {petHit,petDefense,petReactions,syncPetSenses,petScanContacts,migratePetNodes,petFeedQuote,feedPet,outputChoiceReason,tickPetBond,petCombat,petDeath,petSurvives,petRank,migratePetBond,validPetBond,PET_FEEDING_TUNING} from './pet-growth.js';
 import {cornerRay,cornerStatus,recordExposure,clearMovedExposure,expireExposure,validCorner} from './corner.js';
 import {combatStep,validTactics} from './tactics.js';
@@ -10,7 +14,7 @@ import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {MAX_LEVEL,perkLimit,floorLimit,isEndless,scaleEnemy,giveCapSupply,PROTOCOL_EVENT_LIMIT} from './endless.js';
 import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambushReady,ambushMultiplier,shortenCamo,meleeReward,defensiveEvasion,grapplePlan,useGrapple,MELEE_TUNING} from './melee-classes.js';
 import {healActor} from './traits.js';
-import {recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
+import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
 import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickSummons,petSkillReason,fitDrone,DRONE_HP,DRONE_BUILD_COST,droneCells,dronePlaces} from './allies.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,skillValues,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
@@ -35,7 +39,7 @@ import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
 
-const freshPlayer=()=>({petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=e=>ENEMY_TYPES[e.type]?.name||'未知單位';
 
 export class Game {
@@ -113,7 +117,7 @@ export class Game {
   openContainer(id){
     const c=this.nearbyContainers.find(c=>c.id===id);if(!c)return this.fail('附近沒有可開啟的補給箱。');
     const pos=this.containerDrop(c),contents=c.contents;c.opened=true;c.contents=[];
-    this.items.push(...contents.map(i=>({...i,...pos})));
+    this.items.push(...contents.map(i=>i.type==='weapon'?this.registerWeapon({...i,...pos},true):({...i,...pos})));
     this.effects.push({type:'unpack',from:{x:c.x,y:c.y},to:pos,damage:0});
     if(!contents.length){this.log(`${containerName(c)}已開啟，裡面是空的。`);return true;}
     this.log(`${containerName(c)}已開啟，補給${distance(pos,this.player)===0?'留在腳下，移開再走回拾取':'落在地上，走上去拾取'}。`);return true;
@@ -180,16 +184,19 @@ export class Game {
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
   bumpMeleeSlot(){return this.player.owned.find(slot=>{const w=this.weaponAt(slot);return w.melee&&weaponSwitchTurns(w,this.weapon)===0&&weaponSwitchTurns(this.weapon,w)===0;})??UNARMED_SLOT;}
-  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(type==='commandPet'||type==='setPetOutput')return 0;return type==='skill'?(SKILLS[arg]?.cost??1):type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
+  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning'].includes(type))return 0;return type==='skill'?(SKILLS[arg]?.cost??1):type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
   // Validate the intent before any actor acts: rejected input cannot scout fast enemies.
   validateAction(type,arg){
     const p=this.player,w=this.weapon;
+    if(type==='learn'||type==='dismantleLearning'){const reason=learningReason(this,arg,type==='dismantleLearning');return !reason||this.fail(reason);}
+    if(type==='suppressiveFire'){const reason=suppressiveReason(this,arg);return !reason||this.fail(reason);}
     if(type==='feedPet'){const q=petFeedQuote(this,arg);return q.allowed||this.fail(q.reason);}
     if(type==='setPetOutput')return !outputChoiceReason(this,arg)||this.fail(outputChoiceReason(this,arg));
     if(type==='repairDrone')return !droneRepairReason(this,arg)||this.fail(droneRepairReason(this,arg));
     if(type==='commandPet')return Boolean(p.prepared.skill==='pet_command'&&this.activeAllies.some(a=>a.kind==='pet')&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&this.seen[arg.y]?.[arg.x]&&this.passable(arg.x,arg.y)&&distance(p,arg)<=6);
     // Deploying or building a drone on a chosen free tile within two route steps; same cost as the skill.
     if(type==='placeDrone')return Boolean(arg&&p.prepared.skill===arg.id&&dronePlaces(this,arg.id)&&canAllySkill(this,arg.id)&&droneCells(this).some(q=>q.x===arg.x&&q.y===arg.y))||this.fail('部署位置需在你 2 步內、走得到的空格。');
+    if(type==='skill'&&arg==='suppressive_fire')return this.fail('壓制射擊需要區域落點。');
     if(type==='skill'&&arg==='grapple'&&canUseSkill(p,arg)){const plan=grapplePlan(this);return !plan.reason||this.fail(plan.reason);}
     if(type==='skill')return (ALLY_SKILLS.includes(arg)?canAllySkill(this,arg):canUseSkill(p,arg))||this.fail((arg==='pet_command'&&p.prepared.skill===arg&&petSkillReason(this))||(arg==='raise_dead'&&p.prepared.skill===arg&&!p.control.disabled&&'目前沒有召喚物可以集結。')||'技能無法啟動：請確認預備欄與冷卻狀態。');
     if(type==='prepare')return Boolean(arg&&canPrepare(p,arg.category,arg.id)&&p.prepared[arg.category]!==arg.id);
@@ -205,6 +212,7 @@ export class Game {
         this.target=edge.id;return this.fail('隔板阻擋通行，可開火破壞。');}
       if(!this.passable(x,y))return this.fail('前方有牆壁或障礙。');
       const ally=this.activeAllies.find(a=>a.x===x&&a.y===y);
+      if(pinned(p)&&!this.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))return this.fail('壓制中無法移動。');
       if(ally){if(skillActive(p,'anchor'))return this.fail('下錨中無法移動，請先解除。');const reason=swapReason(this,ally);return !reason||this.fail(reason);}
       const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;if(!edgeBlocks(edge)&&this.bumpMeleeSlot()!==undefined&&this.visible(e)&&this.shotClear(p,e))return true;return this.fail('敵人擋住去路，先開火。');}return !skillActive(p,'anchor')||this.fail('下錨中無法移動，請先解除。');
     }
@@ -226,6 +234,7 @@ export class Game {
       const cost=TERMINAL_AMMO[arg]?.cost??(arg==='grenade'?12:GRENADES[arg]?.cost??15),kind=grenadeByItem(arg)?'grenade':TERMINAL_AMMO[arg]?arg:null;
       return (p.scrap>=cost&&!(arg==='heal'&&p.hp===p.maxHp&&!p.poison)&&!(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=this.ammoCapacity(kind))&&!(arg==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=this.ammoCapacity(id))))||this.fail('廢料不足或補給已滿。');
     }
+    if(type==='interact'&&pinned(p))return this.fail('壓制中無法換層。');
     if(type==='interact'&&skillActive(p,'anchor'))return this.fail('下錨中無法換層，請先解除。');
     if(type==='interact')return (this.canTouch(this.exitPoint)&&!this.exitBlocked)||this.fail(this.exitBlocked||'需要靠近綠色電梯。');
     return type==='wait';
@@ -250,6 +259,7 @@ export class Game {
       else {const enemy=this.enemies.find(e=>e.hp>0&&e.x===point.x&&e.y===point.y),slot=this.bumpMeleeSlot();
         if(enemy&&slot!==undefined){type='bumpMelee';arg={id:enemy.id,x:enemy.x,y:enemy.y,slot};}}
     }
+    if(type==='skill'&&arg==='suppressive_fire')return this.fail('壓制射擊需要區域落點。');
     if(type==='skill'&&arg==='grapple'){type='grapple';arg={id:this.target};}
     // Free preparation/equipment commits outside the turn queue and preserves all timed state.
     if(this.actionCost(type,arg)===0){
@@ -258,16 +268,17 @@ export class Game {
       else if(type==='reload')return this.reload();
       else if(type==='skill')return this.activateSkill(arg);
       else if(type==='commandPet')return commandPet(this,arg);
+      else if(type==='learn'||type==='dismantleLearning')return useLearning(this,arg,type==='dismantleLearning');
       else if(type==='setPetOutput'){p.petBond.outputChoice=arg.kind;return true;}
       return true;
     }
-    if(this.pursuit&&['fire','bumpMelee','grenade','grapple'].includes(type)){
+    if(this.pursuit&&['fire','bumpMelee','grenade','grapple','suppressiveFire'].includes(type)){
       this.pursuit=0;const intent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:arg;
       const success=this.executePlayer(type,intent);p.guard=false;p.focus=false;p.evasive=false;p.moved=success&&type==='grapple'&&p.moved;
       this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';}this.finishPursuit();return success;
     }
     this.pursuit=0;
-    const doubleAttack=skillActive(p,'anchor')&&['fire','bumpMelee'].includes(type),previousChain=p.fireChain?{...p.fireChain}:null;
+    const doubleAttack=skillActive(p,'anchor')&&['fire','bumpMelee','suppressiveFire'].includes(type),previousChain=p.fireChain?{...p.fireChain}:null;
     const fireIntent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:null,floor=this.floor,queue=initiativeQueue(p,this.enemies,this.activeAllies),playerSpeed=queue.find(q=>q.actor===p).speed;
     if(doubleAttack){
       queue.find(q=>q.actor===p).speed=1;
@@ -280,7 +291,7 @@ export class Game {
       if(actor.hp<=0||actor.kind&&(actor.status!=='active'||actor.floor!==this.floor))continue;
       if(actor===p&&playerStunned)continue;
       actor.vaultExposed=false;
-      if(skipDisabled(actor)){delete actor.petSuppressed;if(actor===p){playerStunned=true;this.log('失能：本次行動跳過，未消耗彈藥或道具。',true);}continue;}
+      if(skipDisabled(actor)){if(actor===p){playerStunned=true;this.log('失能：本次行動跳過，未消耗彈藥或道具。',true);}continue;}
       const immunityBefore=actor.control?.immune||0;
       if(actor===p){
         if(doubleAttack&&!anchorExtra&&type==='fire')p.fireChain=previousChain?{...previousChain}:null;
@@ -306,7 +317,7 @@ export class Game {
     tickSpirit(this);tickSkills(p);if(!skillActive(p,'early_warning'))this.sensorContacts=[];
     this.smoke=this.smoke.filter(s=>s.expires>this.turn);
     expireExposure([p,...this.enemies,...this.allies],this.turn);
-    for(const actor of [p,...this.enemies,...this.activeAllies])tickTraits(actor);
+    for(const actor of [p,...this.enemies,...this.activeAllies]){tickTraits(actor);tickSuppression(actor);}
     this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';this.log('生命訊號中斷。',true);}
     this.finishPursuit();return true;
   }
@@ -337,6 +348,7 @@ export class Game {
       case 'feedPet': return presentStep(this,()=>feedPet(this,arg));
       case 'move': {
         if(!Array.isArray(arg)||!Number.isInteger(arg[0])||!Number.isInteger(arg[1])||Math.abs(arg[0])+Math.abs(arg[1])!==1)return false;
+        if(pinned(p))return this.fail('壓制中無法移動。');
         if(skillActive(p,'anchor'))return this.fail('下錨中無法移動。');
         const [dx,dy]=arg,x=p.x+dx,y=p.y+dy;
         const edge=barrierBetween(this.barriers,p,{x,y});
@@ -359,6 +371,7 @@ export class Game {
       case 'door':success=presentStep(this,()=>{const b=this.nearbyDoors.find(b=>b.id===arg.id);return this.setDoor(b,arg.open);});break;
       case 'bumpMelee': this.target=arg.id;success=this.strike(arg,arg.slot);break;
       case 'fire': success=this.fire(arg);break;
+      case 'suppressiveFire':success=suppressiveFire(this,arg);break;
       case 'reload': success=this.reload();break;
       case 'heal':
         if(p.meds<=0)return this.fail('醫療包已用盡。');
@@ -412,20 +425,24 @@ export class Game {
     if(p.ammo[p.weapon]<=0)return this.fail('彈匣已空，請裝填。');
     p.facing=[Math.sign(e.x-p.x),Math.sign(e.y-p.y)];
     const singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),p.ammo[p.weapon]);
+    let rounds=0;const hits=new Set();
     for(let i=0;i<shots;i++) {
       if(e.hp<=0||p.hp<=0)break;
       presentStep(this,()=>{
-        this.recordExposure(p,e);p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
+        this.recordExposure(p,e);p.ammo[p.weapon]--;p.stats.shots++;rounds++;spentCase(this,p,w.ammoType);
         const range=this.weaponDamage(p.weapon,e),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
         const chance=this.fireChance(e);
         const hit=this.rng()*100<chance;
         this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
         if(!hit){this.log(`射擊未命中（命中率 ${chance}%）。`);if(w.explosive)this.log('榴彈偏離目標，未在戰場內爆炸。');return;}
+        hits.add(e);const before=this.enemies.map(o=>[o,o.hp]);
         if(w.explosive)this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p);
         else this.hitTarget(e,damage,p,w.pierce||0);
         if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p,w.pierce||0);
+        for(const [other,hp] of before)if(other.hp<hp)hits.add(other);
       });
     }
+    finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),rounds);
     if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
     return true;
   }
@@ -446,6 +463,7 @@ export class Game {
     return true;
   }
   shadowMove(delta){
+    if(pinned(this.player))return this.fail('壓制中無法移動。');
     const p=this.player;if(!Array.isArray(delta)||delta.length!==2||!delta.every(Number.isInteger)||Math.abs(delta[0])+Math.abs(delta[1])!==1)return this.fail('影步需要選擇相鄰方向。');
     const point={x:p.x+delta[0],y:p.y+delta[1]},edge=barrierBetween(this.barriers,p,point);
     if(!this.passable(point.x,point.y)||!this.canCross(p,point)||vaultable(edge)||occupied(this,point))return this.fail('影步落點必須是沒有障礙與單位的平地。');
@@ -473,7 +491,7 @@ export class Game {
     if(attacker===this.player&&weapon.melee&&!weapon.unarmed)meleeReward(this,target,before);
   }
   hurt(e,damage,attacker=null) {
-    if(e.hp<=0)return;
+    if(e.hp<=0||!shotDamageAllowed(this,e))return;
     e.hp-=damage;this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
     this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`);
@@ -493,12 +511,16 @@ export class Game {
     const loot=ENEMY_LOOT[e.type];
     if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.dropEnemyWeapon(e,loot.weapon);
     if(this.floor>=RARE_ARMORY.minFloor&&loot?.rareWeapon!==undefined&&this.rng()<loot.rareChance)this.dropEnemyWeapon(e,loot.rareWeapon);
-    if(this.rng()<.35){const type=loot?.ammo||'ammo';this.items.push({x:e.x,y:e.y,type,amount:type==='energy'?6:type==='ordnance'?2:type==='pistol'?18:type==='shell'?4:10});}
-    if(this.rng()<.06)this.items.push({x:e.x,y:e.y,type:'med'});
+    if(this.rng()<ammoDropChance(this.player)){const type=loot?.ammo||'ammo';this.items.push({...this.enemyDropPoint(e),type,amount:type==='energy'?6:type==='ordnance'?2:type==='pistol'?18:type==='shell'?4:10});}
+    if(this.rng()<.06)this.items.push({...this.enemyDropPoint(e),type:'med'});
     const plate=plateDrop(this.player,(ENEMY_TYPES[e.type]?.armor||0)>0);
-    if(plate.chance>0&&this.rng()<plate.chance)this.items.push({x:e.x,y:e.y,type:'armor',amount:plate.amount});
+    if(plate.chance>0&&this.rng()<plate.chance)this.items.push({...this.enemyDropPoint(e),type:'armor',amount:plate.amount});
   }
-  dropEnemyWeapon(e,weapon){const item=this.registerWeapon({x:e.x,y:e.y,type:'weapon',weapon},true);this.items.push(item);this.log(`戰利品：${this.weaponAt(item.slot).name}留在屍體旁，靠近後可拾取。`);}
+  enemyDropPoint(e){
+    const here={x:e.x,y:e.y};if(!this.items.some(i=>distance(i,here)===0))return here;
+    return DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(q=>this.passable(q.x,q.y)&&this.canCross(here,q)&&!occupied(this,q)&&!this.items.some(i=>distance(i,q)===0))||here;
+  }
+  dropEnemyWeapon(e,weapon){const item=this.registerWeapon({...this.enemyDropPoint(e),type:'weapon',weapon},true);this.items.push(item);this.log(`戰利品：${this.weaponAt(item.slot).name}留在屍體旁，靠近後可拾取。`);}
   damageProp(prop,damage,attacker=null) {
     if(prop.indestructible)return;
     if(prop.hp>0&&damage>0)addTrace(this,prop,'chip');
@@ -536,13 +558,13 @@ export class Game {
     }
     return true;
   }
-  explode(center,radius,damage,attacker=null) {
+  explode(center,radius,damage,attacker=null,eligible=null) {
     const origin={x:center.x,y:center.y};
     this.effects.push({type:'blast',from:origin,to:origin,damage:0,radius});
     const affected=p=>distance(origin,p)<=radius&&lineOfSight(objectSightGrid(this,origin,p),origin,p,this.barriers,'blast');
     // Freeze shielding for this blast before destroying any of its barriers.
     for(const cell of areaCells(this.grid,origin,radius,this.barriers,this))addTrace(this,cell,'scorch');
-    const hitProps=this.props.filter(o=>o.hp>0&&affected(o)),hitEnemies=this.enemies.filter(e=>e.hp>0&&affected(e)),hitPlayer=affected(this.player),hitAllies=this.activeAllies.filter(affected);
+    const hitProps=this.props.filter(o=>o.hp>0&&affected(o)),hitEnemies=this.enemies.filter(e=>e.hp>0&&affected(e)&&(!eligible||eligible.includes(e))),hitPlayer=affected(this.player),hitAllies=this.activeAllies.filter(affected);
     const hitEdges=this.barriers.filter(b=>b.hp>0&&distance(origin,b)<=radius&&lineOfSight(objectSightGrid(this,origin,b),origin,b,this.barriers.filter(e=>e!==b),'blast'));
     for(const b of hitEdges)this.damageProp(b,damage,attacker);
     // Mark barrels as destroyed before recursion, so chain reactions terminate.
@@ -581,7 +603,7 @@ export class Game {
     return options.sort((a,b)=>Number(ready(b))-Number(ready(a))||distance(e,a)-distance(e,b))[0]||this.player;
   }
   enemyAct(e){
-    try{return this.enemyOpportunity(e);}finally{delete e.petSuppressed;}
+    return this.enemyOpportunity(e);
   }
   enemyOpportunity(e){
     if(e.type==='fodder'){if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return;}e.actionDelay=1;}
@@ -596,7 +618,7 @@ export class Game {
       const def=ENEMY_TYPES[e.type],los=this.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity);
       if(los)e.lastKnown={x:p.x,y:p.y};
       if(d>16)return;
-      if(def.seekCover&&los&&!e.charge&&!this.protectingCover(e,p)){
+      if(!pinned(e)&&def.seekCover&&los&&!e.charge&&!this.protectingCover(e,p)){
         const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>this.passable(n.x,n.y,e)&&this.canCross(e,n)&&distance(n,p)>1&&!occupied(this,n,e)&&!this.hazards.some(h=>distance(h,n)===0)&&distance(n,p)<=def.range&&this.sight({...e,...n},p)&&this.shotClear({...e,...n},p)&&this.protectingCover({...e,...n},p));
         if(spot){e.x=spot.x;e.y=spot.y;e.moved=true;return;}
       }
@@ -622,7 +644,7 @@ export class Game {
         e.charge=false;e.aim=null;e.windup=0;
         const destination=los?p:e.lastKnown;
         const plan=los&&!(def.range===1&&d<=1)?combatStep(this,e,p,{range:def.range,melee:def.range===1,peers:this.enemies.filter(b=>b.hp>0&&b.alert),hold:true}):null;
-        const step=plan?.hold?null:plan?.step||(destination&&distance(e,destination)>0?this.nextStep(e,destination):null);if(step){const edge=barrierBetween(this.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(this,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)this.damageProp(edge,scaleEnemy(Math.max(15,def.damage),this.floor,'damage'));}else if(edgeBlocks(edge)){if(['crawler','brute','bomber','boss'].includes(e.type))this.damageProp(edge,scaleEnemy(Math.max(15,def.damage),this.floor,'damage'));else this.setDoor(edge,true);}else if(!occupied(this,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}}
+        const step=pinned(e)||plan?.hold?null:plan?.step||(destination&&distance(e,destination)>0?this.nextStep(e,destination):null);if(step){const edge=barrierBetween(this.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(this,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)this.damageProp(edge,scaleEnemy(Math.max(15,def.damage),this.floor,'damage'));}else if(edgeBlocks(edge)){if(['crawler','brute','bomber','boss'].includes(e.type))this.damageProp(edge,scaleEnemy(Math.max(15,def.damage),this.floor,'damage'));else this.setDoor(edge,true);}else if(!occupied(this,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}}
       }
       if((e.type==='boss'||e.type==='warden')&&e.hp<e.maxHp*.5&&!e.reinforced&&enemyRoom(this)>0) {
         e.reinforced=true;
@@ -657,6 +679,7 @@ export class Game {
     const p=this.player;
     this.items=this.items.filter(item=>{
       if(distance(item,p)!==0)return true;
+      if(item.type==='learning'){if(!validLearningId(item.learningId))return true;p.learningItems[item.learningId]=(p.learningItems[item.learningId]||0)+1;this.log(`拾取${LEARNING_ITEMS[item.learningId].name}。`);return false;}
       if(item.type==='weapon') {
         this.registerWeapon(item);
         if(p.owned.length>=this.weaponCapacity){this.log('武器欄已滿。打開背包比較並交換，原武器會留在地上。');return true;}
@@ -707,7 +730,7 @@ export class Game {
     if(!p.owned.includes(index))return this.fail('背包裡沒有這把武器。');
     if(this.weaponAt(index).locked)return this.fail('固定武器不能拆解或交換，只能升級。');
     if(p.owned.length<=1)return this.fail('至少保留一把武器。');
-    this.receiveAmmo(this.weaponAt(index).ammoType,p.ammo[index]);p.ammo[index]=0;p.owned=p.owned.filter(i=>i!==index);
+    if(!this.weaponAt(index).melee)this.receiveAmmo(this.weaponAt(index).ammoType,p.ammo[index]);p.ammo[index]=0;p.owned=p.owned.filter(i=>i!==index);
     p.scrap+=salvageValue(p,index);p.upgrades[index]=0;p.stats.salvaged++;
     if(p.weapon===index)p.weapon=p.owned[0];this.log(`拆解${this.weaponAt(index).name}，回收彈匣與廢料。`);return true;
   }
@@ -718,7 +741,7 @@ export class Game {
     if(!item)return this.fail('附近沒有這把武器。');
     const w=this.weaponAt(slot);
     if(w.locked)return this.fail('固定武器不能拆解。');
-    this.receiveAmmo(w.ammoType,p.ammo[slot]);p.ammo[slot]=0;
+    if(!w.melee)this.receiveAmmo(w.ammoType,p.ammo[slot]);p.ammo[slot]=0;
     const scrap=salvageValue(p,slot);p.scrap+=scrap;p.upgrades[slot]=0;p.stats.salvaged++;
     this.items=this.items.filter(o=>o!==item);
     this.log(`就地拆解${w.name}，回收彈匣與 ${scrap} 廢料。`);return true;
@@ -783,6 +806,8 @@ export class Game {
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)||(e.raised!==undefined&&typeof e.raised!=='boolean')||(e.expendable!==undefined&&typeof e.expendable!=='boolean')))return null;
       if(!Array.isArray(data.props)||!Array.isArray(data.items)||!validMapMetadata(data))return null;
+      if(version<37)migrateSuppression(data);
+      if(!validLearningInventory(data.player)||data.items.some(i=>i.type==='learning'&&!validLearningId(i.learningId)))return null;
       if(data.mapGenerations===undefined)data.mapGenerations=[...new Set([data.generation?.version||1,...Object.values(data.floorStates||{}).map(f=>f.generation?.version||1)])].sort();
       if(!validGenerationHistory(data.mapGenerations)||!data.mapGenerations.includes(data.generation?.version||1))return null;
       if(version<13)data.barriers=[];

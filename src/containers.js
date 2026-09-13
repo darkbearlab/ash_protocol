@@ -1,3 +1,5 @@
+import {validLearningId} from './learning-data.js';
+import {WEAPONS} from './data.js';
 // Low floor cases: walkable, no cover or destruction. Contents move to ground exactly once.
 export const CONTAINER_KINDS={
   unknown:{name:'未識別貨櫃',color:'#94bbc3',symbol:'?'},
@@ -40,7 +42,7 @@ export function validContainers(props,grid,otherIds=[]){
     if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||grid[p.y]?.[p.x]!==1||positions.has(`${p.x},${p.y}`))return false;
     if(!Object.hasOwn(CONTAINER_KINDS,p.kind)||typeof p.opened!=='boolean'||p.indestructible!==true||p.hp!==undefined||p.maxHp!==undefined)return false;
     if(!Array.isArray(p.contents)||p.contents.length>32||(p.opened?p.contents.length!==0:p.contents.length===0&&p.kind!=='unknown'))return false;
-    if(p.contents.some(i=>!i||!types.has(i.type)||(i.amount!==undefined&&(!Number.isSafeInteger(i.amount)||i.amount<=0||i.amount>10000000))||(i.cache!==undefined&&i.cache!==true)||Object.keys(i).some(k=>!['type','amount','cache'].includes(k))))return false;
+    if(p.contents.some(i=>!i||(i.type==='learning'?(!validLearningId(i.learningId)||Object.keys(i).some(k=>!['type','learningId'].includes(k))):i.type==='weapon'?(!Number.isInteger(i.weapon)||!WEAPONS[i.weapon]||WEAPONS[i.weapon].locked||Object.keys(i).some(k=>!['type','weapon'].includes(k))):(!types.has(i.type)||(i.amount!==undefined&&(!Number.isSafeInteger(i.amount)||i.amount<=0||i.amount>10000000))||(i.cache!==undefined&&i.cache!==true)||Object.keys(i).some(k=>!['type','amount','cache'].includes(k))))))return false;
     ids.add(p.id);positions.add(`${p.x},${p.y}`);
   }return true;
 }

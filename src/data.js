@@ -1,6 +1,6 @@
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 36;
+export const SAVE_VERSION = 37;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -22,6 +22,8 @@ export const WEAPONS = [
   {id:'axe',weaponClass:'melee',name:'狂戰斧',type:'BOUND AXE',code:'AX–01',min:44,max:54,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'berserker',hitChance:92,pierce:.3,desc:'狂戰士綁定近戰武器，不能拆解或交換。相鄰一格，命中 92%，穿透 30% 裝甲，無限使用。'},
   {id:'katana',weaponClass:'melee',name:'忍刀',type:'BOUND BLADE',code:'KT–01',min:30,max:36,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'ninja',hitChance:95,desc:'忍者綁定近戰武器，不能拆解或交換。相鄰一格，命中 95%，無限使用。'},
 ];
+// Unbound loot variants append IDs; class-bound originals remain untouched.
+for(const [base,id] of [[9,'loot_axe'],[10,'loot_katana']]){const {locked,boundCharacter,...weapon}=WEAPONS[base];WEAPONS.push({...weapon,id,lootOnly:true,type:'MELEE WEAPON',desc:'拾獲近戰武器，雙向切換免費，可交換、拆解與改裝。'});}
 export const FLOORS = ['軌道轉運站','污染冷卻區','軍械封鎖區','生化培養艙','高壓熔爐','深淵反應核心'];
 export const FLOOR_INFO = [
   { color:'#a4b484', subtitle:'TRANSIT HUB', text:'轉運站仍有備用物資。熟悉掩體，收集裝備。', hazard:null },
@@ -86,6 +88,7 @@ export const PERKS = [
   {id:'ninja_overload',name:'光學過載',characters:['ninja'],cap:3,effect:'passive',text:'迷彩持續 +1、冷卻 −2（最低 4）。'},
 ];
 export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
+PERKS.push({id:'ammo_recovery',name:'彈藥回收',cap:3,effect:'passive',text:'一般敵人彈藥掉落率每階 +15 個百分點（35% → 50% → 65% → 80%）。'});
 export const LORE = [
   '最後一班運輸船沒有離港紀錄。有人從內部取消了撤離。',
   '冷卻液樣本呈現活動性。請勿接觸管道內的綠色沉積物。',

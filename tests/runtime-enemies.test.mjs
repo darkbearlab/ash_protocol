@@ -59,7 +59,7 @@ test('all runtime spawn sources count the same live limit; deferred retreat reta
 });
 test('runtime generation is deterministic, conserves normal enemies/supplies, excludes objectives and preserves v1',()=>{
  for(const seed of [1,2,3])for(const floor of Array.from({length:60},(_,i)=>i+1)){
-  const g=generate(seed,floor),old=generateWithRecipes(seed,floor);assert.deepEqual(g,generate(seed,floor));assert.ok(generationSafe(g));assert.ok(validMapMetadata(g));assert.deepEqual(g.enemies.filter(e=>!e.expendable),old.enemies);assert.deepEqual(allSupplies(g),allSupplies(old));assert.ok(g.enemies.filter(e=>e.hp>0).length<=RUNTIME_TUNING.liveLimit);assert.ok(g.enemies.filter(e=>e.expendable).every(e=>!eligibleMissionEnemy(e)));assert.equal(new Set(g.enemies.map(key)).size,g.enemies.length);
+  const g=generate(seed,floor),old=generateWithRecipes(seed,floor);assert.deepEqual(g,generate(seed,floor));assert.ok(generationSafe(g));assert.ok(validMapMetadata(g));assert.deepEqual(g.enemies.filter(e=>!e.expendable),old.enemies);assert.deepEqual(allSupplies({...g,props:g.props.filter(p=>p.kind!=='unknown')}),allSupplies(old));assert.ok(g.props.filter(p=>p.kind==='unknown').every(p=>p.contents.length===1));assert.ok(g.enemies.filter(e=>e.hp>0).length<=RUNTIME_TUNING.liveLimit);assert.ok(g.enemies.filter(e=>e.expendable).every(e=>!eligibleMissionEnemy(e)));assert.equal(new Set(g.enemies.map(key)).size,g.enemies.length);
  }
  assert.deepEqual(generateWithRecipes(1,2,[],[]),generateLegacy(1,2));
 });

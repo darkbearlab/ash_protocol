@@ -6,6 +6,7 @@ import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 const FOLLOW=allyWeapon({kind:'drone',sourceId:'drone_follow'}),SENTRY=allyWeapon({kind:'drone',sourceId:'drone_sentry'});
 // Active skills are separate from passive traits and item quantities.
 export const SKILLS={
+ suppressive_fire:{name:'壓制射擊',short:'壓制',icon:'◇',action:'suppressiveFire',cost:1,duration:0,cooldown:0,target:'area',text:'消耗 3 發，命中 −20；目標格與相鄰四格敵人獲得 1 層壓制，命中可再加 1 層。'},
  anchor:{name:'下錨',short:'下錨',icon:'◇',action:'skill',toggle:true,cost:1,duration:1,cooldown:0,text:'啟動／解除各 1 回合。下錨時不能移動或換層，套用笨拙；自己的武器射擊與近戰於普通與緩速各執行一次，分別消耗彈藥；投擲物與友軍不受影響。'},
  drone_follow:{name:'追隨僚機',short:'僚機',icon:'◇',action:'skill',cost:1,duration:0,cooldown:0,text:`一台機體，部署／靠近回收各 1 回合；部署或生產時點選你身邊 2 步內的位置。${DRONE_HP} HP，步槍彈 ${FOLLOW.mag} 發、射程 ${FOLLOW.range}。閒置時貼在你身邊，可隨時換位；離你 ${CARRY_DISTANCE} 步內會自己用你的步槍備彈換彈。繩索 ${TETHER} 格，不主動追擊；受傷時回收後到技能頁花廢料維修，損毀後按技能花 ${DRONE_BUILD_COST} 廢料生產新機。`},
  drone_sentry:{name:'放置哨兵',short:'哨兵',icon:'▣',action:'skill',cost:1,duration:0,cooldown:0,text:`與追隨僚機共用機體。部署或生產時點選你身邊 2 步內的位置。${DRONE_HP} HP、裝甲 ${SENTRY_ARMOR}、可利用掩體；${SENTRY.mag} 發步槍彈、射程 ${SENTRY.range}，不移動；超出 ${TETHER} 格停止運作。${CARRY_DISTANCE} 格可通路內可回收、隨行並自己換彈；損毀後按技能花 ${DRONE_BUILD_COST} 廢料生產新機。`},
