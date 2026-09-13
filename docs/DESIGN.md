@@ -19,7 +19,7 @@
 | 無盡模式 | [ENDLESS.md](ENDLESS.md) | 等級上限 20（封頂顯示 MAX、每 22 經驗發補給）、無盡任務、第 7 層以後的成長與紀錄、成長上限試算 | 3.52.0 |
 | 主動技能 | [SKILLS.md](SKILLS.md) | 下錨、預警、訊號斷層 | 3.35.1 |
 | 友軍 | [ALLIES.md](ALLIES.md) | 工程師機體、德魯伊寵物、死靈召喚、繩索、換位、存檔 | 3.43.1 |
-| 德魯伊餵養 | [DRUID_FEEDING.md](DRUID_FEEDING.md) | 獨立的胃與燃料、四條成長線、死亡消失與重生、三選一重設計（規格定案，交 Codex 規劃） | — |
+| 德魯伊餵養 | [DRUID_FEEDING.md](DRUID_FEEDING.md) | 獨立的胃與燃料、四條成長線、死亡消失與重生、三選一重設計（3.72.1 已實作；第 12 節六節點改版規格未實作） | — |
 | 友軍迭代授權 | [ALLY_ITERATION_SCOPE.md](ALLY_ITERATION_SCOPE.md) | Claude 迭代三職業的範圍，以及使用者決定的覆寫紀錄 | 3.43.1 |
 | 投擲物 | [THROWABLES.md](THROWABLES.md) | 破片、煙霧、EMP、震撼、失能與免疫 | 3.42.0 |
 | 地圖骨架 | [MAPGEN.md](MAPGEN.md) | 格位與房間分離、合併房、多連接口、邊緣附屬區、槽位、`maps/recipes/` 配方池、巢穴／雜兵／追擊／全職業徒手；六個階段與執行期批次都已實作 | 3.69.0 |
