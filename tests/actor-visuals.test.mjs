@@ -48,8 +48,8 @@ test('corner tint preserves alpha and some color, including on dark sprites',()=
  assert.equal(p[3],255);assert.equal(p[7],33);assert.ok(p[0]>p[1]&&p[1]>p[2]);assert.ok(p[0]-p[2]<190);assert.ok(p[0]>100);
  shadeActorPixels(p);assert.equal(p[3],255);assert.ok(p[0]>p[1]);
 });
-test('battlefield corner badge uses text only for the selected target',()=>{
+test('battlefield corner badge stays icon-only with terminal colors even when selected',()=>{
  const labels=[],boxes=[];const r={tile:45,ctx:{save(){},restore(){},beginPath(){},arc(){},stroke(){}},line(){},box(...args){boxes.push(args);},text(...args){labels.push(args);}};
  Renderer.prototype.cornerBadge.call(r,{x:100,y:100},false);assert.equal(labels.length,0);assert.equal(boxes[0][2],16);
- Renderer.prototype.cornerBadge.call(r,{x:100,y:100},true);assert.equal(labels[0][0],'未露頭');assert.equal(boxes[1][2],58);
+ Renderer.prototype.cornerBadge.call(r,{x:100,y:100},true);assert.equal(labels.length,0);assert.equal(boxes[1][2],16);assert.equal(boxes[1][4],'#263c34ee');
 });

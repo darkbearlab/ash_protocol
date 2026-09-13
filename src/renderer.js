@@ -210,19 +210,18 @@ export class Renderer {
 
     // Optional tactical overlay uses ground coordinates, above wall art for readability.
     this.drawTacticalOverlays();
-    for(const e of hiddenEnemies)this.cornerBadge(this.projectActor(e),this.targetingEnabled&&target===e);
+    for(const e of hiddenEnemies)this.cornerBadge(this.projectActor(e));
     // Snapshot sensor UI may cross walls; it never reveals terrain or supplies.
     for(const contact of g.sensorContacts||[]){const a=this.project(contact.x,contact.y);this.box(a.x-3,a.y-3,6,6,'#ffe6a5');this.box(a.x-6,a.y-6,12,12,'#00000000','#e9c27d99');}
   }
-  cornerBadge(a,selected){
+  cornerBadge(a){
     // Screen-space status: readable above wall art, without fading the actor silhouette.
-    const c=this.ctx,y=Math.round(a.y+this.tile*.43),w=selected?58:16,x=Math.round(a.x-w/2);
-    this.box(x,y,w,15,'#142026ee','#a6b4b9');
+    const c=this.ctx,y=Math.round(a.y+this.tile*.43),w=16,x=Math.round(a.x-w/2);
+    this.box(x,y,w,15,'#263c34ee','#759777');
     const cx=x+8,cy=y+7.5;
-    c.save();c.strokeStyle='#c5d0d2';c.lineWidth=1;c.beginPath();c.arc(cx,cy,4,0,Math.PI*2);c.stroke();
-    this.line(cx-6,cy,cx+6,cy,'#c5d0d2',1);this.line(cx,cy-6,cx,cy+6,'#c5d0d2',1);
-    this.line(cx-5,cy+5,cx+5,cy-5,'#142026',3);this.line(cx-5,cy+5,cx+5,cy-5,'#f0c79b',1.5);c.restore();
-    if(selected)this.text('未露頭',x+36,y+11,'#d9e0dd',10);
+    c.save();c.strokeStyle='#82b6a0';c.lineWidth=1;c.beginPath();c.arc(cx,cy,4,0,Math.PI*2);c.stroke();
+    this.line(cx-6,cy,cx+6,cy,'#82b6a0',1);this.line(cx,cy-6,cx,cy+6,'#82b6a0',1);
+    this.line(cx-5,cy+5,cx+5,cy-5,'#263c34',3);this.line(cx-5,cy+5,cx+5,cy-5,'#a3e3c0',1.5);c.restore();
   }
   drawTacticalOverlays(){
     const c=this.ctx,g=this.game,alpha=boundaryOpacityPercent(this.boundaryOpacity)/100;
