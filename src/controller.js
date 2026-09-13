@@ -1,7 +1,7 @@
 import {healingAmount} from './traits.js';
 import {DRONE_REPAIR_COST,DRONE_REPAIR_FRACTION,DRONE_BUILD_COST,droneRepairReason,ALLY_SKILLS,allySkillState,canAllySkill,allyName,allyWeapon,droneCells,defaultDroneCell,dronePlaces,TETHER,CARRY_DISTANCE,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,PET_TETHER,DRONE_HP,SENTRY_ARMOR} from './allies.js';
 import {petFeedingState,petFeedQuote,outputChoiceReason} from './pet-growth.js';
-import {feedingView,petStatusLine,petOutputLine,fuelLabel,fuelPercent,lineEffects,lineProgress,rankDots,PET_LINE_NAMES,PET_LINE_TINTS,petHelpText} from './pet-ui.js';
+import {feedingView,petStatusLine,petOutputLine,fuelLabel,fuelPercent,lineProgress,nodeSymbol,nextNode,unlockedMajors,abilityChips,PET_LINE_NAMES,PET_LINE_TINTS,petHelpText} from './pet-ui.js';
 import {SKILLS,skillActive,skillStatus,canUseSkill} from './skills.js';
 import {boundaryOpacityPercent} from './movement-boundaries.js';
 import {actorStat,clampHit,combatStatSummary} from './actor-stats.js';
@@ -306,10 +306,11 @@ function droneMaintenance(){
 function petFeedingSection(){
   const state=petFeedingState(game);if(!state)return '';
   const {gate,groups}=feedingView(state,{weaponName:slot=>game.weaponAt(slot).name}),output=petOutputLine(state);
-  const lines=Object.entries(state.growth).map(([line,g])=>`<div style="--tint:${PET_LINE_TINTS[line]}"><strong>${PET_LINE_NAMES[line]}<b>${rankDots(g.rank)}</b></strong><small>${lineProgress(line,g)}</small><small>${g.rank?lineEffects(line)[g.rank-1]:'尚未解鎖'}${g.capped?'':` · 下一階：${lineEffects(line)[g.rank]}`}</small></div>`).join('');
+  const abilities=abilityChips(state),chips=abilities.length?`<div class="pet-abilities">${abilities.map(chip=>`<span>${chip.text}</span>`).join('')}</div>`:'';
+  const lines=Object.entries(state.growth).map(([line,g])=>`<div style="--tint:${PET_LINE_TINTS[line]}"><strong>${PET_LINE_NAMES[line]}<b>${g.rank} / 6</b></strong><span class="pet-nodes" aria-label="${g.rank} / 6 個節點">${g.nodes.map(n=>`<i class="${n.major?'major':''}${n.unlocked?' on':''}">${nodeSymbol(n)}</i>`).join('')}</span><small>${lineProgress(line,g)}</small><small>◆ ${unlockedMajors(g).join('、')||'尚無'}</small>${nextNode(g)?`<small>下一個：${nextNode(g).major?'◆ ':''}${nextNode(g).name}（${nextNode(g).text}）</small>`:''}</div>`).join('');
   const kinds=state.output.selectableKinds.length?`<div class="pet-output-kinds">${state.output.selectableKinds.map(k=>`<button data-pet-output="${k}" aria-pressed="${state.output.kind===k}">${GRENADES[k].short}</button>`).join('')}</div>`:'';
   const feed=groups.map(group=>`<p class="pet-feed-group">${group.label}</p><div class="pet-feed">${group.options.map(o=>`<button ${o.allowed?'':'disabled'} ${o.id==='weapon'?`data-feed-weapon="${o.weaponSlot}"`:`data-feed-option="${o.id}"`}><span>${o.title}</span>${o.detail?`<small>${o.detail}</small>`:''}</button>`).join('')}</div>`).join('');
-  return `<section class="pet-feeding"><h3>伴生餵養</h3><p class="pet-status">${petStatusLine(state)}</p><p class="pet-status">${fuelLabel(state)}</p><div class="pet-fuel"><i style="width:${fuelPercent(state)}%"></i></div>${output?`<p class="pet-status">${output}</p>`:''}${kinds}<div class="pet-lines">${lines}</div>${gate?`<p class="pet-gate">${gate}</p>`:'<p class="pet-status">相鄰時每次餵一份、花 1 回合。</p>'}${feed}</section>`;
+  return `<section class="pet-feeding"><h3>伴生餵養</h3><p class="pet-status">${petStatusLine(state)}</p><p class="pet-status">${fuelLabel(state)}</p><div class="pet-fuel"><i style="width:${fuelPercent(state)}%"></i></div>${output?`<p class="pet-status">${output}</p>`:''}${chips}${kinds}<div class="pet-lines">${lines}</div>${gate?`<p class="pet-gate">${gate}</p>`:'<p class="pet-status">相鄰時每次餵一份、花 1 回合。</p>'}${feed}</section>`;
 }
 
 function showInventory(tab=inventoryTab,message='') {

@@ -373,3 +373,11 @@ profile v5／backup v1 不變；新內容由 save v36 往返驗證。羈絆與�
 - `enemy.petSuppressed` 是剩餘下一次自身機會的命中減少值；無此欄位就沒有壓制。
 - 本輪只對 `pet-ui.js` 做防錯相容：圓點容量改6避免 repeat 負數拋錯、效果文字讀 nodes、重生比例讀 state。沒有實作 ◆ 樣式、新能力狀態列或感知光點繪製。Claude 接這三項，controller／CSS 保持。
 - 測試場景：`node qa/create-pet-feeding-scenes.mjs`，新增 nodes-max／nodes-scan／nodes-smoke／legacy-v35，加上原有6份，全部只在 `?test=1` 匯入。
+
+### 14.5 3.73.1 Claude 介面接線（已完成）
+
+- 成長線節點列：`nodeSymbol`、`nextNode`、`unlockedMajors` 只讀 `growth[line].nodes`。
+- 能力狀態列：`abilityChips` 只轉述 `state.abilities`；裝甲線滿 6 節點但 `vision` 為 false 時，顯示共享視覺中斷的原因。
+- 感知光點：renderer 把 `game.petSensorContacts` 併入原本的預警光點繪製。演出快照保留 Game 原型，這個 getter 在快照上一樣可用。不寫 seen，也不可鎖定。
+- 壓制：目標卡讀 `enemy.petSuppressed`。
+

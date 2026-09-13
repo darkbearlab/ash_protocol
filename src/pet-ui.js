@@ -2,7 +2,7 @@
 // pet-growth.js quotes; nothing here recomputes them. Effect text reads PET_FEEDING_TUNING so it cannot drift.
 import {AMMUNITION} from './ammunition.js';
 import {GRENADES} from './throwables.js';
-import {petNodes,PET_FEEDING_TUNING as T} from './pet-growth.js';
+import {petNodes,PET_TETHER,PET_FEEDING_TUNING as T} from './pet-growth.js';
 
 export const PET_LINE_NAMES={vitality:'體質',armor:'裝甲',turret:'砲台',extrusion:'排出'};
 export const PET_LINE_TINTS={vitality:'#d98a7a',armor:'#92c4df',turret:'#d9b46a',extrusion:'#b8c694'};
@@ -61,4 +61,21 @@ export function feedingView(state,{weaponName=()=>'武器'}={}){
 
 export function petHelpText(){
  return `餵養在背包技能頁：與獵獸上下左右相鄰、中間沒有門或隔板時，每次餵一份、花 1 回合。彈藥不限彈種，存進獨立的胃當燃料，寵物不會自己拿你的備彈；射擊與排出吃燃料，燃料不夠就只會咬。生命、裝甲板、武器、投擲物分別累積體質、裝甲、砲台、排出四條六節點成長（體質提高上限但不補當前生命）；醫療包只治療寵物。死亡時直接消散、胃清空、成長保留，${T.reviveTurns} 個付費回合後在你身邊以 ${Math.round(T.reviveFraction*100)}% 生命重生，重生前不能餵。`;
+}
+
+// Six-node tracks (3.73.1). Node names, texts and unlocks come from growth[line].nodes; nothing is recomputed.
+export const nodeSymbol=n=>n.major?(n.unlocked?'◆':'◇'):(n.unlocked?'●':'○');
+export const nextNode=g=>(g?.nodes||[]).find(n=>!n.unlocked)||null;
+export const unlockedMajors=g=>(g?.nodes||[]).filter(n=>n.major&&n.unlocked).map(n=>n.name);
+
+// Ability chips restate only what state.abilities reports.
+export function abilityChips(state){
+ const a=state?.abilities;if(!a)return [];
+ const chips=[];
+ if(a.steadfast)chips.push({id:'steadfast',text:'堅守中'});
+ if(a.vision)chips.push({id:'vision',text:'共享夜視與紅外線'});
+ else if((state.growth?.armor?.rank||0)>=6)chips.push({id:'vision-off',text:`共享視覺中斷：獵獸須活動且在 ${PET_TETHER} 格內`});
+ if(a.sense?.unlocked)chips.push({id:'sense',text:a.sense.active?`感知 ${a.sense.radius} 格 · ${a.sense.remaining} 回合後掃描${a.sense.contacts.length?` · 標出 ${a.sense.contacts.length} 處`:''}`:'感知暫停：獵獸未活動'});
+ for(const [key,name] of [['criticalSmoke','危急煙霧'],['guardianSmoke','守護煙霧']])if(a[key]?.unlocked)chips.push({id:key,text:`${name}：${a[key].used?'本層已用':'待命'}`});
+ return chips;
 }

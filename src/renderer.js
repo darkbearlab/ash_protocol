@@ -214,7 +214,7 @@ export class Renderer {
     this.drawTacticalOverlays();
     for(const e of hiddenEnemies)this.cornerBadge(this.projectActor(e));
     // Snapshot sensor UI may cross walls; it never reveals terrain or supplies.
-    for(const contact of g.sensorContacts||[]){const a=this.project(contact.x,contact.y);this.box(a.x-3,a.y-3,6,6,'#ffe6a5');this.box(a.x-6,a.y-6,12,12,'#00000000','#e9c27d99');}
+    for(const contact of [...(g.sensorContacts||[]),...(g.petSensorContacts||[])]){const a=this.project(contact.x,contact.y);this.box(a.x-3,a.y-3,6,6,'#ffe6a5');this.box(a.x-6,a.y-6,12,12,'#00000000','#e9c27d99');}
   }
   cornerBadge(a){
     // Screen-space status: readable above wall art, without fading the actor silhouette.

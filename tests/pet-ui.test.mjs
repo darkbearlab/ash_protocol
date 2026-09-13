@@ -4,7 +4,7 @@ import {Game} from '../src/game.js';
 import {SIZE} from '../src/data.js';
 import {petActor,petFeedingState,fitPet,PET_FEEDING_TUNING as T} from '../src/pet-growth.js';
 import {clearGeneratedMap} from './helpers/arena.mjs';
-import {feedingView,petStatusLine,petOutputLine,lineEffects,lineProgress,rankDots,formatFuel,petHelpText} from '../src/pet-ui.js';
+import {feedingView,petStatusLine,petOutputLine,lineEffects,lineProgress,rankDots,formatFuel,petHelpText,nodeSymbol,nextNode,unlockedMajors,abilityChips} from '../src/pet-ui.js';
 
 function druid(){
  const g=new Game(372,[],0,'druid','onyx');
@@ -69,3 +69,32 @@ test('small formatters: rank dots, fuel in whole scrap units, per-line progress 
  assert.equal(lineProgress('armor',{progress:12,nextThreshold:25,capped:false}),'12 / 25 板');
  assert.equal(lineProgress('turret',{progress:120,nextThreshold:null,capped:true}),'已滿六節點');
 });
+
+test('node symbols separate major from minor and unlocked from locked',()=>{
+ assert.equal(nodeSymbol({major:true,unlocked:true}),'◆');assert.equal(nodeSymbol({major:true,unlocked:false}),'◇');
+ assert.equal(nodeSymbol({major:false,unlocked:true}),'●');assert.equal(nodeSymbol({major:false,unlocked:false}),'○');
+});
+
+test('next node and unlocked majors read the rules-layer node list',()=>{
+ const {g,a,b}=druid();
+ let armor=petFeedingState(g).growth.armor;
+ assert.equal(nextNode(armor).index,1);assert.deepEqual(unlockedMajors(armor),[]);
+ b.growth.armor=T.thresholds.armor[3];fitPet(g,a);armor=petFeedingState(g).growth.armor;
+ assert.equal(nextNode(armor).index,5);assert.equal(unlockedMajors(armor).length,2);
+ for(const [line,ns] of Object.entries(T.thresholds))b.growth[line]=ns.at(-1);fitPet(g,a);
+ const s=petFeedingState(g);
+ for(const line of Object.keys(s.growth)){assert.equal(nextNode(s.growth[line]),null);assert.equal(unlockedMajors(s.growth[line]).length,3);}
+});
+
+test('ability chips only restate reported ability states',()=>{
+ const {g,a,b}=druid();
+ assert.deepEqual(abilityChips(petFeedingState(g)),[]);
+ b.growth.armor=T.thresholds.armor[3];fitPet(g,a);
+ assert.match(abilityChips(petFeedingState(g)).find(c=>c.id==='sense').text,/^感知 \d+ 格 · \d+ 回合後掃描/);
+ const texts=abilityChips({growth:{armor:{rank:6}},abilities:{steadfast:true,vision:false,criticalSmoke:{unlocked:true,used:true},guardianSmoke:{unlocked:true,used:false},sense:{unlocked:true,active:false,remaining:3,radius:4,contacts:[]}}}).map(c=>c.text);
+ assert.ok(texts.includes('堅守中'));
+ assert.ok(texts.some(t=>t.startsWith('共享視覺中斷')));
+ assert.ok(texts.includes('感知暫停：獵獸未活動'));
+ assert.ok(texts.includes('危急煙霧：本層已用'));assert.ok(texts.includes('守護煙霧：待命'));
+});
+
