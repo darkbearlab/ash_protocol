@@ -2,6 +2,14 @@ import {makeEnemy,random,key,distance,DIRECTIONS,reachable} from './world.js';
 import {roomTiles} from './map-geometry.js';
 // Initial conservative values. Existing normal enemy budgets and rewards are unchanged.
 export const RUNTIME_TUNING={liveLimit:64,expendableLimit:6,fodderCount:2,nestMinFloor:2,nestCount:1,nestHp:45,triggerRadius:6,interval:2,totalSpawn:6};
+// Cosmetic identity derives from the saved anchor, never combat/generation RNG.
+export const NEST_STYLES={burrow:{name:'蟲群地洞',color:'#b99770'},rift:{name:'裂隙傳送門',color:'#b078ed'}};
+export const nestStyle=p=>((p.x*31+p.y*17+Number(p.id.split('-')[1]))&1)?'burrow':'rift';
+export function collapseNest(g,p){
+ p.hp=0;const style=nestStyle(p);
+ g.effects.push({type:'nestCollapse',nestStyle:style,from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});
+ g.log(style==='rift'?'裂隙閉合，留下紫色的空間粉末。':'地洞塌陷，被落土回填。');g.reveal();
+}
 export const enemyRoom=g=>Math.max(0,RUNTIME_TUNING.liveLimit-g.enemies.filter(e=>e.hp>0).length);
 export const expendableRoom=g=>Math.max(0,RUNTIME_TUNING.expendableLimit-g.enemies.filter(e=>e.hp>0&&e.expendable).length);
 export function addRuntimePopulation(base,seed,floor,check){
@@ -23,6 +31,7 @@ export function addRuntimePopulation(base,seed,floor,check){
 }
 export function tickNests(g){
  for(const nest of g.props.filter(p=>p.type==='nest'&&p.hp>0)){
+  if(nest.nest.remaining===0){collapseNest(g,nest);continue;}
   const s=nest.nest;if(!s.active&&distance(g.player,nest)<=RUNTIME_TUNING.triggerRadius){s.active=true;g.log('巢穴甦醒，開始釋出蟲群。',true);}
   if(!s.active||s.remaining===0)continue;
   if(s.cooldown>0&&--s.cooldown>0)continue;
@@ -30,7 +39,9 @@ export function tickNests(g){
   const p=DIRECTIONS.map(([dx,dy])=>({x:nest.x+dx,y:nest.y+dy})).find(p=>g.passable(p.x,p.y)&&g.canCross(nest,p)&&distance(g.player,p)>0&&!g.enemies.some(e=>e.hp>0&&key(e)===key(p))&&!g.activeAllies.some(a=>key(a)===key(p))&&!g.props.some(o=>key(o)===key(p))&&!g.hazards.some(o=>key(o)===key(p))&&!g.items.some(o=>key(o)===key(p)));
   if(!p)continue;
   const e=makeEnemy('brood',p.x,p.y,`${nest.id}-child-${++s.serial}`,g.floor);e.nestId=nest.id;e.alert=true;e.lastKnown={x:g.player.x,y:g.player.y};g.enemies.push(e);s.remaining--;s.cooldown=s.interval;
-  g.effects.push({type:'pulse',from:p,to:p,radius:.5,color:'#c7a17a',damage:0});g.log('巢穴中鑽出一隻裂隙幼蟲。');
+  const style=nestStyle(nest);
+  g.effects.push({type:'nestSpawn',nestStyle:style,from:{x:nest.x,y:nest.y},to:p,damage:0});g.log(style==='rift'?'裂隙中傳送出一隻幼蟲。':'地洞中鑽出一隻幼蟲。');
+  if(s.remaining===0)collapseNest(g,nest);
  }
 }
 export function validRuntime(g){

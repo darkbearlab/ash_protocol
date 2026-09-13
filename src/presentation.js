@@ -1,3 +1,4 @@
+import {NEST_EFFECT_MS} from './nest-art.js';
 import {actorMoves} from './actor-visuals.js';
 // Presentation observes one synchronous turn. Snapshots never roll back rules or RNG.
 const observers=new WeakMap();
@@ -64,7 +65,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const impactState=prior?Object.assign(Object.create(Object.getPrototypeOf(step.after)),step.after,{player:{...step.after.player,...prior.resources},items:prior.items,logs:prior.logs}):step.after;
     events.push({time,state:impactState,effects:impacts.map(e=>({...e,quiet:reduceMotion}))});
     const burstContinues=flights.some(e=>['smg','lmg','thunder'].includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&['smg','lmg','thunder'].includes(e.weaponId));
-    time+=!flights.length&&!impacts.length&&!rewards.length?0:reduceMotion?120:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
+    time+=!flights.length&&!impacts.length&&!rewards.length?0:reduceMotion?120:impacts.some(e=>e.type==='nestCollapse'||e.type==='nestSpawn')?NEST_EFFECT_MS:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
     if(rewards.length){events.push({time,state:step.after,effects:rewards.map(({beforeSupply,...e})=>e)});time+=reduceMotion?60:IMPACT_MS;}
   }
   return {events,duration:time};

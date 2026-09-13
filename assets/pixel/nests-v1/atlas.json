@@ -1,0 +1,58 @@
+{
+  "source_sha256": "acdcfb414363e583c74d6cae7c590bc1c572a0fb1f8e28d5cfa7863c5136d197",
+  "pillow": "12.2.0",
+  "sampling": "nearest",
+  "rgbBits": 5,
+  "colors": 31,
+  "dither": false,
+  "sprites": {
+    "burrow-dormant": {
+      "x": 0,
+      "y": 0,
+      "size": 32,
+      "sha256": "e92c12dbd0db93105c4209504aa7dee3c228694142ac24c82f8f16e453f15ff6"
+    },
+    "burrow-active": {
+      "x": 32,
+      "y": 0,
+      "size": 32,
+      "sha256": "4d99391dae0c4ae3388704ee7e24e94cf9dcde68cfd95fc69b17b6e71c47eb1f"
+    },
+    "burrow-collapse": {
+      "x": 64,
+      "y": 0,
+      "size": 32,
+      "sha256": "69c89a0c2c1e3493aa4265fd594ad8d288bebc1e3d60ed69c16746567ed2a97b"
+    },
+    "burrow-ruins": {
+      "x": 96,
+      "y": 0,
+      "size": 32,
+      "sha256": "5e9b6ee9c6d92b2ab0166e480c95a7087f1a545d3f2dccb023d0dbd1da98bc69"
+    },
+    "rift-dormant": {
+      "x": 0,
+      "y": 32,
+      "size": 32,
+      "sha256": "2220a8958573dd6405f1b3edabbc1e5a47b493265d9eda9933f72627df062d83"
+    },
+    "rift-active": {
+      "x": 32,
+      "y": 32,
+      "size": 32,
+      "sha256": "6f0ff853b599d9fbe9213ff29f126b421d3956c7624c1534a064752fb04b5ecf"
+    },
+    "rift-collapse": {
+      "x": 64,
+      "y": 32,
+      "size": 32,
+      "sha256": "6a9004cd0cbc1344b979c33277dd675bf99179d645a012553a7e5a8204d8a67f"
+    },
+    "rift-ruins": {
+      "x": 96,
+      "y": 32,
+      "size": 32,
+      "sha256": "a4200e20a3b447fd9e43876af566ae8e0b12bed1a0eb3a4e415ce1d750522b4a"
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import {cornerRay,cornerStatus,recordExposure,clearMovedExposure,expireExposure,validCorner} from './corner.js';
 import {combatStep,validTactics} from './tactics.js';
 import {UNARMED_SLOT,UNARMED} from './unarmed.js';
-import {enemyRoom,tickNests,validRuntime} from './runtime-enemies.js';
+import {enemyRoom,tickNests,validRuntime,collapseNest} from './runtime-enemies.js';
 import {singleShotAt,volleyAt} from './weapons.js';
 import {objectSightGrid} from './scenery.js';
 import {MAP_FIELDS,validMapMetadata,validGenerationHistory} from './map-geometry.js';
@@ -501,6 +501,7 @@ export class Game {
     if(prop.hp<=0)return;
     prop.hp-=damage;
     if(prop.hp>0)return;
+    if(prop.type==='nest'){collapseNest(this,prop);return;}
     addTrace(this,prop,'debris');
     this.log(prop.type==='barrel'?'油桶被引爆！':prop.type==='nest'?'巢穴已摧毀，停止產出。':'掩體已摧毀。');
     if(prop.type==='barrel')this.explode(prop,2,45,attacker);

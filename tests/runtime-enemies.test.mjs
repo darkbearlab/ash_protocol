@@ -76,3 +76,30 @@ test('free preparation retains pursuit, grenade/grapple spend it, anchored free 
  const b=arena('berserker');b.pursuit=1;const e=enemy(b,'brute',13);e.hp=200;const t=b.turn;assert.ok(b.action('usePrepared',{category:'skill'}));assert.equal(b.turn,t);assert.equal(b.pursuit,0);assert.ok(b.player.skillState.grapple.cooldown>0);assert.equal(b.player.moved,true);
  const h=arena('bulwark');h.player.skillState.anchor.remaining=1;h.pursuit=1;const a=enemy(h,'rifleman',13);a.hp=500;const ammo=h.player.ammo[6],before=h.turn;assert.ok(h.action('fire'));assert.equal(h.turn,before);assert.equal(h.player.ammo[6],ammo-3);
 });
+
+import {nestStyle} from '../src/runtime-enemies.js';
+import {captureAction,planPresentation} from '../src/presentation.js';
+import {targetDetails} from '../src/target-card.js';
+test('last successful hatch collapses exactly once, opens passage and leaves no rewards; save/archive keep ruins',()=>{
+ const g=arena(),n=nest(g);Object.assign(n.nest,{active:true,total:1,remaining:1});g.target=n.id;g.reveal();
+ const before=structuredClone({xp:g.player.xp,scrap:g.player.scrap,items:g.items,kills:g.player.kills}),rng=g.rng.state();
+ assert.equal(g.passable(n.x,n.y),false);const recorded=captureAction(g,()=>g.action('wait'));const plan=planPresentation(recorded.steps);
+ assert.equal(n.hp,0);assert.equal(n.nest.serial,1);assert.equal(n.nest.remaining,0);assert.equal(g.enemies.length,1);assert.equal(g.passable(n.x,n.y),true);assert.notEqual(g.targeted?.id,n.id);g.target=n.id;assert.equal(g.targeted,undefined);
+ assert.deepEqual({xp:g.player.xp,scrap:g.player.scrap,items:g.items,kills:g.player.kills},before);assert.equal(g.rng.state(),rng);
+ assert.ok(plan.events.some(e=>e.effects.some(f=>f.type==='nestCollapse')));assert.ok(plan.duration>=280);
+ const count=g.effects.length;tickNests(g);assert.equal(g.effects.length,count);
+ const restored=Game.restore(g.serialize());assert.ok(restored);assert.equal(restored.props[0].hp,0);assert.equal(restored.enemies[0].nestId,n.id);
+ const resumed=resumedFloor(archiveFloor(g),g.turn+20);assert.equal(resumed.props[0].hp,0);assert.equal(nestStyle(resumed.props[0]),nestStyle(n));
+ const backup=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.equal(backup.props[0].hp,0);
+});
+test('blocked final hatch retains nest until space opens; old exhausted saves collapse on next paid tick',()=>{
+ const g=arena(),n=nest(g);Object.assign(n.nest,{active:true,total:1,remaining:1});
+ for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]])g.props.push({type:'cover',x:n.x+dx,y:n.y+dy,hp:10});
+ tickNests(g);assert.equal(n.hp,45);assert.equal(n.nest.remaining,1);g.props=[n];tickNests(g);assert.equal(n.hp,0);
+ n.hp=45;const restored=Game.restore(g.serialize());assert.ok(restored);tickNests(restored);assert.equal(restored.props[0].hp,0);assert.equal(restored.enemies.length,1);
+});
+test('manual nest destruction uses its own collapse style without quota reset or quota information in card',()=>{
+ for(const x of [12,13]){const g=arena(),n=nest(g);n.x=x;g.target=n.id;g.reveal();const details=targetDetails(g);assert.ok(details);assert.equal(details.name,nestStyle(n)==='rift'?'裂隙傳送門':'蟲群地洞');assert.ok(!JSON.stringify(details).includes('remaining'));
+  g.damageProp(n,100);assert.equal(n.hp,0);assert.equal(n.nest.remaining,6);assert.equal(g.effects.filter(e=>e.type==='nestCollapse').length,1);assert.equal(g.effects.find(e=>e.type==='nestCollapse').nestStyle,nestStyle(n));tickNests(g);assert.equal(g.enemies.length,0);
+ }
+});

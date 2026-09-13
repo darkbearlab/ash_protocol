@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.70.2**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.71.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -168,3 +168,5 @@
 ## 3.70 轉角規則與繞路
 
 sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩者合併。角落開火立即暴露，到當輪加兩個付費世界回合；敵我共用。友軍保留最後位置繞行，繩索／命令／哨兵限制保持。save v34 新增可選 cornerExposure／tactics，敵人封存計時平移，玩家與隨行友軍換層清除。UI API、驗證與 Claude 接手範圍見 [CORNER_TACTICS.md](CORNER_TACTICS.md)。
+
+3.71：生成點最後一次成功產出後 hp 歸零，保留 prop 作為殘跡與子代來源；不新增存檔欄位。nest-art.js 管理雙風格 32px 素材與塌陷演出，來源／管線見 art/nests-v1/README.md。

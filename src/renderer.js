@@ -1,3 +1,4 @@
+import {NEST_ATLAS,drawNest,drawNestEffect} from './nest-art.js';
 import {SCENERY_ATLAS} from './scenery.js';
 import {drawPartition,partitionGeometry,DOOR_ATLAS,drawDoor,doorGeometry,barrierJunctions,drawJunction} from './barrier-art.js';
 import {actorPosition,DarkActorCache,cornerHidden,muteCornerPixels} from './actor-visuals.js';
@@ -27,7 +28,7 @@ export class Renderer {
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.time=0;
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
-    for(const url of [SCENERY_ATLAS,DOOR_ATLAS]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
+    for(const url of [SCENERY_ATLAS,DOOR_ATLAS,NEST_ATLAS]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
     this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;this.terrainImages.set(WALL_ATLAS,this.wallImage);this.artTones=new ArtToneCache();
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
     this.classSprites=new Image();this.classSprites.src=CLASS_ATLAS;this.operatorColor=DEFAULT_OPERATOR_COLOR;this.tintCache=new Map();
@@ -164,6 +165,7 @@ export class Renderer {
       const a=this.project(fx.from.x,fx.from.y),b=this.project(fx.to.x,fx.to.y),color=fx.color||(fx.type==='shot'?'#ffe1ad':'#ff986c');
       c.globalAlpha=1-age;
       const angle=Math.atan2(b.y-a.y,b.x-a.x),step=Math.floor(age*8)/8;
+      if(fx.type==='nestCollapse'||fx.type==='nestSpawn'){if(g.visible(fx.type==='nestCollapse'?fx.from:fx.to))drawNestEffect(c,this.terrainImages?.get(NEST_ATLAS),fx,a,b,t,elapsed);c.globalAlpha=1;continue;}
       if(fx.quiet){
         const q=fx.type==='shot'||fx.type==='enemyShot'?a:b;
         if(age<.25)this.box(q.x-5,q.y-5,10,10,'#ffe1ad55');
@@ -284,7 +286,7 @@ export class Renderer {
     this.objectHealth(p,a.x-12,y-4);
   }
   prop(a,p,time){
-    if(p.type==='nest'){const t=this.tile;this.box(a.x-t*.35,a.y-t*.2,t*.7,t*.45,p.hp>0?'#65513c':'#353329');if(p.hp>0){this.box(a.x-t*.23,a.y-t*.32,t*.46,t*.42,p.nest.active?'#b38c65':'#827259');this.box(a.x-t*.12,a.y-t*.12,t*.24,t*.16,'#241e1a');this.objectHealth(p,a.x-12,a.y-t*.4);if(p.nest.active)this.text(String(p.nest.remaining),a.x,a.y+t*.37,'#d4b992',8);}return;}
+    if(p.type==='nest'){drawNest(this.ctx,this.terrainImages?.get(NEST_ATLAS),a,this.tile,p);if(p.hp>0)this.objectHealth(p,a.x-12,a.y-this.tile*.4);return;}
 
     if(p.type==='module'){const q=modulePoint(p,0,1);if(this.game.visibleTiles.has(`${q.x},${q.y}`)){const pos=this.project(q.x,q.y);this.text(MODULE_TYPES[p.theme].code,pos.x,pos.y+this.tile*.3,MODULE_TYPES[p.theme].color,8);}return;}
     if(p.style&&p.hp>0){this.furniture(a,p);return;}
