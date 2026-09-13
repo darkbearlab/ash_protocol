@@ -8,6 +8,7 @@
 - 地上的學習資料以紫色圖示顯示（✦ 主動技能、◆ 被動）。
 - 作戰指南新增壓制與學習資料說明，數字直接讀規則常數。
 - 顯示邏輯在 `src/suppression-ui.js`，測試在 `tests/suppression-ui.test.mjs`。規則、數值與存檔不變。
+- 已部署：GitHub Pages run 34781450754 成功，線上 `src/version.js` 確認為 3.74.1；完整 703 項測試與 build 通過。
 
 ## 3.74.0 — 壓制、學習資料與貨櫃內容池（Codex，2026-09-14）
 
