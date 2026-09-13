@@ -1,3 +1,4 @@
+import {combatStep} from './tactics.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {floorLimit} from './endless.js';
 import {ENEMY_TYPES,SIZE} from './data.js';
@@ -91,6 +92,7 @@ export function routeCells(g,start,{limit=SIZE*SIZE,actor=null,ignoreActors=fals
 }
 export const carryCandidates=g=>{const cells=new Set(routeCells(g,g.player,{limit:CARRY_DISTANCE,ignoreActors:true,openDoors:false}).map(key));return currentAllies(g).filter(a=>cells.has(key(a)));};
 export function departAllies(g){
+ for(const a of g.allies){a.cornerExposure=null;a.tactics=null;}
  const ids=carryCandidates(g).map(a=>a.id);for(const a of g.allies)if(a.status==='packed')ids.push(a.id);
  g.allies=g.allies.filter(a=>a.floor!==g.floor||a.kind!=='summon'||ids.includes(a.id));return ids;
 }
@@ -188,6 +190,7 @@ export function allyAct(g,a){
  const w=allyWeapon(a,g.player),linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
  const shot=linked&&(a.kind!=='drone'||a.ammo>0)?targets.find(e=>distance(a,e)<=w.range&&g.shotClear(a,e)&&(!w.melee||g.canCross(a,e))):null;
  const attack=e=>{
+  a.tactics=null;if(!w.melee)g.recordExposure(a,e);
   if(a.kind==='drone')a.ammo--;
   const chance=w.melee?g.meleeAccuracy(a,e,w.hitChance):g.accuracy(a,e).chance,hit=g.rng()*100<chance;
   g.effects.push({type:'shot',weaponId:w.id,style:w.melee?'claw':'bullet',from:{x:a.x,y:a.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:'#89e8c8'});
@@ -201,17 +204,23 @@ export function allyAct(g,a){
  const reload=()=>{const before=a.ammo;reloadDrone(g,a);g.log(`${allyName(a)}自動換彈 +${a.ammo-before}。`);};
  if(a.kind==='drone'&&a.sourceId==='drone_sentry'){if(shot)attack(shot);else if(topUp)reload();return;}
  // Swapping past another ally is for real errands (rejoining, a commanded tile, a fight); idle following just queues.
- if(!linked){stepToward(g,a,g.player,beside(g.player),linked,true);return;}
+ if(!linked){a.tactics=null;stepToward(g,a,g.player,beside(g.player),linked,true);return;}
  // Rallied summons come back first and only fight once they are beside the player again.
- if(a.kind==='summon'&&a.rallyTurn>=g.turn){if(distance(a,g.player)>2)stepToward(g,a,g.player,beside(g.player),linked,true);else if(shot)attack(shot);return;}
+ if(a.kind==='summon'&&a.rallyTurn>=g.turn){a.tactics=null;if(distance(a,g.player)>2)stepToward(g,a,g.player,beside(g.player),linked,true);else if(shot)attack(shot);return;}
  // A hold order walks first; if the way is shut, fight from here rather than idle.
- if(a.order&&distance(a,a.order)>0){if(!stepToward(g,a,a.order,q=>key(q)===key(a.order),linked,true)&&shot)attack(shot);return;}
+ if(a.order&&distance(a,a.order)>0){a.tactics=null;if(!stepToward(g,a,a.order,q=>key(q)===key(a.order),linked,true)&&shot)attack(shot);return;}
  // Engaged allies keep the fight inside the tether; the short leash would make melee pets pace back and forth.
  if(shot){attack(shot);return;}
  if(topUp){reload();return;}
- const chase=a.kind!=='drone'&&!a.order?targets.find(e=>distance(e,g.player)<=leash(a)):null;
+ const remembered=a.tactics?.until>=g.turn?a.tactics.target:null;
+ const chase=a.kind!=='drone'&&!a.order?(targets.find(e=>distance(e,g.player)<=leash(a))||remembered):null;
  // Walk to the nearest tile that can actually attack, not to the target's side: ranged allies stop at range.
- if(chase){stepToward(g,a,chase,q=>distance(q,chase)<=w.range&&g.shotClear(q,chase)&&(!w.melee||g.canCross(q,chase)),linked,true);return;}
+ if(chase){
+  const plan=combatStep(g,a,chase,{range:w.range,melee:w.melee,leash:leash(a),peers:currentAllies(g),investigate:chase===remembered});
+  if(plan?.done)return;
+  if(plan?.step){const next=plan.step,edge=barrierBetween(g.barriers,a,next);if(edgeBlocks(edge)&&!vaultable(edge)){g.setDoor(edge,true);return;}const old={x:a.x,y:a.y};Object.assign(a,next);a.moveDelta=[a.x-old.x,a.y-old.y];a.moved=true;a.vaultExposed=vaultable(edge);a.cornerExposure=null;return;}
+  stepToward(g,a,chase,q=>distance(q,chase)<=w.range&&g.sight({...a,...q},chase)&&g.shotClear({...a,...q},chase)&&(!w.melee||g.canCross(q,chase)),linked,true);return;
+ }
  if((a.kind==='drone'||!a.order)&&distance(a,g.player)>FOLLOW_RANGE[a.kind==='drone'?'drone':'other'])stepToward(g,a,g.player,beside(g.player),linked);
 }
 // One step toward a tile that satisfies reached. When none is reachable (taken, or behind another ally),

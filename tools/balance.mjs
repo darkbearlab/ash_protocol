@@ -1,3 +1,4 @@
+import {combatStep} from '../src/tactics.js';
 import {grenadeTotal} from '../src/throwables.js';
 import {isContainer} from '../src/containers.js';
 import {AMMUNITION,itemAmmo,TERMINAL_AMMO} from '../src/ammunition.js';
@@ -23,17 +24,21 @@ function safeMove(g,predicate) {
   return [[0,-1],[1,0],[0,1],[-1,0]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy,step:[dx,dy]})).filter(n=>g.passable(n.x,n.y)&&g.canCross(p,n)&&!g.hazards.some(h=>distance(h,n)===0)&&!g.enemies.some(e=>e.hp>0&&distance(e,n)===0)&&predicate(n)).sort((a,b)=>g.visibleEnemies.filter(e=>e.charge&&distance(e,a)<=1).length-g.visibleEnemies.filter(e=>e.charge&&distance(e,b)<=1).length)[0]?.step;
 }
 export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
-  const g=new GameType(seed,[],0,character);let invalid=0,actions=0,huntingBossFloor=null;
+  const g=new GameType(seed,[],0,character);let invalid=0,actions=0,huntingBossFloor=null,progress='',detourUntil=0,navigation=null;const visits=new Map();
   const act=(type,arg)=>{actions++;if(!g.action(type,arg))invalid++;};
   for(let i=0;i<maxActions&&g.status==='playing';i++) {
-    const p=g.player;
+    const p=g.player;navigation={...p,tactics:navigation?.tactics||null};
+    const milestone=g.floor+':'+p.kills;if(milestone!==progress){progress=milestone;visits.clear();detourUntil=0;navigation.tactics=null;}
+    const position=p.x+','+p.y;visits.set(position,(visits.get(position)||0)+1);
+    // Do not oscillate forever between a quiet silhouette and a supply detour. Commit to advancing.
+    if(visits.get(position)>4){detourUntil=g.turn+30;visits.clear();navigation.tactics=null;}
     if(g.pendingPerks){const rank={damage:70,armor:60,health:p.hp<70?100:50,med:p.meds<2?85:35,hazmat:15,blast:10,medic:35,scavenger:20};g.choosePerk([...g.perkChoices].sort((a,b)=>rank[b.id]-rank[a.id])[0].id);continue;}
     const marked=g.marks.find(m=>distance(p,m)<=1);
     if(marked){const step=safeMove(g,n=>distance(n,marked)>distance(p,marked));if(step){act('move',step);continue;}}
     const bomber=g.visibleEnemies.find(e=>e.type==='bomber'&&distance(e,p)<=1);
     if(bomber){act('wait');continue;}
     if(p.hp<=p.maxHp-45&&p.meds>0){act('heal');continue;}
-    const targets=g.visibleEnemies.filter(e=>distance(p,e)<=g.weapon.range).sort((a,b)=>Number(b.charge)-Number(a.charge)||distance(a,p)-distance(b,p));
+    const targets=g.visibleEnemies.filter(e=>distance(p,e)<=g.weapon.range&&g.shotClear(p,e)).sort((a,b)=>Number(b.charge)-Number(a.charge)||distance(a,p)-distance(b,p));
     const grenade=targets.find(e=>distance(p,e)>2&&distance(p,e)<=5&&(e.hp>=75||g.visibleEnemies.filter(o=>distance(o,e)<=2).length>=2));
     if(grenade&&p.grenades>0){if(p.prepared.grenade!=='frag')act('prepare',{category:'grenade',id:'frag'});act('grenade',grenade);continue;}
     if(targets.length&&p.ammo[p.weapon]>0){g.target=targets[0].id;
@@ -42,6 +47,10 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
       act('fire');continue;}
     if(p.ammo[p.weapon]<g.weapon.mag&&p[g.reserveKey()]>0&&(!targets.length||p.ammo[p.weapon]===0)){act('reload');continue;}
     if(p.ammo[p.weapon]===0&&p[g.reserveKey()]===0){const other=p.owned.find(index=>index!==p.weapon&&(p.ammo[index]>0||p[g.reserveKey(g.weaponAt(index))]>0));if(other!==undefined){act('weapon',other);continue;}}
+    // A visible silhouette may now be protected by a quiet corner. Reposition instead of repeatedly firing.
+    const memory=!g.visibleEnemies.length&&navigation.tactics?.until>=g.turn?navigation.tactics.target:null;
+    const sheltered=g.visibleEnemies.find(e=>!g.shotClear(p,e))||memory;
+    if(sheltered&&p.ammo[p.weapon]>0&&g.turn>=detourUntil){const plan=combatStep(g,navigation,sheltered,{range:g.weapon.range,melee:g.weapon.melee,investigate:sheltered===memory});if(plan?.step){act('move',[plan.step.x-p.x,plan.step.y-p.y]);continue;}}
     if(!g.visibleEnemies.length&&p.scrap>=25+p.upgrades[p.weapon]*15&&p.upgrades[p.weapon]<3){act('upgrade');continue;}
     if(g.canTouch(g.end)&&!g.bossAlive){act('interact');continue;}
     if(g.nearbyTerminal){if(p.scrap>=15&&p.hp<p.maxHp-55){act('terminal','heal');continue;}const offer=TERMINAL_AMMO[g.weapon.ammoType];if(p.scrap>=offer.cost&&p[g.reserveKey()]<Math.min(g.ammoCapacity(g.weapon.ammoType),g.weapon.mag*2)){act('terminal',g.weapon.ammoType);continue;}}
@@ -50,7 +59,7 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     const nearby=crates.find(c=>g.canTouch(c));if(nearby){act('openContainer',nearby.id);continue;}
     const needs=[...g.items.filter(needed),...crates].sort((a,b)=>distance(p,a)-distance(p,b));
     const boss=g.enemies.find(e=>(e.type==='boss'||e.type==='warden')&&e.hp>0);
-    let goal=needs.find(n=>route(g,n))||g.end;
+    let goal=g.turn<detourUntil?g.end:needs.find(n=>route(g,n))||g.end;
     // A detour can leave the five-tile trigger radius. Keep pursuing that boss
     // instead of alternating the exit route and boss route on consecutive turns.
     if(boss&&distance(p,g.end)<=5)huntingBossFloor=g.floor;

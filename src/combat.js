@@ -11,7 +11,7 @@ export function adjacentWalls(grid,actor) {
   return DIRECTIONS.filter(([dx,dy])=>grid[actor.y+dy]?.[actor.x+dx]!==1)
     .map(([dx,dy])=>({x:actor.x+dx,y:actor.y+dy,type:'wall',indestructible:true}));
 }
-function anchors(grid,p,barriers,channel) {
+export function anchors(grid,p,barriers,channel) {
   const out=[{x:p.x,y:p.y}];
   if(!Number.isInteger(p.x)||!Number.isInteger(p.y))return out;
   if(!adjacentWalls(grid,p).length&&!barriers.some(b=>edgeAdjacent(b,p)&&edgeBlocks(b,channel)))return out;

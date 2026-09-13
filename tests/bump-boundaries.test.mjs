@@ -38,6 +38,7 @@ test('committed bump follows original identity if it remains adjacent',()=>{
 test('no eligible melee falls back to unarmed, closed door opens first, partitions and diagonals reject',()=>{
   const s=arena('soldier');add(s);const turn=s.turn;assert.equal(s.action('move',[1,0]),true);assert.equal(s.turn,turn+1);assert.equal(s.player.x,10);assert.ok(s.effects.some(e=>e.weaponId==='unarmed'));
   const g=arena(),e=add(g);const door=makeBarrier('door',g.player,e,'door');g.barriers=[door];g.reveal();assert.ok(g.action('move',[1,0]));assert.equal(door.open,true);assert.equal(e.hp,500);assert.equal(g.player.x,10);
+  Object.assign(e,{x:g.player.x+1,y:g.player.y}); // The enemy may reposition during the door-opening turn.
   g.barriers=[makeBarrier('partition',g.player,e,'partition')];g.reveal();const before=g.turn;assert.equal(g.action('move',[1,0]),false);assert.equal(g.action('move',[1,1]),false);assert.equal(g.turn,before);
   const base=g.weaponAt.bind(g);g.barriers=[];g.weaponAt=slot=>({...base(slot),integrated:false});assert.equal(g.weaponAt(g.bumpMeleeSlot()).unarmed,true);
 });

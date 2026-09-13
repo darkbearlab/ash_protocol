@@ -1,3 +1,4 @@
+import {expireExposure} from './corner.js';
 import {enemyRoom} from './runtime-enemies.js';
 import {MAP_FIELDS,validMapMetadata} from './map-geometry.js';
 import {SIZE} from './data.js';
@@ -12,6 +13,7 @@ export function archiveFloor(g){
   // The departure action has already advanced the global clock. Expired smoke
   // cannot be resurrected when this floor is resumed later.
   frame.smoke=frame.smoke.filter(s=>s.expires>g.turn);
+  expireExposure(frame.enemies,g.turn);
   // A bombardment due on departure resumes on the first action back.
   for(const mark of frame.marks)mark.due=Math.max(mark.due,g.turn+1);
   return frame;
@@ -21,6 +23,7 @@ export function resumedFloor(frame,turn){
   for(const cloud of state.smoke)cloud.expires+=elapsed;
   for(const mark of state.marks)mark.due+=elapsed;
   for(const spawn of state.reinforcements)spawn.due+=elapsed;
+  for(const a of state.enemies){if(a.cornerExposure)for(const d of Object.keys(a.cornerExposure.until))a.cornerExposure.until[d]+=elapsed;if(a.tactics){a.tactics.until+=elapsed;if(a.tactics.holdUntil)a.tactics.holdUntil+=elapsed;if(a.tactics.retryAfter)a.tactics.retryAfter+=elapsed;}}
   return state;
 }
 export function arrivalCell(frame,allies=[]){
