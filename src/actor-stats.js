@@ -4,7 +4,7 @@ import {CHARACTERS,validCharacter} from './characters.js';
 // for future equipment/status effects, never inferred from species or body size.
 export const COMBAT_STATS=['rangedAccuracy','rangedEvasion','meleeAccuracy','meleeEvasion'];
 export const validCombatModifiers=value=>value===undefined||(value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).every(key=>COMBAT_STATS.includes(key)&&Number.isInteger(value[key])&&value[key]>=-100&&value[key]<=100));
-export const actorStat=(actor,key)=>(validCharacter(actor?.character)?CHARACTERS[actor.character].combat?.[key]||0:0)+(actor?.combatModifiers?.[key]||0);
+export const actorStat=(actor,key)=>(validCharacter(actor?.character)?CHARACTERS[actor.character].combat?.[key]||0:0)+(actor?.combatModifiers?.[key]||0)-(['rangedAccuracy','meleeAccuracy'].includes(key)?actor?.petSuppressed||0:0);
 export const clampHit=chance=>Math.max(10,Math.min(99,chance));
 export const meleeChance=(attacker,target,base=97)=>clampHit(base+actorStat(attacker,'meleeAccuracy')-actorStat(target,'meleeEvasion'));
 

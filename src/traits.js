@@ -2,6 +2,7 @@ import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {ENEMY_TYPES} from './data.js';
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const TRAITS={
+  disruption_resistant:{name:'抗失能',text:'受到的失能次數減半，向上取整。'},
   tactical_supply:{name:'戰術配給',text:'每次升至 2～20 級時獲得 1 顆煙霧彈；共用投擲容量不足時留在腳下。滿級經驗補給不觸發。'},
   extended_burst:{name:'延伸點射',text:'僅衝鋒槍：原射程外再延伸 2 格，延伸區每次只射 1 發、消耗 1 發彈藥。射程詞條先計入原射程，兩發區與單發區一起順延。'},
  difficult_healing:{name:'難以治療',text:'生命恢復在計入升級加成後減半，向下取整；不影響生命上限與護甲板。'},
@@ -72,7 +73,7 @@ export function sidestepPenalty(attacker,target){
 }
 export function validCombatMemory(actor,turn){
   const d=actor.moveDelta,c=actor.fireChain;
-  return Array.isArray(d)&&d.length===2&&d.every(Number.isInteger)&&Math.abs(d[0])+Math.abs(d[1])<=1&&
+  return (actor.petSuppressed===undefined||(Number.isInteger(actor.petSuppressed)&&actor.petSuppressed>0&&actor.petSuppressed<=100))&&Array.isArray(d)&&d.length===2&&d.every(Number.isInteger)&&Math.abs(d[0])+Math.abs(d[1])<=1&&
     (c===null||(c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.targetId==='string'&&c.targetId.length>0&&c.targetId.length<=100&&Number.isInteger(c.turn)&&c.turn>=1&&c.turn<=turn&&Number.isInteger(c.count)&&c.count>=1&&c.count<=correctionLimit(actor)));
 }
 

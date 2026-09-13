@@ -24,6 +24,7 @@ export const disruptionEligible=(actor,keyword)=>activeTrait(actor,keyword)||(ke
 export function applyDisruption(actor,keyword){
   if(!disruptionEligible(actor,keyword)||actor.hp<=0||actor.control.disabled||actor.control.immune)return false;
   actor.control.disabled=['boss','warden'].includes(actor.type)?BOSS_DISRUPT_TURNS:DISRUPT_TURNS;
+  if(activeTrait(actor,'disruption_resistant'))actor.control.disabled=Math.ceil(actor.control.disabled/2);
   actor.charge=false;actor.aim=null;actor.windup=0;actor.fireChain=null;
   actor.guard=false;actor.focus=false;actor.evasive=false;actor.moved=false;actor.moveDelta=[0,0];
   return true;

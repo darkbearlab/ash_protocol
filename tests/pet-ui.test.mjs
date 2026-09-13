@@ -57,15 +57,15 @@ test('the output line never reports production when only the timer is ready',()=
 test('effect and help text read the tuning table and no longer mention packing',()=>{
  assert.ok(lineEffects('vitality')[0].includes(String(T.baseHp+T.extraHp)));
  assert.ok(lineEffects('extrusion')[0].includes(String(T.outputIntervals[0])));
- assert.ok(lineEffects('turret')[1].includes(String(T.turret[1].range)));
+ assert.ok(lineEffects('turret')[2].includes(String(T.turret[2].range)));
  const help=petHelpText();
  assert.ok(help.includes(String(T.reviveTurns)));assert.ok(help.includes(`${Math.round(T.reviveFraction*100)}%`));
  assert.doesNotMatch(help,/收納|回收/);
 });
 
 test('small formatters: rank dots, fuel in whole scrap units, per-line progress units',()=>{
- assert.equal(rankDots(0),'○○○');assert.equal(rankDots(2),'◉◉○');
+ assert.equal(rankDots(0),'○○○○○○');assert.equal(rankDots(2),'◉◉○○○○');
  assert.equal(formatFuel(T.fuelScale*5),'5');assert.equal(formatFuel(90),'1.3');
  assert.equal(lineProgress('armor',{progress:12,nextThreshold:25,capped:false}),'12 / 25 板');
- assert.equal(lineProgress('turret',{progress:120,nextThreshold:null,capped:true}),'已滿三階');
+ assert.equal(lineProgress('turret',{progress:120,nextThreshold:null,capped:true}),'已滿六節點');
 });

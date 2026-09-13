@@ -1,4 +1,4 @@
-import {newPetBond,petMaximum,petWeapon,petFuelCost,petCombat,transportPet,placePet} from './pet-growth.js';
+import {PET_TETHER,petMoved,syncPetSenses,petReactions,newPetBond,petMaximum,petWeapon,petFuelCost,petCombat,transportPet,placePet} from './pet-growth.js';
 // Legacy UI exports; no longer used by pet rules. Claude will replace the old guide.
 import {combatStep} from './tactics.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
@@ -21,7 +21,7 @@ export const SUMMON_INTERVAL=4,SUMMON_TETHER=9,RALLY_TURNS=3;
 export const FOLLOW_RANGE={drone:1,summon:1,other:3};
 export const summonLimit=p=>SUMMON_LIMIT+classPerkRank(p,'necro_horde')*CLASS_PERK_TUNING.horde;
 export const summonInterval=p=>Math.max(1,SUMMON_INTERVAL-classPerkRank(p,'necro_haste')*CLASS_PERK_TUNING.haste);
-export const PET_TETHER=9;
+export {PET_TETHER} from './pet-growth.js';
 export const petMaxHp=petMaximum;
 export const leash=a=>a.kind==='pet'?PET_TETHER:a.kind==='summon'?SUMMON_TETHER:TETHER;
 // Placeholder economy: keep price and healing shared by rules and inventory UI.
@@ -175,6 +175,14 @@ export function commandPet(g,point){
 const slotTurn=new WeakMap();
 const restFor=(g,a)=>slotTurn.get(a)===g.turn?g.turn+1:g.turn;
 export function allyAct(g,a){
+ const eligible=a.status==='active'&&a.floor===g.floor&&a.hp>0&&a.bornTurn!==g.turn&&a.restTurn!==g.turn;
+ actAlly(g,a);
+ if(a.kind==='pet'&&a.status==='active'){
+  if(a.moved)petMoved(g,a);else if(eligible)g.player.petBond.steadfast=true;
+  syncPetSenses(g);petReactions(g);
+ }
+}
+function actAlly(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return;
  slotTurn.set(a,g.turn);a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return;
  let w=allyWeapon(a,g.player);const linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
@@ -184,11 +192,12 @@ export function allyAct(g,a){
   a.tactics=null;petCombat(g,a);
   for(let i=0;i<(w.shots||1);i++){
    if(e.hp<=0)break;
+   const chance=w.melee?g.meleeAccuracy(a,e,w.hitChance):g.accuracy(a,e).chance;
    if(a.kind==='pet'&&!w.melee){const cost=petFuelCost(g.player,'shot');if(g.player.petBond.fuel<cost)break;g.player.petBond.fuel-=cost;}
    if(!w.melee)g.recordExposure(a,e);
    if(a.kind==='drone')a.ammo--;
    const clear=g.sight(a,e)&&g.shotClear(a,e)&&distance(a,e)<=w.range&&(!w.melee||g.canCross(a,e));
-   const chance=w.melee?g.meleeAccuracy(a,e,w.hitChance):g.accuracy(a,e).chance,hit=clear&&g.rng()*100<chance;
+   const hit=clear&&g.rng()*100<chance;
    g.effects.push({type:'shot',weaponId:w.id,style:w.melee?'claw':'bullet',from:{x:a.x,y:a.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:'#89e8c8'});
    if(hit)g.hitTarget(e,w.min+Math.floor(g.rng()*(w.max-w.min+1)),a,0,w);else g.log(`${allyName(a)}射擊／攻擊落空。`);
   }
@@ -254,7 +263,7 @@ function swapPast(g,a,far,here,linked){
  const from={x:a.x,y:a.y},to={x:b.x,y:b.y};
  Object.assign(a,{...to,moveDelta:[to.x-from.x,to.y-from.y],moved:true,vaultExposed:false});
  Object.assign(b,{...from,moveDelta:[from.x-to.x,from.y-to.y],moved:true,vaultExposed:false,restTurn:restFor(g,b)});
- g.log(`${allyName(a)}與${allyName(b)}交換位置。`);return true;
+ petMoved(g,a);petMoved(g,b);g.log(`${allyName(a)}與${allyName(b)}交換位置。`);return true;
 }
 // Walking into an ally trades places with it (NetHack-style). The ally lands on the tile the player is leaving,
 // which is always free, so allies can never box the player in. Refused for fixed sentries, disabled allies and
@@ -269,7 +278,7 @@ export function swapReason(g,a){
 export function swapWithPlayer(g,a){
  const p=g.player,from={x:a.x,y:a.y};
  Object.assign(a,{x:p.x,y:p.y,moveDelta:[p.x-from.x,p.y-from.y],moved:true,vaultExposed:false,restTurn:restFor(g,a)});
- g.log(`${allyName(a)}與你交換位置，放棄一次行動。`);
+ petMoved(g,a);g.log(`${allyName(a)}與你交換位置，放棄一次行動。`);
 }
 // Runs once per paid world turn, before skills tick. When the rising timer is ready, the necromancer has room for
 // another summon and someone has fallen on this floor, one rises beside the player and acts from the next turn.

@@ -2,29 +2,24 @@
 // pet-growth.js quotes; nothing here recomputes them. Effect text reads PET_FEEDING_TUNING so it cannot drift.
 import {AMMUNITION} from './ammunition.js';
 import {GRENADES} from './throwables.js';
-import {PET_FEEDING_TUNING as T} from './pet-growth.js';
+import {petNodes,PET_FEEDING_TUNING as T} from './pet-growth.js';
 
 export const PET_LINE_NAMES={vitality:'體質',armor:'裝甲',turret:'砲台',extrusion:'排出'};
 export const PET_LINE_TINTS={vitality:'#d98a7a',armor:'#92c4df',turret:'#d9b46a',extrusion:'#b8c694'};
 const UNITS={vitality:'生命',armor:'板',turret:'價值',extrusion:'顆'};
 
-export const rankDots=rank=>'◉'.repeat(rank)+'○'.repeat(3-rank);
+export const rankDots=rank=>'◉'.repeat(rank)+'○'.repeat(Math.max(0,6-rank));
 export const formatFuel=ticks=>String(Math.round(ticks/T.fuelScale*10)/10);
 export const fuelLabel=state=>`燃料 ${formatFuel(state.fuel.stored)} / ${formatFuel(state.fuel.capacity)}`;
 export const fuelPercent=state=>state.fuel.capacity?Math.round(state.fuel.stored/state.fuel.capacity*100):0;
-export const lineProgress=(line,g)=>g.capped?'已滿三階':`${g.progress} / ${g.nextThreshold} ${UNITS[line]}`;
+export const lineProgress=(line,g)=>g.capped?'已滿六節點':`${g.progress} / ${g.nextThreshold} ${UNITS[line]}`;
 
 export function lineEffects(line){
- return {
-  vitality:[`生命上限 ${T.baseHp+T.extraHp}`,`交戰中每回合回 ${T.regen}`,'每層一次致命傷改留 1 HP'],
-  armor:[`裝甲 ${T.baseArmor+T.extraArmor}`,'能利用掩體',`直接傷害再減 ${Math.round(T.reduction*100)}%`],
-  turret:[`射擊 · 射程 ${T.turret[0].range}`,`射程 ${T.turret[1].range} · 傷害 ${T.turret[1].min}–${T.turret[1].max}`,'一次行動兩發'],
-  extrusion:[`每 ${T.outputIntervals[0]} 回合排出餵最多的投擲物`,`每 ${T.outputIntervals[1]} 回合排出`,'可指定排出種類'],
- }[line];
+ return petNodes(null,line).map(n=>n.text);
 }
 
 export function petStatusLine(state){
- if(state.status==='reforming')return `消散中 · ${state.reviveRemaining} 個付費回合後在你身邊重生（${Math.round(T.reviveFraction*100)}% 生命），重生前不能餵`;
+ if(state.status==='reforming')return `消散中 · ${state.reviveRemaining} 個付費回合後在你身邊重生（${Math.round((state.reviveFraction??T.reviveFraction)*100)}% 生命），重生前不能餵`;
  if(state.status==='arriving')return '等候落點：身邊沒有空位，騰出相鄰格就會歸隊';
  return `活動中 · HP ${state.hp}/${state.maxHp}`;
 }
@@ -65,5 +60,5 @@ export function feedingView(state,{weaponName=()=>'武器'}={}){
 }
 
 export function petHelpText(){
- return `餵養在背包技能頁：與獵獸上下左右相鄰、中間沒有門或隔板時，每次餵一份、花 1 回合。彈藥不限彈種，存進獨立的胃當燃料，寵物不會自己拿你的備彈；射擊與排出吃燃料，燃料不夠就只會咬。生命、裝甲板、武器、投擲物分別累積體質、裝甲、砲台、排出四條三階成長（體質提高上限但不補當前生命）；醫療包只治療寵物。死亡時直接消散、胃清空、成長保留，${T.reviveTurns} 個付費回合後在你身邊以 ${Math.round(T.reviveFraction*100)}% 生命重生，重生前不能餵。`;
+ return `餵養在背包技能頁：與獵獸上下左右相鄰、中間沒有門或隔板時，每次餵一份、花 1 回合。彈藥不限彈種，存進獨立的胃當燃料，寵物不會自己拿你的備彈；射擊與排出吃燃料，燃料不夠就只會咬。生命、裝甲板、武器、投擲物分別累積體質、裝甲、砲台、排出四條六節點成長（體質提高上限但不補當前生命）；醫療包只治療寵物。死亡時直接消散、胃清空、成長保留，${T.reviveTurns} 個付費回合後在你身邊以 ${Math.round(T.reviveFraction*100)}% 生命重生，重生前不能餵。`;
 }

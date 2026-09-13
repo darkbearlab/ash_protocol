@@ -1,4 +1,4 @@
-import {petFeedQuote,feedPet,outputChoiceReason,tickPetBond,petCombat,petDeath,petSurvives,petRank,migratePetBond,validPetBond,PET_FEEDING_TUNING} from './pet-growth.js';
+import {petHit,petDefense,petReactions,syncPetSenses,petScanContacts,migratePetNodes,petFeedQuote,feedPet,outputChoiceReason,tickPetBond,petCombat,petDeath,petSurvives,petRank,migratePetBond,validPetBond,PET_FEEDING_TUNING} from './pet-growth.js';
 import {cornerRay,cornerStatus,recordExposure,clearMovedExposure,expireExposure,validCorner} from './corner.js';
 import {combatStep,validTactics} from './tactics.js';
 import {UNARMED_SLOT,UNARMED} from './unarmed.js';
@@ -61,6 +61,7 @@ export class Game {
     prepareMission(this);
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
+  get petSensorContacts(){return petScanContacts(this);}
   get activeAllies(){return currentAllies(this);}
   get localAllies(){return localAllies(this);}
   actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):null;}
@@ -93,7 +94,7 @@ export class Game {
   get cover(){if(activeTrait(this.player,'no_cover'))return [];return [...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,this.player)===1),...adjacentWalls(this.grid,this.player),...this.barriers.filter(b=>edgeAdjacent(b,this.player)&&edgeBlocks(b,'cover'))];}
   visible(e){return distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e));}
   teamVisible(e){return this.visible(e)||this.activeAllies.some(a=>connected(this,a)&&distance(a,e)<=8&&this.sight(a,e));}
-  sight(a,b){return !(b===this.player&&a!==this.player&&skillActive(this.player))&&tacticalSight(this,a,b);}
+  sight(a,b){syncPetSenses(this);return !(b===this.player&&a!==this.player&&skillActive(this.player))&&tacticalSight(this,a,b);}
   shotClear(a,b){return cornerRay(this,a,b).clear;}
   attackStatus(a,b){return cornerStatus(this,a,b);}
   recordExposure(a,b){recordExposure(this,a,b);}
@@ -135,6 +136,7 @@ export class Game {
   solid(x,y){return this.props.find(o=>o.x===x&&o.y===y&&o.hp>0&&(o.type==='cover'||o.type==='barrel'||o.type==='nest'));}
   passable(x,y,actor){return this.grid[y]?.[x]===1&&(!this.solid(x,y)||actor?.type==='drone');}
   reveal() {
+    syncPetSenses(this);
     clearMovedExposure(this);
     const radius=Math.max(10,this.weapon.range);
     this.visibleTiles=new Set();
@@ -278,7 +280,7 @@ export class Game {
       if(actor.hp<=0||actor.kind&&(actor.status!=='active'||actor.floor!==this.floor))continue;
       if(actor===p&&playerStunned)continue;
       actor.vaultExposed=false;
-      if(skipDisabled(actor)){if(actor===p){playerStunned=true;this.log('失能：本次行動跳過，未消耗彈藥或道具。',true);}continue;}
+      if(skipDisabled(actor)){delete actor.petSuppressed;if(actor===p){playerStunned=true;this.log('失能：本次行動跳過，未消耗彈藥或道具。',true);}continue;}
       const immunityBefore=actor.control?.immune||0;
       if(actor===p){
         if(doubleAttack&&!anchorExtra&&type==='fire')p.fireChain=previousChain?{...previousChain}:null;
@@ -286,7 +288,7 @@ export class Game {
         const success=type==='move'?presentStep(this,()=>this.executePlayer(type,arg)):this.executePlayer(type,fireIntent||arg);
         if(!success)this.log('局勢已改變，行動未能完成；本回合已消耗。');
         p.guard=success&&type==='wait';p.moved=success&&(type==='move'||type==='grapple'&&p.moved);p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
-        this.reveal();
+        petReactions(this);this.reveal();
       }else if(actor.kind)presentStep(this,()=>{allyAct(this,actor);this.reveal();},actor);
       else if(actor.hp>0&&actor.alert)presentStep(this,()=>this.enemyAct(actor),speed!==0||playerSpeed!==0?actor:null);
       if(immunityBefore&&!anchorExtra)actor.control.immune=Math.max(0,actor.control.immune-1);
@@ -453,7 +455,8 @@ export class Game {
   }
   protectingCover(target,attacker) {
     if(activeTrait(target,'no_cover'))return null;
-    return bestCover([edgeCover(this.barriers,target,attacker),wallCover(this.grid,target,attacker),...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,target)===1)],target,attacker);
+    const cover=bestCover([edgeCover(this.barriers,target,attacker),wallCover(this.grid,target,attacker),...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,target)===1)],target,attacker);
+    return attacker?.kind==='pet'&&petRank(this.player,'turret')>=4&&coverEffects(cover,target,attacker).efficiency===.5?null:cover;
   }
   hitTarget(target,raw,attacker,pierce=0,weapon=this.weapon) {
     if(attacker===this.player&&!weapon.unarmed)raw=Math.round(raw*bladeMultiplier(attacker));
@@ -466,6 +469,7 @@ export class Game {
     if(weapon.ammoType==='energy')addTrace(this,target,'scorch');
     const before=target.hp;this.hurt(target,reduceDirectDamage(target,damage),attacker);
     if(before>0&&target.hp<=0&&attacker?.kind==='pet')healActor(this.player,classPerkRank(this.player,'druid_symbiosis')*CLASS_PERK_TUNING.symbiosisHeal);
+    petHit(this,attacker,target,Math.max(0,before-Math.max(0,target.hp)),weapon);
     if(attacker===this.player&&weapon.melee&&!weapon.unarmed)meleeReward(this,target,before);
   }
   hurt(e,damage,attacker=null) {
@@ -557,14 +561,16 @@ export class Game {
     if(attacker&&ENEMY_TYPES[attacker.type]?.mechanical&&ENEMY_TYPES[attacker.type].range>1)addTrace(this,p,'scorch');
     if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:attacker.type==='crawler'?'claw':attacker.type==='brute'?'slash':ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet',from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
     else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage});
+    petReactions(this);syncPetSenses(this);
   }
   damageAlly(a,raw,attacker=null,blast=false,environment=false){
     if(a.hp<=0||a.status!=='active')return;const cover=!blast&&attacker?this.protectingCover(a,attacker):null;let damage=raw;
     if(cover){damage*=1-coverEffects(cover,a,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);}
     if(!environment)petCombat(this,a);damage=reduceDirectDamage(a,Math.max(1,Math.round(damage-a.armor)));
-    if(a.kind==='pet'&&!environment&&petRank(this.player,'armor')===3)damage=Math.max(1,Math.round(damage*(1-PET_FEEDING_TUNING.reduction)));a.hp=Math.max(0,a.hp-damage);
+    if(!environment)damage=petDefense(this,a,damage);a.hp=Math.max(0,a.hp-damage);
     addTrace(this,a,activeTrait(a,'mechanical')?'oil':'blood');this.effects.push({type:'impact',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},damage});this.log(`${allyName(a)}受傷 −${damage}。`,true);
-    if(!a.hp&&a.kind==='pet'){if(!petSurvives(this,a))petDeath(this,a);this.reveal();return;}
+    if(!a.hp&&a.kind==='pet'){if(!petSurvives(this,a))petDeath(this,a);petReactions(this);this.reveal();return;}
+    petReactions(this);
     if(!a.hp){a.status='destroyed';a.order=null;this.reveal();this.log(`${allyName(a)}${a.kind==='drone'?`已被摧毀：按僚機技能花 ${DRONE_BUILD_COST} 廢料生產新機。`:'已被摧毀。'}`,true);}
   }
   enemyTarget(e){
@@ -575,6 +581,9 @@ export class Game {
     return options.sort((a,b)=>Number(ready(b))-Number(ready(a))||distance(e,a)-distance(e,b))[0]||this.player;
   }
   enemyAct(e){
+    try{return this.enemyOpportunity(e);}finally{delete e.petSuppressed;}
+  }
+  enemyOpportunity(e){
     if(e.type==='fodder'){if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return;}e.actionDelay=1;}
     const x=e.x,y=e.y,fired=this.executeEnemy(e);
     if(e.x!==x||e.y!==y)e.cornerExposure=null;
@@ -641,6 +650,7 @@ export class Game {
     else if(p.poison>0){p.poison--;const damage=Math.max(0,4-p.hazmat);p.hp-=damage;if(damage)this.log(`中毒傷害 −${damage}，剩餘 ${p.poison} 回合。`,true);}
     if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp});
     for(const a of this.activeAllies.filter(a=>a.type!=='drone'))if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);
+    petReactions(this);
     for(const e of this.enemies.filter(e=>e.hp>0&&e.type!=='drone'))if(this.hazards.some(h=>h.x===e.x&&h.y===e.y))this.hurt(e,6);
   }
   pickup() {
@@ -896,8 +906,9 @@ export class Game {
       if(!Number.isInteger(g.shadowSteps)||g.shadowSteps<0||g.shadowSteps>2||g.shadowSteps>0&&classPerkRank(p,'ninja_shadowstep')===0)return null;
       if(!validPerks(g))return null;
       if(version<35&&!migratePetBond(g))return null;
+      if(version<36&&!migratePetNodes(g,version===35))return null;
       if(!validAllies(g)||!validPetBond(g))return null;
-      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
+      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,traits:p.traits.filter(t=>t.source!=='pet:vision'),battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
       // Weapon slots belong to the run, including weapons left on archived floors.
       for(const frame of Object.values(g.floorStates))for(const item of frame.items)if(item.type==='weapon'){
         if(locations.has(item.slot))return null;locations.add(item.slot);
