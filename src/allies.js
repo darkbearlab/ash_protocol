@@ -1,6 +1,5 @@
 import {newPetBond,petMaximum,petWeapon,petFuelCost,petCombat,transportPet,placePet} from './pet-growth.js';
 // Legacy UI exports; no longer used by pet rules. Claude will replace the old guide.
-export const PET_REGEN=0,PET_MEDKIT_FRACTION=.5;
 import {combatStep} from './tactics.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {floorLimit} from './endless.js';

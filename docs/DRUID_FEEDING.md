@@ -180,3 +180,12 @@ v34 以前初始化零成長、零燃料；active 保留生命，packed 在玩�
 
 `tests/pet-feeding.test.mjs` 對應第8節全部15條；`tests/allies.test.mjs` 更新被取代的回收測試，保留機體／召喚／倖存者回歸；endless 測試改用新等待落腳狀態。
 `node qa/create-pet-feeding-scenes.mjs` 產生 `qa/fixtures/pet-*.json`：feeding、turret、extrusion、reforming、legacy-packed、legacy-down。只在 `?test=1` 匯入，勿碰正式任務。新 UI 尚未接好，Claude 可先以模組 API 驗證規則，再測技能頁。
+
+### 3.72.1 Claude 介面接線（已完成）
+
+- 背包技能頁「伴生餵養」面板完全由 `petFeedingState(game)` 的報價驅動，介面不重算價格或合法性；顯示邏輯集中在 `src/pet-ui.js`。
+- 共同限制（`feedGateReason`：所有選項同一原因且無可餵）只顯示一次，按鈕不重複原因；個別不可餵的選項顯示各自原因。
+- 餵武器走確認視窗再送 `feedPet`；`setPetOutput` 先以 `outputChoiceReason` 預檢，免費、不關閉背包。
+- `output.ready` 只顯示為「倒數已到」，燃料不足時標明，不顯示為已產出。
+- 同行友軍清單、點擊友軍提示、說明頁已改認 `reforming/arriving`，舊收納文字已刪除；`PET_REGEN`／`PET_MEDKIT_FRACTION` 相容匯出已移除。
+
