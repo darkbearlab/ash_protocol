@@ -17,6 +17,7 @@
     - 第 3 回合頭上出現「我們只是在維持設施運轉……」。
     - 白色研究服的亮度與其他角色一致；目標卡標籤正確。
   - 細節見 [CIVILIANS.md](CIVILIANS.md) 第 8 節與 [3.82.1 QA](../qa/results/2026-09-14-claude-3.82.1-civilian-voice.md)。
+- 已部署：GitHub Pages run 34854671727 成功，線上 `src/version.js` 確認為 3.82.1；完整 789 項測試與 build 通過。
 
 ## 3.82.0 — 平民與研究員（Codex，2026-09-14）
 
