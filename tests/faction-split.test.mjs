@@ -56,3 +56,40 @@ test('the suicide robot is a mechanical bomber, and both human voices cover ever
   const lines=VOICE_LINES[voice][cue];assert.ok(lines?.length,`${voice}:${cue}`);for(const line of lines)assert.ok(!/[0-9%×]/.test(line),line);
  }
 });
+
+// 3.81.0 (user): more rebel elites with more affixes, armour 1 on part of the loyalist troops, armour on the target card.
+import {targetDetails} from '../src/target-card.js';
+import {affixArena,sceneEnemy} from '../qa/enemy-affix-scenes.mjs';
+
+test('rebels field elites from the first floor, more later, and their elites carry the faction affix count',()=>{
+ const rebel=factionDef('rebel'),elitesIn=entries=>entries.filter(([type])=>ENEMY_TYPES[type].elite).reduce((n,[,c])=>n+c,0);
+ assert.ok(elitesIn(rebel.roster.early)>0&&elitesIn(rebel.roster.late)>elitesIn(rebel.roster.early));
+ assert.ok(rebel.eliteAffixes>ELITE_TUNING.minAffixes);
+ for(const card of ['raider_elite','gunner_elite']){
+  const applicable=ENEMY_AFFIXES.filter(d=>d.applies(makeEnemy(ENEMY_TYPES[card].variantOf,1,1,'probe',1))).length;
+  const e=rollEnemyElite(makeEnemy(card,1,1,`qa-rebel-${card}`,1,0,'rebel'),5,1,0);
+  assert.equal(e.elite,true);assert.equal(e.affixes.length,Math.min(rebel.eliteAffixes,applicable),card);
+ }
+ assert.equal(rollEnemyElite(makeEnemy('raider_elite',1,1,'qa-legacy-elite',1),5,1,0).affixes.length,ELITE_TUNING.minAffixes,'factions without eliteAffixes keep the default');
+});
+
+test('variant cards keep the base name, loot, art and behaviour; only part of the loyalist troops wear armour',()=>{
+ for(const [card,base,patch] of [['rifleman_armored','rifleman',{armor:1}],['raider_armored','raider',{armor:1}],['raider_elite','raider',{elite:true}],['gunner_elite','gunner',{elite:true}]]){
+  const d=ENEMY_TYPES[card],b=ENEMY_TYPES[base];
+  assert.equal(d.variantOf,base);assert.equal(d.name,b.name);assert.equal(d.loot,b.loot);assert.equal(d.behavior,b.behavior);
+  for(const [k,v] of Object.entries(patch))assert.equal(d[k],v,`${card}.${k}`);
+  assert.deepEqual(unitTree(makeEnemy(card,1,1,'probe',1)),unitTree(makeEnemy(base,1,1,'probe',1)));
+ }
+ for(const band of ['early','late']){
+  const troops=factionDef('loyalist').roster[band].filter(([type])=>['rifleman','raider','gunner'].includes(ENEMY_TYPES[type].variantOf??type));
+  const armoured=troops.filter(([type])=>ENEMY_TYPES[type].armor>0).reduce((n,[,c])=>n+c,0),all=troops.reduce((n,[,c])=>n+c,0);
+  assert.ok(armoured>0&&armoured<all,`${band}: only part of the troops are armoured`);
+ }
+ assert.ok(!Object.values(factionDef('rebel').roster).flat().some(([type])=>ENEMY_TYPES[type].variantOf&&ENEMY_TYPES[type].armor>0));
+});
+
+test('the target card shows armour on its own line under HP only when a unit has some; real mode hides it with HP',()=>{
+ const plain=affixArena();sceneEnemy(plain,'rifleman');assert.ok(!targetDetails(plain).hp.includes('護甲'));
+ const armoured=affixArena();sceneEnemy(armoured,'rifleman_armored');assert.match(targetDetails(armoured).hp,/^HP \d+ \/ \d+\n護甲 1$/);
+ const raw=JSON.parse(affixArena().serialize());raw.data.realMode=true;const real=Game.restore(JSON.stringify(raw));sceneEnemy(real,'brute');assert.equal(targetDetails(real).hp,'');
+});

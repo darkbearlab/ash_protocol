@@ -52,9 +52,12 @@ export const ENEMY_TYPES = {
 };
 // Compatibility view keeps the historical key order; loot has one authoritative home.
 export const ENEMY_LOOT=Object.freeze(Object.fromEntries(['rifleman','raider','gunner','sniper','drone','brute','warden','boss'].map(id=>[id,Object.freeze(ENEMY_TYPES[id].loot)])));
-// Rebel heroes (3.80.0): the base card, same name and loot, but always born elite (docs/ELITE_ENEMIES.md; the bestiary
-// hides them so the name gives nothing away).
-for(const base of ['raider','gunner'])ENEMY_TYPES[`${base}_elite`]={...ENEMY_TYPES[base],sprite:{...ENEMY_TYPES[base].sprite,key:ENEMY_TYPES[base].sprite?.key||base},elite:true};
+// Variant cards: a copy of the base card with the same name, loot and art plus a patch; variantOf keeps the base id so
+// the bestiary lists only base cards. Rebel heroes are always born elite (3.80.0, docs/ELITE_ENEMIES.md 9); loyalist
+// troops wear armour 1 (3.81.0, docs/FACTION_DATA.md 15).
+const variantCard=(base,patch)=>({...ENEMY_TYPES[base],sprite:{...ENEMY_TYPES[base].sprite,key:ENEMY_TYPES[base].sprite?.key||base},variantOf:base,...patch});
+for(const base of ['raider','gunner'])ENEMY_TYPES[`${base}_elite`]=variantCard(base,{elite:true});
+for(const base of ['rifleman','raider'])ENEMY_TYPES[`${base}_armored`]=variantCard(base,{armor:1});
 // Stable IDs; append content without changing saved offers. null cap means consumable reward.
 export const PERKS = [
   {id:'damage',name:'武器增幅',cap:3,effect:'weapon',amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'},
