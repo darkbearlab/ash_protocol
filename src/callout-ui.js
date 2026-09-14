@@ -96,6 +96,9 @@ export class CalloutBoard{
   while(this.items.length>this.tuning.maxOnScreen){const drop=[...this.items].sort((a,b)=>RANK[a.event.priority]-RANK[b.event.priority]||a.started-b.started)[0];this.items.splice(this.items.indexOf(drop),1);}
   return this.items.includes(item)?item:null;
  }
+ // A fallen speaker's line fades out within fadeMs, whatever it said (user decision, 3.84.3). Only the first call counts,
+ // so a bubble that is already fading keeps its pace. Heard lines have no known speaker and are never silenced.
+ silence(item,now){if(item.silencedAt===undefined){item.silencedAt=now;item.expires=Math.min(item.expires,now+this.tuning.fadeMs);}return item;}
  prune(now){this.items=this.items.filter(i=>now<i.expires);}
  active(now){this.prune(now);return this.items;}
 }
