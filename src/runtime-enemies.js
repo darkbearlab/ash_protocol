@@ -14,8 +14,8 @@ export function collapseNest(g,p){
  g.effects.push({type:'nestCollapse',nestStyle:style,from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});
  g.log(style==='rift'?'裂隙閉合，留下紫色的空間粉末。':'地洞塌陷，被落土回填。');g.reveal();
 }
-export const enemyRoom=g=>Math.max(0,RUNTIME_TUNING.liveLimit-g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)).length);
-export const expendableRoom=g=>Math.max(0,RUNTIME_TUNING.expendableLimit-g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&e.expendable).length);
+export const enemyRoom=g=>Math.max(0,RUNTIME_TUNING.liveLimit-g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&!e.horde).length);
+export const expendableRoom=g=>Math.max(0,RUNTIME_TUNING.expendableLimit-g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&!e.horde&&e.expendable).length);
 export function addRuntimePopulation(base,seed,floor,check,faction=DEFAULT_FACTION){
  if(!base.generation)return base; // An empty recipe pool retains the exact v1 baseline.
  const safe=m=>{if(!check(m))return false;const seen=reachable(m,m.start),solid=new Set(m.props.filter(p=>p.hp>0&&['cover','barrel','nest'].includes(p.type)).map(key));return m.grid.every((row,y)=>row.every((v,x)=>v!==1||solid.has(`${x},${y}`)||seen.has(`${x},${y}`)));};
@@ -52,6 +52,6 @@ export function validRuntime(g){
  const ids=new Set();for(const e of g.enemies){if(ids.has(e.id))return false;ids.add(e.id);if([factionDef(g.facilityFaction??DEFAULT_FACTION).fodder,factionDef(g.facilityFaction??DEFAULT_FACTION).nestChild].includes(e.type)&&(!e.expendable||!e.reinforcement||!Number.isInteger(e.actionDelay)||e.actionDelay<0||e.actionDelay>1))return false;}
  const nests=g.props.filter(p=>p.type==='nest');if(nests.length>RUNTIME_TUNING.nestCount)return false;
  for(const p of nests){const s=p.nest;if(!/^nest-\d+-\d+$/.test(p.id)||ids.has(p.id)||!Number.isFinite(p.hp)||!Number.isFinite(p.maxHp)||p.maxHp<=0||p.hp>p.maxHp||!s||typeof s.active!=='boolean'||!Number.isInteger(s.remaining)||s.remaining<0||!Number.isInteger(s.serial)||s.serial<0||!Number.isInteger(s.total)||s.total<1||s.total>100||s.serial+s.remaining!==s.total||!Number.isInteger(s.interval)||s.interval<1||s.interval>100||!Number.isInteger(s.cooldown)||s.cooldown<0||s.cooldown>s.interval||!s.active&&(s.serial||s.cooldown))return false;ids.add(p.id);}
- for(const e of g.enemies.filter(e=>e.type===factionDef(g.facilityFaction??DEFAULT_FACTION).nestChild&&e.broodParent===undefined)){const p=nests.find(p=>p.id===e.nestId);if(!p||!Array.from({length:p.nest.serial},(_,i)=>`${p.id}-child-${i+1}`).includes(e.id))return false;}
+ for(const e of g.enemies.filter(e=>e.type===factionDef(g.facilityFaction??DEFAULT_FACTION).nestChild&&e.broodParent===undefined&&!e.horde)){const p=nests.find(p=>p.id===e.nestId);if(!p||!Array.from({length:p.nest.serial},(_,i)=>`${p.id}-child-${i+1}`).includes(e.id))return false;}
  return true;
 }

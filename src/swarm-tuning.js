@@ -1,1 +1,1 @@
-export const SWARM_TUNING={poisonTurns:3,poisonCap:6,poisonDamage:4,tongueRange:5,tongueCooldown:4,burstMin:1,burstMax:2};
+export const SWARM_TUNING={poisonHitStacks:1,poisonCap:4,poisonDamage:1,poisonDecayTurns:2,acidStacks:1,hordeMinFloor:3,hordeTriggerRadius:6,hordeWaves:4,hordeWaveSize:4,hordeInterval:3,hordeWarningTurns:2,hordeLiveLimit:12,hordeSpawnRadius:4,tongueRange:5,tongueCooldown:4,burstMin:1,burstMax:2};

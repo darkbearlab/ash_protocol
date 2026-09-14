@@ -3,7 +3,7 @@ import {Game} from '../src/engine.js';
 import {affixArena} from './enemy-affix-scenes.mjs';
 export function swarmScenes(){
  const prepared=affixArena();prepared.facilityFaction='swarm';const boss=prepared.spawnEnemy('hive_beast',14,10,'qa-tongue');boss.alert=true;prepared.enemies.push(boss);prepared.reveal();prepared.enemyAct(boss);
- const venom=affixArena();venom.facilityFaction='swarm';venom.player.poison=6;const spitter=venom.spawnEnemy('spitter',14,10,'qa-spitter');spitter.alert=true;venom.enemies.push(spitter);venom.reveal();
+ const venom=affixArena();venom.facilityFaction='swarm';venom.player.poison=4;const spitter=venom.spawnEnemy('spitter',14,10,'qa-spitter');spitter.alert=true;venom.enemies.push(spitter);venom.reveal();
  const infection=affixArena();infection.facilityFaction='swarm';const host=infection.spawnEnemy('rifleman_infected',14,10,'qa-host');host.alert=true;infection.enemies.push(host);infection.reveal();
  const natural=new Game(475,[],0,'soldier','onyx','extraction',{facilityFaction:'swarm'});natural.floor=3;natural.loadFloor();
  return {prepared,venom,infection,natural};

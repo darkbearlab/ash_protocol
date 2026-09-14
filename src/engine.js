@@ -31,3 +31,6 @@ export * from './elite-enemies.js';
 export * from './civilians.js';
 
 export * from './swarm.js';
+
+export * from './swarm-waves.js';
+export * from './poison.js';

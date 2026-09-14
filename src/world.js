@@ -1,3 +1,4 @@
+import {addSwarmWaves} from './swarm-waves.js';
 import {addNoncombatants} from './civilians.js';
 import {rollEnemyElite} from './elite-enemies.js';
 import {DEFAULT_FACTION,factionPool,factionBoss,factionDef} from './factions.js';
@@ -54,7 +55,7 @@ export function makeEnemy(type,x,y,id,floor=1,offset=0,faction=DEFAULT_FACTION) 
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return addNoncombatants(map,seed,floor,faction);}
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return addSwarmWaves(addNoncombatants(map,seed,floor,faction),seed,floor,faction);}
 export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=MAP_RECIPES,faction=DEFAULT_FACTION){
   if(!recipes.length)return generateLegacy(seed,floor,unlocks,faction);
   if(recipes.some(r=>r.layout)){

@@ -11,19 +11,19 @@ const arena=()=>{const g=affixArena();g.facilityFaction='swarm';return g;};
 const spawn=(g,type,x=14,y=10)=>{const e=g.spawnEnemy(type,x,y,`swarm-${g.enemies.length}`);e.alert=true;e.lastKnown={x:10,y:10};g.enemies.push(e);g.reveal();return e;};
 const sure=g=>{g.rng=Object.assign(()=>0,{state:()=>1});};
 
-test('venom hits inflict no direct damage or armour loss; duration stacks to six, DOT stays four, medkit and hazmat work',()=>{
+test('venom hits inflict no direct damage or armour loss; stacks cap at four, DOT scales by stacks, medkit and hazmat work',()=>{
  const g=arena(),e=spawn(g,'spitter');sure(g);g.player.plates=20;const hp=g.player.hp;
- e.charge=true;g.enemyAct(e);assert.equal(g.player.hp,hp);assert.equal(g.player.plates,20);assert.equal(g.player.poison,3);assert.ok(g.effects.some(f=>f.type==='enemyShot'&&f.style==='venom'&&f.damage===0));
- poisonHit(g,e,g.player);poisonHit(g,e,g.player);assert.equal(g.player.poison,6);
- g.environmentTurn();assert.equal(g.player.hp,hp-4);assert.equal(g.player.poison,5);
- g.player.hazmat=5;g.environmentTurn();assert.equal(g.player.hp,hp-4);assert.equal(g.player.poison,4);
+ e.charge=true;g.enemyAct(e);assert.equal(g.player.hp,hp);assert.equal(g.player.plates,20);assert.equal(g.player.poison,1);assert.ok(g.effects.some(f=>f.type==='enemyShot'&&f.style==='venom'&&f.damage===0));
+ for(let n=0;n<5;n++)poisonHit(g,e,g.player);assert.equal(g.player.poison,4);
+ g.environmentTurn();assert.equal(g.player.hp,hp-4);assert.equal(g.player.poison,4);assert.equal(g.player.poisonClock,1);
+ g.player.hazmat=5;g.environmentTurn();assert.equal(g.player.hp,hp-4);assert.equal(g.player.poison,3);
  const turn=g.turn;assert.ok(g.executePlayer('heal'));assert.equal(g.player.poison,0);assert.equal(g.turn,turn);
  g.player.poison=3;g.player.scrap=100;g.props.push({type:'terminal',x:10,y:11});g.useTerminal('heal');assert.equal(g.player.poison,0);
 });
 test('venom miss is harmless; allies and pets intercept without poison or damage; infected hits retain direct damage and suppression',()=>{
  const g=arena(),e=spawn(g,'spitter');g.rng=()=>.999;e.charge=true;g.enemyAct(e);assert.equal(g.player.poison,0);assert.equal(g.player.hp,100);
  const ally={id:'pet-test',kind:'pet',hp:100,x:12,y:10};g.enemyTarget=()=>ally;sure(g);e.charge=true;g.enemyAct(e);assert.equal(ally.hp,100);assert.equal(ally.poison,undefined);assert.equal(g.player.poison,0);
- const h=arena(),i=spawn(h,'rifleman_infected');sure(h);i.charge=true;assert.ok(enemyDisplayName(i).endsWith('？'));h.enemyAct(i);assert.ok(h.player.hp<100);assert.equal(h.player.poison,6);assert.equal(h.player.suppression,1);assert.ok(enemyDisplayName(i).includes('帶毒'));assert.ok(!enemyDisplayName(i).includes('育蟲'));
+ const h=arena(),i=spawn(h,'rifleman_infected');sure(h);i.charge=true;assert.ok(enemyDisplayName(i).endsWith('？'));h.enemyAct(i);assert.ok(h.player.hp<100);assert.equal(h.player.poison,1);assert.equal(h.player.suppression,1);assert.ok(enemyDisplayName(i).includes('帶毒'));assert.ok(!enemyDisplayName(i).includes('育蟲'));
 });
 test('spitter enters swarm roster at floor three and gains a second entry at seven; other factions never contain it',()=>{
  for(const floor of [1,2,3,6,7,60]){assert.equal(factionPool('swarm',floor).filter(t=>t==='spitter').length,floor<3?0:floor<7?1:2);for(const f of ['legacy','loyalist','rebel'])assert.ok(!factionPool(f,floor).includes('spitter'));}
@@ -59,8 +59,8 @@ test('infected death creates deterministic one or two expendable children, no re
 test('death brood shares expendable/live caps with nests and other sources; blocked space produces fewer without failure',()=>{
  for(const mode of ['expendable','live','blocked']){const g=arena(),e=spawn(g,'rifleman_infected');e.hp=0;if(mode==='blocked')for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]])g.grid[e.y+dy][e.x+dx]=0;else for(let n=0;n<(mode==='live'?RUNTIME_TUNING.liveLimit:RUNTIME_TUNING.expendableLimit);n++)spawn(g,mode==='live'?'crawler':'fodder',1,n%25+1);infectedDeath(g,e);assert.equal(g.enemies.filter(a=>a.broodParent).length,0,mode);}
 });
-test('save43 preserves poison, tongue and burst state; older optional state needs no reroll; malformed fields and archive state reject',()=>{
- assert.equal(SAVE_VERSION,43);const g=arena(),e=spawn(g,'hive_beast');g.enemyAct(e);g.player.poison=6;const raw=g.serialize(),copy=Game.restore(raw);assert.ok(copy);assert.deepEqual(copy.enemies,e?[e]:[]);assert.equal(copy.player.poison,6);assert.equal(copy.rng.state(),g.rng.state());const frame=archiveFloor(g);assert.deepEqual(resumedFloor(frame,g.turn+9).enemies,frame.enemies);
+test('current save preserves poison, tongue and burst state; older optional state needs no reroll; malformed fields and archive state reject',()=>{
+ assert.ok(SAVE_VERSION>=44);const g=arena(),e=spawn(g,'hive_beast');g.enemyAct(e);g.player.poison=4;const raw=g.serialize(),copy=Game.restore(raw);assert.ok(copy);assert.deepEqual(copy.enemies,e?[e]:[]);assert.equal(copy.player.poison,4);assert.equal(copy.rng.state(),g.rng.state());const frame=archiveFloor(g);assert.deepEqual(resumedFloor(frame,g.turn+9).enemies,frame.enemies);
  const old=JSON.parse(raw);old.version=42;delete old.data.enemies[0].tongueIntent;assert.ok(Game.restore(JSON.stringify(old)));
  for(const change of [d=>d.player.poison=7,d=>d.enemies[0].tongueCooldown=-1,d=>d.enemies[0].tongueIntent.target.x=99,d=>d.enemies[0].broodParent='fake',d=>d.enemies[0].tongueIntent=null]){const bad=JSON.parse(raw);change(bad.data);assert.equal(Game.restore(JSON.stringify(bad)),null);}
  const h=arena(),host=spawn(h,'fodder');host.hp=0;infectedDeath(h,host);const archived=archiveFloor(h);assert.ok(validSwarm({...g,floorStates:{1:archived}}));archived.enemies.find(a=>a.broodParent).broodParent='invalid';assert.equal(validSwarm({...g,floorStates:{1:archived}}),false);

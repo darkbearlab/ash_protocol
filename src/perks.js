@@ -1,3 +1,4 @@
+import {clearPoison} from './poison.js';
 import {fitDrone,petMaxHp} from './allies.js';
 import {skillValues} from './skills.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
@@ -50,7 +51,7 @@ export function applyPerk(g,o){
  case 'supply':p.meds+=2;g.supplyPack({grenade:2,rifle:24,pistol:24,shell:6});break;
  case 'scavenger':p.scavenger+=o.amount;p.scrap+=15;break;
  case 'medic':p.healBonus+=o.amount;p.meds++;break;
- case 'hazmat':p.hazmat+=o.amount;p.poison=0;break;
+ case 'hazmat':p.hazmat+=o.amount;clearPoison(p);break;
  case 'plating':p.plates=Math.min(g.plateCapacity,(p.plates||0)+o.amount);break;
  case 'combat':p.combatModifiers={...p.combatModifiers};for(const key of o.stats)p.combatModifiers[key]=Math.min(100,(p.combatModifiers[key]||0)+o.amount);break;
  default:throw new Error('Unknown perk effect');

@@ -9,7 +9,7 @@ import {missionDefinition,missionObjects,returning} from './missions.js';
 
 // Only floor-owned state is archived. Player, mission, rewards and RNG stay global.
 export const REQUIRED_FLOOR_FIELDS=['grid','lighting','rooms','start','end','startRoom','endRoom','links','mainRoute','rewardRooms','enemies','items','props','hazards','marks','barriers','seen','smoke','traces','reinforcements'];
-export const FLOOR_FIELDS=[...REQUIRED_FLOOR_FIELDS,...MAP_FIELDS];
+export const FLOOR_FIELDS=[...REQUIRED_FLOOR_FIELDS,...MAP_FIELDS,'swarmWaves'];
 export function archiveFloor(g){
   const frame=structuredClone(Object.fromEntries([['savedTurn',g.turn],...FLOOR_FIELDS.filter(k=>g[k]!==undefined).map(k=>[k,g[k]])]));
   // The departure action has already advanced the global clock. Expired smoke
@@ -18,13 +18,15 @@ export function archiveFloor(g){
   expireExposure(frame.enemies,g.turn);
   // A bombardment due on departure resumes on the first action back.
   for(const mark of frame.marks)mark.due=Math.max(mark.due,g.turn+1);
+  for(const spawn of frame.swarmWaves?.pending||[])spawn.due=Math.max(spawn.due,g.turn+1);
   return frame;
 }
 export function resumedFloor(frame,turn){
-  const state={...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...structuredClone(frame)},elapsed=turn-state.savedTurn;delete state.savedTurn;
+  const state={swarmWaves:undefined,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...structuredClone(frame)},elapsed=turn-state.savedTurn;delete state.savedTurn;
   for(const cloud of state.smoke)cloud.expires+=elapsed;
   for(const mark of state.marks)mark.due+=elapsed;
   for(const spawn of state.reinforcements)spawn.due+=elapsed;
+  for(const spawn of state.swarmWaves?.pending||[])spawn.due+=elapsed;
   for(const a of state.enemies){if(a.cornerExposure)for(const d of Object.keys(a.cornerExposure.until))a.cornerExposure.until[d]+=elapsed;if(a.tactics){a.tactics.until+=elapsed;if(a.tactics.holdUntil)a.tactics.holdUntil+=elapsed;if(a.tactics.retryAfter)a.tactics.retryAfter+=elapsed;}}
   return state;
 }

@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.84.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.85.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -92,7 +92,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v43**（`data.js` 的 `SAVE_VERSION`）。舊版 1～42 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v44**（`data.js` 的 `SAVE_VERSION`）。舊版 1～43 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v5**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -193,3 +193,5 @@ sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩�
 3.82.0：civilians.js 管通用非戰鬥人口、尖叫與逃跑；isNoncombatant 標籤查詢在 enemy-data.js。平民仍存於enemies但排除戰鬥預算、任務、自動鎖定、友軍選敵、召喚、詞條與精英。save42新增 screamCooldown，人口層世代12、讀取上限12。素材只追加圖集第17格；製程與介面交接見 CIVILIANS 第7節。
 
 3.84.0：swarm.js／swarm-tuning.js 管毒液、資料化鉤舌與感染裂蟲。melee-classes.pullLanding 由狂戰士與鉤舌共用，規則不變；save43可選intent／冷卻／父子代欄位，舊檔不重抽。新增素材第18格。SWARM第6節有欄位與Claude介面交接，第7節是尚未實作的蟲潮提案。
+
+3.85.0：swarm-waves.js 管獨立蟲潮與可選FLOOR_FIELDS.swarmWaves，renderer共用增援預告查詢。poison.js 統一疊層毒素、退層計時與清毒；save44將舊剩餘回合ceil/2轉層，不重生成既有樓層。數值仍集中SWARM_TUNING；欄位與驗收見SWARM第9節。

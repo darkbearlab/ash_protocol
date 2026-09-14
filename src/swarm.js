@@ -1,3 +1,4 @@
+import {addPoison,validPoison} from './poison.js';
 import {enemyDef,hasEnemyTag} from './enemy-data.js';
 import {factionDef,enemyFaction} from './factions.js';
 import {birthRandom,revealEnemyAffix} from './enemy-affixes.js';
@@ -17,7 +18,7 @@ export function poisonHit(g,e,target){
  if(target!==g.player||target.hp<=0||activeTrait(target,'mechanical'))return false;
  if(!enemyDef(e)?.venom&&!affix(e,'venomous'))return false;
  if(affix(e,'venomous'))revealEnemyAffix(g,e,'venomous');
- target.poison=Math.min(SWARM_TUNING.poisonCap,(target.poison||0)+SWARM_TUNING.poisonTurns);
+ addPoison(target);
  g.log('毒液侵入防護服，你中毒了。',true);return true;
 }
 export function tonguePlan(g,e){
@@ -59,7 +60,7 @@ export function infectedDeath(g,e){
 }
 export function validSwarm(g){
  const frames=[g,...Object.values(g.floorStates||{})];
- if(!Number.isSafeInteger(g.player.poison)||g.player.poison<0||g.player.poison>SWARM_TUNING.poisonCap)return false;
+ if(!validPoison(g.player))return false;
  for(const f of frames)for(const e of f.enemies||[]){
   if(e.tongueCooldown!==undefined&&(!enemyDef(e)?.tongue||!Number.isSafeInteger(e.tongueCooldown)||e.tongueCooldown<0||e.tongueCooldown>SWARM_TUNING.tongueCooldown))return false;
   if(e.tongueIntent!==undefined){if(!e.tongueIntent)return false;const s=e.tongueIntent,point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&f.grid[p.y]?.[p.x]===1;

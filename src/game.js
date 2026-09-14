@@ -1,3 +1,5 @@
+import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
+import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
 import {tickTongues,validSwarm,SWARM_TUNING} from './swarm.js';
 import {scream,tickCivilianCooldowns,migrateCivilians,validCivilians} from './civilians.js';
 import {rollEnemyElite,enemyKillXp,migrateElites,validElites} from './elite-enemies.js';
@@ -74,9 +76,9 @@ export class Game {
   generateFloor(){return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultyOffset,this.facilityFaction);}
   loadFloor() {
     endSkillEffects(this.player);this.sensorContacts=[];this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
-    Object.assign(this,Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
+    Object.assign(this,{swarmWaves:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
-    Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
+    Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
     prepareMission(this);
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
@@ -327,6 +329,7 @@ export class Game {
       if(p.hp>0)presentStep(this,()=>resolveRetreatWave(this));
       if(p.hp>0)presentStep(this,()=>this.environmentTurn());
       if(p.hp>0)presentStep(this,()=>tickNests(this));
+      if(p.hp>0)presentStep(this,()=>tickSwarmWaves(this));
     }
     if(this.status==='playing'&&p.hp>0)presentStep(this,()=>{if(tickPetBond(this))this.reveal();});
     // Summons rise before skills tick, so the interval counts the rising turn like the old cast did.
@@ -393,7 +396,7 @@ export class Game {
       case 'heal':
         if(p.meds<=0)return this.fail('醫療包已用盡。');
         if(p.hp===p.maxHp&&p.poison===0)return this.fail('生命值已滿。');
-        p.meds--;const recovered=healActor(p,45+p.healBonus);p.poison=0;
+        p.meds--;const recovered=healActor(p,45+p.healBonus);clearPoison(p);
         this.log(`使用醫療包，回復 ${recovered} 生命並清除中毒。`);success=true;break;
       case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
       case 'weapon': {
@@ -641,8 +644,8 @@ export class Game {
   }
   environmentTurn() {
     const p=this.player,hpBefore=p.hp,hazard=this.hazards.find(h=>h.x===p.x&&h.y===p.y);
-    if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)p.poison=3;this.log(`${hazard.type==='acid'?'污染液':'高熱地板'}傷害 −${damage}。`,true,`${hazard.type==='acid'?'污染液':'高熱地板'}造成傷害。`);}
-    else if(p.poison>0){p.poison--;const damage=Math.max(0,SWARM_TUNING.poisonDamage-p.hazmat);p.hp-=damage;if(damage)this.log(`中毒傷害 −${damage}，剩餘 ${p.poison} 回合。`,true,'中毒造成傷害。');}
+    if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)addPoison(p,SWARM_TUNING.acidStacks);this.log(`${hazard.type==='acid'?'污染液':'高熱地板'}傷害 −${damage}。`,true,`${hazard.type==='acid'?'污染液':'高熱地板'}造成傷害。`);}
+    tickPoison(this);
     if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp});
     for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying')))if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);
     petReactions(this);
@@ -736,7 +739,7 @@ export class Game {
     if(p.scrap<cost)return this.fail(`終端需要 ${cost} 廢料。`);
     if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return this.fail('生命值已滿。');
     p.scrap-=cost;terminal.used=true;
-    if(option==='heal'){healActor(p,60);p.poison=0;}
+    if(option==='heal'){healActor(p,60);clearPoison(p);}
     if(option==='ammo')this.supplyPack({rifle:24,pistol:24,shell:6,energy:12,ordnance:3});
     if(TERMINAL_AMMO[option])this.receiveAmmo(option,TERMINAL_AMMO[option].amount);
     if(grenadeByItem(option)){const id=grenadeByItem(option);this.receiveGrenade(id,GRENADES[id].amount);}
@@ -806,6 +809,7 @@ export class Game {
       if(!validMission(data.mission,data))return null;
       if(version<23){data.allies=[];data.allySerial=0;}
       const defaults=freshPlayer(),p={...defaults,...data.player};
+      if(version<44&&!migratePoison(p))return null;
       if(![p,...data.enemies].every(a=>validCombatModifiers(a.combatModifiers)))return null;
       if(version<12){
         p.smoke=0;p.emp=0;p.stun=0;p.control=controlState();data.smoke=[];
@@ -911,14 +915,14 @@ export class Game {
       if(version<31)g.classPerkMisses=0;
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
-      if(!validRuntime(g)||!validSwarm(g))return null;
+      if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g))return null;
       if(version<32)g.shadowSteps=0;
       if(!Number.isInteger(g.shadowSteps)||g.shadowSteps<0||g.shadowSteps>2||g.shadowSteps>0&&classPerkRank(p,'ninja_shadowstep')===0)return null;
       if(!validPerks(g))return null;
       if(version<35&&!migratePetBond(g))return null;
       if(version<36&&!migratePetNodes(g,version===35))return null;
       if(!validAllies(g)||!validPetBond(g))return null;
-      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,traits:p.traits.filter(t=>t.source!=='pet:vision'),battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
+      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,swarmWaves:undefined,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,traits:p.traits.filter(t=>t.source!=='pet:vision'),battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
       // Weapon slots belong to the run, including weapons left on archived floors.
       for(const frame of Object.values(g.floorStates))for(const item of frame.items)if(item.type==='weapon'){
         if(locations.has(item.slot))return null;locations.add(item.slot);

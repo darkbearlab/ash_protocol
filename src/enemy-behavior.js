@@ -43,7 +43,7 @@ function reinforce({g,e,p}){
       }
 
 }
-function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold'});const fired=def.range>1,rapid=fired&&activeTrait(e,'rapid_fire'),weapon=enemyWeapon(e),rounds=fired?weapon.rounds:1,hits=new Set();let firedRounds=0;
+function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold'});const fired=def.range>1,rapid=fired&&activeTrait(e,'rapid_fire'),weapon=enemyWeapon(e),rounds=fired?weapon.rounds:1,hits=new Set();let firedRounds=0,poisonApplied=false;
  const totalDamage=def.expendable?def.damage:scaleEnemy(def.damage+g.floor*2,g.floor,'damage',g.difficultyOffset),baseRounds=fired?(enemyDef(e)?.rounds||1):1;
  for(let n=0;n<rounds&&p.hp>0;n++){const before=p.hp,roundDamage=Math.max(1,Math.floor(totalDamage/baseRounds)+(n%baseRounds<totalDamage%baseRounds?1:0));firedRounds++;if(rapid&&n>=baseRounds)revealEnemyAffix(g,e,'suppressor');
         if(fired)g.recordExposure(e,unitTree(e).fixedTile&&e.aim?e.aim:p);if(fired)spentCase(g,e,enemyDef(e)?.casing);
@@ -51,7 +51,7 @@ function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold
         else if(unitTree(e).fixedTile&&distance(p,e.aim||p)>0){g.log('狙擊彈擊中你原本的位置。');g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         else {
           petCombat(g,p);if(fired&&lightingEffects(g,{...e,traits:(e.traits||[]).filter(t=>t.id!=='night_vision')},p).penalty>0)revealEnemyAffix(g,e,'night_vision');const chance=def.range>1?g.accuracy(e,p).chance:g.meleeAccuracy(e,p);
-          if(g.rng()*100<chance){if(def.venom){g.effects.push({type:'enemyShot',attackerType:e.type,style:'venom',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});poisonHit(g,e,p);}else{poisonHit(g,e,p);if(p===g.player)g.damagePlayer(roundDamage,`${enemyName(e)}攻擊`,e);else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}}
+          if(g.rng()*100<chance){if(def.venom){g.effects.push({type:'enemyShot',attackerType:e.type,style:'venom',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});poisonHit(g,e,p);}else{if(!poisonApplied)poisonApplied=poisonHit(g,e,p);if(p===g.player)g.damagePlayer(roundDamage,`${enemyName(e)}攻擊`,e);else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}}
           else {g.log(`${enemyName(e)}未命中（${chance}%）。`,false,`${enemyName(e)}未命中。`);g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         }
 if(p.hp<before)hits.add(p);
