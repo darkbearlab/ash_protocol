@@ -15,6 +15,7 @@
   - `node qa/enemy-data-identity.mjs` 與基準一致；一般敵人的繪製呼叫與 3.80.1 相同。
   - 瀏覽器：在忠誠者場景瞄準有裝甲的步槍兵，目標卡依序顯示「斷訊槍兵／HP 22 / 22／護甲 1／……／忠誠者 · 生物」。
   - 細節見 [FACTION_DATA.md](FACTION_DATA.md) 第 15 節與 [3.81.0 QA](../qa/results/2026-09-14-claude-3.81.0-rebel-elites-loyalist-armor.md)。
+- 已部署：GitHub Pages run 34847399711 成功，線上 `src/version.js` 確認為 3.81.0；完整 778 項測試與 build 通過。
 
 ## 3.80.1 — 小菁英屍體外框變暗（Claude，2026-09-14）
 
