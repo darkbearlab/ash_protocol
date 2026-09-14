@@ -1,3 +1,4 @@
+import {interruptEnemyIntent} from './enemy-intents.js';
 import {pinned} from './suppression.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {activeTrait,healActor} from './traits.js';
@@ -50,7 +51,7 @@ export function useGrapple(g,id){
  const state=p.skillState.grapple;if(!state||state.cooldown)return false;
  state.remaining=0;state.cooldown=GRAPPLE_COOLDOWN;
  presentStep(g,()=>{const from={x:mover.x,y:mover.y};Object.assign(mover,point);mover.moved=distance(from,point)>0;mover.moveDelta=[0,0];
-  if(!dash&&mover.moved){mover.charge=false;mover.windup=0;mover.aim=null;mover.focusTarget=null;mover.fireChain=null;}
+  if(!dash&&mover.moved){interruptEnemyIntent(mover,'displaced');mover.charge=false;mover.windup=0;mover.aim=null;mover.focusTarget=null;mover.fireChain=null;}
   g.effects.push({type:'pulse',from,to:{...point},radius:.5,color:'#d9bd7b',damage:0});g.reveal();
  });
  g.target=enemy.id;return g.strike({id:enemy.id,x:enemy.x,y:enemy.y},slot);

@@ -3,6 +3,7 @@ import {validSuppression} from './suppression.js';
 import {ENEMY_TYPES} from './data.js';
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const TRAITS={
+ suppression_resistance:{name:'壓制抗性',text:'每階使單次所有來源合計的壓制層數 −1，最高 3 階。'},
  rapid_fire:{name:'連射',text:'槍械攻擊多射 1 發，每發命中 −10；消耗實際發數的彈藥。'},
   disruption_resistant:{name:'抗失能',text:'受到的失能次數減半，向上取整。'},
   tactical_supply:{name:'戰術配給',text:'每次升至 2～20 級時獲得 1 顆煙霧彈；共用投擲容量不足時留在腳下。滿級經驗補給不觸發。'},
@@ -36,9 +37,9 @@ export function activeTrait(actor,id){return hasTrait(actor,id)&&!hasTrait(actor
 export const initiative=actor=>activeTrait(actor,'fast')?-1:activeTrait(actor,'slow')?1:0;
 export const sizeModifier=actor=>activeTrait(actor,'large')?15:activeTrait(actor,'small')?-15:0;
 export const movementModifier=actor=>activeTrait(actor,'agile')?13:activeTrait(actor,'clumsy')?-13:0;
-export function traitLabels(actor){return [...new Set((actor?.traits||[]).map(t=>t.id))].map(id=>`${TRAITS[id].short||TRAITS[id].name}${activeTrait(actor,id)?'':'（抵銷）'}`);}
+export function traitLabels(actor){return [...new Set((actor?.traits||[]).filter(t=>!t.source.startsWith('affix:')||actor.affixes?.some(a=>a.revealed&&t.source===`affix:${a.id}`)).map(t=>t.id))].map(id=>`${TRAITS[id].short||TRAITS[id].name}${activeTrait(actor,id)?'':'（抵銷）'}`);}
 export function tickTraits(actor){actor.traits=(actor.traits||[]).flatMap(t=>t.turns===undefined?[t]:t.turns>1?[{...t,turns:t.turns-1}]:[]);}
-export function validTraits(traits){return Array.isArray(traits)&&traits.length<=68&&traits.every(t=>t&&typeof t==='object'&&!Array.isArray(t)&&typeof t.id==='string'&&Object.hasOwn(TRAITS,t.id)&&typeof t.source==='string'&&/^[a-zA-Z0-9:_-]{1,100}$/.test(t.source)&&(t.turns===undefined||(Number.isInteger(t.turns)&&t.turns>0&&t.turns<=999)));}
+export function validTraits(traits){return Array.isArray(traits)&&traits.length<=68&&traits.filter(t=>t?.id==='suppression_resistance').length<=3&&new Set(traits.filter(t=>t?.id==='suppression_resistance').map(t=>t.source)).size===traits.filter(t=>t?.id==='suppression_resistance').length&&traits.every(t=>t&&typeof t==='object'&&!Array.isArray(t)&&typeof t.id==='string'&&Object.hasOwn(TRAITS,t.id)&&typeof t.source==='string'&&/^[a-zA-Z0-9:_-]{1,100}$/.test(t.source)&&(t.turns===undefined||(Number.isInteger(t.turns)&&t.turns>0&&t.turns<=999)));}
 export const bodyKeyword=type=>ENEMY_TYPES[type]?.mechanical?'mechanical':'biological';
 export function startingTraits(type,floor=1){
   const ids=type==='drone'?['no_cover']:type==='brute'?['large']:type==='crawler'&&floor>=4?['fast']:[];
@@ -46,6 +47,7 @@ export function startingTraits(type,floor=1){
   if(type==='brood')ids.push('fast','no_cover');
   if(type==='sniper')ids.push('night_vision');
   if(type==='warden')ids.push('infrared');
+  if(['brute','boss','warden'].includes(type))ids.push('suppression_resistance');
   ids.push(bodyKeyword(type));
   return ids.map(id=>({id,source:`enemy:${type}`}));
 }

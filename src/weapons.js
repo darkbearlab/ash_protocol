@@ -1,4 +1,4 @@
-import {SUPPRESSION_TUNING} from './suppression.js';
+import {rapidFireModifiers} from './suppression.js';
 import {AMMUNITION} from './ammunition.js';
 import {WEAPONS} from './data.js';
 import {activeTrait} from './traits.js';
@@ -20,7 +20,7 @@ export function weaponStats(base,affix=null,actor=null){
     min:Math.round(w.min*(a.damage||1)),max:Math.round(w.max*(a.damage||1)),
     ...(w.closeRange?{closeMin:Math.round(w.closeMin*(a.damage||1)),closeMax:Math.round(w.closeMax*(a.damage||1))}:{}),
     mag:Math.max(1,Math.floor(w.mag*(a.mag||1))),range:burstRange+(extended?2:0),...(extended?{burstRange}:{}),
-    pierce:Math.min(.95,(w.pierce||0)+(a.pierce||0)),extraRounds:activeTrait(actor,'rapid_fire')?1:0,accuracyBonus:(a.accuracy||0)-(activeTrait(actor,'rapid_fire')?SUPPRESSION_TUNING.rapidAccuracy:0),tracking:a.tracking||0};
+    pierce:Math.min(.95,(w.pierce||0)+(a.pierce||0)),extraRounds:rapidFireModifiers(actor).extraRounds,accuracyBonus:(a.accuracy||0)+rapidFireModifiers(actor).accuracyBonus,tracking:a.tracking||0};
 }
 // Do not change weapon.burst: it also divides per-volley perk damage bonuses.
 export const singleShotAt=(weapon,range)=>weapon.burstRange!==undefined&&range>weapon.burstRange;

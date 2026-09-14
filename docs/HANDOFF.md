@@ -43,6 +43,7 @@
 | `src/main.js` | 瀏覽器入口 |
 | `src/controller.js` | DOM、觸控、鍵盤、所有對話框（背包、終端、設定、說明、戰鬥紀錄）、HUD、演出播放、存檔時機 |
 | `src/engine.js` | 穩定匯出入口，UI、測試、工具共用 |
+| `src/enemy-affixes.js`、`src/enemy-behavior.js`、`src/behavior-tree.js`、`src/enemy-intents.js` | 詞條出生／顯現、共用與單位行為樹、預告打斷、擲彈 marks；ENEMY_AFFIXES 第 8、9 節 |
 | `src/game.js` | `Game` 類別：行動驗證與結算、敵人 AI、爆炸、背包、樓層切換、存檔序列化與遷移 |
 | `src/data.js` | 內容與數值：武器、敵人、樓層、升級、資料片段；`SAVE_VERSION`、`LEGACY_SAVE_VERSIONS` |
 | `src/world.js` | 亂數、視線、生成流程、敵人建立；generate 預設 v2 第六階段加執行期內容，generateWithRecipes(..., []) 保留 v1 |
@@ -90,7 +91,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v37**（`data.js` 的 `SAVE_VERSION`）。舊版 1～36 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v38**（`data.js` 的 `SAVE_VERSION`）。舊版 1～37 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v5**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -178,3 +179,5 @@ sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩�
 3.73.0：德魯伊四線六節點、save v36 的煙霧樓層額度／堅守／固定感知座標與倒數。enemy.petSuppressed 按自身機會消耗，隨敵人封存；pet:vision 僅共享感官專用來源、不可清掉其他來源。只讀 UI API 見 DRUID_FEEDING 第14節；Claude 接 ◆ 節點樣式、感知光點與新狀態列。
 
 3.74.0：統一壓制／學習資料／貨櫃內容池。save v37 新增 player.learningItems 與可選 actor.suppression，清除舊 petSuppressed（含封存敵人）；profile5／backup1 不變。生成世代9，新貨櫃存定內容，舊箱不補抽。公開 API 與 Claude 介面工作見 SUPPRESSION 第11、12節。
+
+3.75.0：敵人詞條／行為樹／壓制抗性，save v38、生成世代 10。難度偏移共用於詞條與生命／傷害成長；詞條與擲彈預告保存於既有 enemies／marks，封存與完整備份均沿用。REAL_MODE 尚未實作，僅留不顯示的喊話 observer。詳見 ENEMY_AFFIXES 第 8、9 節。

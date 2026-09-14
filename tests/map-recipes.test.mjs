@@ -71,23 +71,23 @@ test('recipe maps through floor 60 satisfy all eight topology invariants with th
 test('custom descriptors and saved damage survive archive, backup and return without consulting the recipe pool',()=>{
   class OldGame extends Game{generateFloor(){return generateWithRecipes(this.seed,this.floor,this.unlockedWeapons,SLOT_RECIPES);}}
   const g=Game.restore(new OldGame(1,[],0,'recon','onyx','roundtrip').serialize()),fields=[...MAP_FIELDS,'grid','barriers','props','lighting'];
-  const first=Object.fromEntries(fields.map(k=>[k,structuredClone(g[k])]));Object.assign(g.player,g.exitPoint);assert.ok(g.descend());assert.equal(g.generation.version,9);
+  const first=Object.fromEntries(fields.map(k=>[k,structuredClone(g[k])]));Object.assign(g.player,g.exitPoint);assert.ok(g.descend());assert.equal(g.generation.version,10);
   const door=g.barriers.find(b=>b.type==='door');assert.ok(door);g.damageProp(door,999);
   // Historical recipe snapshot is authoritative even when its source file is gone.
-  g.generation.base.base.recipe.id='removed-custom-recipe';g.generation.base.base.recipeId='removed-custom-recipe';assert.ok(Game.restore(g.serialize()));
+  g.generation.base.base.base.recipe.id='removed-custom-recipe';g.generation.base.base.base.recipeId='removed-custom-recipe';assert.ok(Game.restore(g.serialize()));
   const second=Object.fromEntries(fields.map(k=>[k,structuredClone(g[k])]));Object.assign(g.player,g.exitPoint);assert.ok(g.descend());
   g.enemies.forEach(e=>e.hp=0);Object.assign(g.player,g.mission.targets[0]);assert.ok(g.recoverObjective(g.mission.targets[0].id));
   const copy=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;
   Object.assign(copy.player,copy.exitPoint);assert.ok(copy.descend());for(const [k,v]of Object.entries(second))assert.deepEqual(copy[k],v);
-  Object.assign(copy.player,copy.exitPoint);assert.ok(copy.descend());for(const [k,v]of Object.entries(first))assert.deepEqual(copy[k],v);assert.deepEqual(copy.mapGenerations,[6,9]);
+  Object.assign(copy.player,copy.exitPoint);assert.ok(copy.descend());for(const [k,v]of Object.entries(first))assert.deepEqual(copy[k],v);assert.deepEqual(copy.mapGenerations,[6,10]);
 });
 
 test('custom save validation rejects false layouts, endpoints, paths and slot ownership',()=>{
-  const g=new Game(1);assert.equal(g.generation.version,9);
-  for(const change of [d=>d.generation.base.base.recipe.layout[0][0]='E',d=>d.generation.recipeId='other',d=>d.rooms[0].cellIds=[8],d=>d.startRoom=d.rooms.find(r=>r.cellIds.length>1).id,d=>d.openings[0].path[0]={x:0,y:0},d=>d.slots[0].roomId=999,d=>d.annexes=[{type:'dock'}]]){
+  const g=new Game(1);assert.equal(g.generation.version,10);
+  for(const change of [d=>d.generation.base.base.base.recipe.layout[0][0]='E',d=>d.generation.recipeId='other',d=>d.rooms[0].cellIds=[8],d=>d.startRoom=d.rooms.find(r=>r.cellIds.length>1).id,d=>d.openings[0].path[0]={x:0,y:0},d=>d.slots[0].roomId=999,d=>d.annexes=[{type:'dock'}]]){
     const raw=JSON.parse(g.serialize());change(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);
   }
-  assert.equal(themeAt({...g,props:[]},g.rooms[0]),g.generation.base.base.recipe.theme);
+  assert.equal(themeAt({...g,props:[]},g.rooms[0]),g.generation.base.base.base.recipe.theme);
   for(const mission of ['sweep','archive','retrieval','roundtrip','endless']){
     const run=new Game(1,[],0,'soldier','onyx',mission);if(mission==='roundtrip'){for(let i=0;i<2;i++){Object.assign(run.player,run.exitPoint);assert.ok(run.descend());}}else{run.floor=mission==='endless'?60:6;run.loadFloor();}assert.ok(Game.restore(run.serialize()));assert.ok(run.mission);
   }

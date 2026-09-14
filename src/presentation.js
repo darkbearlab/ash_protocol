@@ -3,7 +3,7 @@ import {actorMoves} from './actor-visuals.js';
 // Presentation observes one synchronous turn. Snapshots never roll back rules or RNG.
 const observers=new WeakMap();
 export function snapshot(game){
-  const {rng,effects,...data}=game;
+  const {rng,effects,onEnemyCallout,...data}=game;
   return Object.assign(Object.create(Object.getPrototypeOf(game)),structuredClone(data),{effects:[]});
 }
 export function presentStep(game,action,quietActor=null){

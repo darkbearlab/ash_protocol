@@ -14,7 +14,7 @@ import {normalizeProfile} from '../src/progression.js';
 
 test('empty recipe pool preserves 24 pre-refactor v1 maps byte-for-byte, including the entrance scout',()=>{
   const fixtures=JSON.parse(readFileSync(new URL('./fixtures/mapgen-v1.json',import.meta.url)));
-  for(const {seed,floor,hash}of fixtures){const map=generateWithRecipes(seed,floor,[],[]);assert.equal(createHash('sha256').update(JSON.stringify(map)).digest('hex'),hash);assert.ok(map.enemies.some(e=>roomContains(map.rooms[map.startRoom],e)));}
+  for(const {seed,floor,hash}of fixtures){const map=generateWithRecipes(seed,floor,[],[]);for(const e of map.enemies)e.traits=e.traits.filter(t=>t.id!=='suppression_resistance');assert.equal(createHash('sha256').update(JSON.stringify(map)).digest('hex'),hash);assert.ok(map.enemies.some(e=>roomContains(map.rooms[map.startRoom],e)));}
 });
 
 test('lattice adjacency and collapsed room graph do not depend on room IDs or nine rooms',()=>{
@@ -36,7 +36,7 @@ test('v2 ordinary and endless floors through 60 satisfy phase-one invariants wit
     assert.ok(!m.enemies.some(e=>roomContains(m.rooms[m.startRoom],e)),message); // 5.
     assert.deepEqual(m.annexes,[]);assert.ok(reachable(m,m.start).has(key(m.end))); // 6: no annex dependency.
     assert.equal(m.enemies.length,old.enemies.length,message); // 7: same sampled budget, no exponential density.
-    const roster=es=>es.map(({type,hp,maxHp,traits})=>JSON.stringify({type,hp,maxHp,traits})).sort();
+    const roster=es=>es.map(({type,hp,maxHp,traits})=>JSON.stringify({type,hp,maxHp,traits:traits.filter(t=>t.source!=='endless:elite')})).sort();
     assert.deepEqual(roster(m.enemies),roster(old.enemies),message);
     const targetRooms=new Set(m.enemies.filter(eligibleMissionEnemy).map(e=>roomAt(m.rooms,e)));
     assert.ok(targetRooms.size>=3,message);

@@ -1,3 +1,4 @@
+import {AFFIX_TUNING} from './enemy-affixes.js';
 // Endless-mode and level-cap display helpers (3.49.1, Claude). Pure reads, so tests reach them without the DOM.
 import {MAX_LEVEL,ENDLESS_DISPLAY_FLOORS,ENDLESS_TUNING,capSupplyText} from './endless.js';
 import {floorInfo} from './data.js';
@@ -13,7 +14,7 @@ export const levelTitle=(level,xp)=>`經驗 ${xp} / ${Math.min(level,MAX_LEVEL)+
 // mission line, so it asks for the rules without the opening sentence.
 export function endlessRules({intro=true}={}){
   const t=ENDLESS_TUNING;
-  return `${intro?'沒有任務目標與撤離，每層電梯都通往更深處，直到陣亡。':''}樓層每六層循環：第 3、9、15… 層的封鎖官擋住電梯，第 6、12、18… 層要擊敗核心守衛才開電梯。第 7 層起敵人的生命與攻擊逐層按比例成長，每六層每房多一名敵人（最多 +${t.densityMax}），破壞者、狙擊手、自爆體更多，一般敵人最高有 ${Math.round(t.eliteMax*100)}% 帶一項精英特性（快速、紅外線或夜視）。死亡時記錄到達深度，全體與各職業各一筆；放棄不列入。`;
+  return `${intro?'沒有任務目標與撤離，每層電梯都通往更深處，直到陣亡。':''}樓層每六層循環：第 3、9、15… 層的封鎖官擋住電梯，第 6、12、18… 層要擊敗核心守衛才開電梯。第 7 層起敵人的生命與攻擊逐層按比例成長，每六層每房多一名敵人（最多 +${t.densityMax}），破壞者、狙擊手、自爆體更多，敵人最高有 ${Math.round(AFFIX_TUNING.chanceCap*100)}% 開始抽取詞條，後續詞條機率逐次減半，效果發動後顯現。死亡時記錄到達深度，全體與各職業各一筆；放棄不列入。`;
 }
 export function levelCapRules(){
   return `等級 ${MAX_LEVEL} 封頂：2～${MAX_LEVEL} 級各一次三選一，整局最多 ${MAX_LEVEL-1} 次。之後等級不再上升，畫面顯示 MAX；經驗照樣累積，每滿 ${MAX_LEVEL+2} 點自動發一份封頂補給（${capSupplyText()}），不開選單、不花回合，超量彈藥留在腳下。一般任務通常到不了 ${MAX_LEVEL} 級。`;

@@ -1,3 +1,4 @@
+import {registerUnitTree,unitTree} from './behavior-tree.js';
 import {makeEnemy,random,key,distance,DIRECTIONS,reachable} from './world.js';
 import {roomTiles} from './map-geometry.js';
 // Initial conservative values. Existing normal enemy budgets and rewards are unchanged.
@@ -29,21 +30,20 @@ export function addRuntimePopulation(base,seed,floor,check){
  if(!safe(map))return base;
  map.generation={version:8,recipeId:'runtime-v8',base:base.generation};return map;
 }
-export function tickNests(g){
- for(const nest of g.props.filter(p=>p.type==='nest'&&p.hp>0)){
-  if(nest.nest.remaining===0){collapseNest(g,nest);continue;}
+registerUnitTree('nest',{tick:({g,nest})=>{
+  if(nest.nest.remaining===0){collapseNest(g,nest);return;}
   const s=nest.nest;if(!s.active&&distance(g.player,nest)<=RUNTIME_TUNING.triggerRadius){s.active=true;g.log('巢穴甦醒，開始釋出蟲群。',true);}
-  if(!s.active||s.remaining===0)continue;
-  if(s.cooldown>0&&--s.cooldown>0)continue;
-  if(!enemyRoom(g)||!expendableRoom(g))continue;
+  if(!s.active||s.remaining===0)return;
+  if(s.cooldown>0&&--s.cooldown>0)return;
+  if(!enemyRoom(g)||!expendableRoom(g))return;
   const p=DIRECTIONS.map(([dx,dy])=>({x:nest.x+dx,y:nest.y+dy})).find(p=>g.passable(p.x,p.y)&&g.canCross(nest,p)&&distance(g.player,p)>0&&!g.enemies.some(e=>e.hp>0&&key(e)===key(p))&&!g.activeAllies.some(a=>key(a)===key(p))&&!g.props.some(o=>key(o)===key(p))&&!g.hazards.some(o=>key(o)===key(p))&&!g.items.some(o=>key(o)===key(p)));
-  if(!p)continue;
-  const e=makeEnemy('brood',p.x,p.y,`${nest.id}-child-${++s.serial}`,g.floor);e.nestId=nest.id;e.alert=true;e.lastKnown={x:g.player.x,y:g.player.y};g.enemies.push(e);s.remaining--;s.cooldown=s.interval;
+  if(!p)return;
+  const e=g.spawnEnemy('brood',p.x,p.y,`${nest.id}-child-${++s.serial}`);e.nestId=nest.id;e.alert=true;e.lastKnown={x:g.player.x,y:g.player.y};g.enemies.push(e);s.remaining--;s.cooldown=s.interval;
   const style=nestStyle(nest);
   g.effects.push({type:'nestSpawn',nestStyle:style,from:{x:nest.x,y:nest.y},to:p,damage:0});g.log(style==='rift'?'裂隙中傳送出一隻幼蟲。':'地洞中鑽出一隻幼蟲。');
   if(s.remaining===0)collapseNest(g,nest);
- }
-}
+}});
+export function tickNests(g){for(const nest of g.props.filter(p=>p.type==='nest'&&p.hp>0))unitTree(nest).tick({g,nest});}
 export function validRuntime(g){
  const ids=new Set();for(const e of g.enemies){if(ids.has(e.id))return false;ids.add(e.id);if(['fodder','brood'].includes(e.type)&&(!e.expendable||!e.reinforcement||!Number.isInteger(e.actionDelay)||e.actionDelay<0||e.actionDelay>1))return false;}
  const nests=g.props.filter(p=>p.type==='nest');if(nests.length>RUNTIME_TUNING.nestCount)return false;

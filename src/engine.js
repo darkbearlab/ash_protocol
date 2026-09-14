@@ -18,3 +18,7 @@ export * from './suppression.js';
 export * from './learning-data.js';
 export * from './learning.js';
 export * from './suppressive-fire.js';
+
+export * from './enemy-affixes.js';
+export * from './enemy-intents.js';
+export * from './enemy-behavior.js';

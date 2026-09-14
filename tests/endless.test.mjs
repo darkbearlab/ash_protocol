@@ -1,7 +1,7 @@
 import {dailyMission} from '../src/daily.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,MAX_LEVEL,CAP_SUPPLY,ENDLESS_TUNING,extraEnemies,scaleEnemy,eliteChance,ENDLESS_MAX_FLOOR,PROTOCOL_EVENT_LIMIT,generate,reachable,key,floorInfo,FLOOR_INFO,FLOORS,makeEnemy,ENEMY_TYPES} from '../src/engine.js';
+import {Game,MAX_LEVEL,CAP_SUPPLY,ENDLESS_TUNING,extraEnemies,scaleEnemy,affixChance,ENDLESS_MAX_FLOOR,PROTOCOL_EVENT_LIMIT,generate,reachable,key,floorInfo,FLOOR_INFO,FLOORS,makeEnemy,ENEMY_TYPES} from '../src/engine.js';
 import {MISSIONS,RANDOM_MISSION_IDS,missionProgress} from '../src/missions.js';
 import {normalizeProfile,PROFILE_VERSION,recordEndless} from '../src/progression.js';
 import {makeBackup,decodeBackup,validateProfile} from '../src/backup.js';
@@ -41,7 +41,7 @@ test('floors 7–60 generate accessible unique enemy posts and cyclic hazards, b
   assert.equal(new Set(map.enemies.map(key)).size,map.enemies.length);assert.ok(map.enemies.every(e=>access.has(key(e))),`${seed}:${floor}:enemy`);
   assert.ok(map.hazards.every(h=>h.type===info.hazard));assert.ok(!map.items.some(i=>i.type==='lore'));assert.ok(map.items.some(i=>i.type==='weapon'&&i.weapon===info.weapon));
   assert.equal(map.enemies.filter(e=>['boss','warden'].includes(e.type)).length,info.boss?1:0);
-  assert.ok(map.enemies.length>=1+8*(3+extraEnemies(floor)));assert.ok(map.enemies.length<=1+8*(4+extraEnemies(floor)));
+  assert.ok(map.enemies.length>=1+8*(3+extraEnemies(floor)));assert.ok(map.enemies.filter(e=>!e.expendable).length<=1+8*(4+extraEnemies(floor)));
  }
 });
 test('endless floors 1–6 retain the ordinary map exactly and drawing helpers never run out of floor settings',()=>{
@@ -50,7 +50,7 @@ test('endless floors 1–6 retain the ordinary map exactly and drawing helpers n
 });
 test('growth rounds once after old scaling and includes bosses; generated elites are unique and deterministic',()=>{
  for(const floor of [6,7,18,60])for(const type of ['rifleman','brute','warden','boss']){const def=ENEMY_TYPES[type],base=def.hp+(['boss','warden'].includes(type)?0:Math.max(0,floor-2)*(def.fragile?2:4));assert.equal(makeEnemy(type,1,1,'x',floor).maxHp,Math.round(base*1.07**Math.max(0,floor-6)));assert.equal(scaleEnemy(def.damage+floor*2,floor,'damage'),Math.round((def.damage+floor*2)*1.04**Math.max(0,floor-6)));}
- let elites=0,total=0;for(let seed=0;seed<20;seed++){const a=generate(seed,60),b=generate(seed,60);assert.deepEqual(a.enemies,b.enemies);for(const e of a.enemies){const ts=e.traits.filter(t=>t.source==='endless:elite');assert.ok(ts.length<=1);if(['boss','warden'].includes(e.type)){assert.equal(ts.length,0);continue;}total++;if(ts.length){elites++;assert.ok(ENDLESS_TUNING.eliteTraits.includes(ts[0].id));assert.equal(e.traits.filter(t=>t.id===ts[0].id).length,1);}}}assert.ok(elites/total>.4&&elites/total<.6);assert.equal(eliteChance(7),.04);assert.equal(eliteChance(60),.5);
+ for(let seed=0;seed<20;seed++){const a=generate(seed,60),b=generate(seed,60);assert.deepEqual(a.enemies,b.enemies);assert.ok(a.enemies.every(e=>!e.traits.some(t=>t.source==='endless:elite')));assert.ok(a.enemies.some(e=>e.affixes.length));}assert.equal(affixChance(7),.04);assert.equal(affixChance(60),.5);
 });
 test('current save rejects excess picks, wrong floor mode, corrupt legacy allowance; old over-cap history is preserved once',()=>{
  const g=run(25);rank(g,25);const raw=JSON.parse(g.serialize());assert.ok(Game.restore(JSON.stringify(raw)));

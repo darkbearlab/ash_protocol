@@ -1,3 +1,4 @@
+import {AFFIX_TUNING} from '../src/enemy-affixes.js';
 // 3.49.1 endless / level-cap interface (Claude): labels, notices and texts read the shared constants.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -31,7 +32,7 @@ test('endless arrival text: no tutorial line past floor 6 and no extraction word
 });
 
 test('rules texts quote the tuning constants',()=>{
- assert.ok(endlessRules().includes(`最多 +${ENDLESS_TUNING.densityMax}`));assert.ok(endlessRules().includes(`${Math.round(ENDLESS_TUNING.eliteMax*100)}%`));
+ assert.ok(endlessRules().includes(`最多 +${ENDLESS_TUNING.densityMax}`));assert.ok(endlessRules().includes(`${Math.round(AFFIX_TUNING.chanceCap*100)}%`));
  assert.ok(levelCapRules().includes(`整局最多 ${MAX_LEVEL-1} 次`));
  assert.equal(growthLabel(6),'');assert.equal(growthLabel(12),`敵人生命 ×${(1.07**6).toFixed(2)}、攻擊 ×${(1.04**6).toFixed(2)}`);
 });

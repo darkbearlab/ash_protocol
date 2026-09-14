@@ -1,3 +1,4 @@
+import {interruptEnemyIntent} from './enemy-intents.js';
 import {objectSightGrid} from './scenery.js';
 import {activeTrait} from './traits.js';
 import {distance,lineOfSight,key} from './world.js';
@@ -25,7 +26,7 @@ export function applyDisruption(actor,keyword){
   if(!disruptionEligible(actor,keyword)||actor.hp<=0||actor.control.disabled||actor.control.immune)return false;
   actor.control.disabled=['boss','warden'].includes(actor.type)?BOSS_DISRUPT_TURNS:DISRUPT_TURNS;
   if(activeTrait(actor,'disruption_resistant'))actor.control.disabled=Math.ceil(actor.control.disabled/2);
-  actor.charge=false;actor.aim=null;actor.windup=0;actor.fireChain=null;
+  interruptEnemyIntent(actor,'disabled');
   actor.guard=false;actor.focus=false;actor.evasive=false;actor.moved=false;actor.moveDelta=[0,0];
   return true;
 }

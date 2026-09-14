@@ -106,3 +106,52 @@
 2. **壓制抗性上限**：3 階。
 3. **擲彈兵的打斷**：只有第 1 步預告可以打斷，規則與所有敵人的預告共用；第 2 步已出手，只能走出範圍閃避；不另立被釘住取消的規則。
 4. **難度偏移共用**：難度旋鈕的偏移同時提早詞條出現與無盡模式的敵人成長。
+
+## 8. 實作現況 — 3.75.0（Codex，2026-09-14）
+
+本輪僅本規格；使用者確認 REAL_MODE 留到後續，這次只留喊話鉤子。
+
+### 數值與生成
+
+- `src/enemy-affixes.js` 的 `AFFIX_TUNING`：有效深度 7 起，首項機率每深度 +0.04，最高 0.5；後續每次 ×0.5。每次成功的機率試驗從尚未抽過的目錄抽一項，不適用就略過，仍消耗該次抽選；第一次試驗失敗就停止。沒有額外保底。
+- 目錄順序：快速、紅外線、夜視、壓制者、擲彈兵。前三項排除雜兵／幼蟲與已有相同天生被動者；快速另外排除緩速。後兩項只限 rifleman、raider、gunner、sniper。
+- 出生亂數由 seed、floor、敵人 ID 派生，不消耗戰鬥 RNG；初始敵人、撤退增援、頭目增援與巢穴子代皆走相同出生入口。雜兵／幼蟲沒有可用詞條。
+- `endless.js` 的 `DIFFICULTY_TUNING.defaultOffset=0`，允許 −6～60；`effectiveDepth(floor, offset)` 同時供詞條機率及敵人生命／傷害的指數成長使用。房間密度、樓層主題、基礎線性成長仍依實際樓層，避免把偏移重複乘進人口預算。`new Game(seed, unlocks, carrying, character, portrait, mission, {difficultyOffset})`；`generate(seed, floor, unlocks, offset)`。
+- 無盡原 eliteChance／eliteTraits 已移除。生成器內只有 **v1 相容基線**保留舊抽取位置及舊 payload；v2 消耗相同的保留抽取以維持人口與拓樸，但不建立菁英，正式 `generate()` 統一用新詞條。不得把相容區的歷史常數當難度設定。
+- 生成世代 **10**（enemies-v10 包覆既有世代 9）。記錄照舊保存 mapGenerations，並改為數值排序，避免 10 排在 2 前面。既有樓層不重生。
+
+### 攻擊、樹與預告
+
+- `behavior-tree.js` 提供 selector／sequence、UNIT_TREES 與 AFFIX_BRANCHES。`enemy-behavior.js` 的通用流程為選目標／感知 → 詞條分支 → 找掩體 → 蓄勢／攻擊或 combatStep 站位 → 單位收尾。既有 `Game.enemyAct/executeEnemy` 入口保留。
+- 狙擊手固定落點／兩次蓄勢、頭目交替轟炸與增援、自爆體死亡爆炸、雜兵隔次行動各登錄至單位樹。巢穴由 runtime-enemies 登錄 nest.tick，保留原本總額、同時存活上限與塌陷規則。
+- 敵我共同讀 `rapidFireModifiers()`：多 1 發、每發命中 −10。`ENEMY_WEAPONS`：破口突擊兵（衝鋒槍）基礎 2 發，其他現有射擊敵人基礎 1 發；近戰不加發。基礎傷害分攤在原發數，各發獨立命中與防禦；多出的一發取首發份額。**目前只有帶連射的破口突擊兵達到三發門檻**，其他壓制者為兩發，增加火力但不觸發武器壓制。此項可由 Claude 後續調整 ENEMY_WEAPONS，沒有額外保底壓制。
+- 武器壓制仍依「實際至少射出 3 發且命中」一次合計，不因詞條名稱另開例外；玩家沒有全域保護。
+- 擲彈兵無既有蓄勢、看見目標且距離 ≤5 時，每次機會 20% 開始。第一次記原目標 ID／落點／投擲者位置並顯現；下一次機會投出；下一個付費回合末爆炸。半徑 1，中心傷害 32（套用同一深度成長），鄰格沿用爆炸 −10。傷害會波及玩家、友軍、其他敵人、可破壞地形與油桶。
+- **共通打斷**：死亡、實際失能、被鉤鎖強制位移、追蹤型預告失去目標視線／射程。普通槍擊或近戰失去攻擊條件也取消蓄勢；狙擊手屬已鎖定地磚的例外，目標移動或失去視線仍向原格開火，障礙物可擋彈。單純受傷、被壓制釘住、免疫中再次中震撼不打斷。擲彈準備允許向可見的轉角落點投擲，不要求子彈射線；投出後的 marks 與射手獨立，死亡、失能、換層均不刪除，封存時保留倒數。
+- 夜視於射擊實際抵銷黑暗時、紅外線於實際穿煙感知時、快速於快速機會行動時顯現；壓制者於額外射擊時、擲彈兵於首次預告時顯現。名稱與 traitLabels 不提前顯示片段，目標卡的先後手文字也遮住未顯現的快速。
+
+### 存檔與抗性
+
+- save **v38**；profile v5／backup v1 不變。新增 run.difficultyOffset、enemy.affixes、可選 enemy.grenadeIntent、擲彈 marks 的種類／階段／半徑／傷害／來源。驗證拒絕未知詞條、非布林顯現、錯誤來源、非法預告與非整數偏移。
+- v37 以下：舊 endless:elite 改為 affix:ID 並標為已顯現；活動及封存敵人、舊友軍來源均處理。為重裝兵及 brute／boss／warden 補原生壓制抗性。保留 HP、資源、戰鬥 RNG、地圖與備份；不重抽舊敵人。
+- 抗性以 trait `suppression_resistance` 的不同來源計數，最高 3。原生來源 character:bulwark／enemy:TYPE；學習來源 learned:trait_suppression_resistance:N。每次來源合計後減 rank，機械最終 0；取代硬寫頭目判斷。
+- 學習使用與拆解仍免費；此資料可以重複使用至總階數 3。滿階拒絕且不耗道具，仍可拆解 15 廢料。貨櫃內容池增為 **28**，已保存的箱子不重抽。
+
+## 9. Claude 介面交接
+
+### 查詢與動作
+
+- `enemyDisplayName(enemy)`（engine 亦有既有別名 `enemyName`）：基礎名＋依目錄順序的已顯現片段＋至多一個全形 `？`。
+- `revealedAffixes(enemy)` 回傳 `{id, fragment, order, reveal}[]`，只含已顯現者。目標卡、戰鬥紀錄、圖鑑基礎名稱已接入查詢；手機最多兩個片段加「…」由 Claude 接。不要直接顯示 enemy.affixes 或所有 trait sources。
+- `suppressionResistance(actor)`／`suppressionState(actor).resistance` 為 0～3。`learningInventory(game)` 中抗性資料額外有 `rank`、`maxRank:3`；`game.action('learn','trait_suppression_resistance')`、`dismantleLearning` 不變，useReason 已處理滿階。
+- `grenadeTelegraphs(game)` 為**供演出讀取的複本**：
+  - 準備 `{kind:'grenade', phase:'prepare', sourceId, x,y, origin:{x,y}, radius:0, interruptible:true}`，顯示落點與投擲線。
+  - 已出手 `{kind:'grenade', phase:'flight', sourceId, x,y, origin, radius:1, due, damage, countdown, interruptible:false}`，顯示爆炸區。damage 是規則資料，不必顯示在介面。不要依來源是否存活過濾 flight。
+- 準備實體在敵人的 `grenadeIntent`；flight 在 `game.marks`。`enemyTelegraph` effect 帶 phase/from/to，使 captureAction 保留此步快照；Claude 可在該快照讀 grenadeTelegraphs，不需重算規則。
+- 喊話預留 `game.enemyCallout(actor, kind, detail)` → 可選 `game.onEnemyCallout(event)`。kind 白名單 state／telegraph／injury／affix_revealed；detail 含 state、action、threshold 或 affixId。傳的是規則層 actor 參考，**尚無視距／聽距接收過濾，不可直接拿去顯示**。本輪沒有字串、喊話 UI、獎勵或 REAL_MODE flag；接收器留給該批規則實作。observer 不存檔、也不進演出快照，不使用 RNG。
+
+### 驗收場景
+
+執行 `node qa/create-enemy-affix-scenes.mjs`，輸出 `qa/fixtures/affix-{hidden,prepare,flight,resistance,deep,legacy}.json`。一律用 `?test=1`，從設定匯入原始場景存檔。hidden 觀察顯現順序、prepare 測試失能取消、flight 測試殺死投擲者後仍爆炸與走出半徑、resistance 重複學習／滿階拆解、deep 查看第 12 層出生結果、legacy 讀 v37 菁英遷移。產生器會先逐份 Game.restore 驗證，檔案已忽略，不提交。
+
+測試與已知介面待辦詳見 [本輪 QA 報告](../qa/results/2026-09-14-codex-3.75.0-enemy-affixes.md)。

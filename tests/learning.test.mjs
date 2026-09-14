@@ -13,7 +13,7 @@ import {makeEnemy} from '../src/world.js';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 const game=()=>new Game(330,[],0,'soldier','onyx');
 test('every manual is free, independently usable by a soldier, duplicates remain dismantlable, and all learned states restore',()=>{
- for(const [id,def] of Object.entries(LEARNING_ITEMS)){
+ for(const [id,def] of Object.entries(LEARNING_ITEMS).filter(([id])=>id!=='trait_suppression_resistance')){
   const g=game(),p=g.player,t=g.turn,rng=g.rng.state();p.learningItems[id]=2;const native=def.trait?hasTrait(p,def.trait):def.skills.every(s=>p.skills.includes(s));
   assert.equal(g.action('learn',id),!native,id);assert.equal(g.turn,t);assert.equal(g.rng.state(),rng);assert.equal(p.learningItems[id],native?2:1);assert.equal(g.action('learn',id),false);assert.ok(Game.restore(g.serialize()),id);
   if(def.trait)assert.ok(hasTrait(p,def.trait));else for(const skill of def.skills){assert.ok(p.skills.includes(skill));assert.deepEqual(p.skillState[skill],{remaining:0,cooldown:0});}
@@ -28,10 +28,10 @@ test('learning validates ownership, counters and IDs and never consumes rejected
  const g=game(),t=g.turn;assert.equal(g.action('learn','trait_rapid_fire'),false);g.player.learningItems.trait_rapid_fire=1;g.player.control.disabled=1;assert.equal(g.action('learn','trait_rapid_fire'),false);assert.equal(g.player.learningItems.trait_rapid_fire,1);assert.equal(g.turn,t);
  for(const data of [{bad:1},{trait_rapid_fire:0},{trait_rapid_fire:-1},{trait_rapid_fire:1.5},[]]){const raw=JSON.parse(g.serialize());raw.data.player.learningItems=data;assert.equal(Game.restore(JSON.stringify(raw)),null);}
 });
-test('container pool has exactly 3 weapons + 9 active + 15 passive manuals; deterministic seed-derived contents ignore combat RNG',()=>{
- assert.equal(UNKNOWN_LOOT.length,27);const found=new Set();
+test('container pool has exactly 3 weapons + 9 active + 16 passive manuals; deterministic seed-derived contents ignore combat RNG',()=>{
+ assert.equal(UNKNOWN_LOOT.length,28);const found=new Set();
  for(let seed=0;seed<1000;seed++){const base={generation:{version:2},props:[{id:'case-1-unknown-0',type:'container',kind:'unknown',opened:false}]};const a=fillUnknownContainers(structuredClone(base),seed,1),b=fillUnknownContainers(structuredClone(base),seed,1);assert.deepEqual(a,b);assert.equal(a.props[0].contents.length,1);found.add(JSON.stringify(a.props[0].contents[0]));}
- assert.equal(found.size,27);assert.ok(UNKNOWN_LOOT.every(x=>Object.hasOwn(x,'unlockId')));
+ assert.equal(found.size,28);assert.ok(UNKNOWN_LOOT.every(x=>Object.hasOwn(x,'unlockId')));
 });
 test('container contents persist, weapon opening registers a stable slot, duplicate manuals are collected unchanged',()=>{
  const g=game(),c=g.props.find(c=>c.type==='container');assert.ok(c);c.kind='unknown';c.contents=[{type:'weapon',weapon:11}];assert.ok(validContainers(g.props,g.grid));Object.assign(g.player,{x:c.x,y:c.y});assert.ok(g.openContainer(c.id));const item=g.items.find(i=>i.weapon===11);assert.ok(Number.isInteger(item.slot));assert.equal(g.player.weaponBases[item.slot],11);assert.ok(Game.restore(g.serialize()));

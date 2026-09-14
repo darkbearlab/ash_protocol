@@ -1,3 +1,4 @@
+import {rollEnemyAffixes} from './enemy-affixes.js';
 import {fillUnknownContainers} from './learning-data.js';
 import {addRuntimePopulation} from './runtime-enemies.js';
 import {MAP_RECIPES} from './map-recipes-data.js';
@@ -8,7 +9,7 @@ import {MERGED_RECIPES,selectMergeRecipe,mergePlans,mergeMap} from './map-mergin
 import {OPENING_RECIPES,addOpenings} from './map-openings.js';
 import {ANNEX_RECIPES,addAnnexes,addRequestedAnnexes} from './map-annexes.js';
 import {placePopulation,reservationPosts} from './map-population.js';
-import {ENDLESS_TUNING,extraEnemies,eliteChance,scaleEnemy} from './endless.js';
+import {ENDLESS_TUNING,extraEnemies,scaleEnemy} from './endless.js';
 import {createLighting} from './lighting.js';
 import {selectSupplyStations,addLivingModules} from './modules.js';
 import {packSupplies} from './containers.js';
@@ -43,13 +44,13 @@ export function lineOfSight(grid,a,b,barriers=[],channel='sight') {
     if(grid[y]?.[x]!==1)return false;
   }return false;
 }
-export function makeEnemy(type,x,y,id,floor=1) {
-  const def=ENEMY_TYPES[type],hp=def.expendable?def.hp:scaleEnemy(def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp');
+export function makeEnemy(type,x,y,id,floor=1,offset=0) {
+  const def=ENEMY_TYPES[type],hp=def.expendable?def.hp:scaleEnemy(def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp',offset);
   return {id,type,x,y,hp,maxHp:hp,...(def.expendable?{expendable:true,reinforcement:true,actionDelay:0}:{}),vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[]){return fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES),seed,floor,generationSafe),seed,floor);}
+export function generate(seed,floor=1,unlocks=[],offset=0){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES),seed,floor,generationSafe),seed,floor);for(const e of map.enemies){const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};return map;}
 export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=MAP_RECIPES){
   if(!recipes.length)return generateLegacy(seed,floor,unlocks);
   if(recipes.some(r=>r.layout)){
@@ -122,7 +123,8 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null) {
   const enemies=[],items=[],props=[],hazards=[],info=floorInfo(floor);
   const pool=floor<=2?['rifleman','rifleman','raider','gunner','drone','crawler']:['rifleman','rifleman','raider','raider','gunner','drone','brute','sniper','bomber'];
   if(floor>6)pool.push(...ENDLESS_TUNING.heavyExtra);
-  const spawnEnemy=(type,x,y,id)=>{const e=makeEnemy(type,x,y,id,floor);if(floor>6&&!['boss','warden'].includes(type)&&rng()<eliteChance(floor)){const options=ENDLESS_TUNING.eliteTraits.filter(id=>!e.traits.some(t=>t.id===id));if(options.length)grantTrait(e,options[Math.floor(rng()*options.length)],'endless:elite');}return e;};
+  // Explicit v1 compatibility baseline retains its historical RNG draw positions and elite payload.
+  const spawnEnemy=(type,x,y,id)=>{const e=makeEnemy(type,x,y,id,floor);if(floor>6&&!['boss','warden'].includes(type)&&rng()<Math.min(.5,(floor-6)*.04)){const options=['fast','infrared','night_vision'].filter(id=>!e.traits.some(t=>t.id===id));if(options.length){const chosen=options[Math.floor(rng()*options.length)];if(!v2)grantTrait(e,chosen,'endless:elite');}}return e;};
   rooms.forEach((r,i)=>{
     const posts=reservationPosts(r,{legacy:!v2,deep:floor>6});
     if(i!==startRoom)for(let j=0;j<(3+extraEnemies(floor)+(floor>=3&&rng()<.45?1:0));j++) {

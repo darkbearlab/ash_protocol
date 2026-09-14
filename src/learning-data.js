@@ -1,7 +1,7 @@
 // Stable catalog IDs; unlockId is reserved and deliberately ignored this release.
 export const LEARNING_SCRAP=15;
 const skills={drones:['僚機',['drone_follow','drone_sentry']],pet_command:['伴生指揮',['pet_command']],raise_dead:['亡者集結',['raise_dead']],early_warning:['預警',['early_warning']],anchor:['下錨',['anchor']],signal_break:['訊號斷層',['signal_break']],grapple:['鉤鎖',['grapple']],camouflage:['光學迷彩',['camouflage']],suppressive_fire:['壓制射擊',['suppressive_fire']]};
-const traits={braced:'架槍',correction:'著彈修正',sidestep:'側身',quick_reload:'快速裝填',night_vision:'夜視',infrared:'紅外線',extended_burst:'延伸點射',tactical_supply:'戰術配給',bloodlust:'嗜血',battle_spirit:'戰意',blade_stash:'刃藏',heavy_armor:'重裝防護',ambush:'伏擊',duelist:'單挑',rapid_fire:'連射'};
+const traits={braced:'架槍',correction:'著彈修正',sidestep:'側身',quick_reload:'快速裝填',night_vision:'夜視',infrared:'紅外線',extended_burst:'延伸點射',tactical_supply:'戰術配給',bloodlust:'嗜血',battle_spirit:'戰意',blade_stash:'刃藏',heavy_armor:'重裝防護',ambush:'伏擊',duelist:'單挑',rapid_fire:'連射',suppression_resistance:'壓制抗性'};
 export const LEARNING_ITEMS=Object.fromEntries([
  ...Object.entries(skills).map(([id,[name,skills]])=>[`skill_${id}`,{name:`${name}學習資料`,skills,unlockId:null}]),
  ...Object.entries(traits).map(([trait,name])=>[`trait_${trait}`,{name:`${name}學習資料`,trait,unlockId:null}]),

@@ -1,3 +1,8 @@
+import {enemyOpportunity,executeEnemyTree,enemyDeath,enemyWeapon} from './enemy-behavior.js';
+import {enemyCallout,validEnemyIntent,validEnemyMarks} from './enemy-intents.js';
+import {enemyDisplayName,rollEnemyAffixes,migrateEnemyAffixes,validEnemyAffixes} from './enemy-affixes.js';
+import {migrateResistance,grantNativeResistance} from './suppression.js';
+import {DIFFICULTY_TUNING,validDifficultyOffset} from './endless.js';
 import {shotDamageAllowed,pinned,tickSuppression,finishSuppression,migrateSuppression} from './suppression.js';
 import {suppressiveReason,suppressiveFire} from './suppressive-fire.js';
 import {learningReason,useLearning,validLearningInventory} from './learning.js';
@@ -40,12 +45,13 @@ import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './w
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
 
 const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
-export const enemyName=e=>ENEMY_TYPES[e.type]?.name||'未知單位';
+export const enemyName=enemyDisplayName;
 
 export class Game {
-  constructor(seed=Date.now()%1000000,unlocks=[],carrying=0,character='soldier',portrait=pickPortrait(),mission='extraction') {
+  constructor(seed=Date.now()%1000000,unlocks=[],carrying=0,character='soldier',portrait=pickPortrait(),mission='extraction',options={}) {
     if(!validCharacter(character))throw new Error('未知角色。');
     if(!validPortrait(portrait))throw new Error('未知頭像。');
+    this.difficultyOffset=options.difficultyOffset??DIFFICULTY_TUNING.defaultOffset;if(!validDifficultyOffset(this.difficultyOffset))throw new Error('Invalid difficulty offset');
     this.mission=newMission(mission);this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
     this.player.skills=[...(CHARACTERS[character].skills||[])];this.player.skillState=initialSkillState(this.player.skills);
@@ -56,10 +62,10 @@ export class Game {
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   // Overridable by isolated simulation fixtures; live campaigns use the current recipe pool.
-  generateFloor(){return generate(this.seed,this.floor,this.unlockedWeapons);}
+  generateFloor(){return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultyOffset);}
   loadFloor() {
     endSkillEffects(this.player);this.sensorContacts=[];this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
-    Object.assign(this,Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort();this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
+    Object.assign(this,Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
     prepareMission(this);
@@ -68,7 +74,9 @@ export class Game {
   get petSensorContacts(){return petScanContacts(this);}
   get activeAllies(){return currentAllies(this);}
   get localAllies(){return localAllies(this);}
-  actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):null;}
+  enemyCallout(actor,kind,detail){enemyCallout(this,actor,kind,detail);}
+  spawnEnemy(type,x,y,id){return rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,this.difficultyOffset),this.seed,this.floor,this.difficultyOffset);}
+  actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):enemyWeapon(actor);}
   meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b));}
   defensiveEvasion(a,b){return defensiveEvasion(this,a,b);}
   grapplePlan(id=this.target){return grapplePlan(this,id);}
@@ -146,7 +154,7 @@ export class Game {
     this.visibleTiles=new Set();
     for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(distance(this.player,{x,y})<=radius&&this.sight(this.player,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
     for(const a of this.activeAllies.filter(a=>connected(this,a)))for(let y=Math.max(0,a.y-8);y<=Math.min(SIZE-1,a.y+8);y++)for(let x=Math.max(0,a.x-8);x<=Math.min(SIZE-1,a.x+8);x++)if(distance(a,{x,y})<=8&&this.sight(a,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
-    for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){e.alert=true;e.lastKnown={x:target.x,y:target.y};}}
+    for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert)this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};}}
     this.autoTarget();
   }
   autoTarget(){if(!this.targeted)this.target=this.visibleEnemies.sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
@@ -306,7 +314,7 @@ export class Game {
     }
     if(this.floor===floor&&this.status==='playing'&&p.hp>0){
       const due=this.marks.filter(m=>m.due<=this.turn);this.marks=this.marks.filter(m=>m.due>this.turn);
-      for(const m of due){if(p.hp<=0)break;presentStep(this,()=>this.explode(m,1,scaleEnemy(38,this.floor,'damage')));}
+      for(const m of due){if(p.hp<=0)break;presentStep(this,()=>this.explode(m,m.radius??1,m.damage??scaleEnemy(38,this.floor,'damage',this.difficultyOffset)));}
       if(p.hp>0)presentStep(this,()=>resolveRetreatWave(this));
       if(p.hp>0)presentStep(this,()=>this.environmentTurn());
       if(p.hp>0)presentStep(this,()=>tickNests(this));
@@ -492,7 +500,7 @@ export class Game {
   }
   hurt(e,damage,attacker=null) {
     if(e.hp<=0||!shotDamageAllowed(this,e))return;
-    e.hp-=damage;this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
+    const beforeHp=e.hp;e.hp-=damage;for(const threshold of [.75,.5,.25])if(e.hp>0&&beforeHp>e.maxHp*threshold&&e.hp<=e.maxHp*threshold)this.enemyCallout(e,'injury',{threshold});this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
     this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`);
     if(e.hp>0)return;
@@ -505,7 +513,7 @@ export class Game {
     const p=this.player;
     while(p.level<MAX_LEVEL&&p.xp>=p.level+2){p.xp-=p.level+2;p.level++;if(activeTrait(p,'tactical_supply')){this.log('戰術配給：煙霧彈 +1。');this.receiveGrenade('smoke',1);}if(this.perkPicks+this.pendingPerks<perkLimit(p.level))this.pendingPerks++;}
     while(p.level>=MAX_LEVEL&&p.xp>=MAX_LEVEL+2){p.xp-=MAX_LEVEL+2;giveCapSupply(this);}
-    if(e.type==='bomber')this.explode(e,1,scaleEnemy(30,this.floor,'damage'));
+    enemyDeath(this,e);
     if(e.type==='warden'||e.type==='boss')this.awardProtocol(e.type,`${this.floor}:${e.id}`);
     if(e.reinforcement||e.expendable)return; // Retreat waves add pressure, not replacement supplies.
     const loot=ENEMY_LOOT[e.type];
@@ -605,54 +613,8 @@ export class Game {
   enemyAct(e){
     return this.enemyOpportunity(e);
   }
-  enemyOpportunity(e){
-    if(e.type==='fodder'){if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return;}e.actionDelay=1;}
-    const x=e.x,y=e.y,fired=this.executeEnemy(e);
-    if(e.x!==x||e.y!==y)e.cornerExposure=null;
-    e.moveDelta=e.moved?[e.x-x,e.y-y]:[0,0];
-    if(fired)recordShot(e,e.focusTarget||'player',this.turn);else e.fireChain=null;
-  }
-  executeEnemy(e) {
-    const p=this.enemyTarget(e);e.moved=false;e.moveDelta=[0,0];let fired=false;
-      if(e.hp<=0||!e.alert||p.hp<=0)return;
-      const def=ENEMY_TYPES[e.type],los=this.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity);
-      if(los)e.lastKnown={x:p.x,y:p.y};
-      if(d>16)return;
-      if(!pinned(e)&&def.seekCover&&los&&!e.charge&&!this.protectingCover(e,p)){
-        const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>this.passable(n.x,n.y,e)&&this.canCross(e,n)&&distance(n,p)>1&&!occupied(this,n,e)&&!this.hazards.some(h=>distance(h,n)===0)&&distance(n,p)<=def.range&&this.sight({...e,...n},p)&&this.shotClear({...e,...n},p)&&this.protectingCover({...e,...n},p));
-        if(spot){e.x=spot.x;e.y=spot.y;e.moved=true;return;}
-      }
-      if((los&&this.shotClear(e,p)&&d<=def.range&&(def.range>1||this.canCross(e,p)))||(e.type==='sniper'&&e.charge&&e.aim)) {
-        e.tactics=null;
-        if(e.type==='boss'&&(e.attackCount||0)%2===1&&!e.charge) {
-          this.marks.push({x:p.x,y:p.y,due:this.turn+2});e.attackCount++;
-          this.log('核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！',true);return;
-        }
-        if(!e.charge){e.charge=true;e.focusTarget=p.id||'player';e.windup=e.type==='sniper'?2:1;e.aim={x:p.x,y:p.y};return;}
-        e.windup=(e.windup||1)-1;if(e.windup>0)return;
-        if(e.type==='bomber'){this.hurt(e,e.hp);return;}
-        fired=def.range>1;if(fired)this.recordExposure(e,e.type==='sniper'&&e.aim?e.aim:p);if(fired)spentCase(this,e,{rifleman:'rifle',raider:'pistol',gunner:'shell',sniper:'rifle'}[e.type]);
-        if(e.type==='sniper'&&e.aim&&!this.shotClear(e,e.aim)){const edge=firstBarrierOnRay(this.barriers,e,e.aim);this.log('狙擊彈被門或隔板阻擋。');this.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:edge?{x:edge.x,y:edge.y}:{...e.aim},damage:0});if(edge)this.damageProp(edge,(def.expendable?def.damage:scaleEnemy(def.damage+this.floor*2,this.floor,'damage')));}
-        else if(e.type==='sniper'&&distance(p,e.aim||p)>0){this.log('狙擊彈擊中你原本的位置。');this.effects.push({type:'enemyShot',attackerType:'sniper',from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true});}
-        else {
-          petCombat(this,p);const chance=def.range>1?this.accuracy(e,p).chance:this.meleeAccuracy(e,p);
-          if(this.rng()*100<chance){if(p===this.player)this.damagePlayer((def.expendable?def.damage:scaleEnemy(def.damage+this.floor*2,this.floor,'damage')),`${enemyName(e)}攻擊`,e);else{this.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});this.damageAlly(p,(def.expendable?def.damage:scaleEnemy(def.damage+this.floor*2,this.floor,'damage')),e);}}
-          else {this.log(`${enemyName(e)}未命中（${chance}%）。`);this.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true});}
-        }
-        e.charge=Boolean(def.rapid);e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
-      } else {
-        e.charge=false;e.aim=null;e.windup=0;
-        const destination=los?p:e.lastKnown;
-        const plan=los&&!(def.range===1&&d<=1)?combatStep(this,e,p,{range:def.range,melee:def.range===1,peers:this.enemies.filter(b=>b.hp>0&&b.alert),hold:true}):null;
-        const step=pinned(e)||plan?.hold?null:plan?.step||(destination&&distance(e,destination)>0?this.nextStep(e,destination):null);if(step){const edge=barrierBetween(this.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(this,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)this.damageProp(edge,scaleEnemy(Math.max(15,def.damage),this.floor,'damage'));}else if(edgeBlocks(edge)){if(['crawler','brute','bomber','boss'].includes(e.type))this.damageProp(edge,scaleEnemy(Math.max(15,def.damage),this.floor,'damage'));else this.setDoor(edge,true);}else if(!occupied(this,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}}
-      }
-      if((e.type==='boss'||e.type==='warden')&&e.hp<e.maxHp*.5&&!e.reinforced&&enemyRoom(this)>0) {
-        e.reinforced=true;
-        for(const [dx,dy]of DIRECTIONS.slice(0,2)){const x=e.x+dx,y=e.y+dy;if(enemyRoom(this)>0&&this.passable(x,y)&&this.canCross(e,{x,y})&&distance(p,{x,y})>0&&!occupied(this,{x,y})){const drone=makeEnemy('drone',x,y,`${e.id}-reinforce-${dx}-${dy}`,this.floor);drone.alert=true;drone.lastKnown=e.lastKnown?{...e.lastKnown}:null;this.enemies.push(drone);}}
-        this.log(`${enemyName(e)}呼叫了無人機增援！`,true);
-      }
-    return fired;
-  }
+  enemyOpportunity(e){return enemyOpportunity(this,e);}
+  executeEnemy(e){return executeEnemyTree(this,e);}
   nextStep(e,target) {
     const queue=[{x:e.x,y:e.y,first:null}],visited=new Set([key(e)]);
     const occupied=new Set([...this.enemies.filter(o=>o!==e&&o.hp>0),...this.activeAllies].filter(a=>a!==target).map(key));
@@ -797,7 +759,7 @@ export class Game {
     recordPerkOffer(this);applyPerk(this,offer);this.pendingPerks--;this.perkPicks++;this.perkDraft=null;ensurePerks(this);
     this.log(`模組已安裝：${offer.name}。`);return true;
   }
-  serialize(){ensurePerks(this);const {rng,effects,visibleTiles,pursuitPending,pursuitBlocked,shadowBonus,...data}=this;return JSON.stringify({version:SAVE_VERSION,data,rngState:rng.state()});}
+  serialize(){ensurePerks(this);const {rng,effects,visibleTiles,onEnemyCallout,pursuitPending,pursuitBlocked,shadowBonus,...data}=this;return JSON.stringify({version:SAVE_VERSION,data,rngState:rng.state()});}
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
@@ -807,8 +769,10 @@ export class Game {
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)||(e.raised!==undefined&&typeof e.raised!=='boolean')||(e.expendable!==undefined&&typeof e.expendable!=='boolean')))return null;
       if(!Array.isArray(data.props)||!Array.isArray(data.items)||!validMapMetadata(data))return null;
       if(version<37)migrateSuppression(data);
+      if(version<38){data.marks??=[];migrateEnemyAffixes(data);migrateResistance(data);}
+      if(!validDifficultyOffset(data.difficultyOffset))return null;
       if(!validLearningInventory(data.player)||data.items.some(i=>i.type==='learning'&&!validLearningId(i.learningId)))return null;
-      if(data.mapGenerations===undefined)data.mapGenerations=[...new Set([data.generation?.version||1,...Object.values(data.floorStates||{}).map(f=>f.generation?.version||1)])].sort();
+      if(data.mapGenerations===undefined)data.mapGenerations=[...new Set([data.generation?.version||1,...Object.values(data.floorStates||{}).map(f=>f.generation?.version||1)])].sort((a,b)=>a-b);
       if(!validGenerationHistory(data.mapGenerations)||!data.mapGenerations.includes(data.generation?.version||1))return null;
       if(version<13)data.barriers=[];
       if(!validBarriers(data.barriers,data.grid,[...data.enemies,...data.props].map(o=>o.id)))return null;
@@ -845,6 +809,7 @@ export class Game {
       if((version>=7&&!validTraits(data.player.traits))||!validTraits(p.traits)||data.enemies.some(e=>!validTraits(e.traits)))return null;
       const tacticalActors=[p,...data.enemies,...(data.allies||[])];
       if(version<34){for(const a of tacticalActors){if(a===p){a.cornerExposure=null;a.tactics=null;}else{delete a.cornerExposure;delete a.tactics;}}for(const frame of Object.values(data.floorStates||{}))for(const a of frame.enemies||[]){delete a.cornerExposure;delete a.tactics;}}
+      if(!tacticalActors.every(a=>(a===p||validEnemyAffixes(a))&&validEnemyIntent(a,point))||!validEnemyMarks(data.marks,point,data.turn))return null;
       if(!tacticalActors.every(a=>validCorner(a,data.turn)&&validTactics(a,data.turn)))return null;
       if(version<9){p.character='soldier';p.moveDelta=[0,0];p.fireChain=null;grantCharacterTraits(p);for(const e of data.enemies){e.moveDelta=[0,0];e.fireChain=null;}}
       if(!validCharacter(version>=9?data.player.character:p.character)||!validCombatMemory(version>=9?data.player:p,data.turn)||data.enemies.some(e=>!validCombatMemory(e,data.turn)))return null;

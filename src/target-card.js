@@ -1,3 +1,4 @@
+import {enemyDisplayName} from './enemy-affixes.js';
 import {suppressionTag} from './suppression-ui.js';
 import {nestStyle,NEST_STYLES} from './runtime-enemies.js';
 import {lightingEffects} from './lighting.js';
@@ -14,13 +15,14 @@ const meleeHints=(game,target)=>{const p=game.player,hints=[];
 
 export function targetDetails(game){
   const target=game.targeted;if(!target)return null;
+  const displayTarget={...target,traits:(target.traits||[]).filter(t=>!t.source.startsWith('affix:')||target.affixes?.some(a=>a.revealed&&t.source===`affix:${a.id}`))};
   const melee=game.weapon.melee,enemy=ENEMY_TYPES[target.type],aim=enemy?game.accuracy(game.player,target):{chance:game.fireChance(target),bracedBonus:bracingBonus(game,game.player,target)};
   const light=lightingEffects(game,game.player,target),attack=game.attackStatus?.(game.player,target);
   const range=distance(game.player,target),withinDistance=range<=game.weapon.range,withinRange=withinDistance&&game.shotClear(game.player,target)&&(!melee||isBarrier(target)||game.canCross(game.player,target));
-  return {name:(enemy?(missionTarget(game,target)?'◇ ':'')+enemy.name:null)||(isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target)].name:target.type==='barrel'?'爆裂油桶':FURNITURE[target.style]?.name||'可破壞掩體'),hp:`${isBarrier(target)?'耐久':'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}`,
+  return {name:(enemy?(missionTarget(game,target)?'◇ ':'')+enemyDisplayName(target):null)||(isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target)].name:target.type==='barrel'?'爆裂油桶':FURNITURE[target.style]?.name||'可破壞掩體'),hp:`${isBarrier(target)?'耐久':'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}`,
     chance:withinRange?`命中 ${aim.chance}%`:melee?'無法近戰':'無法射擊',distance:`距離 ${range} 格\n射程 ${game.weapon.range} 格${game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?' · 單發':' · 兩發'):''}`,
     traits:enemy?traitLabels(target).join(' · '):'',
-    order:enemy&&(initiative(target)!==0||initiative(game.player)!==0)?(initiative(target)<initiative(game.player)?'行動在你之前':initiative(target)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',
+    order:enemy&&(initiative(displayTarget)!==0||initiative(game.player)!==0)?(initiative(displayTarget)<initiative(game.player)?'行動在你之前':initiative(displayTarget)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',
     cover:melee?'近戰無視掩體':enemy?(activeTrait(target,'no_cover')?'無法利用掩體':aim.cover?(aim.coverEfficiency===.5?'半效 ':'')+(aim.cover.type==='low_partition'?'矮隔板掩護':isBarrier(aim.cover)?'隔間掩護':aim.cover.type==='wall'?'牆角掩護':aim.cover.style?'家具掩護':'箱體掩護'):'無掩護'):'可破壞物',
     attack,
     state:[attack?.targetExposed?'轉角暴露':'',enemy?suppressionTag(target):'',...(enemy?meleeHints(game,target):[]),aim.closeBonus?`近射 +${aim.closeBonus}`:'',aim.vaultBonus?`翻越破綻 +${aim.vaultBonus}`:'',!melee&&light.dark?(light.nightVision?'夜視抵銷暗區':'暗區 −40'):'',isBarrier(target)?target.type==='door'?(target.open?'門已開啟':'門已關閉'):target.type==='low_partition'?'可翻越 · 破綻 +20':'固定隔板':'',withinRange?'':withinDistance?(attack?.reason==='target_corner_hidden'?'轉角未暴露':'障礙阻擋'):'超出射程',aim.bracedBonus?`架槍 +${aim.bracedBonus}`:'',aim.trackingBonus?`修正 +${aim.trackingBonus}`:'',aim.sidePenalty?`側身 −${aim.sidePenalty}`:'',target.control?.disabled?`失能 ${target.control.disabled}`:'',target.control?.immune?`失能免疫 ${target.control.immune}`:'',target.moved?'移動中':'',target.charge?'即將攻擊':''].filter(Boolean).join(' · '),withinRange};
