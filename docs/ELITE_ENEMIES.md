@@ -1,6 +1,6 @@
 # 小菁英（規格，2026-09-14）
 
-- 狀態：**規格，交 Codex。** 介面由 Claude 接手（第 3 節）。
+- 狀態：**3.79.0 規則已實作。** 介面由 Claude 接手（第 3 節）。
 - **順序：排在 [FACTION_DATA.md](FACTION_DATA.md) 之後。** 派系框架要先以「規則不變」通過行為一致性檢查；小菁英會刻意改變生成結果，必須是下一個獨立提交。
 - 目的：深層出現少數帶很多隱藏詞條的敵人，玩家只能靠染色認出「這隻不一樣」。
 
@@ -15,7 +15,7 @@
 
 ### 2.1 誰可以成為小菁英
 
-**Claude 建議，使用者尚未確認**：排除雜兵（`expendable`）與頭目級（`boss` 標籤）。
+**使用者已確認（2026-09-14）**：排除雜兵（`expendable`）與頭目級（`boss` 標籤）。
 
 - 雜兵本來就不抽詞條。
 - 頭目本身已經是特例，再變成小菁英容易失控。
@@ -124,3 +124,21 @@ Claude 在介面批次中，用瀏覽器確認染色與「精英」標籤。
 1. **Claude（已完成）**：本規格。
 2. **Codex**：完成 FACTION_DATA.md 並通過檢查之後，用另一個提交做第 2 節，依第 4 節驗收並重錄基準。
 3. **Claude**：第 3 節的介面，與 FACTION_DATA 第 9 節的通用染色一起做。
+
+## 6. 實作現況（3.79.0）
+
+- `src/elite-enemies.js` 集中 `ELITE_TUNING`，採第 2.3 節全部建議值。有效深度 9 起 2%，16 起封頂 15%。頭目標籤、實例或兵種資料的 expendable 都排除。
+- `generate` 與 `Game.spawnEnemy` 在普通詞條之後呼叫 `rollEnemyElite(e, seed, floor, offset)`。`birthRandom` 新增可選 salt；原預設 `enemy-v10` 不變，精英用 `elite-v1`。補抽均勻、不讀派系權重，每次重新檢查適用條件；沒有多抽地圖／戰鬥亂數。
+- 實例只增加可選 `elite:true`，非精英保持沒有欄位。詞條沿用 `affixes`／`traits`、隱藏與顯現規則，名稱不自行加精英片段。
+- `enemyKillXp(e)` 僅將經驗乘 2 並四捨五入。廢料、掉落與協定獎勵不加成；撤退增援仍有原本經驗／廢料，沒有物資掉落。較多經驗間接提早升級或封頂補給，屬既有升級規則。
+- save41：v40 與更舊存檔清除 elite，不回溯重抽；當層、封存敵人與友軍一併處理。當前格式只接受 true 或不存在。profile5／backup1 不變，完整備份走相同遷移與驗證。
+- 召喚物維持既有「依屍體兵種建立新友軍」流程，不複製 elite 或屍體的詞條；敵人屍體保留 elite 可供染色。
+- 實際含精英的生成結果加一層 `{version:11, recipeId:'elites-v11', base:原世代10描述}`，保留 1–10 讀取。沒有生成精英的樓層維持原描述，確保淺層及未改變的種子完全相同。執行期出生不改已生成地圖的描述。
+- 原基準比對 154 筆差異均符合第 4.2 節；完整清單與結果見 [QA 報告](../qa/results/2026-09-14-codex-3.79.0-elites.md)。通過範圍檢查後才使用 `--write` 更新基準；未變動雜湊或擷取邏輯，檢查器只取消原先最多印 30 筆的限制。
+
+## 7. Claude 介面交接
+
+- 讀 `enemy.elite === true` 決定染色與純顯示標籤。屍體沿用同一敵人欄位。不要把 elite 當成 TRAITS 或可顯現的詞條，也不要改敵人基本代號。
+- 名稱／已顯現詞條仍用 `enemyDisplayName(e)`／`revealedAffixes(e)`；派系仍用 `enemyFaction(e)`／`factionOverride(e)`。本批未改 renderer、controller、CSS 或圖鑑。
+- 引擎另匯出 `ELITE_TUNING`、`eliteChance(floor,offset=0)`、`eliteEligible(e)`、`enemyKillXp(e)`。顯示機率不需要抽亂數或呼叫出生函式。
+- 執行 `node qa/create-elite-scenes.mjs`，在 `qa/fixtures/elites/` 生成無盡第 8、12、60 層存檔，種子 1；分別為 0、4、4 名精英。僅在 `?test=1` 匯入，驗證染色、目標卡、屍體、真實模式與存讀檔；介面尚未實作，因此目前不會自動顯示「精英」標籤。

@@ -55,6 +55,6 @@ if(process.argv.includes('--write')){
 }else{
  if(!existsSync(BASELINE)){console.error('No baseline: record it with --write on the pre-refactor commit.');process.exit(1);}
  const diff=differences(JSON.parse(readFileSync(BASELINE,'utf8')),now);
- if(diff.length){console.error(`${diff.length} differences from the baseline:`);for(const d of diff.slice(0,30))console.error(`  ${d.group} ${d.key}: ${d.a} -> ${d.b}`);process.exit(1);}
+ if(diff.length){console.error(`${diff.length} differences from the baseline:`);for(const d of diff)console.error(`  ${d.group} ${d.key}: ${d.a} -> ${d.b}`);process.exit(1);}
  console.log('identical to baseline',counts);
 }

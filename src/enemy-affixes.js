@@ -15,7 +15,7 @@ export const ENEMY_AFFIXES=[
  {id:'grenadier',fragment:'擲彈兵',order:4,applies:armed,behavior:'grenade',reveal:REVEAL_TYPES.effect},
 ];
 export const affixChance=(floor,offset=0)=>Math.min(AFFIX_TUNING.chanceCap,Math.max(0,effectiveDepth(floor,offset)-AFFIX_TUNING.startDepth+1)*AFFIX_TUNING.chancePerDepth);
-export function birthRandom(seed,floor,id){let h=2166136261;for(const c of `${seed}:${floor}:${id}:enemy-v10`){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return ()=>{h=(h+0x6D2B79F5)>>>0;let t=Math.imul(h^h>>>15,h|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};}
+export function birthRandom(seed,floor,id,salt='enemy-v10'){let h=2166136261;for(const c of `${seed}:${floor}:${id}:${salt}`){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return ()=>{h=(h+0x6D2B79F5)>>>0;let t=Math.imul(h^h>>>15,h|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};}
 export function giveEnemyAffix(e,id,revealed=false){const d=ENEMY_AFFIXES.find(a=>a.id===id);if(!d||(e.affixes||[]).some(a=>a.id===id))return false;e.affixes=[...(e.affixes||[]),{id,revealed}];if(d.trait)grantTrait(e,d.trait,`affix:${id}`);return true;}
 export function affixPickIndex(pool,draw,weights){
  if(!weights)return Math.floor(draw*pool.length);

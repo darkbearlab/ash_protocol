@@ -1,6 +1,7 @@
 import {validateRecipe,recipeGroups} from './map-recipes.js';
 // Room identity is independent of lattice position. No RNG or game imports.
-export const MAP_GENERATION=10;
+export const MAP_GENERATION=10; // Default unchanged map; elites add an optional generation-11 wrapper.
+export const MAX_MAP_GENERATION=11;
 export const MAP_FIELDS=['cells','openings','annexes','generation','slots'];
 const key=p=>`${p.x},${p.y}`;
 const point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y);
@@ -64,6 +65,7 @@ function validAnnexes(map){
 // so footprints describe ownership, not the current set of walkable floor tiles.
 export function validMapMetadata(map,custom=false){
   if(MAP_FIELDS.every(k=>map[k]===undefined))return true;
+  if(map.generation?.version===11){if(map.generation.recipeId!=='elites-v11'||map.generation.base?.version!==10)return false;return validMapMetadata({...map,generation:map.generation.base});}
   if(map.generation?.version===10){if(map.generation.recipeId!=='enemies-v10'||map.generation.base?.version!==9)return false;return validMapMetadata({...map,generation:map.generation.base});}
   if(map.generation?.version===9){
     if(map.generation.recipeId!=='contents-v9'||![2,3,4,5,6,7,8].includes(map.generation.base?.version))return false;
@@ -138,7 +140,7 @@ export function validMapMetadata(map,custom=false){
   }
   return true;
 }
-export const validGenerationHistory=value=>Array.isArray(value)&&value.length>0&&value.length<=MAP_GENERATION&&new Set(value).size===value.length&&value.every(n=>Number.isInteger(n)&&n>=1&&n<=MAP_GENERATION);
+export const validGenerationHistory=value=>Array.isArray(value)&&value.length>0&&value.length<=MAX_MAP_GENERATION&&new Set(value).size===value.length&&value.every(n=>Number.isInteger(n)&&n>=1&&n<=MAX_MAP_GENERATION);
 
 function validSlots(map){
   if(!Array.isArray(map.slots)||map.slots.length>729)return false;

@@ -1,3 +1,4 @@
+import {rollEnemyElite,enemyKillXp,migrateElites,validElites} from './elite-enemies.js';
 import {pickFacilityFaction,migrateFactions,validFactions} from './factions.js';
 import {isBossClass,hasEnemyTag,enemyDef} from './enemy-data.js';
 import {unitTree} from './behavior-tree.js';
@@ -81,7 +82,7 @@ export class Game {
   get activeAllies(){return currentAllies(this);}
   get localAllies(){return localAllies(this);}
   enemyCallout(actor,kind,detail){enemyCallout(this,actor,kind,detail);}
-  spawnEnemy(type,x,y,id){return rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,this.difficultyOffset,this.facilityFaction),this.seed,this.floor,this.difficultyOffset);}
+  spawnEnemy(type,x,y,id){return rollEnemyElite(rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,this.difficultyOffset,this.facilityFaction),this.seed,this.floor,this.difficultyOffset),this.seed,this.floor,this.difficultyOffset);}
   actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):enemyWeapon(actor);}
   meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b));}
   defensiveEvasion(a,b){return defensiveEvasion(this,a,b);}
@@ -511,7 +512,7 @@ export class Game {
     this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`,false,`命中${enemyName(e)}。`);
     if(e.hp>0)return;
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
-    this.player.kills++;if(!e.expendable)this.player.xp+=ENEMY_TYPES[e.type]?.xp??1;
+    this.player.kills++;if(!e.expendable)this.player.xp+=enemyKillXp(e);
     if(!e.expendable)this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
     this.log(`${enemyName(e)}已消滅。`);if(missionTarget(this,e))this.log(this.missionSummary+'。');
     // The number stops at MAX_LEVEL (3.52.0, user call). Past it the threshold stays at the level-20 cost and each
@@ -776,6 +777,8 @@ export class Game {
       if(!Array.isArray(data.props)||!Array.isArray(data.items)||!validMapMetadata(data))return null;
       if(version<40)migrateFactions(data);
       if(!validFactions(data))return null;
+      if(version<41)migrateElites(data);
+      if(!validElites(data))return null;
       if(version<37)migrateSuppression(data);
       if(version<39)data.realMode=false;
       if(typeof data.realMode!=='boolean')return null;
