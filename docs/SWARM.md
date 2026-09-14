@@ -227,3 +227,31 @@
 - 狀態列請顯示「中毒 N 層」，不要再顯示剩餘N回合；讀 `player.poison`。計時需要時讀 `player.poisonClock??0`，下次退層還需 `poisonDecayTurns-clock` 個付費回合。真實模式的數值隱藏仍照既有介面政策；本輪未改狀態列文字或毒液圖示。
 - `node qa/create-wave-scenes.mjs` 產生 `qa/fixtures/swarm-waves/` 四份：未啟動、兩回合預告、12隻滿額、4層中毒且已走過一個退層間隔。舊 `create-swarm-scenes` 的毒液場景改為合法4層。只用 `?test=1` 匯入。
 - 新測試12項，完整npm test **824/824**，build通過。正式enemy-data基準不變、未重錄；96張其他派系地圖的額外比較也通過。手機蟲潮壓力、標記可讀性、同時移動體感、防護第一階的免疫價值由使用者與Claude驗收。
+
+## 10. Claude 驗證與介面（3.85.1）
+
+### 10.1 驗證 Codex 3.85.0
+
+- **自動檢查**：
+  - npm test 824/824。
+  - `node qa/enemy-data-identity.mjs` 與基準一致。
+  - 繪製紀錄雜湊 `1f415fe7fcda0dac` 沒有變。
+  - GitHub Pages run 34871967014 成功，線上版本 3.85.0。
+- **合併**：Codex 發布前合併了 3.84.3，說話者倒下的泡泡淡出仍在。
+- **程式檢查**：
+  - 疊層中毒先扣傷害再退層；加層不重設計時；解毒統一走 `clearPoison`。
+  - 感染者一次攻擊最多加一層。
+  - 蟲潮不佔 `enemyRoom`、`expendableRoom`；入侵點不是道具；預告格併入 `reinforcementTelegraphs`。
+
+### 10.2 介面
+
+- **狀態列**：顯示「中毒 N 層」。
+- **入侵點**：
+  - 蟲潮啟動後，在入侵點那一格畫地洞（`drawNestSprite`，`burrow`）。
+  - 還有蟲沒出來時是「活躍」，出完後是「坍塌」。
+  - 畫在地面層、角色之下，不擋路、沒有生命條；還沒啟動時不畫。
+- **驗收**：見 [3.85.1 QA](../qa/results/2026-09-15-claude-3.85.1-wave-status.md)。
+
+### 10.3 待使用者決定
+
+- **密封防護與中毒**：第一階 hazmat +5，就完全抵銷最多 4 層的中毒傷害。Codex 建議改成每階只抵銷 1 點毒傷（`floor(hazmat/5)`），地板傷害的防護維持原值。

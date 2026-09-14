@@ -4,7 +4,7 @@ import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
 import {SPRITE_NAMES,AFTERMATH_NAMES,enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL,spriteToneRole,VENOM_VISUAL,TONGUE_VISUAL} from './enemy-visuals.js';
 import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
-import {NEST_ATLAS,drawNest,drawNestEffect} from './nest-art.js';
+import {NEST_ATLAS,drawNest,drawNestEffect,drawNestSprite} from './nest-art.js';
 import {SCENERY_ATLAS} from './scenery.js';
 import {drawPartition,partitionGeometry,DOOR_ATLAS,drawDoor,doorGeometry,barrierJunctions,drawJunction} from './barrier-art.js';
 import {actorPosition,DarkActorCache,cornerHidden,muteCornerPixels} from './actor-visuals.js';
@@ -136,6 +136,9 @@ export class Renderer {
       c.globalAlpha=g.visibleTiles?.has(x+','+y)?1:.36;
       for(const trace of traceCells.get(x+','+y)||[])drawTrace(c,trace,a.x,a.y,t);
       const hazard=g.hazards.find(h=>h.x===x&&h.y===y);if(hazard)this.hazard(a,hazard,time);
+      // Swarm invasion point (3.85.1): a burrow appears once the surge wakes up and turns to rubble when it is spent.
+      // It is not a prop, so it never blocks, takes damage or shows a health bar (docs/SWARM.md 9.1).
+      if(g.swarmWaves?.active&&g.swarmWaves.origin.x===x&&g.swarmWaves.origin.y===y)drawNestSprite(c,this.terrainImages?.get(NEST_ATLAS),a,t,'burrow',g.swarmWaves.remaining>0?'active':'ruins');
       if(distance(p,{x,y})===1&&g.passable(x,y)&&!g.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))this.box(left+3,top+3,t-6,t-6,'#b0ba8010','#b1c48a3b');
       const room=g.rooms?.find(r=>r.supply&&r.cx===x&&r.cy===y);if(room){const sign=SUPPLY_ROOMS[room.supply];if(sign)this.text(sign.name,a.x,a.y-this.tile*.4,sign.color,9);}
       if(g.exitPoint.x===x&&g.exitPoint.y===y)this.exit(a,time);
