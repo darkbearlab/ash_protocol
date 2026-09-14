@@ -1,5 +1,5 @@
 import {isNoncombatant} from './enemy-data.js';
-import {factionDef,factionActors,expandRoster} from './factions.js';
+import {factionDef,factionActors,expandRoster,enemyBaseName} from './factions.js';
 import {birthRandom} from './enemy-affixes.js';
 import {makeEnemy,DIRECTIONS,distance,key,reachable} from './world.js';
 import {roomTiles,roomContains} from './map-geometry.js';
@@ -31,7 +31,7 @@ export function scream(g,e){
  if(e.hp<=0||e.control?.disabled||e.screamCooldown>0||!g.sight(e,g.player))return false;
  e.screamCooldown=CIVILIAN_TUNING.screamCooldown;
  for(const guard of g.enemies)if(guard.hp>0&&!isNoncombatant(guard)&&distance(e,guard)<=CIVILIAN_TUNING.screamRadius){guard.alert=true;guard.lastKnown={x:g.player.x,y:g.player.y};}
- g.log('研究員尖叫，附近的守衛警戒了。',true);g.enemyCallout(e,'telegraph',{action:'scream'});return true;
+ g.log(`${enemyBaseName(e)}尖叫，附近的守衛警戒了。`,true);g.enemyCallout(e,'telegraph',{action:'scream'});return true;
 }
 export function civilianAction({g,e}){
  const visible=g.sight(e,g.player);if(visible)e.lastKnown={x:g.player.x,y:g.player.y};

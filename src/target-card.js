@@ -1,6 +1,7 @@
 import {enemyDisplayName} from './enemy-affixes.js';
 import {cardEnemyName} from './affix-ui.js';
-import {factionTag,ELITE_VISUAL} from './enemy-visuals.js';
+import {factionTag,ELITE_VISUAL,NONCOMBATANT_LABEL} from './enemy-visuals.js';
+import {isNoncombatant} from './enemy-data.js';
 import {suppressionTag} from './suppression-ui.js';
 import {nestStyle,NEST_STYLES} from './runtime-enemies.js';
 import {lightingEffects} from './lighting.js';
@@ -23,7 +24,7 @@ export function targetDetails(game){
   const range=distance(game.player,target),withinDistance=range<=game.weapon.range,withinRange=withinDistance&&game.shotClear(game.player,target)&&(!melee||isBarrier(target)||game.canCross(game.player,target));
   const details={name:(enemy?(missionTarget(game,target)?'◇ ':'')+cardEnemyName(target):null)||(isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target)].name:target.type==='barrel'?'爆裂油桶':FURNITURE[target.style]?.name||'可破壞掩體'),fullName:enemy?enemyDisplayName(target):'',hp:`${isBarrier(target)?'耐久':'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}${enemy?.armor>0?`\n護甲 ${enemy.armor}`:''}`,
     chance:withinRange?`命中 ${aim.chance}%`:melee?'無法近戰':'無法射擊',distance:`距離 ${range} 格\n射程 ${game.weapon.range} 格${game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?' · 單發':' · 兩發'):''}`,
-    traits:enemy?[factionTag(target),target.elite?ELITE_VISUAL.label:'',...traitLabels(target)].filter(Boolean).join(' · '):'',
+    traits:enemy?[factionTag(target),target.elite?ELITE_VISUAL.label:'',isNoncombatant(target)?NONCOMBATANT_LABEL:'',...traitLabels(target)].filter(Boolean).join(' · '):'',
     order:enemy&&(initiative(displayTarget)!==0||initiative(game.player)!==0)?(initiative(displayTarget)<initiative(game.player)?'行動在你之前':initiative(displayTarget)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',
     cover:melee?'近戰無視掩體':enemy?(activeTrait(target,'no_cover')?'無法利用掩體':aim.cover?(aim.coverEfficiency===.5?'半效 ':'')+(aim.cover.type==='low_partition'?'矮隔板掩護':isBarrier(aim.cover)?'隔間掩護':aim.cover.type==='wall'?'牆角掩護':aim.cover.style?'家具掩護':'箱體掩護'):'無掩護'):'可破壞物',
     attack,

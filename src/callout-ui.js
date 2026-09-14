@@ -38,11 +38,22 @@ const REBEL={
  hit:['該死，被打中了！','混蛋，我中彈了！'],wounded:['可惡……還沒完！','痛死了，你給我記住！'],critical:['救我……誰來救我！','我不想死在這！'],suppressed:['火力也太猛了吧！','頭都抬不起來！'],pinned:['動不了，該死！','被釘死在這了！'],
  spotted:['在那！宰了他！','找到你了，雜碎！'],lost:['人呢？跑哪去了！','讓他溜了，該死！'],search:['給我搜，挖地三尺！','出來啊，別躲了！'],
 };
+// Civilians (3.82.1, docs/CIVILIANS.md 5): staff left behind in an ember facility. They know the war is lost, still wait
+// for word from headquarters and recognise the numbered clones. No company names (docs/STORY.md 2). Only the cues the
+// rules send for them are listed; anything else stays silent.
+const CIVILIAN={
+ scream:['警衛！警衛！有入侵者！','是數字人……快逃啊！','救命！他們打進來了！'],
+ flee:['別過來！我們只是研究員！','戰爭早就結束了，放過我們吧！','我不知道總部在哪裡，我什麼都不知道！','這裡只剩下我們了……','我們只是在維持設施運轉……','求你，別傷害大家！'],
+ hit:['啊！別開槍！','我投降，我投降！'],wounded:['求你……我們沒有武器……','住手，這裡沒有士兵！'],critical:['我只是……想回家……','我們只是在等命令……'],
+ suppressed:['別打了，我趴下了！','不要開槍，我不動！'],pinned:['我動不了……別殺我！','拜託，放我走……'],
+};
 // Faction voices (3.80.0): loyalists report like a front line, rebels shout and curse. Machines keep MACHINE.
-export const VOICE_LINES={human:HUMAN,machine:MACHINE,loyalist:LOYALIST,rebel:REBEL};
-// Machines and creatures keep their card voice; otherwise a faction voice applies, falling back to the neutral human
+export const VOICE_LINES={human:HUMAN,machine:MACHINE,loyalist:LOYALIST,rebel:REBEL,civilian:CIVILIAN};
+// A unit that speaks for itself sends its voice with the event, seen or heard (civilians, 3.82.0 rules). Otherwise
+// machines and creatures keep their card voice and the rest use the faction voice, falling back to the neutral human
 // voice. Heard callouts carry no unit type, so they can only use the faction voice (user decision, 2026-09-14).
 export function calloutVoice(event){
+ if(typeof event.voice==='string'&&Object.hasOwn(VOICE_LINES,event.voice))return event.voice;
  const faction=factionDef(event.faction)?.voice,factionVoice=faction&&VOICE_LINES[faction]?faction:'human';
  if(event.visibility!=='visible')return factionVoice;
  const def=ENEMY_TYPES[event.enemyType];

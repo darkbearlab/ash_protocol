@@ -196,3 +196,36 @@
 - `python tools/pixelize_civilians.py` 沿用 `pixelize_cell`，輸出 32×32 索引 PNG、最多16色、5-bit RGB、無抖色、透明索引0。輸出與預覽在 `assets/pixel/civilians-v1/`。
 - 原本兩張4×4圖集的16格完全保留，在第五列第1格追加 researcher（index16）；名字清單只追加。圖缺失時的程式繪製也以 `drawing.unarmed` 移除武器，既有單位畫法不變。
 - `python qa/civilian-art-check.py` 對 fac5503 解碼比較，兩張圖集各16格逐像素相同；新圖尺寸、色數與透明索引通過。詳見本版 QA 報告。
+
+## 8. Claude 驗證與介面（3.82.1）
+
+### 驗證 Codex 3.82.0
+
+- **自動檢查**：
+  - npm test 786/786。
+  - `node qa/enemy-data-identity.mjs` 與基準一致。
+  - GitHub Pages run 34851850965 成功，線上版本 3.82.0。
+- **繪製紀錄**：原有 12 張卡共 2529 次呼叫、雜湊 `1f415fe7fcda0dac`，與 3.79.1 以來相同。
+- **圖集**：`atlas.png`、`aftermath.png` 擴成 128×160，原本 16 格逐像素相同，第 17 格有圖。
+- **程式檢查**：
+  - 還沒警戒的平民不會跑逃跑鉤子（`executeEnemyTree` 先檢查 `alert`），所以沒看到玩家時不會喊逃跑台詞。
+  - 屍體圖集依圖片的實際大小建立，第 17 格的屍體可以用。
+  - 6 處既有測試的修改理由都合理，見 Codex 的 QA 報告。
+
+### 介面
+
+- **聲線**：
+  - `VOICE_LINES.civilian` 涵蓋 scream、flee、hit、wounded、critical、suppressed、pinned。
+  - `calloutVoice` 先看事件帶的 `voice`，看得到或牆後都一樣；其次才看兵種卡與派系。
+- **目標卡**：標籤行為「派系 · 非戰鬥人員 · 被動」。`NONCOMBATANT_LABEL` 只是顯示，不是被動；真實模式隱藏整行。
+- **圖鑑**：平民卡本來就會列出，沒有另外處理。
+
+### Claude 順手修正的兩處（有紀錄，要還原請說）
+
+- **平民圖的明暗**：
+  - renderer 原本依圖格位置決定色調：前 10 格用角色色調（亮度 1.3、飽和 1.5），其餘用道具色調（亮度 0.8、飽和 0.9）。
+  - 平民在第 17 格，被畫成道具的暗色。
+  - 改成依圖格名稱判斷（`spriteToneRole`），原本 16 格的對應和以前完全相同。
+- **尖叫紀錄的名稱**：
+  - 原本固定寫「研究員尖叫」，改用兵種名稱（`enemyBaseName`），之後其他非戰鬥卡也會用自己的名稱。
+  - 目前的紀錄是「滯留研究員尖叫，附近的守衛警戒了。」

@@ -1,7 +1,7 @@
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
-import {SPRITE_NAMES,AFTERMATH_NAMES,enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL} from './enemy-visuals.js';
+import {SPRITE_NAMES,AFTERMATH_NAMES,enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL,spriteToneRole} from './enemy-visuals.js';
 import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
 import {NEST_ATLAS,drawNest,drawNestEffect} from './nest-art.js';
 import {SCENERY_ATLAS} from './scenery.js';
@@ -286,7 +286,7 @@ export class Renderer {
   enemySprite(name,a,size,dark,hidden,tint,outline){
     if(!tint&&!outline)return this.sprite(name,a,size,dark,hidden);
     const index=this.spriteNames.indexOf(name);if(index<0||!this.sprites.complete||!this.sprites.naturalWidth)return false;
-    const cell={x:index%4*32,y:Math.floor(index/4)*32,size:32},toned=this.artTones?.get(this.sprites,cell,index<10?'unit':'prop'),image=toned||this.sprites,from=toned?{x:0,y:0}:cell;
+    const cell={x:index%4*32,y:Math.floor(index/4)*32,size:32},toned=this.artTones?.get(this.sprites,cell,spriteToneRole(name)),image=toned||this.sprites,from=toned?{x:0,y:0}:cell;
     let source=image,sx=from.x,sy=from.y;
     if(tint){const tinted=this.cellCanvas(image,from,`tint:${name}:${tint}`,c=>{const pixels=c.getImageData(0,0,32,32);tintPixels(pixels.data,tint);c.putImageData(pixels,0,0);});if(tinted){source=tinted;sx=0;sy=0;}}
     if(dark)source=this.darkActors.get(source);if(hidden)source=this.hiddenActors?.get(source)||source;
@@ -294,7 +294,7 @@ export class Renderer {
     if(outline)this.drawOutline(image,from,name,outline,a,size);
     return true;
   }
-  sprite(name,a,size=32,dark=false,hidden=false){const index=this.spriteNames.indexOf(name);if(index<0||!this.sprites.complete||!this.sprites.naturalWidth)return false;const cell={x:index%4*32,y:Math.floor(index/4)*32,size:32},toned=this.artTones?.get(this.sprites,cell,index<10?'unit':'prop');let source=dark?this.darkActors.get(toned||this.sprites):toned||this.sprites;if(hidden)source=this.hiddenActors?.get(source)||source;this.ctx.drawImage(source,toned?0:cell.x,toned?0:cell.y,32,32,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
+  sprite(name,a,size=32,dark=false,hidden=false){const index=this.spriteNames.indexOf(name);if(index<0||!this.sprites.complete||!this.sprites.naturalWidth)return false;const cell={x:index%4*32,y:Math.floor(index/4)*32,size:32},toned=this.artTones?.get(this.sprites,cell,spriteToneRole(name));let source=dark?this.darkActors.get(toned||this.sprites):toned||this.sprites;if(hidden)source=this.hiddenActors?.get(source)||source;this.ctx.drawImage(source,toned?0:cell.x,toned?0:cell.y,32,32,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
   // Elite corpses keep the gold outline so the player can tell which body it was (3.79.1).
   deadOutline(name,a,size,color){const index=this.aftermathNames.indexOf(name);if(index<0||!this.aftermath?.complete||!this.aftermath.naturalWidth)return;const image=this.corpseReady?this.corpseAtlas:this.aftermath;this.drawOutline(image,{x:(index%4)*32,y:Math.floor(index/4)*32},name,color,a,size);}
   effectSprite(name,a,size=32,angle=0,dark=false){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);const source=name.startsWith('dead-')&&this.corpseReady?this.corpseAtlas:this.aftermath;c.drawImage(dark?this.darkActors.get(source):source,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
