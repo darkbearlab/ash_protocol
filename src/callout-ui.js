@@ -3,7 +3,7 @@
 // event and a board counter, never the combat RNG.
 import {ENEMY_TYPES} from './engine.js';
 
-export const CALLOUT_UI_TUNING=Object.freeze({generalMs:2500,dangerMs:4000,heardFactor:.7,mergeMs:1500,maxOnScreen:4,fadeMs:400,edgeMargin:30});
+export const CALLOUT_UI_TUNING=Object.freeze({generalMs:2500,dangerMs:4000,heardFactor:.7,cooldownMs:1500,maxOnScreen:4,fadeMs:400,edgeMargin:30});
 
 const HUMAN={
  grenade:['手榴彈！','丟雷了！','投彈，找掩護！'],bombard:['標定座標！','轟炸就位！'],aim:['鎖定目標。','瞄準中……','別動……'],attack:['衝上去！','準備開火！','壓上去！'],
@@ -32,8 +32,9 @@ export function calloutLine(event,variant=0){
 }
 
 const RANK={high:3,medium:2,low:1};
-// One bubble per unit (or per direction when only heard); repeats count up; the same quieter cue from another
-// unit inside mergeMs is counted on the first bubble; a screen cap drops the quietest, oldest bubble.
+// One bubble per unit (or per direction when only heard). Lines never stack as "×N" (user decision, 3.76.5):
+// a repeat on the same unit only extends its bubble, and the same quieter cue from another unit inside cooldownMs
+// is not shown. Danger lines ignore the cooldown. A screen cap drops the quietest, oldest bubble.
 export class CalloutBoard{
  constructor(tuning=CALLOUT_UI_TUNING){this.tuning=tuning;this.items=[];this.sequence=0;}
  clear(){this.items=[];}
@@ -43,14 +44,11 @@ export class CalloutBoard{
   this.prune(now);
   const key=event.visibility==='visible'?`actor:${event.actorId}`:`dir:${event.direction}`,expires=now+this.duration(event);
   const same=this.items.find(i=>i.key===key);
-  if(same&&same.event.cue===event.cue){same.count++;same.expires=Math.max(same.expires,expires);return same;}
+  if(same&&same.event.cue===event.cue){same.expires=Math.max(same.expires,expires);return same;}
   if(same&&RANK[same.event.priority]>RANK[event.priority])return null;
-  if(event.priority!=='high'){
-   const echo=this.items.find(i=>i.event.cue===event.cue&&i.event.visibility===event.visibility&&now-i.started<=this.tuning.mergeMs);
-   if(echo){echo.count++;echo.expires=Math.max(echo.expires,expires);return echo;}
-  }
+  if(event.priority!=='high'&&this.items.some(i=>i.event.cue===event.cue&&i.event.visibility===event.visibility&&now-i.started<=this.tuning.cooldownMs))return null;
   if(same)this.items.splice(this.items.indexOf(same),1);
-  const item={key,event,text:calloutLine(event,this.sequence++),count:1,started:now,expires};
+  const item={key,event,text:calloutLine(event,this.sequence++),started:now,expires};
   this.items.push(item);
   while(this.items.length>this.tuning.maxOnScreen){const drop=[...this.items].sort((a,b)=>RANK[a.event.priority]-RANK[b.event.priority]||a.started-b.started)[0];this.items.splice(this.items.indexOf(drop),1);}
   return this.items.includes(item)?item:null;
@@ -59,7 +57,7 @@ export class CalloutBoard{
  active(now){this.prune(now);return this.items;}
 }
 
-export const bubbleText=item=>item.count>1?`${item.text} ×${item.count}`:item.text;
+export const bubbleText=item=>item.text;
 export const bubbleAlpha=(item,now,tuning=CALLOUT_UI_TUNING)=>(item.event.visibility==='visible'?1:.6)*Math.max(0,Math.min(1,(item.expires-now)/tuning.fadeMs));
 
 const VECTORS={east:[1,0],southeast:[1,1],south:[0,1],southwest:[-1,1],west:[-1,0],northwest:[-1,-1],north:[0,-1],northeast:[1,-1]};
