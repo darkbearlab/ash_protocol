@@ -4,6 +4,7 @@
 
 - **喊話泡泡**：說話的敵人倒下後，泡泡一律在 0.4 秒內淡出，不分台詞種類（使用者決定）。本來就快結束的泡泡不會被延長；牆後只聽得到的喊話不受影響。
 - **驗證**：npm test 812/812（新增 tests/callout-fade.test.mjs 2 項）；一般敵人的繪製呼叫相同。細節見 [REAL_MODE.md](REAL_MODE.md) 第 6 節第 7 項與 [3.84.3 QA](../qa/results/2026-09-15-claude-3.84.3-fallen-speaker-fade.md)。
+- 已部署：GitHub Pages run 34870588390 成功，線上 `src/version.js` 確認為 3.84.3；完整 812 項測試與 build 通過。
 
 ## 3.84.2 — 敵人移動同時播放、喊話泡泡跟著說話者（Claude，2026-09-15）
 
