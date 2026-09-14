@@ -289,3 +289,8 @@ game.action('usePrepared',{category:'skill',target:{x,y}});
 - 層數：目標卡、玩家狀態列、地圖血條上方小點都讀 `suppressionState` 或 `suppressionStacks`。
 - 區域瞄準：新增 `suppress` 瞄準模式，合法性一律由 `suppressivePreview` 判定，確認走 `usePrepared` 的 skill 類別；回合前進即退出瞄準。
 
+### 12.6 後續決定（2026-09-14，未實作）
+
+- 3.74.0 寫死在 `applySuppression` 的頭目與封鎖官 −1，將改由可升級的被動「壓制抗性」表示：每次施加的層數最終 −等級。頭目、封鎖官、玩家重裝兵、敵人鐵殼破壞者原生持有第 1 階；玩家可從學習資料取得並升級。見 [ENEMY_AFFIXES.md](ENEMY_AFFIXES.md) 第 5 節。
+- 玩家沒有預設壓制保護（使用者決定）。
+
