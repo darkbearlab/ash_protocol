@@ -249,7 +249,10 @@ export class Renderer {
     for(const item of items){
       const e=item.event,visible=e.visibility==='visible',text=visible?bubbleText(item):`${DIRECTION_ARROWS[e.direction]||''} ${bubbleText(item)}`;
       let x,y;
-      if(visible){const live=g.visibleEnemies.find(a=>a.id===e.actorId),p=live?this.projectActor(live):this.project(e.position.x,e.position.y);x=p.x;y=p.y-this.tile*.62;}
+      if(visible){
+        // Follow the speaker, alive or fallen, while its tile is visible (3.84.2): a unit that speaks, moves and dies in one turn
+        // used to leave its bubble on the tile where it spoke.
+        const speaker=g.enemies.find(a=>a.id===e.actorId),shown=speaker&&(speaker.hp>0?g.visibleEnemies.includes(speaker):g.visible(speaker)),p=shown?this.projectActor(speaker):this.project(e.position.x,e.position.y);x=p.x;y=p.y-this.tile*.62;}
       else ({x,y}=edgePoint(e.direction,this.w,this.h));
       const w=Math.ceil(c.measureText(text).width)+10,h=15,left=Math.max(2,Math.min(this.w-w-2,x-w/2)),top=Math.max(2,Math.min(this.h-h-2,y-h));
       const border=e.priority==='high'?'#f2a85c':e.priority==='medium'?'#9fd9c8':'#9aa59a';

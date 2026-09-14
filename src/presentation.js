@@ -49,8 +49,28 @@ export function projectileVisuals(effect,reduceMotion=false){
     style:spec.style||effect.style||(id==='melee'?enemyMeleeStyle(effect.attackerType):'bullet'),travel:reduceMotion?70:spec.flight,delay:reduceMotion?0:i*spec.stagger,
     spread:reduceMotion?0:spec.spread*(i-(spec.count-1)/2)/Math.max(1,(spec.count-1)/2),quiet:reduceMotion}));
 }
+// Consecutive steps that only move units (and may speak) play at the same time (3.84.2, user; docs/SWARM.md 3.4): a swarm
+// of walkers would otherwise take one move animation each. Anything else ends the group: a shot, an effect, a death, the
+// player moving, or a unit that already moves in the group (its two steps must not blend into one diagonal slide).
+const fallen=step=>[...step.after.enemies,...(step.after.allies||[])].some(a=>a.hp<=0&&[...step.before.enemies,...(step.before.allies||[])].some(b=>b.id===a.id&&b.hp>0));
+export function mergeMoveSteps(steps){
+  const merged=[];let group=null,movers=null;
+  for(const step of steps){
+    const ids=actorMoves(step.before,step.after).map(m=>m.actorId);
+    const moveOnly=ids.length>0&&!ids.includes('player')&&step.effects.every(e=>e.type==='callout')&&step.before.player.hp===step.after.player.hp&&step.before.floor===step.after.floor&&!fallen(step);
+    if(moveOnly&&group&&group.after.floor===step.before.floor&&ids.every(id=>!movers.has(id))){
+      group={before:group.before,after:step.after,effects:[...group.effects,...step.effects]};for(const id of ids)movers.add(id);continue;
+    }
+    if(group)merged.push(group);
+    if(moveOnly){group={before:step.before,after:step.after,effects:[...step.effects]};movers=new Set(ids);}
+    else{group=null;movers=null;merged.push(step);}
+  }
+  if(group)merged.push(group);
+  return merged;
+}
 export function planPresentation(steps,{reduceMotion=false}={}){
   const events=[];let time=0;
+  if(!reduceMotion)steps=mergeMoveSteps(steps);
   for(const [index,step]of steps.entries()){
     const moves=reduceMotion?[]:actorMoves(step.before,step.after);
     const flights=step.effects.filter(e=>e.type==='shot'||e.type==='enemyShot');
