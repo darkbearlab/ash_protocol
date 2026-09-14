@@ -78,7 +78,7 @@ test('if the original target dies before player action, no other target is shot'
 });
 test('fast lethal attack cancels the player action and all later actors; replay starts with enemy damage',()=>{
   const g=arena(),e=enemy(g,'fast');trait(e,'fast');e.charge=true;e.windup=1;enemy(g,'later',14,11);g.player.hp=1;g.target=e.id;
-  const {steps}=captureAction(g,()=>g.action('fire'));assert.equal(g.status,'dead');assert.equal(g.player.ammo[0],8);assert.equal(g.turn,2);assert.equal(g.effects.filter(e=>e.type==='enemyShot').length,1);assert.equal(steps[0].effects[0].type,'enemyShot');
+  const {steps}=captureAction(g,()=>g.action('fire'));assert.equal(g.status,'dead');assert.equal(g.player.ammo[0],8);assert.equal(g.turn,2);assert.equal(g.effects.filter(e=>e.type==='enemyShot').length,1);assert.equal(steps.flatMap(s=>s.effects).find(e=>e.type!=='callout').type,'enemyShot');
   const plan=planPresentation(steps);assert.equal(plan.events[0].state.player.hp,1);assert.ok(plan.events.some(e=>e.effects.some(f=>f.type==='fall'&&f.actorType==='player')));
 });
 test('a fast enemy can block committed movement; the player stays put and the turn is spent',()=>{

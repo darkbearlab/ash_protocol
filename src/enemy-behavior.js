@@ -1,3 +1,4 @@
+import {observeEnemy} from './callouts.js';
 import {ENEMY_TYPES} from './data.js';
 import {DIRECTIONS,distance,key} from './world.js';
 import {activeTrait,recordShot} from './traits.js';
@@ -20,7 +21,7 @@ function revealSenses(g,e,p){if(!g.sight(e,p))return;if(e.affixes?.some(a=>a.id=
 function seekCover({g,e,p,def,los}){
       if(!pinned(e)&&def.seekCover&&los&&!e.charge&&!g.protectingCover(e,p)){
         const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>g.passable(n.x,n.y,e)&&g.canCross(e,n)&&distance(n,p)>1&&!occupied(g,n,e)&&!g.hazards.some(h=>distance(h,n)===0)&&distance(n,p)<=def.range&&g.sight({...e,...n},p)&&g.shotClear({...e,...n},p)&&g.protectingCover({...e,...n},p));
-        if(spot){e.x=spot.x;e.y=spot.y;e.moved=true;return true;}
+        if(spot){e.x=spot.x;e.y=spot.y;e.moved=true;enemyCallout(g,e,'state',{state:'cover'});return true;}
       }
 
 return false;
@@ -39,7 +40,7 @@ function reinforce({g,e,p}){
       }
 
 }
-function attack(ctx){const {g,e,p,def}=ctx;const fired=def.range>1,rapid=fired&&activeTrait(e,'rapid_fire'),weapon=enemyWeapon(e),rounds=fired?weapon.rounds:1,hits=new Set();let firedRounds=0;
+function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold'});const fired=def.range>1,rapid=fired&&activeTrait(e,'rapid_fire'),weapon=enemyWeapon(e),rounds=fired?weapon.rounds:1,hits=new Set();let firedRounds=0;
  const totalDamage=def.expendable?def.damage:scaleEnemy(def.damage+g.floor*2,g.floor,'damage',g.difficultyOffset),baseRounds=fired?(ENEMY_WEAPONS[e.type]?.rounds||1):1;
  for(let n=0;n<rounds&&p.hp>0;n++){const before=p.hp,roundDamage=Math.max(1,Math.floor(totalDamage/baseRounds)+(n%baseRounds<totalDamage%baseRounds?1:0));firedRounds++;if(rapid&&n>=baseRounds)revealEnemyAffix(g,e,'suppressor');
         if(fired)g.recordExposure(e,unitTree(e).fixedTile&&e.aim?e.aim:p);if(fired)spentCase(g,e,{rifleman:'rifle',raider:'pistol',gunner:'shell',sniper:'rifle'}[e.type]);
@@ -48,11 +49,11 @@ function attack(ctx){const {g,e,p,def}=ctx;const fired=def.range>1,rapid=fired&&
         else {
           petCombat(g,p);if(fired&&lightingEffects(g,{...e,traits:(e.traits||[]).filter(t=>t.id!=='night_vision')},p).penalty>0)revealEnemyAffix(g,e,'night_vision');const chance=def.range>1?g.accuracy(e,p).chance:g.meleeAccuracy(e,p);
           if(g.rng()*100<chance){if(p===g.player)g.damagePlayer(roundDamage,`${enemyName(e)}攻擊`,e);else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}
-          else {g.log(`${enemyName(e)}未命中（${chance}%）。`);g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true});}
+          else {g.log(`${enemyName(e)}未命中（${chance}%）。`,false,`${enemyName(e)}未命中。`);g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true});}
         }
 if(p.hp<before)hits.add(p);
  }
- if(fired)finishSuppression([],hits,firedRounds);
+ if(fired)finishSuppression([],hits,firedRounds,0,g);
  return fired;
 }
 function grenade(ctx){const {g,e,p,los}=ctx,intent=e.grenadeIntent;
@@ -71,7 +72,7 @@ registerUnitTree('brood',{});
 export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});}
 export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
- if(tree.before?.(ctx))return;revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
+ if(tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
  if(runAffixBranches(ctx)||seekCover(ctx))return;
  let fired=false;
  if((los&&g.shotClear(e,p)&&d<=def.range&&(def.range>1||g.canCross(e,p)))||(tree.fixedTile&&e.charge&&e.aim)){

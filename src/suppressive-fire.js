@@ -36,7 +36,7 @@ export function suppressiveFire(g,point){
   for(const [e,hp] of before)if(e.hp<hp)hits.add(e);
   recordShot(p,target.id,g.turn);
  });
- finishSuppression(targets,hits,rounds,T.skillStacks);for(const e of targets){e.alert=true;e.lastKnown={x:p.x,y:p.y};}g.log(`壓制射擊，消耗 ${rounds} 發。`);return true;
+ finishSuppression(targets,hits,rounds,T.skillStacks,g);for(const e of targets){e.alert=true;e.lastKnown={x:p.x,y:p.y};}g.log(`壓制射擊，消耗 ${rounds} 發。`);return true;
 }
 
 export const suppressivePreview=(g,point)=>({range:g.weapon.range,minimumRounds:T.skillRounds,rounds:Math.min(T.skillRounds+(g.weapon.extraRounds||0),g.player.ammo[g.player.weapon]),accuracyPenalty:T.skillAccuracy,reason:suppressiveReason(g,point),cells:point&&Number.isInteger(point.x)&&Number.isInteger(point.y)?suppressiveArea(g,point):[]});

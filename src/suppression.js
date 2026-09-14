@@ -15,8 +15,8 @@ export function applySuppression(actor,stacks){
  if(!amount)return 0;
  actor.suppression=Math.min(SUPPRESSION_TUNING.max,before+amount);return actor.suppression-before;
 }
-export function finishSuppression(targets,hits,rounds,skillStacks=0){
- for(const actor of new Set([...targets,...hits]))applySuppression(actor,(targets.includes(actor)?skillStacks:0)+(rounds>=SUPPRESSION_TUNING.weaponRounds&&hits.has(actor)?SUPPRESSION_TUNING.weaponStacks:0));
+export function finishSuppression(targets,hits,rounds,skillStacks=0,game=null){
+ for(const actor of new Set([...targets,...hits])){const before=suppressionStacks(actor);applySuppression(actor,(targets.includes(actor)?skillStacks:0)+(rounds>=SUPPRESSION_TUNING.weaponRounds&&hits.has(actor)?SUPPRESSION_TUNING.weaponStacks:0));const after=suppressionStacks(actor);if(after>=SUPPRESSION_TUNING.pinned&&before<SUPPRESSION_TUNING.pinned)game?.enemyCallout(actor,'injury',{cue:'pinned'});else if(after>0&&!before)game?.enemyCallout(actor,'injury',{cue:'suppressed'});}
 }
 export function tickSuppression(actor){if(actor.suppression!==undefined)actor.suppression=Math.floor(suppressionStacks(actor)/2);}
 export const validSuppression=a=>a.petSuppressed===undefined&&(a.suppression===undefined||(Number.isInteger(a.suppression)&&a.suppression>=0&&a.suppression<=5&&(!mechanical(a)||a.suppression===0)));

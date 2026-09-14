@@ -1,3 +1,4 @@
+import {protocolSettlement,terminalRun} from './real-mode.js';
 import {carryLevels,carryingSpent} from './ammunition.js';
 import {ENDLESS_MAX_FLOOR} from './endless.js';
 import {validCharacter} from './characters.js';
@@ -27,9 +28,9 @@ export function normalizeProfile(raw={}) {
 export function creditProtocol(p,game) {
   const id=game.runId;if(typeof id!=='string'||!id||['__proto__','constructor','prototype'].includes(id))return 0;
   const previous=(Object.hasOwn(p.protocolRuns,id)?p.protocolRuns[id]:null)||{};
-  const earned=integer(game.protocol?.earned),delta=Math.max(0,earned-integer(previous.earned));
+  const earned=integer(game.protocol?.earned),settled=previous.recorded===true||previous.realBonus!==undefined,bonus=!settled&&terminalRun(game)?protocolSettlement(game).bonus:0,delta=Math.max(0,earned-integer(previous.earned))+bonus;
   p.protocol.balance+=delta;p.protocol.earned+=delta;
-  p.protocolRuns[id]={earned:Math.max(earned,integer(previous.earned)),recorded:previous.recorded===true};
+  p.protocolRuns[id]={earned:Math.max(earned,integer(previous.earned)),recorded:previous.recorded===true,...(previous.realBonus!==undefined?{realBonus:previous.realBonus}:terminalRun(game)&&game.realMode?{realBonus:bonus}:{})};
   return delta;
 }
 

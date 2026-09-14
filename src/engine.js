@@ -22,3 +22,6 @@ export * from './suppressive-fire.js';
 export * from './enemy-affixes.js';
 export * from './enemy-intents.js';
 export * from './enemy-behavior.js';
+
+export * from './real-mode.js';
+export * from './callouts.js';

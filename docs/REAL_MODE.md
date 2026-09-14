@@ -1,6 +1,6 @@
 # 真實模式、喊話與音效（規格，2026-09-14）
 
-- 狀態：**使用者決定的設計，尚未實作。** 決定紀錄見第 6 節。
+- 狀態：**3.76.0 規則層完成；部署、顯示過濾、泡泡與音效由 Claude 接手。** 決定紀錄見第 6 節。
 - 依賴：喊話的呼叫點與敵人名稱查詢來自 [ENEMY_AFFIXES.md](ENEMY_AFFIXES.md)。真實模式的顯示過濾、點數加成與音效可以先做。
 - 數值：聽得到的半徑、受創喊話門檻交 Codex；泡泡顯示秒數交 Claude。
 
@@ -101,3 +101,68 @@
 ## 6. 使用者決定紀錄（2026-09-14）
 
 1. **敵人圖鑑**在真實模式下**不隱藏**任何資訊。使用者說明：那些資訊玩家可能早就內化了，或自己另外記錄。
+
+
+## 7. 實作現況（3.76.0，Codex）
+
+- `src/real-mode.js` 管模式鎖定與結算報價；`src/callouts.js` 管白名單、接收與方向遮蔽。敵人行為樹、受傷及壓制均接上接收器，不改命中、AI 決策或 RNG。
+- 單局 save **v39** 新增必填布林 `realMode`；v38 以下遷移為 false。建立及還原完成後屬性不可寫、不可重定義。換層、封存／返回不修改此單局欄位。完整備份直接包入 v39 單局。
+- profile 仍為 **v5**、備份外層 **v1**：帳本與歷史增加可選欄位，舊紀錄缺欄位仍合法，不需要重置。地圖世代維持 10。
+- `REAL_MODE_TUNING.protocolPercent=10`。死亡、勝利、放棄都屬結算；加成 `floor(本局基礎點數 × 10 / 100)`。遊玩中仍只發基礎點數，結算另外記在 `protocolRuns[runId].realBonus`，同 runId 再次結算或匯入舊快照不重發。零加成也留下結算標記。原本 `game.protocol.earned` 保持基礎點數，不把加成寫回再乘一次。
+- 戰鬥紀錄仍是 `{turn,text,danger}`，`Game.log(text,danger=false,realText=null)` 在寫入時選擇文字。真實模式不保存對應的原始傷害／命中數字字串。射擊／近戰落空、敵我受傷、環境傷害、失能與等待／翻越提示都有替代文字；玩家資源與補給等數字保留。引擎傷害及演出 `damage` 資料仍供規則／音效使用，**介面必須完成顯示過濾**，不可宣稱這一版已完成真實模式視覺。
+- 喊話半徑 **8 格曼哈頓距離**，半徑外即使視野可見也完全不發事件／紀錄。牆不阻音；半徑內以 `teamVisible` 判斷可見（包含友軍提供的視線）。看不到一律只給八方向，沒有房間 ID、距離或單位身分。
+- 受創：滿血首次受傷、跌至 50%、跌至 25%；一次傷害跨多條只報最嚴重一條，死亡不報受創。治療後再次跨線可以再報，不新增永久門檻欄位。首次壓制／首次跨入不能移動門檻也給語意喊話。
+- 戰術／感知狀態轉換用 WeakMap 暫存，存讀後可能重新報一次；演出節流交介面，不消耗戰鬥亂數、不改單位存檔。喊話只留既有戰鬥紀錄，事件不序列化。
+- `presentAnnouncement` 將步驟外的語意事件（如整次射擊後的壓制）納入捕捉；步驟內沿用該步，不重複。受創泡泡在彈道到達後的事件出現，喊話本身不增加動畫等待。
+
+## 8. Claude 介面交接
+
+### 模式與結算
+
+```js
+new Game(seed, unlocks, carry, character, portrait, missionId,
+  {realMode: true, difficultyOffset: 0}); // 第七參數；不填為標準
+const mode = game.realMode; // live game 不可寫，切換必須重新部署
+protocolSettlement(game); // {realMode, base, bonus, total}，playing 時 bonus=0
+```
+
+`protocolSettlement` 是規則報價，不是再次發款的 API。仍用現有 `recordResult` 結算；歷史新增 `realMode`、`protocolBonus`，`protocol` 為實際基礎＋加成。舊歷史 `realMode` 缺省當 false，`protocolBonus` 缺省當 0。不要在控制器再乘 1.1。
+
+### 喊話事件
+
+從 `planPresentation(...).events[].effects` 的 `type==='callout'` 接收，**播放到事件才開始計時**。不要從即時 game.effects 或 `onEnemyCallout` 提早播泡泡。
+
+```js
+// 可見單位，position 是事件當下位置，不追蹤後續移動
+{type:'callout', cue:'aim', category:'danger', priority:'high',
+ visibility:'visible', actorId:'...', enemyType:'sniper', name:'狙擊手…',
+ position:{x:14,y:10}}
+// 看不到，刻意不帶 actorId / enemyType / name / position / from / to
+{type:'callout', cue:'search', category:'perception', priority:'low',
+ visibility:'heard', direction:'east'}
+```
+
+`direction`：east / southeast / south / southwest / west / northwest / north / northeast，畫面上方為 north。隱藏喊話請按方向合併；不可從引擎敵人陣列反查精確座標或身分。`name` 用已顯現詞條查詢，未知詞條不洩漏。
+
+`CALLOUT_CUES` 匯出所有 cue 及 category／priority。五類：danger、affix、tactical、injury、perception。當前 cue 清單：
+
+- danger：grenade、bombard、aim、attack。
+- affix：affix_fast、affix_infrared、affix_night_vision、affix_suppressor、affix_grenadier。
+- tactical：move、cover、hold、reload、flank（reload 預留，目前敵人沒有換彈行為）。
+- injury：hit、wounded、critical、suppressed、pinned。
+- perception：spotted、lost、search。
+
+規則輸入沿用 `game.enemyCallout(actor,kind,detail)`；kind 與 detail 的白名單對應見 `calloutCue`。`onEnemyCallout` 現在只收到**已遮蔽的事件副本**，不再是 3.75 的原始 actor hook；僅供觀察或測試。友軍與玩家目前拒絕。
+
+戰鬥紀錄同步寫簡短固定語意（例如「東側傳來喊聲：搜索。」），保持 `{turn,text,danger}`，不另存 callout payload。Claude 的台詞表負責泡泡變體，不能補數值；選句不要耗戰鬥 RNG。`renderer.js` 暫時略過 callout，避免無 from/to 的事件被當彈道繪製；請新增獨立泡泡流程，並保留隱藏事件沒有精確位置的約束。
+
+### 驗收場景
+
+`node qa/create-real-mode-scenes.mjs` 產生 `qa/fixtures/real-mode-*.json`，皆經 `Game.restore` 驗證。只在 `?test=1` 匯入：
+
+- standard / real：相同種子與敵人；觀察射擊、受傷、投彈預告，兩模式結果相同，real 紀錄無戰鬥數字。標準 UI 若尚未過濾會仍顯示數值，屬本輪 Claude 待辦。
+- heard：完整隔牆，敵人有最後已知位置。等待後只能得到方向喊話。
+- distant：敵人在半徑外，未進半徑前不應寫喊話紀錄或事件。
+- settlement：真實模式已有 29 基礎點數；放棄後加 2。重匯入同 runId 再放棄不重發。
+
+規則驗收對照：`tests/real-mode.test.mjs` 涵蓋第 4 節六條（第 2 條的目標卡／地圖部分留 Claude）；報告見 `qa/results/2026-09-14-codex-3.76.0-real-mode.md`。真手機、泡泡位置／節流／讀秒、音效、部署與結果 UI 尚未驗收。

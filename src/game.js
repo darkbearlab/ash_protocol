@@ -1,3 +1,5 @@
+import {lockRealMode} from './real-mode.js';
+import {injuryCallout} from './callouts.js';
 import {enemyOpportunity,executeEnemyTree,enemyDeath,enemyWeapon} from './enemy-behavior.js';
 import {enemyCallout,validEnemyIntent,validEnemyMarks} from './enemy-intents.js';
 import {enemyDisplayName,rollEnemyAffixes,migrateEnemyAffixes,validEnemyAffixes} from './enemy-affixes.js';
@@ -51,6 +53,7 @@ export class Game {
   constructor(seed=Date.now()%1000000,unlocks=[],carrying=0,character='soldier',portrait=pickPortrait(),mission='extraction',options={}) {
     if(!validCharacter(character))throw new Error('未知角色。');
     if(!validPortrait(portrait))throw new Error('未知頭像。');
+    lockRealMode(this,options.realMode??false);
     this.difficultyOffset=options.difficultyOffset??DIFFICULTY_TUNING.defaultOffset;if(!validDifficultyOffset(this.difficultyOffset))throw new Error('Invalid difficulty offset');
     this.mission=newMission(mission);this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
@@ -158,7 +161,7 @@ export class Game {
     this.autoTarget();
   }
   autoTarget(){if(!this.targeted)this.target=this.visibleEnemies.sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
-  log(text,danger=false){this.logs.unshift({turn:this.turn,text,danger});this.logs=this.logs.slice(0,50);}
+  log(text,danger=false,realText=null){this.logs.unshift({turn:this.turn,text:this.realMode&&realText!==null?realText:text,danger});this.logs=this.logs.slice(0,50);}
   reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType]?.key??null;}
   get weaponCapacity(){return CHARACTERS[this.player.character].weaponCapacity;}
   get plateCapacity(){return CHARACTERS[this.player.character].plateCapacity;}
@@ -367,7 +370,7 @@ export class Game {
         // Re-check the swap at resolution; a faster enemy may have disabled the ally in the meantime.
         const ally=this.activeAllies.find(a=>a.x===x&&a.y===y);
         if(ally){if(swapReason(this,ally))return false;swapWithPlayer(this,ally);}
-        p.vaultExposed=vaultable(edge);if(p.vaultExposed)this.log('翻越矮隔板：至下次自身行動前，被射擊命中 +20。',true);
+        p.vaultExposed=vaultable(edge);if(p.vaultExposed)this.log('翻越矮隔板：至下次自身行動前，被射擊命中 +20。',true,'翻越矮隔板，暫時暴露。');
         p.x=x;p.y=y;p.facing=[dx,dy];p.moveDelta=[dx,dy];this.pickup();success=true;break;
       }
       case 'repairDrone':success=presentStep(this,()=>repairDrone(this,arg));break;
@@ -399,7 +402,7 @@ export class Game {
       case 'replaceWeapon':success=this.replaceWeapon(arg);break;
       case 'upgrade':success=this.upgrade();break;
       case 'terminal':success=this.useTerminal(arg);break;
-      case 'wait':this.log('防禦待機：直接傷害減半、被射擊命中率 −15；下次行動射擊命中 +15。');success=true;break;
+      case 'wait':this.log('防禦待機：直接傷害減半、被射擊命中率 −15；下次行動射擊命中 +15。',false,'防禦待機，穩定瞄準。');success=true;break;
       case 'interact':success=this.descend(false);return success;
       default:return false;
     }
@@ -442,7 +445,7 @@ export class Game {
         const chance=this.fireChance(e);
         const hit=this.rng()*100<chance;
         this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
-        if(!hit){this.log(`射擊未命中（命中率 ${chance}%）。`);if(w.explosive)this.log('榴彈偏離目標，未在戰場內爆炸。');return;}
+        if(!hit){this.log(`射擊未命中（命中率 ${chance}%）。`,false,'射擊未命中。');if(w.explosive)this.log('榴彈偏離目標，未在戰場內爆炸。');return;}
         hits.add(e);const before=this.enemies.map(o=>[o,o.hp]);
         if(w.explosive)this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p);
         else this.hitTarget(e,damage,p,w.pierce||0);
@@ -450,7 +453,7 @@ export class Game {
         for(const [other,hp] of before)if(other.hp<hp)hits.add(other);
       });
     }
-    finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),rounds);
+    finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),rounds,0,this);
     if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
     return true;
   }
@@ -464,7 +467,7 @@ export class Game {
       const ambush=!w.unarmed&&Boolean(valid)&&ambushReady(this,target);if(ambush&&!this.shadowBonus)shortenCamo(p);
       const chance=this.meleeAccuracy(p,target,w.hitChance),hit=Boolean(valid)&&this.rng()*100<chance;
       this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:to.x,y:to.y},damage:0,miss:!hit});
-      if(!hit){this.log(valid?`近戰揮擊未命中（${chance}%）。`:'原目標已離開近戰範圍，揮擊落空。');return;}
+      if(!hit){this.log(valid?`近戰揮擊未命中（${chance}%）。`:'原目標已離開近戰範圍，揮擊落空。',false,valid?'近戰揮擊未命中。':'原目標已離開近戰範圍，揮擊落空。');return;}
       const d=this.weaponDamage(slot);this.hitTarget(target,Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)),p,w.pierce||0,w);
       const shadow=classPerkRank(p,'ninja_shadowstep');if(ambush&&shadow&&!this.shadowBonus){this.shadowSteps=shadow>=2?2:1;this.log(`影步就緒：可免費移動 ${this.shadowSteps} 格。`);}
     });
@@ -500,9 +503,9 @@ export class Game {
   }
   hurt(e,damage,attacker=null) {
     if(e.hp<=0||!shotDamageAllowed(this,e))return;
-    const beforeHp=e.hp;e.hp-=damage;for(const threshold of [.75,.5,.25])if(e.hp>0&&beforeHp>e.maxHp*threshold&&e.hp<=e.maxHp*threshold)this.enemyCallout(e,'injury',{threshold});this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
+    const beforeHp=e.hp;e.hp-=damage;injuryCallout(this,e,beforeHp);this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
-    this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`);
+    this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`,false,`命中${enemyName(e)}。`);
     if(e.hp>0)return;
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
     this.player.kills++;if(!e.expendable)this.player.xp+=ENEMY_TYPES[e.type]?.xp??1;
@@ -560,7 +563,7 @@ export class Game {
       if(id==='smoke'){this.smoke=[...this.smoke,{cells,expires:this.turn+SMOKE_DURATION-1}];this.log('煙霧展開：阻斷無紅外線者的視線，爆炸仍可傷害。');}
       else for(const actor of [p,...this.enemies,...this.activeAllies])if(affected.has(key(actor))&&applyDisruption(actor,def.keyword)){
         if(actor!==p)actor.alert=true;
-        this.log(`${actor===p?'你':actor.kind?allyName(actor):enemyName(actor)}失能：跳過 ${actor.control.disabled} 次行動。`,actor===p);
+        this.log(`${actor===p?'你':actor.kind?allyName(actor):enemyName(actor)}失能：跳過 ${actor.control.disabled} 次行動。`,actor===p,`${actor===p?'你':actor.kind?allyName(actor):enemyName(actor)}陷入失能。`);
       }
       this.reveal();
     }
@@ -587,7 +590,7 @@ export class Game {
     if(cover){damage*=1-coverEffects(cover,p,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);}
     damage=reduceDirectDamage(p,meleeDefense(p,Math.max(1,Math.round(damage-p.armor))));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
     const absorbed=Math.min(p.plates||0,Math.floor(damage/2));p.plates=(p.plates||0)-absorbed;damage-=absorbed;
-    p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');this.log(`${label}${cover?'（掩體減傷）':''}${absorbed?`（護甲板吸收 ${absorbed}）`:''}，生命 −${damage}。`,true);
+    p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');this.log(`${label}${cover?'（掩體減傷）':''}${absorbed?`（護甲板吸收 ${absorbed}）`:''}，生命 −${damage}。`,true,`${label}${cover?'（掩體減傷）':''}${absorbed?'（護甲板吸收）':''}，你受傷了。`);
     if(attacker&&ENEMY_TYPES[attacker.type]?.mechanical&&ENEMY_TYPES[attacker.type].range>1)addTrace(this,p,'scorch');
     if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:attacker.type==='crawler'?'claw':attacker.type==='brute'?'slash':ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet',from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
     else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage});
@@ -598,7 +601,7 @@ export class Game {
     if(cover){damage*=1-coverEffects(cover,a,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);}
     if(!environment)petCombat(this,a);damage=reduceDirectDamage(a,Math.max(1,Math.round(damage-a.armor)));
     if(!environment)damage=petDefense(this,a,damage);a.hp=Math.max(0,a.hp-damage);
-    addTrace(this,a,activeTrait(a,'mechanical')?'oil':'blood');this.effects.push({type:'impact',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},damage});this.log(`${allyName(a)}受傷 −${damage}。`,true);
+    addTrace(this,a,activeTrait(a,'mechanical')?'oil':'blood');this.effects.push({type:'impact',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},damage});this.log(`${allyName(a)}受傷 −${damage}。`,true,`${allyName(a)}受傷。`);
     if(!a.hp&&a.kind==='pet'){if(!petSurvives(this,a))petDeath(this,a);petReactions(this);this.reveal();return;}
     petReactions(this);
     if(!a.hp){a.status='destroyed';a.order=null;this.reveal();this.log(`${allyName(a)}${a.kind==='drone'?`已被摧毀：按僚機技能花 ${DRONE_BUILD_COST} 廢料生產新機。`:'已被摧毀。'}`,true);}
@@ -630,8 +633,8 @@ export class Game {
   }
   environmentTurn() {
     const p=this.player,hpBefore=p.hp,hazard=this.hazards.find(h=>h.x===p.x&&h.y===p.y);
-    if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)p.poison=3;this.log(`${hazard.type==='acid'?'污染液':'高熱地板'}傷害 −${damage}。`,true);}
-    else if(p.poison>0){p.poison--;const damage=Math.max(0,4-p.hazmat);p.hp-=damage;if(damage)this.log(`中毒傷害 −${damage}，剩餘 ${p.poison} 回合。`,true);}
+    if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)p.poison=3;this.log(`${hazard.type==='acid'?'污染液':'高熱地板'}傷害 −${damage}。`,true,`${hazard.type==='acid'?'污染液':'高熱地板'}造成傷害。`);}
+    else if(p.poison>0){p.poison--;const damage=Math.max(0,4-p.hazmat);p.hp-=damage;if(damage)this.log(`中毒傷害 −${damage}，剩餘 ${p.poison} 回合。`,true,'中毒造成傷害。');}
     if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp});
     for(const a of this.activeAllies.filter(a=>a.type!=='drone'))if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);
     petReactions(this);
@@ -769,6 +772,8 @@ export class Game {
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)||(e.raised!==undefined&&typeof e.raised!=='boolean')||(e.expendable!==undefined&&typeof e.expendable!=='boolean')))return null;
       if(!Array.isArray(data.props)||!Array.isArray(data.items)||!validMapMetadata(data))return null;
       if(version<37)migrateSuppression(data);
+      if(version<39)data.realMode=false;
+      if(typeof data.realMode!=='boolean')return null;
       if(version<38){data.marks??=[];migrateEnemyAffixes(data);migrateResistance(data);}
       if(!validDifficultyOffset(data.difficultyOffset))return null;
       if(!validLearningInventory(data.player)||data.items.some(i=>i.type==='learning'&&!validLearningId(i.learningId)))return null;
@@ -910,7 +915,7 @@ export class Game {
         let refund=0;for(const a of g.allies)if(a.kind==='drone'){if(a.sourceId==='drone_follow'&&a.ammo>0){refund+=a.ammo;a.ammo=0;}if(a.maxHp===45)a.maxHp=DRONE_HP;fitDrone(a);}
         if(refund){g.receiveAmmo('pistol',refund);g.log(`存檔已升級：追隨無人機改用步槍彈，原彈匣 ${refund} 發手槍彈已退回。`);}
       }
-      g.setCarryLevel(g.carryLevel);g.reveal();return g;
+      lockRealMode(g,data.realMode);g.setCarryLevel(g.carryLevel);g.reveal();return g;
     }catch{return null;}
   }
 }

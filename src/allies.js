@@ -204,7 +204,7 @@ function actAlly(g,a){
    if(hit)hits.add(e);
    if(hit)g.hitTarget(e,w.min+Math.floor(g.rng()*(w.max-w.min+1)),a,0,w);else g.log(`${allyName(a)}射擊／攻擊落空。`);
   }
-  if(!w.melee)finishSuppression([e],hits,rounds,a.kind==='pet'&&petRank(g.player,'turret')>=2&&rounds>0?1:0);
+  if(!w.melee)finishSuppression([e],hits,rounds,a.kind==='pet'&&petRank(g.player,'turret')>=2&&rounds>0?1:0,g);
  };
  if(pinned(a)){if(shot)attack(shot);return;}
  const beside=goal=>q=>distance(q,goal)<=1;

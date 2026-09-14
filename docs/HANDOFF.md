@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.74.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.76.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -91,7 +91,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v38**（`data.js` 的 `SAVE_VERSION`）。舊版 1～37 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v39**（`data.js` 的 `SAVE_VERSION`）。舊版 1～38 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v5**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -181,3 +181,6 @@ sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩�
 3.74.0：統一壓制／學習資料／貨櫃內容池。save v37 新增 player.learningItems 與可選 actor.suppression，清除舊 petSuppressed（含封存敵人）；profile5／backup1 不變。生成世代9，新貨櫃存定內容，舊箱不補抽。公開 API 與 Claude 介面工作見 SUPPRESSION 第11、12節。
 
 3.75.0：敵人詞條／行為樹／壓制抗性，save v38、生成世代 10。難度偏移共用於詞條與生命／傷害成長；詞條與擲彈預告保存於既有 enemies／marks，封存與完整備份均沿用。REAL_MODE 尚未實作，僅留不顯示的喊話 observer。詳見 ENEMY_AFFIXES 第 8、9 節。
+
+
+3.76.0：`real-mode.js` 管部署鎖定、結算報價；`callouts.js` 管白名單與可見／聽覺遮蔽。save39 新增 realMode，舊檔 false；profile5 帳本可選 realBonus 及歷史模式欄位，備份1。喊話事件不存檔、不耗 RNG；onEnemyCallout 改接遮蔽後 payload。介面／音效由 Claude 接，完整契約見 REAL_MODE 第 7、8 節。

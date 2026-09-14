@@ -1,7 +1,7 @@
 import {NEST_EFFECT_MS} from './nest-art.js';
 import {actorMoves} from './actor-visuals.js';
 // Presentation observes one synchronous turn. Snapshots never roll back rules or RNG.
-const observers=new WeakMap();
+const observers=new WeakMap(),activeSteps=new WeakSet();
 export function snapshot(game){
   const {rng,effects,onEnemyCallout,...data}=game;
   return Object.assign(Object.create(Object.getPrototypeOf(game)),structuredClone(data),{effects:[]});
@@ -11,11 +11,14 @@ export function presentStep(game,action,quietActor=null){
   if(!steps)return action();
   const before=snapshot(game),start=game.effects.length;
   const state=quietActor?{x:quietActor.x,y:quietActor.y,charge:quietActor.charge,windup:quietActor.windup,visible:game.visible(quietActor)}:null;
-  const result=action();
+  let result;const nested=activeSteps.has(game);activeSteps.add(game);
+  try{result=action();}finally{if(!nested)activeSteps.delete(game);}
   const changed=state&&(state.visible||game.visible(quietActor))&&(state.x!==quietActor.x||state.y!==quietActor.y||state.charge!==quietActor.charge||state.windup!==quietActor.windup);
   if(game.effects.length>start||changed||actorMoves(before,game).length)steps.push({before,after:snapshot(game),effects:structuredClone(game.effects.slice(start))});
   return result;
 }
+// A semantic event outside an existing step still belongs to the captured action.
+export const presentAnnouncement=(game,emit)=>activeSteps.has(game)?emit():presentStep(game,emit);
 export function captureAction(game,action){
   const steps=[];observers.set(game,steps);
   try{return {success:action(),steps};}finally{observers.delete(game);}
@@ -51,7 +54,8 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const flights=step.effects.filter(e=>e.type==='shot'||e.type==='enemyShot');
     const visuals=flights.flatMap(e=>projectileVisuals(e,reduceMotion));
     const rewards=step.effects.filter(e=>e.type==='capSupply');
-    const impacts=step.effects.filter(e=>e.type!=='shot'&&e.type!=='enemyShot'&&e.type!=='capSupply');
+    const announcements=step.effects.filter(e=>e.type==='callout');
+    const impacts=step.effects.filter(e=>e.type!=='shot'&&e.type!=='enemyShot'&&e.type!=='capSupply'&&e.type!=='callout');
     const travel=Math.max(0,...visuals.map(e=>e.delay+e.travel),...moves.map(e=>e.travel));
     events.push({time,state:step.before,effects:[...moves,...visuals]});
     for(const e of flights)if(e.damage>0||e.miss)impacts.push({...e,type:e.miss?'miss':'impact',style:undefined,from:e.to});
@@ -64,7 +68,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     // only this presentation copy hides the pending visual reward.
     const prior=rewards[0]?.beforeSupply;
     const impactState=prior?Object.assign(Object.create(Object.getPrototypeOf(step.after)),step.after,{player:{...step.after.player,...prior.resources},items:prior.items,logs:prior.logs}):step.after;
-    events.push({time,state:impactState,effects:impacts.map(e=>({...e,quiet:reduceMotion}))});
+    events.push({time,state:impactState,effects:[...impacts.map(e=>({...e,quiet:reduceMotion})),...announcements]});
     const burstContinues=flights.some(e=>['smg','lmg','thunder'].includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&['smg','lmg','thunder'].includes(e.weaponId));
     time+=!flights.length&&!impacts.length&&!rewards.length?0:reduceMotion?120:impacts.some(e=>e.type==='nestCollapse'||e.type==='nestSpawn')?NEST_EFFECT_MS:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
     if(rewards.length){events.push({time,state:step.after,effects:rewards.map(({beforeSupply,...e})=>e)});time+=reduceMotion?60:IMPACT_MS;}

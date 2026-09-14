@@ -1,10 +1,11 @@
+import {receiveCallout} from './callouts.js';
 // Uncommitted tells cancel on death, disruption, forced movement, or loss of a tracked shot.
 // Fixed-tile sniper shots retain their tile through loss of sight. Committed marks never cancel.
 export const INTERRUPT_REASONS=['death','disabled','displaced','target_lost'];
 export function interruptEnemyIntent(actor,reason){if(!INTERRUPT_REASONS.includes(reason))return false;actor.charge=false;actor.aim=null;actor.windup=0;actor.fireChain=null;delete actor.grenadeIntent;return true;}
 export const CALLOUT_KINDS=Object.freeze(['state','telegraph','injury','affix_revealed']);
-// No receiver in this release: no hidden location/text leaks and no RNG use.
-export function enemyCallout(g,actor,kind,detail={}){if(!CALLOUT_KINDS.includes(kind))return;g.onEnemyCallout?.({actor,kind,...detail});}
+// The receiver emits only visibility-filtered semantic data.
+export function enemyCallout(g,actor,kind,detail={}){if(!CALLOUT_KINDS.includes(kind))return;return receiveCallout(g,actor,kind,detail);}
 export const validEnemyIntent=(e,point)=>e.grenadeIntent===undefined||(e.hp>0&&!e.control.disabled&&e.affixes?.some(a=>a.id==='grenadier'&&a.revealed)&&e.grenadeIntent.stage==='prepare'&&(e.grenadeIntent.targetId===undefined||typeof e.grenadeIntent.targetId==='string'&&e.grenadeIntent.targetId.length<=100)&&point(e.grenadeIntent)&&point(e.grenadeIntent.origin));
 export function validEnemyMarks(marks,point,turn){return Array.isArray(marks)&&marks.length<=256&&marks.every(m=>point(m)&&Number.isInteger(m.due)&&m.due>turn&&m.due<=turn+2&&(m.kind===undefined||m.kind==='grenade'&&m.phase==='flight'&&typeof m.sourceId==='string'&&m.sourceId.length<=100&&point(m.origin)&&m.radius===1&&Number.isFinite(m.damage)&&m.damage>0&&m.damage<=1e20));}
 export const grenadeTelegraphs=g=>[...g.enemies.filter(e=>e.grenadeIntent).map(e=>({kind:'grenade',phase:'prepare',sourceId:e.id,x:e.grenadeIntent.x,y:e.grenadeIntent.y,origin:{...e.grenadeIntent.origin},radius:0,interruptible:true})),...g.marks.filter(m=>m.kind==='grenade').map(m=>({...m,origin:{...m.origin},interruptible:false,countdown:Math.max(0,m.due-g.turn)}))];

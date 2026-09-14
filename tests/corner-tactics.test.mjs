@@ -50,7 +50,7 @@ test('free pursuit fire refreshes exposure without ticking; melee and hand grena
 test('committed fire pays ammo when target hides before execution; positional sniper ray remains geometric',()=>{
  const {g,e}=corner();Object.assign(e,{x:9,y:10});Object.assign(g.player,{x:12,y:11});recordExposure(g,e,g.player);g.target=e.id;g.reveal();
  const intent={id:e.id,x:e.x,y:e.y},ammo=g.player.ammo[g.player.weapon];e.cornerExposure=null;
- assert.ok(g.fire(intent));assert.ok(g.player.ammo[g.player.weapon]<ammo);assert.ok(g.effects.every(f=>f.miss));
+ assert.ok(g.fire(intent));assert.ok(g.player.ammo[g.player.weapon]<ammo);assert.ok(g.effects.filter(f=>f.type==='shot').every(f=>f.miss));
  assert.equal(g.shotClear(g.player,e),false);assert.ok(g.shotClear(g.player,{x:e.x,y:e.y}));assert.ok(cornerRay(g,g.player,e,{tile:true}).clear);
 });
 function twoDoors(character='soldier'){
