@@ -1,9 +1,10 @@
+import {hasEnemyTag} from './enemy-data.js';
 import {ENEMY_TYPES} from './data.js';
 import {grantTrait,activeTrait} from './traits.js';
 import {effectiveDepth} from './endless.js';
 export const AFFIX_TUNING={startDepth:7,chancePerDepth:.04,chanceCap:.5,additionalFactor:.5,grenadeChance:.2,grenadeRange:5,grenadeRadius:1,grenadeDamage:32};
 export const REVEAL_TYPES=Object.freeze({effect:'effect',scan:'scan',failed:'condition_failed'});
-const armed=e=>['rifleman','raider','gunner','sniper'].includes(e.type);
+const armed=e=>hasEnemyTag(e,'armed');
 const combatant=e=>!ENEMY_TYPES[e.type]?.expendable;
 export const ENEMY_AFFIXES=[
  {id:'fast',fragment:'快速',order:0,applies:e=>combatant(e)&&!e.traits.some(t=>['fast','slow'].includes(t.id)),trait:'fast',reveal:REVEAL_TYPES.effect},

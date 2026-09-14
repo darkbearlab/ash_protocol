@@ -1,6 +1,6 @@
 # 敵人資料解耦（規格，2026-09-14）
 
-- 狀態：**規格，交 Codex。** 介面這一半由 Claude 在 Codex 完成後接手（第 7 節）。
+- 狀態：**3.77.0 規則層已解耦並通過測試，尚待發布。** 外觀與介面由 Claude 接手（第 7、9 節）。
 - 目的：**在完全不改變遊戲規則的前提下**，把敵人身分從程式裡寫死的兵種名稱，搬到可以擴充、可以分類的資料上。後續 [FACTIONS.md](FACTIONS.md) 的派系框架（第 7、9 節）要蓋在這個結構上。
 - 使用者決定（2026-09-14）：先做資料解耦，再做派系；這一輪不改任何規則。
 
@@ -245,3 +245,29 @@ ENEMY_SPAWNS = {
 - 出生池的陣列順序、起始被動的順序、被動來源字串，都會直接影響同種子結果與存檔，務必保持。
 - 第 6 節的基準不應該被重寫。如果比對不一致，代表行為變了，要找出原因，而不是更新基準。
 - 做不到的地方就保留原樣並列入報告，不要為了搬遷而改規則。
+
+## 9. 實作現況與 Claude 交接（3.77.0）
+
+- `data.js` 的 ENEMY_TYPES 直接持有 tags、traits、floorTraits、behavior、rounds、attackStyle、reinforcement、loot；沒有必要的可選欄位省略，沿用預設。原平面數值、兵種與定義順序均保留。
+- `enemy-data.js` 匯出第 4.4 節四個查詢，以及 ENEMY_TAGS、ENEMY_SPAWNS、ALLY_BASE_TYPES。全部由 engine.js 再匯出；只讀定義，不往敵人實例加入欄位。
+- ENEMY_SPAWNS 的兩個出生池凍結，生成時複製後才追加無盡 heavyExtra，原順序與重複權重不變。撤退第二隻以後仍取 retreatWave[1]，沒有改為輪替抽選。
+- ALLY_BASE_TYPES 為 `{drone:'drone',pet:'crawler'}`，用於友軍建立／型別驗證與借用機體武器的判斷。機體仍只接受指定底型，不能將原本禁止的其他機械型別納入。召喚池仍讀 **實例 activeTrait(mechanical)**，保持被動能改變召喚資格的語意。
+- 起始被動由 enemyStartingTraitIds 依 traits → 符合 floorTraits → 生物／機械產生；startingTraits 的來源仍為 enemy:${type}。遷移補抗性改讀定義 traits，沒有改來源或欄位。
+- unitTree 先讀定義 behavior，未指定時沿用 type；未註冊就使用原通用空樹。註冊鍵沿用原字串（它們現在是可共用的行為 ID），不改節點執行或 RNG。狙擊手的占格目標判斷讀 fixedTile。
+- ENEMY_LOOT 保留相同鍵順序的唯讀相容檢視，值引用 ENEMY_TYPES 的 loot；Game 掉落直接查定義。ENEMY_WEAPONS 也保留由 armed 定義推導的相容檢視，射擊規則直接讀 rounds。
+- save **39**、profile **5**、backup **1**、地圖世代 **10** 全部不變。敵人實例、序列化、舊檔資料、起始被動來源字串不變；這批沒有存檔遷移。
+
+### 明確保留的位置
+
+1. `game.js` 的 `version===1` 區塊：第三層 boss → warden 是歷史 ID 遷移，保留原文並加註解，不能改用現在的分類推導歷史。
+2. `enemy-behavior.js` 的 spentCase 對照表，以及固定落點射擊的 `attackerType:'sniper'`：屬演出 payload／彈殼素材，保留完全相同的內容，交外觀批次處理；規則判定已讀 unitTree.fixedTile。
+3. `renderer.js`、`presentation.js`、`controller.js`、`callout-ui.js` 的兵種外觀／介面特例：依 3.6、3.7 留給 Claude；本批沒有改這四個檔案。
+4. FLOOR_INFO 的 boss、ENDLESS_TUNING.heavyExtra、行為樹註冊鍵、資料表本身：已屬資料，沿用原處。友軍 kind、技能 ID、物件 nest 與瞄準模式不是敵人兵種判斷。
+
+沒有因為行為差異而放棄任何本批規則層搬遷；上列保留項為歷史語意、既有資料或明確不在範圍的外觀。
+
+### 守門與驗收
+
+新增 tests/enemy-data.test.mjs：資料與引用合法性、所有原兵種 1～12 層的被動／來源快照、新代號共用定義／行為而不改實例欄位、直接／反向比較與 inline includes 名單的語法守門。守門略過上述四個待遷 UI 檔與 game.js 精確的 v1 遷移行；Claude 每完成一個 UI 檔請移除對應例外。它是針對常見硬編碼語法的守門，未宣稱可辨識任意變數別名或動態組字。
+
+解耦前後 `node qa/enemy-data-identity.mjs` 均與已提交基準一致：780 張生成地圖、110 份任務局面、24 次機器人重跑。本輪未改基準、檢查腳本或任何既有測試。完整結果與發布紀錄見 `qa/results/2026-09-14-codex-3.77.0-enemy-data.md`。

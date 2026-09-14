@@ -1,3 +1,5 @@
+import {isBossClass,hasEnemyTag,enemyDef} from './enemy-data.js';
+import {unitTree} from './behavior-tree.js';
 import {lockRealMode} from './real-mode.js';
 import {injuryCallout} from './callouts.js';
 import {enemyOpportunity,executeEnemyTree,enemyDeath,enemyWeapon} from './enemy-behavior.js';
@@ -41,7 +43,7 @@ import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,vali
 import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
 import {presentStep} from './presentation.js';
-import {SIZE,SAVE_VERSION,LEGACY_SAVE_VERSIONS,RARE_ARMORY,ENEMY_LOOT,WEAPONS,FLOORS,floorInfo,ENEMY_TYPES,PERKS,LORE} from './data.js';
+import {SIZE,SAVE_VERSION,LEGACY_SAVE_VERSIONS,RARE_ARMORY,WEAPONS,FLOORS,floorInfo,ENEMY_TYPES,PERKS,LORE} from './data.js';
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
@@ -103,7 +105,7 @@ export class Game {
     if(missionDefinition(this).returnTrip){this.mission.returning=true;scheduleRetreatWave(this);this.log('機密已取得：返回本層入口上樓，沿原路撤離。',true);}
     this.log('機密資料已回收；'+this.missionSummary+'。');return true;
   }
-  get bossAlive(){return this.enemies.some(e=>(e.type==='boss'||e.type==='warden')&&e.hp>0);}
+  get bossAlive(){return this.enemies.some(e=>isBossClass(e)&&e.hp>0);}
   get nearbyTerminal(){return this.props.find(o=>o.type==='terminal'&&!o.used&&this.canTouch(o));}
   get groundWeapon(){return this.items.find(o=>o.type==='weapon'&&this.canTouch(o));}
   get cover(){if(activeTrait(this.player,'no_cover'))return [];return [...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,this.player)===1),...adjacentWalls(this.grid,this.player),...this.barriers.filter(b=>edgeAdjacent(b,this.player)&&edgeBlocks(b,'cover'))];}
@@ -149,7 +151,7 @@ export class Game {
   }
   accuracy(attacker,target){return shotChance(this,attacker,target);}
   solid(x,y){return this.props.find(o=>o.x===x&&o.y===y&&o.hp>0&&(o.type==='cover'||o.type==='barrel'||o.type==='nest'));}
-  passable(x,y,actor){return this.grid[y]?.[x]===1&&(!this.solid(x,y)||actor?.type==='drone');}
+  passable(x,y,actor){return this.grid[y]?.[x]===1&&(!this.solid(x,y)||hasEnemyTag(actor,'flying'));}
   reveal() {
     syncPetSenses(this);
     clearMovedExposure(this);
@@ -509,7 +511,7 @@ export class Game {
     if(e.hp>0)return;
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
     this.player.kills++;if(!e.expendable)this.player.xp+=ENEMY_TYPES[e.type]?.xp??1;
-    if(!e.expendable)this.player.scrap+=Math.round((e.type==='boss'||e.type==='warden'?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
+    if(!e.expendable)this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
     this.log(`${enemyName(e)}已消滅。`);if(missionTarget(this,e))this.log(this.missionSummary+'。');
     // The number stops at MAX_LEVEL (3.52.0, user call). Past it the threshold stays at the level-20 cost and each
     // one hands over supplies instead of a pick, so the HUD can simply read MAX.
@@ -517,9 +519,9 @@ export class Game {
     while(p.level<MAX_LEVEL&&p.xp>=p.level+2){p.xp-=p.level+2;p.level++;if(activeTrait(p,'tactical_supply')){this.log('戰術配給：煙霧彈 +1。');this.receiveGrenade('smoke',1);}if(this.perkPicks+this.pendingPerks<perkLimit(p.level))this.pendingPerks++;}
     while(p.level>=MAX_LEVEL&&p.xp>=MAX_LEVEL+2){p.xp-=MAX_LEVEL+2;giveCapSupply(this);}
     enemyDeath(this,e);
-    if(e.type==='warden'||e.type==='boss')this.awardProtocol(e.type,`${this.floor}:${e.id}`);
+    if(isBossClass(e))this.awardProtocol(e.type,`${this.floor}:${e.id}`);
     if(e.reinforcement||e.expendable)return; // Retreat waves add pressure, not replacement supplies.
-    const loot=ENEMY_LOOT[e.type];
+    const loot=enemyDef(e)?.loot;
     if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.dropEnemyWeapon(e,loot.weapon);
     if(this.floor>=RARE_ARMORY.minFloor&&loot?.rareWeapon!==undefined&&this.rng()<loot.rareChance)this.dropEnemyWeapon(e,loot.rareWeapon);
     if(this.rng()<ammoDropChance(this.player)){const type=loot?.ammo||'ammo';this.items.push({...this.enemyDropPoint(e),type,amount:type==='energy'?6:type==='ordnance'?2:type==='pistol'?18:type==='shell'?4:10});}
@@ -592,7 +594,7 @@ export class Game {
     const absorbed=Math.min(p.plates||0,Math.floor(damage/2));p.plates=(p.plates||0)-absorbed;damage-=absorbed;
     p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');this.log(`${label}${cover?'（掩體減傷）':''}${absorbed?`（護甲板吸收 ${absorbed}）`:''}，生命 −${damage}。`,true,`${label}${cover?'（掩體減傷）':''}${absorbed?'（護甲板吸收）':''}，你受傷了。`);
     if(attacker&&ENEMY_TYPES[attacker.type]?.mechanical&&ENEMY_TYPES[attacker.type].range>1)addTrace(this,p,'scorch');
-    if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:attacker.type==='crawler'?'claw':attacker.type==='brute'?'slash':ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet',from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
+    if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:enemyDef(attacker)?.attackStyle||(ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet'),from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
     else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage});
     petReactions(this);syncPetSenses(this);
   }
@@ -608,7 +610,7 @@ export class Game {
   }
   enemyTarget(e){
     const options=[this.player,...this.activeAllies].filter(a=>a.hp>0&&distance(e,a)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,a));
-    if(e.type==='sniper'&&e.charge&&e.aim){const occupant=[this.player,...this.activeAllies].find(a=>key(a)===key(e.aim));if(occupant)return occupant;}
+    if(unitTree(e).fixedTile&&e.charge&&e.aim){const occupant=[this.player,...this.activeAllies].find(a=>key(a)===key(e.aim));if(occupant)return occupant;}
     if(e.charge&&e.focusTarget){const old=[this.player,...this.activeAllies].find(a=>(a.id||'player')===e.focusTarget);if(old)return old;}
     const ready=a=>distance(e,a)<=ENEMY_TYPES[e.type].range&&this.shotClear(e,a);
     return options.sort((a,b)=>Number(ready(b))-Number(ready(a))||distance(e,a)-distance(e,b))[0]||this.player;
@@ -636,9 +638,9 @@ export class Game {
     if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)p.poison=3;this.log(`${hazard.type==='acid'?'污染液':'高熱地板'}傷害 −${damage}。`,true,`${hazard.type==='acid'?'污染液':'高熱地板'}造成傷害。`);}
     else if(p.poison>0){p.poison--;const damage=Math.max(0,4-p.hazmat);p.hp-=damage;if(damage)this.log(`中毒傷害 −${damage}，剩餘 ${p.poison} 回合。`,true,'中毒造成傷害。');}
     if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp});
-    for(const a of this.activeAllies.filter(a=>a.type!=='drone'))if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);
+    for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying')))if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);
     petReactions(this);
-    for(const e of this.enemies.filter(e=>e.hp>0&&e.type!=='drone'))if(this.hazards.some(h=>h.x===e.x&&h.y===e.y))this.hurt(e,6);
+    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying')))if(this.hazards.some(h=>h.x===e.x&&h.y===e.y))this.hurt(e,6);
   }
   pickup() {
     const p=this.player;
@@ -870,6 +872,7 @@ export class Game {
       g.protocol=data.protocol??{earned:0,events:[]};g.unlockedWeapons=Array.isArray(data.unlockedWeapons)?data.unlockedWeapons.filter(x=>typeof x==='string'):[];
       if(!Number.isSafeInteger(g.protocol.earned)||g.protocol.earned<0||g.protocol.earned>1000000||!Array.isArray(g.protocol.events)||g.protocol.events.length>PROTOCOL_EVENT_LIMIT||g.protocol.events.some(x=>typeof x!=='string'))return null;
       g.rng=random(rngState??g.seed+g.turn*13);
+      // Historical v1 IDs are intentionally literal; this migration describes the old roster.
       if(version===1){g.props=g.props.map((o,i)=>({...o,id:o.id||`legacy-${i}`,type:o.type==='crate'?'cover':o.type,...(o.type==='crate'?{hp:65,maxHp:65}:{})}));for(const e of g.enemies)if(e.type==='boss'&&g.floor===3)e.type='warden';g.log('存檔已升級：六層設施、背包與手榴彈現已可用。');}
       if(version<3){p.moved=false;for(const e of g.enemies)e.moved=false;g.log('戰術更新：牆角探身、移動閃避與命中率已啟用。新地圖從下一層開始。');}
       const validCount=n=>Number.isSafeInteger(n)&&n>=0&&n<=10000000;

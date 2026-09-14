@@ -1,3 +1,4 @@
+import {isBossClass} from './enemy-data.js';
 import {interruptEnemyIntent} from './enemy-intents.js';
 import {objectSightGrid} from './scenery.js';
 import {activeTrait} from './traits.js';
@@ -24,7 +25,7 @@ export const validControl=c=>c&&typeof c==='object'&&!Array.isArray(c)&&Object.k
 export const disruptionEligible=(actor,keyword)=>activeTrait(actor,keyword)||(keyword==='biological'&&(activeTrait(actor,'night_vision')||activeTrait(actor,'infrared')));
 export function applyDisruption(actor,keyword){
   if(!disruptionEligible(actor,keyword)||actor.hp<=0||actor.control.disabled||actor.control.immune)return false;
-  actor.control.disabled=['boss','warden'].includes(actor.type)?BOSS_DISRUPT_TURNS:DISRUPT_TURNS;
+  actor.control.disabled=isBossClass(actor)?BOSS_DISRUPT_TURNS:DISRUPT_TURNS;
   if(activeTrait(actor,'disruption_resistant'))actor.control.disabled=Math.ceil(actor.control.disabled/2);
   interruptEnemyIntent(actor,'disabled');
   actor.guard=false;actor.focus=false;actor.evasive=false;actor.moved=false;actor.moveDelta=[0,0];

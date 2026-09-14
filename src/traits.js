@@ -1,6 +1,7 @@
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {validSuppression} from './suppression.js';
 import {ENEMY_TYPES} from './data.js';
+import {enemyStartingTraitIds} from './enemy-data.js';
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const TRAITS={
  suppression_resistance:{name:'壓制抗性',text:'每階使單次所有來源合計的壓制層數 −1，最高 3 階。'},
@@ -43,13 +44,7 @@ export function tickTraits(actor){actor.traits=(actor.traits||[]).flatMap(t=>t.t
 export function validTraits(traits){return Array.isArray(traits)&&traits.length<=68&&traits.filter(t=>t?.id==='suppression_resistance').length<=3&&new Set(traits.filter(t=>t?.id==='suppression_resistance').map(t=>t.source)).size===traits.filter(t=>t?.id==='suppression_resistance').length&&traits.every(t=>t&&typeof t==='object'&&!Array.isArray(t)&&typeof t.id==='string'&&Object.hasOwn(TRAITS,t.id)&&typeof t.source==='string'&&/^[a-zA-Z0-9:_-]{1,100}$/.test(t.source)&&(t.turns===undefined||(Number.isInteger(t.turns)&&t.turns>0&&t.turns<=999)));}
 export const bodyKeyword=type=>ENEMY_TYPES[type]?.mechanical?'mechanical':'biological';
 export function startingTraits(type,floor=1){
-  const ids=type==='drone'?['no_cover']:type==='brute'?['large']:type==='crawler'&&floor>=4?['fast']:[];
-  if(type==='fodder')ids.push('slow','no_cover');
-  if(type==='brood')ids.push('fast','no_cover');
-  if(type==='sniper')ids.push('night_vision');
-  if(type==='warden')ids.push('infrared');
-  if(['brute','boss','warden'].includes(type))ids.push('suppression_resistance');
-  ids.push(bodyKeyword(type));
+  const ids=enemyStartingTraitIds(type,floor);
   return ids.map(id=>({id,source:`enemy:${type}`}));
 }
 export function initiativeQueue(player,enemies,allies=[]){return [player,...allies.filter(a=>a.hp>0),...enemies.filter(e=>e.hp>0)].map((actor,index)=>({actor,index,speed:initiative(actor)})).sort((a,b)=>a.speed-b.speed||a.index-b.index);}

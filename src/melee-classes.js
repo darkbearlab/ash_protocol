@@ -1,3 +1,4 @@
+import {isBossClass} from './enemy-data.js';
 import {interruptEnemyIntent} from './enemy-intents.js';
 import {pinned} from './suppression.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
@@ -36,7 +37,7 @@ export function grapplePlan(g,id=g.target){
  const p=g.player,e=g.enemies.find(e=>e.id===id&&e.hp>0),slot=g.bumpMeleeSlot();
 
  if(!e||distance(p,e)>GRAPPLE_RANGE||(!g.visible(e)||!g.shotClear(p,e)))return {reason:`鉤鎖需要先鎖定 ${GRAPPLE_RANGE} 格內、看得到的敵人。`};
- const dash=activeTrait(e,'large')||['boss','warden'].includes(e.type),mover=dash?p:e,anchor=dash?e:p;
+ const dash=activeTrait(e,'large')||isBossClass(e),mover=dash?p:e,anchor=dash?e:p;
  if(dash&&(pinned(p)||p.skillState?.anchor?.remaining))return {reason:'固定中無法衝向目標。'};
  // Straight swept path, with occupied/solid cells excluded; diagonal corner crossing must have an open side.
  const grid=g.grid.map(row=>row.slice());for(let y=0;y<grid.length;y++)for(let x=0;x<grid[y].length;x++)if(g.solid(x,y))grid[y][x]=0;

@@ -1,3 +1,4 @@
+import {hasEnemyTag,enemyDef} from './enemy-data.js';
 import {observeEnemy} from './callouts.js';
 import {ENEMY_TYPES} from './data.js';
 import {DIRECTIONS,distance,key} from './world.js';
@@ -15,8 +16,8 @@ import {petCombat} from './pet-growth.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
 import {tacticalSight} from './throwables.js';
-export const ENEMY_WEAPONS={rifleman:{rounds:1},raider:{rounds:2},gunner:{rounds:1},sniper:{rounds:1}};
-export function enemyWeapon(e){const rapid=rapidFireModifiers(e);return {range:ENEMY_TYPES[e.type]?.range||1,...rapid,rounds:(ENEMY_WEAPONS[e.type]?.rounds||1)+rapid.extraRounds};}
+export const ENEMY_WEAPONS=Object.freeze(Object.fromEntries(Object.entries(ENEMY_TYPES).filter(([id])=>hasEnemyTag(id,'armed')).map(([id,def])=>[id,Object.freeze({rounds:def.rounds||1})])));
+export function enemyWeapon(e){const rapid=rapidFireModifiers(e);return {range:ENEMY_TYPES[e.type]?.range||1,...rapid,rounds:(enemyDef(e)?.rounds||1)+rapid.extraRounds};}
 function revealSenses(g,e,p){if(!g.sight(e,p))return;if(e.affixes?.some(a=>a.id==='infrared'&&!a.revealed)&&!tacticalSight(g,{...e,traits:e.traits.filter(t=>t.id!=='infrared')},p))revealEnemyAffix(g,e,'infrared');}
 function seekCover({g,e,p,def,los}){
       if(!pinned(e)&&def.seekCover&&los&&!e.charge&&!g.protectingCover(e,p)){
@@ -29,19 +30,19 @@ return false;
 function move({g,e,p,def,los,d}){
         const destination=los?p:e.lastKnown;
         const plan=los&&!(def.range===1&&d<=1)?combatStep(g,e,p,{range:def.range,melee:def.range===1,peers:g.enemies.filter(b=>b.hp>0&&b.alert),hold:true}):null;
-        const step=pinned(e)||plan?.hold?null:plan?.step||(destination&&distance(e,destination)>0?g.nextStep(e,destination):null);if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultyOffset));}else if(edgeBlocks(edge)){if(['crawler','brute','bomber','boss'].includes(e.type))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultyOffset));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}}
+        const step=pinned(e)||plan?.hold?null:plan?.step||(destination&&distance(e,destination)>0?g.nextStep(e,destination):null);if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultyOffset));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultyOffset));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}}
 
 }
 function reinforce({g,e,p}){
       if(e.hp<e.maxHp*.5&&!e.reinforced&&enemyRoom(g)>0) {
         e.reinforced=true;
-        for(const [dx,dy]of DIRECTIONS.slice(0,2)){const x=e.x+dx,y=e.y+dy;if(enemyRoom(g)>0&&g.passable(x,y)&&g.canCross(e,{x,y})&&distance(p,{x,y})>0&&!occupied(g,{x,y})){const drone=g.spawnEnemy('drone',x,y,`${e.id}-reinforce-${dx}-${dy}`);drone.alert=true;drone.lastKnown=e.lastKnown?{...e.lastKnown}:null;g.enemies.push(drone);}}
+        for(const [dx,dy]of DIRECTIONS.slice(0,2)){const x=e.x+dx,y=e.y+dy;if(enemyRoom(g)>0&&g.passable(x,y)&&g.canCross(e,{x,y})&&distance(p,{x,y})>0&&!occupied(g,{x,y})){const drone=g.spawnEnemy(enemyDef(e).reinforcement,x,y,`${e.id}-reinforce-${dx}-${dy}`);drone.alert=true;drone.lastKnown=e.lastKnown?{...e.lastKnown}:null;g.enemies.push(drone);}}
         g.log(`${enemyName(e)}呼叫了無人機增援！`,true);
       }
 
 }
 function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold'});const fired=def.range>1,rapid=fired&&activeTrait(e,'rapid_fire'),weapon=enemyWeapon(e),rounds=fired?weapon.rounds:1,hits=new Set();let firedRounds=0;
- const totalDamage=def.expendable?def.damage:scaleEnemy(def.damage+g.floor*2,g.floor,'damage',g.difficultyOffset),baseRounds=fired?(ENEMY_WEAPONS[e.type]?.rounds||1):1;
+ const totalDamage=def.expendable?def.damage:scaleEnemy(def.damage+g.floor*2,g.floor,'damage',g.difficultyOffset),baseRounds=fired?(enemyDef(e)?.rounds||1):1;
  for(let n=0;n<rounds&&p.hp>0;n++){const before=p.hp,roundDamage=Math.max(1,Math.floor(totalDamage/baseRounds)+(n%baseRounds<totalDamage%baseRounds?1:0));firedRounds++;if(rapid&&n>=baseRounds)revealEnemyAffix(g,e,'suppressor');
         if(fired)g.recordExposure(e,unitTree(e).fixedTile&&e.aim?e.aim:p);if(fired)spentCase(g,e,{rifleman:'rifle',raider:'pistol',gunner:'shell',sniper:'rifle'}[e.type]);
         if(unitTree(e).fixedTile&&e.aim&&!g.shotClear(e,e.aim)){const edge=firstBarrierOnRay(g.barriers,e,e.aim);g.log('狙擊彈被門或隔板阻擋。');g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:edge?{x:edge.x,y:edge.y}:{...e.aim},damage:0});if(edge)g.damageProp(edge,roundDamage);}

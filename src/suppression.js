@@ -1,7 +1,8 @@
+import {enemyDef} from './enemy-data.js';
 // One aggregate application per attack, after all source contributions are known.
 export const SUPPRESSION_TUNING={max:5,pinned:3,accuracy:8,weaponRounds:3,weaponStacks:1,skillRounds:3,skillStacks:1,skillAccuracy:20,rapidAccuracy:10};
 export const suppressionResistance=a=>Math.min(3,new Set((a?.traits||[]).filter(t=>t.id==='suppression_resistance').map(t=>t.source)).size);
-export function grantNativeResistance(a){const source=a.character==='bulwark'?'character:bulwark':['brute','boss','warden'].includes(a.type)?`enemy:${a.type}`:null;if(!Array.isArray(a.traits))a.traits=[];if(source&&!a.traits.some(t=>t.id==='suppression_resistance'&&t.source===source))a.traits.push({id:'suppression_resistance',source});}
+export function grantNativeResistance(a){const source=a.character==='bulwark'?'character:bulwark':enemyDef(a)?.traits?.includes('suppression_resistance')?`enemy:${a.type}`:null;if(!Array.isArray(a.traits))a.traits=[];if(source&&!a.traits.some(t=>t.id==='suppression_resistance'&&t.source===source))a.traits.push({id:'suppression_resistance',source});}
 export function migrateResistance(g){for(const a of [g.player,...g.enemies,...(g.allies||[]),...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])])grantNativeResistance(a);}
 export const rapidFireModifiers=a=>a?.traits?.some(t=>t.id==='rapid_fire')?{extraRounds:1,accuracyBonus:-SUPPRESSION_TUNING.rapidAccuracy}:{extraRounds:0,accuracyBonus:0};
 const mechanical=a=>a?.traits?.some(t=>t.id==='mechanical');

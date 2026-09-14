@@ -8,7 +8,6 @@ export const PACK_LIMIT = 3;
 export const PLATE_CAPACITY = 30;
 export const SUPPLY_ROOMS={ammo:{name:'彈藥庫',color:'#d9bd7b'},medical:{name:'醫療室',color:'#a9d9ac'},armor:{name:'裝甲庫',color:'#92c4df'}};
 export const RARE_ARMORY={weapon:8,minFloor:3,chance:.2};
-export const ENEMY_LOOT={rifleman:{weapon:0,chance:.20,ammo:'ammo'},raider:{weapon:2,chance:.18,ammo:'pistol'},gunner:{weapon:1,chance:.14,ammo:'shell'},sniper:{weapon:3,chance:.2,ammo:'ammo'},drone:{ammo:'energy'},brute:{rareWeapon:8,rareChance:.1},warden:{weapon:4,chance:1,ammo:'energy',rareWeapon:8,rareChance:.15},boss:{ammo:'ordnance'}};
 export const WEAPONS = [
   { id:'rifle', weaponClass:'rifle', name:'餘燼突擊步槍', type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'rifle', desc:'可靠的中距離主力，適合多數交戰。' },
   { id:'shotgun', weaponClass:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, closeRange:2, closeMin:60, closeMax:72, closeAccuracy:15, range:4, mag:4, file:'shotgun', ammoType:'shell', splash:1, desc:'1–2 格傷害 60–72、命中 +15；更遠傷害 42–54。目標鄰格受到 45% 濺射傷害。' },
@@ -35,19 +34,21 @@ export const FLOOR_INFO = [
 ];
 export function floorInfo(floor){const index=((floor-1)%FLOORS.length+FLOORS.length)%FLOORS.length;return {...FLOOR_INFO[index],name:FLOORS[index],cycleFloor:index+1,weapon:[2,3,4,5,3,4][index]};}
 export const ENEMY_TYPES = {
-  fodder:{name:'失能遊蕩者',hp:6,damage:2,range:1,armor:0,color:'#a0a184',xp:0,expendable:true,role:'緩速、每兩次行動機會活動一次。徒手可清理，擊殺獲得追擊。'},
-  brood:{name:'裂隙幼蟲',hp:6,damage:4,range:1,armor:0,color:'#cfac7c',xp:0,expendable:true,role:'巢穴釋出的快速幼蟲。沒有戰利品，擊殺獲得追擊。'},
-  rifleman:{name:'斷訊槍兵',hp:22,damage:17,range:7,armor:0,color:'#9fba81',xp:1,fragile:true,rapid:true,seekCover:true,role:'低耐久、自動步槍連續壓制。先找牆角或掩體，再優先擊殺。'},
-  raider:{name:'破口突擊兵',hp:18,damage:21,range:5,armor:0,color:'#d4b185',xp:1,fragile:true,rapid:true,seekCover:true,role:'近距離高傷害、低生命。與槍兵交叉火力，勿停在暴露通道。'},
-  crawler:{ name:'裂隙獵犬', hp:32, damage:9, range:1, armor:0, color:'#bd9667', xp:1, role:'接近後蓄勢撕咬。拉開一格即可避開攻擊。' },
-  gunner:{ name:'叛變哨兵', hp:42, damage:11, range:6, armor:0, color:'#92a480', xp:1, role:'中距離槍擊。牆壁阻擋射線，掩體可減傷。' },
-  drone:{ name:'巡弋無人機', hp:28, damage:9, range:5, armor:0, color:'#85c4c0', xp:1, mechanical:true, role:'可飛越地形傷害與掩體，但無法穿牆。' },
-  brute:{ name:'鐵殼破壞者', hp:90, damage:20, range:1, armor:7, color:'#b99573', xp:2, role:'重裝近戰。用狙擊、電漿或爆炸穿透護甲。' },
-  sniper:{ name:'盲眼狙擊手', hp:45, damage:23, range:10, armor:1, color:'#b3adcb', xp:2, role:'具夜視，忽略暗區懲罰；射程 10 格，瞄準需要兩回合。' },
-  bomber:{ name:'孢子自爆體', hp:30, damage:30, range:1, armor:0, color:'#b8bc67', xp:1, role:'死亡或近身蓄勢後爆炸。保持至少 2 格距離。' },
-  warden:{ name:'封鎖官', hp:180, damage:19, range:6, armor:5, color:'#d9aa70', xp:4, mechanical:true, role:'具紅外線可穿煙，但也怕震撼彈。攻擊需蓄勢，掉落稀有軍械。' },
-  boss:{ name:'核心守衛', hp:280, damage:22, range:7, armor:7, color:'#df785f', xp:6, mechanical:true, role:'反應核心頭目。交替槍擊與延遲轟炸，離開紅色標記。' },
+  fodder:{tags:[],traits:['slow','no_cover'],behavior:'fodder',rounds:1,attackStyle:'bullet',name:'失能遊蕩者',hp:6,damage:2,range:1,armor:0,color:'#a0a184',xp:0,expendable:true,role:'緩速、每兩次行動機會活動一次。徒手可清理，擊殺獲得追擊。'},
+  brood:{tags:[],traits:['fast','no_cover'],behavior:'brood',rounds:1,attackStyle:'bullet',name:'裂隙幼蟲',hp:6,damage:4,range:1,armor:0,color:'#cfac7c',xp:0,expendable:true,role:'巢穴釋出的快速幼蟲。沒有戰利品，擊殺獲得追擊。'},
+  rifleman:{tags:['armed'],traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:0,chance:.20,ammo:'ammo'},name:'斷訊槍兵',hp:22,damage:17,range:7,armor:0,color:'#9fba81',xp:1,fragile:true,rapid:true,seekCover:true,role:'低耐久、自動步槍連續壓制。先找牆角或掩體，再優先擊殺。'},
+  raider:{tags:['armed'],traits:[],rounds:2,attackStyle:'bullet',loot:{weapon:2,chance:.18,ammo:'pistol'},name:'破口突擊兵',hp:18,damage:21,range:5,armor:0,color:'#d4b185',xp:1,fragile:true,rapid:true,seekCover:true,role:'近距離高傷害、低生命。與槍兵交叉火力，勿停在暴露通道。'},
+  crawler:{tags:['breaker'],traits:[],floorTraits:[{id:'fast',minFloor:4}],rounds:1,attackStyle:'claw', name:'裂隙獵犬', hp:32, damage:9, range:1, armor:0, color:'#bd9667', xp:1, role:'接近後蓄勢撕咬。拉開一格即可避開攻擊。' },
+  gunner:{tags:['armed'],traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:1,chance:.14,ammo:'shell'}, name:'叛變哨兵', hp:42, damage:11, range:6, armor:0, color:'#92a480', xp:1, role:'中距離槍擊。牆壁阻擋射線，掩體可減傷。' },
+  drone:{tags:['flying'],traits:['no_cover'],rounds:1,attackStyle:'plasma',loot:{ammo:'energy'}, name:'巡弋無人機', hp:28, damage:9, range:5, armor:0, color:'#85c4c0', xp:1, mechanical:true, role:'可飛越地形傷害與掩體，但無法穿牆。' },
+  brute:{tags:['breaker'],traits:['large','suppression_resistance'],rounds:1,attackStyle:'slash',loot:{rareWeapon:8,rareChance:.1}, name:'鐵殼破壞者', hp:90, damage:20, range:1, armor:7, color:'#b99573', xp:2, role:'重裝近戰。用狙擊、電漿或爆炸穿透護甲。' },
+  sniper:{tags:['armed'],traits:['night_vision'],behavior:'sniper',rounds:1,attackStyle:'bullet',loot:{weapon:3,chance:.2,ammo:'ammo'}, name:'盲眼狙擊手', hp:45, damage:23, range:10, armor:1, color:'#b3adcb', xp:2, role:'具夜視，忽略暗區懲罰；射程 10 格，瞄準需要兩回合。' },
+  bomber:{tags:['breaker'],traits:[],behavior:'bomber',rounds:1,attackStyle:'bullet', name:'孢子自爆體', hp:30, damage:30, range:1, armor:0, color:'#b8bc67', xp:1, role:'死亡或近身蓄勢後爆炸。保持至少 2 格距離。' },
+  warden:{tags:['boss'],traits:['infrared','suppression_resistance'],behavior:'warden',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{weapon:4,chance:1,ammo:'energy',rareWeapon:8,rareChance:.15}, name:'封鎖官', hp:180, damage:19, range:6, armor:5, color:'#d9aa70', xp:4, mechanical:true, role:'具紅外線可穿煙，但也怕震撼彈。攻擊需蓄勢，掉落稀有軍械。' },
+  boss:{tags:['boss','breaker'],traits:['suppression_resistance'],behavior:'boss',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{ammo:'ordnance'}, name:'核心守衛', hp:280, damage:22, range:7, armor:7, color:'#df785f', xp:6, mechanical:true, role:'反應核心頭目。交替槍擊與延遲轟炸，離開紅色標記。' },
 };
+// Compatibility view keeps the historical key order; loot has one authoritative home.
+export const ENEMY_LOOT=Object.freeze(Object.fromEntries(['rifleman','raider','gunner','sniper','drone','brute','warden','boss'].map(id=>[id,Object.freeze(ENEMY_TYPES[id].loot)])));
 // Stable IDs; append content without changing saved offers. null cap means consumable reward.
 export const PERKS = [
   {id:'damage',name:'武器增幅',cap:3,effect:'weapon',amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'},

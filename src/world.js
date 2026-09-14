@@ -1,3 +1,4 @@
+import {isBossClass,ENEMY_SPAWNS} from './enemy-data.js';
 import {rollEnemyAffixes} from './enemy-affixes.js';
 import {fillUnknownContainers} from './learning-data.js';
 import {addRuntimePopulation} from './runtime-enemies.js';
@@ -45,7 +46,7 @@ export function lineOfSight(grid,a,b,barriers=[],channel='sight') {
   }return false;
 }
 export function makeEnemy(type,x,y,id,floor=1,offset=0) {
-  const def=ENEMY_TYPES[type],hp=def.expendable?def.hp:scaleEnemy(def.hp+(type==='boss'||type==='warden'?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp',offset);
+  const def=ENEMY_TYPES[type],hp=def.expendable?def.hp:scaleEnemy(def.hp+(isBossClass(type)?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp',offset);
   return {id,type,x,y,hp,maxHp:hp,...(def.expendable?{expendable:true,reinforcement:true,actionDelay:0}:{}),vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
@@ -121,10 +122,10 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null) {
   }
   const start={x:rooms[startRoom].cx,y:rooms[startRoom].cy},end={x:rooms[endRoom].cx,y:rooms[endRoom].cy};
   const enemies=[],items=[],props=[],hazards=[],info=floorInfo(floor);
-  const pool=floor<=2?['rifleman','rifleman','raider','gunner','drone','crawler']:['rifleman','rifleman','raider','raider','gunner','drone','brute','sniper','bomber'];
+  const pool=floor<=2?[...ENEMY_SPAWNS.legacyEarly]:[...ENEMY_SPAWNS.legacyLate];
   if(floor>6)pool.push(...ENDLESS_TUNING.heavyExtra);
   // Explicit v1 compatibility baseline retains its historical RNG draw positions and elite payload.
-  const spawnEnemy=(type,x,y,id)=>{const e=makeEnemy(type,x,y,id,floor);if(floor>6&&!['boss','warden'].includes(type)&&rng()<Math.min(.5,(floor-6)*.04)){const options=['fast','infrared','night_vision'].filter(id=>!e.traits.some(t=>t.id===id));if(options.length){const chosen=options[Math.floor(rng()*options.length)];if(!v2)grantTrait(e,chosen,'endless:elite');}}return e;};
+  const spawnEnemy=(type,x,y,id)=>{const e=makeEnemy(type,x,y,id,floor);if(floor>6&&!isBossClass(type)&&rng()<Math.min(.5,(floor-6)*.04)){const options=['fast','infrared','night_vision'].filter(id=>!e.traits.some(t=>t.id===id));if(options.length){const chosen=options[Math.floor(rng()*options.length)];if(!v2)grantTrait(e,chosen,'endless:elite');}}return e;};
   rooms.forEach((r,i)=>{
     const posts=reservationPosts(r,{legacy:!v2,deep:floor>6});
     if(i!==startRoom)for(let j=0;j<(3+extraEnemies(floor)+(floor>=3&&rng()<.45?1:0));j++) {
@@ -152,7 +153,7 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null) {
   const armory=rooms[rewardRooms[0]];items.push({x:armory.cx,y:armory.cy+1,type:'weapon',weapon});
   if(floor>=RARE_ARMORY.minFloor&&rng()<RARE_ARMORY.chance)items.push({x:armory.cx,y:armory.cy+1,type:'weapon',weapon:RARE_ARMORY.weapon});
   if(floor>=3){const r=rooms[startRoom];items.push({x:r.x+r.w-2,y:r.y+r.h-2,type:'energy',amount:18});items.push({x:r.x+r.w-2,y:r.y+1,type:'ordnance',amount:4});}
-  const spawn=rooms[startRoom];enemies.unshift(spawnEnemy('rifleman',spawn.x+spawn.w-1,spawn.y+1,`${floor}-scout`,floor));
+  const spawn=rooms[startRoom];enemies.unshift(spawnEnemy(ENEMY_SPAWNS.scout,spawn.x+spawn.w-1,spawn.y+1,`${floor}-scout`,floor));
   // Doorways can now enter from any side. Never place a solid prop or hazard on a connecting lane.
   for(let i=props.length-1;i>=0;i--)if(props[i].hp>0&&corridors.has(key(props[i])))props.splice(i,1);
   for(let i=hazards.length-1;i>=0;i--)if(corridors.has(key(hazards[i])))hazards.splice(i,1);

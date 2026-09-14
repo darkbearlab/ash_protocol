@@ -1,3 +1,4 @@
+import {isBossClass,ALLY_BASE_TYPES} from './enemy-data.js';
 import {pinned,finishSuppression} from './suppression.js';
 import {petRank} from './pet-growth.js';
 import {PET_TETHER,petMoved,syncPetSenses,petReactions,newPetBond,petMaximum,petWeapon,petFuelCost,petCombat,transportPet,placePet} from './pet-growth.js';
@@ -56,12 +57,12 @@ export function allyWeapon(a,player=null){
  if(a.kind==='pet')return petWeapon(player);
  if(a.kind==='drone'){const rank=classPerkRank(player,'engineer_firecontrol'),sentry=a.sourceId==='drone_sentry',damage=(sentry?14:12)+rank*CLASS_PERK_TUNING.fireDamage;return {id:'rifle',range:7,min:damage,max:damage,mag:sentry?8:12,ammoType:'rifle',accuracyBonus:(sentry?-37:-30)+rank*CLASS_PERK_TUNING.fireAccuracy};}
  const summonBonus=a.kind==='summon'?classPerkRank(player,'necro_blades')*CLASS_PERK_TUNING.blades:0,def=ENEMY_TYPES[a.type],melee=def.range===1,damage=Math.max(8,def.damage)+summonBonus;
- return {id:melee?'melee':a.type==='drone'?'plasma':'rifle',range:def.range,min:damage,max:damage,melee,hitChance:90,accuracyBonus:-22,ammoType:null,mag:0};
+ return {id:melee?'melee':a.type===ALLY_BASE_TYPES.drone?'plasma':'rifle',range:def.range,min:damage,max:damage,melee,hitChance:90,accuracyBonus:-22,ammoType:null,mag:0};
 }
 // Survivors use the same actor contract; missionId/sourceId can attach rescue objectives later.
 export function addAlly(g,kind,type,{sourceId=null,missionId=null,point=g.player,status='active'}={}){
  if(!['drone','pet','summon','survivor'].includes(kind)||!ENEMY_TYPES[type]||g.allies.length>=32)return null;
- if(!['active','packed','arriving'].includes(status)||status==='arriving'&&kind!=='pet'||status==='packed'&&kind!=='drone'||kind==='summon'&&['boss','warden'].includes(type)||kind==='drone'&&type!=='drone')return null;
+ if(!['active','packed','arriving'].includes(status)||status==='arriving'&&kind!=='pet'||status==='packed'&&kind!=='drone'||kind==='summon'&&isBossClass(type)||kind==='drone'&&type!==ALLY_BASE_TYPES.drone)return null;
  if(['pet','drone'].includes(kind)&&g.allies.some(a=>a.kind===kind)||kind==='summon'&&g.allies.filter(a=>a.kind==='summon'&&a.status==='active').length>=summonLimit(g.player))return null;
  if(status==='active'&&(!g.passable(point.x,point.y)||occupied(g,point)))return null;
  const a={...makeEnemy(type,point.x,point.y,`ally-${++g.allySerial}`,g.floor),kind,sourceId,missionId,floor:g.floor,status,order:null,ammo:0,bornTurn:g.turn};
@@ -107,13 +108,13 @@ export function arriveAllies(g,ids){
  }
 }
 export function initializeAllies(g){
- if(g.player.skills.includes('drone_follow')&&!g.allies.some(a=>a.kind==='drone'))addAlly(g,'drone','drone',{sourceId:'drone_follow',status:'packed'});
- if(g.player.skills.includes('pet_command')&&!g.allies.some(a=>a.kind==='pet')){const a=addAlly(g,'pet','crawler',{sourceId:'pet_command',status:'arriving'});if(a)placePet(g,a);}
+ if(g.player.skills.includes('drone_follow')&&!g.allies.some(a=>a.kind==='drone'))addAlly(g,'drone',ALLY_BASE_TYPES.drone,{sourceId:'drone_follow',status:'packed'});
+ if(g.player.skills.includes('pet_command')&&!g.allies.some(a=>a.kind==='pet')){const a=addAlly(g,'pet',ALLY_BASE_TYPES.pet,{sourceId:'pet_command',status:'arriving'});if(a)placePet(g,a);}
 }
 // Everyone who fell on this floor, bosses excluded. One entry per death, so common enemies rise more often;
 // nothing is consumed (corpses marked raised by older versions still count). Machines never rise (3.43.1):
 // anything with the mechanical keyword stays a wreck, cyborgs included. A machine-raising variant is only an idea.
-export const summonPool=g=>g.enemies.filter(e=>e.hp<=0&&!['boss','warden'].includes(e.type)&&!activeTrait(e,'mechanical'));
+export const summonPool=g=>g.enemies.filter(e=>e.hp<=0&&!isBossClass(e)&&!activeTrait(e,'mechanical'));
 const summonCount=g=>currentAllies(g).filter(a=>a.kind==='summon').length;
 // No working chassis to hand: none, destroyed, or left active on another floor. Building a new one replaces it.
 const droneLost=(g,a)=>!a||a.status==='destroyed'||a.floor!==g.floor&&a.status!=='packed';
@@ -160,7 +161,7 @@ export function useAllySkill(g,id,point=null){
  if(id==='pet_command'){a.order=null;
  }else if(droneLost(g,a)){
   const cell=placeCell(g,point);if(!cell)return false;g.allies=g.allies.filter(x=>x!==a);p.scrap-=DRONE_BUILD_COST;
-  const fresh=addAlly(g,'drone','drone',{sourceId:id,point:cell});reloadDrone(g,fresh);g.log(`消耗 ${DRONE_BUILD_COST} 廢料生產新機，${allyName(fresh)}已部署。`);
+  const fresh=addAlly(g,'drone',ALLY_BASE_TYPES.drone,{sourceId:id,point:cell});reloadDrone(g,fresh);g.log(`消耗 ${DRONE_BUILD_COST} 廢料生產新機，${allyName(fresh)}已部署。`);
  }else if(a.status==='packed'){
   const cell=placeCell(g,point);if(!cell)return false;if(a.sourceId!==id&&a.ammo){g.receiveAmmo(allyWeapon(a).ammoType,a.ammo);a.ammo=0;}Object.assign(a,{x:cell.x,y:cell.y,sourceId:id,floor:g.floor,status:'active',order:null,bornTurn:g.turn});
   fitDrone(a,g.player);reloadDrone(g,a);g.log(`${allyName(a)}已部署。`);
@@ -306,7 +307,7 @@ export function validAllies(g){
  for(const a of g.allies){
   if(!a||!['drone','pet','summon','survivor'].includes(a.kind)||!ENEMY_TYPES[a.type]||!/^ally-[1-9][0-9]*$/.test(a.id)||Number(a.id.slice(5))>g.allySerial||ids.has(a.id)||!['active','packed','destroyed','reforming','arriving'].includes(a.status))return false;ids.add(a.id);
   if(!Number.isInteger(a.floor)||a.floor<1||a.floor>floorLimit(g)||![a.x,a.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)||!Number.isInteger(a.hp)||!Number.isInteger(a.maxHp)||a.maxHp<1||a.maxHp>500||a.hp<0||a.hp>a.maxHp||!Number.isInteger(a.ammo)||a.ammo<0||a.ammo>allyWeapon(a).mag)return false;
-  if(a.kind==='summon'&&['boss','warden'].includes(a.type)||a.kind==='drone'&&a.type!=='drone')return false;
+  if(a.kind==='summon'&&isBossClass(a)||a.kind==='drone'&&a.type!==ALLY_BASE_TYPES.drone)return false;
   if((['reforming','arriving'].includes(a.status)&&a.kind!=='pet')||(a.status==='packed'&&a.kind!=='drone')||(a.kind==='pet'&&a.status==='destroyed')||(['active','arriving'].includes(a.status)&&a.hp===0)||(['reforming','destroyed'].includes(a.status)&&a.hp!==0))return false;
   if(!Number.isInteger(a.armor)||a.armor<0||a.armor>20||!Number.isInteger(a.bornTurn)||a.bornTurn<1||a.bornTurn>g.turn||!validTraits(a.traits)||!validControl(a.control)||!validCombatMemory(a,g.turn)||!validCombatModifiers(a.combatModifiers)||typeof a.vaultExposed!=='boolean')return false;
   if(a.restTurn!==undefined&&(!Number.isInteger(a.restTurn)||a.restTurn<1||a.restTurn>g.turn+1))return false;

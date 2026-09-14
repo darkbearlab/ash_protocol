@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.76.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.77.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -46,6 +46,7 @@
 | `src/enemy-affixes.js`、`src/enemy-behavior.js`、`src/behavior-tree.js`、`src/enemy-intents.js` | 詞條出生／顯現、共用與單位行為樹、預告打斷、擲彈 marks；ENEMY_AFFIXES 第 8、9 節 |
 | `src/game.js` | `Game` 類別：行動驗證與結算、敵人 AI、爆炸、背包、樓層切換、存檔序列化與遷移 |
 | `src/data.js` | 內容與數值：武器、敵人、樓層、升級、資料片段；`SAVE_VERSION`、`LEGACY_SAVE_VERSIONS` |
+| `src/enemy-data.js` | 敵人分類／起始被動查詢、順序固定的出生表、友軍借用底型；規則定義在 data.js，外觀解耦留 Claude，見 ENEMY_DATA 第 9 節 |
 | `src/world.js` | 亂數、視線、生成流程、敵人建立；generate 預設 v2 第六階段加執行期內容，generateWithRecipes(..., []) 保留 v1 |
 | `src/map-recipes.js`、`src/map-recipes-data.js` | 第六階段 JSON 格式／權重抽選與編譯池；maps/recipes/README.md 說明使用方法，世代 7 保存配方副本 |
 | `src/map-slots.js` | 第五階段：槽位／任務預留、油桶重排、大房間模組與空貨櫃；完整回退，世代 6 |
