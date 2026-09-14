@@ -226,4 +226,4 @@
 - `reinforcementTelegraphs(g)` 合併撤退增援與蟲潮pending；renderer已接既有「+倒數」標記，仍只畫可視格。兩者保存清單分開，不挪用撤退任務欄位／限制。蟲潮抵達沿用nestSpawn/burrow；入侵點不是可破壞道具。
 - 狀態列請顯示「中毒 N 層」，不要再顯示剩餘N回合；讀 `player.poison`。計時需要時讀 `player.poisonClock??0`，下次退層還需 `poisonDecayTurns-clock` 個付費回合。真實模式的數值隱藏仍照既有介面政策；本輪未改狀態列文字或毒液圖示。
 - `node qa/create-wave-scenes.mjs` 產生 `qa/fixtures/swarm-waves/` 四份：未啟動、兩回合預告、12隻滿額、4層中毒且已走過一個退層間隔。舊 `create-swarm-scenes` 的毒液場景改為合法4層。只用 `?test=1` 匯入。
-- 新測試12項，完整npm test **822/822**，build通過。正式enemy-data基準不變、未重錄；96張其他派系地圖的額外比較也通過。手機蟲潮壓力、標記可讀性、同時移動體感、防護第一階的免疫價值由使用者與Claude驗收。
+- 新測試12項，完整npm test **824/824**，build通過。正式enemy-data基準不變、未重錄；96張其他派系地圖的額外比較也通過。手機蟲潮壓力、標記可讀性、同時移動體感、防護第一階的免疫價值由使用者與Claude驗收。
