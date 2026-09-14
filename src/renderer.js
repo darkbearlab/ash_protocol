@@ -1,5 +1,6 @@
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
+import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
 import {NEST_ATLAS,drawNest,drawNestEffect} from './nest-art.js';
 import {SCENERY_ATLAS} from './scenery.js';
 import {drawPartition,partitionGeometry,DOOR_ATLAS,drawDoor,doorGeometry,barrierJunctions,drawJunction} from './barrier-art.js';
@@ -28,7 +29,7 @@ export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.time=0;
-    this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.callouts=new CalloutBoard();this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
     for(const url of [SCENERY_ATLAS,DOOR_ATLAS,NEST_ATLAS]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
     this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;this.terrainImages.set(WALL_ATLAS,this.wallImage);this.artTones=new ArtToneCache();
@@ -220,6 +221,25 @@ export class Renderer {
     for(const e of hiddenEnemies)this.cornerBadge(this.projectActor(e));
     // Snapshot sensor UI may cross walls; it never reveals terrain or supplies.
     for(const contact of [...(g.sensorContacts||[]),...(g.petSensorContacts||[])]){const a=this.project(contact.x,contact.y);this.box(a.x-3,a.y-3,6,6,'#ffe6a5');this.box(a.x-6,a.y-6,12,12,'#00000000','#e9c27d99');}
+    this.drawCallouts(time);
+  }
+  // Callout bubbles (3.76.4): drawn last so they sit above walls. A visible line follows its speaker while it stays
+  // visible; a heard line only knows a direction, so it hugs that screen edge with an arrow and never marks a tile.
+  drawCallouts(time){
+    const c=this.ctx,g=this.game,items=(this.callouts??=new CalloutBoard()).active(time);if(!items.length)return;
+    c.save();c.font='10px monospace';c.textAlign='center';
+    for(const item of items){
+      const e=item.event,visible=e.visibility==='visible',text=visible?bubbleText(item):`${DIRECTION_ARROWS[e.direction]||''} ${bubbleText(item)}`;
+      let x,y;
+      if(visible){const live=g.visibleEnemies.find(a=>a.id===e.actorId),p=live?this.projectActor(live):this.project(e.position.x,e.position.y);x=p.x;y=p.y-this.tile*.62;}
+      else ({x,y}=edgePoint(e.direction,this.w,this.h));
+      const w=Math.ceil(c.measureText(text).width)+10,h=15,left=Math.max(2,Math.min(this.w-w-2,x-w/2)),top=Math.max(2,Math.min(this.h-h-2,y-h));
+      const border=e.priority==='high'?'#f2a85c':e.priority==='medium'?'#9fd9c8':'#9aa59a';
+      c.globalAlpha=bubbleAlpha(item,time);
+      this.box(left,top,w,h,'#101a17e6',border);if(visible)this.box(Math.round(x)-2,top+h,4,3,border);
+      c.fillStyle=e.priority==='high'?'#ffd7a8':'#e3eee6';c.fillText(text,left+w/2,top+11);
+    }
+    c.restore();
   }
   cornerBadge(a){
     // Screen-space status: readable above wall art, without fading the actor silhouette.
@@ -363,5 +383,6 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     this.box(a.x-w/2,y-10,w,13,'#1b1410d9',prepare?'#f0c77a99':'#f8996999');this.text(m.label,a.x,y,prepare?'#ffe0a0':'#ffd3a4',9);}
   markArea(center,radius,fill,stroke,label){const g=this.game,t=this.tile;for(const {x,y} of areaCells(g.grid,center,radius,g.barriers,g)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}if(label){const a=this.project(center.x,center.y);this.text(label,a.x,a.y+5,'#ffd3a4',17);}}
   drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?(isDark(g,{x,y})?'#343e62':'#809672'):(isDark(g,{x,y})?'#232a40':'#384b3a');c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const m of g.props.filter(p=>p.type==='module'))for(const q of moduleCells(m))if(g.seen[q.y]?.[q.x]){c.strokeStyle=MODULE_TYPES[m.theme].color+'88';c.lineWidth=1;c.strokeRect(q.x*k+1,q.y*k+1,k-2,k-2);}for(const station of g.props.filter(p=>p.type==='terminal'&&g.seen[p.y]?.[p.x])){c.fillStyle=station.used?'#526c62':'#a3e3c0';c.fillRect(station.x*k+3,station.y*k+3,k-6,k-6);}for(const b of g.barriers)if(b.hp>0&&edgeCells(b).some(p=>g.seen[p.y]?.[p.x])){const x=(b.x+.5)*k,y=(b.y+.5)*k;c.strokeStyle=b.open?'#8ad2bb':b.type==='door'?'#dec184':'#bdc7bd';c.lineWidth=2;c.beginPath();c.moveTo(x-(b.axis==='y'?k/2:0),y-(b.axis==='x'?k/2:0));c.lineTo(x+(b.axis==='y'?k/2:0),y+(b.axis==='x'?k/2:0));c.stroke();}for(const box of g.props.filter(o=>isContainer(o)&&!o.opened&&g.seen[o.y]?.[o.x])){c.strokeStyle=CONTAINER_KINDS[box.kind].color;c.lineWidth=2;c.strokeRect(box.x*k+3,box.y*k+3,Math.max(3,k-6),Math.max(3,k-6));}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.exitPoint,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),...(g.localAllies||[]).map(a=>[a,a.hp>0?'#83efd1':'#b5a774']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}for(const o of [...missionObjects(g).filter(t=>!t.done),...g.visibleEnemies.filter(e=>missionTarget(g,e))])if(g.seen[o.y]?.[o.x]){c.strokeStyle='#88f3ff';c.lineWidth=2;c.strokeRect(o.x*k+1,o.y*k+1,k-2,k-2);}const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
-  addEffects(effects,elapsed=0){this.effects.push(...effects.map(e=>({...e,time:this.time-Math.max(0,elapsed)})));this.effects=this.effects.slice(-64);}
+  // Callouts go to the bubble board, timed from the moment playback reaches them; everything else is a short effect.
+  addEffects(effects,elapsed=0){const start=this.time-Math.max(0,elapsed);for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);}
 }

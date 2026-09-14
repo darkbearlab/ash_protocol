@@ -34,6 +34,7 @@ import {Game,WEAPONS,FLOORS,floorInfo,PERKS,ENEMY_TYPES,LORE,enemyName,distance,
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MODE_NOTE,runOptions} from './deploy-ui.js';
 import {Renderer} from './render.js';
 import {AudioFX} from './audio.js';
+import {impactSound} from './combat-sounds.js';
 import {landscapeTouch} from './layout.js';
 import {BACKUP_LIMIT} from './backup.js';
 import {targetDetails} from './target-card.js';
@@ -146,6 +147,7 @@ function act(type,arg) {
         if(event.effects.some(e=>['slash','claw'].includes(e.style)))audio.play('melee');
         else if(event.effects.some(e=>e.type==='enemyShot'||(e.type==='shot'&&e.style!=='grenade')))audio.play('fire');
         if(navigator.vibrate&&event.effects.some(e=>e.type==='impact'||e.type==='blast'))navigator.vibrate(25);
+        const result=impactSound(event.effects,event.state);if(result)audio.play(result);
       });
       playback.advance(0);
     }
@@ -454,13 +456,13 @@ ${sec('危險')}
 <button class="modal-button" data-modal="close">${inRun?'繼續任務 →':'← 返回主選單'}</button>`);
 }
 function showResult(){const won=game.status==='won',abandoned=game.status==='abandoned',p=game.player;modal(`<div class="eyebrow">${abandoned?'MISSION ABANDONED':won?'SIGNAL RESTORED':'SIGNAL LOST'} / RUN ${game.seed}${game.realMode?' / REAL':''}</div><h2>${abandoned?'任務已放棄。':won?'灰燼之中，仍有回音。':'這次的訊號，到此為止。'}</h2><p>${abandoned?'已賺取的協定點數與永久升級保留，這次任務已結束。':won?'任務目標已完成。你搭上最後一班撤離電梯。':'你留下的紀錄將協助下一位行動員。掩體、補給與適時撤退，都能改變下一次任務。'}</p><p>${game.missionSummary}</p>${isEndless(game)?`<div class="result-stats"><div><b>${pad(game.floor)}</b>到達深度</div><div><b>${pad(p.level)}</b>等級</div><div><b>${p.kills}</b>消滅敵人</div></div>${endlessResult(p,abandoned)}<p>行動 ${game.turn} 回合</p>`:`<div class="result-stats"><div><b>${pad(game.deepestFloor)}</b>最深樓層</div><div><b>${p.kills}</b>消滅敵人</div><div><b>${game.turn}</b>行動回合</div></div>`}<p>${game.realMode?`真實模式 · 本次協定點數 +${protocolSettlement(game).base}，真實加成 +${protocolSettlement(game).bonus}`:`本次協定點數 +${game.protocol.earned}`} · 累計持有 ${profile().protocol.balance}<br>死亡仍保留，可購買永久攜行升級。</p><div class="operator-identity result-identity">${portraitMarkup(p.portrait,game.status)}<p>${characterName(p.character)}<br>總傷害 ${p.stats.damage} · 投擲 ${p.stats.grenades} · 資料 ${p.lore.length}/6</p></div><button class="modal-button secondary" data-modal="lastBattle">查看最後戰場</button><button class="modal-button" data-modal="deploy">重新部署 →</button>`);}
-function newGame(seed,character,mission,options={}){const portrait=deploymentFaces[character];if(!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify('請選擇有效角色。');return;}if(game.status==='playing'&&(entered||resumable)){try{abandonRun(game);}catch(error){backupError(error);return;}}entered=true;resumable=false;game=new Game(seed,profile().unlocks.weapons,profile().upgrades.carrying,character,portrait,mission,options);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();}
+function newGame(seed,character,mission,options={}){const portrait=deploymentFaces[character];if(!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify('請選擇有效角色。');return;}if(game.status==='playing'&&(entered||resumable)){try{abandonRun(game);}catch(error){backupError(error);return;}}entered=true;resumable=false;game=new Game(seed,profile().unlocks.weapons,profile().upgrades.carrying,character,portrait,mission,options);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();}
 function exportSave(){const blob=new Blob([game.serialize()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`ash-protocol-${game.seed}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('存檔已匯出。');}
 function downloadJSON(raw,name){const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 function backupError(error){modal(`<h2>備份操作未完成</h2><p>${escapeHTML(error.message)}</p><button class="modal-button" data-modal="backupCancel">返回設定</button>`);}
 function adoptSnapshot(next){
   game=next.game||new Game(undefined,profile().unlocks.weapons,profile().upgrades.carrying);entered=Boolean(next.game);resumable=Boolean(next.game);
-  playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];cancelAim();lastStatus='playing';previousFloor=game.floor;
+  playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;
   $('#modal').close();update();if(!entered)showIntro();
 }
 function applyBackup(){
@@ -620,7 +622,7 @@ document.addEventListener('keydown',e=>{
 });
 $('#import-save').addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
-  try{if(file.size>1000000)throw new Error('存檔超過大小限制。');const imported=Game.restore(await file.text());if(!imported)throw new Error('存檔格式不相容或任務已結束。');const kept=write('ash-save-before-import',game.serialize());game=imported;entered=true;resumable=true;game.setCarryLevel(profile().upgrades.carrying);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify(kept?'存檔已匯入；原進度已在本機備份。':'存檔已匯入；原進度的本機備份沒有寫入成功。'); }catch(error){modal('<h2>無法匯入存檔</h2><p>'+escapeHTML(error.message)+'</p><button class="modal-button" data-modal="close">返回戰場</button>');}e.target.value='';
+  try{if(file.size>1000000)throw new Error('存檔超過大小限制。');const imported=Game.restore(await file.text());if(!imported)throw new Error('存檔格式不相容或任務已結束。');const kept=write('ash-save-before-import',game.serialize());game=imported;entered=true;resumable=true;game.setCarryLevel(profile().upgrades.carrying);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify(kept?'存檔已匯入；原進度已在本機備份。':'存檔已匯入；原進度的本機備份沒有寫入成功。'); }catch(error){modal('<h2>無法匯入存檔</h2><p>'+escapeHTML(error.message)+'</p><button class="modal-button" data-modal="close">返回戰場</button>');}e.target.value='';
 });
 document.addEventListener('selectstart',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(!target?.closest('input,textarea'))e.preventDefault();});
 document.addEventListener('contextmenu',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(target?.closest('.battle-panel'))e.preventDefault();});
