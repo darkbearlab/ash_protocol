@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,generate,makeEnemy,isNoncombatant,ENEMY_TYPES,FACTIONS,rollEnemyAffixes,rollEnemyElite,CIVILIAN_TUNING,addNoncombatants,tickCivilianCooldowns,scream,enemyKillXp} from '../src/engine.js';
+import {SAVE_VERSION,Game,generate,makeEnemy,isNoncombatant,ENEMY_TYPES,FACTIONS,rollEnemyAffixes,rollEnemyElite,CIVILIAN_TUNING,addNoncombatants,tickCivilianCooldowns,scream,enemyKillXp} from '../src/engine.js';
 import {affixArena,sceneEnemy} from '../qa/enemy-affix-scenes.mjs';
 import {eligibleMissionEnemy} from '../src/map-population.js';
 import {enemyRoom,expendableRoom,RUNTIME_TUNING} from '../src/runtime-enemies.js';
@@ -68,7 +68,7 @@ test('test faction and alternate noncombatant card need only data; no room means
 });
 test('save42 preserves cooldown/flee and archives; migration supplies zero; malformed counters fail',()=>{
  const g=new Game(1,[],0,'soldier','onyx','roundtrip',{facilityFaction:'loyalist'}),e=g.enemies.find(isNoncombatant);e.alert=true;e.lastKnown={...g.start};e.screamCooldown=3;
- Object.assign(g.player,g.exitPoint);assert.ok(g.descend());const raw=JSON.parse(g.serialize()),copy=Game.restore(g.serialize());assert.equal(raw.version,42);assert.ok(copy);
+ Object.assign(g.player,g.exitPoint);assert.ok(g.descend());const raw=JSON.parse(g.serialize()),copy=Game.restore(g.serialize());assert.equal(raw.version,SAVE_VERSION);assert.ok(copy);
  const saved=copy.floorStates[1].enemies.find(isNoncombatant);assert.equal(saved.screamCooldown,3);assert.equal(saved.alert,true);assert.deepEqual(saved.lastKnown,g.floorStates[1].start);
  assert.ok(decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game);
  raw.version=41;for(const x of raw.data.enemies)if(isNoncombatant(x))delete x.screamCooldown;assert.ok(Game.restore(JSON.stringify(raw)));

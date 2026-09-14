@@ -4,14 +4,14 @@ import {enemyDef} from './enemy-data.js';
 import {factionDef,enemyFaction,factionOverride} from './factions.js';
 
 // Atlas cell order is the image layout: append only, never reorder.
-export const SPRITE_NAMES=Object.freeze(['player','rifleman','raider','sniper','brute','drone','warden','boss','crawler','bomber','cover','barrel','med','ammo','grenade','terminal','civilian']);
-export const AFTERMATH_NAMES=Object.freeze(['dead-player','dead-rifleman','dead-raider','dead-sniper','dead-brute','dead-drone','dead-warden','dead-boss','dead-crawler','dead-bomber','muzzle','bullet','plasma','slash','claw','impact','dead-civilian']);
+export const SPRITE_NAMES=Object.freeze(['player','rifleman','raider','sniper','brute','drone','warden','boss','crawler','bomber','cover','barrel','med','ammo','grenade','terminal','civilian','spitter']);
+export const AFTERMATH_NAMES=Object.freeze(['dead-player','dead-rifleman','dead-raider','dead-sniper','dead-brute','dead-drone','dead-warden','dead-boss','dead-crawler','dead-bomber','muzzle','bullet','plasma','slash','claw','impact','dead-civilian','dead-spitter']);
 // Tone role per atlas cell (3.82.1): props are dimmed, actors brightened. Keyed by name, so cells appended after the
 // original sixteen (civilian) keep the actor tone; the original cells map exactly as the old index<10 rule did.
 export const PROP_SPRITE_NAMES=Object.freeze(['cover','barrel','med','ammo','grenade','terminal']);
 export const spriteToneRole=name=>PROP_SPRITE_NAMES.includes(name)?'prop':'unit';
 export const DRAWING_SHAPES=Object.freeze(['humanoid','critter','drone']);
-export const ENEMY_PROJECTILES=Object.freeze(['melee','rifle','smg','shotgun','sniper','plasma']);
+export const ENEMY_PROJECTILES=Object.freeze(['melee','rifle','smg','shotgun','sniper','plasma','venom']);
 
 // key: atlas cell; corpse: aftermath cell (defaults to key); size: sprite multiplier; scale: fallback drawing scale.
 export function enemySprite(type){const s=enemyDef(type)?.sprite||{},key=s.key||type;return {key,corpse:s.corpse||key,size:s.size??1,scale:s.scale??1};}

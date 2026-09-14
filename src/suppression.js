@@ -1,3 +1,4 @@
+import {interruptEnemyIntent} from './enemy-intents.js';
 import {enemyDef} from './enemy-data.js';
 // One aggregate application per attack, after all source contributions are known.
 export const SUPPRESSION_TUNING={max:5,pinned:3,accuracy:8,weaponRounds:3,weaponStacks:1,skillRounds:3,skillStacks:1,skillAccuracy:20,rapidAccuracy:10};
@@ -14,7 +15,7 @@ export function applySuppression(actor,stacks){
  if(actor.hp<=0)return 0;
  const amount=Math.max(0,stacks-suppressionResistance(actor)),before=suppressionStacks(actor);
  if(!amount)return 0;
- actor.suppression=Math.min(SUPPRESSION_TUNING.max,before+amount);return actor.suppression-before;
+ actor.suppression=Math.min(SUPPRESSION_TUNING.max,before+amount);if(pinned(actor)&&actor.tongueIntent)interruptEnemyIntent(actor,'suppressed');return actor.suppression-before;
 }
 export function finishSuppression(targets,hits,rounds,skillStacks=0,game=null){
  for(const actor of new Set([...targets,...hits])){const before=suppressionStacks(actor);applySuppression(actor,(targets.includes(actor)?skillStacks:0)+(rounds>=SUPPRESSION_TUNING.weaponRounds&&hits.has(actor)?SUPPRESSION_TUNING.weaponStacks:0));const after=suppressionStacks(actor);if(after>=SUPPRESSION_TUNING.pinned&&before<SUPPRESSION_TUNING.pinned)game?.enemyCallout(actor,'injury',{cue:'pinned'});else if(after>0&&!before)game?.enemyCallout(actor,'injury',{cue:'suppressed'});}

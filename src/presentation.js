@@ -26,6 +26,8 @@ export function captureAction(game,action){
 }
 // Cosmetic projectiles per resolved shot; these never affect ammunition or damage.
 export const WEAPON_VISUALS={
+  // Semantic style only; the venom trail drawing is handed to Claude.
+  venom:{count:1,flight:130,stagger:0,spread:0,style:'venom'},
   pet_turret:{count:1,stagger:0,spread:0,flight:85,style:'bullet'},
   thunder:{count:1,flight:100,stagger:0,spread:0,style:'grenade'},
   lmg:{count:2,flight:60,stagger:15,spread:.07,style:'bullet'},

@@ -1,8 +1,9 @@
+import {SWARM_TUNING} from './swarm-tuning.js';
 import {receiveCallout} from './callouts.js';
 // Uncommitted tells cancel on death, disruption, forced movement, or loss of a tracked shot.
 // Fixed-tile sniper shots retain their tile through loss of sight. Committed marks never cancel.
-export const INTERRUPT_REASONS=['death','disabled','displaced','target_lost'];
-export function interruptEnemyIntent(actor,reason){if(!INTERRUPT_REASONS.includes(reason))return false;actor.charge=false;actor.aim=null;actor.windup=0;actor.fireChain=null;delete actor.grenadeIntent;return true;}
+export const INTERRUPT_REASONS=['death','disabled','displaced','target_lost','suppressed'];
+export function interruptEnemyIntent(actor,reason){if(!INTERRUPT_REASONS.includes(reason))return false;actor.charge=false;actor.aim=null;actor.windup=0;actor.fireChain=null;delete actor.grenadeIntent;if(actor.tongueIntent){delete actor.tongueIntent;actor.tongueCooldown=SWARM_TUNING.tongueCooldown;}return true;}
 export const CALLOUT_KINDS=Object.freeze(['state','telegraph','injury','affix_revealed']);
 // The receiver emits only visibility-filtered semantic data.
 export function enemyCallout(g,actor,kind,detail={}){if(!CALLOUT_KINDS.includes(kind))return;return receiveCallout(g,actor,kind,detail);}

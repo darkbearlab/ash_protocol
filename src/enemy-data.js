@@ -1,7 +1,7 @@
 import {ENEMY_TYPES} from './data.js';
 import {DEFAULT_FACTION,factionDef,expandRoster} from './faction-catalog.js';
 
-export const ENEMY_TAGS=Object.freeze(['boss','armed','breaker','flying','noncombatant']);
+export const ENEMY_TAGS=Object.freeze(['boss','armed','breaker','flying','noncombatant','infected']);
 // These positions and duplicates are part of the seeded generation contract.
 export const ENEMY_SPAWNS=Object.freeze({
  get legacyEarly(){return Object.freeze(expandRoster(factionDef(DEFAULT_FACTION).roster.early));},

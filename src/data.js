@@ -1,7 +1,7 @@
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 42;
+export const SAVE_VERSION = 43;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -116,3 +116,7 @@ export const LORE = [
 ];
 
 ENEMY_TYPES.civilian={tags:['noncombatant'],traits:[],behavior:'civilian',voice:'civilian',name:'滯留研究員',hp:12,damage:0,range:0,rounds:0,armor:0,xp:0,color:'#d9ddd2',sprite:{key:'civilian'},drawing:{color:'#d9ddd2',unarmed:true},role:'不戰鬥的設施人員。看到你會尖叫並一直逃跑。'};
+
+ENEMY_TYPES.spitter={name:"毒液噴吐蟲",hp:34,damage:0,range:6,armor:0,xp:1,tags:[],traits:[],rounds:1,attackStyle:"venom",projectile:"venom",voice:"creature",venom:true,sprite:{key:"spitter"},drawing:{shape:"critter",color:"#9aab55"},color:"#9aab55",role:"噴吐毒液，命中不直接傷害，延長中毒時間。"};
+for(const type of ["hive_beast","hive_matriarch"])ENEMY_TYPES[type].tongue=true;
+for(const type of ["rifleman_infected","raider_infected","fodder"])ENEMY_TYPES[type].tags=[...ENEMY_TYPES[type].tags,"infected"];

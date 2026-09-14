@@ -39,12 +39,9 @@ export function grapplePlan(g,id=g.target){
  if(!e||distance(p,e)>GRAPPLE_RANGE||(!g.visible(e)||!g.shotClear(p,e)))return {reason:`鉤鎖需要先鎖定 ${GRAPPLE_RANGE} 格內、看得到的敵人。`};
  const dash=activeTrait(e,'large')||isBossClass(e),mover=dash?p:e,anchor=dash?e:p;
  if(dash&&(pinned(p)||p.skillState?.anchor?.remaining))return {reason:'固定中無法衝向目標。'};
- // Straight swept path, with occupied/solid cells excluded; diagonal corner crossing must have an open side.
- const grid=g.grid.map(row=>row.slice());for(let y=0;y<grid.length;y++)for(let x=0;x<grid[y].length;x++)if(g.solid(x,y))grid[y][x]=0;
- for(const a of [p,...g.enemies.filter(a=>a.hp>0),...g.activeAllies])if(a!==mover)grid[a.y][a.x]=0;
- const choices=DIRECTIONS.map(([dx,dy])=>({x:anchor.x+dx,y:anchor.y+dy})).filter(q=>g.passable(q.x,q.y)&&grid[q.y]?.[q.x]===1&&g.canCross(q,anchor)&&lineOfSight(grid,mover,q,g.barriers,'move')).sort((a,b)=>distance(a,mover)-distance(b,mover));
- if(!choices.length)return {reason:'沒有可到達的近戰落點：身邊或目標旁都被擋住。'};
- return {enemy:e,mover,point:choices[0],dash,slot};
+ const point=pullLanding(g,mover,anchor);
+ if(!point)return {reason:'沒有可到達的近戰落點：身邊或目標旁都被擋住。'};
+ return {enemy:e,mover,point,dash,slot};
 }
 export function useGrapple(g,id){
  const plan=grapplePlan(g,id);if(plan.reason)return g.fail(plan.reason);
@@ -58,3 +55,12 @@ export function useGrapple(g,id){
  g.target=enemy.id;return g.strike({id:enemy.id,x:enemy.x,y:enemy.y},slot);
 }
 export function validMeleeState(p,turn){const s=p.battleSpirit;return s&&typeof s==='object'&&!Array.isArray(s)&&Object.keys(s).length===2&&Number.isInteger(s.stacks)&&s.stacks>=0&&s.stacks<=spiritLimit(p)&&(s.lastKill===null?s.stacks===0:Number.isSafeInteger(s.lastKill)&&s.lastKill>=1&&s.lastKill<=turn);}
+
+// Shared swept pull geometry; preserves grapple candidate and tie order.
+export function pullLanding(g,mover,anchor){
+ // Straight swept path, with occupied/solid cells excluded; diagonal corner crossing must have an open side.
+ const grid=g.grid.map(row=>row.slice());for(let y=0;y<grid.length;y++)for(let x=0;x<grid[y].length;x++)if(g.solid(x,y))grid[y][x]=0;
+ for(const a of [g.player,...g.enemies.filter(a=>a.hp>0),...g.activeAllies])if(a!==mover)grid[a.y][a.x]=0;
+ const choices=DIRECTIONS.map(([dx,dy])=>({x:anchor.x+dx,y:anchor.y+dy})).filter(q=>g.passable(q.x,q.y)&&grid[q.y]?.[q.x]===1&&g.canCross(q,anchor)&&lineOfSight(grid,mover,q,g.barriers,'move')).sort((a,b)=>distance(a,mover)-distance(b,mover));
+ return choices[0]||null;
+}

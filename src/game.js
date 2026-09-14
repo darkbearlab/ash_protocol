@@ -1,3 +1,4 @@
+import {tickTongues,validSwarm,SWARM_TUNING} from './swarm.js';
 import {scream,tickCivilianCooldowns,migrateCivilians,validCivilians} from './civilians.js';
 import {rollEnemyElite,enemyKillXp,migrateElites,validElites} from './elite-enemies.js';
 import {pickFacilityFaction,factionDef,rollFacilityFaction,migrateFactions,validFactions} from './factions.js';
@@ -301,7 +302,7 @@ export class Game {
       queue.push({actor:p,index:0,speed:0,anchorExtra:true});queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);
     }
     let playerStunned=false;
-    this.turn++;tickCivilianCooldowns(this);
+    this.turn++;tickCivilianCooldowns(this);tickTongues(this);
     for(const {actor,speed,anchorExtra=false}of queue){
       if(p.hp<=0||this.status!=='playing'||this.floor!==floor)break;
       if(actor.hp<=0||actor.kind&&(actor.status!=='active'||actor.floor!==this.floor))continue;
@@ -641,7 +642,7 @@ export class Game {
   environmentTurn() {
     const p=this.player,hpBefore=p.hp,hazard=this.hazards.find(h=>h.x===p.x&&h.y===p.y);
     if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)p.poison=3;this.log(`${hazard.type==='acid'?'污染液':'高熱地板'}傷害 −${damage}。`,true,`${hazard.type==='acid'?'污染液':'高熱地板'}造成傷害。`);}
-    else if(p.poison>0){p.poison--;const damage=Math.max(0,4-p.hazmat);p.hp-=damage;if(damage)this.log(`中毒傷害 −${damage}，剩餘 ${p.poison} 回合。`,true,'中毒造成傷害。');}
+    else if(p.poison>0){p.poison--;const damage=Math.max(0,SWARM_TUNING.poisonDamage-p.hazmat);p.hp-=damage;if(damage)this.log(`中毒傷害 −${damage}，剩餘 ${p.poison} 回合。`,true,'中毒造成傷害。');}
     if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp});
     for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying')))if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);
     petReactions(this);
@@ -910,7 +911,7 @@ export class Game {
       if(version<31)g.classPerkMisses=0;
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
-      if(!validRuntime(g))return null;
+      if(!validRuntime(g)||!validSwarm(g))return null;
       if(version<32)g.shadowSteps=0;
       if(!Number.isInteger(g.shadowSteps)||g.shadowSteps<0||g.shadowSteps>2||g.shadowSteps>0&&classPerkRank(p,'ninja_shadowstep')===0)return null;
       if(!validPerks(g))return null;

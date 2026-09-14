@@ -23,10 +23,10 @@ export const FACTIONS={
  },bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:{crawler:WATCH_DOG}},
  // Swarm (3.83.0, user): creature cards and infected soldiers, a giant bug, oversized bug bosses and burrow nests only.
  // The venom shot, the tongue pull and the infected affixes come with the Codex rules (docs/SWARM.md).
- swarm:{name:'蟲族',tag:true,pickable:true,voice:'creature',nestStyle:'burrow',roster:{
+ swarm:{infectedAffixes:['venomous','brood_host'],name:'蟲族',tag:true,pickable:true,voice:'creature',nestStyle:'burrow',roster:{
   early:[['rifleman_infected',2],['raider_infected',1],['crawler',1]],
-  late:[['crawler',2],['rifleman_infected',2],['raider_infected',2],['bomber',1],['giant_bug',1]],
-  deepExtra:[['giant_bug',1],['bomber',1]],
+  late:[['crawler',2],['rifleman_infected',2],['raider_infected',2],['bomber',1],['giant_bug',1],['spitter',1]],
+  deepExtra:[['giant_bug',1],['bomber',1],['spitter',1]],
  },bosses:{3:'hive_beast',6:'hive_matriarch'},scout:'rifleman_infected',retreatWave:['crawler','crawler'],fodder:'fodder',nestChild:'brood',overrides:{fodder:{name:'被感染者'},brood:{name:'蟲群幼體'},crawler:{name:'獵殺蟲'}}},
 };
 export const factionDef=id=>typeof id==='string'&&Object.hasOwn(FACTIONS,id)?FACTIONS[id]:undefined;

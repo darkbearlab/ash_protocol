@@ -1,3 +1,4 @@
+import {poisonHit,tongueAction,infectedDeath} from './swarm.js';
 import {civilianAction} from './civilians.js';
 import {hasEnemyTag,enemyDef} from './enemy-data.js';
 import {observeEnemy} from './callouts.js';
@@ -47,11 +48,11 @@ function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold
  for(let n=0;n<rounds&&p.hp>0;n++){const before=p.hp,roundDamage=Math.max(1,Math.floor(totalDamage/baseRounds)+(n%baseRounds<totalDamage%baseRounds?1:0));firedRounds++;if(rapid&&n>=baseRounds)revealEnemyAffix(g,e,'suppressor');
         if(fired)g.recordExposure(e,unitTree(e).fixedTile&&e.aim?e.aim:p);if(fired)spentCase(g,e,enemyDef(e)?.casing);
         if(unitTree(e).fixedTile&&e.aim&&!g.shotClear(e,e.aim)){const edge=firstBarrierOnRay(g.barriers,e,e.aim);g.log('狙擊彈被門或隔板阻擋。');g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:edge?{x:edge.x,y:edge.y}:{...e.aim},damage:0});if(edge)g.damageProp(edge,roundDamage);}
-        else if(unitTree(e).fixedTile&&distance(p,e.aim||p)>0){g.log('狙擊彈擊中你原本的位置。');g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true});}
+        else if(unitTree(e).fixedTile&&distance(p,e.aim||p)>0){g.log('狙擊彈擊中你原本的位置。');g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         else {
           petCombat(g,p);if(fired&&lightingEffects(g,{...e,traits:(e.traits||[]).filter(t=>t.id!=='night_vision')},p).penalty>0)revealEnemyAffix(g,e,'night_vision');const chance=def.range>1?g.accuracy(e,p).chance:g.meleeAccuracy(e,p);
-          if(g.rng()*100<chance){if(p===g.player)g.damagePlayer(roundDamage,`${enemyName(e)}攻擊`,e);else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}
-          else {g.log(`${enemyName(e)}未命中（${chance}%）。`,false,`${enemyName(e)}未命中。`);g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true});}
+          if(g.rng()*100<chance){if(def.venom){g.effects.push({type:'enemyShot',attackerType:e.type,style:'venom',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});poisonHit(g,e,p);}else{poisonHit(g,e,p);if(p===g.player)g.damagePlayer(roundDamage,`${enemyName(e)}攻擊`,e);else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}}
+          else {g.log(`${enemyName(e)}未命中（${chance}%）。`,false,`${enemyName(e)}未命中。`);g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         }
 if(p.hp<before)hits.add(p);
  }
@@ -72,10 +73,10 @@ registerUnitTree('warden',{after:reinforce});
 registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp);return false;},death:({g,e})=>g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultyOffset))});
 registerUnitTree('fodder',{before:({e})=>{if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return true;}e.actionDelay=1;return false;}});
 registerUnitTree('brood',{});
-export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});}
+export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);}
 export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
- if(tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
+ if(tongueAction(ctx)||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
  if(runAffixBranches(ctx)||seekCover(ctx))return;
  let fired=false;
  if((los&&g.shotClear(e,p)&&d<=def.range&&(def.range>1||g.canCross(e,p)))||(tree.fixedTile&&e.charge&&e.aim)){
