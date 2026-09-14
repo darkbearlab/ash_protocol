@@ -22,7 +22,7 @@ export const floorTraitNote=(type,traits)=>(enemyDef(type)?.floorTraits||[]).map
 
 // Faction reskins and elites (3.79.1; docs/FACTION_DATA.md 9, docs/ELITE_ENEMIES.md 3). A faction override tint wins over
 // the card tint; legacy and plain cards have none, so they draw exactly as before. Elites keep their colours and gain a
-// gold outline, and a display-only label that is not a trait.
-export const ELITE_VISUAL=Object.freeze({outline:'#f2c45a',label:'精英'});
+// gold outline, and a display-only label that is not a trait. Corpses use a dimmer gold so the ring fades with the body (3.80.1).
+export const ELITE_VISUAL=Object.freeze({outline:'#f2c45a',corpseOutline:'#8f7438',label:'精英'});
 export const enemyTint=e=>factionOverride(e).tint??enemyDef(e)?.sprite?.tint??null;
 export const factionTag=e=>{const d=factionDef(enemyFaction(e));return d?.tag?d.name:'';};
