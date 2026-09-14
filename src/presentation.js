@@ -1,3 +1,4 @@
+import {enemyProjectile,enemyMeleeStyle} from './enemy-visuals.js';
 import {NEST_EFFECT_MS} from './nest-art.js';
 import {actorMoves} from './actor-visuals.js';
 // Presentation observes one synchronous turn. Snapshots never roll back rules or RNG.
@@ -38,13 +39,12 @@ export const WEAPON_VISUALS={
   grenade:{count:1,flight:180,stagger:0,spread:0,style:'grenade'},
   melee:{count:1,flight:80,stagger:0,spread:0}
 };
-const enemyWeapon={fodder:'melee',brood:'melee',rifleman:'rifle',raider:'smg',gunner:'shotgun',sniper:'sniper',drone:'plasma',warden:'plasma',boss:'plasma',crawler:'melee',brute:'melee'};
 export const FLIGHT_MS=125,IMPACT_MS=130,DEATH_MS=220;
 export function projectileVisuals(effect,reduceMotion=false){
-  const id=effect.style==='grenade'?'grenade':effect.weaponId==='unarmed'?'melee':effect.weaponId||enemyWeapon[effect.attackerType]||'rifle';
+  const id=effect.style==='grenade'?'grenade':effect.weaponId==='unarmed'?'melee':effect.weaponId||enemyProjectile(effect.attackerType)||'rifle';
   const base=WEAPON_VISUALS[id]||WEAPON_VISUALS.rifle,spec=effect.singleShot?{...base,count:1,spread:0}:base;
   return Array.from({length:reduceMotion?1:spec.count},(_,i)=>({...effect,damage:0,miss:false,missPath:effect.miss,
-    style:spec.style||effect.style||(id==='melee'?(effect.attackerType==='crawler'?'claw':'slash'):'bullet'),travel:reduceMotion?70:spec.flight,delay:reduceMotion?0:i*spec.stagger,
+    style:spec.style||effect.style||(id==='melee'?enemyMeleeStyle(effect.attackerType):'bullet'),travel:reduceMotion?70:spec.flight,delay:reduceMotion?0:i*spec.stagger,
     spread:reduceMotion?0:spec.spread*(i-(spec.count-1)/2)/Math.max(1,(spec.count-1)/2),quiet:reduceMotion}));
 }
 export function planPresentation(steps,{reduceMotion=false}={}){

@@ -1,6 +1,6 @@
 # 敵人資料解耦（規格，2026-09-14）
 
-- 狀態：**3.77.0 規則層已解耦並通過測試，尚待發布。** 外觀與介面由 Claude 接手（第 7、9 節）。
+- 狀態：**已完成。** 3.77.0 規則層由 Codex 完成，因自動核准審查容量不足，由 Claude 代為提交；3.77.1 外觀與介面由 Claude 完成（第 9 節）。
 - 目的：**在完全不改變遊戲規則的前提下**，把敵人身分從程式裡寫死的兵種名稱，搬到可以擴充、可以分類的資料上。後續 [FACTIONS.md](FACTIONS.md) 的派系框架（第 7、9 節）要蓋在這個結構上。
 - 使用者決定（2026-09-14）：先做資料解耦，再做派系；這一輪不改任何規則。
 
@@ -271,3 +271,47 @@ ENEMY_SPAWNS = {
 新增 tests/enemy-data.test.mjs：資料與引用合法性、所有原兵種 1～12 層的被動／來源快照、新代號共用定義／行為而不改實例欄位、直接／反向比較與 inline includes 名單的語法守門。守門略過上述四個待遷 UI 檔與 game.js 精確的 v1 遷移行；Claude 每完成一個 UI 檔請移除對應例外。它是針對常見硬編碼語法的守門，未宣稱可辨識任意變數別名或動態組字。
 
 解耦前後 `node qa/enemy-data-identity.mjs` 均與已提交基準一致：780 張生成地圖、110 份任務局面、24 次機器人重跑。本輪未改基準、檢查腳本或任何既有測試。完整結果與發布紀錄見 `qa/results/2026-09-14-codex-3.77.0-enemy-data.md`。
+
+### Claude 外觀與介面接線（3.77.1，已完成）
+
+**新增欄位**：寫在 `data.js` 的兵種定義裡，只給演出與介面讀取，規則層不讀。
+
+| 欄位 | 內容 | 目前使用 |
+| --- | --- | --- |
+| `sprite` | `key` 圖集格（預設為兵種代號）；`corpse` 屍體圖（預設同 `key`）；`size` 精靈圖倍率；`scale` 沒有圖時的繪製倍率 | 遊蕩者、哨兵借用步槍兵；幼蟲借用獵犬；封鎖官與核心守衛放大 1.15 |
+| `drawing` | 沒有圖時的形狀 `humanoid`／`critter`／`drone`，以及 `color`、`glow`、`heavy`（護肩）、`longBarrel`（長槍管） | 獵犬、自爆體為蟲形；無人機；破壞者、封鎖官、核心守衛有護肩；狙擊手有長槍管 |
+| `projectile` | 敵人射擊的演出武器，對應 `WEAPON_VISUALS` | 沒填時沿用步槍 |
+| `casing` | 射擊後留下的彈殼痕跡 | 步槍兵、突擊兵、哨兵、狙擊手 |
+| `glyph` | 圖鑑圖示，預設「!」 | 無人機 ◇、核心守衛 Ω |
+| `voice` | 喊話聲線；機械仍由 `mechanical` 決定 | 遊蕩者、幼蟲、獵犬、自爆體為 `creature` |
+
+**查詢函式**：`src/enemy-visuals.js` 匯出以下內容。
+
+- 外觀：`enemySprite`、`enemyDrawing`、`enemyProjectile`、`enemyGlyph`、`enemyVoice`。
+- `enemyMeleeStyle`：讀規則欄位 `attackStyle`，決定近戰是爪擊還是揮砍。
+- `floorTraitNote`：產生圖鑑的「第 N 層起」註記。
+- 圖集名稱清單 `SPRITE_NAMES`、`AFTERMATH_NAMES`：**只能往後加，不能重排**，順序就是圖片的格子位置。
+
+**搬遷**
+
+| 檔案 | 改讀 |
+| --- | --- |
+| renderer | 精靈圖、大小、屍體圖、沒有圖時的繪製改讀上表；狙擊手的倒數數字與瞄準線改讀 `unitTree(e).fixedTile` |
+| presentation | 彈道武器讀 `projectile`；近戰爪擊讀 `attackStyle` |
+| controller | 威脅清單讀 `fixedTile`；圖鑑圖示讀 `glyph`；「第 N 層起」註記由 `floorTraits` 產生 |
+| callout-ui | 生物聲線讀 `voice` |
+| enemy-behavior（Codex 暫留的兩處） | 彈殼讀 `casing`；固定落點射擊的 `attackerType` 改為 `e.type` |
+
+守門測試的 `deferred` 已清空。`src/` 內已經沒有以兵種代號判斷身分的地方，只剩 game.js 的 v1 歷史遷移例外。
+
+**驗收**
+
+- `npm test` 752/752。新增 tests/enemy-visuals.test.mjs 3 項：
+  - 以 3.77.0 寫死的對照表為快照，逐兵種比對新資料。
+  - 檢查資料引用的圖集格、繪製形狀、彈道都存在。
+- `node qa/enemy-data-identity.mjs` 與基準一致。
+- **繪製比對**：在 3.77.0 與 3.77.1 各跑一次，記錄每個兵種的全部畫布呼叫，兩份完全相同（2529 次，雜湊一致）。涵蓋角色（有圖／沒圖 × 一般／蓄勢／失能）與屍體。
+- 唯一刻意差異：遊蕩者與幼蟲的屍體，現在有和其他兵種相同的 0.14 秒倒地位移。
+- 詳見 [3.77.1 QA](../qa/results/2026-09-14-claude-3.77.1-enemy-visuals.md)。
+
+**派系階段可以直接用**：新兵種或變體只要在定義裡填外觀欄位，renderer 與介面都不必改程式。

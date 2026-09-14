@@ -61,8 +61,8 @@ test('identity guard catches reintroduced names without mistaking ally kinds for
  assert.deepEqual(violations("a.kind==='drone'; ['drone','pet'].includes(kind); hasEnemyTag(e,'boss')"),[]);
 });
 test('rule modules do not branch on literal enemy IDs',()=>{
- // Explicitly deferred by ENEMY_DATA 3.6/3.7. Remove each entry when Claude migrates it.
- const deferred=new Set(['renderer.js','presentation.js','controller.js','callout-ui.js']);
+ // ENEMY_DATA 3.6/3.7 were migrated by Claude in 3.77.1; nothing is deferred any more.
+ const deferred=new Set();
  for(const file of readdirSync(new URL('../src/',import.meta.url)).filter(f=>f.endsWith('.js'))){
   if(deferred.has(file))continue;
   const source=readFileSync(new URL(`../src/${file}`,import.meta.url),'utf8');

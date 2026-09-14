@@ -21,10 +21,9 @@ const MACHINE={
 };
 // Creatures only make noises, so their lines follow the category rather than the exact cue.
 const CREATURE={danger:['嘶嘶——！','咯咯咯！'],affix:['嘶——！'],tactical:['嘶……','咯……'],injury:['嘎——！','嗚……'],perception:['嘶？','咯……']};
-const CREATURES=new Set(['fodder','brood','crawler','bomber']);
 
 // Heard callouts carry no unit type, so they always use the neutral human voice and never hint at what spoke.
-export const calloutVoice=event=>event.visibility!=='visible'?'human':ENEMY_TYPES[event.enemyType]?.mechanical?'machine':CREATURES.has(event.enemyType)?'creature':'human';
+export const calloutVoice=event=>event.visibility!=='visible'?'human':ENEMY_TYPES[event.enemyType]?.mechanical?'machine':ENEMY_TYPES[event.enemyType]?.voice==='creature'?'creature':'human';
 const hash=text=>{let h=2166136261;for(const c of text){h^=c.codePointAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 export function calloutLine(event,variant=0){
  const voice=calloutVoice(event),lines=voice==='creature'?CREATURE[event.category]:(voice==='machine'?MACHINE:HUMAN)[event.cue];

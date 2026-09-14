@@ -1,5 +1,7 @@
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
+import {unitTree} from './behavior-tree.js';
+import {SPRITE_NAMES,AFTERMATH_NAMES,enemySprite,enemyDrawing} from './enemy-visuals.js';
 import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
 import {NEST_ATLAS,drawNest,drawNestEffect} from './nest-art.js';
 import {SCENERY_ATLAS} from './scenery.js';
@@ -39,8 +41,8 @@ export class Renderer {
     // Precompute once at native resolution; avoids Canvas filter support differences on phones.
     this.corpseAtlas=document.createElement('canvas');
     this.aftermath.addEventListener('load',()=>{const atlas=this.corpseAtlas;atlas.width=this.aftermath.naturalWidth;atlas.height=this.aftermath.naturalHeight;const c=atlas.getContext('2d');c.drawImage(this.aftermath,0,0);const pixels=c.getImageData(0,0,atlas.width,atlas.height),d=pixels.data;for(let i=0;i<d.length;i+=4){const gray=d[i]*.2126+d[i+1]*.7152+d[i+2]*.0722;for(let k=0;k<3;k++)d[i+k]=Math.round((d[i+k]*.3+gray*.7)*.8);}c.putImageData(pixels,0,0);this.corpseReady=true;});
-    this.aftermathNames=['dead-player','dead-rifleman','dead-raider','dead-sniper','dead-brute','dead-drone','dead-warden','dead-boss','dead-crawler','dead-bomber','muzzle','bullet','plasma','slash','claw','impact'];
-    this.spriteNames=['player','rifleman','raider','sniper','brute','drone','warden','boss','crawler','bomber','cover','barrel','med','ammo','grenade','terminal'];
+    this.aftermathNames=[...AFTERMATH_NAMES];
+    this.spriteNames=[...SPRITE_NAMES];
     this.resizeObserver=new ResizeObserver(()=>this.resize());this.resizeObserver.observe(canvas);this.resize();
     requestAnimationFrame(t=>this.frame(t));
   }
@@ -136,7 +138,7 @@ export class Renderer {
       if(distance(p,{x,y})===1&&g.passable(x,y)&&!g.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))this.box(left+3,top+3,t-6,t-6,'#b0ba8010','#b1c48a3b');
       const room=g.rooms?.find(r=>r.supply&&r.cx===x&&r.cy===y);if(room){const sign=SUPPLY_ROOMS[room.supply];if(sign)this.text(sign.name,a.x,a.y-this.tile*.4,sign.color,9);}
       if(g.exitPoint.x===x&&g.exitPoint.y===y)this.exit(a,time);
-      for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y)this.corpse(a,dead.type==='fodder'?'rifleman':dead.type==='brood'?'crawler':dead.type);
+      for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y)this.corpse(a,dead.type);
       for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)this.prop(a,prop,time);
       for(const prop of g.props)if(!isContainer(prop)&&prop.x===x&&prop.y===y)this.prop(a,prop,time);
       for(const weapon of [false,true])for(const item of g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.item(a,item,time);
@@ -151,8 +153,8 @@ export class Renderer {
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
     if(this.mode==='suppress'&&this.aim)this.markArea(this.aim,1,'#8fb2ea33','#b8cff5bb','');
     for(const e of g.visibleEnemies.filter(e=>e.charge)) {
-      const a=this.projectActor(e),target=e.type==='sniper'&&e.aim?e.aim:g.activeAllies.find(a=>a.id===e.focusTarget)||p,b=this.projectActor(target);
-      c.setLineDash([5,5]);this.line(a.x,a.y,b.x,b.y,e.type==='sniper'?'#efb5cb8f':'#eaaa6855',1);c.setLineDash([]);
+      const a=this.projectActor(e),target=unitTree(e).fixedTile&&e.aim?e.aim:g.activeAllies.find(a=>a.id===e.focusTarget)||p,b=this.projectActor(target);
+      c.setLineDash([5,5]);this.line(a.x,a.y,b.x,b.y,unitTree(e).fixedTile?'#efb5cb8f':'#eaaa6855',1);c.setLineDash([]);
     }
     const pos=this.projectActor(p);if(p.hp<=0)this.corpse(pos,'player',p.character);else this.actor(pos,'player',time,p);
     for(const cover of g.cover){const dx=cover.x-p.x,dy=cover.y-p.y;const x=pos.x+dx*t*(isBarrier(cover)?1:.48),y=pos.y+dy*t*(isBarrier(cover)?1:.48);this.line(x+(dy? -t*.27:0),y+(dx?-t*.27:0),x+(dy?t*.27:0),y+(dx?t*.27:0),cover.type==='wall'?'#8bd2c9':'#c7d896',2);}
@@ -278,7 +280,7 @@ export class Renderer {
   effectSprite(name,a,size=32,angle=0,dark=false){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);const source=name.startsWith('dead-')&&this.corpseReady?this.corpseAtlas:this.aftermath;c.drawImage(dark?this.darkActors.get(source):source,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
   // The operator colour (3.48.2) tints the grey class art from a cached canvas; without one the grey cell is drawn as is.
   classSprite(a,size,character,dead=false,dark=false){const image=this.classSprites;if(!image?.complete||!image.naturalWidth)return false;const r=classSpriteRect(character,dead),tinted=tintedSprite(image,r,this.operatorColor,this.tintCache),c=this.ctx;c.drawImage(dark?this.darkActors.get(tinted||image):tinted||image,tinted?0:r.x,tinted?0:r.y,r.w,r.h,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
-  corpse(a,type,character){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=spriteSize(this.tile),dark=isDark(this.game,this.unproject(a.x,a.y));const c=this.ctx;c.save();const drawn=(type==='player'&&this.classSprite(a,size,character,true,dark))||this.effectSprite('dead-'+(type==='gunner'?'rifleman':type),a,size,0,dark);c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
+  corpse(a,type,character){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=spriteSize(this.tile),dark=isDark(this.game,this.unproject(a.x,a.y));const c=this.ctx;c.save();const drawn=(type==='player'&&this.classSprite(a,size,character,true,dark))||this.effectSprite('dead-'+enemySprite(type).corpse,a,size,0,dark);c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
   wall(a,x,y){
     const g=this.game,adjacent=[[0,1],[0,-1],[1,0],[-1,0]].map(([dx,dy])=>({x:x+dx,y:y+dy})).find(p=>g.grid[p.y]?.[p.x]===1);
     return drawWall(this.ctx,g,x,y,this.tile,a,this.terrainImages,themeAt(g,adjacent||{x,y}),this.artTones);
@@ -335,16 +337,16 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     const t=this.tile;this.box(a.x-t*.4,a.y-t*.35+5,t*.8,t*.7,'#17281f99');this.box(a.x-t*.4,a.y-t*.35,t*.8,t*.7,'#717354','#aea87988');this.box(a.x-t*.32,a.y-t*.27,t*.64,t*.54,'#525c40','#93966f66');this.line(a.x-t*.29,a.y-t*.23,a.x+t*.29,a.y+t*.23,'#b6b17999',2);this.line(a.x+t*.29,a.y-t*.23,a.x-t*.29,a.y+t*.23,'#b6b17999',2);this.objectHealth(p,a.x-12,a.y-t*.39,24,'#c4c394');
   }
   actor(a,type,time,e,hidden=false) {
-    const c=this.ctx,dark=isDark(this.game,this.unproject(a.x,a.y)),player=type==='player',def=ENEMY_TYPES[type],large=type==='boss'||type==='warden',s=this.tile/45*(large?1.15:1);
-    const spriteType=type==='gunner'||type==='fodder'?'rifleman':type==='brood'?'crawler':type;
+    const c=this.ctx,dark=isDark(this.game,this.unproject(a.x,a.y)),player=type==='player',def=ENEMY_TYPES[type],look=enemySprite(type),drawing=enemyDrawing(type),s=this.tile/45*look.scale;
+    const spriteType=look.key;
     if(this.sprites.complete&&this.sprites.naturalWidth&&this.spriteNames.includes(spriteType)){
-      const size=spriteSize(this.tile)*(type==='brood'?.65:type==='fodder'?.8:1);
+      const size=spriteSize(this.tile)*look.size;
       if(player){this.box(a.x-17,a.y-17,34,34,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(a.x,a.y,20,0,Math.PI*2);c.stroke();}}
       // Optical camouflage (3.47.1): the ninja's sprite fades while it is active; the frame and label stay readable.
       c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;if(!player||!this.classSprite(a,size,e.character,false,dark))this.sprite(spriteType,a,size,dark,hidden);c.restore();
       if(e.control?.disabled){this.box(a.x-size/2,a.y-size/2,size,size,'#b9d5e94f');this.text(`×${e.control.disabled}`,a.x+this.tile*.35,a.y-10,'#d6edff',11);}
       if(player){this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);const f=e.facing||[0,1];this.box(a.x+f[0]*18-1,a.y+f[1]*18-1,3,3,'#ffe3ab');}
-      else{this.enemyBars(a,e,def);if(e.charge)this.text(e.type==='sniper'?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
+      else{this.enemyBars(a,e,def);if(e.charge)this.text(unitTree(e).fixedTile?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
       return;
     }
     c.save();c.translate(a.x,a.y);c.scale(s,s);
@@ -352,10 +354,10 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     if(player){this.box(-16,-16,32,32,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(0,0,19,0,Math.PI*2);c.stroke();}}
     const facing=player?e.facing:[this.game.player.x-e.x,this.game.player.y-e.y];
     c.rotate(Math.atan2(facing[1],facing[0])-Math.PI/2);
-    if(type==='crawler'||type==='bomber'){
-      const color=type==='bomber'?'#aabb71':'#ba966d';for(const x of[-10,10])for(const y of[-7,7])this.line(x*.5,y*.7,x,y+3,color,3);
-      this.box(-7,-9,14,18,'#6d6544',color);this.box(-6,-2,12,12,color);this.box(-5,8,10,5,'#d1b88a');this.line(-4,12,4,12,'#ed855c',2);if(type==='bomber')this.glow(0,0,16,'#e9d24c33');
-    }else if(type==='drone'){
+    if(drawing.shape==='critter'){
+      const color=drawing.color||'#ba966d';for(const x of[-10,10])for(const y of[-7,7])this.line(x*.5,y*.7,x,y+3,color,3);
+      this.box(-7,-9,14,18,'#6d6544',color);this.box(-6,-2,12,12,color);this.box(-5,8,10,5,'#d1b88a');this.line(-4,12,4,12,'#ed855c',2);if(drawing.glow)this.glow(0,0,16,drawing.glow);
+    }else if(drawing.shape==='drone'){
       for(const x of[-10,10]){this.box(x-4,-8,8,16,'#547b70','#adcfc0');this.line(x,-11,x,11,'#8ad5d177',2);}
       this.box(-7,-6,14,12,'#99c9bd','#d4eee1');this.box(-3,0,6,4,'#edbb8d');
     }else{
@@ -363,11 +365,11 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
       this.box(-12,-6,24,16,color,'#d5c29055');this.box(-7,-8,14,18,player?'#827853':'#59684d');
       this.box(-7,-10,14,13,color,'#e1d7a66f');this.box(-5,0,10,3,player?'#aff1e0':'#f2ab80');
       this.box(8,1,5,20,'#1d2e29','#879c8a');this.box(9,18,3,6,'#b0b6a1');
-      if(type==='brute'||large){this.box(-15,-7,6,19,'#8f795c','#d2bd9255');this.box(9,-7,6,19,'#8f795c','#d2bd9255');}
-      if(type==='sniper')this.box(9,18,3,12,'#cad3b2');
+      if(drawing.heavy){this.box(-15,-7,6,19,'#8f795c','#d2bd9255');this.box(9,-7,6,19,'#8f795c','#d2bd9255');}
+      if(drawing.longBarrel)this.box(9,18,3,12,'#cad3b2');
     }
     c.restore();
-    if(!player){this.enemyBars(a,e,def);if(e.charge)this.text(e.type==='sniper'?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
+    if(!player){this.enemyBars(a,e,def);if(e.charge)this.text(unitTree(e).fixedTile?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
     else this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);
   }
   // Health bar and suppression pips; real mode hides both, while the charge "!" and sniper countdown stay (3.76.3).
