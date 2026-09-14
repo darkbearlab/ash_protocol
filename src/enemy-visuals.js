@@ -30,5 +30,8 @@ export const floorTraitNote=(type,traits)=>(enemyDef(type)?.floorTraits||[]).map
 export const ELITE_VISUAL=Object.freeze({outline:'#f2c45a',corpseOutline:'#8f7438',label:'精英'});
 // Display-only tag for units that never fight (civilians, 3.82.1); like the elite label it is not a trait.
 export const NONCOMBATANT_LABEL='非戰鬥人員';
+// Swarm presentation (3.84.1, docs/SWARM.md 8): venom blobs and the tongue pull. The rules only announce them (SWARM 6.4).
+export const VENOM_VISUAL=Object.freeze({blob:'#a8c93f',rim:'#e4f59a',drop:'#8fb33a'});
+export const TONGUE_VISUAL=Object.freeze({line:'#e27aa6d0',fill:'#d97aa033',edge:'#f0a3c4',landing:'#f0a3c4aa',flesh:'#c95c86',tip:'#f2b3cf',label:'鉤舌蓄勢'});
 export const enemyTint=e=>factionOverride(e).tint??enemyDef(e)?.sprite?.tint??null;
 export const factionTag=e=>{const d=factionDef(enemyFaction(e));return d?.tag?d.name:'';};

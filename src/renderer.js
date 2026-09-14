@@ -1,7 +1,7 @@
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
-import {SPRITE_NAMES,AFTERMATH_NAMES,enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL,spriteToneRole} from './enemy-visuals.js';
+import {SPRITE_NAMES,AFTERMATH_NAMES,enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL,spriteToneRole,VENOM_VISUAL,TONGUE_VISUAL} from './enemy-visuals.js';
 import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
 import {NEST_ATLAS,drawNest,drawNestEffect} from './nest-art.js';
 import {SCENERY_ATLAS} from './scenery.js';
@@ -23,7 +23,7 @@ import {isBarrier,edgeCells} from './barriers.js';
 import {areaCells} from './throwables.js';
 import {cameraFrame} from './camera.js';
 import {targetCardPlacement,actorObstacle,spriteSize} from './target-card.js';
-import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance} from './engine.js';
+import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTelegraphs} from './engine.js';
 
 // Orthographic board: world +x = screen right, world +y = screen down.
 // Pixel atlases use nearest-neighbor drawing, with procedural missing-image fallbacks.
@@ -156,6 +156,13 @@ export class Renderer {
       const a=this.projectActor(e),target=unitTree(e).fixedTile&&e.aim?e.aim:g.activeAllies.find(a=>a.id===e.focusTarget)||p,b=this.projectActor(target);
       c.setLineDash([5,5]);this.line(a.x,a.y,b.x,b.y,unitTree(e).fixedTile?'#efb5cb8f':'#eaaa6855',1);c.setLineDash([]);
     }
+    // Tongue pulls (3.84.1): the announced line to the grabbed tile and the landing tile, only for bosses the player can see.
+    for(const tongue of tongueTelegraphs(g)){
+      const source=g.visibleEnemies.find(e=>e.id===tongue.sourceId);if(!source)continue;
+      const a=this.projectActor(source),b=this.project(tongue.target.x,tongue.target.y),l=this.project(tongue.landing.x,tongue.landing.y);
+      c.setLineDash([4,3]);this.line(a.x,a.y,b.x,b.y,TONGUE_VISUAL.line,2);c.setLineDash([]);
+      this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,TONGUE_VISUAL.fill,TONGUE_VISUAL.edge);this.box(l.x-t*.28,l.y-t*.28,t*.56,t*.56,'#00000000',TONGUE_VISUAL.landing);
+    }
     const pos=this.projectActor(p);if(p.hp<=0)this.corpse(pos,'player',p.character);else this.actor(pos,'player',time,p);
     for(const cover of g.cover){const dx=cover.x-p.x,dy=cover.y-p.y;const x=pos.x+dx*t*(isBarrier(cover)?1:.48),y=pos.y+dy*t*(isBarrier(cover)?1:.48);this.line(x+(dy? -t*.27:0),y+(dx?-t*.27:0),x+(dy?t*.27:0),y+(dx?t*.27:0),cover.type==='wall'?'#8bd2c9':'#c7d896',2);}
     const hiddenEnemies=new Set(g.visibleEnemies.filter(e=>cornerHidden(g,e)));
@@ -194,6 +201,15 @@ export class Renderer {
       }else if(fx.type==='impact'){
         if(elapsed<70)this.box(b.x-6,b.y-6,12,12,'#fff1cbba');
         for(let i=0;i<7;i++){const theta=i*2.4,r=4+step*19;this.box(Math.round((b.x+Math.cos(theta)*r)/2)*2,Math.round((b.y+Math.sin(theta)*r)/2)*2,2,2,fx.mechanical?'#b7e2d0':'#bd654e');}
+      }else if(fx.type==='tongueTelegraph'){
+        // The persistent line comes from game state; the announcement only flashes the grabbed tile.
+        if(g.visible(fx.from)&&elapsed<260)this.box(b.x-t*.45,b.y-t*.45,t*.9,t*.9,TONGUE_VISUAL.fill,TONGUE_VISUAL.edge);
+      }else if(fx.type==='tonguePull'){
+        if(g.visible(fx.origin)||g.visible(fx.to)){const o=this.project(fx.origin.x,fx.origin.y),k=Math.min(1,elapsed/220),q={x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k};this.line(o.x,o.y,q.x,q.y,TONGUE_VISUAL.flesh,3);this.box(q.x-3,q.y-3,6,6,TONGUE_VISUAL.tip);}
+      }else if(fx.style==='venom'){
+        const travel=fx.travel||130,offset=(fx.spread||0)+(fx.missPath?.35:0),end={x:b.x+Math.cos(angle+1.57)*t*offset,y:b.y+Math.sin(angle+1.57)*t*offset};
+        if(elapsed<travel){const progress=elapsed/travel,q={x:a.x+(end.x-a.x)*progress,y:a.y+(end.y-a.y)*progress-Math.sin(progress*Math.PI)*t*.25};this.box(q.x-3,q.y-3,6,6,VENOM_VISUAL.blob,VENOM_VISUAL.rim);this.box(q.x-Math.cos(angle)*7-1,q.y-Math.sin(angle)*7-1,2,2,VENOM_VISUAL.blob);}
+        else if(!fx.miss&&!fx.missPath)for(let i=0;i<6;i++){const theta=i*1.05,r=3+step*12;this.box(Math.round(end.x+Math.cos(theta)*r)-1,Math.round(end.y+Math.sin(theta)*r)-1,2,2,VENOM_VISUAL.drop);}
       }else if(fx.style==='claw'||fx.style==='slash'){
         if(elapsed<(fx.travel||80))this.effectSprite(fx.style,b,32,angle);
       }else if(elapsed<(fx.travel||125)){
