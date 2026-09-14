@@ -20,6 +20,7 @@
   - `node qa/enemy-data-identity.mjs` 與基準一致。
   - 一般敵人的繪製呼叫與 3.79.1 逐項相同。
   - 細節見 [FACTION_DATA.md](FACTION_DATA.md) 第 14 節。
+- 已部署：GitHub Pages run 34831753944 成功，線上 `src/version.js` 確認為 3.80.0；完整 775 項測試與 build 通過。
 
 ## 3.79.1 — 小菁英外框、派系標籤與派系聲線（Claude，2026-09-14）
 
