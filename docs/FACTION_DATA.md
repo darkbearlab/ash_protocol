@@ -1,6 +1,6 @@
 # 派系清單與設施派系（規格，2026-09-14）
 
-- 狀態：**規格，交 Codex。** 介面部分由 Claude 在 Codex 完成後接手（第 9 節）。
+- 狀態：**3.78.0 規則層完成。** 介面部分由 Claude 接手（第 9 節）。
 - 目的：建立派系框架。**第一步只有一個「現行混合」派系（大鍋炒）**，內容等於現在的出生表，玩法完全不變。確認整套機制運作後，下一輪才分家（使用者決定）。
 - 依賴：[ENEMY_DATA.md](ENEMY_DATA.md)（3.77 已完成的敵人資料解耦）、[FACTIONS.md](FACTIONS.md)（派系設計討論）。
 
@@ -147,3 +147,14 @@ export const FACTIONS = {
 1. **派系由獨立清單管理**：清單列出派系有哪些單位；兵種卡本身不寫派系。
 2. **先大鍋炒**：所有單位放進一個「現行混合」派系，確認運作後再分家。
 3. **敵人圖要能染色**：主要用途是小菁英（帶有很多詞條的敵人），不只是派系。小菁英另開規格 [ELITE_ENEMIES.md](ELITE_ENEMIES.md)。使用者已決定：只多加詞條、多給經驗；出現頻率跟著深度走；只靠染色辨認。
+
+## 13. 實作現況／Claude 交接（3.78.0）
+
+- `faction-catalog.js` 是不依賴其他模組的唯一資料來源；`factions.js` 匯出查詢、名稱覆寫、保存驗證與遷移。engine.js 再匯出公開 API。僅有 legacy，pickFacilityFaction 固定回傳預設代號，不讀 RNG。
+- `ENEMY_SPAWNS`、`FLOOR_INFO[].boss`、`ENDLESS_TUNING.heavyExtra` 保留 getter 相容檢視，從派系清單推導，不保留第二份出生資料。factionPool 每次回傳新陣列，按原順序展開；區段採實際樓層，頭目採 cycleFloor。
+- `generate(seed,floor,unlocks,offset,faction=DEFAULT_FACTION)` 第五參數；generateWithRecipes 第五參數、generateLegacy 第四參數同樣接收派系，遞迴與回退都傳下去。makeEnemy 第七參數為派系。所有正式出生路徑都帶上 faction，設施派系不加入 FLOOR_FIELDS，封存敵人則自然保存自身欄位。**歷史 generateLegacy 回傳仍為 v1 原始資料形狀，不含 faction**，保留既有逐位元組雜湊；正式 generate 與 Game.loadFloor 在邊界補派系。
+- save40：新增 game.facilityFaction 與 enemy.faction。舊版缺欄位補 legacy，包含封存敵人；未知代號拒絕。友軍保留 makeEnemy 的派系欄位，但不參與派系判定、敵我判定或 AI。此欄位目前只供敵人顯示使用。
+- affixWeights 有設定時，未指定項目權重為 1；依目錄順序累加權重，用原本那一次抽取值選擇。沒有設定時直接保留 floor(draw×pool.length)；不增加抽取，抽到不適用詞條仍照原機制略過。
+- `enemyBaseName(e)` 先讀 `factionOverride(e).name`，再讀兵種名稱；enemyDisplayName 已接它。role／tint／voice 的覆寫資料可從 factionOverride 讀取，顯示與染色交 Claude。
+- 可見與只聽見的 callout 事件都新增 `faction`；隱藏事件仍無兵種／身分／精確位置。使用者已批准 **tests/real-mode.test.mjs 的欄位清單唯一一處加入 faction**，其餘既有期望值保持不變。沿用 3.76.1 決定：喊話不寫戰鬥紀錄。
+- 驗收：原基準 generation 780／missions 110／bots 24 全部相同，未重錄。新增 tests/factions.test.mjs 七項涵蓋格式、全兵種覆蓋、逐層等價、可選加權、跨生成傳遞、存讀／備份、喊話與守門。細節見 qa/results/2026-09-14-codex-3.78.0-factions.md。

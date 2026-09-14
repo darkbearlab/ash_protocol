@@ -1,3 +1,4 @@
+import {DEFAULT_FACTION,factionPool,factionBoss,factionDef} from './factions.js';
 import {isBossClass,ENEMY_SPAWNS} from './enemy-data.js';
 import {rollEnemyAffixes} from './enemy-affixes.js';
 import {fillUnknownContainers} from './learning-data.js';
@@ -45,37 +46,38 @@ export function lineOfSight(grid,a,b,barriers=[],channel='sight') {
     if(grid[y]?.[x]!==1)return false;
   }return false;
 }
-export function makeEnemy(type,x,y,id,floor=1,offset=0) {
+export function makeEnemy(type,x,y,id,floor=1,offset=0,faction=DEFAULT_FACTION) {
   const def=ENEMY_TYPES[type],hp=def.expendable?def.hp:scaleEnemy(def.hp+(isBossClass(type)?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp',offset);
-  return {id,type,x,y,hp,maxHp:hp,...(def.expendable?{expendable:true,reinforcement:true,actionDelay:0}:{}),vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
+  return {id,type,x,y,hp,maxHp:hp,faction,...(def.expendable?{expendable:true,reinforcement:true,actionDelay:0}:{}),vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES),seed,floor,generationSafe),seed,floor);for(const e of map.enemies){const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};return map;}
-export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=MAP_RECIPES){
-  if(!recipes.length)return generateLegacy(seed,floor,unlocks);
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};return map;}
+export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=MAP_RECIPES,faction=DEFAULT_FACTION){
+  if(!recipes.length)return generateLegacy(seed,floor,unlocks,faction);
   if(recipes.some(r=>r.layout)){
-    for(const recipe of orderedRecipes(seed,floor,recipes)){const map=generateCustom(seed,floor,unlocks,recipe);if(map)return map;}
-    return generateWithRecipes(seed,floor,unlocks,SLOT_RECIPES);
+    for(const recipe of orderedRecipes(seed,floor,recipes)){const map=generateCustom(seed,floor,unlocks,recipe,faction);if(map)return map;}
+    return generateWithRecipes(seed,floor,unlocks,SLOT_RECIPES,faction);
   }
   if(recipes.some(r=>!['grid-v2',...MERGED_RECIPES.map(r=>r.id),...OPENING_RECIPES.map(r=>r.id),...ANNEX_RECIPES.map(r=>r.id),...SLOT_RECIPES.map(r=>r.id)].includes(r.id)))throw new Error('Unsupported skeleton recipe');
   const chosen=selectMergeRecipe(seed,floor,recipes),openingRecipe=OPENING_RECIPES.find(r=>r.id===chosen.id);
-  if(chosen.id==='furnished-v6'){const base=generateWithRecipes(seed,floor,unlocks,ANNEX_RECIPES);return base.generation?(furnishMap(base,seed,floor,{reachable,generationSafe})||base):base;}
-  if(chosen.id==='edge-annexes-v5'){const base=generateWithRecipes(seed,floor,unlocks,OPENING_RECIPES);return base.generation?(addAnnexes(base,seed,floor,{reachable,generationSafe})||base):base;}
-  if(openingRecipe){const base=generateWithRecipes(seed,floor,unlocks,MERGED_RECIPES);return base.generation?(addOpenings(base,seed,floor,{...openingRecipe,...chosen},{reachable,generationSafe})||base):base;}
-  const map=generateBase(seed,floor,unlocks,true);
-  if(!map||!generationSafe(map))return generateLegacy(seed,floor,unlocks);
+  if(chosen.id==='furnished-v6'){const base=generateWithRecipes(seed,floor,unlocks,ANNEX_RECIPES,faction);return base.generation?(furnishMap(base,seed,floor,{reachable,generationSafe})||base):base;}
+  if(chosen.id==='edge-annexes-v5'){const base=generateWithRecipes(seed,floor,unlocks,OPENING_RECIPES,faction);return base.generation?(addAnnexes(base,seed,floor,{reachable,generationSafe})||base):base;}
+  if(openingRecipe){const base=generateWithRecipes(seed,floor,unlocks,MERGED_RECIPES,faction);return base.generation?(addOpenings(base,seed,floor,{...openingRecipe,...chosen},{reachable,generationSafe})||base):base;}
+  const map=generateBase(seed,floor,unlocks,true,null,null,faction);
+  if(!map||!generationSafe(map))return generateLegacy(seed,floor,unlocks,faction);
   const recipe=selectMergeRecipe(seed,floor,recipes);
   if(recipe.id!=='grid-v2')for(const ids of mergePlans(map,seed,floor,recipe.id)){
     const merged=mergeMap(map,ids,seed,floor,recipe.id,{reachable,generationSafe});if(merged)return merged;
   }
   return map;
 }
-export function generateLegacy(seed,floor=1,unlocks=[]){return generateBase(seed,floor,unlocks,false);}
-function generateCustom(seed,floor,unlocks,recipe){
+// Historical v1 is a byte-for-byte API. Live generate/loadFloor attach faction at the boundary.
+export function generateLegacy(seed,floor=1,unlocks=[],faction=DEFAULT_FACTION){const map=generateBase(seed,floor,unlocks,false,null,null,faction);for(const e of map.enemies)delete e.faction;return map;}
+function generateCustom(seed,floor,unlocks,recipe,faction){
   const groups=recipeGroups(recipe),endpoints=groups.filter(([label,ids])=>ids.length===1&&!recipe.annex?.[label]).map(([,ids])=>ids[0]);
   if(endpoints.length<2)return null;
-  const checks={reachable,generationSafe},base=generateBase(seed,floor,unlocks,true,endpoints,groups.map(([,ids])=>ids));
+  const checks={reachable,generationSafe},base=generateBase(seed,floor,unlocks,true,endpoints,groups.map(([,ids])=>ids),faction);
   if(!base||!generationSafe(base))return null;
   let map=mergeMap(base,[],seed,floor,'hangar-v3',checks,groups.map(([,ids])=>ids));if(!map)return null;
   const ids=Object.fromEntries(groups.map(([label],i)=>[label,i])),openings={};
@@ -89,7 +91,7 @@ function generateCustom(seed,floor,unlocks,recipe){
   map.generation={version:7,recipeId:recipe.id,recipe:structuredClone(recipe)};
   return generationSafe(map)?map:null;
 }
-function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null) {
+function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=DEFAULT_FACTION) {
   const rng=random(seed+floor*7919),grid=Array.from({length:SIZE},()=>Array(SIZE).fill(0)),rooms=[];
   for(let ry=0;ry<3;ry++)for(let rx=0;rx<3;rx++) {
     const w=6+Math.floor(rng()*2),h=6+Math.floor(rng()*2),x=rx*8+2,y=ry*8+2;
@@ -122,14 +124,14 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null) {
   }
   const start={x:rooms[startRoom].cx,y:rooms[startRoom].cy},end={x:rooms[endRoom].cx,y:rooms[endRoom].cy};
   const enemies=[],items=[],props=[],hazards=[],info=floorInfo(floor);
-  const pool=floor<=2?[...ENEMY_SPAWNS.legacyEarly]:[...ENEMY_SPAWNS.legacyLate];
-  if(floor>6)pool.push(...ENDLESS_TUNING.heavyExtra);
+  const pool=factionPool(faction,floor);
+
   // Explicit v1 compatibility baseline retains its historical RNG draw positions and elite payload.
-  const spawnEnemy=(type,x,y,id)=>{const e=makeEnemy(type,x,y,id,floor);if(floor>6&&!isBossClass(type)&&rng()<Math.min(.5,(floor-6)*.04)){const options=['fast','infrared','night_vision'].filter(id=>!e.traits.some(t=>t.id===id));if(options.length){const chosen=options[Math.floor(rng()*options.length)];if(!v2)grantTrait(e,chosen,'endless:elite');}}return e;};
+  const spawnEnemy=(type,x,y,id)=>{const e=makeEnemy(type,x,y,id,floor,0,faction);if(floor>6&&!isBossClass(type)&&rng()<Math.min(.5,(floor-6)*.04)){const options=['fast','infrared','night_vision'].filter(id=>!e.traits.some(t=>t.id===id));if(options.length){const chosen=options[Math.floor(rng()*options.length)];if(!v2)grantTrait(e,chosen,'endless:elite');}}return e;};
   rooms.forEach((r,i)=>{
     const posts=reservationPosts(r,{legacy:!v2,deep:floor>6});
     if(i!==startRoom)for(let j=0;j<(3+extraEnemies(floor)+(floor>=3&&rng()<.45?1:0));j++) {
-      const type=i===endRoom&&j===0&&info.boss?info.boss:pool[Math.floor(rng()*pool.length)];
+      const type=i===endRoom&&j===0&&factionBoss(faction,info.cycleFloor)?factionBoss(faction,info.cycleFloor):pool[Math.floor(rng()*pool.length)];
       const post=posts[j];if(!post)throw new Error("Legacy enemy post capacity exceeded");
       enemies.push(spawnEnemy(type,post.x,post.y,`${floor}-${i}-${j}`,floor));
     }
@@ -153,7 +155,7 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null) {
   const armory=rooms[rewardRooms[0]];items.push({x:armory.cx,y:armory.cy+1,type:'weapon',weapon});
   if(floor>=RARE_ARMORY.minFloor&&rng()<RARE_ARMORY.chance)items.push({x:armory.cx,y:armory.cy+1,type:'weapon',weapon:RARE_ARMORY.weapon});
   if(floor>=3){const r=rooms[startRoom];items.push({x:r.x+r.w-2,y:r.y+r.h-2,type:'energy',amount:18});items.push({x:r.x+r.w-2,y:r.y+1,type:'ordnance',amount:4});}
-  const spawn=rooms[startRoom];enemies.unshift(spawnEnemy(ENEMY_SPAWNS.scout,spawn.x+spawn.w-1,spawn.y+1,`${floor}-scout`,floor));
+  const spawn=rooms[startRoom];enemies.unshift(spawnEnemy(factionDef(faction).scout,spawn.x+spawn.w-1,spawn.y+1,`${floor}-scout`,floor));
   // Doorways can now enter from any side. Never place a solid prop or hazard on a connecting lane.
   for(let i=props.length-1;i>=0;i--)if(props[i].hp>0&&corridors.has(key(props[i])))props.splice(i,1);
   for(let i=hazards.length-1;i>=0;i--)if(corridors.has(key(hazards[i])))hazards.splice(i,1);

@@ -1,3 +1,4 @@
+import {enemyFaction} from './factions.js';
 import {presentAnnouncement} from './presentation.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 export const CALLOUT_TUNING=Object.freeze({hearingRadius:8,injuryHalf:.5,injuryCritical:.25});
@@ -14,7 +15,7 @@ export function receiveCallout(g,actor,kind,detail={}){
  const cue=calloutCue(kind,detail);if(!cue||actor===g.player||actor.kind||!g.enemies.includes(actor)||actor.hp<=0)return null;
  if(kind==='state'){const memory=states.get(actor)||{};const category=CALLOUT_CUES[cue].category;if(memory[category]===cue)return null;memory[category]=cue;states.set(actor,memory);}
  if(Math.abs(actor.x-g.player.x)+Math.abs(actor.y-g.player.y)>CALLOUT_TUNING.hearingRadius)return null;
- const visible=g.teamVisible(actor),event={type:'callout',cue,...CALLOUT_CUES[cue],visibility:visible?'visible':'heard',...(visible?{actorId:actor.id,enemyType:actor.type,name:enemyDisplayName(actor),position:{x:actor.x,y:actor.y}}:{direction:direction(g.player,actor)})};
+ const visible=g.teamVisible(actor),event={type:'callout',faction:enemyFaction(actor),cue,...CALLOUT_CUES[cue],visibility:visible?'visible':'heard',...(visible?{actorId:actor.id,enemyType:actor.type,name:enemyDisplayName(actor),position:{x:actor.x,y:actor.y}}:{direction:direction(g.player,actor)})};
  return presentAnnouncement(g,()=>{g.effects.push(event);g.onEnemyCallout?.(structuredClone(event));return event;});
 }
 export function injuryCallout(g,e,before){if(e.hp<=0||e.hp>=before)return;const cue=before>e.maxHp*CALLOUT_TUNING.injuryCritical&&e.hp<=e.maxHp*CALLOUT_TUNING.injuryCritical?'critical':before>e.maxHp*CALLOUT_TUNING.injuryHalf&&e.hp<=e.maxHp*CALLOUT_TUNING.injuryHalf?'wounded':before>=e.maxHp?'hit':null;if(cue)receiveCallout(g,e,'injury',{cue});}

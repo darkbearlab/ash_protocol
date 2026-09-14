@@ -1,3 +1,4 @@
+import {pickFacilityFaction,migrateFactions,validFactions} from './factions.js';
 import {isBossClass,hasEnemyTag,enemyDef} from './enemy-data.js';
 import {unitTree} from './behavior-tree.js';
 import {lockRealMode} from './real-mode.js';
@@ -57,7 +58,7 @@ export class Game {
     if(!validPortrait(portrait))throw new Error('未知頭像。');
     lockRealMode(this,options.realMode??false);
     this.difficultyOffset=options.difficultyOffset??DIFFICULTY_TUNING.defaultOffset;if(!validDifficultyOffset(this.difficultyOffset))throw new Error('Invalid difficulty offset');
-    this.mission=newMission(mission);this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
+    this.facilityFaction=pickFacilityFaction(seed,mission);this.mission=newMission(mission);this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
     this.player.skills=[...(CHARACTERS[character].skills||[])];this.player.skillState=initialSkillState(this.player.skills);
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
@@ -67,10 +68,10 @@ export class Game {
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   // Overridable by isolated simulation fixtures; live campaigns use the current recipe pool.
-  generateFloor(){return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultyOffset);}
+  generateFloor(){return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultyOffset,this.facilityFaction);}
   loadFloor() {
     endSkillEffects(this.player);this.sensorContacts=[];this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
-    Object.assign(this,Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
+    Object.assign(this,Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);this.player.poison=0;this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
     prepareMission(this);
@@ -80,7 +81,7 @@ export class Game {
   get activeAllies(){return currentAllies(this);}
   get localAllies(){return localAllies(this);}
   enemyCallout(actor,kind,detail){enemyCallout(this,actor,kind,detail);}
-  spawnEnemy(type,x,y,id){return rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,this.difficultyOffset),this.seed,this.floor,this.difficultyOffset);}
+  spawnEnemy(type,x,y,id){return rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,this.difficultyOffset,this.facilityFaction),this.seed,this.floor,this.difficultyOffset);}
   actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):enemyWeapon(actor);}
   meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b));}
   defensiveEvasion(a,b){return defensiveEvasion(this,a,b);}
@@ -773,6 +774,8 @@ export class Game {
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)||(e.raised!==undefined&&typeof e.raised!=='boolean')||(e.expendable!==undefined&&typeof e.expendable!=='boolean')))return null;
       if(!Array.isArray(data.props)||!Array.isArray(data.items)||!validMapMetadata(data))return null;
+      if(version<40)migrateFactions(data);
+      if(!validFactions(data))return null;
       if(version<37)migrateSuppression(data);
       if(version<39)data.realMode=false;
       if(typeof data.realMode!=='boolean')return null;

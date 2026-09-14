@@ -1,3 +1,4 @@
+import {DEFAULT_FACTION,factionDef} from './factions.js';
 import {ENEMY_SPAWNS} from './enemy-data.js';
 import {expireExposure} from './corner.js';
 import {enemyRoom} from './runtime-enemies.js';
@@ -42,7 +43,7 @@ export function scheduleRetreatWave(g){
     .sort((a,b)=>Math.abs(distance(a,g.player)-7)-Math.abs(distance(b,g.player)-7)||a.y-b.y||a.x-b.x);
   const chosen=[];
   for(const point of cells){if(chosen.every(p=>distance(p,point)>=3))chosen.push(point);if(chosen.length===2)break;}
-  g.reinforcements=chosen.map((point,i)=>({...point,id:`retreat-${g.floor}-${i}`,type:ENEMY_SPAWNS.retreatWave[i?1:0],due:g.turn+2}));
+  g.reinforcements=chosen.map((point,i)=>({...point,id:`retreat-${g.floor}-${i}`,type:factionDef(g.facilityFaction??DEFAULT_FACTION).retreatWave[i?1:0],due:g.turn+2}));
   g.log(`撤退增援：本層 ${chosen.length} 個傳送訊號，兩次行動後抵達；不再追加。`,true);
 }
 export function resolveRetreatWave(g){
@@ -66,7 +67,7 @@ export function validRetreatState(g,checkFloor){
   if(g.reinforcements.length>2||(!returning(g)&&g.reinforcements.length))return false;
   const ids=new Set(g.enemies.map(e=>e.id));
   for(const spawn of g.reinforcements){
-    if(!object(spawn)||!ENEMY_SPAWNS.retreatWave.includes(spawn.type)||!point(spawn,g.grid)||!Number.isInteger(spawn.due)||spawn.due<=g.turn||spawn.due>g.turn+2||
+    if(!object(spawn)||!factionDef(g.facilityFaction??DEFAULT_FACTION).retreatWave.includes(spawn.type)||!point(spawn,g.grid)||!Number.isInteger(spawn.due)||spawn.due<=g.turn||spawn.due>g.turn+2||
       ![0,1].some(i=>spawn.id===`retreat-${g.floor}-${i}`)||ids.has(spawn.id))return false;
     ids.add(spawn.id);
   }
