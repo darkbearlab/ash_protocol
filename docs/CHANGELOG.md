@@ -14,6 +14,7 @@
   - npm test 807/807（新增 tests/swarm-ui.test.mjs 3 項）；一般敵人的繪製呼叫相同。
   - 瀏覽器：巨獸蓄勢時出現虛線、落點與「鉤舌蓄勢」；下一回合玩家被拉到巨獸旁；噴吐蟲命中後狀態列出現「中毒 3」；主控台沒有錯誤。
   - 細節見 [SWARM.md](SWARM.md) 第 8 節與 [3.84.1 QA](../qa/results/2026-09-14-claude-3.84.1-swarm-presentation.md)。
+- 已部署：GitHub Pages run 34865795937 成功，線上 `src/version.js` 確認為 3.84.1；完整 807 項測試與 build 通過。
 
 ## 3.84.0 — 毒液、鉤舌與感染裂蟲（Codex，2026-09-14）
 
