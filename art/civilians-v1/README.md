@@ -1,0 +1,11 @@
+# Researcher sprites — 3.82.0
+
+Generated with the built-in image_gen tool. `source.png` retains the original generated alpha; no matte removal. The standing and fallen poses are a single two-cell production sheet.
+
+Run `python tools/pixelize_civilians.py` (Pillow). It uses the existing `pixelize_cell` pipeline: crop alpha bounds, fit in 28×28 on a 32×32 tile, BOX reduction, <=15 opaque colours plus transparency, 5-bit RGB, no dithering. The output is indexed PNG with alpha index0. `assets/pixel/civilians-v1/preview.png` is nearest-neighbour enlargement.
+
+The script preserves the original 128×128 region of both public atlases and adds cell16 at (0,128), in a new fifth row. Existing cells 0–15 are unchanged. Re-running is deterministic. `qa/civilian-art-check.py` verifies original pixels against fac5503 and both indexed PNGs.
+
+## Source prompt
+
+Create one production sprite sheet for a SNES-style top-down tactical shooter, transparent background with actual alpha. Exactly TWO sprites of the SAME unarmed civilian facility researcher: left cell standing, right cell dead collapsed on the ground. Each occupies a separate square half of a horizontal 2x1 sheet, wide transparent gutters, no text or frame. Very low resolution deliberate pixel art, visually designed on a 32x32 pixel grid per character (enlarge with crisp nearest neighbor blocks), 15-color maximum look, chunky clusters not fine illustration. Three-quarter overhead view, facing down toward camera like old top-down military shooter sprites. Researcher wears pale off-white/light gray practical lab work coat over gray trousers, dark shoes, uncovered dark hair, two clearly empty hands. No guns, no tools, no armor, no helmet. Slim civilian silhouette clearly different from bulky armed soldiers. Dark charcoal 1-pixel outlines, muted highlights, readable at 32 pixels. Left: full body upright neutral anxious stance. Right: same person lying sideways crumpled, visibly fallen and horizontal, no gore needed. Uniform top-left light, no floor, no ground shadow, no checkerboard baked into image, no blur, no tiny details. Both figures completely within their own square cell with generous transparent padding. This sheet will be reduced to true 32x32 indexed PNG sprites.

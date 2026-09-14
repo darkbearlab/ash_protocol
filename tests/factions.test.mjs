@@ -14,6 +14,7 @@ test('faction catalog validates references and covers every current enemy card',
  const used=new Set(Object.values(ALLY_BASE_TYPES));
  assert.deepEqual(Object.keys(FACTIONS),['legacy','loyalist','rebel']);
  for(const d of Object.values(FACTIONS)){
+  for(const [id,n] of d.noncombatants?.roster||[]){assert.ok(ENEMY_TYPES[id]?.tags.includes('noncombatant'));assert.ok(Number.isInteger(n)&&n>0);used.add(id);}
   for(const entries of Object.values(d.roster))for(const [id,n] of entries){assert.ok(ENEMY_TYPES[id]);assert.ok(Number.isInteger(n)&&n>0);used.add(id);}
   for(const id of Object.values(d.bosses)){assert.ok(isBossClass(id));used.add(id);}
   for(const id of [d.scout,...d.retreatWave,d.fodder,d.nestChild].filter(id=>id!==null)){assert.ok(ENEMY_TYPES[id]);used.add(id);}

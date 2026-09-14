@@ -1,8 +1,8 @@
-import {isBossClass} from './enemy-data.js';
+import {isBossClass,isNoncombatant} from './enemy-data.js';
 import {roomTiles,roomContains} from './map-geometry.js';
 // Shared by mission definitions and generation: reserve before distributing.
 export const REQUIRED_TARGET_ROOMS=3;
-export const eligibleMissionEnemy=e=>!e.expendable&&!isBossClass(e);
+export const eligibleMissionEnemy=e=>!isNoncombatant(e)&&!e.expendable&&!isBossClass(e);
 // Phase one preserves the sampled roster/cost. Distinct balance weights come later.
 export const threatCost=()=>1;
 const key=p=>`${p.x},${p.y}`;

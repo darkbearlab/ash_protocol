@@ -1,6 +1,7 @@
+import {scream,tickCivilianCooldowns,migrateCivilians,validCivilians} from './civilians.js';
 import {rollEnemyElite,enemyKillXp,migrateElites,validElites} from './elite-enemies.js';
 import {pickFacilityFaction,factionDef,rollFacilityFaction,migrateFactions,validFactions} from './factions.js';
-import {isBossClass,hasEnemyTag,enemyDef} from './enemy-data.js';
+import {isBossClass,hasEnemyTag,enemyDef,isNoncombatant} from './enemy-data.js';
 import {unitTree} from './behavior-tree.js';
 import {lockRealMode} from './real-mode.js';
 import {injuryCallout} from './callouts.js';
@@ -161,10 +162,10 @@ export class Game {
     this.visibleTiles=new Set();
     for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(distance(this.player,{x,y})<=radius&&this.sight(this.player,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
     for(const a of this.activeAllies.filter(a=>connected(this,a)))for(let y=Math.max(0,a.y-8);y<=Math.min(SIZE-1,a.y+8);y++)for(let x=Math.max(0,a.x-8);x<=Math.min(SIZE-1,a.x+8);x++)if(distance(a,{x,y})<=8&&this.sight(a,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
-    for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert)this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};}}
+    for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert&&!isNoncombatant(e))this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};if(isNoncombatant(e))scream(this,e);}}
     this.autoTarget();
   }
-  autoTarget(){if(!this.targeted)this.target=this.visibleEnemies.sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
+  autoTarget(){if(!this.targeted)this.target=this.visibleEnemies.filter(e=>!isNoncombatant(e)).sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
   log(text,danger=false,realText=null){this.logs.unshift({turn:this.turn,text:this.realMode&&realText!==null?realText:text,danger});this.logs=this.logs.slice(0,50);}
   reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType]?.key??null;}
   get weaponCapacity(){return CHARACTERS[this.player.character].weaponCapacity;}
@@ -300,7 +301,7 @@ export class Game {
       queue.push({actor:p,index:0,speed:0,anchorExtra:true});queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);
     }
     let playerStunned=false;
-    this.turn++;
+    this.turn++;tickCivilianCooldowns(this);
     for(const {actor,speed,anchorExtra=false}of queue){
       if(p.hp<=0||this.status!=='playing'||this.floor!==floor)break;
       if(actor.hp<=0||actor.kind&&(actor.status!=='active'||actor.floor!==this.floor))continue;
@@ -511,6 +512,7 @@ export class Game {
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
     this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`,false,`命中${enemyName(e)}。`);
     if(e.hp>0)return;
+    if(isNoncombatant(e)){this.log(enemyName(e)+'已倒下。');enemyDeath(this,e);return;}
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
     this.player.kills++;if(!e.expendable)this.player.xp+=enemyKillXp(e);
     if(!e.expendable)this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
@@ -611,6 +613,7 @@ export class Game {
     if(!a.hp){a.status='destroyed';a.order=null;this.reveal();this.log(`${allyName(a)}${a.kind==='drone'?`已被摧毀：按僚機技能花 ${DRONE_BUILD_COST} 廢料生產新機。`:'已被摧毀。'}`,true);}
   }
   enemyTarget(e){
+    if(isNoncombatant(e))return this.player;
     const options=[this.player,...this.activeAllies].filter(a=>a.hp>0&&distance(e,a)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,a));
     if(unitTree(e).fixedTile&&e.charge&&e.aim){const occupant=[this.player,...this.activeAllies].find(a=>key(a)===key(e.aim));if(occupant)return occupant;}
     if(e.charge&&e.focusTarget){const old=[this.player,...this.activeAllies].find(a=>(a.id||'player')===e.focusTarget);if(old)return old;}
@@ -779,6 +782,8 @@ export class Game {
       if(!validFactions(data))return null;
       if(version<41)migrateElites(data);
       if(!validElites(data))return null;
+      if(version<42)migrateCivilians(data);
+      if(!validCivilians(data))return null;
       if(version<37)migrateSuppression(data);
       if(version<39)data.realMode=false;
       if(typeof data.realMode!=='boolean')return null;

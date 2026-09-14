@@ -1,7 +1,7 @@
 import {ENEMY_TYPES} from './data.js';
 import {DEFAULT_FACTION,factionDef,expandRoster} from './faction-catalog.js';
 
-export const ENEMY_TAGS=Object.freeze(['boss','armed','breaker','flying']);
+export const ENEMY_TAGS=Object.freeze(['boss','armed','breaker','flying','noncombatant']);
 // These positions and duplicates are part of the seeded generation contract.
 export const ENEMY_SPAWNS=Object.freeze({
  get legacyEarly(){return Object.freeze(expandRoster(factionDef(DEFAULT_FACTION).roster.early));},
@@ -13,3 +13,5 @@ export const enemyDef=value=>ENEMY_TYPES[typeof value==='string'?value:value?.ty
 export const hasEnemyTag=(value,tag)=>Boolean(enemyDef(value)?.tags?.includes(tag));
 export const isBossClass=value=>hasEnemyTag(value,'boss');
 export function enemyStartingTraitIds(type,floor=1){const d=enemyDef(type);return [...(d?.traits||[]),...(d?.floorTraits||[]).filter(t=>floor>=t.minFloor).map(t=>t.id),d?.mechanical?'mechanical':'biological'];}
+
+export const isNoncombatant=value=>hasEnemyTag(value,'noncombatant');

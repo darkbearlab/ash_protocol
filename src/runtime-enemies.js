@@ -1,5 +1,5 @@
 import {DEFAULT_FACTION,factionDef} from './factions.js';
-import {ENEMY_SPAWNS} from './enemy-data.js';
+import {ENEMY_SPAWNS,isNoncombatant} from './enemy-data.js';
 import {registerUnitTree,unitTree} from './behavior-tree.js';
 import {makeEnemy,random,key,distance,DIRECTIONS,reachable} from './world.js';
 import {roomTiles} from './map-geometry.js';
@@ -13,8 +13,8 @@ export function collapseNest(g,p){
  g.effects.push({type:'nestCollapse',nestStyle:style,from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});
  g.log(style==='rift'?'裂隙閉合，留下紫色的空間粉末。':'地洞塌陷，被落土回填。');g.reveal();
 }
-export const enemyRoom=g=>Math.max(0,RUNTIME_TUNING.liveLimit-g.enemies.filter(e=>e.hp>0).length);
-export const expendableRoom=g=>Math.max(0,RUNTIME_TUNING.expendableLimit-g.enemies.filter(e=>e.hp>0&&e.expendable).length);
+export const enemyRoom=g=>Math.max(0,RUNTIME_TUNING.liveLimit-g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)).length);
+export const expendableRoom=g=>Math.max(0,RUNTIME_TUNING.expendableLimit-g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&e.expendable).length);
 export function addRuntimePopulation(base,seed,floor,check,faction=DEFAULT_FACTION){
  if(!base.generation)return base; // An empty recipe pool retains the exact v1 baseline.
  const safe=m=>{if(!check(m))return false;const seen=reachable(m,m.start),solid=new Set(m.props.filter(p=>p.hp>0&&['cover','barrel','nest'].includes(p.type)).map(key));return m.grid.every((row,y)=>row.every((v,x)=>v!==1||solid.has(`${x},${y}`)||seen.has(`${x},${y}`)));};

@@ -1,6 +1,6 @@
 # 平民與研究員（規格，2026-09-14）
 
-- **狀態**：規格，未實作。
+- **狀態**：3.82.0 規則與精靈圖已實作；台詞與目標卡留 Claude。
 - **分工**：規則與精靈圖交 Codex；台詞與目標卡交 Claude，在 Codex 之後做。
 - **來源**：使用者 2026-09-14 的構想與決定。派系背景見 [FACTIONS.md](FACTIONS.md)，故事見 [STORY.md](STORY.md)。
 
@@ -160,3 +160,39 @@
 - 平民的名稱與種類（研究員、技術員……）。
 - 尖叫半徑、尖叫冷卻、逃跑喊話的間隔、每層數量。
 - 平民能不能開門逃跑。
+
+## 7. 實作現況（3.82.0，Codex）
+
+### 通用非戰鬥人口
+
+- `src/civilians.js` 提供 `addNoncombatants(map,seed,floor,faction)`。正式 `generate()` 完成戰鬥人口、物資、普通詞條與小菁英之後才呼叫，不動 `allocateThreat`、房間戰鬥容量或原出生亂數。
+- 派系宣告採本規格的形狀：`noncombatants:{roster:[['civilian',1]],perFloor:{min:3,max:5}}`。目前僅 loyalist 設定。其他派系只須新增此資料；不同職員則新增帶 `noncombatant` 標籤、`behavior:'civilian'` 的兵種卡，放進此 roster。不要加到戰鬥池、斥候、頭目或增援表。
+- 亂數使用 `birthRandom(seed,floor,'population','noncombatants-v1')` 的獨立雜湊流。先抽總數，候選格以獨立亂數排序，再按 roster 權重抽兵種；不取用地圖、戰鬥或詞條亂數。
+- 起點房外，只放可達的房間內格；避開所有敵人／物資／物件／危害／槽位（包含任務目標預留）、連接口及其相鄰格，距出口與起點大於 2。四鄰必須在同房、為地板、無占用，且中間沒有關閉的門或隔板，避免卡住內部狹口。不放走廊或附屬區。候選不足即少放，完全沒有候選則 0，不替換戰鬥敵人、不讓生成失敗。
+- 保留在 `g.enemies`，以 `isNoncombatant(e)` 查詢標籤。這樣手動瞄準、射擊、爆炸、屍體、喊話、樓層封存與備份都可沿用既有管線；不需建立第二套可攻擊物件清單。
+- `enemyRoom`／`expendableRoom`、任務目標、自動鎖定、友軍自動選敵與死靈召喚池排除非戰鬥人員。手動目標仍保留，射程內威脅提示亦排除。詞條與小菁英出生直接跳過。傷害可記入既有傷害統計；死亡不計擊殺、不給經驗、廢料、物資或協定獎勵，也沒有懲罰。
+- 實際放入人口才加世代12 `{version:12,recipeId:'noncombatants-v12',base:原10或11描述}`。legacy／rebel 未啟用這個人口層，保持原生成結果；舊樓層不補生。
+
+### 逃跑、尖叫與冷卻
+
+- 行為樹 `civilian` 在普通攻擊／詞條分支之前消耗行動，永不攻擊或蓄勢。一般速度。
+- 初次看到玩家時進入 `alert`，永遠不清除。可見時以玩家當下位置為準；失去視線後遠離 `lastKnown`。距離採**曼哈頓**，只選嚴格更遠的可通行空格；平手依上、右、下、左，沒有候選就原地再等下一次。不用路徑距離、不新增亂數。
+- **可以開門**：往較遠的候選格遇到關門，該行動只開門，下次才移動。不能穿牆、破牆；矮隔板可依既有規則翻越並帶翻越破綻。
+- `CIVILIAN_TUNING={screamCooldown:5,screamRadius:8,fleeCalloutEvery:3}`。尖叫初見即觸發；每個付費回合開始，活著平民的冷卻減 1，包含失能期間；免費行動不減。冷卻歸零且再看見玩家可再尖叫。
+- 尖叫範圍以平民為中心的**曼哈頓距離 8**，**不要求視線或可行路徑**。本層活著的戰鬥敵人警戒，lastKnown 更新為玩家當下位置；不叫醒其他平民或友軍。每次尖叫寫一行規則紀錄，不耗亂數。
+- 失能禁止行動與尖叫；壓制禁止移動，但不禁止尖叫。`flee` 於逃跑行動且 `g.turn % 3 === 0` 時發出；被困仍算逃跑中，不需新增計時欄位。
+
+### 保存與 Claude 介面交接
+
+- **save42**；profile5／完整 backup1 不變。非戰鬥敵人新增 `screamCooldown`（安全整數 ≥0），逃跑沿用 `alert` 與 `lastKnown`。當前與封存敵人均驗證；v41 以前若有非戰鬥單位但缺欄位，補 0，不重生地圖、不抽詞條。一般敵人不能帶這個欄位。
+- 新 cue `scream`：danger/high，以 `telegraph` 發送；`flee`：tactical/medium，以 `state` 發送，允許重複發出，再由 UI 節流。平民不發 spotted。原 hit／wounded／critical／suppressed／pinned 沿用。
+- 平民可見／牆後事件都帶 `voice:'civilian'`。牆後仍只有 type、faction、voice、cue、category、priority、visibility、direction，不帶 enemyType、actorId、name 或精確座標。喊話事件本身不寫紀錄。
+- **未做** `VOICE_LINES.civilian` 與目標卡非戰鬥標籤。Claude 接手時須讓 `calloutVoice` 採事件／兵種聲線，並補兩種新 cue；目前 scream／flee 尚無泡泡台詞，規則尖叫有文字紀錄。現有其他聲線不必新增從不會發出的平民 cue。
+- 執行 `node qa/create-civilian-scenes.mjs`，在 `qa/fixtures/civilians/` 產生忠誠者第1、3、6層，種子1分別有4、5、5名。僅在 `?test=1` 匯入；測初見尖叫、等待五回合再叫、牆後聲線、手動選中與屍體。產生器不碰瀏覽器存檔。
+
+### 精靈圖與驗證
+
+- image_gen 產生站姿／倒地雙格原圖，保存在 `art/civilians-v1/source.png`，完整 prompt 與製程見同目錄 README。
+- `python tools/pixelize_civilians.py` 沿用 `pixelize_cell`，輸出 32×32 索引 PNG、最多16色、5-bit RGB、無抖色、透明索引0。輸出與預覽在 `assets/pixel/civilians-v1/`。
+- 原本兩張4×4圖集的16格完全保留，在第五列第1格追加 researcher（index16）；名字清單只追加。圖缺失時的程式繪製也以 `drawing.unarmed` 移除武器，既有單位畫法不變。
+- `python qa/civilian-art-check.py` 對 fac5503 解碼比較，兩張圖集各16格逐像素相同；新圖尺寸、色數與透明索引通過。詳見本版 QA 報告。

@@ -8,11 +8,11 @@ const seen=(cue,actorId='a1',enemyType='rifleman')=>({type:'callout',cue,...CALL
 const heard=(cue,direction='east')=>({type:'callout',cue,...CALLOUT_CUES[cue],visibility:'heard',direction});
 
 test('every cue has number-free lines in each voice, picked without randomness',()=>{
- for(const cue of Object.keys(CALLOUT_CUES))for(const type of ['rifleman','drone','crawler']){
+ for(const cue of Object.keys(CALLOUT_CUES).filter(c=>!['scream','flee'].includes(c)))for(const type of ['rifleman','drone','crawler']){
   const event=seen(cue,'a1',type),line=calloutLine(event);
   assert.ok(line.length>0,`${cue}/${type}`);assert.ok(!/[0-9%×]/.test(line),line);assert.equal(calloutLine(event),line,'same event, same line');
  }
- for(const cue of Object.keys(CALLOUT_CUES))assert.ok(calloutLine(heard(cue)).length>0,cue);
+ for(const cue of Object.keys(CALLOUT_CUES).filter(c=>!['scream','flee'].includes(c)))assert.ok(calloutLine(heard(cue)).length>0,cue);
  assert.equal(calloutVoice(seen('move','d','drone')),'machine');assert.equal(calloutVoice(seen('move','c','crawler')),'creature');
  assert.equal(calloutVoice({...heard('move'),enemyType:'drone'}),'human','heard bubbles never reveal the unit type');
 });

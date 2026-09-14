@@ -28,3 +28,4 @@ export * from './enemy-behavior.js';
 export * from './real-mode.js';
 export * from './callouts.js';
 export * from './elite-enemies.js';
+export * from './civilians.js';

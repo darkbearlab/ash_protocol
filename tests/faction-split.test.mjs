@@ -33,7 +33,7 @@ test('facilities roll by seed over pickable factions; construction without a cho
 
 test('human facilities generate only their own units, with no fodder or nests',()=>{
  for(const id of ['loyalist','rebel'])for(let seed=1;seed<=12;seed++)for(const floor of [1,3,6,9]){
-  const d=factionDef(id),allowed=new Set([...units(id),...Object.values(d.bosses),d.scout,...d.retreatWave]),map=generate(seed,floor,[],0,id);
+  const d=factionDef(id),allowed=new Set([...units(id),...Object.values(d.bosses),d.scout,...d.retreatWave,...(d.noncombatants?.roster||[]).map(([id])=>id)]),map=generate(seed,floor,[],0,id);
   assert.ok(map.enemies.every(e=>allowed.has(e.type)&&e.faction===id),`${id}:${seed}:${floor} ${map.enemies.map(e=>e.type)}`);
   assert.ok(!map.props.some(p=>p.type==='nest'),`${id}:${seed}:${floor} nest`);
  }
@@ -52,7 +52,7 @@ test('always-elite cards are elite from the first floor and keep the base name; 
 test('the suicide robot is a mechanical bomber, and both human voices cover every cue without numbers',()=>{
  const bot=makeEnemy('bomber_bot',1,1,'qa-bot',3);
  assert.ok(bot.traits.some(t=>t.id==='mechanical'));assert.equal(unitTree(bot),UNIT_TREES.bomber);assert.equal(suppressionState(bot).immune,true);
- for(const voice of ['loyalist','rebel'])for(const cue of Object.keys(CALLOUT_CUES)){
+ for(const voice of ['loyalist','rebel'])for(const cue of Object.keys(CALLOUT_CUES).filter(c=>!['scream','flee'].includes(c))){
   const lines=VOICE_LINES[voice][cue];assert.ok(lines?.length,`${voice}:${cue}`);for(const line of lines)assert.ok(!/[0-9%×]/.test(line),line);
  }
 });

@@ -11,7 +11,7 @@ export const FACTIONS={
   late:[['rifleman',2],['raider',2],['gunner',1],['drone',1],['brute',1],['sniper',1],['bomber',1]],
   deepExtra:[['brute',1],['sniper',1],['bomber',1]],
  },bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:'fodder',nestChild:'brood'},
- loyalist:{name:'忠誠者',tag:true,pickable:true,voice:'loyalist',roster:{
+ loyalist:{noncombatants:{roster:[['civilian',1]],perFloor:{min:3,max:5}},name:'忠誠者',tag:true,pickable:true,voice:'loyalist',roster:{
   early:[['rifleman',1],['rifleman_armored',1],['raider',1],['gunner',1],['drone',1],['crawler',1]],
   late:[['rifleman',1],['rifleman_armored',1],['raider',1],['raider_armored',1],['gunner',1],['drone',1],['brute',1],['sniper',1],['crawler',1]],
   deepExtra:[['brute',1],['sniper',1]],

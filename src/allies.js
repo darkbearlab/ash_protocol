@@ -1,4 +1,4 @@
-import {isBossClass,ALLY_BASE_TYPES} from './enemy-data.js';
+import {isBossClass,isNoncombatant,ALLY_BASE_TYPES} from './enemy-data.js';
 import {pinned,finishSuppression} from './suppression.js';
 import {petRank} from './pet-growth.js';
 import {PET_TETHER,petMoved,syncPetSenses,petReactions,newPetBond,petMaximum,petWeapon,petFuelCost,petCombat,transportPet,placePet} from './pet-growth.js';
@@ -114,7 +114,7 @@ export function initializeAllies(g){
 // Everyone who fell on this floor, bosses excluded. One entry per death, so common enemies rise more often;
 // nothing is consumed (corpses marked raised by older versions still count). Machines never rise (3.43.1):
 // anything with the mechanical keyword stays a wreck, cyborgs included. A machine-raising variant is only an idea.
-export const summonPool=g=>g.enemies.filter(e=>e.hp<=0&&!isBossClass(e)&&!activeTrait(e,'mechanical'));
+export const summonPool=g=>g.enemies.filter(e=>e.hp<=0&&!isNoncombatant(e)&&!isBossClass(e)&&!activeTrait(e,'mechanical'));
 const summonCount=g=>currentAllies(g).filter(a=>a.kind==='summon').length;
 // No working chassis to hand: none, destroyed, or left active on another floor. Building a new one replaces it.
 const droneLost=(g,a)=>!a||a.status==='destroyed'||a.floor!==g.floor&&a.status!=='packed';
@@ -188,7 +188,7 @@ export function allyAct(g,a){
 function actAlly(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return;
  slotTurn.set(a,g.turn);a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return;
- let w=allyWeapon(a,g.player);const linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
+ let w=allyWeapon(a,g.player);const linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
  if(a.kind==='pet'&&targets.some(e=>distance(a,e)===1&&g.shotClear(a,e)&&g.canCross(a,e)))w=petWeapon(g.player,true);
  const shot=linked&&(a.kind!=='drone'||a.ammo>0)?targets.find(e=>distance(a,e)<=w.range&&g.shotClear(a,e)&&(!w.melee||g.canCross(a,e))):null;
  const attack=e=>{

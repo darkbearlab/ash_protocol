@@ -14,8 +14,8 @@ test('enemy definitions and spawn references use valid rule data',()=>{
   assert.ok(Array.isArray(d.traits)&&d.traits.every(t=>Object.hasOwn(TRAITS,t)),id);
   for(const t of d.floorTraits||[])assert.ok(Object.hasOwn(TRAITS,t.id)&&Number.isInteger(t.minFloor)&&t.minFloor>=1,id);
   if(d.behavior!==undefined)assert.ok(Object.hasOwn(UNIT_TREES,d.behavior),id);
-  assert.ok(Number.isInteger(d.rounds)&&d.rounds>0,id);
-  assert.ok(['claw','slash','plasma','bullet'].includes(d.attackStyle),id);
+  assert.ok(Number.isInteger(d.rounds)&&(d.tags.includes('noncombatant')?d.rounds===0:d.rounds>0),id);
+  assert.ok(d.tags.includes('noncombatant')?d.attackStyle===undefined:['claw','slash','plasma','bullet'].includes(d.attackStyle),id);
   if(d.reinforcement)assert.ok(enemyDef(d.reinforcement),id);
   if(d.loot){for(const [key,value] of Object.entries(d.loot)){
    assert.ok(['weapon','chance','ammo','rareWeapon','rareChance'].includes(key),key);

@@ -61,7 +61,7 @@ test('elite kill doubles only XP, preserving loot, scrap and combat randomness, 
 });
 test('save41, archived floors and complete backup preserve elite; save40 clears it everywhere',()=>{
  const g=new Game(1,[],0,'soldier','onyx','roundtrip');g.enemies[0].elite=true;Object.assign(g.player,g.exitPoint);assert.ok(g.descend());g.enemies[0].elite=true;
- assert.equal(SAVE_VERSION,41);const copy=Game.restore(g.serialize());assert.ok(copy);assert.deepEqual(copy.enemies,g.enemies);assert.deepEqual(resumedFloor(copy.floorStates[1],g.turn).enemies,g.floorStates[1].enemies);
+ assert.ok(SAVE_VERSION>=41);const copy=Game.restore(g.serialize());assert.ok(copy);assert.deepEqual(copy.enemies,g.enemies);assert.deepEqual(resumedFloor(copy.floorStates[1],g.turn).enemies,g.floorStates[1].enemies);
  const backup=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa');assert.ok(backup);
  const raw=JSON.parse(g.serialize());raw.version=40;const old=Game.restore(JSON.stringify(raw));assert.ok(old);assert.ok(old.enemies.every(e=>!Object.hasOwn(e,'elite')));assert.ok(old.floorStates[1].enemies.every(e=>!Object.hasOwn(e,'elite')));
  for(const location of ['current','archive'])for(const value of [false,null,1,'true']){const raw=JSON.parse(g.serialize());(location==='current'?raw.data.enemies:raw.data.floorStates[1].enemies)[0].elite=value;assert.equal(Game.restore(JSON.stringify(raw)),null);}

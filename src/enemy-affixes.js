@@ -1,12 +1,12 @@
 import {enemyFaction,factionDef,enemyBaseName} from './factions.js';
-import {hasEnemyTag} from './enemy-data.js';
+import {hasEnemyTag,isNoncombatant} from './enemy-data.js';
 import {ENEMY_TYPES} from './data.js';
 import {grantTrait,activeTrait} from './traits.js';
 import {effectiveDepth} from './endless.js';
 export const AFFIX_TUNING={startDepth:7,chancePerDepth:.04,chanceCap:.5,additionalFactor:.5,grenadeChance:.2,grenadeRange:5,grenadeRadius:1,grenadeDamage:32};
 export const REVEAL_TYPES=Object.freeze({effect:'effect',scan:'scan',failed:'condition_failed'});
 const armed=e=>hasEnemyTag(e,'armed');
-const combatant=e=>!ENEMY_TYPES[e.type]?.expendable;
+const combatant=e=>!isNoncombatant(e)&&!ENEMY_TYPES[e.type]?.expendable;
 export const ENEMY_AFFIXES=[
  {id:'fast',fragment:'快速',order:0,applies:e=>combatant(e)&&!e.traits.some(t=>['fast','slow'].includes(t.id)),trait:'fast',reveal:REVEAL_TYPES.effect},
  {id:'infrared',fragment:'紅外線',order:1,applies:e=>combatant(e)&&!activeTrait(e,'infrared'),trait:'infrared',reveal:REVEAL_TYPES.effect},
@@ -22,7 +22,7 @@ export function affixPickIndex(pool,draw,weights){
  const total=pool.reduce((n,d)=>n+(weights[d.id]??1),0);let left=draw*total;
  for(let i=0;i<pool.length;i++){left-=weights[pool[i].id]??1;if(left<0)return i;}return pool.length-1;
 }
-export function rollEnemyAffixes(e,seed,floor,offset=0){e.affixes=[];const rng=birthRandom(seed,floor,e.id),pool=[...ENEMY_AFFIXES],weights=factionDef(enemyFaction(e))?.affixWeights;let p=affixChance(floor,offset);while(pool.length&&rng()<p){const [d]=pool.splice(affixPickIndex(pool,rng(),weights),1);if(d.applies(e))giveEnemyAffix(e,d.id);p*=AFFIX_TUNING.additionalFactor;}return e;}
+export function rollEnemyAffixes(e,seed,floor,offset=0){e.affixes=[];if(isNoncombatant(e))return e;const rng=birthRandom(seed,floor,e.id),pool=[...ENEMY_AFFIXES],weights=factionDef(enemyFaction(e))?.affixWeights;let p=affixChance(floor,offset);while(pool.length&&rng()<p){const [d]=pool.splice(affixPickIndex(pool,rng(),weights),1);if(d.applies(e))giveEnemyAffix(e,d.id);p*=AFFIX_TUNING.additionalFactor;}return e;}
 export const revealedAffixes=e=>ENEMY_AFFIXES.filter(d=>e?.affixes?.some(a=>a.id===d.id&&a.revealed)).map(({id,fragment,order,reveal})=>({id,fragment,order,reveal}));
 export const enemyDisplayName=e=>`${enemyBaseName(e)}${revealedAffixes(e).map(d=>`・${d.fragment}`).join('')}${e.affixes?.some(a=>!a.revealed)?'？':''}`;
 export function revealEnemyAffix(g,e,id){const a=e.affixes?.find(a=>a.id===id);if(!a||a.revealed)return false;a.revealed=true;g.enemyCallout?.(e,'affix_revealed',{affixId:id});return true;}

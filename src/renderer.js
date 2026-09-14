@@ -384,7 +384,7 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
       const color=player?'#ca9257':enemyTint(e)||def.color;this.box(-8,-7,6,18,'#334939','#6a795555');this.box(2,-7,6,18,'#334939','#6a795555');
       this.box(-12,-6,24,16,color,'#d5c29055');this.box(-7,-8,14,18,player?'#827853':'#59684d');
       this.box(-7,-10,14,13,color,'#e1d7a66f');this.box(-5,0,10,3,player?'#aff1e0':'#f2ab80');
-      this.box(8,1,5,20,'#1d2e29','#879c8a');this.box(9,18,3,6,'#b0b6a1');
+      if(!drawing.unarmed){this.box(8,1,5,20,'#1d2e29','#879c8a');this.box(9,18,3,6,'#b0b6a1');}
       if(drawing.heavy){this.box(-15,-7,6,19,'#8f795c','#d2bd9255');this.box(9,-7,6,19,'#8f795c','#d2bd9255');}
       if(drawing.longBarrel)this.box(9,18,3,12,'#cad3b2');
     }

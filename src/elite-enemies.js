@@ -1,11 +1,11 @@
 import {ENEMY_AFFIXES,birthRandom,giveEnemyAffix} from './enemy-affixes.js';
-import {enemyDef,isBossClass} from './enemy-data.js';
+import {enemyDef,isBossClass,isNoncombatant} from './enemy-data.js';
 import {effectiveDepth} from './endless.js';
 import {factionActors,factionDef,enemyFaction} from './factions.js';
 
 export const ELITE_TUNING={startDepth:9,chancePerDepth:.02,chanceCap:.15,minAffixes:3,xpMultiplier:2};
 export const eliteChance=(floor,offset=0)=>Math.min(ELITE_TUNING.chanceCap,Math.max(0,effectiveDepth(floor,offset)-ELITE_TUNING.startDepth+1)*ELITE_TUNING.chancePerDepth);
-export const eliteEligible=e=>!e.expendable&&!enemyDef(e)?.expendable&&!isBossClass(e);
+export const eliteEligible=e=>!isNoncombatant(e)&&!e.expendable&&!enemyDef(e)?.expendable&&!isBossClass(e);
 // Run AFTER ordinary affixes. This salt never consumes map, combat or ordinary affix randomness.
 export function rollEnemyElite(e,seed,floor,offset=0){
  if(!eliteEligible(e))return e;
@@ -22,6 +22,6 @@ export function rollEnemyElite(e,seed,floor,offset=0){
  }
  return e;
 }
-export const enemyKillXp=e=>e.expendable?0:Math.round((enemyDef(e)?.xp??1)*(e.elite?ELITE_TUNING.xpMultiplier:1));
+export const enemyKillXp=e=>isNoncombatant(e)||e.expendable?0:Math.round((enemyDef(e)?.xp??1)*(e.elite?ELITE_TUNING.xpMultiplier:1));
 export function migrateElites(g){for(const e of factionActors(g))delete e.elite;}
 export const validElites=g=>factionActors(g).every(e=>!Object.hasOwn(e,'elite')||e.elite===true);
