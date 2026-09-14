@@ -2,6 +2,7 @@
 // The rules layer decides what is heard and hides identity; this only words and paces it. Line picks hash the
 // event and a board counter, never the combat RNG.
 import {ENEMY_TYPES} from './engine.js';
+import {factionDef} from './factions.js';
 
 export const CALLOUT_UI_TUNING=Object.freeze({generalMs:2500,dangerMs:4000,heardFactor:.7,cooldownMs:1500,maxOnScreen:4,fadeMs:400,edgeMargin:30});
 
@@ -22,11 +23,19 @@ const MACHINE={
 // Creatures only make noises, so their lines follow the category rather than the exact cue.
 const CREATURE={danger:['嘶嘶——！','咯咯咯！'],affix:['嘶——！'],tactical:['嘶……','咯……'],injury:['嘎——！','嗚……'],perception:['嘶？','咯……']};
 
-// Heard callouts carry no unit type, so they always use the neutral human voice and never hint at what spoke.
-export const calloutVoice=event=>event.visibility!=='visible'?'human':ENEMY_TYPES[event.enemyType]?.mechanical?'machine':ENEMY_TYPES[event.enemyType]?.voice==='creature'?'creature':'human';
+// Voice ids index these tables; creature noises follow the category instead (3.79.1). Factions add their own ids.
+export const VOICE_LINES={human:HUMAN,machine:MACHINE};
+// Machines and creatures keep their card voice; otherwise a faction voice applies, falling back to the neutral human
+// voice. Heard callouts carry no unit type, so they can only use the faction voice (user decision, 2026-09-14).
+export function calloutVoice(event){
+ const faction=factionDef(event.faction)?.voice,factionVoice=faction&&VOICE_LINES[faction]?faction:'human';
+ if(event.visibility!=='visible')return factionVoice;
+ const def=ENEMY_TYPES[event.enemyType];
+ return def?.mechanical?'machine':def?.voice==='creature'?'creature':factionVoice;
+}
 const hash=text=>{let h=2166136261;for(const c of text){h^=c.codePointAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 export function calloutLine(event,variant=0){
- const voice=calloutVoice(event),lines=voice==='creature'?CREATURE[event.category]:(voice==='machine'?MACHINE:HUMAN)[event.cue];
+ const voice=calloutVoice(event),lines=voice==='creature'?CREATURE[event.category]:(VOICE_LINES[voice]||HUMAN)[event.cue];
  return lines?.length?lines[hash(`${event.actorId||event.direction||''}:${event.cue}:${variant}`)%lines.length]:'';
 }
 

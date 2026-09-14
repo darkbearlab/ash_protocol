@@ -142,3 +142,11 @@ Claude 在介面批次中，用瀏覽器確認染色與「精英」標籤。
 - 名稱／已顯現詞條仍用 `enemyDisplayName(e)`／`revealedAffixes(e)`；派系仍用 `enemyFaction(e)`／`factionOverride(e)`。本批未改 renderer、controller、CSS 或圖鑑。
 - 引擎另匯出 `ELITE_TUNING`、`eliteChance(floor,offset=0)`、`eliteEligible(e)`、`enemyKillXp(e)`。顯示機率不需要抽亂數或呼叫出生函式。
 - 執行 `node qa/create-elite-scenes.mjs`，在 `qa/fixtures/elites/` 生成無盡第 8、12、60 層存檔，種子 1；分別為 0、4、4 名精英。僅在 `?test=1` 匯入，驗證染色、目標卡、屍體、真實模式與存讀檔；介面尚未實作，因此目前不會自動顯示「精英」標籤。
+
+## 8. Claude 介面接線（3.79.1，已完成）
+
+- **外框**：`enemy.elite===true` 時，renderer 先把該圖集格做成金色剪影，往上下左右各偏移 1 像素畫出，再疊上原本的角色（可能已染色），所以派系塗裝仍看得出來。沒有圖時畫金色方框。
+- **屍體**：`corpse()` 多接收敵人物件，小菁英的屍體同樣畫外框。
+- **目標卡**：標籤行加一個顯示用的「精英」（`ELITE_VISUAL.label`），排在派系標籤之後、被動之前。它不是 `TRAITS`，真實模式會隱藏。
+- **顏色**：`ELITE_VISUAL.outline = '#f2c45a'`。
+- **驗收**：見 [3.79.1 QA](../qa/results/2026-09-14-claude-3.79.1-faction-elite-ui.md)。

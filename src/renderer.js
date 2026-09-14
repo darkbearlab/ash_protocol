@@ -1,14 +1,14 @@
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
-import {SPRITE_NAMES,AFTERMATH_NAMES,enemySprite,enemyDrawing} from './enemy-visuals.js';
+import {SPRITE_NAMES,AFTERMATH_NAMES,enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL} from './enemy-visuals.js';
 import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
 import {NEST_ATLAS,drawNest,drawNestEffect} from './nest-art.js';
 import {SCENERY_ATLAS} from './scenery.js';
 import {drawPartition,partitionGeometry,DOOR_ATLAS,drawDoor,doorGeometry,barrierJunctions,drawJunction} from './barrier-art.js';
 import {actorPosition,DarkActorCache,cornerHidden,muteCornerPixels} from './actor-visuals.js';
 import {CLASS_ATLAS,classSpriteRect} from './class-art.js';
-import {DEFAULT_OPERATOR_COLOR,tintedSprite} from './operator-color.js';
+import {DEFAULT_OPERATOR_COLOR,tintedSprite,tintPixels} from './operator-color.js';
 import {allyName,connected,droneCells} from './allies.js';
 import {movementBoundaries,boundaryOpacityPercent} from './movement-boundaries.js';
 import {isDark,floorShading} from './lighting.js';
@@ -138,7 +138,7 @@ export class Renderer {
       if(distance(p,{x,y})===1&&g.passable(x,y)&&!g.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))this.box(left+3,top+3,t-6,t-6,'#b0ba8010','#b1c48a3b');
       const room=g.rooms?.find(r=>r.supply&&r.cx===x&&r.cy===y);if(room){const sign=SUPPLY_ROOMS[room.supply];if(sign)this.text(sign.name,a.x,a.y-this.tile*.4,sign.color,9);}
       if(g.exitPoint.x===x&&g.exitPoint.y===y)this.exit(a,time);
-      for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y)this.corpse(a,dead.type);
+      for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y)this.corpse(a,dead.type,undefined,dead);
       for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)this.prop(a,prop,time);
       for(const prop of g.props)if(!isContainer(prop)&&prop.x===x&&prop.y===y)this.prop(a,prop,time);
       for(const weapon of [false,true])for(const item of g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.item(a,item,time);
@@ -276,11 +276,31 @@ export class Renderer {
     const toned=this.artTones?.get(image,sprite,role==='floor'?'floor':'prop');
     c.drawImage(toned||image,toned?0:sprite.x,toned?0:sprite.y,sprite.size,sprite.size,-Math.floor(size/2),-Math.floor(size/2),size,size);c.restore();return true;
   }
+  // Enemy tint and elite outline (3.79.1). Untinted, non-elite enemies go straight to sprite(), so they draw exactly
+  // as before; cells are cached per source image so theme tone changes cannot reuse a stale canvas.
+  cellCanvas(image,from,key,paint){const byImage=(this.enemyCellCache??=new WeakMap());let cache=byImage.get(image);if(!cache){cache=new Map();byImage.set(image,cache);}if(cache.has(key))return cache.get(key);let canvas=null;try{canvas=document.createElement('canvas');canvas.width=canvas.height=32;const c=canvas.getContext('2d');c.drawImage(image,from.x,from.y,32,32,0,0,32,32);paint(c);}catch{canvas=null;}cache.set(key,canvas);return canvas;}
+  // A ring-only canvas (silhouette spread one pixel, sprite shape removed) drawn after the sprite with shadows off;
+  // drawn underneath, the sprite's own shadow blur hid the ring.
+  outlineRing(image,from,key,color){const byImage=(this.enemyCellCache??=new WeakMap());let cache=byImage.get(image);if(!cache){cache=new Map();byImage.set(image,cache);}const id=`ring:${key}:${color}`;if(cache.has(id))return cache.get(id);let ring=null;try{const silhouette=document.createElement('canvas');silhouette.width=silhouette.height=32;const s=silhouette.getContext('2d');s.drawImage(image,from.x,from.y,32,32,0,0,32,32);s.globalCompositeOperation='source-in';s.fillStyle=color;s.fillRect(0,0,32,32);ring=document.createElement('canvas');ring.width=ring.height=34;const r=ring.getContext('2d');for(let dx=0;dx<=2;dx++)for(let dy=0;dy<=2;dy++)if(dx!==1||dy!==1)r.drawImage(silhouette,dx,dy);r.globalCompositeOperation='destination-out';r.drawImage(image,from.x,from.y,32,32,1,1,32,32);}catch{ring=null;}cache.set(id,ring);return ring;}
+  drawOutline(image,from,key,color,a,size){const ring=this.outlineRing(image,from,key,color);if(!ring)return;const c=this.ctx,unit=size/32,x=Math.round(a.x-size/2),y=Math.round(a.y-size/2);c.save();c.shadowColor='transparent';c.shadowBlur=0;c.drawImage(ring,0,0,34,34,x-unit,y-unit,size+2*unit,size+2*unit);c.restore();}
+  enemySprite(name,a,size,dark,hidden,tint,outline){
+    if(!tint&&!outline)return this.sprite(name,a,size,dark,hidden);
+    const index=this.spriteNames.indexOf(name);if(index<0||!this.sprites.complete||!this.sprites.naturalWidth)return false;
+    const cell={x:index%4*32,y:Math.floor(index/4)*32,size:32},toned=this.artTones?.get(this.sprites,cell,index<10?'unit':'prop'),image=toned||this.sprites,from=toned?{x:0,y:0}:cell;
+    let source=image,sx=from.x,sy=from.y;
+    if(tint){const tinted=this.cellCanvas(image,from,`tint:${name}:${tint}`,c=>{const pixels=c.getImageData(0,0,32,32);tintPixels(pixels.data,tint);c.putImageData(pixels,0,0);});if(tinted){source=tinted;sx=0;sy=0;}}
+    if(dark)source=this.darkActors.get(source);if(hidden)source=this.hiddenActors?.get(source)||source;
+    this.ctx.drawImage(source,sx,sy,32,32,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);
+    if(outline)this.drawOutline(image,from,name,outline,a,size);
+    return true;
+  }
   sprite(name,a,size=32,dark=false,hidden=false){const index=this.spriteNames.indexOf(name);if(index<0||!this.sprites.complete||!this.sprites.naturalWidth)return false;const cell={x:index%4*32,y:Math.floor(index/4)*32,size:32},toned=this.artTones?.get(this.sprites,cell,index<10?'unit':'prop');let source=dark?this.darkActors.get(toned||this.sprites):toned||this.sprites;if(hidden)source=this.hiddenActors?.get(source)||source;this.ctx.drawImage(source,toned?0:cell.x,toned?0:cell.y,32,32,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
+  // Elite corpses keep the gold outline so the player can tell which body it was (3.79.1).
+  deadOutline(name,a,size,color){const index=this.aftermathNames.indexOf(name);if(index<0||!this.aftermath?.complete||!this.aftermath.naturalWidth)return;const image=this.corpseReady?this.corpseAtlas:this.aftermath;this.drawOutline(image,{x:(index%4)*32,y:Math.floor(index/4)*32},name,color,a,size);}
   effectSprite(name,a,size=32,angle=0,dark=false){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);const source=name.startsWith('dead-')&&this.corpseReady?this.corpseAtlas:this.aftermath;c.drawImage(dark?this.darkActors.get(source):source,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
   // The operator colour (3.48.2) tints the grey class art from a cached canvas; without one the grey cell is drawn as is.
   classSprite(a,size,character,dead=false,dark=false){const image=this.classSprites;if(!image?.complete||!image.naturalWidth)return false;const r=classSpriteRect(character,dead),tinted=tintedSprite(image,r,this.operatorColor,this.tintCache),c=this.ctx;c.drawImage(dark?this.darkActors.get(tinted||image):tinted||image,tinted?0:r.x,tinted?0:r.y,r.w,r.h,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
-  corpse(a,type,character){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=spriteSize(this.tile),dark=isDark(this.game,this.unproject(a.x,a.y));const c=this.ctx;c.save();const drawn=(type==='player'&&this.classSprite(a,size,character,true,dark))||this.effectSprite('dead-'+enemySprite(type).corpse,a,size,0,dark);c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
+  corpse(a,type,character,actor){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=spriteSize(this.tile),dark=isDark(this.game,this.unproject(a.x,a.y));const c=this.ctx;c.save();const drawn=(type==='player'&&this.classSprite(a,size,character,true,dark))||(this.effectSprite('dead-'+enemySprite(type).corpse,a,size,0,dark)&&(actor?.elite&&this.deadOutline('dead-'+enemySprite(type).corpse,a,size,ELITE_VISUAL.outline),true));c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
   wall(a,x,y){
     const g=this.game,adjacent=[[0,1],[0,-1],[1,0],[-1,0]].map(([dx,dy])=>({x:x+dx,y:y+dy})).find(p=>g.grid[p.y]?.[p.x]===1);
     return drawWall(this.ctx,g,x,y,this.tile,a,this.terrainImages,themeAt(g,adjacent||{x,y}),this.artTones);
@@ -343,7 +363,7 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
       const size=spriteSize(this.tile)*look.size;
       if(player){this.box(a.x-17,a.y-17,34,34,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(a.x,a.y,20,0,Math.PI*2);c.stroke();}}
       // Optical camouflage (3.47.1): the ninja's sprite fades while it is active; the frame and label stay readable.
-      c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;if(!player||!this.classSprite(a,size,e.character,false,dark))this.sprite(spriteType,a,size,dark,hidden);c.restore();
+      c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;if(!player||!this.classSprite(a,size,e.character,false,dark)){if(player)this.sprite(spriteType,a,size,dark,hidden);else this.enemySprite(spriteType,a,size,dark,hidden,enemyTint(e),e?.elite?ELITE_VISUAL.outline:null);}c.restore();
       if(e.control?.disabled){this.box(a.x-size/2,a.y-size/2,size,size,'#b9d5e94f');this.text(`×${e.control.disabled}`,a.x+this.tile*.35,a.y-10,'#d6edff',11);}
       if(player){this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);const f=e.facing||[0,1];this.box(a.x+f[0]*18-1,a.y+f[1]*18-1,3,3,'#ffe3ab');}
       else{this.enemyBars(a,e,def);if(e.charge)this.text(unitTree(e).fixedTile?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
@@ -355,13 +375,13 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     const facing=player?e.facing:[this.game.player.x-e.x,this.game.player.y-e.y];
     c.rotate(Math.atan2(facing[1],facing[0])-Math.PI/2);
     if(drawing.shape==='critter'){
-      const color=drawing.color||'#ba966d';for(const x of[-10,10])for(const y of[-7,7])this.line(x*.5,y*.7,x,y+3,color,3);
+      const color=enemyTint(e)||drawing.color||'#ba966d';for(const x of[-10,10])for(const y of[-7,7])this.line(x*.5,y*.7,x,y+3,color,3);
       this.box(-7,-9,14,18,'#6d6544',color);this.box(-6,-2,12,12,color);this.box(-5,8,10,5,'#d1b88a');this.line(-4,12,4,12,'#ed855c',2);if(drawing.glow)this.glow(0,0,16,drawing.glow);
     }else if(drawing.shape==='drone'){
       for(const x of[-10,10]){this.box(x-4,-8,8,16,'#547b70','#adcfc0');this.line(x,-11,x,11,'#8ad5d177',2);}
       this.box(-7,-6,14,12,'#99c9bd','#d4eee1');this.box(-3,0,6,4,'#edbb8d');
     }else{
-      const color=player?'#ca9257':def.color;this.box(-8,-7,6,18,'#334939','#6a795555');this.box(2,-7,6,18,'#334939','#6a795555');
+      const color=player?'#ca9257':enemyTint(e)||def.color;this.box(-8,-7,6,18,'#334939','#6a795555');this.box(2,-7,6,18,'#334939','#6a795555');
       this.box(-12,-6,24,16,color,'#d5c29055');this.box(-7,-8,14,18,player?'#827853':'#59684d');
       this.box(-7,-10,14,13,color,'#e1d7a66f');this.box(-5,0,10,3,player?'#aff1e0':'#f2ab80');
       this.box(8,1,5,20,'#1d2e29','#879c8a');this.box(9,18,3,6,'#b0b6a1');
@@ -369,6 +389,7 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
       if(drawing.longBarrel)this.box(9,18,3,12,'#cad3b2');
     }
     c.restore();
+    if(!player&&e?.elite)this.box(Math.round(a.x)-15,Math.round(a.y)-15,30,30,'#00000000',ELITE_VISUAL.outline);
     if(!player){this.enemyBars(a,e,def);if(e.charge)this.text(unitTree(e).fixedTile?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
     else this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);
   }

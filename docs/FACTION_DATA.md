@@ -158,3 +158,18 @@ export const FACTIONS = {
 - `enemyBaseName(e)` 先讀 `factionOverride(e).name`，再讀兵種名稱；enemyDisplayName 已接它。role／tint／voice 的覆寫資料可從 factionOverride 讀取，顯示與染色交 Claude。
 - 可見與只聽見的 callout 事件都新增 `faction`；隱藏事件仍無兵種／身分／精確位置。使用者已批准 **tests/real-mode.test.mjs 的欄位清單唯一一處加入 faction**，其餘既有期望值保持不變。沿用 3.76.1 決定：喊話不寫戰鬥紀錄。
 - 驗收：原基準 generation 780／missions 110／bots 24 全部相同，未重錄。新增 tests/factions.test.mjs 七項涵蓋格式、全兵種覆蓋、逐層等價、可選加權、跨生成傳遞、存讀／備份、喊話與守門。細節見 qa/results/2026-09-14-codex-3.78.0-factions.md。
+
+### Claude 介面接線（3.79.1，已完成）
+
+- **派系標籤**：`factionTag(e)`（`src/enemy-visuals.js`）在派系 `tag` 為真時回傳派系名稱，目標卡把它放在標籤行最前面；`legacy` 回傳空字串。
+- **名稱覆寫**：目標卡與紀錄沿用 `enemyDisplayName`。3.78.0 已經接上 `enemyBaseName`，介面不必另外處理。
+- **染色**：
+  - `enemyTint(e)` 先讀 `factionOverride(e).tint`，再讀兵種卡的 `sprite.tint`。
+  - renderer 的 `enemySprite` 用玩家塗裝的 `tintPixels` 依亮度換色，每個來源圖與顏色快取一張 32×32 格。
+  - 沒有顏色、也不是小菁英時，直接走原本的 `sprite()`，繪製呼叫與 3.79.0 逐項相同。
+  - 沒有圖時的程式繪製：人形與蟲形改用染色取代原本顏色。
+- **聲線**：
+  - `VOICE_LINES` 以聲線代號查台詞。`calloutVoice` 先看兵種卡（機械、生物），再看派系的 `voice`，最後是人類。
+  - 只聽得到的喊話沒有兵種，直接用派系聲線。
+  - 分家時，在 `VOICE_LINES` 加入各派系的台詞即可。
+- **尚未處理**：部署時手動選派系、圖鑑依派系分組，都留到分家。
