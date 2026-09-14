@@ -24,7 +24,22 @@ const MACHINE={
 const CREATURE={danger:['嘶嘶——！','咯咯咯！'],affix:['嘶——！'],tactical:['嘶……','咯……'],injury:['嘎——！','嗚……'],perception:['嘶？','咯……']};
 
 // Voice ids index these tables; creature noises follow the category instead (3.79.1). Factions add their own ids.
-export const VOICE_LINES={human:HUMAN,machine:MACHINE};
+const LOYALIST={
+ grenade:['投擲破片，隱蔽！','手榴彈出手，注意！'],bombard:['請求火力覆蓋！','座標回報，轟炸開始！'],aim:['目標鎖定，待命射擊。','狙擊位就緒。'],attack:['接敵，開火！','前進接戰！'],
+ affix_fast:['加速推進！','機動班跟上！'],affix_infrared:['熱源掃描啟動。','紅外線確認目標。'],affix_night_vision:['夜視裝備就位。','暗區無礙，持續搜索。'],affix_suppressor:['壓制火力，掩護推進！','持續壓制！'],affix_grenadier:['擲彈手就位。','準備投擲支援。'],
+ move:['第一班，推進！','保持隊形，向前！'],cover:['尋找掩蔽！','就掩體，回報位置！'],hold:['守住陣地！','原地堅守，等待命令！'],reload:['換彈，掩護我！','裝填中！'],flank:['側翼包抄，執行！','從側面迂迴！'],
+ hit:['中彈，還能戰鬥！','被擊中，繼續任務！'],wounded:['傷勢加重，請求支援！','負傷，戰力下降！'],critical:['重傷！需要後送！','撐不住了，請求撤離！'],suppressed:['遭到壓制！','火力太強，無法抬頭！'],pinned:['被釘住了，無法移動！','動彈不得，請求掩護！'],
+ spotted:['發現敵人，回報位置！','接觸！目標確認！'],lost:['目標脫離視線。','失去接觸，回報最後位置。'],search:['分區搜索，保持聯絡。','搜索前進，注意死角。'],
+};
+const REBEL={
+ grenade:['吃我一顆雷！','炸飛你這混蛋！'],bombard:['轟爛他們！','給我炸！'],aim:['別動，你這活靶……','瞄好了，等著吃子彈吧。'],attack:['衝啊，宰了他！','上！上！上！'],
+ affix_fast:['跟不上就去死吧！','快點，別拖拖拉拉！'],affix_infrared:['躲煙裡也沒用！','看得一清二楚！'],affix_night_vision:['摸黑？我照樣看得見！','黑漆漆的正好。'],affix_suppressor:['給我狠狠地打！','子彈不要錢，掃！'],affix_grenadier:['來嚐嚐這個！','抱著炸藥去死吧！'],
+ move:['往前壓，別當縮頭烏龜！','衝過去！'],cover:['找東西躲，笨蛋！','趴下，別送死！'],hold:['老子就站這！','有種過來啊！'],reload:['等我換彈，別催！','子彈沒了，該死！'],flank:['繞過去捅他後背！','從旁邊包抄，快！'],
+ hit:['該死，被打中了！','混蛋，我中彈了！'],wounded:['可惡……還沒完！','痛死了，你給我記住！'],critical:['救我……誰來救我！','我不想死在這！'],suppressed:['火力也太猛了吧！','頭都抬不起來！'],pinned:['動不了，該死！','被釘死在這了！'],
+ spotted:['在那！宰了他！','找到你了，雜碎！'],lost:['人呢？跑哪去了！','讓他溜了，該死！'],search:['給我搜，挖地三尺！','出來啊，別躲了！'],
+};
+// Faction voices (3.80.0): loyalists report like a front line, rebels shout and curse. Machines keep MACHINE.
+export const VOICE_LINES={human:HUMAN,machine:MACHINE,loyalist:LOYALIST,rebel:REBEL};
 // Machines and creatures keep their card voice; otherwise a faction voice applies, falling back to the neutral human
 // voice. Heard callouts carry no unit type, so they can only use the faction voice (user decision, 2026-09-14).
 export function calloutVoice(event){

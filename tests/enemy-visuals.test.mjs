@@ -22,7 +22,7 @@ const OLD={
 };
 
 test('appearance data reproduces every pre-migration visual mapping',()=>{
- for(const id of Object.keys(ENEMY_TYPES)){
+ for(const id of [...Object.keys(OLD.projectile),'bomber']){
   const look=enemySprite(id),drawing=enemyDrawing(id);
   assert.deepEqual([look.key,look.size,look.scale,look.corpse],[OLD.sprite(id),OLD.size(id),OLD.scale(id),OLD.corpse(id)],id);
   assert.equal(drawing.shape==='critter',OLD.critter(id),id);assert.equal(drawing.shape==='drone',id==='drone',id);

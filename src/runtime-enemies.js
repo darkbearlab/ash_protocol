@@ -23,8 +23,9 @@ export function addRuntimePopulation(base,seed,floor,check,faction=DEFAULT_FACTI
  const rooms=map.rooms.filter(r=>r.id!==map.startRoom&&r.id!==map.endRoom).sort((a,b)=>b.footprint.length-a.footprint.length||a.id-b.id);
  const points=rooms.flatMap(r=>roomTiles(r).filter(p=>map.grid[p.y]?.[p.x]===1&&seen.has(key(p))&&!forbidden.has(key(p))).map(p=>({...p,roomId:r.id,order:rng()}))).sort((a,b)=>a.order-b.order);
  let count=0;
- for(const p of points){if(count>=RUNTIME_TUNING.fodderCount||!enemyRoom(map))break;map.enemies.push(makeEnemy(factionDef(faction).fodder,p.x,p.y,`fodder-${floor}-${count++}`,floor,0,faction));forbidden.add(key(p));}
- if(floor>=RUNTIME_TUNING.nestMinFloor)for(const p of points){
+ // Factions without fodder or nests (the human facilities, 3.80.0) simply skip that population.
+ if(factionDef(faction).fodder)for(const p of points){if(count>=RUNTIME_TUNING.fodderCount||!enemyRoom(map))break;map.enemies.push(makeEnemy(factionDef(faction).fodder,p.x,p.y,`fodder-${floor}-${count++}`,floor,0,faction));forbidden.add(key(p));}
+ if(floor>=RUNTIME_TUNING.nestMinFloor&&factionDef(faction).nestChild)for(const p of points){
   if(forbidden.has(key(p))||map.props.filter(p=>p.type==='nest').length>=RUNTIME_TUNING.nestCount)continue;
   const prop={id:`nest-${floor}-0`,type:'nest',x:p.x,y:p.y,hp:RUNTIME_TUNING.nestHp,maxHp:RUNTIME_TUNING.nestHp,nest:{active:false,total:RUNTIME_TUNING.totalSpawn,interval:RUNTIME_TUNING.interval,remaining:RUNTIME_TUNING.totalSpawn,cooldown:0,serial:0}};
   map.props.push(prop);if(!safe(map)){map.props.pop();continue;}break;

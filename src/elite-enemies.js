@@ -10,7 +10,8 @@ export const eliteEligible=e=>!e.expendable&&!enemyDef(e)?.expendable&&!isBossCl
 export function rollEnemyElite(e,seed,floor,offset=0){
  if(!eliteEligible(e))return e;
  const rng=birthRandom(seed,floor,e.id,'elite-v1');
- if(rng()>=eliteChance(floor,offset))return e;
+ // Cards marked elite (rebel heroes, 3.80.0) are always elite; the draw is still taken so the stream stays aligned.
+ const roll=rng();if(!enemyDef(e)?.elite&&roll>=eliteChance(floor,offset))return e;
  e.elite=true;
  while((e.affixes?.length||0)<ELITE_TUNING.minAffixes){
   const pool=ENEMY_AFFIXES.filter(d=>!e.affixes?.some(a=>a.id===d.id)&&d.applies(e));

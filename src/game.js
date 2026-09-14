@@ -1,5 +1,5 @@
 import {rollEnemyElite,enemyKillXp,migrateElites,validElites} from './elite-enemies.js';
-import {pickFacilityFaction,migrateFactions,validFactions} from './factions.js';
+import {pickFacilityFaction,factionDef,rollFacilityFaction,migrateFactions,validFactions} from './factions.js';
 import {isBossClass,hasEnemyTag,enemyDef} from './enemy-data.js';
 import {unitTree} from './behavior-tree.js';
 import {lockRealMode} from './real-mode.js';
@@ -59,7 +59,7 @@ export class Game {
     if(!validPortrait(portrait))throw new Error('未知頭像。');
     lockRealMode(this,options.realMode??false);
     this.difficultyOffset=options.difficultyOffset??DIFFICULTY_TUNING.defaultOffset;if(!validDifficultyOffset(this.difficultyOffset))throw new Error('Invalid difficulty offset');
-    this.facilityFaction=pickFacilityFaction(seed,mission);this.mission=newMission(mission);this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
+    this.facilityFaction=options.facilityFaction==='random'?rollFacilityFaction(seed):factionDef(options.facilityFaction)?options.facilityFaction:pickFacilityFaction(seed,mission);this.mission=newMission(mission);this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
     this.player.skills=[...(CHARACTERS[character].skills||[])];this.player.skillState=initialSkillState(this.player.skills);
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});

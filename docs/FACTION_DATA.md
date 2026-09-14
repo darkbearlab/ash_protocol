@@ -172,4 +172,85 @@ export const FACTIONS = {
   - `VOICE_LINES` 以聲線代號查台詞。`calloutVoice` 先看兵種卡（機械、生物），再看派系的 `voice`，最後是人類。
   - 只聽得到的喊話沒有兵種，直接用派系聲線。
   - 分家時，在 `VOICE_LINES` 加入各派系的台詞即可。
-- **尚未處理**：部署時手動選派系、圖鑑依派系分組，都留到分家。
+- **尚未處理**：部署時手動選派系、圖鑑依派系分組，都留到分家。（3.80.0：手動選派系已做，圖鑑分組仍未做。）
+
+## 14. 第一次分家（3.80.0，Claude）
+
+依 [FACTIONS.md](FACTIONS.md) 第 10 節第 8–10 項。規則層的預設派系仍是 `legacy`：沒有指定派系的建構、測試、行為一致性基準、機器人與任務都不變，只有新局會抽派系。
+
+### 14.1 派系清單（`src/faction-catalog.js`）
+
+| | 忠誠者 `loyalist` | 叛軍 `rebel` |
+| --- | --- | --- |
+| 第 1–2 層 | rifleman 2、raider 1、gunner 1、drone 1、crawler 1 | rifleman 1、raider 2、gunner 1、drone 2、bomber_bot 1、crawler 1 |
+| 第 3 層起 | rifleman 2、raider 2、gunner 1、drone 1、brute 1、sniper 1、crawler 1 | rifleman 1、raider 2、gunner 1、drone 2、bomber_bot 2、brute 1、sniper 1、crawler 1、raider_elite 1 |
+| 第 7 層起另加 | brute 1、sniper 1 | bomber_bot 1、gunner_elite 1 |
+| 頭目 | 第 3 層 warden、第 6 層 boss | 同左（placeholder） |
+| 偵察、撤退增援 | rifleman；rifleman、raider | 同左 |
+| 雜兵、蟲巢 | 無（`fodder`、`nestChild` 為 `null`） | 無 |
+
+- 兩派都有 `pickable:true`；`tag:true`，所以目標卡顯示派系名稱。聲線代號分別是 `loyalist`、`rebel`。
+- 兩派都用 `overrides.crawler` 把獵犬改名「警犬」，沿用原圖。
+- 數字是第一版，可以直接改這張表。
+
+### 14.2 新兵種卡（`src/data.js`）
+
+- **自爆機器人 `bomber_bot`**：
+  - 沿用自爆行為（behavior `bomber`），改為機械：怕 EMP、不受壓制。
+  - 借用無人機圖，染成鏽橘色 `#d9894a`。
+  - 數值與孢子自爆體相同：生命 30、傷害 30、經驗 1。
+  - 孢子自爆體 `bomber` 只留在 legacy，之後給蟲族。
+- **必定小菁英卡 `raider_elite`、`gunner_elite`**：
+  - 由基礎卡複製，再加上 `elite:true`；名稱、掉落與圖都和基礎卡相同。
+  - 規則見 [ELITE_ENEMIES.md](ELITE_ENEMIES.md) 第 9 節。
+  - 圖鑑不列出這些卡，免得名稱洩漏身分。
+
+### 14.3 設施派系與部署
+
+- **`rollFacilityFaction(seed)`**：
+  - 對 `${seed}:facility-v1` 做 FNV-1a 雜湊，在 `pickable` 派系之間選。
+  - 不讀地圖或戰鬥亂數。種子 1–1000 的結果：叛軍 501、忠誠者 499。
+- **`new Game(..., options)` 的 `options.facilityFaction`**：
+  - `'random'`：用種子抽。
+  - 合法的派系代號：直接採用。
+  - 沒有給：維持 `pickFacilityFaction`，也就是 legacy。
+- **部署第 3 步**：
+  - 多一個「FACILITY · 開發用」清單：依種子隨機（預設）、忠誠者、叛軍、現行混合（測試）。
+  - `runOptions` 把選擇轉成 `facilityFaction`；快速開局的 `newGame` 預設也是 `'random'`。
+  - 正式版要拿掉手動選擇時，只要刪掉這個清單。
+- **執行期族群**：派系的 `fodder` 或 `nestChild` 為 `null` 時，不生成雜兵與蟲巢。
+
+### 14.4 台詞
+
+- `VOICE_LINES.loyalist`（前線回報）與 `VOICE_LINES.rebel`（叫罵吆喝）各涵蓋全部 22 種喊話，不含數字。
+- 機械與生物單位照舊用兵種卡的聲線；牆後只聽得到的喊話用派系聲線。
+
+### 14.5 出生統計
+
+範圍：種子 1–40，第 1、2、3、4、6、8、9、10、12 層，共 360 層。
+
+| 派系 | 敵人數 | 機器人比例 | 小菁英 | 蟲巢 |
+| --- | --- | --- | --- | --- |
+| legacy | 12003 | 10.9% | 190 | 320 |
+| loyalist | 11283 | 11.9% | 190 | 0 |
+| rebel | 11283 | 35.2% | 1233 | 0 |
+
+- **叛軍小菁英**：第 3–6 層每層約 2 隻，第 8–12 層每層約 5–8 隻。
+- **忠誠者小菁英**：只有第 9 層起的一般機率，第 12 層每層約 3 隻。
+- **調整過一次**：第一版的叛軍深層還有必定小菁英的重裝兵，深層每層約 10 隻，太多，已拿掉。
+
+### 14.6 既有測試期望的修改
+
+理由都是新增兵種卡與派系，不是行為改變。
+
+- tests/factions.test.mjs：派系代號清單加入兩派；`fodder`、`nestChild` 允許 `null`。
+- tests/enemy-data.test.mjs：兵種卡清單只比對原本的前 12 張；沒有列入 `ENEMY_LOOT` 的新卡不比對掉落參照。
+- tests/enemy-visuals.test.mjs：舊圖對照只跑原本 12 張。
+- tests/faction-visuals.test.mjs：`VOICE_LINES` 代號加入兩派；「legacy 沒有染色」只檢查 legacy 會生成的兵種。
+- tests/throwables.test.mjs：機械單位清單加入 `bomber_bot`。
+- tests/deploy-ui.test.mjs：`runOptions` 多回傳 `facilityFaction`。
+
+### 14.7 沒有做的
+
+- 忠誠方小隊長、叛軍專屬頭目。
+- 圖鑑依派系分組、派系專屬的詞條權重、派系染色。

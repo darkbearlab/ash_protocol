@@ -12,11 +12,11 @@ import {receiveCallout} from '../src/callouts.js';
 
 test('faction catalog validates references and covers every current enemy card',()=>{
  const used=new Set(Object.values(ALLY_BASE_TYPES));
- assert.deepEqual(Object.keys(FACTIONS),['legacy']);
+ assert.deepEqual(Object.keys(FACTIONS),['legacy','loyalist','rebel']);
  for(const d of Object.values(FACTIONS)){
   for(const entries of Object.values(d.roster))for(const [id,n] of entries){assert.ok(ENEMY_TYPES[id]);assert.ok(Number.isInteger(n)&&n>0);used.add(id);}
   for(const id of Object.values(d.bosses)){assert.ok(isBossClass(id));used.add(id);}
-  for(const id of [d.scout,...d.retreatWave,d.fodder,d.nestChild]){assert.ok(ENEMY_TYPES[id]);used.add(id);}
+  for(const id of [d.scout,...d.retreatWave,d.fodder,d.nestChild].filter(id=>id!==null)){assert.ok(ENEMY_TYPES[id]);used.add(id);}
   for(const [id,n] of Object.entries(d.affixWeights||{}))assert.ok(ENEMY_AFFIXES.some(a=>a.id===id)&&Number.isFinite(n)&&n>0);
   for(const id of Object.keys(d.overrides||{}))assert.ok(ENEMY_TYPES[id]);
  }

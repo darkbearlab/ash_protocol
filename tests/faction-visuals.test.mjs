@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,ENEMY_TYPES} from '../src/engine.js';
-import {FACTIONS} from '../src/factions.js';
+import {FACTIONS,factionDef} from '../src/factions.js';
 import {enemyTint,factionTag,ELITE_VISUAL} from '../src/enemy-visuals.js';
 import {calloutVoice,VOICE_LINES} from '../src/callout-ui.js';
 import {targetDetails} from '../src/target-card.js';
@@ -15,7 +15,8 @@ function withQaFaction(run){
 }
 
 test('legacy enemies have no tint and no faction tag',()=>{
- for(const type of Object.keys(ENEMY_TYPES)){assert.equal(enemyTint({type,faction:'legacy'}),null,type);assert.equal(factionTag({type,faction:'legacy'}),'',type);}
+ const d=factionDef('legacy'),legacyTypes=new Set([...Object.values(d.roster).flat().map(([type])=>type),...Object.values(d.bosses),d.scout,...d.retreatWave,d.fodder,d.nestChild]);
+ for(const type of legacyTypes){assert.equal(enemyTint({type,faction:'legacy'}),null,type);assert.equal(factionTag({type,faction:'legacy'}),'',type);}
  assert.equal(enemyTint({type:'rifleman'}),null,'a missing faction reads as legacy');
 });
 
@@ -42,5 +43,5 @@ test('callout voices: machines and creatures keep their card voice, others and h
  assert.equal(calloutVoice(seen('rifleman','qa_faction')),'machine');assert.equal(calloutVoice(heard('qa_faction')),'machine');
  assert.equal(calloutVoice(seen('crawler','qa_faction')),'creature');assert.equal(calloutVoice(seen('drone','legacy')),'machine');
  FACTIONS.qa_faction.voice='not_a_voice';assert.equal(calloutVoice(seen('rifleman','qa_faction')),'human','an unknown voice falls back to human');
- assert.deepEqual(Object.keys(VOICE_LINES).sort(),['human','machine']);
+ assert.deepEqual(Object.keys(VOICE_LINES).sort(),['human','loyalist','machine','rebel']);
 }));

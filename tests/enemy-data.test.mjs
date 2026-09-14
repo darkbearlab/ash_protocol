@@ -22,7 +22,7 @@ test('enemy definitions and spawn references use valid rule data',()=>{
    if(key==='weapon'||key==='rareWeapon')assert.ok(Number.isInteger(value)&&WEAPONS[value],id);
    if(key==='chance'||key==='rareChance')assert.ok(Number.isFinite(value)&&value>=0&&value<=1,id);
    if(key==='ammo')assert.ok(['ammo','pistol','shell','energy','ordnance'].includes(value),id);
-  }assert.equal(ENEMY_LOOT[id],d.loot);}
+  }if(Object.hasOwn(ENEMY_LOOT,id))assert.equal(ENEMY_LOOT[id],d.loot);}
  }
  for(const id of Object.values(ENEMY_SPAWNS).flat())assert.ok(enemyDef(id),id);
  for(const id of Object.values(ALLY_BASE_TYPES))assert.ok(enemyDef(id),id);
@@ -32,7 +32,7 @@ test('enemy definitions and spawn references use valid rule data',()=>{
 // Pre-refactor snapshot: order and source strings are serialized, not just membership.
 const initial={fodder:['slow','no_cover','biological'],brood:['fast','no_cover','biological'],rifleman:['biological'],raider:['biological'],crawler:['biological'],gunner:['biological'],drone:['no_cover','mechanical'],brute:['large','suppression_resistance','biological'],sniper:['night_vision','biological'],bomber:['biological'],warden:['infrared','suppression_resistance','mechanical'],boss:['suppression_resistance','mechanical']};
 test('all original trait arrays and sources match at floors 1 through 12',()=>{
- assert.deepEqual(Object.keys(ENEMY_TYPES),Object.keys(initial));
+ assert.deepEqual(Object.keys(ENEMY_TYPES).slice(0,Object.keys(initial).length),Object.keys(initial));
  for(const [id,base] of Object.entries(initial))for(let floor=1;floor<=12;floor++){
   const ids=id==='crawler'&&floor>=4?['fast','biological']:base;
   assert.deepEqual(enemyStartingTraitIds(id,floor),ids,`${id}:${floor}`);

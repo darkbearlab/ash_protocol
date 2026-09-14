@@ -47,9 +47,14 @@ export const ENEMY_TYPES = {
   bomber:{drawing:{shape:'critter',color:'#aabb71',glow:'#e9d24c33'},voice:'creature',tags:['breaker'],traits:[],behavior:'bomber',rounds:1,attackStyle:'bullet', name:'孢子自爆體', hp:30, damage:30, range:1, armor:0, color:'#b8bc67', xp:1, role:'死亡或近身蓄勢後爆炸。保持至少 2 格距離。' },
   warden:{sprite:{scale:1.15},drawing:{heavy:true},projectile:'plasma',tags:['boss'],traits:['infrared','suppression_resistance'],behavior:'warden',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{weapon:4,chance:1,ammo:'energy',rareWeapon:8,rareChance:.15}, name:'封鎖官', hp:180, damage:19, range:6, armor:5, color:'#d9aa70', xp:4, mechanical:true, role:'具紅外線可穿煙，但也怕震撼彈。攻擊需蓄勢，掉落稀有軍械。' },
   boss:{sprite:{scale:1.15},drawing:{heavy:true},projectile:'plasma',glyph:'Ω',tags:['boss','breaker'],traits:['suppression_resistance'],behavior:'boss',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{ammo:'ordnance'}, name:'核心守衛', hp:280, damage:22, range:7, armor:7, color:'#df785f', xp:6, mechanical:true, role:'反應核心頭目。交替槍擊與延遲轟炸，離開紅色標記。' },
+  // Rebel suicide robot (3.80.0): the bomber behaviour on a mechanical body, borrowing the drone sprite with a rust tint.
+  bomber_bot:{sprite:{key:'drone',tint:'#d9894a'},drawing:{shape:'drone'},tags:['breaker'],traits:[],behavior:'bomber',rounds:1,attackStyle:'plasma',name:'自爆機器人',hp:30,damage:30,range:1,armor:0,color:'#c98f55',xp:1,mechanical:true,role:'近身蓄勢後自爆，被擊毀時也會爆炸。機械：怕 EMP、不受壓制。保持至少 2 格距離。'},
 };
 // Compatibility view keeps the historical key order; loot has one authoritative home.
 export const ENEMY_LOOT=Object.freeze(Object.fromEntries(['rifleman','raider','gunner','sniper','drone','brute','warden','boss'].map(id=>[id,Object.freeze(ENEMY_TYPES[id].loot)])));
+// Rebel heroes (3.80.0): the base card, same name and loot, but always born elite (docs/ELITE_ENEMIES.md; the bestiary
+// hides them so the name gives nothing away).
+for(const base of ['raider','gunner'])ENEMY_TYPES[`${base}_elite`]={...ENEMY_TYPES[base],sprite:{...ENEMY_TYPES[base].sprite,key:ENEMY_TYPES[base].sprite?.key||base},elite:true};
 // Stable IDs; append content without changing saved offers. null cap means consumable reward.
 export const PERKS = [
   {id:'damage',name:'武器增幅',cap:3,effect:'weapon',amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'},
