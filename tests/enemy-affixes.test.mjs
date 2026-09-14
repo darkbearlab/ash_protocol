@@ -52,3 +52,8 @@ test('archived affixes and grenade commitment survive elapsed return; hooks cons
  const {flight:g}=affixScenes(),state=g.rng.state(),events=[];g.onEnemyCallout=e=>events.push(e);g.enemyCallout(g.enemies[0],'telegraph',{action:'grenade'});assert.equal(g.rng.state(),state);assert.equal(events.length,1);assert.ok(!g.serialize().includes('onEnemyCallout'));assert.doesNotThrow(()=>captureAction(g,()=>g.action('wait')));
  const {prepare:h}=affixScenes(),frame=archiveFloor(h);h.floorStates[1]=frame;h.turn+=4;const resumed=resumedFloor(frame,h.turn);assert.deepEqual(resumed.enemies,frame.enemies);assert.ok(Game.restore(JSON.stringify({version:38,data:{...JSON.parse(h.serialize()).data,floorStates:{}},rngState:h.rng.state()})));
 });
+
+test('reveal waits for an actual extra round or an actual dark accuracy check',()=>{
+ const g=affixArena(),e=sceneEnemy(g,'raider',['suppressor']);e.charge=true;e.windup=1;g.player.hp=1;sure(g);g.enemyAct(e);assert.equal(e.affixes[0].revealed,false);assert.ok(!g.logs.some(l=>l.text.includes('壓制者')));
+ const h=affixArena(),s=sceneEnemy(h,'sniper',['night_vision']);s.charge=true;s.windup=1;s.aim={x:h.player.x,y:h.player.y};h.lighting=h.grid.map(r=>r.map(()=>0));h.shotClear=()=>false;h.enemyAct(s);assert.equal(s.affixes[0].revealed,false);
+});
