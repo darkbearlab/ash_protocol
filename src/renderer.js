@@ -333,7 +333,7 @@ export class Renderer {
     this.objectHealth(p,a.x-12,y-4);
   }
   prop(a,p,time){
-    if(p.type==='nest'){drawNest(this.ctx,this.terrainImages?.get(NEST_ATLAS),a,this.tile,p);if(p.hp>0)this.objectHealth(p,a.x-12,a.y-this.tile*.4);return;}
+    if(p.type==='nest'){drawNest(this.ctx,this.terrainImages?.get(NEST_ATLAS),a,this.tile,p,this.game?.facilityFaction);if(p.hp>0)this.objectHealth(p,a.x-12,a.y-this.tile*.4);return;}
 
     if(p.type==='module'){const q=modulePoint(p,0,1);if(this.game.visibleTiles.has(`${q.x},${q.y}`)){const pos=this.project(q.x,q.y);this.text(MODULE_TYPES[p.theme].code,pos.x,pos.y+this.tile*.3,MODULE_TYPES[p.theme].color,8);}return;}
     if(p.style&&p.hp>0){this.furniture(a,p);return;}

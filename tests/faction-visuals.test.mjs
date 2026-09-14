@@ -43,5 +43,5 @@ test('callout voices: machines and creatures keep their card voice, others and h
  assert.equal(calloutVoice(seen('rifleman','qa_faction')),'machine');assert.equal(calloutVoice(heard('qa_faction')),'machine');
  assert.equal(calloutVoice(seen('crawler','qa_faction')),'creature');assert.equal(calloutVoice(seen('drone','legacy')),'machine');
  FACTIONS.qa_faction.voice='not_a_voice';assert.equal(calloutVoice(seen('rifleman','qa_faction')),'human','an unknown voice falls back to human');
- assert.deepEqual(Object.keys(VOICE_LINES).sort(),['civilian','human','loyalist','machine','rebel']);
+ assert.deepEqual(Object.keys(VOICE_LINES).sort(),['civilian','human','infected','loyalist','machine','rebel']);
 }));

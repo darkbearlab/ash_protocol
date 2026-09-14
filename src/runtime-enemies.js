@@ -7,9 +7,10 @@ import {roomTiles} from './map-geometry.js';
 export const RUNTIME_TUNING={liveLimit:64,expendableLimit:6,fodderCount:2,nestMinFloor:2,nestCount:1,nestHp:45,triggerRadius:6,interval:2,totalSpawn:6};
 // Cosmetic identity derives from the saved anchor, never combat/generation RNG.
 export const NEST_STYLES={burrow:{name:'蟲群地洞',color:'#b99770'},rift:{name:'裂隙傳送門',color:'#b078ed'}};
-export const nestStyle=p=>((p.x*31+p.y*17+Number(p.id.split('-')[1]))&1)?'burrow':'rift';
+// A faction may fix its nest look (swarm burrows, 3.83.0); otherwise the saved anchor picks one.
+export const nestStyle=(p,faction)=>factionDef(faction)?.nestStyle??(((p.x*31+p.y*17+Number(p.id.split('-')[1]))&1)?'burrow':'rift');
 export function collapseNest(g,p){
- p.hp=0;const style=nestStyle(p);
+ p.hp=0;const style=nestStyle(p,g.facilityFaction);
  g.effects.push({type:'nestCollapse',nestStyle:style,from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});
  g.log(style==='rift'?'裂隙閉合，留下紫色的空間粉末。':'地洞塌陷，被落土回填。');g.reveal();
 }
@@ -42,7 +43,7 @@ registerUnitTree('nest',{tick:({g,nest})=>{
   const p=DIRECTIONS.map(([dx,dy])=>({x:nest.x+dx,y:nest.y+dy})).find(p=>g.passable(p.x,p.y)&&g.canCross(nest,p)&&distance(g.player,p)>0&&!g.enemies.some(e=>e.hp>0&&key(e)===key(p))&&!g.activeAllies.some(a=>key(a)===key(p))&&!g.props.some(o=>key(o)===key(p))&&!g.hazards.some(o=>key(o)===key(p))&&!g.items.some(o=>key(o)===key(p)));
   if(!p)return;
   const e=g.spawnEnemy(factionDef(g.facilityFaction??DEFAULT_FACTION).nestChild,p.x,p.y,`${nest.id}-child-${++s.serial}`);e.nestId=nest.id;e.alert=true;e.lastKnown={x:g.player.x,y:g.player.y};g.enemies.push(e);s.remaining--;s.cooldown=s.interval;
-  const style=nestStyle(nest);
+  const style=nestStyle(nest,g.facilityFaction);
   g.effects.push({type:'nestSpawn',nestStyle:style,from:{x:nest.x,y:nest.y},to:p,damage:0});g.log(style==='rift'?'裂隙中傳送出一隻幼蟲。':'地洞中鑽出一隻幼蟲。');
   if(s.remaining===0)collapseNest(g,nest);
 }});

@@ -58,6 +58,13 @@ export const ENEMY_LOOT=Object.freeze(Object.fromEntries(['rifleman','raider','g
 const variantCard=(base,patch)=>({...ENEMY_TYPES[base],sprite:{...ENEMY_TYPES[base].sprite,key:ENEMY_TYPES[base].sprite?.key||base},variantOf:base,...patch});
 for(const base of ['raider','gunner'])ENEMY_TYPES[`${base}_elite`]=variantCard(base,{elite:true});
 for(const base of ['rifleman','raider'])ENEMY_TYPES[`${base}_armored`]=variantCard(base,{armor:1});
+// Swarm (3.83.0, docs/FACTION_DATA.md 16): a giant bug with huge HP and no armour, oversized bug bosses on the crawler
+// art, and infected soldiers that fire more rounds with far worse aim (card combat becomes the unit's combatModifiers).
+ENEMY_TYPES.giant_bug={sprite:{key:'crawler',size:1.3,scale:1.3,tint:'#9a7a52'},drawing:{shape:'critter',color:'#9a7a52'},projectile:'melee',voice:'creature',tags:['breaker'],traits:['large','suppression_resistance'],rounds:1,attackStyle:'claw',name:'巨型蟲',hp:150,damage:22,range:1,armor:0,color:'#9a7a52',xp:3,role:'血很多、沒有裝甲的巨蟲。穿甲沒有用，要靠持續火力。'};
+ENEMY_TYPES.hive_beast={...ENEMY_TYPES.giant_bug,sprite:{key:'crawler',size:1.55,scale:1.55,tint:'#80603f'},drawing:{shape:'critter',color:'#80603f'},tags:['boss','breaker'],name:'巢穴巨獸',hp:420,damage:26,xp:4,role:'第 3 層的蟲族頭目：生命極高、沒有裝甲的近戰巨獸。'};
+ENEMY_TYPES.hive_matriarch={...ENEMY_TYPES.hive_beast,sprite:{key:'crawler',size:1.7,scale:1.7,tint:'#6e4a5a'},drawing:{shape:'critter',color:'#6e4a5a'},name:'母巢巨獸',hp:600,damage:30,xp:5,role:'第 6 層的蟲族頭目：比巢穴巨獸更大、更耐打。'};
+for(const [base,rounds,ammo,tint,name] of [['rifleman',3,'ammo','#8fa06a','被感染槍兵'],['raider',4,'pistol','#a0925e','被感染突擊兵']])
+ ENEMY_TYPES[`${base}_infected`]=variantCard(base,{name,rounds,combat:{rangedAccuracy:-35},loot:{ammo},voice:'infected',sprite:{key:base,tint},role:'被蟲族寄生的士兵：一次連發很多發，但幾乎打不準；只要命中仍會造成壓制。'});
 // Stable IDs; append content without changing saved offers. null cap means consumable reward.
 export const PERKS = [
   {id:'damage',name:'武器增幅',cap:3,effect:'weapon',amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'},

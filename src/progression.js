@@ -3,7 +3,7 @@ import {carryLevels,carryingSpent} from './ammunition.js';
 import {ENDLESS_MAX_FLOOR} from './endless.js';
 import {validCharacter} from './characters.js';
 // Stable IDs for weapon-pool / character unlocks and permanent equipment upgrades.
-export const PROTOCOL_REWARDS={floor:4,lore:3,warden:8,boss:12,extraction:16};
+export const PROTOCOL_REWARDS={floor:4,lore:3,warden:8,boss:12,hive_beast:8,hive_matriarch:12,extraction:16};
 export const newRunId=()=>globalThis.crypto?.randomUUID?.()||`run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 export const weaponUnlocked=(weapon,ids=[])=>!weapon.unlockId||ids.includes(weapon.unlockId);
 const integer=n=>Number.isSafeInteger(n)&&n>=0?n:0;

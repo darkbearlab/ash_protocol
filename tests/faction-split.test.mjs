@@ -23,7 +23,7 @@ test('the first split adds two pickable human factions without fodder or nests',
 
 test('facilities roll by seed over pickable factions; construction without a choice keeps the legacy default',()=>{
  const counts={};for(let seed=1;seed<=200;seed++){const id=rollFacilityFaction(seed);assert.equal(rollFacilityFaction(seed),id);assert.ok(factionDef(id).pickable);counts[id]=(counts[id]||0)+1;}
- for(const id of ['loyalist','rebel'])assert.ok(counts[id]>=60,JSON.stringify(counts));
+ for(const id of ['loyalist','rebel','swarm'])assert.ok(counts[id]>=45,JSON.stringify(counts));
  assert.equal(new Game(7).facilityFaction,pickFacilityFaction(7,'extraction'));
  assert.equal(new Game(7,[],0,'soldier','onyx','extraction',{facilityFaction:'random'}).facilityFaction,rollFacilityFaction(7));
  const rebel=new Game(7,[],0,'soldier','onyx','extraction',{facilityFaction:'rebel'});

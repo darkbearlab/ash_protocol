@@ -50,7 +50,7 @@ export function lineOfSight(grid,a,b,barriers=[],channel='sight') {
 }
 export function makeEnemy(type,x,y,id,floor=1,offset=0,faction=DEFAULT_FACTION) {
   const def=ENEMY_TYPES[type],hp=def.expendable||isNoncombatant(type)?def.hp:scaleEnemy(def.hp+(isBossClass(type)?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp',offset);
-  return {id,type,x,y,hp,maxHp:hp,faction,...(isNoncombatant(type)?{screamCooldown:0}:{}),...(def.expendable?{expendable:true,reinforcement:true,actionDelay:0}:{}),vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
+  return {id,type,x,y,hp,maxHp:hp,faction,...(isNoncombatant(type)?{screamCooldown:0}:{}),...(def.combat?{combatModifiers:{...def.combat}}:{}),...(def.expendable?{expendable:true,reinforcement:true,actionDelay:0}:{}),vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);

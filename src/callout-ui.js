@@ -48,16 +48,25 @@ const CIVILIAN={
  suppressed:['別打了，我趴下了！','不要開槍，我不動！'],pinned:['我動不了……別殺我！','拜託，放我走……'],
 };
 // Faction voices (3.80.0): loyalists report like a front line, rebels shout and curse. Machines keep MACHINE.
-export const VOICE_LINES={human:HUMAN,machine:MACHINE,loyalist:LOYALIST,rebel:REBEL,civilian:CIVILIAN};
+// Infected soldiers (3.83.0): the parasite is winning, so they mutter broken fragments of their old orders.
+const INFECTED={
+ grenade:['……丟……丟出去……','炸……炸開牠們……'],bombard:['……座標……座標……'],aim:['……看……看得見……','別動……別……'],attack:['殺……殺……！','開火……開火開火……！'],
+ affix_fast:['快……好快……'],affix_infrared:['……熱的……好熱……'],affix_night_vision:['黑……黑暗裡……看得見……'],affix_suppressor:['打……一直打……！'],affix_grenadier:['……炸藥……給我……'],
+ move:['……往前……往前……','走……走……'],cover:['躲……要躲……'],hold:['……不走……不走……'],reload:['……子彈……子彈呢……'],flank:['……繞……繞過去……'],
+ hit:['啊啊……！','痛……不痛……？'],wounded:['……裡面……在動……'],critical:['……讓牠們……出來……','好癢……好癢……'],suppressed:['……吵……好吵……'],pinned:['……動……動不了……'],
+ spotted:['……人……活的人……','在那……在那……'],lost:['……不見了……'],search:['……找……聞得到……'],
+};
+export const VOICE_LINES={human:HUMAN,machine:MACHINE,loyalist:LOYALIST,rebel:REBEL,civilian:CIVILIAN,infected:INFECTED};
 // A unit that speaks for itself sends its voice with the event, seen or heard (civilians, 3.82.0 rules). Otherwise
 // machines and creatures keep their card voice and the rest use the faction voice, falling back to the neutral human
 // voice. Heard callouts carry no unit type, so they can only use the faction voice (user decision, 2026-09-14).
 export function calloutVoice(event){
  if(typeof event.voice==='string'&&Object.hasOwn(VOICE_LINES,event.voice))return event.voice;
- const faction=factionDef(event.faction)?.voice,factionVoice=faction&&VOICE_LINES[faction]?faction:'human';
+ // A faction may speak as creatures (swarm, 3.83.0): heard lines then follow the category like any creature noise.
+ const faction=factionDef(event.faction)?.voice,factionVoice=faction&&(Object.hasOwn(VOICE_LINES,faction)||faction==='creature')?faction:'human';
  if(event.visibility!=='visible')return factionVoice;
  const def=ENEMY_TYPES[event.enemyType];
- return def?.mechanical?'machine':def?.voice==='creature'?'creature':factionVoice;
+ return def?.mechanical?'machine':def?.voice==='creature'?'creature':typeof def?.voice==='string'&&Object.hasOwn(VOICE_LINES,def.voice)?def.voice:factionVoice;
 }
 const hash=text=>{let h=2166136261;for(const c of text){h^=c.codePointAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 export function calloutLine(event,variant=0){

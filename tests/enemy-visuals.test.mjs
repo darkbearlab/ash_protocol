@@ -44,7 +44,7 @@ test('appearance data only names atlas cells, shapes and projectiles that exist'
   assert.ok(look.size>0&&look.scale>0,id);assert.ok(DRAWING_SHAPES.includes(enemyDrawing(id).shape),id);
   if(d.projectile!==undefined)assert.ok(ENEMY_PROJECTILES.includes(d.projectile)&&WEAPON_VISUALS[d.projectile],id);
   if(d.glyph!==undefined)assert.equal([...d.glyph].length,1,id);
-  if(d.voice!==undefined)assert.equal(d.voice,d.tags.includes('noncombatant')?'civilian':'creature',id);
+  if(d.voice!==undefined)assert.ok(d.tags.includes('noncombatant')?d.voice==='civilian':['creature','infected'].includes(d.voice),id);
  }
  assert.equal(enemySprite('player').key,'player');assert.equal(enemyDrawing('player').shape,'humanoid');assert.equal(enemyGlyph('unknown'),'!');
 });
