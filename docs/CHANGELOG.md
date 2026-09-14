@@ -15,6 +15,7 @@
   - `node qa/enemy-data-identity.mjs` 與基準一致；一般敵人的繪製呼叫相同。
   - 瀏覽器場景確認外觀、目標卡與圖鑑。
   - 細節見 [FACTION_DATA.md](FACTION_DATA.md) 第 16 節與 [3.83.0 QA](../qa/results/2026-09-14-claude-3.83.0-swarm-first-pass.md)。
+- 已部署：GitHub Pages run 34860996344 成功，線上 `src/version.js` 確認為 3.83.0；完整 794 項測試與 build 通過。
 
 ## 3.82.1 — 平民台詞、非戰鬥人員標籤與平民圖明暗（Claude，2026-09-14）
 
