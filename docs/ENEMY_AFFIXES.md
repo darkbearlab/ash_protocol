@@ -155,3 +155,31 @@
 執行 `node qa/create-enemy-affix-scenes.mjs`，輸出 `qa/fixtures/affix-{hidden,prepare,flight,resistance,deep,legacy}.json`。一律用 `?test=1`，從設定匯入原始場景存檔。hidden 觀察顯現順序、prepare 測試失能取消、flight 測試殺死投擲者後仍爆炸與走出半徑、resistance 重複學習／滿階拆解、deep 查看第 12 層出生結果、legacy 讀 v37 菁英遷移。產生器會先逐份 Game.restore 驗證，檔案已忽略，不提交。
 
 測試與已知介面待辦詳見 [本輪 QA 報告](../qa/results/2026-09-14-codex-3.75.0-enemy-affixes.md)。
+
+### Claude 介面接線（3.75.1，已完成）
+
+**名稱**
+- `src/affix-ui.js` 的 `cardEnemyName(enemy)` 只讀 enemyDisplayName 與 revealedAffixes，不讀 enemy.affixes；是否還有未顯現詞條，看名稱結尾的「？」。
+- 片段上限為 `CARD_AFFIX_FRAGMENTS=2`。
+- 目標卡的 `name` 用截斷名；`fullName` 是完整名稱，同時設為 #target-name 的 aria-label。戰鬥紀錄與圖鑑沿用 3.75.0 的完整名稱。
+
+**擲彈**
+- `grenadeMarkers(game)` 把 grenadeTelegraphs 轉成 `{phase,x,y,radius,origin,line,label}`。
+- renderer 的 `grenadeMarker` 在角色之前畫區域與投擲線：
+  - 準備：半徑 0 橘框加虛線。
+  - 飛行：半徑 1 紅區加點線。
+- `grenadeLabel` 在角色之後，於格子上方畫「投擲」或「爆炸 N」。落點通常就是玩家所在格，畫在格子中央會被角色蓋住。
+- 投擲線只在投擲者可見、或出手格可見時才畫。
+- 飛行標記不依投擲者是否存活過濾，也不顯示 damage。
+- `g.marks` 迴圈跳過 kind 為 grenade 的項目，其他 marks 畫法不變。
+- 演出播放時，讀的是該步快照上的 grenadeTelegraphs。
+
+**抗性**
+- `traitLabels`（traits.js）對 suppression_resistance 附上「N 階」，只計算會顯示的來源。
+- `learningEntries` 帶出 `rank`／`maxRank`，說明寫「目前 N/3 階」。
+- 技能分頁的被動規則改用 `traitRuleLines(actor)`：同一 id 的多個來源合併成一行；只有全部來源都有時限時才顯示剩餘回合。
+- `suppressionHelp` 補上抗性說明一句。
+
+**喊話**：未接。`onEnemyCallout` 仍沒有接收器，留給 REAL_MODE。
+
+測試 tests/affix-ui.test.mjs 共 4 項；驗收紀錄見 [3.75.1 介面 QA](../qa/results/2026-09-14-claude-3.75.1-affix-ui.md)。

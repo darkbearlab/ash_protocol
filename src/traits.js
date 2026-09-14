@@ -37,7 +37,8 @@ export function activeTrait(actor,id){return hasTrait(actor,id)&&!hasTrait(actor
 export const initiative=actor=>activeTrait(actor,'fast')?-1:activeTrait(actor,'slow')?1:0;
 export const sizeModifier=actor=>activeTrait(actor,'large')?15:activeTrait(actor,'small')?-15:0;
 export const movementModifier=actor=>activeTrait(actor,'agile')?13:activeTrait(actor,'clumsy')?-13:0;
-export function traitLabels(actor){return [...new Set((actor?.traits||[]).filter(t=>!t.source.startsWith('affix:')||actor.affixes?.some(a=>a.revealed&&t.source===`affix:${a.id}`)).map(t=>t.id))].map(id=>`${TRAITS[id].short||TRAITS[id].name}${activeTrait(actor,id)?'':'（抵銷）'}`);}
+// Suppression resistance stacks by source, so its label carries the rank (3.75.1).
+export function traitLabels(actor){const shown=(actor?.traits||[]).filter(t=>!t.source.startsWith('affix:')||actor.affixes?.some(a=>a.revealed&&t.source===`affix:${a.id}`));return [...new Set(shown.map(t=>t.id))].map(id=>`${TRAITS[id].short||TRAITS[id].name}${id==='suppression_resistance'?` ${Math.min(3,new Set(shown.filter(t=>t.id===id).map(t=>t.source)).size)} 階`:''}${activeTrait(actor,id)?'':'（抵銷）'}`);}
 export function tickTraits(actor){actor.traits=(actor.traits||[]).flatMap(t=>t.turns===undefined?[t]:t.turns>1?[{...t,turns:t.turns-1}]:[]);}
 export function validTraits(traits){return Array.isArray(traits)&&traits.length<=68&&traits.filter(t=>t?.id==='suppression_resistance').length<=3&&new Set(traits.filter(t=>t?.id==='suppression_resistance').map(t=>t.source)).size===traits.filter(t=>t?.id==='suppression_resistance').length&&traits.every(t=>t&&typeof t==='object'&&!Array.isArray(t)&&typeof t.id==='string'&&Object.hasOwn(TRAITS,t.id)&&typeof t.source==='string'&&/^[a-zA-Z0-9:_-]{1,100}$/.test(t.source)&&(t.turns===undefined||(Number.isInteger(t.turns)&&t.turns>0&&t.turns<=999)));}
 export const bodyKeyword=type=>ENEMY_TYPES[type]?.mechanical?'mechanical':'biological';

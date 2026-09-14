@@ -1,4 +1,5 @@
 import {enemyDisplayName} from './enemy-affixes.js';
+import {cardEnemyName} from './affix-ui.js';
 import {suppressionTag} from './suppression-ui.js';
 import {nestStyle,NEST_STYLES} from './runtime-enemies.js';
 import {lightingEffects} from './lighting.js';
@@ -19,7 +20,7 @@ export function targetDetails(game){
   const melee=game.weapon.melee,enemy=ENEMY_TYPES[target.type],aim=enemy?game.accuracy(game.player,target):{chance:game.fireChance(target),bracedBonus:bracingBonus(game,game.player,target)};
   const light=lightingEffects(game,game.player,target),attack=game.attackStatus?.(game.player,target);
   const range=distance(game.player,target),withinDistance=range<=game.weapon.range,withinRange=withinDistance&&game.shotClear(game.player,target)&&(!melee||isBarrier(target)||game.canCross(game.player,target));
-  return {name:(enemy?(missionTarget(game,target)?'◇ ':'')+enemyDisplayName(target):null)||(isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target)].name:target.type==='barrel'?'爆裂油桶':FURNITURE[target.style]?.name||'可破壞掩體'),hp:`${isBarrier(target)?'耐久':'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}`,
+  return {name:(enemy?(missionTarget(game,target)?'◇ ':'')+cardEnemyName(target):null)||(isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target)].name:target.type==='barrel'?'爆裂油桶':FURNITURE[target.style]?.name||'可破壞掩體'),fullName:enemy?enemyDisplayName(target):'',hp:`${isBarrier(target)?'耐久':'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}`,
     chance:withinRange?`命中 ${aim.chance}%`:melee?'無法近戰':'無法射擊',distance:`距離 ${range} 格\n射程 ${game.weapon.range} 格${game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?' · 單發':' · 兩發'):''}`,
     traits:enemy?traitLabels(target).join(' · '):'',
     order:enemy&&(initiative(displayTarget)!==0||initiative(game.player)!==0)?(initiative(displayTarget)<initiative(game.player)?'行動在你之前':initiative(displayTarget)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',

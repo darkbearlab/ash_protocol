@@ -5,7 +5,7 @@ import {feedingView,petStatusLine,petOutputLine,fuelLabel,fuelPercent,lineProgre
 import {learningInventory} from './learning.js';
 import {LEARNING_ITEMS,LEARNING_SCRAP} from './learning-data.js';
 import {suppressivePreview} from './suppressive-fire.js';
-import {suppressionStatus,learningEntries,suppressionHelp} from './suppression-ui.js';
+import {suppressionStatus,learningEntries,suppressionHelp,traitRuleLines} from './suppression-ui.js';
 import {SKILLS,skillActive,skillStatus,canUseSkill} from './skills.js';
 import {boundaryOpacityPercent} from './movement-boundaries.js';
 import {actorStat,clampHit,combatStatSummary} from './actor-stats.js';
@@ -113,7 +113,7 @@ function update(view=renderer.game) {
   aimingButton.textContent=renderer.targetingEnabled?'瞄準 開':'瞄準 關';
   aimingButton.classList.toggle('enemy-alert',!renderer.targetingEnabled&&view.visibleEnemies.length>0&&view.status==='playing');
   const details=renderer.targetingEnabled?targetDetails(view):null,card=$('#target-card');card.hidden=!details;
-  if(details){$('#target-name').textContent=details.name;$('#target-detail').textContent=details.hp;$('#target-range').textContent=details.chance;$('#target-distance').textContent=details.distance;$('#target-cover').textContent=details.cover;$('#target-state').textContent=details.state;$('#target-traits').textContent=details.traits;$('#target-order').textContent=details.order;card.classList.toggle('out-of-range',!details.withinRange);}
+  if(details){$('#target-name').textContent=details.name;$('#target-name').setAttribute('aria-label',details.fullName||details.name);$('#target-detail').textContent=details.hp;$('#target-range').textContent=details.chance;$('#target-distance').textContent=details.distance;$('#target-cover').textContent=details.cover;$('#target-state').textContent=details.state;$('#target-traits').textContent=details.traits;$('#target-order').textContent=details.order;card.classList.toggle('out-of-range',!details.withinRange);}
   renderer.targetUI.dirty=true;renderer.placeTargetCard();
   for(const b of document.querySelectorAll('.control-deck button'))b.disabled=Boolean(playback)||view.status!=='playing'||(b.dataset.action==='skill'&&(!(ALLY_SKILLS.includes(p.prepared.skill)?canAllySkill(view,p.prepared.skill):canUseSkill(p,p.prepared.skill))||p.control.disabled))||(b.dataset.action==='reload'&&w.melee)||(Object.hasOwn(PREPARED_CATEGORIES,b.dataset.action)&&(!preparedEntry(p,b.dataset.action)||(preparedEntry(p,b.dataset.action).resource&&p[preparedEntry(p,b.dataset.action).resource]<=0)));
   $('[data-action="fire"] strong').textContent=w.melee?'揮拳':'開火';
@@ -340,7 +340,7 @@ function showInventory(tab=inventoryTab,message='') {
       <div class="prepared-list">${options.map(([id,entry])=>`<article class="prepared-entry ${p.prepared[category]===id?'equipped':''}"><h3>${entry.icon} ${entry.name}${entry.resource?`<b>×${p[entry.resource]}</b>`:''}</h3><p>${entry.text}${id==='medkit'?` 目前回復 ${healingAmount(p,45+p.healBonus)} 生命。`:''}</p>${entry.resource?'':`<span>${category==='skill'?(ALLY_SKILLS.includes(id)?allySkillState(game,id):skillStatus(p,id)+' · 冷卻剩餘 '+(p.skillState[id]?.cooldown||0)):'已學會'}</span>`}<button class="modal-button secondary" data-prepare-category="${category}" data-prepare-id="${id}" ${p.prepared[category]===id?'disabled':''}>${p.prepared[category]===id?'已預備':'預備 · 不耗回合'}</button></article>`).join('')}</div>
       ${!options.length?'<p class="pack-empty">尚未學會主動技能。</p>':''}
       ${selected?`<button class="modal-button secondary" data-prepare-category="${category}" data-prepare-id="">取消預備 · 不耗回合</button>`:''}
-      ${category==='item'?learningSection():''}${category==='skill'?`${petFeedingSection()}<h3>同行與留置友軍</h3><p>${game.allies.length?game.allies.map(a=>`${allyName(a)} · ${a.status==='packed'?(a.hp?'收納中':'收納中／待修復'):a.status==='reforming'?'消散，重生倒數中':a.status==='arriving'?'等候落點':a.status==='destroyed'?'已毀':'活動'} · 第 ${a.floor} 層 · HP ${a.hp}/${a.maxHp}${a.kind==='drone'?` · ${a.ammo}/${allyWeapon(a).mag} 發`:''}`).join('<br>'):'無'}。</p>${droneMaintenance()}<h3>目前被動規則</h3><p>${traitLabels(p).join(' · ')||'無'}。<br>${(p.traits||[]).map(t=>`${TRAITS[t.id].name}${t.turns?`（剩 ${t.turns} 回合）`:''}：${TRAITS[t.id].text}`).join('<br>')}</p><p>被動自動生效，不占主動技能預備欄。</p>`:''}`;
+      ${category==='item'?learningSection():''}${category==='skill'?`${petFeedingSection()}<h3>同行與留置友軍</h3><p>${game.allies.length?game.allies.map(a=>`${allyName(a)} · ${a.status==='packed'?(a.hp?'收納中':'收納中／待修復'):a.status==='reforming'?'消散，重生倒數中':a.status==='arriving'?'等候落點':a.status==='destroyed'?'已毀':'活動'} · 第 ${a.floor} 層 · HP ${a.hp}/${a.maxHp}${a.kind==='drone'?` · ${a.ammo}/${allyWeapon(a).mag} 發`:''}`).join('<br>'):'無'}。</p>${droneMaintenance()}<h3>目前被動規則</h3><p>${traitLabels(p).join(' · ')||'無'}。<br>${traitRuleLines(p).join('<br>')}</p><p>被動自動生效，不占主動技能預備欄。</p>`:''}`;
   }
   modal(`<div class="eyebrow">FIELD PACK / ${p.owned.length} OF ${game.weaponCapacity}</div><div class="operator-identity">${portraitMarkup(p.portrait)}<div><h2>作戰背包</h2><p>${characterName(p.character)} · 裝甲 ${p.armor}<br>${combatStatSummary(p)}${meleeSummary(p).map(line=>'<br>'+line).join('')}<br>${game.missionSummary}</p></div></div>
     <div class="pack-resources"><span>◇ 廢料 <b>${p.scrap}</b></span><span>▣ 護甲板 <b>${p.plates}/${game.plateCapacity}</b></span></div>
