@@ -538,7 +538,7 @@ export class Game {
     if(isBarrier(prop)){
       if(prop.hp<=0||!BARRIER_TYPES[prop.type].destructible)return;prop.hp=Math.max(0,prop.hp-Math.ceil(damage));if(!prop.hp)addTrace(this,prop,'debris');
       this.effects.push({type:'impact',from:{x:prop.x,y:prop.y},to:{x:prop.x,y:prop.y},damage:Math.ceil(damage),mechanical:true});
-      this.log(`${barrierName(prop)}${prop.hp?`耐久剩 ${prop.hp}。`:'已摧毀，通道打開。'}`);this.reveal();return;
+      this.log(`${barrierName(prop)}${prop.hp?`耐久剩 ${prop.hp}。`:'已摧毀，通道打開。'}`,false,`${barrierName(prop)}${prop.hp?'受損。':'已摧毀，通道打開。'}`);this.reveal();return;
     }
     if(prop.hp<=0)return;
     prop.hp-=damage;

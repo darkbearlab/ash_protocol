@@ -23,8 +23,9 @@ export function validateProfile(raw){
   requireValue(object(raw.unlocks)&&['weapons','characters'].every(k=>Array.isArray(raw.unlocks[k])&&raw.unlocks[k].every(id)),'解鎖紀錄無效。');
   requireValue(object(raw.protocolRuns),'點數發放紀錄缺漏。');
   let total=0;
+  // The real-mode bonus is only bounded by the base it came from, so retuning the percentage never invalidates old backups (3.76.1).
   for(const [key,value]of Object.entries(raw.protocolRuns)){
-    requireValue(id(key)&&object(value)&&count(value.earned)&&typeof value.recorded==='boolean'&&(value.realBonus===undefined||count(value.realBonus)&&value.realBonus<=Math.floor(value.earned/10)),'點數發放紀錄無效。');total+=value.earned+(value.realBonus||0);
+    requireValue(id(key)&&object(value)&&count(value.earned)&&typeof value.recorded==='boolean'&&(value.realBonus===undefined||count(value.realBonus)&&value.realBonus<=value.earned),'點數發放紀錄無效。');total+=value.earned+(value.realBonus||0);
   }
   requireValue(Number.isSafeInteger(total)&&total<=raw.protocol.earned,'點數發放紀錄與累計不符。');
   requireValue(Array.isArray(raw.history)&&raw.history.length<=10&&raw.history.every(r=>object(r)&&id(r.id)&&['seed','floor','kills','turn'].every(k=>count(r[k]))&&(r.mapGenerations===undefined||validGenerationHistory(r.mapGenerations))&&r.floor>=1&&r.floor<=(r.mission==='endless'?ENDLESS_MAX_FLOOR:6)&&(r.level===undefined||count(r.level)&&r.level>=1)&&(r.mission!=='endless'||r.won===false)&&r.turn>=1&&typeof r.won==='boolean'&&(r.outcome===undefined||['won','dead','abandoned'].includes(r.outcome))&&(r.mission===undefined||validMissionId(r.mission))&&(r.character===undefined||validCharacter(r.character))&&(r.portrait===undefined||validPortrait(r.portrait))&&typeof r.date==='string'&&Number.isFinite(Date.parse(r.date))&&(r.protocol===undefined||count(r.protocol))&&(r.realMode===undefined||typeof r.realMode==='boolean')&&(r.protocolBonus===undefined||count(r.protocolBonus)&&r.protocolBonus<=(r.protocol||0)&&(!r.protocolBonus||r.realMode===true))),'最近任務紀錄無效。');

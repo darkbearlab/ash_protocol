@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {Game,makeEnemy,receiveCallout,CALLOUT_TUNING,protocolSettlement,finishSuppression} from '../src/engine.js';
 import {normalizeProfile,creditProtocol} from '../src/progression.js';
 import {makeBackup,decodeBackup,validateProfile} from '../src/backup.js';
+import {BARRIER_TYPES} from '../src/barriers.js';
 import {affixArena,sceneEnemy} from '../qa/enemy-affix-scenes.mjs';
 import {captureAction,presentStep,planPresentation} from '../src/presentation.js';
 const arena=(realMode=false)=>{const raw=JSON.parse(affixArena().serialize());raw.data.realMode=realMode;return Game.restore(JSON.stringify(raw));};
@@ -12,7 +13,7 @@ test('1: deployment locks mode, both modes restore and backup; v38 migrates to s
  const raw=JSON.parse(new Game(95).serialize());raw.version=38;delete raw.data.realMode;assert.equal(Game.restore(JSON.stringify(raw)).realMode,false);raw.version=39;assert.equal(Game.restore(JSON.stringify(raw)),null);raw.data.realMode='yes';assert.equal(Game.restore(JSON.stringify(raw)),null);
 });
 test('2: actual hits, misses, enemy damage, disruption and hazards log without numbers in real mode',()=>{
- const g=arena(true),e=sceneEnemy(g,'rifleman');clear(g);g.hurt(e,17);g.damagePlayer(14,'槍击',e);g.rng=Object.assign(()=>.999,{state:()=>1});g.fire();e.charge=true;e.windup=1;g.enemyAct(e);g.hazards=[{x:g.player.x,y:g.player.y,type:'acid'}];g.environmentTurn();
+ const g=arena(true),e=sceneEnemy(g,'rifleman');clear(g);g.hurt(e,17);g.damagePlayer(14,'槍擊',e);g.rng=Object.assign(()=>.999,{state:()=>1});g.fire();e.charge=true;e.windup=1;g.enemyAct(e);g.hazards=[{x:g.player.x,y:g.player.y,type:'acid'}];g.environmentTurn();
  assert.ok(g.logs.some(l=>l.text.includes('命中')));assert.ok(g.logs.some(l=>l.text.includes('未命中')));assert.ok(g.logs.every(l=>!/[0-9%]/.test(l.text)),g.logs.map(l=>l.text).join('|'));assert.ok(g.logs.every(l=>Object.keys(l).sort().join(',')==='danger,text,turn'));
  const normal=arena(),n=sceneEnemy(normal);clear(normal);normal.hurt(n,17);assert.ok(normal.logs.some(l=>l.text.includes('17')));
 });
@@ -20,11 +21,11 @@ test('3: marks, combat state and RNG are identical in both modes; callout belong
  const results=[];for(const mode of [false,true]){const g=arena(mode),e=sceneEnemy(g,'boss');e.attackCount=1;clear(g);const state=g.rng.state(),steps=captureAction(g,()=>presentStep(g,()=>g.enemyAct(e)));assert.equal(g.rng.state(),state);assert.equal(g.marks.length,1);assert.ok(steps.steps.some(s=>s.effects.some(f=>f.type==='callout'&&f.cue==='bombard')));results.push({marks:g.marks,hp:g.player.hp});}assert.deepEqual(...results);
 });
 test('4: heard events and observers contain only direction, never actor IDs, names, rooms or precise positions',()=>{
- const g=arena(),e=sceneEnemy(g);g.teamVisible=()=>false;clear(g);let seen;g.onEnemyCallout=x=>seen=x;const event=receiveCallout(g,e,'telegraph',{action:'grenade',x:99,actorId:'secret',damage:700});assert.equal(event.visibility,'heard');assert.equal(event.direction,'east');assert.deepEqual(Object.keys(event).sort(),['category','cue','direction','priority','type','visibility']);assert.deepEqual(seen,event);assert.ok(!JSON.stringify(event).includes('secret'));assert.match(g.logs[0].text,/東側傳來喊聲/);
+ const g=arena(),e=sceneEnemy(g);g.teamVisible=()=>false;clear(g);let seen;g.onEnemyCallout=x=>seen=x;const event=receiveCallout(g,e,'telegraph',{action:'grenade',x:99,actorId:'secret',damage:700});assert.equal(event.visibility,'heard');assert.equal(event.direction,'east');assert.deepEqual(Object.keys(event).sort(),['category','cue','direction','priority','type','visibility']);assert.deepEqual(seen,event);assert.ok(!JSON.stringify(event).includes('secret'));assert.equal(g.logs.length,0,'callouts never write the combat log');
 });
 test('4/5: outside hearing range, unknown cues and player/allied speakers emit nothing; visible events are safe copies',()=>{
  const g=arena(),e=sceneEnemy(g);clear(g);e.x=g.player.x+CALLOUT_TUNING.hearingRadius+1;assert.equal(receiveCallout(g,e,'telegraph',{action:'aim'}),null);e.x=14;for(const [kind,detail] of [['bogus',{}],['telegraph',{action:'damage:999'}],['state',{state:'grenade'}]])assert.equal(receiveCallout(g,e,kind,detail),null);assert.equal(receiveCallout(g,g.player,'injury',{cue:'hit'}),null);assert.equal(receiveCallout(g,{...e,kind:'pet'},'injury',{cue:'hit'}),null);assert.equal(g.effects.length,0);assert.equal(g.logs.length,0);
- const event=receiveCallout(g,e,'telegraph',{action:'aim'});assert.equal(event.actorId,e.id);event.position.x=1;assert.equal(e.x,14);
+ const event=receiveCallout(g,e,'telegraph',{action:'aim'});assert.equal(event.actorId,e.id);event.position.x=1;assert.equal(e.x,14);assert.equal(g.logs.length,0,'visible callouts do not log either');
 });
 test('5: injury thresholds and suppression emit semantic cues without persisted actor counters or RNG use',()=>{
  const g=arena(),e=sceneEnemy(g),before=Object.keys(e).sort(),rng=g.rng.state();clear(g);g.hurt(e,1);g.hurt(e,105);g.hurt(e,50);assert.deepEqual(g.effects.filter(f=>f.type==='callout'&&f.category==='injury').map(f=>f.cue),['hit','wounded','critical']);finishSuppression([e],new Set([e]),3,1,g);finishSuppression([e],new Set(),1,1,g);assert.ok(g.effects.some(f=>f.cue==='suppressed'));assert.ok(g.effects.some(f=>f.cue==='pinned'));assert.equal(g.rng.state(),rng);assert.deepEqual(Object.keys(e).filter(k=>k!=='suppression').sort(),before);const h=Game.restore(g.serialize());assert.ok(h);assert.deepEqual(h.effects,[]);
@@ -48,4 +49,22 @@ test('callout timing follows impact and never adds an animation pause',()=>{
 test('suppression outside projectile steps still reaches captured playback exactly once',()=>{
  const g=arena(),e=sceneEnemy(g);clear(g);const {steps}=captureAction(g,()=>finishSuppression([e],new Set(),0,1,g));
  assert.equal(steps.flatMap(s=>s.effects).filter(f=>f.cue==='suppressed').length,1);assert.equal(planPresentation(steps).duration,0);
+});
+
+// 3.76.1 user decisions (REAL_MODE section 6): callouts are presentation only, durability is hidden, backups ignore tuning.
+test('7: an enemy turn that calls out still logs only its rules line',()=>{
+ for(const mode of [false,true]){const g=arena(mode),e=sceneEnemy(g,'boss');e.attackCount=1;clear(g);presentStep(g,()=>g.enemyAct(e));
+  assert.ok(g.effects.some(f=>f.type==='callout'&&f.cue==='bombard'));assert.equal(g.logs.filter(l=>l.text.includes('轟炸')).length,1,g.logs.map(l=>l.text).join('|'));}
+});
+test('real mode hides barrier durability in the log; standard keeps the number',()=>{
+ const type=Object.keys(BARRIER_TYPES).find(t=>BARRIER_TYPES[t].destructible),barrier=mode=>{const g=arena(mode);clear(g);return {g,b:{id:`qa-${type}`,type,x:12,y:10,axis:'x',hp:40,maxHp:40}};};
+ const real=barrier(true);real.g.damageProp(real.b,10);assert.ok(real.g.logs[0].text.endsWith('受損。'));assert.ok(!/[0-9]/.test(real.g.logs[0].text),real.g.logs[0].text);
+ real.g.damageProp(real.b,99);assert.ok(real.g.logs[0].text.endsWith('已摧毀，通道打開。'));
+ const normal=barrier(false);normal.g.damageProp(normal.b,10);assert.ok(normal.g.logs[0].text.includes('耐久剩 30'));
+});
+test('backup validation bounds the real-mode bonus by its base, not by the current percentage',()=>{
+ const q=normalizeProfile(),run=arena(true);run.protocol.earned=29;run.status='dead';creditProtocol(q,run);const [id]=Object.keys(q.protocolRuns);assert.equal(q.protocolRuns[id].realBonus,2);
+ const raise=n=>{q.protocolRuns[id].realBonus+=n;q.protocol.earned+=n;q.protocol.balance+=n;};
+ raise(3);assert.ok(validateProfile(q),'a bonus from a higher future percentage still imports');
+ raise(q.protocolRuns[id].earned-q.protocolRuns[id].realBonus+1);assert.throws(()=>validateProfile(q),'a bonus above its base is corrupt');
 });
