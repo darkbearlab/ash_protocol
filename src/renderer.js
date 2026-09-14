@@ -68,7 +68,7 @@ export class Renderer {
     this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');
   }
   objectHealth(object,x,y,width=24,color='#cad396'){
-    if(!(object.hp>0&&object.hp<object.maxHp))return;
+    if(this.game.realMode||!(object.hp>0&&object.hp<object.maxHp))return;
     this.box(x,y,width,2,'#17281f');this.box(x,y,width*object.hp/object.maxHp,2,color);
   }
   line(x1,y1,x2,y2,color,width=1){const c=this.ctx;c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.strokeStyle=color;c.lineWidth=width;c.stroke();}
@@ -201,7 +201,7 @@ export class Renderer {
         else if(fx.style==='pellet')this.box(q.x-1,q.y-1,3,3,'#ffe1ad');
         else {this.line(q.x-Math.cos(angle)*(fx.style==='tracer'?18:7),q.y-Math.sin(angle)*(fx.style==='tracer'?18:7),q.x,q.y,color,fx.style==='tracer'?2:1);this.effectSprite(fx.style==='plasma'?'plasma':'bullet',q,fx.style==='tracer'?32:16,angle);}
       }
-      if(fx.miss||fx.damage>0)this.text(fx.miss?'MISS':'−'+fx.damage,b.x,b.y-20-(fx.quiet?0:age*23),color,fx.miss?10:14);c.globalAlpha=1;
+      if(fx.miss||fx.damage>0&&!this.game.realMode)this.text(fx.miss?'MISS':'−'+fx.damage,b.x,b.y-20-(fx.quiet?0:age*23),color,fx.miss?10:14);c.globalAlpha=1;
     }
     this.effects=this.effects.filter(e=>time-e.time<700);
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}
@@ -324,7 +324,7 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
       c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;if(!player||!this.classSprite(a,size,e.character,false,dark))this.sprite(spriteType,a,size,dark,hidden);c.restore();
       if(e.control?.disabled){this.box(a.x-size/2,a.y-size/2,size,size,'#b9d5e94f');this.text(`×${e.control.disabled}`,a.x+this.tile*.35,a.y-10,'#d6edff',11);}
       if(player){this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);const f=e.facing||[0,1];this.box(a.x+f[0]*18-1,a.y+f[1]*18-1,3,3,'#ffe3ab');}
-      else{this.box(a.x-13,a.y-this.tile*.45,26,3,'#17271e');this.box(a.x-13,a.y-this.tile*.45,26*e.hp/e.maxHp,3,e.charge?'#f2b779':def.color);this.suppressionPips(a,e);if(e.charge)this.text(e.type==='sniper'?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
+      else{this.enemyBars(a,e,def);if(e.charge)this.text(e.type==='sniper'?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
       return;
     }
     c.save();c.translate(a.x,a.y);c.scale(s,s);
@@ -347,9 +347,11 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
       if(type==='sniper')this.box(9,18,3,12,'#cad3b2');
     }
     c.restore();
-    if(!player){this.box(a.x-13,a.y-this.tile*.45,26,3,'#17271e');this.box(a.x-13,a.y-this.tile*.45,26*e.hp/e.maxHp,3,e.charge?'#f2b779':def.color);this.suppressionPips(a,e);if(e.charge)this.text(e.type==='sniper'?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
+    if(!player){this.enemyBars(a,e,def);if(e.charge)this.text(e.type==='sniper'?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
     else this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);
   }
+  // Health bar and suppression pips; real mode hides both, while the charge "!" and sniper countdown stay (3.76.3).
+  enemyBars(a,e,def){if(this.game.realMode)return;this.box(a.x-13,a.y-this.tile*.45,26,3,'#17271e');this.box(a.x-13,a.y-this.tile*.45,26*e.hp/e.maxHp,3,e.charge?'#f2b779':def.color);this.suppressionPips(a,e);}
   // One pip per suppression stack above the health bar; orange once the actor is pinned (3.74.1).
   suppressionPips(a,e){const n=suppressionStacks(e);for(let i=0;i<n;i++)this.box(a.x-13+i*5.4,a.y-this.tile*.45-4,4,2,n>=3?'#f2a85c':'#b8cff5');}
   // Grenadier telegraphs (3.75.1): amber landing tile and dashed throw line while it can be stopped, red blast once thrown.
