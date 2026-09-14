@@ -229,3 +229,23 @@ protocolSettlement(game); // {realMode, base, bonus, total}，playing 時 bonus=
 - [審查與 3.76.1 修正](../qa/results/2026-09-14-claude-3.76.0-review.md)
 
 **尚未驗收**：真手機、泡泡位置／節流／讀秒、音效、部署與結果介面。
+
+### Claude 介面進度
+
+**3.76.2 部署開關（完成）**
+
+使用者指示：選完任務與行動員後多一步選難度，預留給之後的旋鈕；加一個勾選框，勾了進遊戲就是真實模式。
+
+- 一般與每日任務在選完任務與行動員之後，進入第三步「選擇難度」。
+  - 清單來自 `src/deploy-ui.js` 的 `DIFFICULTY_OPTIONS`，目前只有「標準」。
+  - 之後做難度旋鈕時，在清單加列即可；偏移量必須通過 `validDifficultyOffset`。
+- 真實模式是一個勾選框。開始任務時，`runOptions({difficulty, realMode})` 產生第七參數交給 `new Game`。
+- 結算畫面標示 REAL，點數分開寫 `protocolSettlement` 的基礎與加成；最近任務紀錄讀取 `history.realMode`。
+- 快速任務不經過這一步，一律是標準。
+- 驗收見 [3.76.2 QA](../qa/results/2026-09-14-claude-3.76.2-deploy-step.md)。
+
+**待做**
+
+- 目標卡與地圖的顯示過濾：生命、可破壞物耐久、命中率、掩體、狀態標籤、血條、壓制點。
+- 喊話泡泡：節流、讀秒、看不到時的方向標示。
+- 擊中、落空、擊殺的音效。
