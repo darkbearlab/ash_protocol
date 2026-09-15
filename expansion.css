@@ -327,6 +327,16 @@ dialog .pack-weapon{padding:8px 10px}
 .pack-weapon-head h3{margin:0;font-size:14px}
 dialog .pack-weapon .pack-actions{margin-top:6px}
 dialog .pack-weapon .pack-actions button{min-height:40px}
-/* 3.97.1 (user report): the message line sits under the header, away from the thumbs; tabbed menus are anchored to the
-   top so switching tabs does not make the menu jump. */
-#modal.anchored{margin-top:max(16px,env(safe-area-inset-top));margin-bottom:auto;max-height:calc(100dvh - max(16px,env(safe-area-inset-top)) - max(16px,env(safe-area-inset-bottom)))}
+/* 3.97.1 (user report): the message line sits under the header, away from the thumbs.
+   3.97.2 (user request): on phones a menu is a bottom sheet, so its buttons and tab row sit on the screen's bottom edge
+   for one-handed use; a tabbed menu fills the height so its top stays put when tabs of different heights change. */
+dialog .modal-footer{flex-wrap:wrap}
+dialog .modal-footer>[role="tablist"],dialog .modal-footer>.journal-tabs{flex:1 0 100%;margin:0}
+@media(max-width:600px){
+ #modal:not(.title){width:100%;max-width:none;margin:auto 0 0;border-left:0;border-right:0;border-bottom:0;max-height:calc(100dvh - max(12px,env(safe-area-inset-top)))}
+ #modal.tabbed:not(.title){height:calc(100dvh - max(12px,env(safe-area-inset-top)))}
+ /* A full-height sheet needs the bar pushed down: sticky alone leaves it mid-sheet when the content is short. */
+ #modal.tabbed:not(.title) #modal-content{display:flex;flex-direction:column;min-height:100%}
+ #modal.tabbed:not(.title) .modal-footer{margin-top:auto}
+ dialog .modal-footer{padding-bottom:calc(var(--dialog-pad-y) + env(safe-area-inset-bottom))}
+}

@@ -211,12 +211,24 @@ function useItem(){if(!preparedEntry(game.player,'item')){showInventory('item','
 function toggleTargeting(){renderer.targetingEnabled=!renderer.targetingEnabled;write('ash-targeting',renderer.targetingEnabled?'on':'off');update();}
 function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify('附近沒有可見敵人。');return;}game.target=list[(list.findIndex(x=>x.id===game.target)+1)%list.length].id;update();}
 // The corner × appears on screens that already offer a way back, so the player never has to scroll to leave (3.54.0).
-// Menus with tabs are anchored to the top (3.97.1, user report), so switching between tabs of different heights does not jump.
-function modal(html,wide=false,title=false,closable=html.includes('data-modal="close"')){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal').classList.toggle('closable',closable);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('anchored',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
+// On phones a menu is a bottom sheet (3.97.2, user request): its buttons and tab row sit on the screen's bottom edge for
+// one-handed use, and a tabbed menu fills the height so its top does not move when tabs of different heights change.
+function modal(html,wide=false,title=false,closable=html.includes('data-modal="close"')){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal').classList.toggle('closable',closable);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
 // Main buttons stay on screen (3.97.0, user request): a menu marks them with .modal-footer; otherwise its final button
 // (or button row) is pinned. When that final button is a secondary back/cancel button, the button just before it (the
 // action) is pinned beside it, back first. Title screens lay themselves out and are left alone.
-function pinFooter(title){const content=$('#modal-content');if(title||content.querySelector('.modal-footer'))return;const last=content.lastElementChild;if(!last?.matches('.modal-button,.modal-row'))return;const prev=last.matches('.modal-button.secondary')&&last.previousElementSibling?.matches('.modal-button')?last.previousElementSibling:null;const footer=document.createElement('div');footer.className='modal-footer';content.append(footer);footer.append(...[prev,last].filter(Boolean).sort((a,b)=>Number(!a.classList.contains('secondary'))-Number(!b.classList.contains('secondary'))));}
+function pinFooter(title){
+  const content=$('#modal-content');if(title)return;
+  let footer=content.querySelector('.modal-footer');
+  if(!footer){
+    const last=content.lastElementChild;if(!last?.matches('.modal-button,.modal-row'))return;
+    const prev=last.matches('.modal-button.secondary')&&last.previousElementSibling?.matches('.modal-button')?last.previousElementSibling:null;
+    footer=document.createElement('div');footer.className='modal-footer';content.append(footer);
+    footer.append(...[prev,last].filter(Boolean).sort((a,b)=>Number(!a.classList.contains('secondary'))-Number(!b.classList.contains('secondary'))));
+  }
+  // The tab row joins the pinned bar, so tabs are as reachable as the buttons (3.97.2).
+  const tabs=content.querySelector('[role="tablist"],.journal-tabs');if(tabs&&!footer.contains(tabs))footer.prepend(tabs);
+}
 function close(){if(!entered){showIntro();return;}if(game.pendingPerks){showPerks();return;}if(game.status!=='playing'){showIntro();return;}$('#modal').close();$('#battle').focus({preventScroll:true});}
 function modalAction(type,arg){close();act(type,arg);}
 

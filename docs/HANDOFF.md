@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.97.1**（手機介面修正：訊息列移到上方、分頁選單固定在頂端、背包移除資料與紀錄按鈕，Claude；3.97.0 為手機介面；3.96.0 為工坊第 6 階段修理；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.97.2**（選單改成底部抽屜：返回按鈕與分頁釘在畫面下緣，Claude；3.97.1 為手機介面修正；3.97.0 為手機介面；3.96.0 為工坊第 6 階段修理；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -236,5 +236,10 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 
 3.97.1（Claude）：使用者在主畫面捷徑實測後的修正。
 - **訊息列**：`#field-messages` 移到標題列下方（expansion.css 的 `grid-template-areas`）。
-- **分頁選單**：有 `role="tablist"` 或 `.journal-tabs` 的選單由 `modal()` 加上 `anchored`，固定在畫面頂端。
+- **分頁選單**：有 `role="tablist"` 或 `.journal-tabs` 的選單由 `modal()` 加上 `tabbed`（3.97.1 是固定在頂端，3.97.2 起改成底部抽屜）。
 - **背包**：不再有「資料與紀錄」按鈕；行動員狀態從右上選單的「行動員狀態、任務紀錄與敵人圖鑑」進入。
+
+3.97.2（Claude）：選單改成底部抽屜（使用者要求單手操作）。
+- **版面**：`@media(max-width:600px)` 下 `#modal:not(.title)` 貼齊底部、滿寬；`#modal.tabbed` 再填滿高度，上緣固定。
+- **底部列**：`pinFooter` 把分頁列（`[role="tablist"]` 或 `.journal-tabs`）移進 `.modal-footer`，和主按鈕一起固定；`.modal-footer` 的下方內距加上 `env(safe-area-inset-bottom)`。
+- **注意**：填滿高度的抽屜要靠 `#modal-content` 的 flex 欄與 `.modal-footer{margin-top:auto}` 把底部列推到下緣；只有 sticky 時，內容短的分頁會讓它停在中間。
