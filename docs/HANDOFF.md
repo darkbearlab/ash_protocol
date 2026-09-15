@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-本機待發布版本 **3.90.0**（正常 git fetch 被審核服務滿載擋住，尚未提交；見本輪 QA 報告）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.90.1**（3.90.0 解鎖規則由 Codex 實作、Claude 代為提交；3.90.1 為 Claude 的介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -22,6 +22,7 @@
 
 - **Codex**：規則層，包括行動承諾、回合與先後手、命中與掩體判定、AI、地圖拓樸、存檔所有權。
 - **Claude**（2026-09-10 起）：數值、局內與全域經濟、選單與介面、文件，範圍見〈給Claude的交接〉。另外依 ALLY_ITERATION_SCOPE 迭代工程師、德魯伊、死靈法師的友軍。
+- **2026-09-15 起（Codex 暫停）**：使用者決定先假設一段時間無法使用 Codex。規則層、發布與推送改由 Claude 決定並維護，設計以 Claude 能維護為主。Claude 在原 Codex 範圍的變更記在對應規格（例如 UNLOCKS 第 13 節），Codex 回來後複查。
 - **使用者**：明確決定優先於文件，決定會記在對應規格或授權文件。真手機驗收與自然平衡由使用者判斷；介面可由 Claude 在 `?test=1` 驗證。
 
 ## 啟動與測試
@@ -210,3 +211,5 @@ sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩�
 
 ### 解鎖目錄（3.90.0）
 PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥落地，已鎖角色可續玩。unlock-catalog 是目錄/純交易，storage.grantUnlock 為原子寫入，run-unlocks 管逐層派系、屍體與待確認故事；content/stories 由使用者維護，stories.mjs 在 dev/build 前編譯。詳細 API、遷移、介面分工與 QA 場景見 UNLOCKS 第 11–12 節。
+
+3.90.1（Claude；Codex 額度不足期間，Claude 在 Codex 範圍內的變更待 Codex 複查）：玩家檔案新增頂層 `unlockLedger`，防止仍開著的 3.89 分頁把檔案寫回 v6 後重設解鎖；v3–v6 退款上限 `earned − balance`；storage 的 `grantUnlock` 只做購買，屍體走 `connectUnlocks` 綁定。介面在 `src/unlock-ui.js`（解鎖頁、鎖定列、結算故事）與 controller／renderer（屍體互動與繪製）。細節與未處理的複查建議見 UNLOCKS 第 13 節。

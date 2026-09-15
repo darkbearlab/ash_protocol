@@ -20,10 +20,15 @@ function endlessRecords(raw){
 export function normalizeProfile(raw={}) {
   const p=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
   const balance=integer(p.protocol?.balance),earned=integer(p.protocol?.earned);
-  const refund=p.version===3?carryingSpent(p.upgrades?.carrying):p.version>=4&&p.version<7?Object.values(carryLevels(p.upgrades?.carrying)).reduce((n,v)=>n+carryingSpent(v),0):0;
+  // Refund at most what the wallet shows was spent, so a damaged profile never ends with balance above earned.
+  const spent=p.version===3?carryingSpent(p.upgrades?.carrying):p.version>=4&&p.version<7?Object.values(carryLevels(p.upgrades?.carrying)).reduce((n,v)=>n+carryingSpent(v),0):0,refund=Math.min(spent,Math.max(0,earned-balance));
+  // unlockLedger mirrors unlocks at the top level. A 3.89 tab still open after the update rewrites the profile as v6 and
+  // rebuilds unlocks without stories, but keeps unknown top-level fields, so the ledger tells that downgrade from a real v6.
+  const ledger=p.version<7&&p.unlockLedger&&typeof p.unlockLedger==='object'&&!Array.isArray(p.unlockLedger)?p.unlockLedger:null,owned=p.version>=7?p.unlocks:ledger;
+  const characters=[...new Set([...STARTING_CHARACTERS,...(Array.isArray(owned?.characters)?owned.characters:[]).filter(id=>CHARACTER_IDS.includes(id))])],stories=[...new Set((Array.isArray(owned?.stories)?owned.stories:[]).filter(validStoryId))];
   return {...p,version:PROFILE_VERSION,killhouse:normalizeKillhouse(p.version>=6?p.killhouse:null),upgrades:{carrying:carryLevels(0)},runs:integer(p.runs),wins:integer(p.wins),bestFloor:Math.min(6,Math.max(1,integer(p.bestFloor))),bestKills:integer(p.bestKills),
     endless:endlessRecords(p.version>=5?p.endless:null),history:Array.isArray(p.history)?p.history:[],protocol:{balance:balance+refund,earned},
-    unlocks:{weapons:Array.isArray(p.unlocks?.weapons)?p.unlocks.weapons.filter(id=>typeof id==='string'):[],characters:p.version>=7?[...new Set([...STARTING_CHARACTERS,...(Array.isArray(p.unlocks?.characters)?p.unlocks.characters:[]).filter(id=>CHARACTER_IDS.includes(id))])]:[...STARTING_CHARACTERS],stories:p.version>=7?[...new Set((Array.isArray(p.unlocks?.stories)?p.unlocks.stories:[]).filter(validStoryId))]:[]},
+    unlocks:{weapons:Array.isArray(p.unlocks?.weapons)?p.unlocks.weapons.filter(id=>typeof id==='string'):[],characters,stories},unlockLedger:{characters:[...characters],stories:[...stories]},
     protocolRuns:p.protocolRuns&&typeof p.protocolRuns==='object'&&!Array.isArray(p.protocolRuns)?p.protocolRuns:{}};
 }
 // Cumulative high-water marks survive history trimming and importing an older save.

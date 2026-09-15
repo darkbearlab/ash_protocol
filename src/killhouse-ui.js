@@ -81,11 +81,11 @@ export const tutorialGateMarkup=()=>`<div class="eyebrow">SIMULATION / NEW INVEN
 <p>可以跳過；跳過後不再詢問，之後隨時能從主選單的 KILL HOUSE 重新訓練。</p>
 ${button('khTutorial','進入模擬訓練 →')}${button('khSkip','跳過，直接部署',true)}${button('intro','← 返回主選單',true)}`;
 
-export function killhouseMenuMarkup(profile,characters){
+export function killhouseMenuMarkup(profile,characters,locked=[]){
   const k=profile.killhouse,best=k?.best;
   return `<div class="eyebrow">KILL HOUSE / SIMULATION</div><h2>模擬訓練</h2>
 <p>${best?`最高分 ${best.score}（${characterLabel(best.character)}）`:'尚無街機紀錄。'}街機模式：整備後進入單層訓練場，沒有升級、掉落與頭目，只記最高分。</p>
-<nav class="title-menu deploy-menu">${entry('khTutorial','TRAINING','教學 · 固定士兵')}${characters.map(id=>entry('khArcade',`ARCADE · ${characterLabel(id)}`,k?.byCharacter?.[id]?`最高分 ${k.byCharacter[id].score}`:CHARACTERS[id].name.toUpperCase(),` data-character="${id}"`)).join('')}</nav>
+<nav class="title-menu deploy-menu">${entry('khTutorial','TRAINING','教學 · 固定士兵')}${characters.map(id=>entry('khArcade',`ARCADE · ${characterLabel(id)}`,k?.byCharacter?.[id]?`最高分 ${k.byCharacter[id].score}`:CHARACTERS[id].name.toUpperCase(),` data-character="${id}"`)).join('')}${locked.map(id=>entry('khArcade',`ARCADE · ${characterLabel(id)}`,'未解鎖 · 主選單 UNLOCKS',' disabled')).join('')}</nav>
 ${button('intro','← 返回主選單',true)}`;
 }
 

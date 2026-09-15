@@ -6,7 +6,7 @@ import {normalizeProfile,creditProtocol} from '../src/progression.js';
 import {landscapeTouch} from '../src/layout.js';
 
 test('full backup roundtrip preserves wallet, unlocks, history, run and grant ledger',()=>{
-  const g=new Game(23);g.awardProtocol('lore',1);const p=normalizeProfile();p.unlocks.weapons=['future-rifle'];p.unlocks.characters.push('ninja');creditProtocol(p,g);
+  const g=new Game(23);g.awardProtocol('lore',1);const p=normalizeProfile();p.unlocks.weapons=['future-rifle'];p.unlocks.characters.push('ninja');p.unlockLedger.characters.push('ninja');creditProtocol(p,g);
   const b=makeBackup(g,p,'qa'),result=decodeBackup(JSON.stringify(b),'qa');
   assert.deepEqual(result.snapshot.profile,p);assert.equal(result.game.runId,g.runId);assert.deepEqual(result.game.player,g.player);assert.deepEqual(result.game.grid,g.grid);
   assert.equal(creditProtocol(result.snapshot.profile,result.game),0);

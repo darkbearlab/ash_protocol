@@ -25,6 +25,7 @@ export function validateProfile(raw){
   if(raw.version>=4&&raw.version<7){requireValue(object(raw.upgrades)&&validCarryLevels(raw.upgrades.carrying),'各彈種攜行升級資料無效。');requireValue(raw.protocol.earned-raw.protocol.balance>=Object.values(raw.upgrades.carrying).reduce((sum,n)=>sum+carryingSpent(n),0),'攜行升級與點數支出不符。');}
   requireValue(object(raw.unlocks)&&['weapons','characters'].every(k=>Array.isArray(raw.unlocks[k])&&raw.unlocks[k].every(id)),'解鎖紀錄無效。');
   if(raw.version>=7)requireValue(STARTING_CHARACTERS.every(id=>raw.unlocks.characters.includes(id))&&raw.unlocks.characters.every(id=>CHARACTER_IDS.includes(id))&&new Set(raw.unlocks.characters).size===raw.unlocks.characters.length&&Array.isArray(raw.unlocks.stories)&&raw.unlocks.stories.every(validStoryId)&&new Set(raw.unlocks.stories).size===raw.unlocks.stories.length&&validCarryLevels(raw.upgrades?.carrying)&&Object.values(raw.upgrades.carrying).every(n=>n===0),'解鎖或已停用攜行資料無效。');
+  if(raw.unlockLedger!==undefined)requireValue(object(raw.unlockLedger)&&['characters','stories'].every(k=>Array.isArray(raw.unlockLedger[k])&&raw.unlockLedger[k].every(id)),'解鎖紀錄無效。');
   requireValue(object(raw.protocolRuns),'點數發放紀錄缺漏。');
   let total=0;
   // The real-mode bonus is only bounded by the base it came from, so retuning the percentage never invalidates old backups (3.76.1).

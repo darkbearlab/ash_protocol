@@ -45,3 +45,26 @@ test('storage atomically purchases, retries corpse writes and grants stories onl
  const before=memory.get('ash-profile');assert.equal(s.grantUnlock(createKillhouse(),'bulwark','corpse'),false);assert.equal(memory.get('ash-profile'),before);
  }finally{delete globalThis.localStorage;STORIES.splice(0,STORIES.length,...original);UNLOCK_CATALOG.splice(UNLOCK_CATALOG.indexOf(fixture),1);}
 });
+
+test('a v7 profile rewritten by a 3.89 tab keeps its unlocks; refunds never exceed spending',()=>{
+ const fixture={id:'qa-ledger-story',title:'QA',body:'QA',faction:'any',floors:[1,6],price:100,kind:'story',sources:['extraction']};STORIES.push(fixture);UNLOCK_CATALOG.push(fixture);try{
+ const p=normalizeProfile();p.protocol={balance:1200,earned:1200};
+ const bought=grantUnlock(grantUnlock(p,'ninja','purchase'),'qa-ledger-story','purchase');
+ assert.deepEqual(bought.unlockLedger,{characters:[...STARTING_CHARACTERS,'ninja'],stories:['qa-ledger-story']});
+ // The 3.89 normalizeProfile writes version 6 and rebuilds unlocks without stories, but keeps unknown top-level fields.
+ const downgraded={...JSON.parse(JSON.stringify(bought)),version:6,unlocks:{weapons:[],characters:['operator',...bought.unlocks.characters]}};
+ const restored=normalizeProfile(downgraded);
+ assert.deepEqual(restored.unlocks.characters,[...STARTING_CHARACTERS,'ninja']);assert.deepEqual(restored.unlocks.stories,['qa-ledger-story']);assert.equal(restored.protocol.balance,100);
+ assert.deepEqual(decodeBackup(JSON.stringify(makeBackup(null,restored,'qa')),'qa').snapshot.profile,restored);
+ const legacy=normalizeProfile();delete legacy.unlockLedger;legacy.version=6;legacy.unlocks.characters=['ninja','druid'];assert.deepEqual(normalizeProfile(legacy).unlocks.characters,STARTING_CHARACTERS);
+ const damaged=normalizeProfile();delete damaged.unlockLedger;damaged.version=6;damaged.upgrades.carrying=carryLevels(3);damaged.protocol={balance:20,earned:100};
+ const capped=normalizeProfile(damaged);assert.equal(capped.protocol.balance,100);assert.doesNotThrow(()=>makeBackup(null,capped,'qa'));
+ }finally{STORIES.splice(STORIES.indexOf(fixture),1);UNLOCK_CATALOG.splice(UNLOCK_CATALOG.indexOf(fixture),1);}
+});
+
+test('the public storage grant only buys; a corpse source cannot unlock for free',async()=>{
+ const memory=new Map();globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
+ try{const s=await import('../src/storage.js?unlock-public');const p=normalizeProfile();p.protocol={balance:0,earned:0};memory.set('ash-profile',JSON.stringify(p));
+ assert.equal(s.grantUnlock(new Game(5),'ninja','corpse'),false);assert.ok(!s.profile().unlocks.characters.includes('ninja'));
+ }finally{delete globalThis.localStorage;}
+});

@@ -57,13 +57,15 @@ function resultProfile(game,p=profile()){if(isSimulation(game)||game.status==='p
 
 export function recordResult(game){const p=resultProfile(game);if(!isSimulation(game)&&game.status!=='playing'&&!storage.recoveryPending)write('ash-profile',JSON.stringify(p));return p;}
 
-export function grantUnlock(game,id,source='purchase'){
+function commitUnlock(game,id,source){
   if(isSimulation(game)||storage.recoveryPending||!storage.available)return false;
   const p=profile();if(!storage.available)return false;
   const next=prepareUnlock(p,id,source);if(!next)return false;
   return write('ash-profile',JSON.stringify(next))?next:false;
 }
-export function connectUnlocks(game){return bindUnlocks(game,{profile,grant:(id,source)=>grantUnlock(game,id,source)});}
+// The public entry only buys. Corpse finds commit through the run binding, stories through resultProfile (3.90.0 review).
+export const grantUnlock=(game,id)=>commitUnlock(game,id,'purchase');
+export function connectUnlocks(game){return bindUnlocks(game,{profile,grant:(id,source)=>commitUnlock(game,id,source)});}
 // Removed public operations remain inert for older tools; no purchase/reset path exists.
 export function purchaseCarrying(){throw Error('攜行升級已取消。');}
 export function resetCarrying(){throw Error('攜行升級已取消。');}
@@ -102,7 +104,7 @@ export function abandonRun(game){
   if(storage.recoveryPending||!storage.available)throw new Error('本機儲存尚未就緒，尚未放棄任務。');
   const next=resultProfile({...game,status:'abandoned'});
   restoreBackup(JSON.stringify(makeBackup(null,next,backupNamespace)),game);
-  game.status='abandoned';game.pendingPerks=0;game.log('任務已放棄，已賺點數與永久升級保留。');return true;
+  game.status='abandoned';game.pendingPerks=0;game.log('任務已放棄，已賺點數與解鎖保留。');return true;
 }
 
 // UI calls these explicitly after the tutorial choice / arcade score calculation.

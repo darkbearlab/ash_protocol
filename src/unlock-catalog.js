@@ -12,5 +12,6 @@ export function grantUnlock(p,id,source,{simulation=false,settings=UNLOCK_SETTIN
  const e=unlockEntry(id);if(simulation||!e||unlocked(p,id)||(settings.demo&&(source==='purchase'||e.kind==='character'))||!['purchase',...e.sources].includes(source))return false;
  if(source==='purchase'&&(e.retired||p.protocol.balance<e.price))return false;
  const next=structuredClone(p),key=e.kind==='character'?'characters':'stories';
- next.unlocks[key]??=[];next.unlocks[key].push(id);if(source==='purchase')next.protocol.balance-=e.price;return next;
+ next.unlocks[key]??=[];next.unlocks[key].push(id);if(source==='purchase')next.protocol.balance-=e.price;
+ next.unlockLedger={characters:[...(next.unlocks.characters||[])],stories:[...(next.unlocks.stories||[])]};return next;
 }

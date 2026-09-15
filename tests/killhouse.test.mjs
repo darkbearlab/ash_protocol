@@ -51,8 +51,11 @@ test('arcade recipes reachable, no runtime sources/bosses/rewards/upgrades, civi
  }assert.ok(recipes.size>=2);
 });
 test('walking into exit settles at the player step, before later enemies can retaliate',()=>{
- const g=enterCombat(createKillhouse({mode:'arcade'}));Object.assign(g.player,{x:g.end.x-1,y:g.end.y});for(const e of g.enemies)e.alert=true;
- let enemyActions=0;g.enemyAct=()=>{enemyActions++;g.player.hp=0;};assert.ok(g.action('move',[1,0]));assert.equal(g.status,'won');assert.equal(enemyActions,0);assert.equal(g.simulationResult.turns,1);
+ const g=enterCombat(createKillhouse({mode:'arcade'}));
+ // The arcade seed is time-based and about 1 map in 20 walls off the exit's west edge, so approach from a crossable side.
+ const [dx,dy]=[[1,0],[-1,0],[0,1],[0,-1]].find(([dx,dy])=>{const from={x:g.end.x-dx,y:g.end.y-dy};return g.grid[from.y]?.[from.x]===1&&g.canCross(from,g.end)&&!g.enemies.some(e=>e.hp>0&&e.x===from.x&&e.y===from.y);});
+ Object.assign(g.player,{x:g.end.x-dx,y:g.end.y-dy});for(const e of g.enemies)e.alert=true;
+ let enemyActions=0;g.enemyAct=()=>{enemyActions++;g.player.hp=0;};assert.ok(g.action('move',[dx,dy]));assert.equal(g.status,'won');assert.equal(enemyActions,0);assert.equal(g.simulationResult.turns,1);
 });
 test('tutorial upgrade/drop switches are independent; default remains fixed and deaths do not restart in rules',()=>{
  const g=createKillhouse({options:{tutorialUpgrades:true,tutorialDrops:false,tutorialDeath:'menu'}});for(const e of g.enemies)g.hurt(e,e.hp,g.player);assert.ok(g.pendingPerks>0);assert.equal(g.player.scrap,0);
