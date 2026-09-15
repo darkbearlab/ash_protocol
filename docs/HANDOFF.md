@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.92.1**（浮游彈藥不再避開玩家，Claude；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.93.0**（工程師工坊第 3 階段武器掛載，Claude；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -60,6 +60,7 @@
 | `src/traits.js`、`src/actor-stats.js` | 被動規則與行動順序（`initiativeQueue`）；命中／迴避修正通道 |
 | `src/characters.js`、`src/skills.js` | 職業與起始配給；主動技能定義與狀態 |
 | `src/allies.js` | 友軍：機體、寵物、召喚物的建立、行動、繩索、換位、友軍技能 |
+| `src/workshop.js` | 工程師工坊：藍圖、生產序列、部署、浮游彈藥、武器掛載與掉落、v46 存檔遷移；見 ENGINEER.md |
 | `src/throwables.js`、`src/lighting.js` | 投擲物、失能與免疫、煙霧視線；照明與暗區 |
 | `src/barriers.js`、`src/containers.js`、`src/modules.js` | 門與隔板；補給箱；生活模組與補給站 |
 | `src/missions.js`、`src/retreat.js` | 任務合約與目標；三層往返的樓層保存與增援 |
@@ -93,7 +94,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v45**（`data.js` 的 `SAVE_VERSION`）。舊版 1～44 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v48**（`data.js` 的 `SAVE_VERSION`）。舊版 1～47 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v7**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -217,3 +218,5 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 3.91.0（Claude）：工程師工坊第 1 階段，SAVE 46。`src/workshop.js` 管藍圖、生產、部署、存檔遷移與驗證；上限與機體數值在 allies.js 的 `WORKSHOP_TUNING`、`lineLimit`、`deployLimit`。僚機技能、收納、回收與修理已移除，ALLIES.md、SKILLS.md 裡舊的工程師僚機段落以 ENGINEER.md 為準。identity harness 另外不雜湊空的生產序列。
 
 3.92.0（Claude）：工坊第 2 階段浮游彈藥，SAVE 47。行為在 `src/workshop.js` 的 `munitionAct`，由回合迴圈的友軍分支呼叫；數值在 allies.js 的 `MUNITION_TUNING`。投擲物結算從 `throwGrenade` 抽成 `Game.applyThrowable`，玩家投擲不變（一致性基準完全相同）。
+
+3.93.0（Claude）：工坊第 3 階段武器掛載，SAVE 48。製作、部署帶彈匣與掉落在 `src/workshop.js`（`mountableSlots`、`dropUnitWeapon`），射擊在 allies.js 的 `allyWeapon` 掛載分支與 `mountedHit`；`Game.restore` 的武器位置檢查包含生產序列與機體。

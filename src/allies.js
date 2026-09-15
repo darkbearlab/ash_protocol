@@ -7,6 +7,8 @@ import {combatStep} from './tactics.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {floorLimit} from './endless.js';
 import {ENEMY_TYPES,SIZE} from './data.js';
+import {weaponStats,volleyAt} from './weapons.js';
+import {AMMUNITION} from './ammunition.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
 import {activeTrait,validTraits,validCombatMemory} from './traits.js';
@@ -43,6 +45,12 @@ export const allyName=a=>a.kind==='pet'?'伴生獵獸':a.kind==='drone'?(a.sourc
 export function allyWeapon(a,player=null){
  if(a.kind==='pet')return petWeapon(player);
  if(a.kind==='drone'&&a.sourceId==='drone_munition')return {id:'munition',range:0,min:0,max:0,mag:0,ammoType:null,accuracyBonus:0};
+ // Mounted weapon (docs/ENGINEER.md section 5, 3.93.0): the weapon's own stats, affix and upgrades, the chassis accuracy
+ // modifier and fire control. The player's own perks and traits stay with the player.
+ if(a.kind==='drone'&&Number.isInteger(a.weapon)&&player){
+  const rank=classPerkRank(player,'engineer_firecontrol'),sentry=a.sourceId==='drone_sentry',w=weaponStats(player.weaponBases[a.weapon],player.affixes[a.weapon]),bonus=(player.upgrades[a.weapon]||0)*5+rank*CLASS_PERK_TUNING.fireDamage;
+  return {...w,min:w.min+bonus,max:w.max+bonus,...(w.closeRange?{closeMin:w.closeMin+bonus,closeMax:w.closeMax+bonus}:{}),accuracyBonus:w.accuracyBonus+(sentry?-37:-30)+rank*CLASS_PERK_TUNING.fireAccuracy,mounted:true};
+ }
  if(a.kind==='drone'){const rank=classPerkRank(player,'engineer_firecontrol'),sentry=a.sourceId==='drone_sentry',damage=(sentry?14:12)+rank*CLASS_PERK_TUNING.fireDamage;return {id:'rifle',range:7,min:damage,max:damage,mag:sentry?8:12,ammoType:'pistol',accuracyBonus:(sentry?-37:-30)+rank*CLASS_PERK_TUNING.fireAccuracy};}
  const summonBonus=a.kind==='summon'?classPerkRank(player,'necro_blades')*CLASS_PERK_TUNING.blades:0,def=ENEMY_TYPES[a.type],melee=def.range===1,damage=Math.max(8,def.damage)+summonBonus;
  return {id:melee?'melee':a.type===ALLY_BASE_TYPES.drone?'plasma':'rifle',range:def.range,min:damage,max:damage,melee,hitChance:90,accuracyBonus:-22,ammoType:null,mag:0};
@@ -142,7 +150,7 @@ export function useAllySkill(g,id){
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
  a.order=null;return true;
 }
-export function reloadDrone(g,a){const w=allyWeapon(a),k=w.ammoType==='rifle'?'reserve':'pistol',n=Math.min(w.mag-a.ammo,g.player[k]);a.ammo+=n;g.player[k]-=n;}
+export function reloadDrone(g,a){const w=allyWeapon(a,g.player),k=AMMUNITION[w.ammoType]?.key;if(!k)return;const n=Math.min(w.mag-a.ammo,g.player[k]);a.ammo+=n;g.player[k]-=n;}
 export function commandPet(g,point){
  const a=currentAllies(g).find(a=>a.kind==='pet');if(!a||g.player.prepared.skill!=='pet_command'||g.player.control.disabled||!point||!Number.isInteger(point.x)||!Number.isInteger(point.y)||!g.seen[point.y]?.[point.x]||!g.passable(point.x,point.y)||distance(point,g.player)>TETHER)return false;
  a.order=distance(point,g.player)===0?null:{x:point.x,y:point.y};g.log(a.order?'寵物收到留守指令，下次自身行動執行。':'寵物返回跟隨。');return true;
@@ -159,25 +167,36 @@ export function allyAct(g,a){
   syncPetSenses(g);petReactions(g);
  }
 }
+// Mounted-weapon hit: close-range damage, pierce, explosive rounds (radius 1) and shotgun splash, as the player's gun.
+function mountedHit(g,a,e,w){
+ const close=w.closeRange&&distance(a,e)<=w.closeRange,low=close?w.closeMin:w.min,high=close?w.closeMax:w.max,damage=low+Math.floor(g.rng()*(high-low+1));
+ if(w.explosive)g.explode(e,1,damage,a);else g.hitTarget(e,damage,a,w.pierce||0,w);
+ if(w.splash)for(const other of g.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&g.sight(a,o)))g.hitTarget(other,Math.round(damage*.45),a,w.pierce||0,w);
+}
 function actAlly(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return;
  slotTurn.set(a,g.turn);a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return;
  let w=allyWeapon(a,g.player);const linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
  if(a.kind==='pet'&&targets.some(e=>distance(a,e)===1&&g.shotClear(a,e)&&g.canCross(a,e)))w=petWeapon(g.player,true);
- const shot=linked&&(a.kind!=='drone'||a.ammo>0)?targets.find(e=>distance(a,e)<=w.range&&g.shotClear(a,e)&&(!w.melee||g.canCross(a,e))):null;
+ // A mounted explosive weapon never picks an enemy beside its own unit, so its radius-1 blast cannot hit itself.
+ const shot=linked&&(a.kind!=='drone'||a.ammo>0)?targets.find(e=>distance(a,e)<=w.range&&g.shotClear(a,e)&&(!w.melee||g.canCross(a,e))&&!(w.mounted&&w.explosive&&distance(a,e)<=1)):null;
  const attack=e=>{
   a.tactics=null;petCombat(g,a);let rounds=0;const hits=new Set();
-  for(let i=0;i<(w.shots||1);i++){
-   if(e.hp<=0)break;
+  // A mounted weapon fires its own volley (bursts, extended bursts) as far as the magazine allows.
+  const shots=a.kind==='drone'&&w.mounted?Math.max(1,Math.min(volleyAt(w,distance(a,e)),a.ammo)):(w.shots||1);
+  for(let i=0;i<shots;i++){
+   // Stop if the attacker itself was destroyed mid-volley (e.g. by a chain reaction); its weapon has already dropped.
+   if(e.hp<=0||a.hp<=0||a.status!=='active')break;
    const chance=w.melee?g.meleeAccuracy(a,e,w.hitChance):g.accuracy(a,e).chance;
    if(a.kind==='pet'&&!w.melee){const cost=petFuelCost(g.player,'shot');if(g.player.petBond.fuel<cost)break;g.player.petBond.fuel-=cost;}
    if(!w.melee){rounds++;g.recordExposure(a,e);}
    if(a.kind==='drone')a.ammo--;
    const clear=g.sight(a,e)&&g.shotClear(a,e)&&distance(a,e)<=w.range&&(!w.melee||g.canCross(a,e));
    const hit=clear&&g.rng()*100<chance;
-   g.effects.push({type:'shot',weaponId:w.id,style:w.melee?'claw':'bullet',from:{x:a.x,y:a.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:'#89e8c8'});
+   g.effects.push({type:'shot',weaponId:w.id,style:w.melee?'claw':w.mounted&&w.ammoType==='energy'?'plasma':'bullet',from:{x:a.x,y:a.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:'#89e8c8'});
    if(hit)hits.add(e);
-   if(hit)g.hitTarget(e,w.min+Math.floor(g.rng()*(w.max-w.min+1)),a,0,w);else g.log(`${allyName(a)}射擊／攻擊落空。`);
+   if(hit&&w.mounted)mountedHit(g,a,e,w);
+   else if(hit)g.hitTarget(e,w.min+Math.floor(g.rng()*(w.max-w.min+1)),a,0,w);else g.log(`${allyName(a)}射擊／攻擊落空。`);
   }
   if(!w.melee)finishSuppression([e],hits,rounds,a.kind==='pet'&&petRank(g.player,'turret')>=2&&rounds>0?1:0,g);
  };
@@ -185,8 +204,8 @@ function actAlly(g,a){
  const beside=goal=>q=>distance(q,goal)<=1;
  // Drones reload themselves from the player's rounds within carry range (3.39, user decision): when empty, or when
  // idle at half a magazine or less. It spends the drone's own action, never the player's.
- const reserve=w.ammoType==='rifle'?'reserve':'pistol';
- const topUp=a.kind==='drone'&&a.ammo<w.mag&&(a.ammo===0||!shot&&a.ammo<=w.mag/2)&&g.player[reserve]>0&&carryCandidates(g).includes(a);
+ const reserve=AMMUNITION[w.ammoType]?.key;
+ const topUp=a.kind==='drone'&&Boolean(reserve)&&a.ammo<w.mag&&(a.ammo===0||!shot&&a.ammo<=w.mag/2)&&g.player[reserve]>0&&carryCandidates(g).includes(a);
  const reload=()=>{const before=a.ammo;reloadDrone(g,a);g.log(`${allyName(a)}自動換彈 +${a.ammo-before}。`);};
  if(a.kind==='drone'&&a.sourceId==='drone_sentry'){if(shot)attack(shot);else if(topUp)reload();return;}
  // Swapping past another ally is for real errands (rejoining, a commanded tile, a fight); idle following just queues.
@@ -285,14 +304,14 @@ export function validAllies(g){
  const ids=new Set([...g.enemies,...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])].map(e=>e.id)),occupiedCells=new Set();
  for(const a of g.allies){
   if(!a||!['drone','pet','summon','survivor'].includes(a.kind)||!ENEMY_TYPES[a.type]||!/^ally-[1-9][0-9]*$/.test(a.id)||Number(a.id.slice(5))>g.allySerial||ids.has(a.id)||!['active','destroyed','reforming','arriving'].includes(a.status))return false;ids.add(a.id);
-  if(!Number.isInteger(a.floor)||a.floor<1||a.floor>floorLimit(g)||![a.x,a.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)||!Number.isInteger(a.hp)||!Number.isInteger(a.maxHp)||a.maxHp<1||a.maxHp>500||a.hp<0||a.hp>a.maxHp||!Number.isInteger(a.ammo)||a.ammo<0||a.ammo>allyWeapon(a).mag)return false;
+  if(!Number.isInteger(a.floor)||a.floor<1||a.floor>floorLimit(g)||![a.x,a.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)||!Number.isInteger(a.hp)||!Number.isInteger(a.maxHp)||a.maxHp<1||a.maxHp>500||a.hp<0||a.hp>a.maxHp||!Number.isInteger(a.ammo)||a.ammo<0||a.ammo>allyWeapon(a,g.player).mag)return false;
   if(a.kind==='summon'&&isBossClass(a)||a.kind==='drone'&&a.type!==ALLY_BASE_TYPES.drone)return false;
   if((['reforming','arriving'].includes(a.status)&&a.kind!=='pet')||(a.kind==='pet'&&a.status==='destroyed')||(['active','arriving'].includes(a.status)&&a.hp===0)||(['reforming','destroyed'].includes(a.status)&&a.hp!==0))return false;
   if(!Number.isInteger(a.armor)||a.armor<0||a.armor>20||!Number.isInteger(a.bornTurn)||a.bornTurn<1||a.bornTurn>g.turn||!validTraits(a.traits)||!validControl(a.control)||!validCombatMemory(a,g.turn)||!validCombatModifiers(a.combatModifiers)||typeof a.vaultExposed!=='boolean')return false;
   if(a.restTurn!==undefined&&(!Number.isInteger(a.restTurn)||a.restTurn<1||a.restTurn>g.turn+1))return false;
   if(a.rallyTurn!==undefined&&(a.kind!=='summon'||!Number.isInteger(a.rallyTurn)||a.rallyTurn<1||a.rallyTurn>g.turn+RALLY_TURNS))return false;
   if(a.missionId!==null&&(typeof a.missionId!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(a.missionId)))return false;
-  if(a.kind==='drone'&&!['drone_follow','drone_sentry','drone_munition'].includes(a.sourceId)||(a.sourceId==='drone_munition'?!(typeof a.payload==='string'&&Object.hasOwn(GRENADES,a.payload)):a.payload!==undefined)||a.kind==='pet'&&a.sourceId!=='pet_command'||a.kind==='summon'&&a.sourceId!=='raise_dead'||a.kind==='survivor'&&a.sourceId!==null&&typeof a.sourceId!=='string')return false;
+  if(a.kind==='drone'&&!['drone_follow','drone_sentry','drone_munition'].includes(a.sourceId)||(a.sourceId==='drone_munition'?!(typeof a.payload==='string'&&Object.hasOwn(GRENADES,a.payload)):a.payload!==undefined)||a.weapon!==undefined&&(a.kind!=='drone'||a.sourceId==='drone_munition'||a.status!=='active'||!Number.isInteger(a.weapon))||a.kind==='pet'&&a.sourceId!=='pet_command'||a.kind==='summon'&&a.sourceId!=='raise_dead'||a.kind==='survivor'&&a.sourceId!==null&&typeof a.sourceId!=='string')return false;
   if(a.order!==null&&(!a.order||![a.order.x,a.order.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)))return false;
   if(a.status==='active'){if(a.floor===g.floor&&(key(a)===key(g.player)||g.enemies.some(e=>e.hp>0&&key(e)===key(a))))return false;const k=a.floor+':'+key(a);if(occupiedCells.has(k))return false;occupiedCells.add(k);const grid=a.floor===g.floor?g.grid:g.floorStates?.[a.floor]?.grid;if(grid&&grid[a.y]?.[a.x]!==1)return false;}
  }

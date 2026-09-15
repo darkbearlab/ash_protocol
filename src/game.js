@@ -33,7 +33,7 @@ import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambu
 import {healActor} from './traits.js';
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
 import {ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickSummons,petSkillReason,fitDrone,DRONE_HP} from './allies.js';
-import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop,isMunition,munitionAct} from './workshop.js';
+import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop,isMunition,munitionAct,dropUnitWeapon} from './workshop.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,skillValues,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
@@ -217,7 +217,7 @@ export class Game {
     if(type==='suppressiveFire'){const reason=suppressiveReason(this,arg);return !reason||this.fail(reason);}
     if(type==='feedPet'){const q=petFeedQuote(this,arg);return q.allowed||this.fail(q.reason);}
     if(type==='setPetOutput')return !outputChoiceReason(this,arg)||this.fail(outputChoiceReason(this,arg));
-    if(type==='buildUnit'){const reason=buildReason(this,arg?.blueprint,arg?.payload);return !reason||this.fail(reason);}
+    if(type==='buildUnit'){const reason=buildReason(this,arg?.blueprint,arg?.payload,arg?.weapon);return !reason||this.fail(reason);}
     if(type==='commandPet')return Boolean(p.prepared.skill==='pet_command'&&this.activeAllies.some(a=>a.kind==='pet')&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&this.seen[arg.y]?.[arg.x]&&this.passable(arg.x,arg.y)&&distance(p,arg)<=6);
     // Workshop (docs/ENGINEER.md): deploy a finished unit from a production line onto a free tile within two route steps.
     if(type==='deployUnit'){const reason=deployReason(this,arg?.line,workshopPoint(arg));return !reason||this.fail(reason);}
@@ -389,7 +389,7 @@ export class Game {
         p.vaultExposed=vaultable(edge);if(p.vaultExposed)this.log('翻越矮隔板：至下次自身行動前，被射擊命中 +20。',true,'翻越矮隔板，暫時暴露。');
         p.x=x;p.y=y;p.facing=[dx,dy];p.moveDelta=[dx,dy];this.pickup();success=true;break;
       }
-      case 'buildUnit':success=presentStep(this,()=>buildUnit(this,arg.blueprint,arg.payload));break;
+      case 'buildUnit':success=presentStep(this,()=>buildUnit(this,arg.blueprint,arg.payload,arg.weapon));break;
       case 'skill':success=this.activateSkill(arg);break;
       case 'grapple':success=useGrapple(this,arg.id);break;
       case 'deployUnit':success=presentStep(this,()=>deployUnit(this,arg.line,workshopPoint(arg)));break;
@@ -626,7 +626,7 @@ export class Game {
     addTrace(this,a,activeTrait(a,'mechanical')?'oil':'blood');this.effects.push({type:'impact',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},damage});this.log(`${allyName(a)}受傷 −${damage}。`,true,`${allyName(a)}受傷。`);
     if(!a.hp&&a.kind==='pet'){if(!petSurvives(this,a))petDeath(this,a);petReactions(this);this.reveal();return;}
     petReactions(this);
-    if(!a.hp){a.status='destroyed';a.order=null;this.reveal();this.log(`${allyName(a)}已被摧毀。`,true);}
+    if(!a.hp){a.status='destroyed';a.order=null;this.log(`${allyName(a)}已被摧毀。`,true);dropUnitWeapon(this,a);this.reveal();}
   }
   enemyTarget(e){
     if(isNoncombatant(e))return this.player;
@@ -926,6 +926,12 @@ export class Game {
         if(version<5){delete item.slot;g.registerWeapon(item);}
         if(!Number.isInteger(item.slot)||p.weaponBases[item.slot]!==item.weapon||locations.has(item.slot))return null;
         locations.add(item.slot);
+      }
+      // Weapons mounted on workshop units (3.93.0) still belong to the run: one location per slot, ranged and unlocked only.
+      for(const slot of [...(Array.isArray(p.productionLines)?p.productionLines.map(u=>u?.weapon):[]),...(Array.isArray(g.allies)?g.allies.map(a=>a?.weapon):[])]){
+        if(slot===undefined)continue;
+        const base=Number.isInteger(slot)?WEAPONS[p.weaponBases[slot]]:null;
+        if(!base||base.melee||base.locked||locations.has(slot))return null;locations.add(slot);
       }
       if(version>=28&&(!Object.hasOwn(data.player,'perks')||!Object.hasOwn(data.player,'perkWeaponBonus')))return null;
       if(version<28)migratePerks(g);
