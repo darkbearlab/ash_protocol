@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.91.0**（工程師工坊第 1 階段，Claude；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.92.0**（工程師工坊第 2 階段浮游彈藥，Claude；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -215,3 +215,5 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 3.90.1（Claude；Codex 額度不足期間，Claude 在 Codex 範圍內的變更待 Codex 複查）：玩家檔案新增頂層 `unlockLedger`，防止仍開著的 3.89 分頁把檔案寫回 v6 後重設解鎖；v3–v6 退款上限 `earned − balance`；storage 的 `grantUnlock` 只做購買，屍體走 `connectUnlocks` 綁定。介面在 `src/unlock-ui.js`（解鎖頁、鎖定列、結算故事）與 controller／renderer（屍體互動與繪製）。細節與未處理的複查建議見 UNLOCKS 第 13 節。
 
 3.91.0（Claude）：工程師工坊第 1 階段，SAVE 46。`src/workshop.js` 管藍圖、生產、部署、存檔遷移與驗證；上限與機體數值在 allies.js 的 `WORKSHOP_TUNING`、`lineLimit`、`deployLimit`。僚機技能、收納、回收與修理已移除，ALLIES.md、SKILLS.md 裡舊的工程師僚機段落以 ENGINEER.md 為準。identity harness 另外不雜湊空的生產序列。
+
+3.92.0（Claude）：工坊第 2 階段浮游彈藥，SAVE 47。行為在 `src/workshop.js` 的 `munitionAct`，由回合迴圈的友軍分支呼叫；數值在 allies.js 的 `MUNITION_TUNING`。投擲物結算從 `throwGrenade` 抽成 `Game.applyThrowable`，玩家投擲不變（一致性基準完全相同）。

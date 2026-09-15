@@ -33,7 +33,7 @@ import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambu
 import {healActor} from './traits.js';
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
 import {ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickSummons,petSkillReason,fitDrone,DRONE_HP} from './allies.js';
-import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop} from './workshop.js';
+import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop,isMunition,munitionAct} from './workshop.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,skillValues,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
@@ -45,7 +45,7 @@ import {validModules} from './modules.js';
 import {isContainer,containerName,validContainers} from './containers.js';
 import {BARRIER_TYPES,vaultable,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,firstBarrierOnRay,validBarriers} from './barriers.js';
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
-import {SMOKE_DURATION,GRENADES,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
+import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
 import {defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns} from './prepared.js';
 import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
@@ -217,7 +217,7 @@ export class Game {
     if(type==='suppressiveFire'){const reason=suppressiveReason(this,arg);return !reason||this.fail(reason);}
     if(type==='feedPet'){const q=petFeedQuote(this,arg);return q.allowed||this.fail(q.reason);}
     if(type==='setPetOutput')return !outputChoiceReason(this,arg)||this.fail(outputChoiceReason(this,arg));
-    if(type==='buildUnit'){const reason=buildReason(this,arg?.blueprint);return !reason||this.fail(reason);}
+    if(type==='buildUnit'){const reason=buildReason(this,arg?.blueprint,arg?.payload);return !reason||this.fail(reason);}
     if(type==='commandPet')return Boolean(p.prepared.skill==='pet_command'&&this.activeAllies.some(a=>a.kind==='pet')&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&this.seen[arg.y]?.[arg.x]&&this.passable(arg.x,arg.y)&&distance(p,arg)<=6);
     // Workshop (docs/ENGINEER.md): deploy a finished unit from a production line onto a free tile within two route steps.
     if(type==='deployUnit'){const reason=deployReason(this,arg?.line,workshopPoint(arg));return !reason||this.fail(reason);}
@@ -326,7 +326,7 @@ export class Game {
         if(!success)this.log('局勢已改變，行動未能完成；本回合已消耗。');
         p.guard=success&&type==='wait';p.moved=success&&(type==='move'||type==='grapple'&&p.moved);p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
         petReactions(this);this.reveal();
-      }else if(actor.kind)presentStep(this,()=>{allyAct(this,actor);this.reveal();},actor);
+      }else if(actor.kind)presentStep(this,()=>{if(isMunition(actor))munitionAct(this,actor);else allyAct(this,actor);this.reveal();},actor);
       else if(actor.hp>0&&actor.alert)presentStep(this,()=>this.enemyAct(actor),speed!==0||playerSpeed!==0?actor:null);
       if(immunityBefore&&!anchorExtra)actor.control.immune=Math.max(0,actor.control.immune-1);
     }
@@ -389,7 +389,7 @@ export class Game {
         p.vaultExposed=vaultable(edge);if(p.vaultExposed)this.log('翻越矮隔板：至下次自身行動前，被射擊命中 +20。',true,'翻越矮隔板，暫時暴露。');
         p.x=x;p.y=y;p.facing=[dx,dy];p.moveDelta=[dx,dy];this.pickup();success=true;break;
       }
-      case 'buildUnit':success=presentStep(this,()=>buildUnit(this,arg.blueprint));break;
+      case 'buildUnit':success=presentStep(this,()=>buildUnit(this,arg.blueprint,arg.payload));break;
       case 'skill':success=this.activateSkill(arg);break;
       case 'grapple':success=useGrapple(this,arg.id);break;
       case 'deployUnit':success=presentStep(this,()=>deployUnit(this,arg.line,workshopPoint(arg)));break;
@@ -573,7 +573,13 @@ export class Game {
     if(distance(p,pos)>5||!this.visible(pos))return this.fail('投擲位置需在視線內 5 格以內。');
     p[def.resource]--;p.stats.grenades++;this.log(`投擲${def.name}。`);
     this.effects.push({type:'shot',style:'grenade',color:def.color,from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
-    if(id==='frag')this.explode(pos,2,Math.round((55+p.blastBonus)*bladeMultiplier(p)),p);
+    this.applyThrowable(id,pos,Math.round((FRAG_DAMAGE+p.blastBonus)*bladeMultiplier(p)),p);
+    return true;
+  }
+  // Resolves a throwable at pos: thrown grenades and, since 3.92.0, loitering munitions (docs/ENGINEER.md 4.1).
+  applyThrowable(id,pos,fragDamage,attacker){
+    const p=this.player,def=GRENADES[id];
+    if(id==='frag')this.explode(pos,2,fragDamage,attacker);
     else {
       const cells=areaCells(this.grid,pos,2,this.barriers,this),affected=new Set(cells.map(key));
       this.effects.push({type:'pulse',radius:2,color:def.color,from:{x:pos.x,y:pos.y},to:{x:pos.x,y:pos.y}});
@@ -584,7 +590,6 @@ export class Game {
       }
       this.reveal();
     }
-    return true;
   }
   explode(center,radius,damage,attacker=null,eligible=null) {
     const origin={x:center.x,y:center.y};

@@ -159,7 +159,7 @@ test('deployment cannot materialize through a closed door when there is no reach
 
 
 test('a destroyed unit is replaced by building and deploying another of either blueprint, never beyond the deploy limit',()=>{
- for(const blueprint of Object.keys(UNIT_BLUEPRINTS)){
+ for(const blueprint of ['drone_follow','drone_sentry']){
   const g=arena();assert.ok(deploy(g));const a=g.allies[0];g.damageAlly(a,999);assert.equal(a.status,'destroyed');
   g.player.scrap=UNIT_BLUEPRINTS[blueprint].cost+5;assert.ok(g.action('buildUnit',{blueprint}));assert.equal(g.player.scrap,5);
   const pistol=g.player.pistol;assert.ok(deploy(g));const b=g.allies.find(x=>x.kind==='drone'&&x.status==='active');

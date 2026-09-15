@@ -10,6 +10,8 @@ export const SMOKE_DURATION=5;
 // in the throw turn spends its first skip there, answering nothing, so the thrower gets DISRUPT_TURNS-1 unanswered
 // follow-ups; at the old length of 2 that was a single one, and a boss's single skip only cancelled the reply.
 export const DISRUPT_TURNS=4,BOSS_DISRUPT_TURNS=2,DISRUPT_IMMUNITY=2;
+// Frag blast base damage before blast bonuses; shared by thrown grenades and loitering munitions (3.92.0).
+export const FRAG_DAMAGE=55;
 
 // Keywords select reactions; they do not imply armor, size, or allegiance.
 export const GRENADES={
