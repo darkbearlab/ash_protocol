@@ -39,9 +39,9 @@ test('within dive range it lands beside the enemy and detonates in the same acti
  h.enemies=[];assert.equal(munitionAct(h,b),false);assert.deepEqual([b.x,b.y],[12,10]);assert.ok(Game.restore(h.serialize()));
 });
 
-test('a munition never dives or detonates while the player would be inside the blast',()=>{
+test('the player is not protected: a munition detonates even with the player inside the blast',()=>{
  const g=arena(),a=munition(g),e=enemy(g,12,10);g.reveal();
- assert.equal(munitionAct(g,a),false);assert.ok(g.allies.includes(a));assert.equal(e.hp,500);assert.equal(g.player.hp,500);assert.deepEqual([a.x,a.y],[11,10]);
+ assert.ok(munitionAct(g,a));assert.ok(!g.allies.includes(a));assert.equal(e.hp,455);assert.ok(g.player.hp<500);
 });
 
 test('the blast follows the payload: EMP disables machines, stun disables organics, smoke fills the area without damage',()=>{
@@ -68,12 +68,9 @@ test('the turn loop runs munitions: a paid wait lets a deployed munition dive an
  assert.ok(g.action('wait'));assert.ok(!g.allies.includes(a));assert.equal(e.hp,455);assert.ok(Game.restore(g.serialize()));
 });
 
-test('a frag munition holds when a barrel in its blast would reach the player, and dives past an unsafe target to a safe one',()=>{
- const g=arena(),a=munition(g);g.player.x=7;const e=enemy(g,12,10);g.props=[{id:'barrel-test',type:'barrel',x:9,y:10,hp:30,maxHp:30}];g.reveal();
- assert.equal(munitionAct(g,a),false);assert.ok(g.allies.includes(a));assert.equal(e.hp,500);
- g.props=[];assert.ok(munitionAct(g,a));assert.equal(e.hp,455);
- const h=arena(),b=munition(h);h.player.x=9;const near=enemy(h,12,10),far=enemy(h,11,14);h.reveal();
- assert.ok(munitionAct(h,b));assert.deepEqual([b.x,b.y],[11,13]);assert.equal(near.hp,500);assert.ok(far.hp<500);assert.equal(h.player.hp,500);
+test('a munition always takes the nearest target it can reach, whoever else is in the blast',()=>{
+ const g=arena(),a=munition(g);g.player.x=9;const near=enemy(g,12,10),far=enemy(g,11,14);g.reveal();
+ assert.ok(munitionAct(g,a));assert.deepEqual([a.x,a.y],[11,10]);assert.equal(near.hp,455);assert.equal(far.hp,500);assert.ok(g.player.hp<500);
 });
 
 test('the workshop status leaves munitions out of the deploy count, and only munitions may carry a payload in a save',()=>{

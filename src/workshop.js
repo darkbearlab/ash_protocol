@@ -1,6 +1,6 @@
 import {ALLY_BASE_TYPES,isNoncombatant} from './enemy-data.js';
 import {addAlly,allyName,currentAllies,defaultDroneCell,deployLimit,droneCells,lineLimit,reloadDrone,routeCells,MUNITION_TUNING} from './allies.js';
-import {GRENADES,FRAG_DAMAGE,areaCells} from './throwables.js';
+import {GRENADES,FRAG_DAMAGE} from './throwables.js';
 import {pullLanding} from './melee-classes.js';
 import {barrierBetween,vaultable} from './barriers.js';
 import {distance} from './world.js';
@@ -77,17 +77,9 @@ export function deployUnit(g,line,point=null){
 
 // Loitering munition, phase 2 (docs/ENGINEER.md 4.1). On its own action: beside a seen enemy it detonates; within dive
 // range it dives beside the nearest one along a clear straight path (the grapple landing) and detonates in the same
-// action; farther away it flies one tile closer; with nothing in sight it hovers. No windup, and it never detonates
-// while the player would be caught by the blast or a barrel it sets off. It does not open doors or follow the player
-// between floors, and it has no tether: it hunts whatever it sees within its own sight.
-const blastReaches=(g,center,point)=>areaCells(g.grid,center,MUNITION_TUNING.radius,g.barriers,g).some(q=>q.x===point.x&&q.y===point.y);
-// Frag also sets off barrels caught in the blast (radius 2 as well), so the player's safety covers that one chain.
-function endangersPlayer(g,a,point){
- if(blastReaches(g,point,g.player))return true;
- if(a.payload!=='frag')return false;
- const cells=areaCells(g.grid,point,MUNITION_TUNING.radius,g.barriers,g);
- return g.props.some(o=>o.type==='barrel'&&o.hp>0&&cells.some(q=>q.x===o.x&&q.y===o.y)&&blastReaches(g,o,g.player));
-}
+// action; farther away it flies one tile closer; with nothing in sight it hovers. No windup. The player is not protected
+// from the blast: staying clear is the player's skill (user decision, 3.92.1). It does not open doors or follow the
+// player between floors, and it has no tether: it hunts whatever it sees within its own sight.
 export function munitionAct(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return false;
  a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return false;
@@ -96,7 +88,7 @@ export function munitionAct(g,a){
  for(const e of targets){
   if(distance(a,e)>MUNITION_TUNING.dive||!g.shotClear(a,e))continue;
   const point=distance(a,e)===1&&g.canCross(a,e)?{x:a.x,y:a.y}:pullLanding(g,a,e);
-  if(point&&!endangersPlayer(g,a,point))return detonate(g,a,point);
+  if(point)return detonate(g,a,point);
  }
  // Units are mechanical, so suppression never pins them.
  const goal=targets[0],next=routeCells(g,a,{actor:a,limit:12,openDoors:false}).filter(q=>q.first&&distance(q,goal)<distance(a,goal)).sort((b,c)=>distance(b,goal)-distance(c,goal)||b.d-c.d)[0]?.first;
