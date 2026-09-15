@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.94.0**（工程師工坊第 4 階段敵方藍圖，Claude；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.95.0**（工程師工坊第 5 階段頭目藍圖，Claude；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -94,7 +94,7 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v49**（`data.js` 的 `SAVE_VERSION`）。舊版 1～48 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 單局 `ash-save`：save **v50**（`data.js` 的 `SAVE_VERSION`）。舊版 1～49 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
 - 個人紀錄 `ash-profile`：profile **v7**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
@@ -222,3 +222,5 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 3.93.0（Claude）：工坊第 3 階段武器掛載，SAVE 48。製作、部署帶彈匣與掉落在 `src/workshop.js`（`mountableSlots`、`dropUnitWeapon`），射擊在 allies.js 的 `allyWeapon` 掛載分支與 `mountedHit`；`Game.restore` 的武器位置檢查包含生產序列與機體。
 
 3.94.0（Claude）：工坊第 4 階段敵方藍圖，SAVE 49。取得在 `src/workshop.js` 的 `salvageBlueprint`（由 `Game.hurt` 呼叫；敵方自爆機器人自爆時把自己當攻擊者傳入，所以不給藍圖）；改造自爆機器人的行動在 `bomberAct`，被打爆時的爆炸在 `unitDestroyed`（由 `Game.damageAlly` 呼叫）；數值在 allies.js 的 `ENEMY_UNIT_TUNING`，機體種類與一次性機體在 `UNIT_SOURCES`、`ONE_SHOT_UNITS`。identity harness 另外不雜湊空的藍圖清單。
+
+3.95.0（Claude）：工坊第 5 階段頭目藍圖，SAVE 50。`once` 藍圖製作時記到 `player.usedBlueprints`；封鎖官蓄力（`primed`）與核心守衛交替轟炸（`bombard`、`kind:'ally'` 地圖標記）在 allies.js 的 `actAlly` 攻擊流程；標記沿用回合結束的轟炸結算，存檔檢查在 enemy-intents.js 的 `validEnemyMarks`。內建武器以 `builtIn` 標示不用彈藥。identity harness 另外不雜湊空的已製作清單。

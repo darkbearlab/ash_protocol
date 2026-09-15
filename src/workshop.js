@@ -21,6 +21,9 @@ export const UNIT_BLUEPRINTS={
  // enemy: gained by destroying that enemy type, once per run (docs/ENGINEER.md 4.2, 3.94.0). Built-in weapons only.
  unit_drone:{name:'改造無人機',cost:35,enemy:'drone',text:'飛行、不用掩體，內建電漿槍吃你的能量電池，會追擊繩索內的敵人。'},
  unit_bomber:{name:'改造自爆機器人',cost:25,enemy:'bomber_bot',text:'不算部署上限。走到敵人旁邊蓄勢一次，下次行動自爆；被打爆時也會爆炸。'},
+ // once: a boss blueprint, scrap only and built at most once per run (docs/ENGINEER.md 4.2, 3.95.0).
+ unit_warden:{name:'改造封鎖官',cost:200,enemy:'warden',once:true,text:'頭目機體，可用掩體、不用彈藥，會追擊繩索內的敵人。'},
+ unit_boss:{name:'改造核心守衛',cost:300,enemy:'boss',once:true,text:'頭目機體，可用掩體、不用彈藥，會追擊繩索內的敵人。'},
 };
 const ALLY_CAP=32;
 export const hasWorkshop=p=>Array.isArray(p?.skills)&&p.skills.includes(WORKSHOP_SKILL);
@@ -42,6 +45,7 @@ export function buildReason(g,blueprint,payload,weapon){
  if(!hasWorkshop(p))return '沒有工坊技能。';
  if(!def)return '沒有這張藍圖。';
  if(def.enemy&&!p.blueprints.includes(blueprint))return `尚未取得藍圖：擊毀${ENEMY_TYPES[def.enemy].name}後取得。`;
+ if(def.once&&p.usedBlueprints.includes(blueprint))return '頭目藍圖每局只能製作一次，已經製作過。';
  if(def.payload&&!validPayload(payload))return '請選擇要裝入的投擲物。';
  if(!def.payload&&payload!==undefined&&payload!==null)return '這張藍圖不裝投擲物。';
  if(weapon!==undefined&&weapon!==null){
@@ -59,7 +63,7 @@ export function buildReason(g,blueprint,payload,weapon){
 // A mounted weapon leaves the pack with its magazine, which is topped up from the player's rounds of that type.
 export function buildUnit(g,blueprint,payload,weapon){
  const reason=buildReason(g,blueprint,payload,weapon);if(reason)return g.fail(reason);
- const p=g.player,def=UNIT_BLUEPRINTS[blueprint],mounted=Number.isInteger(weapon);p.scrap-=def.cost;
+ const p=g.player,def=UNIT_BLUEPRINTS[blueprint],mounted=Number.isInteger(weapon);p.scrap-=def.cost;if(def.once)p.usedBlueprints.push(blueprint);
  if(def.payload){p[GRENADES[payload].resource]--;p.productionLines.push({blueprint,payload});}
  else if(mounted){
   const w=g.weaponAt(weapon),key=AMMUNITION[w.ammoType].key,n=Math.min(w.mag-p.ammo[weapon],p[key]);
@@ -165,10 +169,11 @@ function bomberBlast(g,a){
  const t=ENEMY_UNIT_TUNING.bomber;g.log('改造自爆機器人自爆。');
  g.explode({x:a.x,y:a.y},t.radius,t.damage+classPerkRank(g.player,'engineer_firecontrol')*CLASS_PERK_TUNING.fireDamage,a);
 }
-// A unit destroyed by damage: its mounted weapon drops, and a suicide bot explodes where it fell (its wreck stays).
+// A unit destroyed by damage: its mounted weapon drops, a charge or pending bombardment is lost, and a suicide bot
+// explodes where it fell (its wreck stays).
 export function unitDestroyed(g,a){
- dropUnitWeapon(g,a);
- if(isBomber(a)){delete a.primed;bomberBlast(g,a);}
+ dropUnitWeapon(g,a);delete a.primed;delete a.bombard;
+ if(isBomber(a))bomberBlast(g,a);
 }
 // Enemy blueprints (docs/ENGINEER.md 4.2, 3.94.0): destroying a drone or a suicide bot gives the workshop that blueprint,
 // once per run. Any killer counts (you, your units, a blast, the environment); a suicide bot blowing itself up does not.
@@ -184,12 +189,16 @@ const validLine=u=>{
  if(UNIT_BLUEPRINTS[u.blueprint].payload)return keys==='blueprint,payload'&&validPayload(u.payload);
  return keys==='blueprint'||keys==='blueprint,weapon'&&UNIT_BLUEPRINTS[u.blueprint].mount&&Number.isInteger(u.weapon);
 };
-// Acquired enemy blueprints are unique and belong to the workshop; every line or unit built from one needs it.
+// Acquired enemy blueprints are unique and belong to the workshop; every line or unit built from one needs it. A boss
+// blueprint that was built is listed once in usedBlueprints and has at most one unit (its wreck may already be gone).
 export function validWorkshop(g){
- const p=g.player,lines=p.productionLines,known=p.blueprints;
+ const p=g.player,lines=p.productionLines,known=p.blueprints,used=p.usedBlueprints;
  if(!Array.isArray(known)||new Set(known).size!==known.length||!known.every(id=>typeof id==='string'&&Object.hasOwn(UNIT_BLUEPRINTS,id)&&Boolean(UNIT_BLUEPRINTS[id].enemy))||known.length&&!hasWorkshop(p))return false;
+ if(!Array.isArray(used)||new Set(used).size!==used.length||!used.every(id=>known.includes(id)&&UNIT_BLUEPRINTS[id].once))return false;
  const usable=id=>!UNIT_BLUEPRINTS[id].enemy||known.includes(id);
- return Array.isArray(lines)&&lines.length<=lineLimit(p)&&(!lines.length||hasWorkshop(p))&&lines.every(u=>validLine(u)&&usable(u.blueprint))&&g.allies.every(a=>a.kind!=='drone'||usable(a.sourceId));
+ if(!(Array.isArray(lines)&&lines.length<=lineLimit(p)&&(!lines.length||hasWorkshop(p))&&lines.every(u=>validLine(u)&&usable(u.blueprint))&&g.allies.every(a=>a.kind!=='drone'||usable(a.sourceId))))return false;
+ const built=[...lines.map(u=>u.blueprint),...g.allies.filter(a=>a.kind==='drone').map(a=>a.sourceId)].filter(id=>UNIT_BLUEPRINTS[id].once);
+ return new Set(built).size===built.length&&built.every(id=>used.includes(id));
 }
 // v46: the old single chassis becomes workshop state. The two drone skills become the workshop skill; a packed unit
 // moves into the first production line, a wreck is dropped and an active unit stays deployed. Rounds left in a

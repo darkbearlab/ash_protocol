@@ -39,7 +39,7 @@ test('an enemy suicide bot that primes and blows itself up leaves no blueprint',
 test('swarm floors field no blueprint source; the human factions field drones, and only rebels field suicide bots',()=>{
  const types=id=>{const f=FACTIONS[id];return new Set([...Array.from({length:12},(_,i)=>factionPool(id,i+1)).flat(),...Object.values(f.bosses),f.scout,...f.retreatWave,f.fodder,f.nestChild].filter(Boolean));};
  const sources=id=>[...types(id)].filter(t=>Object.hasOwn(ENEMY_BLUEPRINTS,t)).sort();
- assert.deepEqual(sources('swarm'),[]);assert.deepEqual(sources('legacy'),['drone']);assert.deepEqual(sources('loyalist'),['drone']);assert.deepEqual(sources('rebel'),['bomber_bot','drone']);
+ assert.deepEqual(sources('swarm'),[]);assert.deepEqual(sources('legacy'),['boss','drone','warden']);assert.deepEqual(sources('loyalist'),['boss','drone','warden']);assert.deepEqual(sources('rebel'),['bomber_bot','boss','drone','warden']);
  const g=arena(),p=g.player;
  for(const [i,type] of [...types('swarm')].entries()){const e=enemy(g,2+2*(i%8),2+2*Math.floor(i/8),type);g.hurt(e,e.hp,p);}
  assert.deepEqual(p.blueprints,[]);assert.equal(acquired(g),0);
