@@ -94,10 +94,10 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .operator-identity{display:flex!important;align-items:center;gap:12px!important;margin:10px 0;min-width:0}
 .operator-identity>p,.operator-identity>div{min-width:0}.operator-identity p,.operator-identity h2{margin:0}
 .character-choice .character-copy{flex:1}.character-choice .operator-identity{margin:0}.character-choice .operator-identity strong{overflow-wrap:anywhere}
-.result-identity .operator-portrait{width:128px;height:128px;flex-basis:128px}
+.result-identity .operator-portrait{width:56px;height:56px;flex-basis:56px}
 .is-kia img{filter:saturate(.25) brightness(.7)}
 .kia-stamp{position:absolute;left:0;right:0;top:44%;text-align:center;transform:rotate(-12deg);border:3px double #ff8175;color:#ff9c8e;background:#461b22b8;font:900 20px/1.15 monospace;letter-spacing:3px;text-shadow:1px 1px #4a1118;pointer-events:none}
-.result-identity .kia-stamp{font-size:32px;border-width:5px}
+.result-identity .kia-stamp{font-size:12px;border-width:2px;letter-spacing:1px}
 
 /* Replace the existing heading in place: no extra battlefield row. */
 #sector-title{flex:1;min-width:0;min-height:44px;padding:0;text-align:left;font:500 11px var(--mono);color:#c6ddc7;background:none;border:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -285,3 +285,45 @@ dialog .perk .perk-next{color:var(--orange);font-weight:900}
 .result-unlocks h3{margin:0 0 4px;font-size:13px}
 .result-unlocks p{margin:0;font-size:12px;line-height:1.6}
 .unlock-reveal canvas{width:64px;height:64px;image-rendering:pixelated;flex:none}
+/* Phone menus and handheld feel (3.97.0, user request). */
+.visually-hidden{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+html.scroll-locked,html.scroll-locked body{height:100%;overflow:hidden;overscroll-behavior:none}
+html.scroll-locked body{position:fixed;inset:0;width:100%}
+html.scroll-locked .battle-panel,html.scroll-locked .battle-panel *{touch-action:none}
+dialog{--dialog-pad-y:30px;--dialog-pad-x:30px}
+@media(max-width:600px){dialog{--dialog-pad-y:20px;--dialog-pad-x:16px}}
+dialog .modal-footer{position:sticky;bottom:calc(-1*var(--dialog-pad-y));z-index:4;display:flex;gap:8px;margin:14px calc(-1*var(--dialog-pad-x)) calc(-1*var(--dialog-pad-y));padding:10px var(--dialog-pad-x) var(--dialog-pad-y);background:#181f1a;border-top:1px solid #5a604b88;box-shadow:0 -10px 14px #181f1acc}
+dialog .modal-footer>.modal-button{flex:1;min-width:0;margin-top:0}
+dialog .modal-footer>.modal-row{flex:1;margin:0}
+dialog .modal-footer .modal-button{margin-top:0}
+.action-buttons .action.unavailable{opacity:.45}
+.action-buttons .action.pressing{background-image:linear-gradient(#e8ce9848,#e8ce9848);background-repeat:no-repeat;background-position:bottom;background-size:100% 0;animation:long-press .45s linear forwards}
+@keyframes long-press{to{background-size:100% 100%}}
+@media(prefers-reduced-motion:reduce){.action-buttons .action.pressing{animation:none;background-size:100% 100%}}
+dialog .pack-resources{padding:4px 0 8px;gap:8px}
+dialog .inventory-tabs{margin:6px 0 8px}
+.pack-hint{margin:0 0 6px!important;font-size:11px!important;line-height:1.5!important;color:#9fae95}
+.pack-message{margin:0 0 6px!important;font-size:11px!important;line-height:1.5!important;color:#e8ce98!important}
+.pack-rows{display:flex;flex-direction:column;gap:4px}
+.pack-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:stretch;border:1px solid #91ab8133;background:#202e28}
+.pack-row.equipped{border-color:#a4be8c;background:#2c3d31}
+.pack-pick{display:flex;align-items:center;gap:8px;min-width:0;min-height:44px;padding:6px 10px;background:none;border:0;color:var(--text);font:inherit;text-align:left}
+.pack-pick .pack-icon{flex:none;width:20px;text-align:center;font-size:15px}
+.pack-pick .pack-name{font-size:14px;overflow-wrap:anywhere}
+.pack-pick small{margin-left:auto;padding-left:6px;font:11px var(--mono);color:#e8ce98;text-align:right}
+.pack-row.equipped .pack-pick small{color:#c8e6b0}
+.pack-info{width:44px;min-height:44px;border:0;border-left:1px solid #91ab8133;background:none;color:#9fae95;font:14px var(--mono)}
+.pack-info[aria-expanded="true"]{color:#e8ce98}
+.pack-desc{grid-column:1/-1;margin:0!important;padding:0 10px 8px;font-size:12px!important;line-height:1.6!important;color:#b8c6a7!important}
+.pack-reason{grid-column:1/-1;margin:0!important;padding:0 10px 4px;font-size:11px!important;line-height:1.5!important;color:#e8ce98!important}
+.learning-row .pack-actions{grid-column:1/-1;padding:0 8px 8px;margin-top:0!important}
+.pack-subhead{margin:12px 0 6px;font-size:12px;color:#b8c6a7}
+.pack-allies{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.pack-allies li{display:flex;justify-content:space-between;gap:8px;padding:5px 8px;background:#202e28;font-size:12px}
+.pack-allies span{flex:none}
+.pack-allies small{font:11px var(--mono);color:#9fae95;text-align:right}
+dialog .pack-weapon{padding:8px 10px}
+.pack-weapon-head{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 8px}
+.pack-weapon-head h3{margin:0;font-size:14px}
+dialog .pack-weapon .pack-actions{margin-top:6px}
+dialog .pack-weapon .pack-actions button{min-height:40px}
