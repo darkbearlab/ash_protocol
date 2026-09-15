@@ -18,6 +18,7 @@
   - 行為一致性檢查與基準一致；一般敵人的繪製呼叫相同。
   - 模擬四種阻擋情況，30 回合內都出生 16/16。
   - 細節見 [SWARM.md](SWARM.md) 第 11 節與 [3.85.2 QA](../qa/results/2026-09-15-claude-3.85.2-neutral-boss-hazmat-waves.md)。
+- 已部署：GitHub Pages run 34913058367 成功，線上 `src/version.js` 確認為 3.85.2；完整 827 項測試與 build 通過。
 
 ## 3.85.1 — 中毒層數狀態、蟲潮入侵點外觀（Claude，2026-09-15）
 
