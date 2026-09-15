@@ -64,12 +64,12 @@ export function nextPrompt(g,events,shown){
 // it spends a turn without leaving (3.89.1, browser QA). Diagonal neighbours have no single step.
 export const exitStep=g=>{const dx=g.exitPoint.x-g.player.x,dy=g.exitPoint.y-g.player.y;return Math.abs(dx)+Math.abs(dy)===1?[dx,dy]:null;};
 
-// Score v2 (3.89.2): purge rate is worth 10000 and speed up to 3000. The speed bonus stays full within par (two turns
-// per purge target) and then loses 30 per extra turn, so a perfect run is reachable and scores exactly 13000.
-export const KILLHOUSE_SCORE={formula:'v2',rate:10000,turnBonus:3000,turnCost:30,parPerTarget:2};
+// Score v3 (3.89.3, user decision): purge rate is worth 10000 and speed up to 3000. The speed bonus stays full through
+// 130 turns and then loses 30 per extra turn. An invincible one-shot bot needed a median of 140 turns to clear an arcade
+// floor (qa/killhouse-par-study.mjs), so a perfect 13000 asks for better than that.
+export const KILLHOUSE_SCORE={formula:'v3',rate:10000,turnBonus:3000,turnCost:30,parTurns:130};
 export const KILLHOUSE_MAX_SCORE=KILLHOUSE_SCORE.rate+KILLHOUSE_SCORE.turnBonus;
-export const parTurns=quota=>KILLHOUSE_SCORE.parPerTarget*Math.max(0,quota||0);
-export const killhouseScore=({rate,turns,quota=0})=>Math.round(Math.max(0,Math.min(1,rate))*KILLHOUSE_SCORE.rate)+Math.max(0,KILLHOUSE_SCORE.turnBonus-Math.max(0,turns-parTurns(quota))*KILLHOUSE_SCORE.turnCost);
+export const killhouseScore=({rate,turns})=>Math.round(Math.max(0,Math.min(1,rate))*KILLHOUSE_SCORE.rate)+Math.max(0,KILLHOUSE_SCORE.turnBonus-Math.max(0,turns-KILLHOUSE_SCORE.parTurns)*KILLHOUSE_SCORE.turnCost);
 export const bestRecord=(profile,result)=>(result.scoreScope==='character'?profile.killhouse?.byCharacter?.[result.character]:profile.killhouse?.best)??null;
 
 const button=(action,label,secondary=false)=>`<button class="modal-button${secondary?' secondary':''}" data-modal="${action}">${label}</button>`;

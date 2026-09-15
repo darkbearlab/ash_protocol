@@ -31,10 +31,11 @@ test('arcade phases only toast on their first room',()=>{
 });
 
 test('score rises with purge and falls with turns past par, never goes negative, and fits the stored record',()=>{
- assert.equal(KILLHOUSE_SCORE.formula,'v2','3.89.2: par-based speed bonus so a perfect score is reachable');
+ assert.equal(KILLHOUSE_SCORE.formula,'v3','3.89.3: the speed bonus stays full through 130 turns (user decision)');
  assert.equal(killhouseScore({rate:1,turns:0}),13000);
  assert.ok(killhouseScore({rate:1,turns:30})>killhouseScore({rate:.9,turns:30}));
- assert.ok(killhouseScore({rate:.8,turns:10})>killhouseScore({rate:.8,turns:40}));
+ assert.equal(killhouseScore({rate:.8,turns:10}),killhouseScore({rate:.8,turns:130}),'no difference inside par');
+ assert.ok(killhouseScore({rate:.8,turns:140})>killhouseScore({rate:.8,turns:170}));
  assert.equal(killhouseScore({rate:.5,turns:500}),5000,'the speed bonus stops at zero');
  assert.equal(killhouseScore({rate:.1,turns:0})-killhouseScore({rate:0,turns:0}),1000);
  assert.ok(Number.isSafeInteger(killhouseScore({rate:1/3,turns:7})));
@@ -90,9 +91,11 @@ test('arcade verdicts follow the score: a perfect 13000 warns, 10000 deploys, 60
  assert.deepEqual(ARCADE_VERDICTS.map(v=>v.status),['受驗者過於強大，建議及早投入最危險的任務或就地銷毀','建議直接投入實戰','尚待評估','建議銷毀']);
  assert.deepEqual([13000,12999,10000,9999,6000,5999,0].map(s=>arcadeVerdict(s).verdict),['overpowered','deploy','deploy','pending','pending','dispose','dispose']);
  assert.equal(KILLHOUSE_MAX_SCORE,13000,'the score tops out at 13000, not 10000');
- assert.equal(killhouseScore({rate:1,turns:64,quota:32}),13000,'a full purge within par (two turns per target) is perfect');
- assert.equal(killhouseScore({rate:1,turns:65,quota:32}),12970,'each turn past par costs 30');
- assert.ok(killhouseScore({rate:31/32,turns:10,quota:32})<13000,'a perfect score needs every target');
+ assert.equal(KILLHOUSE_SCORE.parTurns,130);
+ assert.equal(killhouseScore({rate:1,turns:130}),13000,'a full purge within 130 turns is perfect');
+ assert.equal(killhouseScore({rate:1,turns:131}),12970,'each turn past 130 costs 30');
+ assert.equal(killhouseScore({rate:1,turns:230}),10000,'the speed bonus is gone 100 turns past par');
+ assert.ok(killhouseScore({rate:31/32,turns:10})<13000,'a perfect score needs every target');
  const a=createKillhouse({mode:'arcade',character:'recon',seed:4});Object.assign(a.player,a.end);a.descend();Object.assign(a.player,a.end);a.descend();
  const low=arcadeResultMarkup(a,{score:1200,best:1200,newRecord:true,saved:true});
  assert.match(low,/建議銷毀/);assert.match(low,/data-verdict="dispose"/);
