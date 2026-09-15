@@ -1,5 +1,6 @@
 // Stable art-review IDs, independent of their approved rendering role.
-import {MATERIAL_SELECTION} from './material-selection.js';
+import {MAP_STYLES} from './map-styles.js';
+const MATERIAL_SELECTION=MAP_STYLES.facility.selection;
 export const TERRAIN_ATLAS=new URL('../assets/pixel/terrain-v1/atlas.png',import.meta.url).href;
 export const WALL_ATLAS=new URL('../assets/pixel/walls-v1/atlas.png',import.meta.url).href;
 const terrainNames=['金屬地板','格柵地板','衛浴地板','門禁地板'];

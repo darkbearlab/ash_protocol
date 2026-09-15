@@ -1,3 +1,5 @@
+import {isSimulation} from './killhouse-policy.js';
+import {recordTutorial,recordArcade} from './killhouse-profile.js';
 import {deepestFloor} from './missions.js';
 import {AMMUNITION,CARRY_COSTS,carryLevels,carryingSpent} from './ammunition.js';
 import {Game} from './engine.js';
@@ -18,6 +20,7 @@ export function loadGame(){
 }
 // Returns whether everything was written, so the UI can warn when progress is not being kept (3.44).
 export function saveGame(game){
+  if(isSimulation(game))return true; // Volatile session: never touch campaign or protocol ledger.
   if(storage.recoveryPending)return false;
   if(game.status==='playing'){
     let ok=write('ash-save',game.serialize());
@@ -39,7 +42,7 @@ export function profile(){try{
   }
   return p;
 }catch{return normalizeProfile();}}
-function resultProfile(game,p=profile()){if(game.status==='playing'||storage.recoveryPending)return p;
+function resultProfile(game,p=profile()){if(isSimulation(game)||game.status==='playing'||storage.recoveryPending)return p;
   creditProtocol(p,game);const id=game.runId;
   if(!Object.hasOwn(p.protocolRuns,id))return p;
   if(p.protocolRuns[id].recorded)return p;
@@ -49,9 +52,10 @@ function resultProfile(game,p=profile()){if(game.status==='playing'||storage.rec
   p.history=p.history.slice(0,10);return p;
 }
 
-export function recordResult(game){const p=resultProfile(game);if(game.status!=='playing'&&!storage.recoveryPending)write('ash-profile',JSON.stringify(p));return p;}
+export function recordResult(game){const p=resultProfile(game);if(!isSimulation(game)&&game.status!=='playing'&&!storage.recoveryPending)write('ash-profile',JSON.stringify(p));return p;}
 
 export function purchaseCarrying(game,type,expectedLevel){
+  if(isSimulation(game))throw Error('模擬中不變更永久進度。');
   if(storage.recoveryPending||!storage.available)throw new Error('本機儲存尚未就緒，請先備份資料後重試。');
   if(!Object.hasOwn(AMMUNITION,type))throw new Error('請選擇有效的彈種。');
   const p=profile(),level=p.upgrades.carrying[type],cost=CARRY_COSTS[level];
@@ -69,6 +73,7 @@ export function purchaseCarrying(game,type,expectedLevel){
 // Free placeholder reset: refund exactly what was spent, then re-apply the
 // existing capacity path so overflow drops to the ground instead of vanishing.
 export function resetCarrying(game){
+  if(isSimulation(game))throw Error('模擬中不變更永久進度。');
   if(storage.recoveryPending||!storage.available)throw new Error('本機儲存尚未就緒，請先備份資料後重試。');
   const p=profile(),refund=Object.keys(AMMUNITION).reduce((sum,type)=>sum+carryingSpent(p.upgrades.carrying[type]),0);
   if(!refund)throw new Error('目前沒有可重置的攜行升級。');
@@ -79,7 +84,7 @@ export function resetCarrying(game){
   return refund;
 }
 
-export function exportBackup(game){return JSON.stringify(makeBackup(game,profile(),backupNamespace),null,2);}
+export function exportBackup(game){return JSON.stringify(makeBackup(isSimulation(game)?loadGame():game,profile(),backupNamespace),null,2);}
 export function previewBackup(raw){return decodeBackup(raw,backupNamespace);}
 function storeSnapshot(snapshot){
   localStorage.setItem(storageKey('ash-profile'),JSON.stringify(snapshot.profile));
@@ -92,6 +97,7 @@ export function recoverRestore(){
   catch{storage.available=false;storage.recoveryPending=true;return false;}
 }
 export function restoreBackup(raw,currentGame){
+  if(isSimulation(currentGame))throw Error('請先離開模擬再還原戰役備份。');
   const next=previewBackup(raw); // Validate everything before touching local data.
   if(!recoverRestore())throw new Error('上次還原尚未復原，請先匯出目前資料再重試。');
   const previous=exportBackup(currentGame);
@@ -103,12 +109,18 @@ export function restoreBackup(raw,currentGame){
 
 // Use the same rollback journal as full restore; no localStorage.clear(), no other apps' keys.
 export function resetProgress(game){
+  if(isSimulation(game))throw Error('模擬中不變更永久進度。');
   return restoreBackup(JSON.stringify(makeBackup(null,normalizeProfile(),backupNamespace)),game);
 }
 export function abandonRun(game){
+  if(isSimulation(game)){if(game.status!=='playing')return false;game.status='abandoned';game.pendingPerks=0;return true;}
   if(game.status!=='playing')return false;
   if(storage.recoveryPending||!storage.available)throw new Error('本機儲存尚未就緒，尚未放棄任務。');
   const next=resultProfile({...game,status:'abandoned'});
   restoreBackup(JSON.stringify(makeBackup(null,next,backupNamespace)),game);
   game.status='abandoned';game.pendingPerks=0;game.log('任務已放棄，已賺點數與永久升級保留。');return true;
 }
+
+// UI calls these explicitly after the tutorial choice / arcade score calculation.
+export function saveTutorialOutcome(outcome){if(storage.recoveryPending)return false;const p=profile();recordTutorial(p,outcome);return write('ash-profile',JSON.stringify(p));}
+export function saveArcadeResult(game,score,formula='v1'){if(!isSimulation(game)||storage.recoveryPending)return false;const p=profile();recordArcade(p,game.simulationResult,score,{scope:game.simulation.options.scoreScope,formula});return write('ash-profile',JSON.stringify(p));}

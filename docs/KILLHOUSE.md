@@ -1,6 +1,6 @@
 # Kill house：模擬訓練教學與街機模式（規格，2026-09-15）
 
-- **狀態**：規格，未實作。
+- **狀態**：3.87.0 規則、地圖與美術已實作；入口與提示介面待 Claude 接（第 8–9 節）。
 - **分工**：
   - 規則、地圖配方、地圖美術資產與地圖風格重構、玩家檔案欄位交 Codex。
   - 房間提示、模擬程式的畫面色調、文字、街機分數權重交 Claude，在 Codex 之後做。
@@ -123,3 +123,54 @@
 - 「銷毀此庫存」畫面。
 - 街機模式的結算、最高分顯示，以及肅清率與回合數的權重。
 - 教學出口與街機結算接上肅清績效。
+
+## 8. 實作現況（3.87.0，Codex，2026-09-15）
+
+### 局面與回合
+
+- `src/killhouse.js` 的 `KillhouseGame extends Game`，工廠 `createKillhouse({mode,seed,character,portrait,options})`。mode 為 `tutorial` 或 `arcade`；不是戰役合約，不加入 MISSIONS／隨機任務清單。底層 mission 保留 extraction 的空目標結構，介面應讀 simulation 而不是當六層戰役。
+- 教學固定 seed=1、soldier、原生士兵配給及零永久攜行等級；六個房間按第 3 節順序，10 名人形（含 2 civilian），固定 2 次步槍彈、2 個醫療包、2 顆破片彈補給。敵人的名稱、戰鬥、逃跑與尖叫照原卡；標記 `enemy.simulation=true`，沒有詞條與小菁英。
+- 整備層 7×7，敵人為零。地上每種**非綁定武器**一把、五彈種各基礎容量三倍、四種投擲物各四顆；綁定原版斧／刀／動力拳仍由原職業自帶，避免其他職業拿到不可卸除的裝甲部件。拾獲斧與刀包含在整備池。全部是無詞條、滿彈匣；原本武器格與攜帶上限照舊。
+- 街機戰鬥配方池為 `src/killhouse-maps.js / KILLHOUSE_RECIPES.arcade`：switchback（6 房、20 人）及 crossfire（4 房、12 人）。只以 seed 選配方，與戰役 RNG、威脅預算、出生池完全分開。教學同檔的固定明確矩形／連線配方，不套用要求 3×3／任務目標房的戰役 JSON 格式。
+- 踏進出口立即在玩家行動步驟轉層或獲勝，後續敵人不再行動；整備轉層**不回血、不補彈**，原有友軍同行規則保留。正常在途狀態／技能結算沿用 Game.action。失能導致沒走到出口時不會撤離。
+- 兩模式不給協定點數；街機與預設教學不加經驗、不給擊殺廢料、不抽敵人掉落、不提供箱／終端補給。自身物資的拆解／使用、職業本身的友軍能力仍是原規則，沒有修改它們的數值。沒有雜兵、巢穴、蟲潮、頭目，付費回合也不呼叫三種敵方增援 tick。
+- `simulationResult` 直接組合 `purgeReview(g)`，rate/quota/purged/tier 原值；turns = review.turns − battleStartTurn，所以整備不計分，免費預備不計時，踏入出口的付費回合計入。研究員包含在同一套肅清名單，不另寫計數。
+
+### 待決參數
+
+`src/killhouse-policy.js / KILLHOUSE_OPTIONS`，建立局面時拷貝並可由 options 覆寫：
+
+| 參數 | 暫定 | 可選 |
+| --- | --- | --- |
+| tutorialDeath | restart | restart / menu；只回傳目的地，不自動重啟、避免蓋過死亡演出 |
+| scoreScope | shared | shared / character |
+| armory | all | all / class；class 按原生武器的 weaponClass 篩可拾取品，綁定武器照原配給 |
+| tutorialUpgrades | false | 教學是否加經驗與三選一 |
+| tutorialDrops | false | 教學是否給原本敵人廢料與掉落 |
+
+### 隔離、檔案與備份
+
+- 模擬**不存中途進度**。重新整理回正常入口；`serialize()` 拒絕生成戰役存檔，`Game.restore` 拒絕帶 simulation 的資料。單局 SAVE_VERSION 保持 **44**。
+- `saveGame` 對模擬為成功的 no-op；`recordResult` 不記戰役結果；`abandonRun` 只把記憶體中的模擬標為 abandoned。`creditProtocol` 額外拒絕模擬，防止其他入口誤發點數。
+- 模擬中 `storage.exportBackup(g)` 匯出仍保存中的真實戰役＋profile；低層 `makeBackup(g,...)` 遇模擬直接拒絕，避免誤把 campaign:null 當完整備份。永久購買、重置與還原在模擬中拒絕，先退出模擬再做。瀏覽器首次教學入口接線後，也不能用「開始新戰役」的放棄舊局流程。
+- **PROFILE_VERSION=6**，新增 `killhouse:{tutorial:{completed:false,skipped:false},best:null,byCharacter:{}}`。v2–v5 維持原點數／攜行／無盡／歷史，增加未完成教學與空紀錄；storage 讀取舊 profile 先備份原版本。完整備份外層仍 v1，嚴格驗證新欄位。
+- 成績只記最高分：`{score,rate,turns,character,formula}`，shared 寫 best、character 寫 byCharacter[職業]；重複提交或低分不降低紀錄，不增加 runs/wins/history。score 與 formula 由 Claude 算；本輪不自行定配分。公式改版不自動清空紀錄，若未來要重排應另定遷移。
+
+### 地圖風格與美術
+
+- `src/map-styles.js / MAP_STYLES` 統一登錄風格：facility 保有原 THEMES 與 MATERIAL_SELECTION；killhouse 一套語意素材。`g.mapStyle` 未設／未知時回 facility，`themeAt/resolveSprite`、牆與門使用同一個風格選擇。新增風格可加登錄、語意角色與圖集 URL；若要全新物件幾何才另寫繪製。
+- mapStyle 是可選樓層所有權欄位，進 FLOOR_FIELDS，換層清除再依新地圖設定，舊封存樓層回到預設設施。既有生成器完全不寫這個欄位，既有存檔不需遷移。
+- 圖集 `assets/pixel/killhouse-v1/atlas.png`：32px、8 格、每格最多16色、RGB555。地板、牆面、牆頂、關門、破門、門框、門頂、掩體各一；沒有生活擺設與素材變體。原圖／提示／放大預覽在 `art/killhouse-v1/`，重建 `python tools/pixelize-killhouse.py`。內建 image_gen 生成。
+- 未修改設施 PNG；從 8eaff9c 提取舊繪製函式，保留原素材雜湊、裁切座標、矩形與繪製順序基準 `tests/fixtures/facility-art-3.86.0.json`。新路徑逐項相同；這是 raster 輸入契約驗證，不冒稱做過真手機截圖。新圖集／所有模組已加 SW 離線清單。
+
+## 9. Claude 介面交接
+
+- 首次入口：`tutorialGate(profile())` → `{required,canSkip:true,mode:'tutorial',character:'soldier'}`。required 時接強制訓練／跳過畫面；已有戰役仍保留。畫面尚未接，因此本版不自行彈窗或改部署 UI。
+- 建立：`createKillhouse({mode:'tutorial'})`；`createKillhouse({mode:'arcade',character:'recon',seed:123})`。可直接交現有 Renderer／captureAction；**替換畫面中的 game 參照即可，不呼叫新戰役放棄流程**。預設 arcade seed 取當下時間，顯式 seed 可重現。
+- 房間：建立時已記第 0 房，之後成功行動會偵測。`g.takeRoomEvents()` 一次取走尚未處理事件，每房最多一次：`{type:'roomEntered',floor,roomId,phase,recipe,turn}`。提示放演出完成後顯示；phase = tutorial / armory / combat。
+- 染色：`g.simulation.kind==='killhouse'`；每名人形 `simulation:true`。不修改生物被動、派系及聲線。新地圖素材已由 renderer 自動讀 g.mapStyle；人形全息色調仍待 Claude。
+- UI 隱藏模擬的「匯出單局／匯入戰役」與永久購買／重置操作；完整備份按鈕仍走 storage.exportBackup，保存的是原戰役。不要直接呼叫模擬 serialize。
+- 跳過教學 `saveTutorialOutcome('skipped')`；教學獲勝後 `saveTutorialOutcome('completed')`。必須檢查回傳的寫入成功布林值。陣亡只呈現「銷毀此庫存」，再依 result.deathDestination 決定去哪裡，不自動標已完成。
+- 街機結算 `g.simulationResult` → `{quota,purged,rate,turns,tier,mode,outcome,character,recipe,deathDestination,scoreScope}`。用 rate/turns 配分後 `saveArcadeResult(g,score,'v1')`。只有 arcade won 受理；保存失敗回 false，資料不合法丟出錯誤。讀 `profile().killhouse` 顯示最高分。
+- `node qa/create-killhouse-scenes.mjs` 產生 3 份 **inspectionOnly** 地圖資料到 qa/fixtures/killhouse。它們不是存檔，不能走匯入任務；在 `?test=1` 開發頁用 factory 建立同 options 的局面。教學 seed1；街機 seed0/1 分別覆蓋兩張配方。整備跳戰鬥的 QA 快捷可將 player 放到 end 後 g.descend()，正常遊戲必須移動過去。
+- 驗收：原戰役存在時開始／跳過／死亡／完成模擬／匯出備份均能回原戰役；每房提示一次；門與破門素材、ammo／武器拾取、三種友軍職業；研究員未殺時 rate 降低；整備等候不加戰鬥回合；兩張配方出口；離線新入口。真機手感與首次入口 UI 由 Claude／使用者測。

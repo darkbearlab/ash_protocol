@@ -1,3 +1,4 @@
+import {mapStyleAtlases,mapStyle} from './map-styles.js';
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
@@ -33,7 +34,7 @@ export class Renderer {
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.time=0;
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.callouts=new CalloutBoard();this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
-    for(const url of [SCENERY_ATLAS,DOOR_ATLAS,NEST_ATLAS]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
+    for(const url of [SCENERY_ATLAS,DOOR_ATLAS,NEST_ATLAS,...mapStyleAtlases()]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
     this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;this.terrainImages.set(WALL_ATLAS,this.wallImage);this.artTones=new ArtToneCache();
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
     this.classSprites=new Image();this.classSprites.src=CLASS_ATLAS;this.operatorColor=DEFAULT_OPERATOR_COLOR;this.tintCache=new Map();
@@ -61,9 +62,10 @@ export class Renderer {
   drawBarrier(b,scale=this.tile){
     const p=this.project(b.x,b.y),vertical=b.axis==='x',half=scale*.5,color=b.hp<=0?'#65746b':b.open?'#8ad2bb':b.type==='door'?'#dec184':'#9da99d';
     const segment=(a,z,width)=>this.line(p.x+(vertical?0:a),p.y+(vertical?a:0),p.x+(vertical?0:z),p.y+(vertical?z:0),color,width);
+    if(b.hp<=0&&b.type==='door'&&mapStyle(this.game)!=='facility'){drawDoor(this.ctx,b,p,scale,this.terrainImages,this.game);return;}
     if(b.hp<=0){segment(-half,-half*.72,3);segment(half*.72,half,3);return;}
     if(b.type==='low_partition'||b.type==='partition'){const q=drawPartition(this.ctx,b,p,scale,this.terrainImages);this.objectHealth(b,p.x-7,q.top-4,14);return;}
-    if(b.type==='door'){const boxes=drawDoor(this.ctx,b,p,scale,this.terrainImages);this.objectHealth(b,p.x-7,Math.min(...boxes.map(q=>q.top))-4,14,'#e6bd82');return;}
+    if(b.type==='door'){const boxes=drawDoor(this.ctx,b,p,scale,this.terrainImages,this.game);this.objectHealth(b,p.x-7,Math.min(...boxes.map(q=>q.top))-4,14,'#e6bd82');return;}
     if(b.open){segment(-half,-half*.62,5);segment(half*.62,half,5);this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     if(this.terrain(b.type,p,b,Math.round(scale),vertical?0:1)){this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     segment(-half,half,7);segment(-half+2,half-2,3);
@@ -293,7 +295,7 @@ export class Renderer {
     c.restore();
   }
   terrain(role,a,point,size=Math.round(this.tile),rotation=0){
-    const sprite=resolveSprite(themeAt(this.game,point),role),image=sprite&&this.terrainImages.get(sprite.url);
+    const sprite=resolveSprite(themeAt(this.game,point),role,this.game),image=sprite&&this.terrainImages.get(sprite.url);
     this.terrainReady=Boolean(image?.complete&&image.naturalWidth);
     if(!this.terrainReady)return false;
     const c=this.ctx;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(rotation*Math.PI/2);c.imageSmoothingEnabled=false;

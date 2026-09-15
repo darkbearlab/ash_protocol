@@ -73,7 +73,7 @@ test('profile v5 keeps endless overall and class records separate from ordinary 
 });
 test('death storage records endless once and migrates profile v4 without touching live keys',async()=>{
  const old=normalizeProfile();old.version=4;delete old.endless;const original=JSON.stringify(old),memory=new Map([['qa-ash-profile',original],['ash-profile','live']]);globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
- const s=await import('../src/storage.js?endless');assert.equal(s.profile().version,5);assert.equal(memory.get('qa-ash-profile-v4-backup'),original);
+ const s=await import('../src/storage.js?endless');assert.equal(s.profile().version,PROFILE_VERSION);assert.equal(memory.get('qa-ash-profile-v4-backup'),original);
  const g=run(20);rank(g,25);g.status='dead';g.player.hp=0;s.recordResult(g);s.recordResult(g);const p=s.profile();assert.equal(p.runs,1);assert.equal(p.bestFloor,1);assert.equal(p.endless.best.floor,20);assert.equal(p.history[0].mission,'endless');assert.equal(p.history[0].level,25);assert.equal(p.history[0].floor,20);assert.ok(validateProfile(p));assert.equal(memory.get('ash-profile'),'live');delete globalThis.location;delete globalThis.localStorage;
 });
 

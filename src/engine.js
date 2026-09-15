@@ -35,3 +35,7 @@ export * from './swarm.js';
 export * from './swarm-waves.js';
 export * from './poison.js';
 export * from './purge-review.js';
+
+export * from './killhouse.js';
+export * from './killhouse-profile.js';
+export * from './killhouse-policy.js';

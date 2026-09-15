@@ -1,0 +1,2038 @@
+{
+  "sprites": [
+    [
+      "industrial",
+      "floor",
+      {
+        "id": "T01",
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 0,
+        "size": 32
+      }
+    ],
+    [
+      "industrial",
+      "cover",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "industrial",
+      "barrel",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 96,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "industrial",
+      "door",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "industrial",
+      "terminal",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "industrial",
+      "locker",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "industrial",
+      "toilet",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "industrial",
+      "counter",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "sanitary",
+      "floor",
+      {
+        "id": "T03",
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 0,
+        "size": 32
+      }
+    ],
+    [
+      "sanitary",
+      "cover",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "sanitary",
+      "barrel",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 96,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "sanitary",
+      "door",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "sanitary",
+      "terminal",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "sanitary",
+      "locker",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "sanitary",
+      "toilet",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "sanitary",
+      "counter",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "security",
+      "floor",
+      {
+        "id": "T04",
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 96,
+        "y": 0,
+        "size": 32
+      }
+    ],
+    [
+      "security",
+      "cover",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "security",
+      "barrel",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 96,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "security",
+      "door",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "security",
+      "terminal",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "security",
+      "locker",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "security",
+      "toilet",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "security",
+      "counter",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "utility",
+      "floor",
+      {
+        "id": "T02",
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 32,
+        "y": 0,
+        "size": 32
+      }
+    ],
+    [
+      "utility",
+      "cover",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "utility",
+      "barrel",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 96,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "utility",
+      "door",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "utility",
+      "terminal",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "utility",
+      "locker",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "utility",
+      "toilet",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "utility",
+      "counter",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "platform",
+      "floor",
+      {
+        "id": "T02",
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 32,
+        "y": 0,
+        "size": 32
+      }
+    ],
+    [
+      "platform",
+      "cover",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "platform",
+      "barrel",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 96,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "platform",
+      "door",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "platform",
+      "terminal",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "platform",
+      "locker",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "platform",
+      "toilet",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "platform",
+      "counter",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "dock",
+      "floor",
+      {
+        "id": "T04",
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 96,
+        "y": 0,
+        "size": 32
+      }
+    ],
+    [
+      "dock",
+      "cover",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "dock",
+      "barrel",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 96,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "dock",
+      "door",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "dock",
+      "terminal",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "dock",
+      "locker",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "dock",
+      "toilet",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "dock",
+      "counter",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "balcony",
+      "floor",
+      {
+        "id": "T03",
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 0,
+        "size": 32
+      }
+    ],
+    [
+      "balcony",
+      "cover",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "balcony",
+      "barrel",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 96,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "balcony",
+      "door",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "balcony",
+      "terminal",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 96,
+        "size": 32
+      }
+    ],
+    [
+      "balcony",
+      "locker",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 64,
+        "size": 32
+      }
+    ],
+    [
+      "balcony",
+      "toilet",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 0,
+        "y": 32,
+        "size": 32
+      }
+    ],
+    [
+      "balcony",
+      "counter",
+      {
+        "url": "assets/pixel/terrain-v1/atlas.png",
+        "x": 64,
+        "y": 32,
+        "size": 32
+      }
+    ]
+  ],
+  "calls": [
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      0,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      0,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      64,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      64,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      32,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      32,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      96,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      96,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      0,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      0,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      64,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      64,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      32,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      32,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      96,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      96,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      0,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      0,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      64,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      64,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      32,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      32,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#142020"
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      38,
+      57
+    ],
+    [
+      "set",
+      "globalAlpha",
+      1
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      96,
+      0,
+      32,
+      32,
+      81,
+      91,
+      38,
+      19
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#111e22"
+    ],
+    [
+      "fillRect",
+      81,
+      108,
+      38,
+      2
+    ],
+    [
+      "save"
+    ],
+    [
+      "drawImage",
+      "assets/pixel/walls-v1/atlas.png",
+      96,
+      64,
+      32,
+      32,
+      81,
+      53,
+      38,
+      38
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#54645d"
+    ],
+    [
+      "set",
+      "fillStyle",
+      "#1c2b2b"
+    ],
+    [
+      "fillRect",
+      118,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      53,
+      1,
+      38
+    ],
+    [
+      "fillRect",
+      81,
+      89,
+      38,
+      2
+    ],
+    [
+      "restore"
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      0,
+      0,
+      32,
+      32,
+      109,
+      98,
+      6,
+      19
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      32,
+      0,
+      32,
+      32,
+      109,
+      60,
+      6,
+      38
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      0,
+      32,
+      32,
+      32,
+      109,
+      66,
+      6,
+      19
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      32,
+      0,
+      32,
+      32,
+      109,
+      60,
+      6,
+      6
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      0,
+      32,
+      32,
+      32,
+      109,
+      98,
+      6,
+      19
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      32,
+      0,
+      32,
+      32,
+      109,
+      92,
+      6,
+      6
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      0,
+      0,
+      32,
+      32,
+      93,
+      82,
+      38,
+      19
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      32,
+      0,
+      32,
+      32,
+      93,
+      76,
+      38,
+      6
+    ],
+    [
+      "restore"
+    ],
+    [
+      "save"
+    ],
+    [
+      "set",
+      "imageSmoothingEnabled",
+      false
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      0,
+      32,
+      32,
+      32,
+      93,
+      82,
+      6,
+      19
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      32,
+      0,
+      32,
+      32,
+      93,
+      76,
+      6,
+      6
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      0,
+      32,
+      32,
+      32,
+      125,
+      82,
+      6,
+      19
+    ],
+    [
+      "drawImage",
+      "assets/pixel/doors-v1/atlas.png",
+      32,
+      0,
+      32,
+      32,
+      125,
+      76,
+      6,
+      6
+    ],
+    [
+      "restore"
+    ]
+  ],
+  "hashes": {
+    "assets/pixel/terrain-v1/atlas.png": "453a03f948c83796a3e52ddf2cd81789cae4f28b1a59eaec018ef464354657d9",
+    "assets/pixel/walls-v1/atlas.png": "d95947611c73d2b78303c88c05e88d5712f85dc028bcfa8ccf4a9f583f55d352",
+    "assets/pixel/doors-v1/atlas.png": "ebc1c6a63dded44e437041523c8a32689542d6ec72109d31c773ed27df49f848"
+  }
+}

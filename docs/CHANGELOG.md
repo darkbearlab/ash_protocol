@@ -1,5 +1,12 @@
 # 更新紀錄
 
+## 3.87.0 — Kill house 規則與地圖風格（Codex，2026-09-15）
+
+- 固定士兵六房教學、可選職業的 7×7 整備層與兩份街機戰鬥配方；人形模擬、踏入出口結算，重用 purgeReview 肅清率並排除整備回合。
+- 模擬不覆蓋／放棄戰役、不發協定點數；profile6 增教學完成／跳過及街機最高分，完整備份驗證與舊 profile 遷移同步；save44 不變。
+- 地圖風格登錄與 Kill house 八格新素材；設施 raster 輸入與舊版一致。首次入口與提示／色調／分數介面由 Claude 接。
+- 詳細規則、API、待決參數與驗收：[KILLHOUSE](KILLHOUSE.md)、[QA 報告](../qa/results/2026-09-15-codex-3.87.0-killhouse.md)。
+
 ## 3.86.0 — 肅清績效（Claude，2026-09-15）
 
 - **撤離結算新增肅清評估**（使用者決定，[PURGE_REVIEW.md](PURGE_REVIEW.md)）：

@@ -1,0 +1,17 @@
+{
+  "size": 32,
+  "columns": 4,
+  "names": [
+    "floor",
+    "wall-face",
+    "wall-cap",
+    "door-closed",
+    "door-broken",
+    "door-frame",
+    "door-cap",
+    "cover"
+  ],
+  "colorsPerTile": 16,
+  "rgbBits": 5,
+  "sourceSha256": "c3f897a677546cb32139445bce465907726b92def80c0e37bd942aa54f62fa64"
+}

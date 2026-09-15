@@ -1,3 +1,5 @@
+import {isSimulation} from './killhouse-policy.js';
+import {validKillhouseProfile} from './killhouse-profile.js';
 import {validGenerationHistory} from './map-geometry.js';
 import {ENDLESS_MAX_FLOOR} from './endless.js';
 import {validMissionId} from './missions.js';
@@ -34,10 +36,12 @@ export function validateProfile(raw){
     requireValue(object(raw.endless)&&record(raw.endless.best)&&object(raw.endless.byCharacter)&&Object.entries(raw.endless.byCharacter).every(([id,r])=>validCharacter(id)&&r!==null&&record(r)),'無盡紀錄無效。');
     requireValue(Object.values(raw.endless.byCharacter).every(r=>raw.endless.best&&r.floor<=raw.endless.best.floor),'無盡全體紀錄與職業紀錄不符。');
   }
+  if(raw.version>=6)requireValue(validKillhouseProfile(raw.killhouse),'Kill house 紀錄無效。');
   return normalizeProfile(JSON.parse(JSON.stringify(raw)));
 }
 
 export function makeBackup(game,records,namespace){
+  if(isSimulation(game))throw Error('請使用 storage.exportBackup 匯出保留中的戰役。');
   const p=normalizeProfile(JSON.parse(JSON.stringify(records)));if(game)creditProtocol(p,game);
   const backup={format:'ash-protocol-backup',version:1,namespace,createdAt:new Date().toISOString(),profile:p,campaign:game?.status==='playing'?JSON.parse(game.serialize()):null};
   // Validate exports too: never present an unusable snapshot as a successful backup.

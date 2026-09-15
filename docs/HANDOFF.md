@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.85.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.87.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -195,3 +195,12 @@ sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩�
 3.84.0：swarm.js／swarm-tuning.js 管毒液、資料化鉤舌與感染裂蟲。melee-classes.pullLanding 由狂戰士與鉤舌共用，規則不變；save43可選intent／冷卻／父子代欄位，舊檔不重抽。新增素材第18格。SWARM第6節有欄位與Claude介面交接，第7節是尚未實作的蟲潮提案。
 
 3.85.0：swarm-waves.js 管獨立蟲潮與可選FLOOR_FIELDS.swarmWaves，renderer共用增援預告查詢。poison.js 統一疊層毒素、退層計時與清毒；save44將舊剩餘回合ceil/2轉層，不重生成既有樓層。數值仍集中SWARM_TUNING；欄位與驗收見SWARM第9節。
+
+
+## Kill house（3.87.0）
+
+- 規則入口 `src/killhouse.js`；`KillhouseGame` 共用 Game 戰鬥，不加入戰役 MISSIONS。地圖池 `killhouse-maps.js`，待決開關 `killhouse-policy.js`。
+- 模擬局只在記憶體，不得序列化成 ash-save；storage 儲存／放棄／結果／備份都分流。備份模擬畫面時匯出保留中的原戰役，永不以空 campaign 蓋掉它。
+- 單局 save44、完整備份1保持；PROFILE_VERSION=6（killhouse 教學旗標／最高分），`killhouse-profile.js` 管旗標、分數驗證及高水位，分數權重由 Claude 決定。
+- 地圖美術登錄 `map-styles.js`：facility 原素材與選材完全保留；killhouse 使用新 32px 圖集。可選 mapStyle 歸樓層所有權，換層／封存清楚隔離。
+- 首次強制入口、房間提示、全息人形、死亡與分數畫面尚待 Claude 接。API 與流程見 [KILLHOUSE 第9節](KILLHOUSE.md#9-claude-介面交接)。

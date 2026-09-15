@@ -1,3 +1,4 @@
+import {styleSprite} from './map-styles.js';
 import {roomTiles} from './map-geometry.js';
 // Raised walls are cosmetic: ground-grid movement, visibility and cover stay unchanged.
 import {WALL_ATLAS,approved,materialSprite,MATERIAL_SELECTION} from './materials.js';
@@ -32,7 +33,7 @@ export function wallGeometry(g,x,y,tile,center){
 export function drawWall(ctx,g,x,y,tile,center,images,theme='industrial',tones=null,selection=MATERIAL_SELECTION){
   const q=wallGeometry(g,x,y,tile,center),style=wallStyle(g,x,y,theme,selection);
   const texture=(id,top,height,fallback)=>{
-    const sprite=materialSprite(id),image=images instanceof Map?images.get(sprite?.url):images;
+    const sprite=styleSprite(g,id===style.face?'face':'cap')||materialSprite(id),image=images instanceof Map?images.get(sprite?.url):images;
     if(image?.complete&&image.naturalWidth>0&&sprite){
       const toned=tones?.get(image,sprite,'wall');
       ctx.drawImage(toned||image,toned?0:sprite.x,toned?0:sprite.y,32,32,q.left,top,q.width,height);

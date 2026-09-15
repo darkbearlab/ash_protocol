@@ -1,3 +1,4 @@
+import {styleSprite} from './map-styles.js';
 import {SCENERY_ATLAS} from './scenery.js';
 export const PARTITION_HEIGHT=.5;
 export const DOOR_ATLAS=new URL('../assets/pixel/doors-v1/atlas.png',import.meta.url).href;
@@ -33,9 +34,10 @@ export function doorGeometry(b,center,tile){
     return {...q,left:Math.round(p.x-width/2),width:Math.round(width),bottom,faceTop,top:Math.round(faceTop-depth),depth:Math.round(depth)};
   });
 }
-export function drawDoor(ctx,b,center,tile,images){
+export function drawDoor(ctx,b,center,tile,images,game=null){
   const boxes=doorGeometry(b,center,tile);ctx.save();ctx.imageSmoothingEnabled=false;
-  for(const q of boxes)texturedBox(ctx,q,images,DOOR_ATLAS,2,b.open?2:0,1);
+  const sprite=styleSprite(game,'doorClosed');
+  for(const q of boxes)texturedBox(ctx,q,images,sprite?.url||DOOR_ATLAS,sprite?4:2,sprite?(b.hp<=0?4:b.open?5:3):(b.open?2:0),sprite?6:1);
   ctx.restore();return boxes;
 }
 export function partitionGeometry(b,center,tile){
