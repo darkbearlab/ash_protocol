@@ -20,7 +20,8 @@ test('tutorial is fixed soldier, fixed geometry/population/supplies and sequenti
  const a=createKillhouse({seed:5,character:'recon'}),b=createKillhouse({seed:999,character:'ninja'});
  assert.equal(a.player.character,'soldier');assert.deepEqual(a.grid,b.grid);assert.deepEqual(a.enemies,b.enemies);assert.deepEqual(a.items,b.items);assert.equal(a.rooms.length,6);
  assert.ok(a.enemies.every(e=>['rifleman','raider','sniper','gunner','civilian'].includes(e.type)&&e.simulation&&!e.affixes&&!e.elite));
- assert.equal(a.enemies.filter(e=>e.type==='civilian').length,2);assert.ok(a.items.some(i=>i.type==='grenade'));
+ // 3.88.1 (user report): the second researcher fled right and opened room 5's door, so only the left one stays.
+ assert.equal(a.enemies.filter(e=>e.type==='civilian').length,1);assert.ok(a.items.some(i=>i.type==='grenade'));
  for(const b of a.barriers)b.open=true;const path=reachable(a,a.start);assert.ok(path.has(key(a.end)));assert.ok(a.rooms.every(r=>path.has(key({x:r.x+1,y:r.cy}))));
  assert.equal(a.takeRoomEvents().length,1);a.observeRoom();assert.equal(a.takeRoomEvents().length,0);
  Object.assign(a.player,{x:17,y:5});a.observeRoom();assert.equal(a.takeRoomEvents()[0].roomId,1);a.observeRoom();assert.equal(a.takeRoomEvents().length,0);

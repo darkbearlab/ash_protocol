@@ -4,7 +4,7 @@ import {CHARACTERS} from './characters.js';
 // Kill house interface copy and arcade scoring (docs/KILLHOUSE.md section 10, Claude, 3.88.0).
 // Rules and records live in killhouse*.js; this module only words, weighs and lays them out.
 
-// One prompt per tutorial room, in recipe order (room 4 holds the two researchers).
+// One prompt per tutorial room, in recipe order (room 4 holds the researcher).
 export const TUTORIAL_PROMPTS=[
   {title:'移動與掩體',text:'用方向鈕、WASD 或點相鄰格移動。掩體只擋從它那一側射來的攻擊：讓掩體夾在你和敵人之間才有效。'},
   {title:'射擊',text:'點敵人鎖定，浮卡會顯示命中率，再按開火。距離、目標的掩體與暗處都會壓低命中。'},
@@ -29,6 +29,36 @@ export function roomPrompt(event){
   return text?{modal:false,text}:null;
 }
 export const roomPromptMarkup=p=>`<div class="eyebrow">${p.eyebrow}</div><h2>${p.title}</h2><p>${p.text}</p><button class="modal-button" data-modal="close">繼續 →</button>`;
+
+// Tutorial cards fire on the tile before each room's door, before anyone inside can see the player (3.88.1, user
+// report). A door edge-kh-i-j leads from room i into room j; its approach tile is the side away from room j. Room 1 has
+// no door, so its card fires on the first corridor tile outside room 0.
+const insideRoom=(r,p)=>p.x>=r.x&&p.x<r.x+r.w&&p.y>=r.y&&p.y<r.y+r.h;
+const touches=(r,p)=>[[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>insideRoom(r,{x:p.x+dx,y:p.y+dy}));
+export function tutorialCue(g){
+  if(g.simulation?.phase!=='tutorial')return null;
+  const p=g.player,doors=new Set();
+  for(const b of g.barriers||[]){
+    const m=/^edge-kh-(\d+)-(\d+)$/.exec(b.id||''),room=m&&g.rooms[Number(m[2])];if(!room)continue;doors.add(`${m[1]}-${m[2]}`);
+    const cells=b.axis==='x'?[{x:Math.floor(b.x),y:b.y},{x:Math.ceil(b.x),y:b.y}]:[{x:b.x,y:Math.floor(b.y)},{x:b.x,y:Math.ceil(b.y)}];
+    const from=cells.sort((a,c)=>Math.abs(c.x-room.cx)+Math.abs(c.y-room.cy)-Math.abs(a.x-room.cx)-Math.abs(a.y-room.cy))[0];
+    if(from.x===p.x&&from.y===p.y)return Number(m[2]);
+  }
+  if(g.rooms.some(r=>insideRoom(r,p)))return null;
+  const link=(g.links||[]).find(([i,j])=>!doors.has(`${i}-${j}`)&&g.rooms[i]&&touches(g.rooms[i],p));
+  return link?link[1]:null;
+}
+const promptKeys=(g,events)=>[...events.filter(e=>e?.type==='roomEntered').map(e=>e.phase==='tutorial'?`tutorial:${e.roomId}`:e.roomId===0?`${e.phase}:0`:null),...(tutorialCue(g)===null?[]:[`tutorial:${tutorialCue(g)}`])].filter(Boolean);
+// shown is the session's set of keys; each card or toast appears once.
+export const promptDue=(g,shown)=>promptKeys(g,g.simulation?.roomEvents||[]).some(key=>!shown.has(key));
+export function nextPrompt(g,events,shown){
+  let prompt=null;
+  for(const key of promptKeys(g,events)){
+    if(shown.has(key))continue;shown.add(key);
+    const [phase,id]=key.split(':');prompt=roomPrompt({type:'roomEntered',phase,roomId:Number(id)})||prompt;
+  }
+  return prompt;
+}
 
 // Score v1: every 10% of purge is 1000 points, roughly the same as saving 33 turns. The speed bonus stops at zero.
 export const KILLHOUSE_SCORE={formula:'v1',rate:10000,turnBonus:3000,turnCost:30};

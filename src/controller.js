@@ -28,7 +28,7 @@ import {depthLabel,levelLabel,levelTitle,endlessRules,levelCapRules,endlessRecor
 import {purgeReportMarkup} from './purge-review-ui.js';
 import {createKillhouse,isSimulation,tutorialGate} from './engine.js';
 import {saveTutorialOutcome,saveArcadeResult} from './storage.js';
-import {roomPrompt,roomPromptMarkup,tutorialGateMarkup,killhouseMenuMarkup,disposedMarkup,tutorialResultMarkup,arcadeResultMarkup,killhouseScore,bestRecord,KILLHOUSE_SCORE,simulationLabel,simulationBrief} from './killhouse-ui.js';
+import {nextPrompt,promptDue,roomPromptMarkup,tutorialGateMarkup,killhouseMenuMarkup,disposedMarkup,tutorialResultMarkup,arcadeResultMarkup,killhouseScore,bestRecord,KILLHOUSE_SCORE,simulationLabel,simulationBrief} from './killhouse-ui.js';
 import {PACK_LIMIT} from './data.js';
 import {dailySeed,dailyMission} from './daily.js';
 import {VERSION} from './version.js';
@@ -131,7 +131,7 @@ function update(view=renderer.game) {
   if(view.floor!==previousFloor){previousFloor=view.floor;floorToast();}
   if(entered)persist();
   if(game.status!=='playing'&&lastStatus==='playing'){lastStatus=game.status;recordResult(game);showResult();}
-  else if(entered&&isSimulation(game)&&game.status==='playing'&&game.simulation.roomEvents.length&&!$('#modal').open)showRoomPrompt();
+  else if(entered&&isSimulation(game)&&game.status==='playing'&&!$('#modal').open&&promptDue(game,promptLog(game)))showRoomPrompt();
   else if(entered&&game.pendingPerks&&game.status==='playing')showPerks();
   else if(entered&&saveWarningDue&&!$('#modal').open)showSaveWarning();
 }
@@ -483,7 +483,9 @@ function exitSimulation(){
   simulationReturn=null;playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus=game.status;previousFloor=game.floor;update();
 }
 function showKillhouseMenu(){modal(killhouseMenuMarkup(profile(),orderedCharacters()));}
-function showRoomPrompt(){const prompt=game.takeRoomEvents().map(roomPrompt).filter(Boolean).at(-1);if(!prompt)return;if(prompt.modal)modal(roomPromptMarkup(prompt));else notify(prompt.text);}
+// Cards already shown in this session; tutorial cards fire on the tile before a door, before the room's own entry event.
+const promptLogs=new WeakMap(),promptLog=g=>{if(!promptLogs.has(g))promptLogs.set(g,new Set());return promptLogs.get(g);};
+function showRoomPrompt(){const prompt=nextPrompt(game,game.takeRoomEvents(),promptLog(game));if(!prompt)return;if(prompt.modal)modal(roomPromptMarkup(prompt));else notify(prompt.text);}
 // Records are written once per finished session; reopening the result reuses the same screen.
 function simulationResultMarkup(){
   const r=game.simulationResult;

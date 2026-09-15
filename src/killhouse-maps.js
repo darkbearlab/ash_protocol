@@ -33,7 +33,8 @@ export function killhouseMap(seed,phase,character,options){
   for(const [i,r]of rooms.entries()){
    props.push({id:`kh-cover-${i}`,type:'cover',x:r.cx,y:r.y+1,hp:60,maxHp:60});
    if(i===0)continue;
-   if(tutorial){if(i===1)add('rifleman',r,5,3);if(i===2)add('sniper',r,6,3);if(i===3){add('raider',r,2,3);add('rifleman',r,5,3);}if(i===4){add('civilian',r,2,1);add('civilian',r,5,1);add('gunner',r,6,3);}if(i===5){add('rifleman',r,2,1);add('raider',r,5,1);add('gunner',r,5,3);}}
+   // Room 4 keeps one researcher, on the left: a second one fled right and opened room 5's door (3.88.1, user report).
+   if(tutorial){if(i===1)add('rifleman',r,5,3);if(i===2)add('sniper',r,6,3);if(i===3){add('raider',r,2,3);add('rifleman',r,5,3);}if(i===4){add('civilian',r,2,1);add('gunner',r,6,3);}if(i===5){add('rifleman',r,2,1);add('raider',r,5,1);add('gunner',r,5,3);}}
    else {add('rifleman',r,2,3);add('raider',r,5,1);add(i%2?'sniper':'gunner',r,6,r.h-2);add('civilian',r,1,1);}
   }
   if(tutorial)for(const [room,type,amount]of [[0,'ammo',32],[1,'med',1],[2,'grenade',2],[3,'ammo',32],[4,'med',1]]){const r=rooms[room];items.push({x:r.x+1,y:r.cy,type,amount});}
