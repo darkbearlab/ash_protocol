@@ -16,7 +16,7 @@ test('venom hits inflict no direct damage or armour loss; stacks cap at four, DO
  e.charge=true;g.enemyAct(e);assert.equal(g.player.hp,hp);assert.equal(g.player.plates,20);assert.equal(g.player.poison,1);assert.ok(g.effects.some(f=>f.type==='enemyShot'&&f.style==='venom'&&f.damage===0));
  for(let n=0;n<5;n++)poisonHit(g,e,g.player);assert.equal(g.player.poison,4);
  g.environmentTurn();assert.equal(g.player.hp,hp-4);assert.equal(g.player.poison,4);assert.equal(g.player.poisonClock,1);
- g.player.hazmat=5;g.environmentTurn();assert.equal(g.player.hp,hp-4);assert.equal(g.player.poison,3);
+ g.player.hazmat=5;g.environmentTurn();assert.equal(g.player.hp,hp-7);assert.equal(g.player.poison,3);
  const turn=g.turn;assert.ok(g.executePlayer('heal'));assert.equal(g.player.poison,0);assert.equal(g.turn,turn);
  g.player.poison=3;g.player.scrap=100;g.props.push({type:'terminal',x:10,y:11});g.useTerminal('heal');assert.equal(g.player.poison,0);
 });

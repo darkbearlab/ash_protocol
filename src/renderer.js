@@ -1,4 +1,3 @@
-import {reinforcementTelegraphs} from './swarm-waves.js';
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
@@ -151,7 +150,8 @@ export class Renderer {
       c.globalAlpha=1;
     }
 
-    for(const spawn of reinforcementTelegraphs(g))if(g.visible(spawn))this.markArea(spawn,0,'#70dce833','#94f0eeaa','+'+Math.max(1,spawn.due-g.turn));
+    // Swarm waves arrive unannounced (user decision, 3.85.2); only retreat reinforcements keep their countdown marker.
+    for(const spawn of g.reinforcements||[])if(g.visible(spawn))this.markArea(spawn,0,'#70dce833','#94f0eeaa','+'+Math.max(1,spawn.due-g.turn));
     for(const m of g.marks)if(m.kind!=='grenade')this.markArea(m,1,'#e969494f','#f8996977',String(Math.max(1,m.due-g.turn)));
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');

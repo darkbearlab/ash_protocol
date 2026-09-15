@@ -28,10 +28,10 @@ export const FLOORS = ['軌道轉運站','污染冷卻區','軍械封鎖區','�
 export const FLOOR_INFO = [
   { color:'#a4b484', subtitle:'TRANSIT HUB', text:'轉運站仍有備用物資。熟悉掩體，收集裝備。', hazard:null },
   { color:'#73b8a0', subtitle:'COOLANT WORKS', text:'綠色污染格會造成傷害。保持距離，別踩進毒液。', hazard:'acid' },
-  { color:'#cead71', subtitle:'ARMORY LOCKDOWN', text:'擊敗封鎖官才能開啟電梯。軍械箱內有新式武器。', hazard:null, get boss(){return factionBoss(DEFAULT_FACTION,3);} },
+  { color:'#cead71', subtitle:'ARMORY LOCKDOWN', text:'擊敗本層頭目才能開啟電梯。軍械箱內有新式武器。', hazard:null, get boss(){return factionBoss(DEFAULT_FACTION,3);} },
   { color:'#bc89b6', subtitle:'BIO CULTURE', text:'自爆單位會引爆周遭油桶；地面散布綠色毒液。', hazard:'acid' },
   { color:'#de885a', subtitle:'THERMAL FORGE', text:'熔爐地板炙熱。重裝單位與狙擊手守住長廊。', hazard:'fire' },
-  { color:'#d56e60', subtitle:'ABYSS CORE', text:'摧毀核心守衛。避開紅色轟炸標記，再啟動撤離。', hazard:'fire', get boss(){return factionBoss(DEFAULT_FACTION,6);} },
+  { color:'#d56e60', subtitle:'ABYSS CORE', text:'擊敗本層頭目，再啟動撤離。注意頭目的預告標記。', hazard:'fire', get boss(){return factionBoss(DEFAULT_FACTION,6);} },
 ];
 export function floorInfo(floor){const index=((floor-1)%FLOORS.length+FLOORS.length)%FLOORS.length;return {...FLOOR_INFO[index],name:FLOORS[index],cycleFloor:index+1,weapon:[2,3,4,5,3,4][index]};}
 export const ENEMY_TYPES = {
@@ -74,7 +74,7 @@ export const PERKS = [
   {id:'blast',name:'爆破專家',cap:3,effect:'stat',stat:'blastBonus',amount:18,text:'破片手榴彈與爆炸武器傷害 +18。'},
   {id:'scavenger',name:'資源回收',cap:3,effect:'scavenger',amount:1,text:'擊殺與撿到的廢料 +50%，立即獲得 15 廢料。'},
   {id:'medic',name:'急救訓練',cap:3,effect:'medic',amount:20,text:'醫療包回復量 +20；立即獲得 1 醫療包。'},
-  {id:'hazmat',name:'密封防護',cap:3,effect:'hazmat',amount:5,text:'環境與中毒傷害 −5，立即解除中毒；第 3 階免疫現有環境傷害。'},
+  {id:'hazmat',name:'密封防護',cap:3,effect:'hazmat',amount:5,text:'環境傷害 −5、中毒每回合傷害 −1，立即解除中毒；第 3 階免疫現有環境傷害。'},
   {id:'accuracy',name:'精準射擊',cap:3,effect:'combat',stats:['rangedAccuracy'],amount:8,text:'射擊命中 +8 個百分點。'},
   {id:'evasion',name:'戰術閃避',cap:3,effect:'combat',stats:['rangedEvasion'],amount:8,text:'被射擊命中 −8 個百分點。'},
   {id:'melee',name:'格鬥訓練',cap:3,effect:'combat',stats:['meleeAccuracy','meleeEvasion'],amount:8,text:'近戰命中與近戰迴避各 +8 個百分點。'},

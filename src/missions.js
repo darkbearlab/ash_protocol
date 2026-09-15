@@ -6,11 +6,11 @@ import {reachable,key,distance} from './world.js';
 
 // Stable contract IDs are persisted. Mission placement never consumes combat RNG.
 export const MISSIONS={
-  extraction:{name:'核心撤離',kind:'extraction',count:0,text:'深入六層，擊敗第 3 層封鎖官與第 6 層核心守衛，再從電梯撤離。'},
-  hunt:{name:'定點清除',kind:'hunt',count:1,text:'第 6 層殲滅 1 名指定敵人，再從電梯撤離；核心守衛不是必要目標。'},
+  extraction:{name:'核心撤離',kind:'extraction',count:0,text:'深入六層，擊敗第 3 層與第 6 層的頭目，再從電梯撤離。'},
+  hunt:{name:'定點清除',kind:'hunt',count:1,text:'第 6 層殲滅 1 名指定敵人，再從電梯撤離；第 6 層頭目不是必要目標。'},
   sweep:{name:'獵殺名單',kind:'hunt',count:REQUIRED_TARGET_ROOMS,text:'第 6 層殲滅分布在不同房間的 3 名指定敵人，再從電梯撤離。'},
   retrieval:{name:'機密回收',kind:'recover',count:1,text:'第 6 層找到 1 份機密資料，靠近後互動回收，再從電梯撤離。'},
-  roundtrip:{name:'原路回收',kind:'recover',count:1,depth:3,returnTrip:true,text:'深入三層，回收機密並擊敗封鎖官，沿原路返回第 1 層入口撤離。回程各層一次傳送增援，不補發物資、回血或彈藥。'},
+  roundtrip:{name:'原路回收',kind:'recover',count:1,depth:3,returnTrip:true,text:'深入三層，回收機密並擊敗第 3 層頭目，沿原路返回第 1 層入口撤離。回程各層一次傳送增援，不補發物資、回血或彈藥。'},
   archive:{name:'分散檔案',kind:'recover',count:REQUIRED_TARGET_ROOMS,text:'第 6 層從不同房間回收 3 份機密資料，再從電梯撤離。'},
   endless:{name:'無盡深入',kind:'endless',count:0,depth:ENDLESS_MAX_FLOOR,text:`沒有撤離：每層電梯都通往更深處，直到陣亡。第 7 層起敵人更多、更強，還可能帶精英特性；等級 ${MAX_LEVEL} 封頂後，升級改發補給。`}
 };
@@ -63,13 +63,13 @@ export function exitBlocked(g){
   }
   if(g.floor!==missionDepth(g))return g.bossAlive?'本層頭目仍存活，電梯鎖定。':'';
   const {done,total}=missionProgress(g);
-  return done<total?missionDefinition(g).kind==='extraction'?'核心守衛仍存活，撤離鎖定。':`任務目標 ${done}/${total}，完成後才能撤離。`:'';
+  return done<total?missionDefinition(g).kind==='extraction'?'頭目仍存活，撤離鎖定。':`任務目標 ${done}/${total}，完成後才能撤離。`:'';
 }
 export function missionSummary(g){
   const def=missionDefinition(g),{done,total}=missionProgress(g);
   if(isEndless(g))return `${def.name} · 第 ${g.floor} / ${ENDLESS_DISPLAY_FLOORS} 層`;
   if(returning(g))return `${def.name} · 回程 ${g.floor} → 1 · ${g.floor===1?'前往入口撤離':'返回本層入口上樓'}`;
-  return `${def.name} · ${g.floor<missionDepth(g)?`目標位於第 ${missionDepth(g)} 層`:`${done}/${total} · ${done===total?'前往撤離電梯':def.kind==='recover'?'尋找青色資料匣':def.kind==='hunt'?'殲滅標記目標':'摧毀核心守衛'}`}`;
+  return `${def.name} · ${g.floor<missionDepth(g)?`目標位於第 ${missionDepth(g)} 層`:`${done}/${total} · ${done===total?'前往撤離電梯':def.kind==='recover'?'尋找青色資料匣':def.kind==='hunt'?'殲滅標記目標':'擊敗頭目'}`}`;
 }
 export function validMission(m,g){
   if(!m||!validMissionId(m.id)||!Array.isArray(m.targets))return false;

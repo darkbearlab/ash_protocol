@@ -32,9 +32,22 @@ test('horde twelve-cap excludes both normal population counters and waits until 
  const g=arena(),s=g.swarmWaves;for(let n=0;n<14;n++)tick(g);assert.equal(hordeCount(g),12);assert.equal(s.wave,3);assert.equal(enemyRoom(g),RUNTIME_TUNING.liveLimit);assert.equal(expendableRoom(g),RUNTIME_TUNING.expendableLimit);
  for(const e of g.enemies.slice(0,3))e.hp=0;tick(g);assert.equal(s.pending.length,0);g.enemies[3].hp=0;tick(g);assert.equal(s.pending.length,4);tick(g);tick(g);assert.equal(hordeCount(g),12);assert.equal(s.serial,16);assert.ok(validSwarmWaves(g));
 });
-test('blocked telegraphs postpone on the same cells without spawning on player, allies or solids; partial wave stays reserved',()=>{
- const g=arena(),s=g.swarmWaves;tick(g);const first={...s.pending[0]};Object.assign(g.player,{x:first.x,y:first.y});tick(g);tick(g);assert.equal(s.pending.length,1);assert.equal(s.pending[0].id,first.id);assert.equal(s.pending[0].due,g.turn+1);assert.ok(!g.enemies.some(e=>key(e)===key(g.player)));assert.equal(s.serial,3);
- g.player.x=3;g.props.push({id:'block',type:'cover',x:first.x,y:first.y,hp:10,maxHp:10});tick(g);assert.equal(s.serial,3);g.props=[];tick(g);assert.equal(s.serial,4);assert.ok(!s.pending.some(p=>p.id===first.id));
+// 3.85.2 (user decision): waves arrive unannounced, so a blocked cell moves the spawn instead of stalling the surge.
+test('a blocked spawn moves to the nearest free cell near the origin, never onto a unit, and never stalls the surge',()=>{
+ const g=arena(),s=g.swarmWaves;tick(g);const first={...s.pending[0]};Object.assign(g.player,{x:first.x,y:first.y});tick(g);tick(g);
+ assert.equal(s.pending.length,0,'the blocked spawn did not wait');assert.equal(s.serial,4);
+ assert.ok(!g.enemies.some(e=>e.hp>0&&key(e)===key(g.player)),'nothing spawns on the player');
+ const moved=g.enemies.find(e=>e.id===first.id);assert.ok(moved);assert.notEqual(key(moved),key(first));assert.ok(distance(moved,g.swarmWaves.origin)<=T.hordeSpawnRadius);assert.ok(validSwarmWaves(g));
+ for(let n=0;n<20;n++){for(const e of g.enemies)e.hp=0;tick(g);}
+ assert.equal(s.serial,16,'a player standing on a spawn cell does not stop later waves');assert.equal(s.remaining,0);
+});
+test('floor items never block a spawn; only an area with no free cell makes a spawn wait a turn',()=>{
+ const h=arena(),w=h.swarmWaves;tick(h);const cell={...w.pending[1]};h.items.push({type:'ammo',amount:10,x:cell.x,y:cell.y});tick(h);tick(h);
+ assert.ok(h.enemies.some(e=>e.id===cell.id&&key(e)===key(cell)),'the bug appears on top of the item');
+ const g=arena(),s=g.swarmWaves;tick(g);const cells=s.pending.map(p=>key(p)),first={...s.pending[0]};Object.assign(g.player,{x:first.x,y:first.y});
+ for(let y=0;y<g.grid.length;y++)for(let x=0;x<g.grid[y].length;x++)if(distance({x,y},s.origin)<=T.hordeSpawnRadius+1&&!cells.includes(key({x,y})))g.grid[y][x]=0;
+ tick(g);tick(g);
+ assert.equal(s.serial,3);assert.equal(s.pending.length,1);assert.equal(s.pending[0].due,g.turn+1);assert.ok(!g.enemies.some(e=>e.hp>0&&key(e)===key(g.player)));
 });
 test('nest and horde sources coexist with independent caps; all horde victims give no XP, scrap, loot or infected offspring',()=>{
  const g=arena();for(let n=0;n<14;n++)tick(g);assert.equal(hordeCount(g),12);
@@ -59,7 +72,7 @@ test('strict wave validation rejects forged horde flags, counters, duplicate IDs
 test('poison damages at current stacks then decays every second paid end; stacking never resets its clock',()=>{
  const g=affixArena(),p=g.player;addPoison(p);tickPoison(g);assert.equal(p.hp,99);assert.equal(p.poison,1);assert.equal(p.poisonClock,1);addPoison(p);tickPoison(g);assert.equal(p.hp,97);assert.equal(p.poison,1);assert.equal(p.poisonClock,undefined);
  addPoison(p,99);const hp=p.hp;for(let n=0;n<8;n++)tickPoison(g);assert.equal(p.hp,hp-20);assert.equal(p.poison,0);assert.equal(p.poisonClock,undefined);
- addPoison(p,4);p.hazmat=5;tickPoison(g);assert.equal(p.hp,hp-20);assert.equal(p.poisonClock,1);clearPoison(p);assert.ok(validPoison(p));
+ addPoison(p,4);p.hazmat=5;tickPoison(g);assert.equal(p.hp,hp-23);assert.equal(p.poisonClock,1);clearPoison(p);assert.ok(validPoison(p));
 });
 test('multi-hit infected volleys apply one stack, misses none; separate attacks and spitter hits each apply one',()=>{
  const g=affixArena();g.facilityFaction='swarm';const e=g.spawnEnemy('raider_infected',12,10,'toxic');e.alert=true;e.charge=true;g.enemies=[e];g.rng=Object.assign(()=>0,{state:()=>1});g.enemyAct(e);assert.equal(g.player.poison,1);assert.equal(g.logs.filter(l=>l.text==='毒液侵入防護服，你中毒了。').length,1);e.charge=true;g.enemyAct(e);assert.equal(g.player.poison,2);

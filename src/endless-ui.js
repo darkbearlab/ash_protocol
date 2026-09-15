@@ -14,7 +14,7 @@ export const levelTitle=(level,xp)=>`經驗 ${xp} / ${Math.min(level,MAX_LEVEL)+
 // mission line, so it asks for the rules without the opening sentence.
 export function endlessRules({intro=true}={}){
   const t=ENDLESS_TUNING;
-  return `${intro?'沒有任務目標與撤離，每層電梯都通往更深處，直到陣亡。':''}樓層每六層循環：第 3、9、15… 層的封鎖官擋住電梯，第 6、12、18… 層要擊敗核心守衛才開電梯。第 7 層起敵人的生命與攻擊逐層按比例成長，每六層每房多一名敵人（最多 +${t.densityMax}），破壞者、狙擊手、自爆體更多，敵人最高有 ${Math.round(AFFIX_TUNING.chanceCap*100)}% 開始抽取詞條，後續詞條機率逐次減半，效果發動後顯現。死亡時記錄到達深度，全體與各職業各一筆；放棄不列入。`;
+  return `${intro?'沒有任務目標與撤離，每層電梯都通往更深處，直到陣亡。':''}樓層每六層循環：第 3、9、15… 層與第 6、12、18… 層都有頭目擋住電梯。第 7 層起敵人的生命與攻擊逐層按比例成長，每六層每房多一名敵人（最多 +${t.densityMax}），破壞者、狙擊手、自爆體更多，敵人最高有 ${Math.round(AFFIX_TUNING.chanceCap*100)}% 開始抽取詞條，後續詞條機率逐次減半，效果發動後顯現。死亡時記錄到達深度，全體與各職業各一筆；放棄不列入。`;
 }
 export function levelCapRules(){
   return `等級 ${MAX_LEVEL} 封頂：2～${MAX_LEVEL} 級各一次三選一，整局最多 ${MAX_LEVEL-1} 次。之後等級不再上升，畫面顯示 MAX；經驗照樣累積，每滿 ${MAX_LEVEL+2} 點自動發一份封頂補給（${capSupplyText()}），不開選單、不花回合，超量彈藥留在腳下。一般任務通常到不了 ${MAX_LEVEL} 級。`;
@@ -31,7 +31,7 @@ export const growthLabel=floor=>floor<=6?'':`敵人生命 ×${((1+ENDLESS_TUNING
 // extraction wording on core floors (endless never extracts).
 export function endlessFloorText(floor){
   const info=floorInfo(floor);
-  if(info.cycleFloor===6)return '擊敗核心守衛才能開電梯；避開紅色轟炸標記與鄰格。';
+  if(info.cycleFloor===6)return '擊敗本層頭目才能開電梯；注意頭目的預告標記。';
   if(info.cycleFloor===1&&floor>6)return '深層重新循環：敵人更多、更強，精英可能帶快速、紅外線或夜視。';
   return info.text;
 }
