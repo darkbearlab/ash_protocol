@@ -33,5 +33,7 @@ export const NONCOMBATANT_LABEL='非戰鬥人員';
 // Swarm presentation (3.84.1, docs/SWARM.md 8): venom blobs and the tongue pull. The rules only announce them (SWARM 6.4).
 export const VENOM_VISUAL=Object.freeze({blob:'#a8c93f',rim:'#e4f59a',drop:'#8fb33a'});
 export const TONGUE_VISUAL=Object.freeze({line:'#e27aa6d0',fill:'#d97aa033',edge:'#f0a3c4',landing:'#f0a3c4aa',flesh:'#c95c86',tip:'#f2b3cf',label:'鉤舌蓄勢'});
-export const enemyTint=e=>factionOverride(e).tint??enemyDef(e)?.sprite?.tint??null;
+// Kill house humanoids draw as holograms (docs/KILLHOUSE.md section 10); campaign enemies keep their colours.
+export const SIMULATION_VISUAL={tint:'#5fd6ea'};
+export const enemyTint=e=>e?.simulation?SIMULATION_VISUAL.tint:factionOverride(e).tint??enemyDef(e)?.sprite?.tint??null;
 export const factionTag=e=>{const d=factionDef(enemyFaction(e));return d?.tag?d.name:'';};

@@ -1,6 +1,6 @@
 # Kill house：模擬訓練教學與街機模式（規格，2026-09-15）
 
-- **狀態**：3.87.0 規則、地圖與美術已實作；入口與提示介面待 Claude 接（第 8–9 節）。
+- **狀態**：3.87.0 規則、地圖與美術（Codex，第 8–9 節）；3.88.0 入口、提示、全息色調與結算介面（Claude，第 10 節）。
 - **分工**：
   - 規則、地圖配方、地圖美術資產與地圖風格重構、玩家檔案欄位交 Codex。
   - 房間提示、模擬程式的畫面色調、文字、街機分數權重交 Claude，在 Codex 之後做。
@@ -174,3 +174,53 @@
 - 街機結算 `g.simulationResult` → `{quota,purged,rate,turns,tier,mode,outcome,character,recipe,deathDestination,scoreScope}`。用 rate/turns 配分後 `saveArcadeResult(g,score,'v1')`。只有 arcade won 受理；保存失敗回 false，資料不合法丟出錯誤。讀 `profile().killhouse` 顯示最高分。
 - `node qa/create-killhouse-scenes.mjs` 產生 3 份 **inspectionOnly** 地圖資料到 qa/fixtures/killhouse。它們不是存檔，不能走匯入任務；在 `?test=1` 開發頁用 factory 建立同 options 的局面。教學 seed1；街機 seed0/1 分別覆蓋兩張配方。整備跳戰鬥的 QA 快捷可將 player 放到 end 後 g.descend()，正常遊戲必須移動過去。
 - 驗收：原戰役存在時開始／跳過／死亡／完成模擬／匯出備份均能回原戰役；每房提示一次；門與破門素材、ammo／武器拾取、三種友軍職業；研究員未殺時 rate 降低；整備等候不加戰鬥回合；兩張配方出口；離線新入口。真機手感與首次入口 UI 由 Claude／使用者測。
+
+## 10. 介面實作（3.88.0，Claude，2026-09-15）
+
+### 入口與模擬局
+
+- **KILL HOUSE 選單**：主選單新增入口，內含 TRAINING（教學）與八個職業的 ARCADE。
+- **首次入口**：
+  - NEW GAME（包含設定裡的重新部署）先查 `tutorialGate(profile())`。
+  - required 時顯示「進入模擬訓練？」，可以進入、跳過或返回。
+  - 跳過呼叫 `saveTutorialOutcome('skipped')`；寫入失敗時提示下次仍會詢問。
+- **切換局面**：
+  - `startSimulation` 換上模擬局時，暫存原本的 game、entered 與 resumable，不呼叫 `abandonRun`。
+  - `exitSimulation` 把暫存放回原狀。
+  - 開新戰役前也會先結束模擬，所以放棄舊戰役的流程只作用在真正的戰役上。
+- **模擬進行中**：
+  - 主選單是 CONTINUE、EXIT SIMULATION、MANUAL、SETTING；結算後回主選單會自動結束模擬。
+  - 設定隱藏還原、單局匯出入、放棄、重新部署與重置，改放「模擬說明」與「結束模擬」。完整備份照常，storage 會匯出原本的戰役。
+  - 頂端標題、任務與地圖畫面改成「KILL HOUSE · 模擬訓練／整備區／訓練場」與模擬說明，不顯示戰役樓層名稱與換層提示。
+
+### 提示
+
+- **讀取時機**：演出結束、沒有其他視窗時才讀 `takeRoomEvents`。
+- **教學**：六區各一張卡片（`TUTORIAL_PROMPTS`），依序是移動與掩體、射擊、蓄勢預告、門與投擲物、非戰鬥人員、綜合交戰。第 5 區用規格原文「非戰鬥人員同樣列入肅清評估，不要手下留情」。
+- **街機**：只在整備區與訓練場的第一個房間各跳一則提示，不擋操作。
+
+### 全息人形
+
+- `enemyTint` 遇到 `simulation: true` 時回傳 `SIMULATION_VISUAL.tint`（`#5fd6ea`），精靈圖與退回繪製都會套用。
+- 戰役敵人不變，敵人與設施的繪製紀錄都和 3.86.0 相同。
+
+### 結算
+
+- **陣亡**：顯示「銷毀此庫存」。
+  - 教學依 `deathDestination`：restart 提供「重新開始訓練」與「返回主選單」，menu 只提供「返回主選單」。
+  - 街機提供「再次模擬」「更換職業」「返回主選單」。
+- **教學完成**：寫入 `saveTutorialOutcome('completed')`，顯示肅清評估區塊，可以前往部署。
+- **街機完成**：
+  - 分數 v1 = round(肅清率 × 10000) + max(0, 3000 − 30 × 使用回合)，formula 為 `v1`。每 10% 肅清率等於 1000 分，大約等於省下 33 回合。
+  - `saveArcadeResult` 的回傳只代表寫入成功，所以「新紀錄」由介面比對寫入前後的最高分判斷。
+  - 顯示分數、肅清率、使用回合、最高分與肅清評估。街機是計分模式，所以這裡顯示百分比與回合數；戰役結算仍不顯示數字。
+- **重開結算畫面**：同一局沿用第一次的內容，不會重複寫紀錄。
+
+### 待決參數
+
+- 沿用第 8 節的暫定值：教學陣亡回教學開頭、最高分全職業共用、整備層放全部可拾取武器、教學不升級不掉落。
+- 使用者決定後改 `KILLHOUSE_OPTIONS` 即可，陣亡去向與最高分範圍的畫面已經依參數切換。
+
+### 開發伺服器
+
+- `server.mjs` 的素材白名單補上 `killhouse-v1`。3.87.0 在本機預覽時新圖集回應 404，只會畫退回的程序繪圖；線上 Pages 不受影響。
