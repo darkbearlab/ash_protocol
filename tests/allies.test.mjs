@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {SIZE,ENEMY_TYPES} from '../src/data.js';
 import {CHARACTERS} from '../src/characters.js';
-import {DRONE_REPAIR_COST,DRONE_BUILD_COST,DRONE_HP,SENTRY_ARMOR,droneRepairReason,addAlly,allyWeapon,allyAct,allySkillState,fitDrone,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,summonPool,validAllies,PET_TETHER,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,defaultDroneCell} from '../src/allies.js';
+import {DRONE_HP,SENTRY_ARMOR,deployLimit,lineLimit,addAlly,allyWeapon,allyAct,allySkillState,fitDrone,canAllySkill,commandPet,carryCandidates,departAllies,arriveAllies,summonPool,validAllies,PET_TETHER,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,defaultDroneCell} from '../src/allies.js';
 import {makeEnemy} from '../src/world.js';
 import {makeBarrier} from '../src/barriers.js';
 import {grantTrait} from '../src/traits.js';
@@ -12,6 +12,7 @@ import {DISRUPT_TURNS} from '../src/throwables.js';
 import {captureAction,planPresentation} from '../src/presentation.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
+import {UNIT_BLUEPRINTS,deployReason} from '../src/workshop.js';
 function arena(character='engineer'){
  const g=new Game(330,[],0,character,'onyx');g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());g.seen=g.grid.map(r=>r.map(()=>true));
  for(const k of ['allies','enemies','props','items','barriers','hazards','marks','rooms','traces','smoke'])g[k]=[];clearGeneratedMap(g);g.allySerial=0;g.player.petBond=null;Object.assign(g.player,{x:10,y:10,hp:500,maxHp:500});g.start={x:5,y:5};g.end={x:20,y:20};g.reveal();return g;
@@ -20,23 +21,27 @@ const drone=(g,point={x:11,y:10},status='active',sourceId='drone_follow')=>addAl
 const pet=(g,point={x:11,y:10})=>addAlly(g,'pet','crawler',{point,sourceId:'pet_command'});
 const enemy=(g,x=14,y=10,type='rifleman')=>{const e=makeEnemy(type,x,y,'foe-'+g.enemies.length);g.enemies.push(e);return e;};
 const use=g=>g.action('usePrepared',{category:'skill'});
+const deploy=(g,point=null,line=0)=>g.action('deployUnit',{line,...(point||{})});
 const zero=g=>g.rng=Object.assign(()=>0,{state:()=>1});
 
 test('six free classes restore with their actual starting allies and skills without changing old classes',()=>{
- for(const id of Object.keys(CHARACTERS)){const g=new Game(330,[],0,id,'onyx');assert.ok(Game.restore(g.serialize()),id);assert.equal(g.allies.length,['engineer','druid'].includes(id)?1:0);assert.equal(g.player.hp,CHARACTERS[id].hp);}
+ for(const id of Object.keys(CHARACTERS)){const g=new Game(330,[],0,id,'onyx');assert.ok(Game.restore(g.serialize()),id);assert.equal(g.allies.length,id==='druid'?1:0);assert.deepEqual(g.player.productionLines,id==='engineer'?[{blueprint:'drone_follow'}]:[]);assert.equal(g.player.hp,CHARACTERS[id].hp);}
 });
-test('drone deployment spends a turn and real rifle rounds, new deployment cannot shoot immediately',()=>{
- const g=arena(),a=drone(g,{x:10,y:10},'packed'),e=enemy(g);g.reveal();zero(g);const rounds=g.player.reserve,pistol=g.player.pistol;
- assert.ok(use(g));assert.equal(g.turn,2);assert.equal(g.player.reserve,rounds-12);assert.equal(g.player.pistol,pistol);assert.equal(a.ammo,12);assert.equal(e.hp,22);assert.equal(a.status,'active');
+test('deploying a built unit spends a turn and real pistol rounds, new deployment cannot shoot immediately',()=>{
+ const g=arena(),e=enemy(g);g.reveal();zero(g);const pistol=g.player.pistol,rifle=g.player.reserve;
+ assert.ok(deploy(g));const a=g.allies[0];assert.equal(g.turn,2);assert.deepEqual(g.player.productionLines,[]);assert.equal(g.player.pistol,pistol-12);assert.equal(g.player.reserve,rifle);assert.equal(a.ammo,12);assert.equal(e.hp,22);assert.equal(a.status,'active');
  g.action('wait');assert.equal(a.ammo,11);assert.ok(e.hp<22);
 });
-test('recovery retains injury and ammunition, refills only missing rounds, switching modes conserves rifle rounds',()=>{
- const g=arena(),a=drone(g);a.ammo=3;a.hp=19;const rifle=g.player.reserve,pistol=g.player.pistol;assert.ok(use(g));assert.equal(a.status,'packed');assert.equal(a.hp,19);assert.equal(a.ammo,12);assert.equal(g.player.reserve,rifle-9);
- g.action('prepare',{category:'skill',id:'drone_sentry'});assert.ok(use(g));assert.equal(a.sourceId,'drone_sentry');assert.equal(a.ammo,8);assert.equal(g.player.reserve,rifle-9+12-8);assert.equal(g.player.pistol,pistol);assert.equal(a.hp,19);
- assert.equal(a.armor,SENTRY_ARMOR);assert.ok(!a.traits.some(t=>t.id==='no_cover'));
+test('deployed units never return: the workshop skill itself is refused without spending time',()=>{
+ const g=arena();assert.equal(canAllySkill(g,'workshop'),true);const turn=g.turn;assert.equal(use(g),false);assert.equal(g.turn,turn);
+ assert.ok(deploy(g));const a=g.allies[0];assert.equal(use(g),false);assert.equal(a.status,'active');assert.deepEqual(g.player.productionLines,[]);assert.equal(allySkillState(g,'workshop'),'序列 0/1 · 部署 1/1');
 });
-test('without enough scrap a destroyed drone cannot be rebuilt by either skill and no second chassis appears',()=>{
- const g=arena(),a=drone(g,{x:15,y:10});g.damageAlly(a,1000);g.player.scrap=DRONE_BUILD_COST-1;const turn=g.turn;assert.equal(use(g),false);g.action('prepare',{category:'skill',id:'drone_sentry'});assert.equal(use(g),false);assert.equal(g.turn,turn);assert.equal(g.allies.length,1);assert.ok(Game.restore(g.serialize()));
+test('building needs a known blueprint, scrap and a free production line; refusals spend no time',()=>{
+ const g=arena();g.player.scrap=100;const turn=g.turn;
+ assert.equal(g.action('buildUnit',{blueprint:'drone_sentry'}),false);assert.match(g.logs[0].text,/序列已滿/);
+ g.player.productionLines=[];g.player.scrap=UNIT_BLUEPRINTS.drone_sentry.cost-1;assert.equal(g.action('buildUnit',{blueprint:'drone_sentry'}),false);assert.equal(g.action('buildUnit',{blueprint:'warden'}),false);assert.equal(g.turn,turn);assert.deepEqual(g.player.productionLines,[]);
+ g.player.scrap=UNIT_BLUEPRINTS.drone_sentry.cost+5;assert.ok(g.action('buildUnit',{blueprint:'drone_sentry'}));assert.equal(g.turn,turn+1);assert.equal(g.player.scrap,5);assert.deepEqual(g.player.productionLines,[{blueprint:'drone_sentry'}]);assert.ok(Game.restore(g.serialize()));
+ const s=arena('soldier');s.player.scrap=100;assert.equal(s.action('buildUnit',{blueprint:'drone_follow'}),false);assert.deepEqual(s.player.productionLines,[]);
 });
 test('stationary drone never moves and disconnected drones stop firing and granting sight',()=>{
  const g=arena(),a=drone(g,{x:18,y:10},'active','drone_sentry'),e=enemy(g,20);a.ammo=8;a.bornTurn=1;g.turn=2;zero(g);g.reveal();const before=e.hp;allyAct(g,a);assert.equal(a.x,18);assert.equal(a.ammo,8);assert.equal(e.hp,before);
@@ -55,7 +60,7 @@ test('the pet chases up to nine tiles from the player while survivors keep the s
  const g=arena('druid'),a=pet(g),e=enemy(g,18,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();for(let i=0;i<9;i++)g.action('wait');assert.ok(e.hp<500);assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=PET_TETHER);
  const n=arena('soldier'),s=addAlly(n,'survivor','crawler',{point:{x:11,y:10}}),f=enemy(n,18,10);f.hp=500;n.enemyAct=()=>{};n.reveal();for(let i=0;i<9;i++)n.action('wait');assert.equal(f.hp,500);
 });
-test('only drones may be packed in a save; a v25 save loads unchanged and its first local read is kept verbatim',async()=>{
+test('no ally may be packed in a save; a v25 save loads unchanged and its first local read is kept verbatim',async()=>{
  const g=arena('necromancer'),s=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:11,y:10}}),raw=JSON.parse(g.serialize());raw.data.allies[0].status='packed';assert.equal(Game.restore(JSON.stringify(raw)),null);
  const d=arena('druid'),a=pet(d);a.hp=37;const old=JSON.parse(d.serialize());old.version=25;const text=JSON.stringify(old),memory=new Map([['qa-ash-save',text],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
@@ -111,8 +116,8 @@ test('roundtrip transports the pet and preserves growth, without reinitializing 
 test('survivor hook records independent source and mission IDs and uses the same combat/persistence',()=>{
  const g=arena('soldier'),a=addAlly(g,'survivor','rifleman',{point:{x:11,y:10},sourceId:'rescue-room',missionId:'rescue-01'});assert.ok(a);const restored=Game.restore(g.serialize());assert.ok(restored);assert.equal(restored.allies[0].missionId,'rescue-01');assert.equal(restored.player.character,'soldier');
 });
-test('complete backups preserve active, packed, downed and left-behind units without duplicate IDs',()=>{
- const g=arena('druid'),a=pet(g);g.damageAlly(a,999);drone(g,{x:10,y:10},'packed');const b=addAlly(g,'survivor','rifleman',{point:{x:15,y:15},missionId:'rescue'});b.floor=2;
+test('complete backups preserve active, downed and left-behind units without duplicate IDs',()=>{
+ const g=arena('druid'),a=pet(g);g.damageAlly(a,999);drone(g,{x:12,y:12});const b=addAlly(g,'survivor','rifleman',{point:{x:15,y:15},missionId:'rescue'});b.floor=2;
  const result=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa');assert.deepEqual(result.game.allies,g.allies);assert.equal(result.game.allySerial,g.allySerial);
 });
 test('v22 migration adds empty allies without gifting units or changing player resources/RNG',()=>{
@@ -125,9 +130,6 @@ test('ally shooting and death use projectile then impact/death playback, never c
  const g=arena(),a=drone(g),e=enemy(g,14);a.ammo=12;a.bornTurn=1;g.turn=2;zero(g);e.hp=1;const result=captureAction(g,()=>g.action('wait')),plan=planPresentation(result.steps);assert.ok(plan.events.some(x=>x.effects.some(e=>e.type==='shot')));assert.ok(plan.events.some(x=>x.effects.some(e=>e.type==='fall')));
 });
 
-test('recalled drones leave the frozen queue and retain disruption instead of taking a packed action',()=>{
- const g=arena(),a=drone(g);a.ammo=3;a.control.disabled=2;assert.ok(use(g));assert.equal(a.status,'packed');assert.equal(a.control.disabled,2);assert.equal(a.moved,false);
-});
 test('downed pets blocked by an enemy cannot consume medicine or revive on that enemy',()=>{
  const g=arena('druid'),a=pet(g);g.damageAlly(a,999);enemy(g,11);const meds=g.player.meds,turn=g.turn;assert.equal(use(g),false);assert.equal(g.player.meds,meds);assert.equal(g.turn,turn);
 });
@@ -143,7 +145,7 @@ test('new class natural-map actions keep legal occupancy and roundtrip-safe save
   const g=new Game(seed,[],0,character,'onyx','roundtrip');
   for(let i=0;i<40&&g.status==='playing';i++){
    if(g.pendingPerks){g.choosePerk(g.perkChoices[0].id);continue;}
-   const id=g.player.prepared.skill;if(canAllySkill(g,id)&&(character==='necromancer'||character==='engineer'&&g.allies[0].status==='packed'||character==='druid'&&g.allies[0].status==='down'))use(g);
+   const id=g.player.prepared.skill;if(character==='engineer'&&!deployReason(g,0))g.action('deployUnit',{line:0});else if(canAllySkill(g,id)&&(character==='necromancer'||character==='druid'&&g.allies[0].status==='down'))use(g);
    else {const e=g.visibleEnemies.find(e=>g.shotClear(g.player,e)&&g.visible(e)&&Math.abs(e.x-g.player.x)+Math.abs(e.y-g.player.y)<=g.weapon.range);if(e&&g.player.ammo[g.player.weapon]){g.target=e.id;g.action('fire');}else g.action('wait');}
    if(g.status==='playing')assert.ok(Game.restore(g.serialize()),character+' '+seed+' '+i);
   }
@@ -151,83 +153,55 @@ test('new class natural-map actions keep legal occupancy and roundtrip-safe save
 });
 
 test('deployment cannot materialize through a closed door when there is no reachable empty floor',()=>{
- const g=arena();g.grid=g.grid.map(r=>r.map(()=>0));g.grid[10][10]=g.grid[10][11]=1;drone(g,{x:10,y:10},'packed');g.barriers=[makeBarrier('door',{x:10,y:10},{x:11,y:10},'edge-blocked-spawn')];const ammo=g.player.pistol;
- assert.equal(use(g),false);assert.equal(g.turn,1);assert.equal(g.player.pistol,ammo);g.barriers[0].open=true;assert.ok(use(g));assert.equal(g.allies[0].x,11);
+ const g=arena();g.grid=g.grid.map(r=>r.map(()=>0));g.grid[10][10]=g.grid[10][11]=1;g.barriers=[makeBarrier('door',{x:10,y:10},{x:11,y:10},'edge-blocked-spawn')];const ammo=g.player.pistol;
+ assert.equal(deploy(g),false);assert.equal(g.turn,1);assert.equal(g.player.pistol,ammo);assert.equal(g.player.productionLines.length,1);g.barriers[0].open=true;assert.ok(deploy(g));assert.equal(g.allies[0].x,11);
 });
 
 
-test('a destroyed drone is replaced by building a new one for scrap from anywhere, with either drone skill and never two chassis',()=>{
- for(const skill of ['drone_follow','drone_sentry']){
-  const g=arena(),a=drone(g,{x:15,y:10});a.ammo=4;g.damageAlly(a,999);g.action('prepare',{category:'skill',id:skill});
-  g.player.scrap=DRONE_BUILD_COST-1;assert.equal(use(g),false);assert.equal(g.turn,1);
-  g.player.scrap=DRONE_BUILD_COST+5;const rifle=g.player.reserve,pistol=g.player.pistol;
-  assert.ok(use(g));assert.equal(g.turn,2);assert.equal(g.player.scrap,5);assert.equal(g.allies.filter(x=>x.kind==='drone').length,1);
-  const b=g.allies.find(x=>x.kind==='drone');assert.notEqual(b.id,a.id);assert.equal(b.status,'active');assert.equal(b.sourceId,skill);assert.equal(b.hp,DRONE_HP);assert.equal(b.bornTurn,g.turn);
-  assert.equal(b.ammo,allyWeapon(b).mag);assert.equal(g.player.reserve,rifle-b.ammo);assert.equal(g.player.pistol,pistol);assert.ok(Math.abs(b.x-g.player.x)+Math.abs(b.y-g.player.y)<=2);
-  assert.equal(b.armor,skill==='drone_sentry'?SENTRY_ARMOR:0);assert.equal(b.traits.some(t=>t.id==='no_cover'),skill!=='drone_sentry');assert.ok(Game.restore(g.serialize()));
+test('a destroyed unit is replaced by building and deploying another of either blueprint, never beyond the deploy limit',()=>{
+ for(const blueprint of Object.keys(UNIT_BLUEPRINTS)){
+  const g=arena();assert.ok(deploy(g));const a=g.allies[0];g.damageAlly(a,999);assert.equal(a.status,'destroyed');
+  g.player.scrap=UNIT_BLUEPRINTS[blueprint].cost+5;assert.ok(g.action('buildUnit',{blueprint}));assert.equal(g.player.scrap,5);
+  const pistol=g.player.pistol;assert.ok(deploy(g));const b=g.allies.find(x=>x.kind==='drone'&&x.status==='active');
+  assert.notEqual(b.id,a.id);assert.equal(b.sourceId,blueprint);assert.equal(b.hp,DRONE_HP);assert.equal(b.bornTurn,g.turn);assert.equal(b.ammo,allyWeapon(b).mag);assert.equal(g.player.pistol,pistol-b.ammo);assert.ok(Math.abs(b.x-g.player.x)+Math.abs(b.y-g.player.y)<=2);
+  assert.equal(b.armor,blueprint==='drone_sentry'?SENTRY_ARMOR:0);assert.equal(b.traits.some(t=>t.id==='no_cover'),blueprint!=='drone_sentry');
+  g.player.scrap=100;assert.ok(g.action('buildUnit',{blueprint}));assert.equal(deploy(g),false);assert.match(g.logs[0].text,/部署上限 1 台/);assert.ok(Game.restore(g.serialize()));
  }
 });
-test('a drone left active on another floor can be replaced too; the old record is dropped so there is never a second chassis',()=>{
- const g=arena(),a=drone(g,{x:11,y:10});a.floor=2;g.player.scrap=40;assert.equal(allySkillState(g,'drone_follow'),`生產 · ${DRONE_BUILD_COST} 廢料`);
- assert.ok(use(g));assert.equal(g.allies.filter(x=>x.kind==='drone').length,1);assert.ok(!g.allies.includes(a));assert.ok(validAllies(g));
-});
-test('packed machine repair spends scrap and a turn, restores half maximum rounded up, caps hp and never refills ammo',()=>{
- const g=arena(),a=drone(g,{x:10,y:10},'packed');a.hp=0;a.ammo=3;a.control.disabled=2;g.player.scrap=50;
- const pistol=g.player.pistol,rifle=g.player.reserve,id=a.id;g.player.prepared.skill=null;
- assert.ok(g.action('repairDrone',id));assert.equal(g.turn,2);assert.equal(a.hp,Math.ceil(DRONE_HP/2));assert.equal(g.player.scrap,50-DRONE_REPAIR_COST);assert.equal(a.status,'packed');assert.equal(a.ammo,3);assert.equal(a.control.disabled,2);
- assert.ok(g.action('repairDrone',id));assert.equal(a.hp,DRONE_HP);assert.equal(g.player.scrap,50-2*DRONE_REPAIR_COST);assert.equal(g.player.pistol,pistol);assert.equal(g.player.reserve,rifle);
- const turn=g.turn;assert.equal(g.action('repairDrone',id),false);assert.equal(g.turn,turn);assert.equal(droneRepairReason(g,id),'狀態完好');assert.ok(Game.restore(g.serialize()));
-});
-test('repair rejects deployed units, ground wrecks, insufficient funds, missing skills and invalid ids without spending time',()=>{
- const g=arena(),a=drone(g);a.hp=10;g.player.scrap=50;assert.equal(g.action('repairDrone',a.id),false);
- g.damageAlly(a,999);assert.equal(g.action('repairDrone',a.id),false);a.status='packed';g.player.scrap=DRONE_REPAIR_COST-1;assert.equal(g.action('repairDrone',a.id),false);
- g.player.scrap=50;g.player.skills=[];assert.equal(g.action('repairDrone',a.id),false);assert.equal(g.action('repairDrone','ally-999'),false);assert.equal(g.turn,1);assert.equal(g.player.scrap,50);assert.equal(a.hp,0);
-});
-test('fast lethal or disabling enemies prevent committed repair from charging scrap',()=>{
- for(const effect of ['death','disable']){
-  const g=arena(),a=drone(g,{x:10,y:10},'packed');a.hp=0;g.player.scrap=30;
-  const e=enemy(g,14);grantTrait(e,'fast','test:repair-fast');e.alert=true;
-  g.enemyAct=()=>{if(effect==='death')g.player.hp=0;else g.player.control.disabled=2;};
-  assert.ok(g.action('repairDrone',a.id));assert.equal(g.turn,2);assert.equal(g.player.scrap,30);assert.equal(a.hp,0);
- }
+test('units left on another floor do not count toward the deploy limit, and class perks raise both limits',()=>{
+ const g=arena();assert.ok(deploy(g));const a=g.allies[0];a.floor=2;assert.equal(allySkillState(g,'workshop'),'序列 0/1 · 部署 0/1');
+ g.player.scrap=30;assert.ok(g.action('buildUnit',{blueprint:'drone_follow'}));assert.ok(deploy(g));assert.equal(g.allies.filter(x=>x.kind==='drone').length,2);assert.ok(validAllies(g));assert.ok(Game.restore(g.serialize()));
+ g.player.scrap=60;assert.ok(g.action('buildUnit',{blueprint:'drone_sentry'}));assert.equal(g.action('buildUnit',{blueprint:'drone_sentry'}),false);assert.equal(deploy(g),false);
+ g.player.perks.engineer_lines=1;g.player.perks.engineer_deploy=1;assert.equal(lineLimit(g.player),2);assert.equal(deployLimit(g.player),2);
+ assert.ok(g.action('buildUnit',{blueprint:'drone_sentry'}));assert.ok(deploy(g));assert.equal(deploy(g),false);assert.equal(allySkillState(g,'workshop'),'序列 1/2 · 部署 2/2');
 });
 test('a fast lethal enemy cancels a committed build and charges no scrap',()=>{
- const g=arena(),a=drone(g);g.damageAlly(a,999);g.player.scrap=40;const e=enemy(g,14);e.alert=true;grantTrait(e,'fast','test:build');g.enemyAct=()=>{g.player.hp=0;};
- assert.ok(use(g));assert.equal(g.status,'dead');assert.equal(g.player.scrap,40);assert.ok(g.allies.includes(a));
+ const g=arena();g.player.productionLines=[];g.player.scrap=40;const e=enemy(g,14);e.alert=true;grantTrait(e,'fast','test:build');g.enemyAct=()=>{g.player.hp=0;};
+ assert.ok(g.action('buildUnit',{blueprint:'drone_follow'}));assert.equal(g.status,'dead');assert.equal(g.player.scrap,40);assert.deepEqual(g.player.productionLines,[]);
 });
-test('a recovered damaged drone is repaired while packed, deploys separately in the other mode with rifle rounds conserved, and does not shoot that turn',()=>{
- const g=arena(),a=drone(g);a.ammo=3;a.hp=20;g.player.scrap=30;const rifle=g.player.reserve,pistol=g.player.pistol;
- assert.ok(use(g));assert.equal(a.status,'packed');assert.equal(a.ammo,12);assert.equal(g.player.reserve,rifle-9);
- assert.ok(g.action('repairDrone',a.id));assert.equal(a.hp,20+Math.ceil(DRONE_HP/2));assert.equal(g.activeAllies.length,0);
- g.action('prepare',{category:'skill',id:'drone_sentry'});const e=enemy(g,15);e.alert=false;g.enemyAct=()=>{};const hp=e.hp;
- assert.ok(use(g));assert.equal(g.turn,4);assert.equal(a.status,'active');assert.equal(a.sourceId,'drone_sentry');assert.equal(a.ammo,8);assert.equal(e.hp,hp);assert.equal(a.armor,SENTRY_ARMOR);
- assert.equal(g.player.reserve,rifle-9+12-8);assert.equal(g.player.pistol,pistol);assert.equal(g.allies.length,1);
-});
-test('a ground wreck stays behind on its floor and survives complete backup; the skill offers a new build instead',()=>{
- const g=arena(),a=drone(g);g.damageAlly(a,999);assert.ok(!departAllies(g).includes(a.id));g.floor=2;assert.equal(allySkillState(g,'drone_follow'),`生產 · ${DRONE_BUILD_COST} 廢料`);
+test('a ground wreck stays behind on its floor and survives complete backup; the workshop still shows its lines',()=>{
+ const g=arena();assert.ok(deploy(g));const a=g.allies[0];g.damageAlly(a,999);assert.ok(!departAllies(g).includes(a.id));g.floor=2;assert.equal(allySkillState(g,'workshop'),'序列 0/1 · 部署 0/1');
  const copy=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa');assert.deepEqual(copy.game.allies,g.allies);
  const raw=JSON.parse(g.serialize());raw.data.allies[0].status='active';assert.equal(Game.restore(JSON.stringify(raw)),null);
- raw.data.allies[0].status='packed';raw.data.allies[0].hp=-1;assert.equal(Game.restore(JSON.stringify(raw)),null);
+ raw.data.allies[0].status='destroyed';raw.data.allies[0].hp=-1;assert.equal(Game.restore(JSON.stringify(raw)),null);
 });
 // 3.41: the follow drone stays adjacent, and deploying or building a drone takes a chosen tile.
 test('the follow drone stays adjacent: two tiles away it steps back beside the player',()=>{
  const g=arena(),a=drone(g,{x:12,y:10});a.ammo=12;a.bornTurn=1;g.turn=2;allyAct(g,a);assert.equal(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y),1);
 });
-test('a drone is deployed or built on a chosen free tile within two steps; other tiles are refused without spending time',()=>{
- const g=arena(),a=drone(g,{x:10,y:10},'packed');enemy(g,11,10).hp=500;g.enemyAct=()=>{};
- for(const bad of [{x:10,y:13},{x:11,y:10}])assert.equal(g.action('placeDrone',{id:'drone_follow',...bad}),false);assert.equal(g.turn,1);assert.equal(a.status,'packed');
- assert.ok(g.action('placeDrone',{id:'drone_follow',x:10,y:8}));assert.deepEqual([a.status,a.x,a.y,g.turn,a.ammo],['active',10,8,2,12]);
- assert.equal(g.action('placeDrone',{id:'drone_follow',x:9,y:10}),false);assert.equal(g.turn,2);
- const h=arena(),c=drone(h,{x:15,y:10});h.damageAlly(c,999);h.player.scrap=40;assert.ok(h.action('placeDrone',{id:'drone_follow',x:8,y:10}));
- const n=h.allies.find(x=>x.kind==='drone');assert.deepEqual([n.x,n.y,n.status,h.player.scrap],[8,10,'active',10]);assert.ok(Game.restore(h.serialize()));
+test('a unit is deployed on a chosen free tile within two steps; other tiles and lines are refused without spending time',()=>{
+ const g=arena();enemy(g,11,10).hp=500;g.enemyAct=()=>{};
+ for(const bad of [{x:10,y:13},{x:11,y:10}])assert.equal(deploy(g,bad),false);assert.equal(g.turn,1);assert.equal(g.player.productionLines.length,1);
+ assert.equal(g.action('deployUnit',{line:1,x:10,y:8}),false);assert.equal(g.action('deployUnit',{line:'0',x:10,y:8}),false);assert.equal(g.turn,1);
+ assert.ok(deploy(g,{x:10,y:8}));const a=g.allies[0];assert.deepEqual([a.status,a.x,a.y,g.turn,a.ammo],['active',10,8,2,12]);assert.ok(Game.restore(g.serialize()));
 });
-test('without a chosen tile the drone lands beside the player; in a corridor in front, never behind',()=>{
- const f=arena(),b=drone(f,{x:10,y:10},'packed');f.player.facing=[0,1];assert.equal(defaultDroneCell(f).d,1);assert.ok(use(f));assert.deepEqual([b.x,b.y],[11,10]);
- const c=arena(),k=drone(c,{x:10,y:10},'packed');c.grid=c.grid.map(r=>r.map(()=>0));for(let x=5;x<=15;x++)c.grid[10][x]=1;c.player.facing=[-1,0];assert.ok(use(c));assert.deepEqual([k.x,k.y],[9,10]);
+test('without a chosen tile the unit lands beside the player; in a corridor in front, never behind',()=>{
+ const f=arena();f.player.facing=[0,1];assert.equal(defaultDroneCell(f).d,1);assert.ok(deploy(f));assert.deepEqual([f.allies[0].x,f.allies[0].y],[11,10]);
+ const c=arena();c.grid=c.grid.map(r=>r.map(()=>0));for(let x=5;x<=15;x++)c.grid[10][x]=1;c.player.facing=[-1,0];assert.ok(deploy(c));assert.deepEqual([c.allies[0].x,c.allies[0].y],[9,10]);
 });
 test('a fast enemy taking the chosen tile first cancels the committed placement; nothing is spent but the turn',()=>{
- const g=arena(),a=drone(g,{x:10,y:10},'packed'),e=enemy(g,12,10);e.hp=500;e.alert=true;grantTrait(e,'fast','test:place');g.enemyAct=x=>{if(x===e){e.x=11;e.y=10;}};
- const rifle=g.player.reserve;assert.ok(g.action('placeDrone',{id:'drone_follow',x:11,y:10}));assert.equal(g.turn,2);assert.equal(a.status,'packed');assert.equal(g.player.reserve,rifle);
+ const g=arena(),e=enemy(g,12,10);e.hp=500;e.alert=true;grantTrait(e,'fast','test:place');g.enemyAct=x=>{if(x===e){e.x=11;e.y=10;}};
+ const pistol=g.player.pistol;assert.ok(deploy(g,{x:11,y:10}));assert.equal(g.turn,2);assert.equal(g.allies.length,0);assert.equal(g.player.productionLines.length,1);assert.equal(g.player.pistol,pistol);
 });
 // 3.40 necromancer (user decision): automatic rising, a fallen pool that is never used up, and a free rally.
 test('summons hunt enemies up to nine tiles from the player',()=>{
@@ -243,9 +217,9 @@ test('rally is free, brings hunting summons back for three turns, then they hunt
  for(const bad of ['2',g.turn+RALLY_TURNS+1]){const raw=JSON.parse(g.serialize());raw.data.allies[0].rallyTurn=bad;assert.equal(Game.restore(JSON.stringify(raw)),null);}
  const n=arena('necromancer');assert.equal(use(n),false);assert.equal(n.turn,1);assert.match(n.logs[0].text,/集結/);
 });
-// 3.39 engineer drone (user decision): rifle rounds, 90 HP, self-reload near the player, build instead of wreck recovery.
-test('drones reload themselves from rifle rounds within carry range when empty or idle at half, never beyond it',()=>{
- const g=arena(),a=drone(g,{x:11,y:10});a.ammo=0;a.bornTurn=1;g.turn=2;const rifle=g.player.reserve,pistol=g.player.pistol;allyAct(g,a);assert.equal(a.ammo,12);assert.equal(g.player.reserve,rifle-12);assert.equal(g.player.pistol,pistol);
+// 3.39 engineer drone, reworked by the workshop in 3.91.0: pistol rounds, 90 HP, self-reload near the player.
+test('drones reload themselves from pistol rounds within carry range when empty or idle at half, never beyond it',()=>{
+ const g=arena(),a=drone(g,{x:11,y:10});a.ammo=0;a.bornTurn=1;g.turn=2;const rifle=g.player.reserve,pistol=g.player.pistol;allyAct(g,a);assert.equal(a.ammo,12);assert.equal(g.player.pistol,pistol-12);assert.equal(g.player.reserve,rifle);
  a.ammo=7;g.turn=3;allyAct(g,a);assert.equal(a.ammo,7);a.ammo=6;g.turn=4;allyAct(g,a);assert.equal(a.ammo,12);
  const e=enemy(g,13,10);e.hp=500;zero(g);g.reveal();a.ammo=6;g.turn=5;allyAct(g,a);assert.equal(a.ammo,5);a.ammo=0;g.turn=6;allyAct(g,a);assert.equal(a.ammo,12);
  g.enemies=[];a.ammo=0;a.x=15;g.turn=7;allyAct(g,a);assert.equal(a.ammo,0);assert.equal(a.x,14);
@@ -258,7 +232,7 @@ test('v26 saves refit drones: follow pistol rounds are handed back, 45 HP chassi
  const g=arena(),a=drone(g);a.ammo=7;a.maxHp=45;a.hp=30;const old=JSON.parse(g.serialize());old.version=26;const restored=Game.restore(JSON.stringify(old));
  assert.ok(restored);assert.equal(restored.player.pistol,g.player.pistol+7);const d=restored.allies[0];assert.deepEqual([d.ammo,d.hp,d.maxHp],[0,30,DRONE_HP]);
  const s=arena(),b=drone(s,{x:11,y:10},'active','drone_sentry');b.armor=0;b.traits.push({id:'no_cover',source:'ally:drone'});b.ammo=5;const o2=JSON.parse(s.serialize());o2.version=26;const r2=Game.restore(JSON.stringify(o2));
- assert.equal(r2.allies[0].armor,SENTRY_ARMOR);assert.ok(!r2.allies[0].traits.some(t=>t.id==='no_cover'));assert.equal(r2.allies[0].ammo,5);assert.equal(r2.player.pistol,s.player.pistol);
+ assert.equal(r2.allies[0].armor,SENTRY_ARMOR);assert.ok(!r2.allies[0].traits.some(t=>t.id==='no_cover'));assert.equal(r2.allies[0].ammo,0);assert.equal(r2.player.reserve,s.player.reserve+5);assert.equal(r2.player.pistol,s.player.pistol);
  const text=JSON.stringify(old),memory=new Map([['qa-ash-save',text],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
  const storage=await import('../src/storage.js?drone339');assert.ok(storage.loadGame());assert.equal(memory.get('qa-ash-save-v26-backup'),text);assert.equal(memory.get('ash-save'),'untouched');
@@ -278,7 +252,7 @@ test('allies can never box the player in: a dead-end ally still swaps and two su
  for(let i=0;i<9;i++)assert.ok(n.action('move',[1,0]));for(let i=0;i<12;i++)assert.ok(n.action('move',[-1,0]),`step back ${i}`);assert.equal(n.player.x,3);assert.ok(Game.restore(n.serialize()));
 });
 test('sentries, disabled allies, low rails and an anchored bulwark refuse a swap without spending time',()=>{
- const g=arena(),s=drone(g,{x:11,y:10},'active','drone_sentry');assert.equal(g.action('move',[1,0]),false);assert.match(g.logs[0].text,/哨兵/);
+ const g=arena(),s=drone(g,{x:11,y:10},'active','drone_sentry');assert.equal(g.action('move',[1,0]),false);assert.match(g.logs[0].text,/砲台/);
  s.sourceId='drone_follow';s.control.disabled=2;assert.equal(g.action('move',[1,0]),false);assert.match(g.logs[0].text,/失能/);
  s.control.disabled=0;g.barriers=[makeBarrier('low_partition',{x:10,y:10},{x:11,y:10},'swap-rail')];assert.equal(g.action('move',[1,0]),false);assert.equal(g.turn,1);assert.equal(s.x,11);
  const b=arena('bulwark');assert.ok(use(b));addAlly(b,'survivor','rifleman',{point:{x:11,y:10}});const turn=b.turn;assert.equal(b.action('move',[1,0]),false);assert.match(b.logs[0].text,/下錨/);assert.equal(b.turn,turn);
@@ -328,9 +302,9 @@ test('v23 original local save is backed up verbatim; a destroyed follow drone ha
  const g=arena(),a=drone(g);a.ammo=5;g.damageAlly(a,999);const old=JSON.parse(g.serialize());old.version=23;const raw=JSON.stringify(old),memory=new Map([['qa-ash-save',raw],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
  const storage=await import('../src/storage.js?repair331'),restored=storage.loadGame();assert.ok(restored);
- const expected=JSON.parse(JSON.stringify(g.allies));expected[0].ammo=0;assert.deepEqual(restored.allies,expected);
- assert.equal(restored.player.pistol,g.player.pistol+5);assert.deepEqual({...restored.player,pistol:g.player.pistol},g.player);assert.equal(restored.rng.state(),g.rng.state());assert.equal(memory.get('qa-ash-save-v23-backup'),raw);assert.equal(memory.get('ash-save'),'untouched');
- restored.player.scrap=DRONE_BUILD_COST;assert.ok(use(restored));
+ assert.deepEqual(restored.allies,[]);
+ assert.equal(restored.player.pistol,g.player.pistol+5);assert.deepEqual({...restored.player,pistol:g.player.pistol},{...g.player,productionLines:[]});assert.equal(restored.rng.state(),g.rng.state());assert.equal(memory.get('qa-ash-save-v23-backup'),raw);assert.equal(memory.get('ash-save'),'untouched');
+ restored.player.scrap=UNIT_BLUEPRINTS.drone_follow.cost;assert.ok(restored.action('buildUnit',{blueprint:'drone_follow'}));
 });
 
 // 3.71.1: raised summons idle adjacent like the follow drone; the pet keeps its looser idle leash.
@@ -339,4 +313,26 @@ test('an idle summon two tiles away steps beside the player, while an idle pet a
  assert.equal(Math.abs(s.x-g.player.x)+Math.abs(s.y-g.player.y),1);
  const h=arena('druid'),p=pet(h,{x:12,y:10});p.bornTurn=1;h.turn=2;allyAct(h,p);
  assert.deepEqual([p.x,p.y],[12,10]);
+});
+
+test('deploy refuses a half-given tile and a full ally list with nothing to prune, without spending time',()=>{
+ const g=arena();assert.equal(g.action('deployUnit',{line:0,x:12}),false);assert.equal(g.turn,1);assert.equal(g.player.productionLines.length,1);
+ g.allies=Array.from({length:32},(_,i)=>({kind:'survivor',floor:1,status:'active',hp:1,x:0,y:i}));assert.equal(deployReason(g,0),'友軍名額已滿，無法部署。');
+ Object.assign(g.allies[5],{kind:'drone',status:'destroyed',hp:0});assert.equal(deployReason(g,0),'');
+ Object.assign(g.allies[5],{status:'active',hp:1,floor:2});assert.equal(deployReason(g,0),'');
+});
+// 3.91.0 engineer workshop (docs/ENGINEER.md phase 1): saves move the old chassis into workshop state.
+test('v45 saves turn the drone skills into the workshop: packed chassis into a line, wrecks dropped, deployed units kept, magazines handed back',()=>{
+ const old=setup=>{const g=arena();g.player.productionLines=[];setup(g);const raw=JSON.parse(g.serialize());raw.version=45;const p=raw.data.player;p.skills=['drone_follow','drone_sentry'];p.skillState={drone_follow:{remaining:0,cooldown:0},drone_sentry:{remaining:0,cooldown:0}};p.prepared.skill='drone_sentry';delete p.productionLines;return {g,raw};};
+ const packed=old(g=>{drone(g,{x:11,y:10}).ammo=5;});packed.raw.data.allies[0].status='packed';const r1=Game.restore(JSON.stringify(packed.raw));
+ assert.ok(r1);assert.deepEqual(r1.allies,[]);assert.deepEqual(r1.player.productionLines,[{blueprint:'drone_follow'}]);assert.equal(r1.player.reserve,packed.g.player.reserve+5);
+ assert.deepEqual(r1.player.skills,['workshop']);assert.equal(r1.player.prepared.skill,'workshop');assert.deepEqual(Object.keys(r1.player.skillState),['workshop']);assert.ok(Game.restore(r1.serialize()));
+ const wreck=old(g=>{g.damageAlly(drone(g),999);});const r2=Game.restore(JSON.stringify(wreck.raw));assert.ok(r2);assert.deepEqual(r2.allies,[]);assert.deepEqual(r2.player.productionLines,[]);
+ const active=old(g=>{drone(g,{x:11,y:10},'active','drone_sentry').ammo=3;});const r3=Game.restore(JSON.stringify(active.raw));
+ assert.ok(r3);assert.equal(r3.allies[0].status,'active');assert.equal(r3.allies[0].ammo,0);assert.equal(r3.player.reserve,active.g.player.reserve+3);assert.ok(Game.restore(r3.serialize()));
+ const soldier=arena('soldier'),raw=JSON.parse(soldier.serialize());raw.version=45;delete raw.data.player.productionLines;const r4=Game.restore(JSON.stringify(raw));assert.ok(r4);assert.deepEqual(r4.player,soldier.player);
+});
+test('malformed production lines cannot fabricate units, exceed the line limit or exist without the workshop',()=>{
+ const g=arena();assert.ok(Game.restore(g.serialize()));
+ for(const change of [d=>d.player.productionLines={blueprint:'drone_follow'},d=>d.player.productionLines.push({blueprint:'drone_follow'}),d=>d.player.productionLines[0]={blueprint:'warden'},d=>d.player.productionLines[0].hp=5,d=>d.player.productionLines[0]=null,d=>{d.player.skills=[];d.player.prepared.skill=null;d.player.skillState={};}]){const raw=JSON.parse(g.serialize());change(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);}
 });

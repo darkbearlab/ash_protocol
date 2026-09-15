@@ -2,7 +2,7 @@ import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 45;
+export const SAVE_VERSION = 46;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -90,8 +90,10 @@ export const PERKS = [
   {id:'necro_haste',name:'速葬',characters:['necromancer'],cap:3,effect:'passive',text:'自動起身間隔 −1 次付費行動（基礎 4，下限 1）；目前倒數同步縮短。'},
   {id:'necro_blades',name:'亡者利刃',characters:['necromancer'],cap:3,effect:'passive',text:'所有召喚物的近戰與射擊傷害 +4；不增加耐久。'},
   {id:'engineer_salvage',name:'戰場回收',characters:['engineer'],cap:3,effect:'passive',text:'每次擊殺額外 +2 廢料；立即獲得 15 廢料。'},
-  {id:'engineer_frame',name:'機體強化',characters:['engineer'],cap:3,effect:'passive',text:'無人機最大生命 +20、裝甲 +1。已有機體立即增加上限，不直接修復。'},
-  {id:'engineer_firecontrol',name:'火控校準',characters:['engineer'],cap:3,effect:'passive',text:'無人機射擊命中 +8 個百分點、傷害 +3。'},
+  {id:'engineer_frame',name:'機體強化',characters:['engineer'],cap:3,effect:'passive',text:'所有機體最大生命 +20、裝甲 +1。已部署的機體立即增加上限，不直接修復。'},
+  {id:'engineer_firecontrol',name:'火控校準',characters:['engineer'],cap:3,effect:'passive',text:'所有機體射擊命中 +8 個百分點、傷害 +3。'},
+  {id:'engineer_lines',name:'生產序列',characters:['engineer'],cap:3,effect:'passive',text:'工坊生產序列 +1 條（基礎 1 條）。'},
+  {id:'engineer_deploy',name:'部署上限',characters:['engineer'],cap:3,effect:'passive',text:'同時部署的機體 +1 台（基礎 1 台，留在別層的不算）。'},
   {id:'druid_beast',name:'飽食',characters:['druid'],cap:3,effect:'passive',text:'胃容量 +10 燃料，射擊與排出消耗減少 10%。'},
   {id:'druid_claws',name:'飢餓',characters:['druid'],cap:3,effect:'passive',text:'胃空時獵獸近戰傷害 +25%。'},
   {id:'druid_symbiosis',name:'共生',characters:['druid'],cap:3,effect:'passive',text:'寵物每次擊殺敵人，你回復 4 生命；每階累加。'},

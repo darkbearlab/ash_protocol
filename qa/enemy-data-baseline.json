@@ -900,26 +900,26 @@
    "floor": 1,
    "turn": 19,
    "hp": 0,
-   "kills": 5,
+   "kills": 6,
    "actions": 18,
    "invalid": 0
   },
   "engineer:2": {
    "status": "dead",
    "floor": 1,
-   "turn": 40,
+   "turn": 30,
    "hp": 0,
-   "kills": 9,
-   "actions": 39,
+   "kills": 7,
+   "actions": 29,
    "invalid": 0
   },
   "engineer:3": {
    "status": "dead",
    "floor": 1,
-   "turn": 117,
+   "turn": 50,
    "hp": 0,
-   "kills": 20,
-   "actions": 117,
+   "kills": 12,
+   "actions": 50,
    "invalid": 0
   },
   "druid:1": {

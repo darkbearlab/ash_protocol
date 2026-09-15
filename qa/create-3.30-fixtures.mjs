@@ -1,3 +1,6 @@
+// Obsolete since 3.91.0: these scenes use the packed drone, recall and repair that the engineer workshop removed
+// (docs/ENGINEER.md). Kept for history; running it now exits without writing anything.
+console.log('create-3.30-fixtures: obsolete since 3.91.0 (engineer workshop).');process.exit(0);
 // Import these raw saves only through ?test=1. Artificial scenes are not balance evidence.
 import {mkdir,writeFile} from 'node:fs/promises';
 import {Game} from '../src/game.js';

@@ -9,7 +9,7 @@ export function learningReason(g,id,dismantle=false){
  if(dismantle)return '';
  if(d.trait?(d.trait==='suppression_resistance'?suppressionResistance(p)>=3:hasTrait(p,d.trait)):d.skills.every(s=>p.skills.includes(s)))return '已經學會，這份資料可拆解。';
  if(d.trait&&p.traits.length>=68)return '被動規則已滿。';
- const needed=d.skills?.filter(s=>(s==='pet_command'&&!g.allies.some(a=>a.kind==='pet'))||(s==='drone_follow'&&!g.allies.some(a=>a.kind==='drone'))).length||0;
+ const needed=d.skills?.filter(s=>s==='pet_command'&&!g.allies.some(a=>a.kind==='pet')).length||0;
  if(g.allies.length+needed>32)return '友軍名額已滿。';
  return '';
 }

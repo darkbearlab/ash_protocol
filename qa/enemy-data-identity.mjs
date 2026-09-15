@@ -13,9 +13,12 @@ const BASELINE=new URL('./enemy-data-baseline.json',import.meta.url);
 const GROUPS=['generation','missions','bots'];
 // Faction framework fields (docs/FACTION_DATA.md) change data shape, not behaviour. They are stripped before hashing
 // so the pre-faction baseline still proves the rules are unchanged; drop this once a faction split changes content.
-// The purge ledger (docs/PURGE_REVIEW.md, 3.86.0) is narrative bookkeeping on the same terms.
+// The purge ledger (docs/PURGE_REVIEW.md, 3.86.0) is narrative bookkeeping on the same terms, as are the unlock
+// holdings of 3.90.0 (docs/UNLOCKS.md). An absent corpse (operatorCorpse null) and empty production lines (3.91.0,
+// docs/ENGINEER.md) are dropped too, so only runs that actually carry them hash differently.
+//   node qa/enemy-data-identity.mjs --candidate  also writes qa/enemy-data-candidate.json (untracked) to copy single entries
 const IGNORED_KEYS=new Set(['faction','facilityFaction','purge','unlockedCharacters','unlockedStories','pendingStories','encounteredCharacters','factionOverride']);
-const normalize=value=>Array.isArray(value)?value.map(normalize):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).filter(([key,item])=>!IGNORED_KEYS.has(key)&&!(key==='operatorCorpse'&&item===null)).map(([key,item])=>[key,normalize(item)])):value;
+const normalize=value=>Array.isArray(value)?value.map(normalize):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).filter(([key,item])=>!IGNORED_KEYS.has(key)&&!(key==='operatorCorpse'&&item===null)&&!(key==='productionLines'&&Array.isArray(item)&&item.length===0)).map(([key,item])=>[key,normalize(item)])):value;
 const hash=value=>createHash('sha256').update(JSON.stringify(normalize(value))).digest('hex').slice(0,16);
 // Errors are recorded rather than thrown, so a floor that fails the same way before and after still matches.
 const quietly=fn=>{try{return fn();}catch(error){return {error:String(error?.message||error)};}};

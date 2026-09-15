@@ -1,3 +1,6 @@
+// Obsolete since 3.91.0: these scenes use the packed drone, recall and repair that the engineer workshop removed
+// (docs/ENGINEER.md). Kept for history; running it now exits without writing anything.
+console.log('create-3.31-fixtures: obsolete since 3.91.0 (engineer workshop).');process.exit(0);
 // Artificial QA scenes, import only in ?test=1; never reset the real campaign.
 import {mkdir,writeFile} from 'node:fs/promises';
 import {Game} from '../src/game.js';

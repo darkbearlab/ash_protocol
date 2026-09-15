@@ -32,7 +32,8 @@ import {MAX_LEVEL,perkLimit,floorLimit,isEndless,scaleEnemy,giveCapSupply,PROTOC
 import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambushReady,ambushMultiplier,shortenCamo,meleeReward,defensiveEvasion,grapplePlan,useGrapple,MELEE_TUNING} from './melee-classes.js';
 import {healActor} from './traits.js';
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
-import {droneRepairReason,repairDrone,ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickSummons,petSkillReason,fitDrone,DRONE_HP,DRONE_BUILD_COST,droneCells,dronePlaces} from './allies.js';
+import {ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickSummons,petSkillReason,fitDrone,DRONE_HP} from './allies.js';
+import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop} from './workshop.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,skillValues,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
@@ -57,7 +58,7 @@ import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
 
-const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -216,10 +217,11 @@ export class Game {
     if(type==='suppressiveFire'){const reason=suppressiveReason(this,arg);return !reason||this.fail(reason);}
     if(type==='feedPet'){const q=petFeedQuote(this,arg);return q.allowed||this.fail(q.reason);}
     if(type==='setPetOutput')return !outputChoiceReason(this,arg)||this.fail(outputChoiceReason(this,arg));
-    if(type==='repairDrone')return !droneRepairReason(this,arg)||this.fail(droneRepairReason(this,arg));
+    if(type==='buildUnit'){const reason=buildReason(this,arg?.blueprint);return !reason||this.fail(reason);}
     if(type==='commandPet')return Boolean(p.prepared.skill==='pet_command'&&this.activeAllies.some(a=>a.kind==='pet')&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&this.seen[arg.y]?.[arg.x]&&this.passable(arg.x,arg.y)&&distance(p,arg)<=6);
-    // Deploying or building a drone on a chosen free tile within two route steps; same cost as the skill.
-    if(type==='placeDrone')return Boolean(arg&&p.prepared.skill===arg.id&&dronePlaces(this,arg.id)&&canAllySkill(this,arg.id)&&droneCells(this).some(q=>q.x===arg.x&&q.y===arg.y))||this.fail('部署位置需在你 2 步內、走得到的空格。');
+    // Workshop (docs/ENGINEER.md): deploy a finished unit from a production line onto a free tile within two route steps.
+    if(type==='deployUnit'){const reason=deployReason(this,arg?.line,workshopPoint(arg));return !reason||this.fail(reason);}
+    if(type==='skill'&&arg==='workshop')return this.fail('從工坊面板生產或部署機體。');
     if(type==='skill'&&arg==='suppressive_fire')return this.fail('壓制射擊需要區域落點。');
     if(type==='skill'&&arg==='grapple'&&canUseSkill(p,arg)){const plan=grapplePlan(this);return !plan.reason||this.fail(plan.reason);}
     if(type==='skill')return (ALLY_SKILLS.includes(arg)?canAllySkill(this,arg):canUseSkill(p,arg))||this.fail((arg==='pet_command'&&p.prepared.skill===arg&&petSkillReason(this))||(arg==='raise_dead'&&p.prepared.skill===arg&&!p.control.disabled&&'目前沒有召喚物可以集結。')||'技能無法啟動：請確認預備欄與冷卻狀態。');
@@ -387,10 +389,10 @@ export class Game {
         p.vaultExposed=vaultable(edge);if(p.vaultExposed)this.log('翻越矮隔板：至下次自身行動前，被射擊命中 +20。',true,'翻越矮隔板，暫時暴露。');
         p.x=x;p.y=y;p.facing=[dx,dy];p.moveDelta=[dx,dy];this.pickup();success=true;break;
       }
-      case 'repairDrone':success=presentStep(this,()=>repairDrone(this,arg));break;
+      case 'buildUnit':success=presentStep(this,()=>buildUnit(this,arg.blueprint));break;
       case 'skill':success=this.activateSkill(arg);break;
       case 'grapple':success=useGrapple(this,arg.id);break;
-      case 'placeDrone':success=presentStep(this,()=>useAllySkill(this,arg.id,{x:arg.x,y:arg.y}));break;
+      case 'deployUnit':success=presentStep(this,()=>deployUnit(this,arg.line,workshopPoint(arg)));break;
       case 'recoverObjective':success=this.recoverObjective(arg);break;
       case 'openContainer':success=presentStep(this,()=>this.openContainer(arg));break;
       case 'door':success=presentStep(this,()=>{const b=this.nearbyDoors.find(b=>b.id===arg.id);return this.setDoor(b,arg.open);});break;
@@ -619,7 +621,7 @@ export class Game {
     addTrace(this,a,activeTrait(a,'mechanical')?'oil':'blood');this.effects.push({type:'impact',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},damage});this.log(`${allyName(a)}受傷 −${damage}。`,true,`${allyName(a)}受傷。`);
     if(!a.hp&&a.kind==='pet'){if(!petSurvives(this,a))petDeath(this,a);petReactions(this);this.reveal();return;}
     petReactions(this);
-    if(!a.hp){a.status='destroyed';a.order=null;this.reveal();this.log(`${allyName(a)}${a.kind==='drone'?`已被摧毀：按僚機技能花 ${DRONE_BUILD_COST} 廢料生產新機。`:'已被摧毀。'}`,true);}
+    if(!a.hp){a.status='destroyed';a.order=null;this.reveal();this.log(`${allyName(a)}已被摧毀。`,true);}
   }
   enemyTarget(e){
     if(isNoncombatant(e))return this.player;
@@ -818,6 +820,7 @@ export class Game {
       // The purge ledger is narrative only: a run saved before it existed, or with a damaged one, keeps playing without a verdict.
       if(data.purge===undefined||!validPurge(data.purge,data))data.purge=null;
       if(version<23){data.allies=[];data.allySerial=0;}
+      const workshopRefund=version<46?migrateWorkshop(data,version):null;
       const defaults=freshPlayer(),p={...defaults,...data.player};
       if(version<44&&!migratePoison(p))return null;
       if(![p,...data.enemies].every(a=>validCombatModifiers(a.combatModifiers)))return null;
@@ -931,7 +934,7 @@ export class Game {
       if(!validPerks(g))return null;
       if(version<35&&!migratePetBond(g))return null;
       if(version<36&&!migratePetNodes(g,version===35))return null;
-      if(!validAllies(g)||!validPetBond(g))return null;
+      if(!validAllies(g)||!validPetBond(g)||!validWorkshop(g))return null;
       if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,swarmWaves:undefined,mapStyle:undefined,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,traits:p.traits.filter(t=>t.source!=='pet:vision'),battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
       // Weapon slots belong to the run, including weapons left on archived floors.
       for(const frame of Object.values(g.floorStates))for(const item of frame.items)if(item.type==='weapon'){
@@ -944,6 +947,7 @@ export class Game {
         let refund=0;for(const a of g.allies)if(a.kind==='drone'){if(a.sourceId==='drone_follow'&&a.ammo>0){refund+=a.ammo;a.ammo=0;}if(a.maxHp===45)a.maxHp=DRONE_HP;fitDrone(a);}
         if(refund){g.receiveAmmo('pistol',refund);g.log(`存檔已升級：追隨無人機改用步槍彈，原彈匣 ${refund} 發手槍彈已退回。`);}
       }
+      if(workshopRefund){const rounds=workshopRefund.pistol+workshopRefund.rifle;for(const type of ['pistol','rifle'])if(workshopRefund[type])g.receiveAmmo(type,workshopRefund[type]);g.log(`存檔已升級：工程師改用工坊${workshopRefund.lined?'，收納中的機體放進生產序列':''}${rounds?`，機體彈匣裡的 ${rounds} 發子彈已退回`:''}。`);}
       lockRealMode(g,data.realMode);g.setCarryLevel(g.carryLevel);g.reveal();return g;
     }catch{return null;}
   }

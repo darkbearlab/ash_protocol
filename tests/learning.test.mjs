@@ -20,9 +20,9 @@ test('every manual is free, independently usable by a soldier, duplicates remain
   const scrap=p.scrap;assert.ok(g.action('dismantleLearning',id));assert.equal(p.scrap,scrap+LEARNING_SCRAP);assert.equal(g.turn,t);assert.ok(learningInventory(g).every(x=>x.count>0));
  }
 });
-test('pet and drone learning initializes exactly one body and survives full backup',()=>{
+test('pet learning initializes exactly one body, workshop learning one built unit, and both survive full backup',()=>{
  const g=game();for(const id of ['skill_drones','skill_pet_command','skill_raise_dead']){g.player.learningItems[id]=2;assert.ok(g.action('learn',id));assert.equal(g.action('learn',id),false);}
- assert.equal(g.allies.filter(a=>a.kind==='pet').length,1);assert.equal(g.allies.filter(a=>a.kind==='drone').length,1);assert.ok(g.player.petBond);const copy=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(copy.player.learningItems,g.player.learningItems);assert.deepEqual(copy.allies,JSON.parse(JSON.stringify(g.allies)));
+ assert.equal(g.allies.filter(a=>a.kind==='pet').length,1);assert.equal(g.allies.filter(a=>a.kind==='drone').length,0);assert.deepEqual(g.player.productionLines,[{blueprint:'drone_follow'}]);assert.ok(g.player.petBond);const copy=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(copy.player.learningItems,g.player.learningItems);assert.deepEqual(copy.allies,JSON.parse(JSON.stringify(g.allies)));
 });
 test('learning validates ownership, counters and IDs and never consumes rejected input',()=>{
  const g=game(),t=g.turn;assert.equal(g.action('learn','trait_rapid_fire'),false);g.player.learningItems.trait_rapid_fire=1;g.player.control.disabled=1;assert.equal(g.action('learn','trait_rapid_fire'),false);assert.equal(g.player.learningItems.trait_rapid_fire,1);assert.equal(g.turn,t);
