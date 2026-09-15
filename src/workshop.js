@@ -1,12 +1,14 @@
-import {ALLY_BASE_TYPES,isNoncombatant} from './enemy-data.js';
-import {addAlly,allyName,allyWeapon,currentAllies,defaultDroneCell,deployLimit,droneCells,lineLimit,reloadDrone,routeCells,MUNITION_TUNING} from './allies.js';
+import {isNoncombatant} from './enemy-data.js';
+import {ENEMY_TYPES} from './data.js';
+import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
+import {addAlly,allyName,allyWeapon,currentAllies,defaultDroneCell,deployLimit,droneCells,lineLimit,oneShot,reloadDrone,routeCells,ENEMY_UNIT_TUNING,MUNITION_TUNING,ONE_SHOT_UNITS,UNIT_SOURCES} from './allies.js';
 import {AMMUNITION} from './ammunition.js';
 import {GRENADES,FRAG_DAMAGE} from './throwables.js';
 import {pullLanding} from './melee-classes.js';
 import {barrierBetween,vaultable} from './barriers.js';
 import {distance} from './world.js';
 
-// Engineer workshop (docs/ENGINEER.md; phase 1 in 3.91.0, loitering munitions in 3.92.0). The class skill opens the
+// Engineer workshop (docs/ENGINEER.md; phase 1 in 3.91.0, munitions 3.92.0, enemy blueprints 3.94.0). The class skill opens the
 // production lines: an empty line builds a unit, a finished unit is deployed through the usual placement, and a
 // deployed unit never comes back. Blueprint ids reuse the drone sourceIds, so deployed units keep the ally rules.
 export const WORKSHOP_SKILL='workshop';
@@ -16,12 +18,18 @@ export const UNIT_BLUEPRINTS={
  drone_sentry:{name:'定點砲台',cost:30,mount:true,text:'部署後不動，可利用掩體，裝甲 5。'},
  // payload: built with one throwable, which decides what the munition detonates.
  drone_munition:{name:'浮游彈藥',cost:15,payload:true,text:'不算部署上限。接近敵人後俯衝，同一次行動引爆裝入的投擲物，不預告。'},
+ // enemy: gained by destroying that enemy type, once per run (docs/ENGINEER.md 4.2, 3.94.0). Built-in weapons only.
+ unit_drone:{name:'改造無人機',cost:35,enemy:'drone',text:'飛行、不用掩體，內建電漿槍吃你的能量電池，會追擊繩索內的敵人。'},
+ unit_bomber:{name:'改造自爆機器人',cost:25,enemy:'bomber_bot',text:'不算部署上限。走到敵人旁邊蓄勢一次，下次行動自爆；被打爆時也會爆炸。'},
 };
 const ALLY_CAP=32;
 export const hasWorkshop=p=>Array.isArray(p?.skills)&&p.skills.includes(WORKSHOP_SKILL);
 export const isMunition=a=>a?.kind==='drone'&&a.sourceId==='drone_munition';
-// Loitering munitions never count toward the deploy limit.
-export const deployedUnits=g=>currentAllies(g).filter(a=>a.kind==='drone'&&!isMunition(a));
+export const isBomber=a=>a?.kind==='drone'&&a.sourceId==='unit_bomber';
+// Enemy type -> the blueprint its wreck gives (drone -> unit_drone, bomber_bot -> unit_bomber).
+export const ENEMY_BLUEPRINTS=Object.fromEntries(Object.entries(UNIT_BLUEPRINTS).filter(([,def])=>def.enemy).map(([id,def])=>[def.enemy,id]));
+// One-shot units (munitions and suicide bots) never count toward the deploy limit.
+export const deployedUnits=g=>currentAllies(g).filter(a=>a.kind==='drone'&&!oneShot(a));
 // A deploy point needs both coordinates: null means "use the default tile", false marks a half-given point to refuse.
 export const workshopPoint=arg=>arg&&(arg.x!==undefined||arg.y!==undefined)?(Number.isInteger(arg.x)&&Number.isInteger(arg.y)?{x:arg.x,y:arg.y}:false):null;
 const unavailable=g=>g.status!=='playing'||g.pendingPerks>0||Boolean(g.player.control.disabled);
@@ -33,6 +41,7 @@ export function buildReason(g,blueprint,payload,weapon){
  const p=g.player,def=typeof blueprint==='string'&&Object.hasOwn(UNIT_BLUEPRINTS,blueprint)?UNIT_BLUEPRINTS[blueprint]:null;
  if(!hasWorkshop(p))return '沒有工坊技能。';
  if(!def)return '沒有這張藍圖。';
+ if(def.enemy&&!p.blueprints.includes(blueprint))return `尚未取得藍圖：擊毀${ENEMY_TYPES[def.enemy].name}後取得。`;
  if(def.payload&&!validPayload(payload))return '請選擇要裝入的投擲物。';
  if(!def.payload&&payload!==undefined&&payload!==null)return '這張藍圖不裝投擲物。';
  if(weapon!==undefined&&weapon!==null){
@@ -69,7 +78,7 @@ export function deployReason(g,line,point=null){
  if(!hasWorkshop(p))return '沒有工坊技能。';
  if(!unit)return '這條序列沒有完成的機體。';
  if(unavailable(g))return '目前無法部署。';
- if(!UNIT_BLUEPRINTS[unit.blueprint].payload&&deployedUnits(g).length>=deployLimit(p))return `部署上限 ${deployLimit(p)} 台已滿。`;
+ if(!ONE_SHOT_UNITS.includes(unit.blueprint)&&deployedUnits(g).length>=deployLimit(p))return `部署上限 ${deployLimit(p)} 台已滿。`;
  if(g.allies.length>=ALLY_CAP&&!g.allies.some(a=>wreck(a)||leftBehind(g)(a)))return '友軍名額已滿，無法部署。';
  if(point===false)return '部署位置需要完整的座標。';
  if(!deployCell(g,point))return point?'部署位置需在你 2 步內、走得到的空格。':'你身邊 2 步內沒有可以部署的空格。';
@@ -92,7 +101,7 @@ export function dropUnitWeapon(g,a,items=g.items){
 export function deployUnit(g,line,point=null){
  const reason=deployReason(g,line,point);if(reason)return g.fail(reason);
  makeRoom(g);const cell=deployCell(g,point),unit=g.player.productionLines[line];
- const a=addAlly(g,'drone',ALLY_BASE_TYPES.drone,{sourceId:unit.blueprint,point:cell});if(!a)return g.fail('友軍名額已滿，無法部署。');
+ const a=addAlly(g,'drone',UNIT_SOURCES[unit.blueprint],{sourceId:unit.blueprint,point:cell});if(!a)return g.fail('友軍名額已滿，無法部署。');
  g.player.productionLines.splice(line,1);
  if(unit.payload)a.payload=unit.payload;
  else{if(Number.isInteger(unit.weapon)){a.weapon=unit.weapon;a.ammo=Math.min(allyWeapon(a,g.player).mag,g.player.ammo[unit.weapon]);g.player.ammo[unit.weapon]=0;}reloadDrone(g,a);}
@@ -114,8 +123,12 @@ export function munitionAct(g,a){
   const point=distance(a,e)===1&&g.canCross(a,e)?{x:a.x,y:a.y}:pullLanding(g,a,e);
   if(point)return detonate(g,a,point);
  }
- // Units are mechanical, so suppression never pins them.
- const goal=targets[0],next=routeCells(g,a,{actor:a,limit:12,openDoors:false}).filter(q=>q.first&&distance(q,goal)<distance(a,goal)).sort((b,c)=>distance(b,goal)-distance(c,goal)||b.d-c.d)[0]?.first;
+ return stepCloser(g,a,targets[0]);
+}
+// One step toward goal through open ways (never opening a door), onto the route that ends closest. Units are mechanical,
+// so suppression never pins them.
+function stepCloser(g,a,goal){
+ const next=routeCells(g,a,{actor:a,limit:12,openDoors:false}).filter(q=>q.first&&distance(q,goal)<distance(a,goal)).sort((b,c)=>distance(b,goal)-distance(c,goal)||b.d-c.d)[0]?.first;
  if(!next)return false;
  const edge=barrierBetween(g.barriers,a,next),from={x:a.x,y:a.y};
  Object.assign(a,next);a.moveDelta=[a.x-from.x,a.y-from.y];a.moved=true;a.vaultExposed=vaultable(edge);return true;
@@ -131,15 +144,52 @@ function detonate(g,a,point){
  return true;
 }
 
+// Modified suicide bot (docs/ENGINEER.md 4.2, 3.94.0). On its own action a primed bot explodes where it stands; beside
+// a seen enemy it primes instead (one action of warning); otherwise it walks one tile toward the nearest enemy it sees
+// within sight, or back toward the player when it sees none. A primed bot explodes even if the enemy has stepped away.
+// It does not open doors, never swaps and stays behind on floor changes; as with the munition, the player is not protected.
+export function bomberAct(g,a){
+ if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return false;
+ a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return false;
+ if(a.primed){g.allies=g.allies.filter(x=>x!==a);Object.assign(a,{status:'destroyed',hp:0});delete a.primed;bomberBlast(g,a);return true;}
+ const t=ENEMY_UNIT_TUNING.bomber,targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=t.sight&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
+ if(targets[0]&&distance(a,targets[0])===1){
+  a.primed=true;g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.6,color:'#ffc789',damage:0});
+  g.log('改造自爆機器人蓄勢，下次行動自爆。');return true;
+ }
+ const goal=targets[0]||(distance(a,g.player)>2?g.player:null);
+ return goal?stepCloser(g,a,goal):false;
+}
+// The blast resolves like the enemy bot's (radius 1, 10 less per tile out); fire control adds its damage bonus.
+function bomberBlast(g,a){
+ const t=ENEMY_UNIT_TUNING.bomber;g.log('改造自爆機器人自爆。');
+ g.explode({x:a.x,y:a.y},t.radius,t.damage+classPerkRank(g.player,'engineer_firecontrol')*CLASS_PERK_TUNING.fireDamage,a);
+}
+// A unit destroyed by damage: its mounted weapon drops, and a suicide bot explodes where it fell (its wreck stays).
+export function unitDestroyed(g,a){
+ dropUnitWeapon(g,a);
+ if(isBomber(a)){delete a.primed;bomberBlast(g,a);}
+}
+// Enemy blueprints (docs/ENGINEER.md 4.2, 3.94.0): destroying a drone or a suicide bot gives the workshop that blueprint,
+// once per run. Any killer counts (you, your units, a blast, the environment); a suicide bot blowing itself up does not.
+export function salvageBlueprint(g,e,attacker){
+ const id=Object.hasOwn(ENEMY_BLUEPRINTS,e.type)?ENEMY_BLUEPRINTS[e.type]:null,p=g.player;
+ if(!id||attacker===e||!hasWorkshop(p)||p.blueprints.includes(id))return false;
+ p.blueprints.push(id);g.log(`取得藍圖：${UNIT_BLUEPRINTS[id].name}。打開工坊就能生產。`);return true;
+}
+
 const validLine=u=>{
  if(!u||typeof u!=='object'||Array.isArray(u)||typeof u.blueprint!=='string'||!Object.hasOwn(UNIT_BLUEPRINTS,u.blueprint))return false;
  const keys=Object.keys(u).sort().join();
  if(UNIT_BLUEPRINTS[u.blueprint].payload)return keys==='blueprint,payload'&&validPayload(u.payload);
  return keys==='blueprint'||keys==='blueprint,weapon'&&UNIT_BLUEPRINTS[u.blueprint].mount&&Number.isInteger(u.weapon);
 };
+// Acquired enemy blueprints are unique and belong to the workshop; every line or unit built from one needs it.
 export function validWorkshop(g){
- const p=g.player,lines=p.productionLines;
- return Array.isArray(lines)&&lines.length<=lineLimit(p)&&(!lines.length||hasWorkshop(p))&&lines.every(validLine);
+ const p=g.player,lines=p.productionLines,known=p.blueprints;
+ if(!Array.isArray(known)||new Set(known).size!==known.length||!known.every(id=>typeof id==='string'&&Object.hasOwn(UNIT_BLUEPRINTS,id)&&Boolean(UNIT_BLUEPRINTS[id].enemy))||known.length&&!hasWorkshop(p))return false;
+ const usable=id=>!UNIT_BLUEPRINTS[id].enemy||known.includes(id);
+ return Array.isArray(lines)&&lines.length<=lineLimit(p)&&(!lines.length||hasWorkshop(p))&&lines.every(u=>validLine(u)&&usable(u.blueprint))&&g.allies.every(a=>a.kind!=='drone'||usable(a.sourceId));
 }
 // v46: the old single chassis becomes workshop state. The two drone skills become the workshop skill; a packed unit
 // moves into the first production line, a wreck is dropped and an active unit stays deployed. Rounds left in a

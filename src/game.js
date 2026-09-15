@@ -33,7 +33,7 @@ import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambu
 import {healActor} from './traits.js';
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
 import {ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickSummons,petSkillReason,fitDrone,DRONE_HP} from './allies.js';
-import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop,isMunition,munitionAct,dropUnitWeapon} from './workshop.js';
+import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop,isMunition,munitionAct,isBomber,bomberAct,unitDestroyed,salvageBlueprint} from './workshop.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,skillValues,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
@@ -58,7 +58,7 @@ import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
 
-const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -326,7 +326,7 @@ export class Game {
         if(!success)this.log('局勢已改變，行動未能完成；本回合已消耗。');
         p.guard=success&&type==='wait';p.moved=success&&(type==='move'||type==='grapple'&&p.moved);p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
         petReactions(this);this.reveal();
-      }else if(actor.kind)presentStep(this,()=>{if(isMunition(actor))munitionAct(this,actor);else allyAct(this,actor);this.reveal();},actor);
+      }else if(actor.kind)presentStep(this,()=>{if(isMunition(actor))munitionAct(this,actor);else if(isBomber(actor))bomberAct(this,actor);else allyAct(this,actor);this.reveal();},actor);
       else if(actor.hp>0&&actor.alert)presentStep(this,()=>this.enemyAct(actor),speed!==0||playerSpeed!==0?actor:null);
       if(immunityBefore&&!anchorExtra)actor.control.immune=Math.max(0,actor.control.immune-1);
     }
@@ -527,7 +527,7 @@ export class Game {
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
     this.player.kills++;if(!e.expendable&&simulationUpgrades(this))this.player.xp+=enemyKillXp(e);
     if(!e.expendable&&simulationDrops(this))this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
-    this.log(`${enemyName(e)}已消滅。`);if(missionTarget(this,e))this.log(this.missionSummary+'。');
+    this.log(`${enemyName(e)}已消滅。`);if(missionTarget(this,e))this.log(this.missionSummary+'。');salvageBlueprint(this,e,attacker);
     // The number stops at MAX_LEVEL (3.52.0, user call). Past it the threshold stays at the level-20 cost and each
     // one hands over supplies instead of a pick, so the HUD can simply read MAX.
     const p=this.player;
@@ -626,7 +626,7 @@ export class Game {
     addTrace(this,a,activeTrait(a,'mechanical')?'oil':'blood');this.effects.push({type:'impact',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},damage});this.log(`${allyName(a)}受傷 −${damage}。`,true,`${allyName(a)}受傷。`);
     if(!a.hp&&a.kind==='pet'){if(!petSurvives(this,a))petDeath(this,a);petReactions(this);this.reveal();return;}
     petReactions(this);
-    if(!a.hp){a.status='destroyed';a.order=null;this.log(`${allyName(a)}已被摧毀。`,true);dropUnitWeapon(this,a);this.reveal();}
+    if(!a.hp){a.status='destroyed';a.order=null;this.log(`${allyName(a)}已被摧毀。`,true);unitDestroyed(this,a);this.reveal();}
   }
   enemyTarget(e){
     if(isNoncombatant(e))return this.player;

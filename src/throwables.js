@@ -30,6 +30,8 @@ export function applyDisruption(actor,keyword){
   actor.control.disabled=isBossClass(actor)?BOSS_DISRUPT_TURNS:DISRUPT_TURNS;
   if(activeTrait(actor,'disruption_resistant'))actor.control.disabled=Math.ceil(actor.control.disabled/2);
   interruptEnemyIntent(actor,'disabled');
+  // An allied suicide bot loses its windup the same way (3.94.0).
+  delete actor.primed;
   actor.guard=false;actor.focus=false;actor.evasive=false;actor.moved=false;actor.moveDelta=[0,0];
   return true;
 }

@@ -1,6 +1,6 @@
 import {GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN,MELEE_TUNING} from './melee-classes.js';
 import {grantTrait,removeTraitSource} from './traits.js';
-import {TETHER,CARRY_DISTANCE,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,PET_TETHER,DRONE_HP,SENTRY_ARMOR,WORKSHOP_TUNING,MUNITION_TUNING,allyWeapon} from './allies.js';
+import {TETHER,CARRY_DISTANCE,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,PET_TETHER,DRONE_HP,SENTRY_ARMOR,WORKSHOP_TUNING,MUNITION_TUNING,ENEMY_UNIT_TUNING,allyWeapon} from './allies.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 // Ally skill texts read the tuning constants, so a balance change cannot leave them stale (3.44).
 const FOLLOW=allyWeapon({kind:'drone',sourceId:'drone_follow'}),SENTRY=allyWeapon({kind:'drone',sourceId:'drone_sentry'});
@@ -8,7 +8,7 @@ const FOLLOW=allyWeapon({kind:'drone',sourceId:'drone_follow'}),SENTRY=allyWeapo
 export const SKILLS={
  suppressive_fire:{name:'壓制射擊',short:'壓制',icon:'◇',action:'suppressiveFire',cost:1,duration:0,cooldown:0,target:'area',text:'消耗 3 發，命中 −20；目標格與相鄰四格敵人獲得 1 層壓制，命中可再加 1 層。'},
  anchor:{name:'下錨',short:'下錨',icon:'◇',action:'skill',toggle:true,cost:1,duration:1,cooldown:0,text:'啟動／解除各 1 回合。下錨時不能移動或換層，套用笨拙；自己的武器射擊與近戰於普通與緩速各執行一次，分別消耗彈藥；投擲物與友軍不受影響。'},
- workshop:{name:'工坊',short:'工坊',icon:'▣',action:'skill',cost:0,duration:0,cooldown:0,card:'打開生產序列 · 生產與部署各 1 回合',text:`打開生產序列，不耗回合。空的序列花廢料生產機體（1 回合）；完成的機體點身邊 2 步內空格部署（1 回合），部署後不回收。追隨無人機 ${DRONE_HP} HP、${FOLLOW.mag} 發、射程 ${FOLLOW.range}，跟在你身邊、可以換位；定點砲台裝甲 ${SENTRY_ARMOR}、可用掩體、${SENTRY.mag} 發、不移動。生產時可把背包裡的遠程武器裝上機體，改用那把武器射擊與換彈，被打爆時武器掉落。機體在你 ${CARRY_DISTANCE} 步內自己用你身上的彈藥換彈（內建輕機槍用手槍彈），繩索 ${TETHER} 格。浮游彈藥花廢料與 1 顆投擲物生產、生命 ${MUNITION_TUNING.hp}、不算部署上限，接近敵人後俯衝並在同一次行動引爆；你在爆炸範圍內也會被波及。基礎 ${WORKSHOP_TUNING.lines} 條序列、同時部署 ${WORKSHOP_TUNING.deploy} 台，職業升級各可加到 4。`},
+ workshop:{name:'工坊',short:'工坊',icon:'▣',action:'skill',cost:0,duration:0,cooldown:0,card:'打開生產序列 · 生產與部署各 1 回合',text:`打開生產序列，不耗回合。空的序列花廢料生產機體（1 回合）；完成的機體點身邊 2 步內空格部署（1 回合），部署後不回收。追隨無人機 ${DRONE_HP} HP、${FOLLOW.mag} 發、射程 ${FOLLOW.range}，跟在你身邊、可以換位；定點砲台裝甲 ${SENTRY_ARMOR}、可用掩體、${SENTRY.mag} 發、不移動。生產時可把背包裡的遠程武器裝上機體，改用那把武器射擊與換彈，被打爆時武器掉落。機體在你 ${CARRY_DISTANCE} 步內自己用你身上的彈藥換彈（內建輕機槍用手槍彈），繩索 ${TETHER} 格。浮游彈藥花廢料與 1 顆投擲物生產、生命 ${MUNITION_TUNING.hp}、不算部署上限，接近敵人後俯衝並在同一次行動引爆；你在爆炸範圍內也會被波及。擊毀巡弋無人機或自爆機器人會取得藍圖（每種一次）：改造無人機生命 ${ENEMY_UNIT_TUNING.drone.hp}、電漿槍射程 ${ENEMY_UNIT_TUNING.drone.range}、吃能量電池，會追擊繩索內的敵人；改造自爆機器人生命 ${ENEMY_UNIT_TUNING.bomber.hp}、不算部署上限，蓄勢一次後自爆，被打爆時也會爆炸。基礎 ${WORKSHOP_TUNING.lines} 條序列、同時部署 ${WORKSHOP_TUNING.deploy} 台，職業升級各可加到 4。`},
  pet_command:{name:'伴生指揮',short:'指揮',icon:'♧',action:'skill',cost:0,duration:0,cooldown:0,card:'指令免費 · 相鄰餵食 1 回合',text:`指揮已探索 ${TETHER} 格內位置，或召回。獵獸追擊 ${PET_TETHER} 格內敵人；相鄰餵食累積成長與燃料，死亡後自動重生，換層必定同行。`},
  // The cooldown field is the rising timer, so it must be able to hold SUMMON_INTERVAL; saves are validated against it.
  raise_dead:{name:'亡者集結',short:'集結',icon:'♧',action:'skill',cost:0,duration:0,cooldown:SUMMON_INTERVAL,card:`每 ${SUMMON_INTERVAL} 回合自動起身 · 集結免費`,text:`被動：每 ${SUMMON_INTERVAL} 回合自動從本層倒下過的非頭目、非機械敵人中抽一隻起身（倒下越多的種類越常出現，屍體不消耗），最多 ${SUMMON_LIMIT} 隻，出現在你身邊、下回合才行動；生命同該物種（32～150），傷害取物種基礎值（不含深層加成），沒有裝甲；主動追擊離你 ${SUMMON_TETHER} 格內看得到的敵人。按技能免費集結：${RALLY_TURNS} 回合內召喚物停止追擊、回到你身邊，換層前使用。未同行者換層消失。`},

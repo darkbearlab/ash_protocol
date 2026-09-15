@@ -70,7 +70,8 @@ registerUnitTree('civilian',{before:civilianAction});
 registerUnitTree('sniper',{windup:2,fixedTile:true});
 registerUnitTree('boss',{beforeAttack:({g,e,p})=>{if((e.attackCount||0)%2!==1||e.charge)return false;g.marks.push({x:p.x,y:p.y,due:g.turn+2});e.attackCount++;enemyCallout(g,e,'telegraph',{action:'bombard'});g.log('核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！',true);return true;},after:reinforce});
 registerUnitTree('warden',{after:reinforce});
-registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp);return false;},death:({g,e})=>g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultyOffset))});
+// The bot is its own attacker when it blows itself up, so a self-destruct never gives the workshop a blueprint (3.94.0).
+registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultyOffset))});
 registerUnitTree('fodder',{before:({e})=>{if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return true;}e.actionDelay=1;return false;}});
 registerUnitTree('brood',{});
 export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);}
@@ -84,6 +85,8 @@ export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(
  if(!e.charge){e.charge=true;e.focusTarget=p.id||'player';e.windup=tree.windup||1;e.aim={x:p.x,y:p.y};enemyCallout(g,e,'telegraph',{action:tree.fixedTile?'aim':'attack'});return;}
  e.windup=(e.windup||1)-1;if(e.windup>0)return;
  if(tree.attack)return tree.attack(ctx);fired=attack(ctx);e.charge=Boolean(def.rapid);e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
- }else{interruptEnemyIntent(e,'target_lost');move(ctx);if(e.moved)enemyCallout(g,e,'state',{state:e.tactics?.mode==='flank'?'flank':'move'});else if(e.tactics)enemyCallout(g,e,'state',{state:'hold'});}tree.after?.(ctx);return fired;
+ }else{interruptEnemyIntent(e,'target_lost');move(ctx);if(e.moved)enemyCallout(g,e,'state',{state:e.tactics?.mode==='flank'?'flank':'move'});else if(e.tactics)enemyCallout(g,e,'state',{state:'hold'});}
+ // An allied suicide bot's blast can kill the attacker mid-attack (3.94.0); a dead enemy takes no follow-up step.
+ if(e.hp>0)tree.after?.(ctx);return fired;
 }
 export function enemyOpportunity(g,e){const x=e.x,y=e.y;if(e.hp>0&&e.alert&&!e.control?.disabled&&activeTrait(e,'fast'))revealEnemyAffix(g,e,'fast');const fired=g.executeEnemy(e);if(e.x!==x||e.y!==y)e.cornerExposure=null;e.moveDelta=e.moved?[e.x-x,e.y-y]:[0,0];if(fired)recordShot(e,e.focusTarget||'player',g.turn);else e.fireChain=null;}
