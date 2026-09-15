@@ -204,3 +204,6 @@ sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩�
 - 單局 save44、完整備份1保持；PROFILE_VERSION=6（killhouse 教學旗標／最高分），`killhouse-profile.js` 管旗標、分數驗證及高水位，分數權重由 Claude 決定。
 - 地圖美術登錄 `map-styles.js`：facility 原素材與選材完全保留；killhouse 使用新 32px 圖集。可選 mapStyle 歸樓層所有權，換層／封存清楚隔離。
 - 首次強制入口、房間提示、全息人形、死亡與分數畫面尚待 Claude 接。API 與流程見 [KILLHOUSE 第9節](KILLHOUSE.md#9-claude-介面交接)。
+
+### Kill house 地圖（3.89.0）
+街機以戰役第 4 層作配置模板、重建基礎人類敵人；教學為共用配方格式手工六區。入口資料 tutorialEntrances 與房間 firstRoom 供提示使用。風格角色可指定獨立 atlas，新增 killhouse-v2；詳見 KILLHOUSE 第 12 節。

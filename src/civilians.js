@@ -40,6 +40,7 @@ export function civilianAction({g,e}){
  const from=visible?g.player:e.lastKnown;if(!from||pinned(e))return true;
  const choices=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).filter(p=>{
   const edge=barrierBetween(g.barriers,e,p);
+  if(e.simulation&&g.simulation?.phase==='tutorial'&&((e.simulationBounds&&!roomContains(e.simulationBounds,p))||(e.simulationNoDoors&&edgeBlocks(edge)&&edge.type==='door')))return false;
   return g.passable(p.x,p.y,e)&&!occupied(g,p,e)&&distance(p,from)>distance(e,from)&&(!edgeBlocks(edge)||edge.type==='door'||vaultable(edge));
  }).sort((a,b)=>distance(b,from)-distance(a,from));
  const p=choices[0];if(!p)return true;const edge=barrierBetween(g.barriers,e,p);

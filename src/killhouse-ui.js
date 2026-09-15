@@ -26,19 +26,19 @@ export const simulationBrief=g=>g.simulation.phase==='tutorial'?'六個區域依
 export function roomPrompt(event){
   if(event?.type!=='roomEntered')return null;
   if(event.phase==='tutorial'){const p=TUTORIAL_PROMPTS[event.roomId];return p?{modal:true,eyebrow:`SIMULATION / 第 ${event.roomId+1} 區`,...p}:null;}
-  const text=event.roomId===0?ARCADE_PROMPTS[event.phase]:null;
+  const text=(event.firstRoom??event.roomId===0)?ARCADE_PROMPTS[event.phase]:null;
   return text?{modal:false,text}:null;
 }
 export const roomPromptMarkup=p=>`<div class="eyebrow">${p.eyebrow}</div><h2>${p.title}</h2><p>${p.text}</p><button class="modal-button" data-modal="close">繼續 →</button>`;
 
 // Tutorial cards fire on the tile before each room's door, before anyone inside can see the player (3.88.1, user
-// report). A door edge-kh-i-j leads from room i into room j; its approach tile is the side away from room j. Room 1 has
-// no door, so its card fires on the first corridor tile outside room 0.
+// report). Prefer explicit entrances; legacy maps can fall back to edge-kh-i-j and an open corridor.
 const insideRoom=(r,p)=>p.x>=r.x&&p.x<r.x+r.w&&p.y>=r.y&&p.y<r.y+r.h;
 const touches=(r,p)=>[[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>insideRoom(r,{x:p.x+dx,y:p.y+dy}));
 export function tutorialCue(g){
   if(g.simulation?.phase!=='tutorial')return null;
-  const p=g.player,doors=new Set();
+  const p=g.player,entry=g.tutorialEntrances?.find(e=>e.approach.x===p.x&&e.approach.y===p.y);if(entry)return entry.toRoom;
+  const doors=new Set();
   for(const b of g.barriers||[]){
     const m=/^edge-kh-(\d+)-(\d+)$/.exec(b.id||''),room=m&&g.rooms[Number(m[2])];if(!room)continue;doors.add(`${m[1]}-${m[2]}`);
     const cells=b.axis==='x'?[{x:Math.floor(b.x),y:b.y},{x:Math.ceil(b.x),y:b.y}]:[{x:b.x,y:Math.floor(b.y)},{x:b.x,y:Math.ceil(b.y)}];
@@ -49,7 +49,7 @@ export function tutorialCue(g){
   const link=(g.links||[]).find(([i,j])=>!doors.has(`${i}-${j}`)&&g.rooms[i]&&touches(g.rooms[i],p));
   return link?link[1]:null;
 }
-const promptKeys=(g,events)=>[...events.filter(e=>e?.type==='roomEntered').map(e=>e.phase==='tutorial'?`tutorial:${e.roomId}`:e.roomId===0?`${e.phase}:0`:null),...(tutorialCue(g)===null?[]:[`tutorial:${tutorialCue(g)}`])].filter(Boolean);
+const promptKeys=(g,events)=>[...events.filter(e=>e?.type==='roomEntered').map(e=>e.phase==='tutorial'?`tutorial:${e.roomId}`:(e.firstRoom??e.roomId===0)?`${e.phase}:0`:null),...(tutorialCue(g)===null?[]:[`tutorial:${tutorialCue(g)}`])].filter(Boolean);
 // shown is the session's set of keys; each card or toast appears once.
 export const promptDue=(g,shown)=>promptKeys(g,g.simulation?.roomEvents||[]).some(key=>!shown.has(key));
 export function nextPrompt(g,events,shown){

@@ -22,7 +22,7 @@ export class KillhouseGame extends Game {
  openContainer(arg){return simulationDrops(this)?super.openContainer(arg):this.fail('模擬戰場不提供箱內補給。');}
  useTerminal(arg){return simulationDrops(this)?super.useTerminal(arg):this.fail('模擬戰場不提供終端補給。');}
  observeRoom(){const s=this.simulation,index=roomAt(this.rooms,this.player),id=`${this.floor}:${index}`;if(index<0||s.entered.includes(id))return;
-  s.entered.push(id);s.roomEvents.push({type:'roomEntered',floor:this.floor,roomId:index,phase:s.phase,recipe:this.killhouseRecipe,turn:this.turn});
+  s.entered.push(id);s.roomEvents.push({type:'roomEntered',floor:this.floor,roomId:index,firstRoom:index===this.startRoom,phase:s.phase,recipe:this.killhouseRecipe,turn:this.turn});
  }
  takeRoomEvents(){return this.simulation.roomEvents.splice(0);}
  executePlayer(type,arg){const success=super.executePlayer(type,arg);if(success){this.observeRoom();if(type==='move'&&this.player.x===this.end.x&&this.player.y===this.end.y)this.descend();}return success;}

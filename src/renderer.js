@@ -64,7 +64,7 @@ export class Renderer {
     const segment=(a,z,width)=>this.line(p.x+(vertical?0:a),p.y+(vertical?a:0),p.x+(vertical?0:z),p.y+(vertical?z:0),color,width);
     if(b.hp<=0&&b.type==='door'&&mapStyle(this.game)!=='facility'){drawDoor(this.ctx,b,p,scale,this.terrainImages,this.game);return;}
     if(b.hp<=0){segment(-half,-half*.72,3);segment(half*.72,half,3);return;}
-    if(b.type==='low_partition'||b.type==='partition'){const q=drawPartition(this.ctx,b,p,scale,this.terrainImages);this.objectHealth(b,p.x-7,q.top-4,14);return;}
+    if(b.type==='low_partition'||b.type==='partition'){const q=drawPartition(this.ctx,b,p,scale,this.terrainImages,this.game);this.objectHealth(b,p.x-7,q.top-4,14);return;}
     if(b.type==='door'){const boxes=drawDoor(this.ctx,b,p,scale,this.terrainImages,this.game);this.objectHealth(b,p.x-7,Math.min(...boxes.map(q=>q.top))-4,14,'#e6bd82');return;}
     if(b.open){segment(-half,-half*.62,5);segment(half*.62,half,5);this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     if(this.terrain(b.type,p,b,Math.round(scale),vertical?0:1)){this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
@@ -233,7 +233,7 @@ export class Renderer {
     // Raised partitions share the wall occlusion layer; footprints remain on ground edges.
     const seenBarriers=g.barriers.filter(b=>edgeCells(b).some(q=>g.seen[q.y]?.[q.x]));
     const barriers=[...seenBarriers.map(b=>({b,y:b.y+(b.axis==='x'?.5:.08)})),...barrierJunctions(seenBarriers).map(j=>({j,y:j.y+.081}))].sort((a,b)=>a.y-b.y);
-    for(const {b,j}of barriers){c.globalAlpha=(b?g.visible(b):j.edges.some(e=>g.visible(e)))?1:.35;if(b)this.drawBarrier(b);else drawJunction(c,j,this.project(j.x,j.y),this.tile,this.terrainImages);c.globalAlpha=1;}
+    for(const {b,j}of barriers){c.globalAlpha=(b?g.visible(b):j.edges.some(e=>g.visible(e)))?1:.35;if(b)this.drawBarrier(b);else drawJunction(c,j,this.project(j.x,j.y),this.tile,this.terrainImages,g);c.globalAlpha=1;}
     // Walls occlude all world-space content, including actors, traces and transient effects.
     for(const {a,x,y}of wallCells){
       c.globalAlpha=[[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.visibleTiles?.has((x+dx)+','+(y+dy)))?1:.36;

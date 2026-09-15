@@ -24,7 +24,7 @@ test('tutorial is fixed soldier, fixed geometry/population/supplies and sequenti
  assert.equal(a.enemies.filter(e=>e.type==='civilian').length,1);assert.ok(a.items.some(i=>i.type==='grenade'));
  for(const b of a.barriers)b.open=true;const path=reachable(a,a.start);assert.ok(path.has(key(a.end)));assert.ok(a.rooms.every(r=>path.has(key({x:r.x+1,y:r.cy}))));
  assert.equal(a.takeRoomEvents().length,1);a.observeRoom();assert.equal(a.takeRoomEvents().length,0);
- Object.assign(a.player,{x:17,y:5});a.observeRoom();assert.equal(a.takeRoomEvents()[0].roomId,1);a.observeRoom();assert.equal(a.takeRoomEvents().length,0);
+ Object.assign(a.player,{x:19,y:5});a.observeRoom();assert.equal(a.takeRoomEvents()[0].roomId,1);a.observeRoom();assert.equal(a.takeRoomEvents().length,0);
 });
 test('all classes use tiny enemy-free armory; all ammo and unbound weapons supplied without random mods',()=>{
  for(const character of Object.keys(CHARACTERS)){
@@ -44,11 +44,11 @@ test('arcade transitions preserve loadout, do not resupply, and only combat paid
 test('arcade recipes reachable, no runtime sources/bosses/rewards/upgrades, civilians count in purge',()=>{
  const recipes=new Set();for(let seed=0;seed<12;seed++){
   const g=enterCombat(createKillhouse({mode:'arcade',seed}));recipes.add(g.killhouseRecipe);
-  for(const b of g.barriers)b.open=true;assert.ok(reachable(g,g.start).has(key(g.end)));assert.ok(!g.swarmWaves);assert.deepEqual(g.reinforcements,[]);assert.ok(g.props.every(p=>p.type==='cover'));assert.equal(g.items.length,0);
+  for(const b of g.barriers)b.open=true;assert.ok(reachable(g,g.start).has(key(g.end)));assert.ok(!g.swarmWaves);assert.deepEqual(g.reinforcements,[]);assert.ok(g.props.every(p=>!['container','terminal','nest'].includes(p.type)));assert.equal(g.items.length,0);
   const n=g.enemies.length,before=g.rng.state();for(const e of g.enemies)g.hurt(e,e.hp,g.player);
   assert.equal(g.enemies.length,n);assert.equal(g.player.xp,0);assert.equal(g.pendingPerks,0);assert.equal(g.player.scrap,0);assert.equal(g.items.length,0);assert.equal(g.rng.state(),before);assert.equal(purgeReview(g).rate,1);assert.equal(purgeReview(g).quota,n);
   assert.equal(g.openContainer('fake'),false);assert.equal(g.useTerminal('ammo'),false);assert.equal(g.choosePerk('damage'),false);
- }assert.equal(recipes.size,2);
+ }assert.ok(recipes.size>=2);
 });
 test('walking into exit settles at the player step, before later enemies can retaliate',()=>{
  const g=enterCombat(createKillhouse({mode:'arcade'}));Object.assign(g.player,{x:g.end.x-1,y:g.end.y});for(const e of g.enemies)e.alert=true;

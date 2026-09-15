@@ -8,7 +8,7 @@ const inRoom=(r,q)=>q.x>=r.x&&q.x<r.x+r.w&&q.y>=r.y&&q.y<r.y+r.h;
 function cueTiles(g){
  const p=g.player,home={x:p.x,y:p.y},cues=[];
  for(let y=0;y<g.grid.length;y++)for(let x=0;x<g.grid[y].length;x++)if(g.grid[y][x]===1){Object.assign(p,{x,y});const room=tutorialCue(g);if(room!==null)cues.push({room,x,y});}
- Object.assign(p,home);return cues;
+ Object.assign(p,home);return cues.sort((a,b)=>a.room-b.room);
 }
 function route(g,from,to){
  const id=q=>`${q.x},${q.y}`,prev=new Map([[id(from),null]]),queue=[from];
@@ -43,7 +43,7 @@ test('the researcher room keeps one researcher on the left, and room 5 stays shu
  assert.equal(researchers.length,1);assert.ok(inRoom(r4,researchers[0])&&researchers[0].x<r4.cx,'left half of room 4');
  for(const e of g.enemies)if(!inRoom(r4,e)&&!inRoom(r5,e))e.hp=0;
  for(const b of g.barriers)if(b.id!=='edge-kh-4-5')b.open=true;
- p.maxHp=p.hp=99999;Object.assign(p,{x:7,y:17});g.reveal();
+ p.maxHp=p.hp=99999;Object.assign(p,{x:10,y:21});g.reveal();
  const door=g.barriers.find(b=>b.id==='edge-kh-4-5');
  for(let t=0;t<30;t++)t<3?g.action('move',[0,1]):g.action('wait');
  assert.equal(door.open,false,'nobody opened room 5');

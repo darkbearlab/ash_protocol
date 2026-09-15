@@ -19,10 +19,10 @@ function texturedBox(ctx,q,images,url,columns,face,cap){
     else{ctx.fillStyle=fallback;ctx.fillRect(q.left,y,q.width,h);}
   }
 }
-export function drawJunction(ctx,j,center,tile,images){
+export function drawJunction(ctx,j,center,tile,images,game=null){
   const t=Math.max(2,Math.round(tile*.16)),bottom=Math.round(center.y+t/2),faceTop=bottom-Math.round(tile*.5);
   const q={left:Math.round(center.x-t/2),width:t,bottom,faceTop,top:faceTop-t,depth:t,height:bottom-faceTop};
-  ctx.save();ctx.imageSmoothingEnabled=false;texturedBox(ctx,q,images,SCENERY_ATLAS,4,14,15);
+  ctx.save();ctx.imageSmoothingEnabled=false;texturedBox(ctx,q,images,styleSprite(game,'partitionFace')?.url||SCENERY_ATLAS,4,styleSprite(game,'partitionFace')?0:14,styleSprite(game,'partitionCap')?1:15);
   ctx.fillStyle=j.edges.every(b=>b.type==='low_partition')?'#c2b276':'#93b4c2';ctx.fillRect(q.left,q.top,q.width,1);ctx.restore();return q;
 }
 export function doorGeometry(b,center,tile){
@@ -46,15 +46,15 @@ export function partitionGeometry(b,center,tile){
   const left=Math.round(center.x-width/2),bottom=Math.round(center.y+depth/2),top=Math.round(center.y-depth/2-height),faceTop=Math.round(bottom-height);
   return {left,top,bottom,faceTop,width:Math.round(width),depth:faceTop-top,height:bottom-faceTop};
 }
-export function drawPartition(ctx,b,center,tile,images){
-  const q=partitionGeometry(b,center,tile),image=images?.get(SCENERY_ATLAS),ready=image?.complete&&image.naturalWidth;
+export function drawPartition(ctx,b,center,tile,images,game=null){
+  const q=partitionGeometry(b,center,tile),sprite=styleSprite(game,b.type==='low_partition'?'lowFace':'partitionFace'),image=images?.get(sprite?.url||SCENERY_ATLAS),ready=image?.complete&&image.naturalWidth;
   const texture=(index,y,h,fallback)=>{
     if(ready)ctx.drawImage(image,index%4*32,Math.floor(index/4)*32,32,32,q.left,y,q.width,h);
     else{ctx.fillStyle=fallback;ctx.fillRect(q.left,y,q.width,h);}
   };
   ctx.save();ctx.imageSmoothingEnabled=false;
-  texture(14,q.faceTop,q.height,b.type==='low_partition'?'#656453':'#4a555f');
-  texture(15,q.top,q.depth,b.type==='low_partition'?'#85836b':'#74818d');
+  texture(sprite?(b.type==='low_partition'?2:0):14,q.faceTop,q.height,b.type==='low_partition'?'#656453':'#4a555f');
+  texture(sprite?(b.type==='low_partition'?3:1):15,q.top,q.depth,b.type==='low_partition'?'#85836b':'#74818d');
   // Same physical height, distinct top trim: low rails can be vaulted/shot over.
   ctx.fillStyle=b.type==='low_partition'?'#c2b276':'#93b4c2';ctx.fillRect(q.left,q.top,q.width,Math.max(1,tile*.04));
   ctx.fillStyle='#1c292d';ctx.fillRect(q.left,q.bottom-1,q.width,1);ctx.restore();return q;
