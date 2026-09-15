@@ -13,6 +13,7 @@
 - **驗證**：
   - npm test 856/856，新增 tests/killhouse-ui.test.mjs 1 項，既有測試未改。
   - 瀏覽器：整備區站在電梯旁按「進入訓練場」，回合 4 變 5，直接進入訓練場，沒有失敗訊息。
+- 已部署：GitHub Pages run 34929907401 成功，線上 `src/version.js` 確認為 3.89.1；完整 856 項測試與 build 通過。
 
 ## 3.89.0 — Kill house 共用戰役地圖
 
