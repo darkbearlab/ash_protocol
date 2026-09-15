@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.97.0**（手機介面：鎖定捲動、固定主按鈕、精簡背包、長按開分頁，Claude；3.96.0 為工坊第 6 階段修理；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.97.1**（手機介面修正：訊息列移到上方、分頁選單固定在頂端、背包移除資料與紀錄按鈕，Claude；3.97.0 為手機介面；3.96.0 為工坊第 6 階段修理；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -233,3 +233,8 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 - **背包**：精簡版在 `showInventory`、`learningSection`，說明用 `data-pack-info` 展開；行動員數值與被動規則在 `showJournal` 的 `operatorStatus`。
 - **長按與空欄位**：長按區塊在 controller 的 `pointercancel` 之後；沒有預備時點一下開分頁在 `grenade()`、`skill()`、`useItem()`。
 - **選單尺寸檢查**：在 `?test=1` 的局內、375×635 視窗，主控台執行 `const {checkMenus}=await import('/qa/menu-fit.js');console.table((await checkMenus()).rows)`。背包四個分頁必須完全放得下，其他選單只要求主按鈕在畫面內。
+
+3.97.1（Claude）：使用者在主畫面捷徑實測後的修正。
+- **訊息列**：`#field-messages` 移到標題列下方（expansion.css 的 `grid-template-areas`）。
+- **分頁選單**：有 `role="tablist"` 或 `.journal-tabs` 的選單由 `modal()` 加上 `anchored`，固定在畫面頂端。
+- **背包**：不再有「資料與紀錄」按鈕；行動員狀態從右上選單的「行動員狀態、任務紀錄與敵人圖鑑」進入。
