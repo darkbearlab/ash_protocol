@@ -16,6 +16,9 @@ import {captureAction} from '../src/presentation.js';
 import {archiveFloor,resumedFloor} from '../src/retreat.js';
 
 const enterCombat=g=>{Object.assign(g.player,g.end);assert.equal(g.descend(),true);return g;};
+// The arcade seed is time-based and about 1 map in 27 walls off the exit's west edge (37 of seeds 0-999), so tests step
+// onto the exit from a crossable side. The loadout test still stepped in from the west and failed CI once (3.96.0).
+const exitApproach=g=>[[1,0],[-1,0],[0,1],[0,-1]].find(([dx,dy])=>{const from={x:g.end.x-dx,y:g.end.y-dy};return g.grid[from.y]?.[from.x]===1&&g.canCross(from,g.end)&&!g.enemies.some(e=>e.hp>0&&e.x===from.x&&e.y===from.y);});
 test('tutorial is fixed soldier, fixed geometry/population/supplies and sequential reachable rooms',()=>{
  const a=createKillhouse({seed:5,character:'recon'}),b=createKillhouse({seed:999,character:'ninja'});
  assert.equal(a.player.character,'soldier');assert.deepEqual(a.grid,b.grid);assert.deepEqual(a.enemies,b.enemies);assert.deepEqual(a.items,b.items);assert.equal(a.rooms.length,6);
@@ -39,7 +42,7 @@ test('arcade transitions preserve loadout, do not resupply, and only combat paid
  enterCombat(g);assert.equal(g.player.hp,70);assert.equal(g.player.reserve,5);assert.equal(g.simulationResult.turns,0);assert.equal(g.floor,2);assert.equal(g.simulation.battleStartTurn,before);
  for(const e of g.enemies)e.hp=0;g.action('wait');assert.equal(g.simulationResult.turns,1);const {rate}=purgeReview(g);assert.equal(g.simulationResult.rate,rate);
  g.action('prepare',{category:'item',id:null});assert.equal(g.simulationResult.turns,1);
- Object.assign(g.player,{x:g.end.x-1,y:g.end.y});const playback=captureAction(g,()=>g.action('move',[1,0]));assert.equal(playback.success,true);assert.equal(g.status,'won');assert.equal(g.simulationResult.turns,2);assert.equal(g.protocol.earned,0);
+ const [dx,dy]=exitApproach(g);Object.assign(g.player,{x:g.end.x-dx,y:g.end.y-dy});const playback=captureAction(g,()=>g.action('move',[dx,dy]));assert.equal(playback.success,true);assert.equal(g.status,'won');assert.equal(g.simulationResult.turns,2);assert.equal(g.protocol.earned,0);
 });
 test('arcade recipes reachable, no runtime sources/bosses/rewards/upgrades, civilians count in purge',()=>{
  const recipes=new Set();for(let seed=0;seed<12;seed++){
@@ -52,8 +55,7 @@ test('arcade recipes reachable, no runtime sources/bosses/rewards/upgrades, civi
 });
 test('walking into exit settles at the player step, before later enemies can retaliate',()=>{
  const g=enterCombat(createKillhouse({mode:'arcade'}));
- // The arcade seed is time-based and about 1 map in 20 walls off the exit's west edge, so approach from a crossable side.
- const [dx,dy]=[[1,0],[-1,0],[0,1],[0,-1]].find(([dx,dy])=>{const from={x:g.end.x-dx,y:g.end.y-dy};return g.grid[from.y]?.[from.x]===1&&g.canCross(from,g.end)&&!g.enemies.some(e=>e.hp>0&&e.x===from.x&&e.y===from.y);});
+ const [dx,dy]=exitApproach(g);
  Object.assign(g.player,{x:g.end.x-dx,y:g.end.y-dy});for(const e of g.enemies)e.alert=true;
  let enemyActions=0;g.enemyAct=()=>{enemyActions++;g.player.hp=0;};assert.ok(g.action('move',[dx,dy]));assert.equal(g.status,'won');assert.equal(enemyActions,0);assert.equal(g.simulationResult.turns,1);
 });
