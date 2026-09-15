@@ -246,3 +246,12 @@ dialog .perk .perk-next{color:var(--orange);font-weight:900}
 .pet-abilities{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0}.pet-abilities span{padding:3px 7px;font-size:11px;color:#c8d6bf;background:#25342b;border-left:2px solid #9dcc82}
 .term-pick.term-toggle{grid-template-columns:30px 1fr}.term-toggle .term-caret{opacity:.55}.term-toggle .term-caret::before{content:'[ ]'}.term-toggle input:checked~.term-caret::before{content:'[x]'}.term-note.difficulty-note{margin-top:6px}
 .learning-list .pack-actions{display:flex;gap:6px;margin-top:6px}.learning-list .pack-actions button{flex:1;min-height:44px;background:#25342b;border:1px solid #91ab8155;color:#dfe8d6;font:inherit}.learning-list .pack-actions button:disabled{opacity:.5}.learning-list .prepared-entry span{display:block;margin:4px 0;font-size:12px}
+
+/* Purge review verdict on the result screen (docs/PURGE_REVIEW.md). */
+.purge-report{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin:14px 0;padding:10px 12px;border-left:3px solid #6f7d66;background:#1b211a;font:12px/1.5 var(--mono)}
+.purge-report dt{color:#8f9c86;letter-spacing:1px}
+.purge-report dd{margin:0;color:#dfe8d6;overflow-wrap:anywhere}
+.purge-report[data-verdict="excellent"]{border-left-color:var(--orange)}
+.purge-report[data-verdict="excellent"] dd:nth-of-type(3){color:var(--orange)}
+.purge-report[data-verdict="deficient"],.purge-report[data-verdict="loss"]{border-left-color:#d9654f}
+.purge-report[data-verdict="deficient"] dd:nth-of-type(3),.purge-report[data-verdict="loss"] dd:nth-of-type(2){color:#ff8f7a}

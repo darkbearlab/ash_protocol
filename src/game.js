@@ -49,6 +49,7 @@ import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,vali
 import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
 import {presentStep} from './presentation.js';
+import {registerPurgeFloor,notePurgeDeparture,validPurge} from './purge-review.js';
 import {SIZE,SAVE_VERSION,LEGACY_SAVE_VERSIONS,RARE_ARMORY,WEAPONS,FLOORS,floorInfo,ENEMY_TYPES,PERKS,LORE} from './data.js';
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
@@ -69,7 +70,7 @@ export class Game {
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
     this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
-    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.logs=[];this.status='playing';this.shadowSteps=0;this.pursuit=0;this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];this.loadFloor();initializeAllies(this);this.reveal();
+    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.purge={floors:{}};this.logs=[];this.status='playing';this.shadowSteps=0;this.pursuit=0;this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];this.loadFloor();initializeAllies(this);this.reveal();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   // Overridable by isolated simulation fixtures; live campaigns use the current recipe pool.
@@ -79,7 +80,7 @@ export class Game {
     Object.assign(this,{swarmWaves:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
-    prepareMission(this);
+    prepareMission(this);registerPurgeFloor(this);
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
   get petSensorContacts(){return petScanContacts(this);}
@@ -754,7 +755,7 @@ export class Game {
     if(returning(this)&&this.floor>1&&!arrival)return this.fail('上一層入口暫無安全落腳處。');
     this.awardProtocol('floor',this.floor);
     if((returning(this)&&this.floor===1)||(!isEndless(this)&&!missionDefinition(this).returnTrip&&this.floor===missionDepth(this))){this.awardProtocol('extraction','win');this.status='won';this.log(this.missionSummary+'。撤離成功。');return true;}
-    this.shadowSteps=0;this.pursuit=0;for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
+    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
     if(returning(this)){
       if(advanceTurn)this.turn++;
       Object.assign(this,resumedFloor(frame,this.turn));delete this.floorStates[next];this.floor=next;
@@ -807,6 +808,8 @@ export class Game {
       if(version<16)data.mission=newMission();
       if(version<21){data.floorStates={};data.reinforcements=[];}
       if(!validMission(data.mission,data))return null;
+      // The purge ledger is narrative only: a run saved before it existed, or with a damaged one, keeps playing without a verdict.
+      if(data.purge===undefined||!validPurge(data.purge,data))data.purge=null;
       if(version<23){data.allies=[];data.allySerial=0;}
       const defaults=freshPlayer(),p={...defaults,...data.player};
       if(version<44&&!migratePoison(p))return null;

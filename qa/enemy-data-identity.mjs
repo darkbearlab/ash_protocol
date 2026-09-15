@@ -13,7 +13,8 @@ const BASELINE=new URL('./enemy-data-baseline.json',import.meta.url);
 const GROUPS=['generation','missions','bots'];
 // Faction framework fields (docs/FACTION_DATA.md) change data shape, not behaviour. They are stripped before hashing
 // so the pre-faction baseline still proves the rules are unchanged; drop this once a faction split changes content.
-const IGNORED_KEYS=new Set(['faction','facilityFaction']);
+// The purge ledger (docs/PURGE_REVIEW.md, 3.86.0) is narrative bookkeeping on the same terms.
+const IGNORED_KEYS=new Set(['faction','facilityFaction','purge']);
 const normalize=value=>Array.isArray(value)?value.map(normalize):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).filter(([key])=>!IGNORED_KEYS.has(key)).map(([key,item])=>[key,normalize(item)])):value;
 const hash=value=>createHash('sha256').update(JSON.stringify(normalize(value))).digest('hex').slice(0,16);
 // Errors are recorded rather than thrown, so a floor that fails the same way before and after still matches.
