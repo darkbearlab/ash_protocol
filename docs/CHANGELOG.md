@@ -15,6 +15,7 @@
   - npm test 857/857。
   - tests/killhouse-ui.test.mjs 的分數斷言依新規則改寫（理由：使用者決定）：公式標記改成 v3；130 回合內分數不變；131 回合扣 30。
   - 細節見 [3.89.3 QA](../qa/results/2026-09-15-claude-3.89.3-killhouse-par.md)。
+- 已部署：GitHub Pages run 34932823718 成功，線上 `src/version.js` 確認為 3.89.3；完整 857 項測試與 build 通過。
 
 ## 3.89.2 — 街機評語依分數分級、滿分警告與分數 v2（Claude，2026-09-15）
 
