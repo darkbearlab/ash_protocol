@@ -88,10 +88,10 @@ test('ordinary shooters stop tracking live coordinates through smoke; a sniper k
   const s=arena(),sniper=enemy(s,'sniper');sniper.aim={x:10,y:10};equip(s,'smoke');const hp=s.player.hp;toss(s,12,10);assert.ok(s.player.hp<hp);assert.ok(s.effects.some(f=>f.type==='enemyShot'));
   const interrupted=arena(),aim=enemy(interrupted,'sniper');aim.aim={x:10,y:10};equip(interrupted,'stun');toss(interrupted);assert.equal(aim.aim,null);assert.equal(interrupted.effects.some(f=>f.type==='enemyShot'),false);
 });
-test('all grenade stocks share upgradeable capacity, and overflow keeps its original type',()=>{
+test('all grenade stocks share fixed capacity, and overflow keeps its original type',()=>{
   const g=arena();for(const id of Object.keys(GRENADES))assert.equal(g.receiveGrenade(id,1),1);assert.equal(grenadeTotal(g.player),4);
   assert.equal(g.receiveGrenade('emp',2),0);assert.equal(g.items.find(i=>i.type==='emp').amount,2);
-  g.setCarryLevel({grenade:2});g.pickup();assert.equal(g.player.emp,3);assert.equal(grenadeTotal(g.player),6);assert.equal(g.items.length,0);
+  g.setCarryLevel({grenade:2});g.pickup();assert.equal(g.player.emp,1);assert.equal(grenadeTotal(g.player),4);assert.equal(g.items[0].amount,2);
   g.setCarryLevel(0);assert.equal(grenadeTotal(g.player),4);assert.equal(g.items.reduce((n,i)=>n+i.amount,0),2);
   const restored=Game.restore(g.serialize());assert.ok(restored);assert.deepEqual(restored.player,g.player);assert.deepEqual(restored.items,g.items);
 });

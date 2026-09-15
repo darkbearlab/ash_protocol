@@ -6,7 +6,7 @@ import {MISSIONS,RANDOM_MISSION_IDS,missionProgress} from '../src/missions.js';
 import {normalizeProfile,PROFILE_VERSION,recordEndless} from '../src/progression.js';
 import {makeBackup,decodeBackup,validateProfile} from '../src/backup.js';
 import {captureAction,presentStep,planPresentation,DEATH_MS} from '../src/presentation.js';
-const run=(floor=1,character='soldier')=>{const g=new Game(349,[],0,character,'onyx','endless');if(floor!==1){g.floor=floor;g.loadFloor();}return g;};
+const run=(floor=1,character='soldier')=>{const g=new Game(349,[],0,character,'onyx','endless',{facilityFaction:'legacy'});if(floor!==1){g.floor=floor;g.loadFloor();}return g;};
 const rank=(g,level)=>{g.player.level=level;g.player.xp=0;g.perkPicks=Math.min(level-1,19);g.player.perks={med:g.perkPicks};g.pendingPerks=0;g.perkDraft=null;};
 const kill=g=>{const e=makeEnemy('rifleman',g.player.x,g.player.y,'xp-victim');g.enemies.push(e);g.hurt(e,e.hp);};
 
@@ -44,8 +44,8 @@ test('floors 7–60 generate accessible unique enemy posts and cyclic hazards, b
   assert.ok(map.enemies.length>=1+8*(3+extraEnemies(floor)));assert.ok(map.enemies.filter(e=>!e.expendable).length<=1+8*(4+extraEnemies(floor)));
  }
 });
-test('endless floors 1–6 retain the ordinary map exactly and drawing helpers never run out of floor settings',()=>{
- for(let f=1;f<=6;f++){const a=run(f),b=new Game(349,[],0,'soldier','onyx');if(f!==1){b.floor=f;b.loadFloor();}for(const key of ['grid','enemies','items','hazards','props'])assert.deepEqual(a[key],b[key]);}
+test('explicit legacy endless floors retain campaign geometry, excluding data objects and drawing helpers never run out of floor settings',()=>{
+ for(let f=1;f<=6;f++){const a=run(f),b=new Game(349,[],0,'soldier','onyx');if(f!==1){b.floor=f;b.loadFloor();}for(const key of ['grid','enemies','items','hazards','props'])assert.deepEqual(a[key],key==='items'?b[key].filter(i=>i.type!=='lore'):b[key]);}
  assert.equal(floorInfo(60).cycleFloor,6);assert.equal(extraEnemies(6),0);assert.equal(extraEnemies(7),1);assert.equal(extraEnemies(13),2);assert.equal(extraEnemies(19),3);assert.equal(extraEnemies(60),3);
 });
 test('growth rounds once after old scaling and includes bosses; generated elites are unique and deterministic',()=>{

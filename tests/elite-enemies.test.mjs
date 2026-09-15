@@ -30,7 +30,7 @@ test('independent elite stream preserves every nonelite and fills only applicabl
  const flagged=makeEnemy('raider',1,1,'flagged');flagged.expendable=true;assert.equal(rollEnemyElite(flagged,1,60).elite,undefined);
 });
 test('runtime births and generated floor share elite rules without combat RNG consumption',()=>{
- const g=new Game(1,[],0,'soldier','onyx','endless');g.floor=12;g.loadFloor();
+ const g=new Game(1,[],0,'soldier','onyx','endless',{facilityFaction:'legacy'});g.floor=12;g.loadFloor();
  const rng=g.rng.state();let found=false;
  for(let i=0;i<100;i++){const id=`birth-${i}`,e=g.spawnEnemy('raider',2,2,id),expected=rollEnemyElite(rollEnemyAffixes(makeEnemy('raider',2,2,id,12),1,12),1,12);assert.deepEqual(e,expected);found||=Boolean(e.elite);}
  assert.ok(found);assert.equal(g.rng.state(),rng);

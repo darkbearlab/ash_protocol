@@ -1,7 +1,8 @@
+import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 44;
+export const SAVE_VERSION = 45;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -106,14 +107,7 @@ export const PERKS = [
 ];
 export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段'};
 PERKS.push({id:'ammo_recovery',name:'彈藥回收',cap:3,effect:'passive',text:'一般敵人彈藥掉落率每階 +15 個百分點（35% → 50% → 65% → 80%）。'});
-export const LORE = [
-  '最後一班運輸船沒有離港紀錄。有人從內部取消了撤離。',
-  '冷卻液樣本呈現活動性。請勿接觸管道內的綠色沉積物。',
-  '軍械封鎖由指揮部遠端啟動。授權者的生命訊號已消失三天。',
-  '培養槽裡的生物不是入侵者。這裡是牠們的出生地。',
-  '反應爐每次脈衝，都會讓失蹤人員的識別器重新亮起。',
-  '訊號一直存在。它在等待有人打開那扇門。',
-];
+export const LORE = STORIES.map(s=>s.body);
 
 ENEMY_TYPES.civilian={tags:['noncombatant'],traits:[],behavior:'civilian',voice:'civilian',name:'滯留研究員',hp:12,damage:0,range:0,rounds:0,armor:0,xp:0,color:'#d9ddd2',sprite:{key:'civilian'},drawing:{color:'#d9ddd2',unarmed:true},role:'不戰鬥的設施人員。看到你會尖叫並一直逃跑。'};
 

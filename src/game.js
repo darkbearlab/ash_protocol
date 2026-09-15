@@ -1,3 +1,4 @@
+import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,recoverOperator,validRunUnlocks} from './run-unlocks.js';
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
 import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
@@ -66,23 +67,23 @@ export class Game {
     if(options.simulation)this.simulation=structuredClone(options.simulation);
     lockRealMode(this,options.realMode??false);
     this.difficultyOffset=options.difficultyOffset??DIFFICULTY_TUNING.defaultOffset;if(!validDifficultyOffset(this.difficultyOffset))throw new Error('Invalid difficulty offset');
-    this.facilityFaction=options.facilityFaction==='random'?rollFacilityFaction(seed):factionDef(options.facilityFaction)?options.facilityFaction:pickFacilityFaction(seed,mission);this.mission=newMission(mission);this.carryLevel=carryLevels(carrying);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
+    this.facilityFaction=options.facilityFaction==='random'?rollFacilityFaction(seed):factionDef(options.facilityFaction)?options.facilityFaction:pickFacilityFaction(seed,mission);this.mission=newMission(mission);this.carryLevel=carryLevels(0);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
     this.player.skills=[...(CHARACTERS[character].skills||[])];this.player.skillState=initialSkillState(this.player.skills);
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
     this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
-    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.purge={floors:{}};this.logs=[];this.status='playing';this.shadowSteps=0;this.pursuit=0;this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];this.loadFloor();initializeAllies(this);this.reveal();
+    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.purge={floors:{}};this.logs=[];this.status='playing';this.shadowSteps=0;this.pursuit=0;this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];initializeRunUnlocks(this,options);this.loadFloor();initializeAllies(this);this.reveal();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   // Overridable by isolated simulation fixtures; live campaigns use the current recipe pool.
-  generateFloor(){return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultyOffset,this.facilityFaction);}
+  generateFloor(){this.facilityFaction=endlessFaction(this);return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultyOffset,this.facilityFaction);}
   loadFloor() {
     endSkillEffects(this.player);this.sensorContacts=[];this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
     Object.assign(this,{swarmWaves:undefined,mapStyle:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
-    prepareMission(this);registerPurgeFloor(this);
+    prepareMission(this);populateRunUnlocks(this);registerPurgeFloor(this);
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
   get petSensorContacts(){return petScanContacts(this);}
@@ -176,7 +177,7 @@ export class Game {
   reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType]?.key??null;}
   get weaponCapacity(){return CHARACTERS[this.player.character].weaponCapacity;}
   get plateCapacity(){return CHARACTERS[this.player.character].plateCapacity;}
-  ammoCapacity(type){return capacity(type,this.carryLevel)+classCarryBonus(this.player.character,type);}
+  ammoCapacity(type){return capacity(type,0)+classCarryBonus(this.player.character,type);}
   dropAmmo(type,amount,pos=this.player){
     if(amount<=0)return;
     const item=AMMUNITION[type].item,existing=this.items.find(o=>o.type===item&&o.x===pos.x&&o.y===pos.y);
@@ -189,7 +190,7 @@ export class Game {
     this.player[key]+=accepted;if(spill&&amount>accepted){this.dropAmmo(type,amount-accepted);this.log(`${AMMUNITION[type].name}超出容量，${amount-accepted} 留在腳下。`);}return accepted;
   }
   setCarryLevel(level){
-    this.carryLevel=carryLevels(level);
+    this.carryLevel=carryLevels(0);
     for(const [type,info]of Object.entries(AMMUNITION)){if(type==='grenade')continue;const excess=this.player[info.key]-this.ammoCapacity(type);if(excess>0){this.player[info.key]-=excess;this.dropAmmo(type,excess);}}
     this.trimGrenades();
   }
@@ -203,6 +204,7 @@ export class Game {
   supplyPack(amounts){for(const [type,amount]of Object.entries(amounts))this.receiveAmmo(type,amount);}
   weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index);if(w.unarmed)return {min:w.min,max:w.max};const close=target&&w.closeRange&&distance(this.player,target)<=w.closeRange,bonus=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5;return {min:(close?w.closeMin:w.min)+bonus,max:(close?w.closeMax:w.max)+bonus};}
   fail(text){this.log(text);return false;}
+  recoverOperator(){return recoverOperator(this);}
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
   bumpMeleeSlot(){return this.player.owned.find(slot=>{const w=this.weaponAt(slot);return w.melee&&weaponSwitchTurns(w,this.weapon)===0&&weaponSwitchTurns(this.weapon,w)===0;})??UNARMED_SLOT;}
@@ -673,7 +675,7 @@ export class Game {
       }      else if(item.type==='med'){p.meds++;this.log('拾取醫療包 +1。');}
       else if(item.type==='armor'){const amount=Math.min(item.amount||20,this.plateCapacity-(p.plates||0));if(amount<=0){this.log('護甲板已滿，補給留在原地。');return true;}p.plates=(p.plates||0)+amount;this.log(`修復護甲板 +${amount}（${p.plates}/${this.plateCapacity}）。`);}
       else if(item.type==='scrap'){const amount=Math.round((item.amount||15)*(1+p.scavenger*.5));p.scrap+=amount;this.log(`回收廢料 +${amount}。`);}
-      else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;this.log(`資料已解密：${LORE[item.floor-1]}`);}
+      else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;const story=collectStory(this,item);this.log(story?`資料已解密：${story.body}`:`資料已回收。`);}
       return false;
     });
   }
@@ -786,6 +788,8 @@ export class Game {
       if(!Array.isArray(data.grid)||data.grid.length!==SIZE||data.grid.some(row=>!Array.isArray(row)||row.length!==SIZE))return null;
       if(!Array.isArray(data.enemies)||data.enemies.some(e=>!ENEMY_TYPES[e.type]||!Number.isFinite(e.hp)||(e.raised!==undefined&&typeof e.raised!=='boolean')||(e.expendable!==undefined&&typeof e.expendable!=='boolean')))return null;
       if(!Array.isArray(data.props)||!Array.isArray(data.items)||!validMapMetadata(data))return null;
+      if(version<45){initializeRunUnlocks(data);if(data.mission?.id==='endless')data.items=data.items.filter(i=>i.type!=='lore');}
+      if(!validRunUnlocks(data))return null;
       if(version<40)migrateFactions(data);
       if(!validFactions(data))return null;
       if(version<41)migrateElites(data);

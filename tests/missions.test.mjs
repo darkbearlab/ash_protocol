@@ -18,7 +18,7 @@ function arena(id='retrieval'){
 }
 test('all contracts persist from deployment, with no extra first-floor loot or RNG',()=>{
   const base=new Game(9,[],0,'soldier','onyx');
-  for(const id of Object.keys(MISSIONS)){
+  for(const id of Object.keys(MISSIONS).filter(id=>id!=='endless')){
     const g=new Game(9,[],0,'soldier','onyx',id);assert.equal(g.mission.id,id);assert.deepEqual(g.mission.targets,[]);assert.deepEqual(g.items,base.items);assert.deepEqual(g.props,base.props);assert.deepEqual(g.enemies,base.enemies);assert.equal(g.rng.state(),base.rng.state());assert.equal(Game.restore(g.serialize()).mission.id,id);
   }
   assert.throws(()=>new Game(1,[],0,'soldier','onyx','invalid'));
@@ -44,7 +44,7 @@ test('ordinary kills never substitute for a target; partial progress stays locke
 test('core contract retains final boss gate and every contract retains floor-three gate',()=>{
   const g=finalFloor('extraction');Object.assign(g.player,g.end);assert.ok(g.exitBlocked);assert.equal(g.descend(),false);
   g.hurt(g.enemies.find(e=>e.type==='boss'),9999);assert.equal(g.exitBlocked,'');
-  for(const id of Object.keys(MISSIONS)){const g=new Game(319,[],0,'soldier','onyx',id);g.floor=3;g.loadFloor();Object.assign(g.player,g.end);assert.ok(g.exitBlocked);assert.equal(g.descend(),false);g.hurt(g.enemies.find(e=>e.type==='warden'),9999);if(MISSIONS[id].returnTrip)assert.match(g.exitBlocked,/回收/);else assert.equal(g.exitBlocked,'');}
+  for(const id of Object.keys(MISSIONS).filter(id=>id!=='endless')){const g=new Game(319,[],0,'soldier','onyx',id);g.floor=3;g.loadFloor();Object.assign(g.player,g.end);assert.ok(g.exitBlocked);assert.equal(g.descend(),false);g.hurt(g.enemies.find(e=>e.type==='warden'),9999);if(MISSIONS[id].returnTrip)assert.match(g.exitBlocked,/回收/);else assert.equal(g.exitBlocked,'');}
 });
 test('recover costs one turn, clears waiting and correction, does not consume pack capacity and cannot duplicate',()=>{
   const g=arena();g.player.owned.push(2);const inventory=structuredClone([g.player.owned,g.player.prepared,g.player.meds,g.player.grenades]);g.player.guard=true;g.player.focus=true;g.player.fireChain={targetId:'old',turn:g.turn,count:3};

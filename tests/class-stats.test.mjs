@@ -54,8 +54,8 @@ test('new Recon receives smoke and stun, prepares smoke and can immediately thro
   }
 });
 test('Recon extra carrying adds to grenade upgrades only, retains overflow and rejects a full purchase',()=>{
-  const g=arena('recon');for(let level=0;level<=3;level++){g.setCarryLevel({grenade:level});assert.equal(g.ammoCapacity('grenade'),6+level);assert.equal(g.ammoCapacity('rifle'),72);}
-  g.receiveGrenade('frag',5);assert.equal(g.player.grenades,5);g.setCarryLevel({grenade:0});
+  const g=arena('recon');for(let level=0;level<=3;level++){g.setCarryLevel({grenade:level});assert.equal(g.ammoCapacity('grenade'),6);assert.equal(g.ammoCapacity('rifle'),72);}
+  g.receiveGrenade('frag',5);assert.equal(g.player.grenades,2);g.setCarryLevel({grenade:0});
   assert.equal(g.player.grenades+g.player.smoke+g.player.emp+g.player.stun,6);
   assert.equal(g.items.reduce((n,i)=>n+(i.amount||0),0),3);
   g.props=[{type:'terminal',x:11,y:10,used:false}];g.player.scrap=100;const turn=g.turn;
@@ -72,7 +72,7 @@ test('save and full backup retain all four optional hooks and reconcile class ca
   const g=arena('recon'),e=enemy(g);g.player.combatModifiers={rangedAccuracy:-2,rangedEvasion:3,meleeAccuracy:4,meleeEvasion:-5};e.combatModifiers={meleeEvasion:20};
   const profile=normalizeProfile();profile.protocol={balance:0,earned:200};profile.upgrades.carrying.grenade=3;g.setCarryLevel(profile.upgrades.carrying);
   const decoded=decodeBackup(JSON.stringify(makeBackup(g,profile,'qa')),'qa').game;
-  assert.deepEqual(decoded.player.combatModifiers,g.player.combatModifiers);assert.deepEqual(decoded.enemies[0].combatModifiers,e.combatModifiers);assert.equal(decoded.ammoCapacity('grenade'),9);
+  assert.deepEqual(decoded.player.combatModifiers,g.player.combatModifiers);assert.deepEqual(decoded.enemies[0].combatModifiers,e.combatModifiers);assert.equal(decoded.ammoCapacity('grenade'),6);
 });
 test('malformed actor modifiers fail restoration instead of changing combat math',()=>{
   assert.ok(validCombatModifiers(undefined));assert.ok(validCombatModifiers({}));

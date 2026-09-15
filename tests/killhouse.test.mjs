@@ -61,7 +61,7 @@ test('tutorial upgrade/drop switches are independent; default remains fixed and 
  assert.throws(()=>createKillhouse({mode:'bad'}));assert.throws(()=>createKillhouse({options:{armory:'bad'}}));
 });
 test('profile v5 migrates, flags and scoped score high-water marks survive complete backups',()=>{
- const old=normalizeProfile();old.version=5;delete old.killhouse;const p=validateProfile(old);assert.equal(PROFILE_VERSION,6);assert.ok(tutorialRequired(p));recordTutorial(p,'skipped');assert.equal(tutorialRequired(p),false);
+ const old=normalizeProfile();old.version=5;delete old.killhouse;const p=validateProfile(old);assert.equal(PROFILE_VERSION,7);assert.ok(tutorialRequired(p));recordTutorial(p,'skipped');assert.equal(tutorialRequired(p),false);
  const r={mode:'arcade',outcome:'won',rate:.8,turns:50,character:'recon'};assert.equal(recordArcade(p,r,500),true);assert.equal(recordArcade(p,r,400),false);assert.equal(recordArcade(p,r,300,{scope:'character'}),true);
  recordTutorial(p,'completed');const b=makeBackup(null,p,'qa');assert.deepEqual(decodeBackup(JSON.stringify(b),'qa').snapshot.profile,p);
  for(const mutate of [p=>p.killhouse.best.score=-1,p=>p.killhouse.best.rate=2,p=>p.killhouse.tutorial.skipped=1,p=>p.killhouse.byCharacter.invalid=p.killhouse.best]){const raw=structuredClone(p);mutate(raw);assert.throws(()=>validateProfile(raw));}

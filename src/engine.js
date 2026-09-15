@@ -39,3 +39,6 @@ export * from './purge-review.js';
 export * from './killhouse.js';
 export * from './killhouse-profile.js';
 export * from './killhouse-policy.js';
+
+export * from './unlock-catalog.js';
+export {bindUnlocks} from './run-unlocks.js';

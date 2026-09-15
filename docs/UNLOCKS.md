@@ -1,6 +1,6 @@
 # 解鎖目錄：職業與故事片段（規格，2026-09-15）
 
-- **狀態**：規格，未實作。
+- **狀態**：3.90.0 規則層已實作；介面由 Claude 接續。
 - **分工**：
   - Codex：規則層。解鎖目錄資料、同一個取得入口、無盡的職業屍體、無盡每層重抽派系、故事片段的撤離確認、選角閘門、取消攜行升級、玩家檔案升版與退款。
   - Claude：介面，在 Codex 之後做。解鎖頁、部署與街機的鎖定顯示、提示文字、解鎖演出、故事內容與價格調整。
@@ -209,3 +209,46 @@
 
 - **連續樓層可以抽到同一個派系嗎？** Claude 建議可以，純依種子。
 - **開發用的派系選擇**：部署畫面指定派系時，Claude 建議無盡每一層都用該派系。
+
+
+## 11. 3.90.0 實作現況
+
+### 檔案與遷移
+
+- PROFILE_VERSION=7、SAVE_VERSION=45、完整備份版本仍為 1。
+- v3 的單一攜行等級、v4–v6 各彈種攜行等級，依原 CARRY_COSTS 全額退款一次；earned 不變。舊檔先備份原文，寫入失敗保留原檔且禁止購買。
+- 舊職業解鎖重設 soldier/recon/engineer，stories 空陣列。歷史 weapons 清單保留作相容資料，目前沒有武器使用解鎖條件；operator 不再當職業。v7 持有欄位為 `unlocks.characters`、`unlocks.stories`，保留全零 `upgrades.carrying` 作舊工具相容。
+- 舊的進行中角色／匯入角色可打完，新的選角才檢查解鎖。讀檔一律將攜行快照歸零，超額各彈種／投擲物保留在腳下，不消耗回合或亂數。Game.ammoCapacity 只計基礎與職業加成。舊 capacity/carryingSpent 函式保留供退款與歷史資料工具，不再影響新局容量。
+- 新局保存：`unlockedCharacters`、`unlockedStories`（未接儲存服務時的快照）、`pendingStories`、`encounteredCharacters`、`operatorCorpse`、`factionOverride`。v44 以下初始化空的待確認／遇見清單與屍體；保留目前無盡樓層及派系、不重生敵人，移除舊無盡資料物件，下一層才按新規則抽派系。
+- `facilityFaction` 加入 FLOOR_FIELDS；戰役封存返回仍為同派系。無盡不走封存返回，operatorCorpse 歸目前樓層，換層清除，encounteredCharacters 歸整局。
+
+### 地圖與規則
+
+- `UNLOCK_SETTINGS`：demo=false、consecutiveFactions=true、fixedFactionOverride=true、corpseStart=8、corpseStep=.04、corpseMax=.5。無盡可以連續抽同派系；明確指定 legacy/loyalist/rebel/swarm 則固定，random 不固定。若將 consecutiveFactions 改 false，依先前樓層選擇排除同派系。
+- 有無、位置及職業各用 seed/floor/用途字串的獨立雜湊；不耗戰鬥 RNG。樓層派系在生成前決定，使用同一個 pickable 派系池，因此敵人、頭目、詞條、喊話、蟲潮等都跟著該層。
+- 屍體是獨立 `operatorCorpse`，不在 props/enemies 裡，不擋路、不提供掩體、不受傷害。位置選非起點房可達空格，避開敵人、道具、家具、危害及出口鄰格。職業從最新玩家檔案未解鎖且本局未出現者抽，抽到即列 encounteredCharacters。
+- 回收採免費互動，須存活、同格或相鄰且 canTouch 成立（不能隔關閉門）。玩家檔案成功寫入後才標 recovered；失敗可重試，不消耗屍體。之後保存本局失敗也不重複給解鎖。
+- 無盡所有樓層移除 lore；戰役資料位置、點數與廢料不變。故事在拾取時依派系/層數/未持有且不在 pendingStories 的條件抽選，不耗戰鬥亂數。成功撤離才與結算同一次寫入；死亡、放棄不提交。
+- 已停用故事仍可驗證舊的持有/待確認 ID；待確認的停用故事撤離後保留為已封存，不能購買停用項。
+- demo 禁止購買和屍體，新的職業選擇固定三個（即使完整玩家檔案已解鎖其他角色）。既有戰役仍遵守允許打完的遷移政策。模擬不產生/取得解鎖。
+
+### 內容編譯
+
+- `npm run stories` → `tools/stories.mjs` → `src/story-data.js`。server 啟動及 build 自動編譯；測試用 check 模式拒絕過期產生檔。
+- 初次搬移 6 段原文到 content/stories，正文未改；預設價格 100，原樓層 1–6。之後這個目錄由使用者維護，README 留給 Claude。
+- 一行一個 front matter 欄位；id/title 必填、faction/floors/price/order 選填。正文上限 12000 字，價格與排序非負安全整數；額外拒絕與職業 ID 撞名。
+- ID 刪除必須寫入 _retired.txt；既有停用 ID 不能從清單移除。禁用詞逐行維護、忽略空白與 # 註解，檢查不分大小寫。錯誤均附檔名、行號與修法。
+- 編譯器測試不限制內容筆數；規則測試用記憶體故事 fixture，因此未來增刪內容不用改測試。LORE 是產生資料的相容匯出，不能再用樓層索引當解鎖 ID。
+
+## 12. Claude 介面交接
+
+- 目錄：`UNLOCK_CATALOG`（character/story）、`unlockEntry(id)`（停用故事回傳 retired:true）、`availableCharacters(profile)`、`unlocked(profile,id)`。故事正文/標題/price/faction/floors/order 在 `STORIES`；`RETIRED_STORY_IDS` 供封存顯示。
+- **購買**：storage `grantUnlock(game,id,'purchase')`，成功回傳已寫入的新 profile，失敗 false（重複、點數不足、demo、模擬或儲存失敗）。必須走此入口，不能先改 profile.balance 再分開寫解鎖。
+- catalog 的同名 grantUnlock 是純交易準備：回傳新副本或 false，不寫入；storage 與撤離結算均使用它。介面應呼叫 storage 版本。
+- **建立遊戲**：storage `startCampaign({seed,character,portrait,mission,options})`、`startKillhouse(options)` 有規則閘門；controller 部署、QUICK、每日、街機已接上，只列已解鎖者。底層 Game/createKillhouse 保留給引擎、模擬器和 QA，不是玩家選角入口。
+- **本局連線**：`connectUnlocks(game)` 綁定目前 profile 的讀取及原子寫入。loadGame/startCampaign/匯入入口已接；若 Claude 新增換 Game 的入口，也要綁定。綁定放 WeakMap，不序列化函式。
+- **屍體**：`g.operatorCorpse` 為 null 或 `{x,y,character,recovered}`。外觀可用 `classSpriteRect(character,true)`；只畫已探索範圍，回收後可消失或壓暗。可互動條件用 `!recovered && g.canTouch(corpse)`；呼叫 `g.recoverOperator()`，成功後正常 update/saveGame。規則免費，不要再包成一個等待回合。儲存失敗會 fail() 記錄原因，屍體保留。
+- **故事**：`g.pendingStories` 顯示待撤離；已取得的看 `profile().unlocks.stories`。結算保存後讀最新 profile，不要把未成功寫入的候選結果當永久持有。舊 journal 的本局內容已最小調整為依故事 ID 查詢與跳脫文字。
+- 攜行購買/重置按鈕與操作入口已撤下；UPGRADES 暫顯點數及持有數，正式解鎖頁由 Claude 做。不提供已取消升級的假購買。
+- **場景**：`node qa/create-unlock-scenes.mjs` 生成 qa/fixtures/unlocks/ 四份完整 QA 備份：v6-refund（退款 780）、locked-run-overflow（重裝兵可續玩、步槍溢出）、corpse（角色屍體在腳下）、extraction-story（六層出口待確認故事）。只在 `?test=1` 用完整備份還原；會替換 QA 進度，不動正式資料。
+- 驗收重點：購買成功/不足/重複/儲存失敗；未解鎖角色不能新開但可續玩；屍體解鎖後死亡仍保留；故事死亡丟失、撤離取得；demo；新增/刪除/禁用詞/過期內容檔；手機上的鎖定樣式及屍體演出待介面完成後驗收。

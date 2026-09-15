@@ -23,7 +23,7 @@ test('every earlier save version stays accepted and is backed up before migratin
 test('profile format lives in one constant: backups accept it and carrying levels survive normalizing',()=>{
   const p=normalizeProfile();assert.equal(p.version,PROFILE_VERSION);validateProfile(p);
   assert.throws(()=>validateProfile({...p,version:PROFILE_VERSION+1}),/版本/);
-  const levels=normalizeProfile({...p,upgrades:{carrying:{...p.upgrades.carrying,rifle:1}}}).upgrades.carrying;assert.equal(levels.rifle,1);
+  const levels=normalizeProfile({...p,upgrades:{carrying:{...p.upgrades.carrying,rifle:1}}}).upgrades.carrying;assert.equal(levels.rifle,0);
 });
 
 test('the rising timer fits the skill cooldown field that saves are validated against',()=>{

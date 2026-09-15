@@ -1,3 +1,4 @@
+import {CHARACTER_IDS,STARTING_CHARACTERS,validStoryId} from './unlock-catalog.js';
 import {isSimulation} from './killhouse-policy.js';
 import {validKillhouseProfile} from './killhouse-profile.js';
 import {validGenerationHistory} from './map-geometry.js';
@@ -21,8 +22,9 @@ export function validateProfile(raw){
   requireValue(['runs','wins','bestKills','bestFloor'].every(k=>count(raw[k]))&&raw.wins<=raw.runs&&raw.bestFloor>=1&&raw.bestFloor<=6,'任務紀錄數值無效。');
   requireValue(object(raw.protocol)&&count(raw.protocol.balance)&&count(raw.protocol.earned)&&raw.protocol.balance<=raw.protocol.earned,'協定點數數值無效。');
   if(raw.version===3){requireValue(object(raw.upgrades)&&count(raw.upgrades.carrying)&&raw.upgrades.carrying<=CARRY_COSTS.length,'攜行升級資料無效。');requireValue(raw.protocol.earned-raw.protocol.balance>=CARRY_COSTS.slice(0,raw.upgrades.carrying).reduce((a,b)=>a+b,0),'攜行升級與點數支出不符。');}
-  if(raw.version>=4){requireValue(object(raw.upgrades)&&validCarryLevels(raw.upgrades.carrying),'各彈種攜行升級資料無效。');requireValue(raw.protocol.earned-raw.protocol.balance>=Object.values(raw.upgrades.carrying).reduce((sum,n)=>sum+carryingSpent(n),0),'攜行升級與點數支出不符。');}
+  if(raw.version>=4&&raw.version<7){requireValue(object(raw.upgrades)&&validCarryLevels(raw.upgrades.carrying),'各彈種攜行升級資料無效。');requireValue(raw.protocol.earned-raw.protocol.balance>=Object.values(raw.upgrades.carrying).reduce((sum,n)=>sum+carryingSpent(n),0),'攜行升級與點數支出不符。');}
   requireValue(object(raw.unlocks)&&['weapons','characters'].every(k=>Array.isArray(raw.unlocks[k])&&raw.unlocks[k].every(id)),'解鎖紀錄無效。');
+  if(raw.version>=7)requireValue(STARTING_CHARACTERS.every(id=>raw.unlocks.characters.includes(id))&&raw.unlocks.characters.every(id=>CHARACTER_IDS.includes(id))&&new Set(raw.unlocks.characters).size===raw.unlocks.characters.length&&Array.isArray(raw.unlocks.stories)&&raw.unlocks.stories.every(validStoryId)&&new Set(raw.unlocks.stories).size===raw.unlocks.stories.length&&validCarryLevels(raw.upgrades?.carrying)&&Object.values(raw.upgrades.carrying).every(n=>n===0),'解鎖或已停用攜行資料無效。');
   requireValue(object(raw.protocolRuns),'點數發放紀錄缺漏。');
   let total=0;
   // The real-mode bonus is only bounded by the base it came from, so retuning the percentage never invalidates old backups (3.76.1).

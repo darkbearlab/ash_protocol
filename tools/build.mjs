@@ -1,3 +1,5 @@
+import {compileStories} from './stories.mjs';
+await compileStories();
 import {compileRecipes} from './recipes.mjs';
 await compileRecipes();
 import {compileMaterials} from './materials.mjs';

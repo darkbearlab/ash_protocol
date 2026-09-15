@@ -9,7 +9,7 @@ import {missionDefinition,missionObjects,returning} from './missions.js';
 
 // Only floor-owned state is archived. Player, mission, rewards and RNG stay global.
 export const REQUIRED_FLOOR_FIELDS=['grid','lighting','rooms','start','end','startRoom','endRoom','links','mainRoute','rewardRooms','enemies','items','props','hazards','marks','barriers','seen','smoke','traces','reinforcements'];
-export const FLOOR_FIELDS=[...REQUIRED_FLOOR_FIELDS,...MAP_FIELDS,'swarmWaves','mapStyle'];
+export const FLOOR_FIELDS=[...REQUIRED_FLOOR_FIELDS,...MAP_FIELDS,'swarmWaves','mapStyle','facilityFaction'];
 export function archiveFloor(g){
   const frame=structuredClone(Object.fromEntries([['savedTurn',g.turn],...FLOOR_FIELDS.filter(k=>g[k]!==undefined).map(k=>[k,g[k]])]));
   // The departure action has already advanced the global clock. Expired smoke

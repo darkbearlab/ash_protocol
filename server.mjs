@@ -1,3 +1,5 @@
+import {compileStories} from './tools/stories.mjs';
+await compileStories();
 import {compileRecipes} from './tools/recipes.mjs';
 await compileRecipes();
 import http from 'node:http';

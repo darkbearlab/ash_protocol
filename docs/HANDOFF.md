@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.87.0**（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+本機待發布版本 **3.90.0**（正常 git fetch 被審核服務滿載擋住，尚未提交；見本輪 QA 報告）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -92,8 +92,8 @@
 
 ## 存檔與版本
 
-- 單局 `ash-save`：save **v44**（`data.js` 的 `SAVE_VERSION`）。舊版 1～43 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
-- 個人紀錄 `ash-profile`：profile **v5**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
+- 單局 `ash-save`：save **v45**（`data.js` 的 `SAVE_VERSION`）。舊版 1～44 都能讀（`LEGACY_SAVE_VERSIONS` 自動推算），讀取前先存 `ash-save-v{N}-backup`。
+- 個人紀錄 `ash-profile`：profile **v7**（`progression.js` 的 `PROFILE_VERSION`）；完整備份外層 v1（`backup.js`）。
 - 匯入前存 `ash-save-before-import`；還原前存 `ash-backup-before-restore` 與 `ash-restore-journal`。QA 模式所有鍵加 `qa-`。
 - 規則：一般介面改動不升存檔版本。改資料格式才升版，而且要寫遷移、保留原件、加測試；新欄位要在驗證與備份往返中都保留。
 - `saveGame()` 回傳是否寫入成功；失敗時介面顯示「⚠ 未存檔」。
@@ -207,3 +207,6 @@ sight 仍是觀察，shotClear 限制對方未暴露的探頭點；不要將兩�
 
 ### Kill house 地圖（3.89.0）
 街機以戰役第 4 層作配置模板、重建基礎人類敵人；教學為共用配方格式手工六區。入口資料 tutorialEntrances 與房間 firstRoom 供提示使用。風格角色可指定獨立 atlas，新增 killhouse-v2；詳見 KILLHOUSE 第 12 節。
+
+### 解鎖目錄（3.90.0）
+PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥落地，已鎖角色可續玩。unlock-catalog 是目錄/純交易，storage.grantUnlock 為原子寫入，run-unlocks 管逐層派系、屍體與待確認故事；content/stories 由使用者維護，stories.mjs 在 dev/build 前編譯。詳細 API、遷移、介面分工與 QA 場景見 UNLOCKS 第 11–12 節。

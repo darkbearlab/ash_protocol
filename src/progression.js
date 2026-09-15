@@ -1,3 +1,4 @@
+import {STARTING_CHARACTERS,CHARACTER_IDS,validStoryId} from './unlock-catalog.js';
 import {isSimulation} from './killhouse-policy.js';
 import {normalizeKillhouse} from './killhouse-profile.js';
 import {protocolSettlement,terminalRun} from './real-mode.js';
@@ -10,7 +11,7 @@ export const newRunId=()=>globalThis.crypto?.randomUUID?.()||`run-${Date.now()}-
 export const weaponUnlocked=(weapon,ids=[])=>!weapon.unlockId||ids.includes(weapon.unlockId);
 const integer=n=>Number.isSafeInteger(n)&&n>=0?n:0;
 // Profile format. Backups accept every version from 2 up to this one; carrying levels exist from v4 on (3.44).
-export const PROFILE_VERSION=6;
+export const PROFILE_VERSION=7;
 function endlessRecords(raw){
   const record=r=>r&&Number.isSafeInteger(r.floor)&&r.floor>=1&&r.floor<=ENDLESS_MAX_FLOOR&&Number.isSafeInteger(r.level)&&r.level>=1&&Number.isSafeInteger(r.kills)&&r.kills>=0?{floor:r.floor,level:r.level,kills:r.kills}:null;
   const best=record(raw?.best),entries=raw?.byCharacter&&typeof raw.byCharacter==='object'?Object.entries(raw.byCharacter):[];
@@ -19,10 +20,10 @@ function endlessRecords(raw){
 export function normalizeProfile(raw={}) {
   const p=raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{};
   const balance=integer(p.protocol?.balance),earned=integer(p.protocol?.earned);
-  const refund=p.version===3?Math.min(carryingSpent(p.upgrades?.carrying),Math.max(0,earned-balance)):0;
-  return {...p,version:PROFILE_VERSION,killhouse:normalizeKillhouse(p.version>=6?p.killhouse:null),upgrades:{carrying:carryLevels(p.version>=4&&typeof p.upgrades?.carrying==='object'?p.upgrades.carrying:0)},runs:integer(p.runs),wins:integer(p.wins),bestFloor:Math.min(6,Math.max(1,integer(p.bestFloor))),bestKills:integer(p.bestKills),
+  const refund=p.version===3?carryingSpent(p.upgrades?.carrying):p.version>=4&&p.version<7?Object.values(carryLevels(p.upgrades?.carrying)).reduce((n,v)=>n+carryingSpent(v),0):0;
+  return {...p,version:PROFILE_VERSION,killhouse:normalizeKillhouse(p.version>=6?p.killhouse:null),upgrades:{carrying:carryLevels(0)},runs:integer(p.runs),wins:integer(p.wins),bestFloor:Math.min(6,Math.max(1,integer(p.bestFloor))),bestKills:integer(p.bestKills),
     endless:endlessRecords(p.version>=5?p.endless:null),history:Array.isArray(p.history)?p.history:[],protocol:{balance:balance+refund,earned},
-    unlocks:{weapons:Array.isArray(p.unlocks?.weapons)?p.unlocks.weapons.filter(x=>typeof x==='string'):[],characters:Array.isArray(p.unlocks?.characters)?[...new Set(['operator',...p.unlocks.characters.filter(x=>typeof x==='string')])]:['operator']},
+    unlocks:{weapons:Array.isArray(p.unlocks?.weapons)?p.unlocks.weapons.filter(id=>typeof id==='string'):[],characters:p.version>=7?[...new Set([...STARTING_CHARACTERS,...(Array.isArray(p.unlocks?.characters)?p.unlocks.characters:[]).filter(id=>CHARACTER_IDS.includes(id))])]:[...STARTING_CHARACTERS],stories:p.version>=7?[...new Set((Array.isArray(p.unlocks?.stories)?p.unlocks.stories:[]).filter(validStoryId))]:[]},
     protocolRuns:p.protocolRuns&&typeof p.protocolRuns==='object'&&!Array.isArray(p.protocolRuns)?p.protocolRuns:{}};
 }
 // Cumulative high-water marks survive history trimming and importing an older save.

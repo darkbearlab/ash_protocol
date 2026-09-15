@@ -59,7 +59,7 @@ test('protocol milestones are earned once, including death-turn boss kills and e
 });
 
 test('legacy profile migration preserves history; cumulative credit survives old saves and history trimming',()=>{
-  const p=normalizeProfile({runs:5,wins:1,history:[{id:'old'}]}),g=arena();assert.equal(p.runs,5);assert.equal(p.history[0].id,'old');assert.equal(p.protocol.balance,0);assert.deepEqual(p.unlocks.characters,['operator']);
+  const p=normalizeProfile({runs:5,wins:1,history:[{id:'old'}]}),g=arena();assert.equal(p.runs,5);assert.equal(p.history[0].id,'old');assert.equal(p.protocol.balance,0);assert.deepEqual(p.unlocks.characters,['soldier','recon','engineer']);
   g.awardProtocol('lore',1);assert.equal(creditProtocol(p,g),3);assert.equal(creditProtocol(p,g),0);
   const old=Game.restore(g.serialize());g.awardProtocol('floor',1);assert.equal(creditProtocol(p,g),4);
   p.history=[];assert.equal(creditProtocol(p,old),0);assert.equal(p.protocol.balance,7);
