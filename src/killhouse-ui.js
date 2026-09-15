@@ -61,6 +61,10 @@ export function nextPrompt(g,events,shown){
   return prompt;
 }
 
+// Kill house exits only trigger on the elevator tile itself, so the exit button steps onto it; interacting from beside
+// it spends a turn without leaving (3.89.1, browser QA). Diagonal neighbours have no single step.
+export const exitStep=g=>{const dx=g.exitPoint.x-g.player.x,dy=g.exitPoint.y-g.player.y;return Math.abs(dx)+Math.abs(dy)===1?[dx,dy]:null;};
+
 // Score v1: every 10% of purge is 1000 points, roughly the same as saving 33 turns. The speed bonus stops at zero.
 export const KILLHOUSE_SCORE={formula:'v1',rate:10000,turnBonus:3000,turnCost:30};
 export const killhouseScore=({rate,turns})=>Math.round(Math.max(0,Math.min(1,rate))*KILLHOUSE_SCORE.rate)+Math.max(0,KILLHOUSE_SCORE.turnBonus-Math.max(0,turns)*KILLHOUSE_SCORE.turnCost);

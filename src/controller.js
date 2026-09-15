@@ -28,7 +28,7 @@ import {depthLabel,levelLabel,levelTitle,endlessRules,levelCapRules,endlessRecor
 import {purgeReportMarkup} from './purge-review-ui.js';
 import {createKillhouse,isSimulation,tutorialGate} from './engine.js';
 import {saveTutorialOutcome,saveArcadeResult} from './storage.js';
-import {nextPrompt,promptDue,roomPromptMarkup,tutorialGateMarkup,killhouseMenuMarkup,disposedMarkup,tutorialResultMarkup,arcadeResultMarkup,killhouseScore,bestRecord,KILLHOUSE_SCORE,simulationLabel,simulationBrief} from './killhouse-ui.js';
+import {exitStep,nextPrompt,promptDue,roomPromptMarkup,tutorialGateMarkup,killhouseMenuMarkup,disposedMarkup,tutorialResultMarkup,arcadeResultMarkup,killhouseScore,bestRecord,KILLHOUSE_SCORE,simulationLabel,simulationBrief} from './killhouse-ui.js';
 import {PACK_LIMIT} from './data.js';
 import {dailySeed,dailyMission} from './daily.js';
 import {VERSION} from './version.js';
@@ -170,7 +170,7 @@ function cancelAim(){renderer.mode=null;renderer.aim=null;updateAim();}
 function startSuppressAim(){const p=game.player,reason=suppressivePreview(game,{x:p.x,y:p.y}).reason;if(reason){notify(reason);return;}const pick=[game.targeted,...game.visibleEnemies].find(e=>e&&game.enemies.includes(e)&&!suppressivePreview(game,{x:e.x,y:e.y}).reason);renderer.mode='suppress';renderer.aim=pick?{x:pick.x,y:pick.y}:{x:p.x,y:p.y};notify(`點武器射程 ${game.weapon.range} 格內看得見的地板，按右下確認壓制射擊；再按技能取消。`);updateAim();}
 function setSuppressAim(pos){const reason=suppressivePreview(game,pos).reason;if(reason){notify(reason);return;}renderer.aim=pos;updateAim();}
 function setAim(pos){if(distance(pos,game.player)<=5&&game.grid[pos.y]?.[pos.x]===1&&game.visible(pos)){renderer.aim=pos;updateAim();}else notify('投擲落點需在視線內 5 格以內。');}
-function interactions(view=renderer.game){return [...view.nearbyObjectives.map(t=>({label:'回收機密',action:`objective:${t.id}`})),...view.nearbyContainers.map(c=>({label:`開${view.containerLabel(c)}`,action:`case:${c.id}`})),...view.nearbyDoors.map(b=>({label:view.doorLabel(b),action:`door:${b.id}`})),...(view.groundWeapon?[{label:'拾取',action:'bag'}]:[]),...(view.nearbyTerminal?[{label:'終端',action:'terminal'}]:[]),...(view.canTouch(view.exitPoint)?[{label:view.exitBlocked?'電梯鎖定':view.exitLabel+(view.allyTravelSummary?' · '+view.allyTravelSummary:''),action:'descend'}]:[])];}
+function interactions(view=renderer.game){return [...view.nearbyObjectives.map(t=>({label:'回收機密',action:`objective:${t.id}`})),...view.nearbyContainers.map(c=>({label:`開${view.containerLabel(c)}`,action:`case:${c.id}`})),...view.nearbyDoors.map(b=>({label:view.doorLabel(b),action:`door:${b.id}`})),...(view.groundWeapon?[{label:'拾取',action:'bag'}]:[]),...(view.nearbyTerminal?[{label:'終端',action:'terminal'}]:[]),...(view.canTouch(view.exitPoint)&&(!isSimulation(view)||exitStep(view))?[{label:view.exitBlocked?'電梯鎖定':view.exitLabel+(view.allyTravelSummary?' · '+view.allyTravelSummary:''),action:isSimulation(view)?'exitStep':'descend'}]:[])];}
 function updateAim(view=renderer.game){const commanding=renderer.mode==='pet'||renderer.mode==='drone',aiming=renderer.mode==='grenade',suppressing=renderer.mode==='suppress',preview=suppressing&&renderer.aim?suppressivePreview(view,renderer.aim):null,b=$('#interact'),options=interactions(view);
   const entry=preparedEntry(view.player,'grenade');
   $('#grenade-label').textContent=aiming?'取消投擲':entry?`${entry.short} ${view.player[entry.resource]}`:'手榴彈未預備';
@@ -184,7 +184,7 @@ function interact(){if(renderer.mode==='pet'){act('commandPet',renderer.aim);ret
   if(options[0]?.action.startsWith('objective:'))act('recoverObjective',options[0].action.slice(10));
   else if(options[0]?.action.startsWith('case:'))act('openContainer',options[0].action.slice(5));
   else if(options[0]?.action.startsWith('door:')){const b=game.nearbyDoors.find(b=>b.id===options[0].action.slice(5));if(b)act('door',{id:b.id,open:!b.open});}
-  else if(options[0]?.action==='bag')showInventory('weapon');else if(options[0]?.action==='terminal')showTerminal();else if(options[0]?.action==='descend')act('interact');
+  else if(options[0]?.action==='bag')showInventory('weapon');else if(options[0]?.action==='terminal')showTerminal();else if(options[0]?.action==='descend')act('interact');else if(options[0]?.action==='exitStep')act('move',exitStep(game));
 }
 function setPetAim(pos){if(game.seen[pos.y]?.[pos.x]&&game.passable(pos.x,pos.y)&&distance(pos,game.player)<=6){renderer.aim=pos;updateAim();}else notify('指揮位置需在已探索的 6 格內。');}
 // Drone skills that put a chassis down open a placement cursor; the default tile faces the way the player looks.
@@ -547,7 +547,7 @@ document.addEventListener('click',e=>{
     if(game.action('prepare',{category,id})){update();showInventory(category,id?'已預備，不耗回合。':'已取消預備，不耗回合。');$(`[data-inventory-tab="${category}"]`).focus({preventScroll:true});}return;
   }
   if(b.dataset.buyCarry!==undefined){try{purchaseCarrying(game,b.dataset.buyCarry,Number(b.dataset.carryLevel));update();showCarrying(`${AMMUNITION[b.dataset.buyCarry].name}攜帶上限已升級。`);}catch(error){showCarrying(error.message);}return;}
-  if(b.dataset.context){close();if(b.dataset.context.startsWith('objective:')){act('recoverObjective',b.dataset.context.slice(10));return;}if(b.dataset.context.startsWith('case:')){act('openContainer',b.dataset.context.slice(5));return;}if(b.dataset.context.startsWith('door:')){const door=game.nearbyDoors.find(d=>d.id===b.dataset.context.slice(5));if(door)act('door',{id:door.id,open:!door.open});}else if(b.dataset.context==='bag')showInventory('weapon');else if(b.dataset.context==='terminal')showTerminal();else act('interact');return;}
+  if(b.dataset.context){close();if(b.dataset.context.startsWith('objective:')){act('recoverObjective',b.dataset.context.slice(10));return;}if(b.dataset.context.startsWith('case:')){act('openContainer',b.dataset.context.slice(5));return;}if(b.dataset.context.startsWith('door:')){const door=game.nearbyDoors.find(d=>d.id===b.dataset.context.slice(5));if(door)act('door',{id:door.id,open:!door.open});}else if(b.dataset.context==='bag')showInventory('weapon');else if(b.dataset.context==='terminal')showTerminal();else if(b.dataset.context==='exitStep'){if(exitStep(game))act('move',exitStep(game));}else act('interact');return;}
   if(b.dataset.move){move(...b.dataset.move.split(',').map(Number));return;}
   if(b.dataset.perk){game.choosePerk(b.dataset.perk);$('#modal').close();audio.play('heal');update();return;}
   if(b.dataset.equip!==undefined){modalAction('weapon',Number(b.dataset.equip));return;}
@@ -645,7 +645,7 @@ $('#battle').addEventListener('pointerup',e=>{
   if(target){game.target=target.id;if(game.enemies.includes(target)&&!renderer.targetingEnabled)toggleTargeting();else update();return;}
   const supply=game.props.find(o=>isContainer(o)&&!o.opened&&distance(o,pos)===0&&game.visible(o));
   if(supply){notify(`${containerName(supply)}：${game.canTouch(supply)?'按右下互動開啟（1 回合）':'靠近後以右下互動開啟'}。`);return;}
-  if(distance(pos,game.exitPoint)===0&&game.canTouch(pos)){act('interact');return;}
+  if(distance(pos,game.exitPoint)===0&&game.canTouch(pos)&&(!isSimulation(game)||exitStep(game))){if(isSimulation(game))act('move',exitStep(game));else act('interact');return;}
   if(game.props.some(o=>o.type==='terminal'&&!o.used&&distance(o,pos)===0&&game.canTouch(o))){showTerminal();return;}
   if(distance(pos,game.player)===1)move(pos.x-game.player.x,pos.y-game.player.y);
   else notify('點相鄰格移動，或在戰場滑動一步。');

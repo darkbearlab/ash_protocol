@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createKillhouse,makeEnemy,recordArcade,emptyKillhouse} from '../src/engine.js';
 import {enemyTint,SIMULATION_VISUAL} from '../src/enemy-visuals.js';
 import {CHARACTERS} from '../src/characters.js';
-import {TUTORIAL_PROMPTS,roomPrompt,roomPromptMarkup,killhouseScore,KILLHOUSE_SCORE,bestRecord,disposedMarkup,tutorialResultMarkup,arcadeResultMarkup,killhouseMenuMarkup,tutorialGateMarkup,simulationLabel} from '../src/killhouse-ui.js';
+import {exitStep,TUTORIAL_PROMPTS,roomPrompt,roomPromptMarkup,killhouseScore,KILLHOUSE_SCORE,bestRecord,disposedMarkup,tutorialResultMarkup,arcadeResultMarkup,killhouseMenuMarkup,tutorialGateMarkup,simulationLabel} from '../src/killhouse-ui.js';
 
 // Kill house interface (docs/KILLHOUSE.md section 10, 3.88.0).
 const inside=(r,p)=>p.x>=r.x&&p.x<r.x+r.w&&p.y>=r.y&&p.y<r.y+r.h;
@@ -75,4 +75,12 @@ test('simulation humanoids draw as holograms; campaign enemies keep their colour
  const t=createKillhouse({mode:'tutorial'});assert.ok(t.enemies.every(e=>enemyTint(e)===SIMULATION_VISUAL.tint));
  const e=makeEnemy('rifleman',1,1,'qa',1);assert.notEqual(enemyTint(e),SIMULATION_VISUAL.tint);
  assert.equal(enemyTint({...e,simulation:true}),SIMULATION_VISUAL.tint);
+});
+
+test('the exit button steps onto the elevator tile, because interacting from beside it spends a turn without leaving',()=>{
+ const g=createKillhouse({mode:'arcade',character:'soldier',seed:0});
+ Object.assign(g.player,{x:g.end.x-1,y:g.end.y});assert.deepEqual(exitStep(g),[1,0]);
+ Object.assign(g.player,{x:g.end.x-1,y:g.end.y-1});assert.equal(exitStep(g),null,'a diagonal neighbour has no single step');
+ Object.assign(g.player,{x:g.end.x,y:g.end.y+1});assert.deepEqual(exitStep(g),[0,-1]);
+ assert.ok(g.action('move',exitStep(g)));assert.equal(g.simulation.phase,'combat');
 });
