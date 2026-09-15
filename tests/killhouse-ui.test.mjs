@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createKillhouse,makeEnemy,recordArcade,emptyKillhouse} from '../src/engine.js';
 import {enemyTint,SIMULATION_VISUAL} from '../src/enemy-visuals.js';
 import {CHARACTERS} from '../src/characters.js';
-import {exitStep,TUTORIAL_PROMPTS,roomPrompt,roomPromptMarkup,killhouseScore,KILLHOUSE_SCORE,bestRecord,disposedMarkup,tutorialResultMarkup,arcadeResultMarkup,killhouseMenuMarkup,tutorialGateMarkup,simulationLabel} from '../src/killhouse-ui.js';
+import {exitStep,ARCADE_VERDICTS,arcadeVerdict,KILLHOUSE_MAX_SCORE,TUTORIAL_PROMPTS,roomPrompt,roomPromptMarkup,killhouseScore,KILLHOUSE_SCORE,bestRecord,disposedMarkup,tutorialResultMarkup,arcadeResultMarkup,killhouseMenuMarkup,tutorialGateMarkup,simulationLabel} from '../src/killhouse-ui.js';
 
 // Kill house interface (docs/KILLHOUSE.md section 10, 3.88.0).
 const inside=(r,p)=>p.x>=r.x&&p.x<r.x+r.w&&p.y>=r.y&&p.y<r.y+r.h;
@@ -30,8 +30,8 @@ test('arcade phases only toast on their first room',()=>{
  assert.equal(roomPrompt({type:'roomEntered',phase:'combat',roomId:2}),null);assert.equal(roomPrompt({type:'other'}),null);
 });
 
-test('score v1 rises with purge and falls with turns, never rewards overtime, and fits the stored record',()=>{
- assert.equal(KILLHOUSE_SCORE.formula,'v1');
+test('score rises with purge and falls with turns past par, never goes negative, and fits the stored record',()=>{
+ assert.equal(KILLHOUSE_SCORE.formula,'v2','3.89.2: par-based speed bonus so a perfect score is reachable');
  assert.equal(killhouseScore({rate:1,turns:0}),13000);
  assert.ok(killhouseScore({rate:1,turns:30})>killhouseScore({rate:.9,turns:30}));
  assert.ok(killhouseScore({rate:.8,turns:10})>killhouseScore({rate:.8,turns:40}));
@@ -60,6 +60,7 @@ test('result screens: disposal follows the death destination, the tutorial alway
  for(const e of a.enemies)a.hurt(e,9999,a.player);Object.assign(a.player,a.end);a.descend();
  const score=killhouseScore(a.simulationResult),html=arcadeResultMarkup(a,{score,best:score,newRecord:true,saved:true});
  assert.match(html,new RegExp(`<b>${score}</b>`));assert.match(html,/新紀錄/);assert.match(html,/<b>100%<\/b>/);
+ assert.match(html,/受驗者過於強大/,'a full purge at turn 0 is a perfect score');assert.doesNotMatch(html,/列為資產封存|記憶校正|已處決/,'arcade no longer uses the campaign purge verdicts (3.89.2)');
  assert.doesNotMatch(arcadeResultMarkup(a,{score,best:score+1,newRecord:false,saved:true}),/新紀錄/);
 });
 
@@ -83,4 +84,17 @@ test('the exit button steps onto the elevator tile, because interacting from bes
  Object.assign(g.player,{x:g.end.x-1,y:g.end.y-1});assert.equal(exitStep(g),null,'a diagonal neighbour has no single step');
  Object.assign(g.player,{x:g.end.x,y:g.end.y+1});assert.deepEqual(exitStep(g),[0,-1]);
  assert.ok(g.action('move',exitStep(g)));assert.equal(g.simulation.phase,'combat');
+});
+
+test('arcade verdicts follow the score: a perfect 13000 warns, 10000 deploys, 6000 waits, lower recommends disposal',()=>{
+ assert.deepEqual(ARCADE_VERDICTS.map(v=>v.status),['受驗者過於強大，建議及早投入最危險的任務或就地銷毀','建議直接投入實戰','尚待評估','建議銷毀']);
+ assert.deepEqual([13000,12999,10000,9999,6000,5999,0].map(s=>arcadeVerdict(s).verdict),['overpowered','deploy','deploy','pending','pending','dispose','dispose']);
+ assert.equal(KILLHOUSE_MAX_SCORE,13000,'the score tops out at 13000, not 10000');
+ assert.equal(killhouseScore({rate:1,turns:64,quota:32}),13000,'a full purge within par (two turns per target) is perfect');
+ assert.equal(killhouseScore({rate:1,turns:65,quota:32}),12970,'each turn past par costs 30');
+ assert.ok(killhouseScore({rate:31/32,turns:10,quota:32})<13000,'a perfect score needs every target');
+ const a=createKillhouse({mode:'arcade',character:'recon',seed:4});Object.assign(a.player,a.end);a.descend();Object.assign(a.player,a.end);a.descend();
+ const low=arcadeResultMarkup(a,{score:1200,best:1200,newRecord:true,saved:true});
+ assert.match(low,/建議銷毀/);assert.match(low,/data-verdict="dispose"/);
+ assert.match(arcadeResultMarkup(a,{score:7000,best:7000,newRecord:false,saved:true}),/data-verdict="pending"[^]*尚待評估/);
 });

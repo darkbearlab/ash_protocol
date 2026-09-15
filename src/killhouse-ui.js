@@ -1,4 +1,3 @@
-import {purgeReportMarkup} from './purge-review-ui.js';
 import {cloneDesignation} from './purge-review.js';
 import {CHARACTERS} from './characters.js';
 
@@ -65,9 +64,12 @@ export function nextPrompt(g,events,shown){
 // it spends a turn without leaving (3.89.1, browser QA). Diagonal neighbours have no single step.
 export const exitStep=g=>{const dx=g.exitPoint.x-g.player.x,dy=g.exitPoint.y-g.player.y;return Math.abs(dx)+Math.abs(dy)===1?[dx,dy]:null;};
 
-// Score v1: every 10% of purge is 1000 points, roughly the same as saving 33 turns. The speed bonus stops at zero.
-export const KILLHOUSE_SCORE={formula:'v1',rate:10000,turnBonus:3000,turnCost:30};
-export const killhouseScore=({rate,turns})=>Math.round(Math.max(0,Math.min(1,rate))*KILLHOUSE_SCORE.rate)+Math.max(0,KILLHOUSE_SCORE.turnBonus-Math.max(0,turns)*KILLHOUSE_SCORE.turnCost);
+// Score v2 (3.89.2): purge rate is worth 10000 and speed up to 3000. The speed bonus stays full within par (two turns
+// per purge target) and then loses 30 per extra turn, so a perfect run is reachable and scores exactly 13000.
+export const KILLHOUSE_SCORE={formula:'v2',rate:10000,turnBonus:3000,turnCost:30,parPerTarget:2};
+export const KILLHOUSE_MAX_SCORE=KILLHOUSE_SCORE.rate+KILLHOUSE_SCORE.turnBonus;
+export const parTurns=quota=>KILLHOUSE_SCORE.parPerTarget*Math.max(0,quota||0);
+export const killhouseScore=({rate,turns,quota=0})=>Math.round(Math.max(0,Math.min(1,rate))*KILLHOUSE_SCORE.rate)+Math.max(0,KILLHOUSE_SCORE.turnBonus-Math.max(0,turns-parTurns(quota))*KILLHOUSE_SCORE.turnCost);
 export const bestRecord=(profile,result)=>(result.scoreScope==='character'?profile.killhouse?.byCharacter?.[result.character]:profile.killhouse?.best)??null;
 
 const button=(action,label,secondary=false)=>`<button class="modal-button${secondary?' secondary':''}" data-modal="${action}">${label}</button>`;
@@ -98,10 +100,15 @@ export const TUTORIAL_VERDICT={status:'篩選合格',note:'後續績效尚待評
 export const tutorialResultMarkup=(g,{saved})=>`<div class="eyebrow">SIMULATION COMPLETE / KILL HOUSE</div><h2>模擬訓練結束。</h2><p>訓練紀錄已提交。</p><dl class="purge-report" data-verdict="screened"><dt>單位</dt><dd>${cloneDesignation(g.runId)} 模擬結束</dd><dt>狀態</dt><dd>${TUTORIAL_VERDICT.status}</dd><dt>備註</dt><dd>${TUTORIAL_VERDICT.note}</dd></dl>
 ${saved?'':'<p class="deploy-warning">! 無法寫入訓練紀錄，下次部署仍會詢問是否訓練。</p>'}${button('deploy','前往部署 →')}${button('khMenu','返回主選單',true)}`;
 
+// Arcade verdicts follow the score, not the campaign purge tiers (user decisions, 3.89.2). A perfect 13000 — every
+// target purged within par — earns its own warning.
+export const ARCADE_VERDICTS=[{min:KILLHOUSE_MAX_SCORE,verdict:'overpowered',status:'受驗者過於強大，建議及早投入最危險的任務或就地銷毀'},{min:10000,verdict:'deploy',status:'建議直接投入實戰'},{min:6000,verdict:'pending',status:'尚待評估'},{min:0,verdict:'dispose',status:'建議銷毀'}];
+export const arcadeVerdict=score=>ARCADE_VERDICTS.find(v=>score>=v.min)||ARCADE_VERDICTS.at(-1);
+
 export function arcadeResultMarkup(g,{score,best,newRecord,saved}){
-  const r=g.simulationResult,scope=r.scoreScope==='character'?'本職業':'全職業';
+  const r=g.simulationResult,scope=r.scoreScope==='character'?'本職業':'全職業',v=arcadeVerdict(score);
   return `<div class="eyebrow">KILL HOUSE / ARCADE · ${characterLabel(r.character)}</div><h2>${newRecord?'新紀錄。':'模擬結束。'}</h2>
 <div class="result-stats"><div><b>${score}</b>分數</div><div><b>${Math.round(r.rate*100)}%</b>肅清率</div><div><b>${r.turns}</b>使用回合</div></div>
-<p>${best===null?'尚無紀錄':`${scope}最高分 ${best}`}${saved?'':' · 無法寫入紀錄'}</p>${purgeReportMarkup(g)}
+<p>${best===null?'尚無紀錄':`${scope}最高分 ${best}`}${saved?'':' · 無法寫入紀錄'}</p><dl class="purge-report" data-verdict="${v.verdict}"><dt>單位</dt><dd>${cloneDesignation(g.runId)} 模擬結束</dd><dt>狀態</dt><dd>${v.status}</dd></dl>
 ${button('khRetry','再次模擬 →')}${button('killhouse','更換職業',true)}${button('khMenu','返回主選單',true)}`;
 }

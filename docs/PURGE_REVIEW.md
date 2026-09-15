@@ -2,7 +2,7 @@
 
 - **狀態**：已實作（3.86.0）。
 - **分工**：使用者決定整個功能由 Claude 做，規則與介面都包含。
-- **相關**：[CIVILIANS.md](CIVILIANS.md)（研究員）、[KILLHOUSE.md](KILLHOUSE.md)（街機分數沿用這套肅清率；教學出口一律顯示篩選合格，不顯示分級）。
+- **相關**：[CIVILIANS.md](CIVILIANS.md)（研究員）、[KILLHOUSE.md](KILLHOUSE.md)（街機分數沿用這套肅清率，但結算評語改依分數；教學出口一律顯示篩選合格，不顯示分級）。
 
 ## 1. 使用者決定（2026-09-15）
 

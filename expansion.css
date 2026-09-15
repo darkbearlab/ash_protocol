@@ -257,3 +257,9 @@ dialog .perk .perk-next{color:var(--orange);font-weight:900}
 .purge-report[data-verdict="deficient"] dd:nth-of-type(3),.purge-report[data-verdict="loss"] dd:nth-of-type(2){color:#ff8f7a}
 .purge-report[data-verdict="screened"]{border-left-color:var(--orange)}
 .purge-report[data-verdict="screened"] dd:nth-of-type(2){color:var(--orange)}
+.purge-report[data-verdict="deploy"]{border-left-color:var(--orange)}
+.purge-report[data-verdict="deploy"] dd:nth-of-type(2){color:var(--orange)}
+.purge-report[data-verdict="dispose"]{border-left-color:#d9654f}
+.purge-report[data-verdict="dispose"] dd:nth-of-type(2){color:#ff8f7a}
+.purge-report[data-verdict="overpowered"]{border-left-color:#e8c65a;background:#241f14}
+.purge-report[data-verdict="overpowered"] dd:nth-of-type(2){color:#f2d77a}
