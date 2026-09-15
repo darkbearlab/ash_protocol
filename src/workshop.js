@@ -1,7 +1,7 @@
 import {isNoncombatant} from './enemy-data.js';
 import {ENEMY_TYPES} from './data.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
-import {addAlly,allyName,allyWeapon,currentAllies,defaultDroneCell,deployLimit,droneCells,lineLimit,oneShot,reloadDrone,routeCells,ENEMY_UNIT_TUNING,MUNITION_TUNING,ONE_SHOT_UNITS,UNIT_SOURCES} from './allies.js';
+import {addAlly,allyName,allyWeapon,currentAllies,defaultDroneCell,deployLimit,droneCells,lineLimit,oneShot,reloadDrone,routeCells,ENEMY_UNIT_TUNING,MUNITION_TUNING,ONE_SHOT_UNITS,REPAIR_TUNING,UNIT_SOURCES} from './allies.js';
 import {AMMUNITION} from './ammunition.js';
 import {GRENADES,FRAG_DAMAGE} from './throwables.js';
 import {pullLanding} from './melee-classes.js';
@@ -110,6 +110,27 @@ export function deployUnit(g,line,point=null){
  if(unit.payload)a.payload=unit.payload;
  else{if(Number.isInteger(unit.weapon)){a.weapon=unit.weapon;a.ammo=Math.min(allyWeapon(a,g.player).mag,g.player.ammo[unit.weapon]);g.player.ammo[unit.weapon]=0;}reloadDrone(g,a);}
  g.log(`${allyName(a)}${unit.payload?`（${GRENADES[unit.payload].short}）`:''}已部署。`);return true;
+}
+
+// Field repair (docs/ENGINEER.md sections 9 and 16, 3.96.0; no dismantling, user decision): standing beside a damaged
+// workshop unit, one turn and REPAIR_TUNING.cost scrap restore half its maximum HP, frame upgrades included.
+export const repairTargets=g=>hasWorkshop(g.player)?currentAllies(g).filter(a=>a.kind==='drone'&&a.hp<a.maxHp&&distance(a,g.player)===1&&g.canCross(g.player,a)):[];
+export function repairReason(g,id){
+ const p=g.player,a=typeof id==='string'?currentAllies(g).find(x=>x.id===id&&x.kind==='drone'):null;
+ if(!hasWorkshop(p))return '沒有工坊技能。';
+ if(!a)return '附近沒有這台機體。';
+ if(distance(a,p)!==1||!g.canCross(p,a))return '要站在機體旁邊才能修理。';
+ if(a.hp>=a.maxHp)return `${allyName(a)}沒有損傷。`;
+ if(unavailable(g))return '目前無法修理。';
+ if(p.scrap<REPAIR_TUNING.cost)return `廢料不足，需要 ${REPAIR_TUNING.cost}。`;
+ return '';
+}
+// Re-checked at resolution: if a faster enemy destroyed or moved the unit first, the turn is spent but not the scrap.
+export function repairUnit(g,id){
+ const reason=repairReason(g,id);if(reason)return g.fail(reason);
+ const a=currentAllies(g).find(x=>x.id===id),before=a.hp;g.player.scrap-=REPAIR_TUNING.cost;a.hp=Math.min(a.maxHp,a.hp+Math.ceil(a.maxHp*REPAIR_TUNING.share));
+ g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.5,color:'#89e8c8',damage:0});
+ g.log(`消耗 ${REPAIR_TUNING.cost} 廢料修理${allyName(a)}，生命 +${a.hp-before}（${a.hp}/${a.maxHp}）。`);return true;
 }
 
 // Loitering munition, phase 2 (docs/ENGINEER.md 4.1). On its own action: beside a seen enemy it detonates; within dive

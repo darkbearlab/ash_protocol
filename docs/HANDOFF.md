@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.95.0**（工程師工坊第 5 階段頭目藍圖，Claude；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.96.0**（工程師工坊第 6 階段修理，Claude；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -224,3 +224,5 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 3.94.0（Claude）：工坊第 4 階段敵方藍圖，SAVE 49。取得在 `src/workshop.js` 的 `salvageBlueprint`（由 `Game.hurt` 呼叫；敵方自爆機器人自爆時把自己當攻擊者傳入，所以不給藍圖）；改造自爆機器人的行動在 `bomberAct`，被打爆時的爆炸在 `unitDestroyed`（由 `Game.damageAlly` 呼叫）；數值在 allies.js 的 `ENEMY_UNIT_TUNING`，機體種類與一次性機體在 `UNIT_SOURCES`、`ONE_SHOT_UNITS`。identity harness 另外不雜湊空的藍圖清單。
 
 3.95.0（Claude）：工坊第 5 階段頭目藍圖，SAVE 50。`once` 藍圖製作時記到 `player.usedBlueprints`；封鎖官蓄力（`primed`）與核心守衛交替轟炸（`bombard`、`kind:'ally'` 地圖標記）在 allies.js 的 `actAlly` 攻擊流程；標記沿用回合結束的轟炸結算，存檔檢查在 enemy-intents.js 的 `validEnemyMarks`。內建武器以 `builtIn` 標示不用彈藥。identity harness 另外不雜湊空的已製作清單。
+
+3.96.0（Claude）：工坊第 6 階段修理（使用者決定不做拆解），存檔版本不變。`repairTargets`、`repairReason`、`repairUnit` 在 `src/workshop.js`，數值 `REPAIR_TUNING` 在 allies.js，行動 `repairUnit` 由工坊面板送出（不放互動鈕，避免追隨無人機受損時佔住互動鈕）。工程師重設計（docs/ENGINEER.md）六個階段到此完成。

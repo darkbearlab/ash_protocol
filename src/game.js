@@ -33,7 +33,7 @@ import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambu
 import {healActor} from './traits.js';
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
 import {ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickSummons,petSkillReason,fitDrone,DRONE_HP} from './allies.js';
-import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop,isMunition,munitionAct,isBomber,bomberAct,unitDestroyed,salvageBlueprint} from './workshop.js';
+import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop,isMunition,munitionAct,isBomber,bomberAct,unitDestroyed,salvageBlueprint,repairReason,repairUnit} from './workshop.js';
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,skillValues,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
@@ -221,6 +221,7 @@ export class Game {
     if(type==='commandPet')return Boolean(p.prepared.skill==='pet_command'&&this.activeAllies.some(a=>a.kind==='pet')&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&this.seen[arg.y]?.[arg.x]&&this.passable(arg.x,arg.y)&&distance(p,arg)<=6);
     // Workshop (docs/ENGINEER.md): deploy a finished unit from a production line onto a free tile within two route steps.
     if(type==='deployUnit'){const reason=deployReason(this,arg?.line,workshopPoint(arg));return !reason||this.fail(reason);}
+    if(type==='repairUnit'){const reason=repairReason(this,arg);return !reason||this.fail(reason);}
     if(type==='skill'&&arg==='workshop')return this.fail('從工坊面板生產或部署機體。');
     if(type==='skill'&&arg==='suppressive_fire')return this.fail('壓制射擊需要區域落點。');
     if(type==='skill'&&arg==='grapple'&&canUseSkill(p,arg)){const plan=grapplePlan(this);return !plan.reason||this.fail(plan.reason);}
@@ -393,6 +394,7 @@ export class Game {
       case 'skill':success=this.activateSkill(arg);break;
       case 'grapple':success=useGrapple(this,arg.id);break;
       case 'deployUnit':success=presentStep(this,()=>deployUnit(this,arg.line,workshopPoint(arg)));break;
+      case 'repairUnit':success=presentStep(this,()=>repairUnit(this,arg));break;
       case 'recoverObjective':success=this.recoverObjective(arg);break;
       case 'openContainer':success=presentStep(this,()=>this.openContainer(arg));break;
       case 'door':success=presentStep(this,()=>{const b=this.nearbyDoors.find(b=>b.id===arg.id);return this.setDoor(b,arg.open);});break;

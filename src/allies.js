@@ -32,6 +32,8 @@ export const leash=a=>a.kind==='pet'?PET_TETHER:a.kind==='summon'?SUMMON_TETHER:
 // Engineer workshop (docs/ENGINEER.md, phase 1, 3.91.0): built units wait in production lines and are deployed from
 // them; a deployed unit never comes back. Both limits start at one and each class perk adds one, up to four.
 export const WORKSHOP_TUNING={lines:1,deploy:1,maxDeploy:4};
+// Field repair (3.96.0): beside a damaged unit, one turn and this much scrap restore this share of its maximum HP.
+export const REPAIR_TUNING={cost:10,share:.5};
 // Loitering munition (docs/ENGINEER.md 4.1, 3.92.0): a light hovering body that dives and detonates its payload.
 export const MUNITION_TUNING={hp:30,dive:4,sight:8,radius:2};
 // Enemy blueprints (docs/ENGINEER.md 4.2, 3.94.0): the modified drone keeps the flying body and a plasma gun fed with the
