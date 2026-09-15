@@ -1,4 +1,5 @@
 import {purgeReportMarkup} from './purge-review-ui.js';
+import {cloneDesignation} from './purge-review.js';
 import {CHARACTERS} from './characters.js';
 
 // Kill house interface copy and arcade scoring (docs/KILLHOUSE.md section 10, Claude, 3.88.0).
@@ -88,7 +89,9 @@ export function disposedMarkup(result){
 ${restart?button('khTutorial','重新開始訓練 →'):''}${tutorial?'':button('khRetry','再次模擬 →')+button('killhouse','更換職業',true)}${button('khMenu','返回主選單',!tutorial||restart)}`;
 }
 
-export const tutorialResultMarkup=(g,{saved})=>`<div class="eyebrow">SIMULATION COMPLETE / KILL HOUSE</div><h2>模擬訓練結束。</h2><p>本次交戰紀錄已提交評估。</p>${purgeReportMarkup(g)}
+// The tutorial never grades the purge: every graduate is screened in and judged later (user decision, 3.88.2).
+export const TUTORIAL_VERDICT={status:'篩選合格',note:'後續績效尚待評估'};
+export const tutorialResultMarkup=(g,{saved})=>`<div class="eyebrow">SIMULATION COMPLETE / KILL HOUSE</div><h2>模擬訓練結束。</h2><p>訓練紀錄已提交。</p><dl class="purge-report" data-verdict="screened"><dt>單位</dt><dd>${cloneDesignation(g.runId)} 模擬結束</dd><dt>狀態</dt><dd>${TUTORIAL_VERDICT.status}</dd><dt>備註</dt><dd>${TUTORIAL_VERDICT.note}</dd></dl>
 ${saved?'':'<p class="deploy-warning">! 無法寫入訓練紀錄，下次部署仍會詢問是否訓練。</p>'}${button('deploy','前往部署 →')}${button('khMenu','返回主選單',true)}`;
 
 export function arcadeResultMarkup(g,{score,best,newRecord,saved}){

@@ -43,7 +43,7 @@ test('score v1 rises with purge and falls with turns, never rewards overtime, an
  assert.equal(bestRecord(p,result).score,killhouseScore(result));assert.equal(bestRecord(p,{...result,scoreScope:'character'}),null);
 });
 
-test('result screens: disposal follows the death destination, the tutorial files its verdict, arcade shows the score',()=>{
+test('result screens: disposal follows the death destination, the tutorial always screens the unit in, arcade shows the score',()=>{
  const t=createKillhouse({mode:'tutorial'});t.status='dead';
  const restart=disposedMarkup(t.simulationResult);
  assert.match(restart,/銷毀此庫存/);assert.match(restart,/data-modal="khTutorial"/);assert.match(restart,/data-modal="khMenu"/);
@@ -51,8 +51,10 @@ test('result screens: disposal follows the death destination, the tutorial files
  assert.doesNotMatch(menu,/khTutorial/);assert.match(menu,/class="modal-button" data-modal="khMenu"/);
  assert.match(disposedMarkup({...t.simulationResult,mode:'arcade'}),/data-modal="khRetry"/);
  const w=createKillhouse({mode:'tutorial'});Object.assign(w.player,w.end);w.descend();
- const done=tutorialResultMarkup(w,{saved:true});
- assert.match(done,/purge-report/);assert.match(done,/data-modal="deploy"/);assert.doesNotMatch(done,/deploy-warning/);
+ const done=tutorialResultMarkup(w,{saved:true});assert.equal(w.simulationResult.tier,'deficient','nobody was purged');
+ assert.match(done,/篩選合格/);assert.match(done,/後續績效尚待評估/);
+ assert.doesNotMatch(done,/列為資產封存|記憶校正|已處決|績效不足|績效優異|績效合格/,'the tutorial never grades the purge (user decision, 3.88.2)');
+ assert.match(done,/data-modal="deploy"/);assert.doesNotMatch(done,/deploy-warning/);
  assert.match(tutorialResultMarkup(w,{saved:false}),/deploy-warning/);
  const a=createKillhouse({mode:'arcade',character:'recon',seed:4});Object.assign(a.player,a.end);a.descend();
  for(const e of a.enemies)a.hurt(e,9999,a.player);Object.assign(a.player,a.end);a.descend();
