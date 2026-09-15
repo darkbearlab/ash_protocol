@@ -24,6 +24,7 @@
   - 行為一致性檢查、敵人繪製紀錄與設施繪製紀錄都不變。
   - 瀏覽器實際走過入口、教學、街機整備到訓練場，以及結束模擬後回到原戰役。
   - 細節見 [3.88.0 QA](../qa/results/2026-09-15-claude-3.88.0-killhouse-ui.md)。
+- 已部署：GitHub Pages run 34921425402 成功，線上 `src/version.js` 確認為 3.88.0，`src/killhouse-ui.js` 回應 200；完整 850 項測試與 build 通過。
 
 ## 3.87.0 — Kill house 規則與地圖風格（Codex，2026-09-15）
 
