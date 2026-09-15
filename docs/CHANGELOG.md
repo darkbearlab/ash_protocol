@@ -8,6 +8,7 @@
   - npm test 852/852。tests/killhouse-ui.test.mjs 的教學結算斷言改寫：沒殺任何人（原本會評為已處決）也只顯示篩選合格，理由是使用者決定。
   - 瀏覽器：本機 dev server 用實際樣式畫出教學結算（肅清分級為不足的局面）：單位 C-0567 模擬結束、狀態「篩選合格」為橘色、備註「後續績效尚待評估」，左側橘色邊線；不含任何分級文字。這是畫面與樣式檢查，不是從頭打完教學。
   - 細節見 [3.88.2 QA](../qa/results/2026-09-15-claude-3.88.2-tutorial-screening.md)。
+- 已部署：GitHub Pages run 34925043738 成功，線上 `src/version.js` 確認為 3.88.2；完整 852 項測試與 build 通過。
 
 ## 3.88.1 — 教學提示提早、研究員房修正（Claude，2026-09-15）
 
@@ -26,6 +27,7 @@
   - **瀏覽器**：教學往右走 7 步，在走廊第一格跳出「射擊」卡片，生命 100/100。
   - **測試**：npm test 852/852，新增 tests/killhouse-tutorial.test.mjs 2 項；tests/killhouse.test.mjs 的研究員數量斷言從 2 改成 1，理由是使用者要求的地圖修改。
   - 細節見 [3.88.1 QA](../qa/results/2026-09-15-claude-3.88.1-tutorial-cues.md)。
+- 已部署：GitHub Pages run 34924649741 成功，線上 `src/version.js` 確認為 3.88.1；完整 852 項測試與 build 通過。
 
 ## 3.88.0 — Kill house 介面與 3.87.0 驗證（Claude，2026-09-15）
 
