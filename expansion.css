@@ -354,3 +354,11 @@ dialog .modal-footer>[role="tablist"],dialog .modal-footer>.journal-tabs{flex:1 
  #modal.raised:not(.title){margin:0 0 auto;border-top:0;border-bottom:1px solid #5a604b;padding-top:calc(var(--dialog-pad-y) + env(safe-area-inset-top));max-height:calc(100dvh - max(12px,env(safe-area-inset-bottom)))}
  dialog .modal-footer{padding-bottom:calc(var(--dialog-pad-y) + env(safe-area-inset-bottom))}
 }
+/* Menus reached from the title screen (3.98.1, user report): as bottom sheets they left the finished run visible above
+   them, and only looked covered. They take the title screen's own full-screen opaque treatment instead. */
+#modal.standalone:not(.title){max-width:none;width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;background:#0d1211;box-shadow:none;padding-top:calc(var(--dialog-pad-y) + env(safe-area-inset-top))}
+#modal.standalone:not(.title)::backdrop{background:#0d1211}
+#modal.standalone:not(.title) #modal-content{display:flex;flex-direction:column;min-height:100%;width:100%;max-width:470px;margin-inline:auto}
+#modal.standalone.wide:not(.title) #modal-content{max-width:650px}
+#modal.standalone:not(.title) .modal-footer{margin-top:auto;background:#0d1211}
+

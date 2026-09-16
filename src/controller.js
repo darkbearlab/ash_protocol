@@ -55,6 +55,9 @@ import {read,write,loadGame,saveGame,storage,profile,recordResult,TEST_MODE,expo
 const $=s=>document.querySelector(s),audio=new AudioFX();
 const savedGame=loadGame();
 let inventoryTab='weapon',deploymentFaces={};
+// Title flow (3.98.1, user report): the title screen and every menu reached from it take the full-screen terminal
+// treatment. A bottom sheet left the finished run showing above it; closing the dialog always reveals the battle.
+let titleFlow=false;
 let playback=null,entered=false,orientationBlocked=false,orientationOverride=false,pendingBackup=null,resumable=Boolean(savedGame);
 let game=savedGame||new Game(undefined,profile().unlocks.weapons,profile().upgrades.carrying),renderer=new Renderer($('#battle'),game),lockUntil=0,lastStatus='playing',previousFloor=game.floor,noticeTimer;
 renderer.targetingEnabled=read('ash-targeting')!=='off';
@@ -214,12 +217,13 @@ function grenade(){if(renderer.mode==='grenade'){cancelAim();return;}const entry
 function useItem(){if(!preparedEntry(game.player,'item')){showInventory('item','還沒有預備道具，點一個道具預備。');return;}act('usePrepared',{category:'item'});}
 function toggleTargeting(){renderer.targetingEnabled=!renderer.targetingEnabled;write('ash-targeting',renderer.targetingEnabled?'on':'off');update();}
 function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify('附近沒有可見敵人。');return;}game.target=list[(list.findIndex(x=>x.id===game.target)+1)%list.length].id;update();}
-// The corner × appears on screens that already offer a way back, so the player never has to scroll to leave (3.54.0).
+// The corner × is gone (3.98.1, user request): it only ever appeared on menus that already carried a back button, and
+// its float reserved a column on the right of the content; the pinned footer is the way out.
 // On phones a menu is a bottom sheet (3.97.2, user request): its buttons and tab row sit on the screen's bottom edge for
 // one-handed use, and a tabbed menu fills the height so its top does not move when tabs of different heights change.
 // The upgrade pick is the exception (3.97.3, user report): it opens on its own under a thumb that is still tapping, so it
 // is anchored to the top edge and the queued tap lands on the backdrop.
-function modal(html,wide=false,title=false,closable=html.includes('data-modal="close"')){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal').classList.toggle('closable',closable);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
+function modal(html,wide=false,title=false){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
 // Main buttons stay on screen (3.97.0, user request): a menu marks them with .modal-footer; otherwise its final button
 // (or button row) is pinned. When that final button is a secondary back/cancel button, the button just before it (the
 // action) is pinned beside it, back first. Title screens lay themselves out and are left alone.
@@ -239,6 +243,7 @@ function close(){if(!entered){showIntro();return;}if(game.pendingPerks){showPerk
 function modalAction(type,arg){close();act(type,arg);}
 
 function showIntro(){
+  titleFlow=true;
   if(isSimulation(game)&&game.status!=='playing')exitSimulation();
   const canContinue=game.status==='playing'&&(resumable||entered),simulating=isSimulation(game);
   const entry=(action,label,note,disabled=false)=>`<button class="title-entry" data-modal="${action}"${disabled?' disabled':''}><span class="title-caret" aria-hidden="true">&gt;</span><span class="title-label">${label}</span><span class="title-note">${note}</span></button>`;
@@ -529,7 +534,10 @@ ${simulating?'':`${sec('危險')}
 <button class="modal-button secondary" data-modal="resetProgress">重置遊戲進度</button>`}
 <button class="modal-button" data-modal="close">${inRun?simulating?'繼續模擬 →':'繼續任務 →':'← 返回主選單'}</button>`);
 }
-function showResult(){if(isSimulation(game)){showSimulationResult();return;}const won=game.status==='won',abandoned=game.status==='abandoned',p=game.player;modal(`<div class="eyebrow">${abandoned?'MISSION ABANDONED':won?'SIGNAL RESTORED':'SIGNAL LOST'} / RUN ${game.seed}${game.realMode?' / REAL':''}</div><h2>${abandoned?'任務已放棄。':won?'灰燼之中，仍有回音。':'這次的訊號，到此為止。'}</h2><p>${abandoned?'已賺取的協定點數與解鎖保留，這次任務已結束。':won?'任務目標已完成。你搭上最後一班撤離電梯。':'你留下的紀錄將協助下一位行動員。掩體、補給與適時撤退，都能改變下一次任務。'}</p><p>${game.missionSummary}</p>${purgeReportMarkup(game)}${resultStoriesMarkup(game,profile())}${isEndless(game)?`<div class="result-stats"><div><b>${pad(game.floor)}</b>到達深度</div><div><b>${pad(p.level)}</b>等級</div><div><b>${p.kills}</b>消滅敵人</div></div>${endlessResult(p,abandoned)}<p>行動 ${game.turn} 回合</p>`:`<div class="result-stats"><div><b>${pad(game.deepestFloor)}</b>最深樓層</div><div><b>${p.kills}</b>消滅敵人</div><div><b>${game.turn}</b>行動回合</div></div>`}<p>${game.realMode?`真實模式 · 本次協定點數 +${protocolSettlement(game).base}，真實加成 +${protocolSettlement(game).bonus}`:`本次協定點數 +${game.protocol.earned}`} · 累計持有 ${profile().protocol.balance}<br>死亡仍保留，可在 UNLOCKS 解鎖職業與故事。</p><div class="operator-identity result-identity">${portraitMarkup(p.portrait,game.status)}<p>${characterName(p.character)}<br>總傷害 ${p.stats.damage} · 投擲 ${p.stats.grenades} · 資料 ${p.lore.length}/6</p></div><div class="modal-footer"><button class="modal-button secondary" data-modal="lastBattle">查看最後戰場</button><button class="modal-button" data-modal="deploy">重新部署 →</button></div>`);}
+// The result sheet reports on a run that is over, so it belongs to the title flow as well (3.98.1, user request):
+// full screen and back up at the top, not a bottom sheet with the finished battle showing above it. 查看最後戰場
+// is still how you look at the map.
+function showResult(){titleFlow=true;if(isSimulation(game)){showSimulationResult();return;}const won=game.status==='won',abandoned=game.status==='abandoned',p=game.player;modal(`<div class="eyebrow">${abandoned?'MISSION ABANDONED':won?'SIGNAL RESTORED':'SIGNAL LOST'} / RUN ${game.seed}${game.realMode?' / REAL':''}</div><h2>${abandoned?'任務已放棄。':won?'灰燼之中，仍有回音。':'這次的訊號，到此為止。'}</h2><p>${abandoned?'已賺取的協定點數與解鎖保留，這次任務已結束。':won?'任務目標已完成。你搭上最後一班撤離電梯。':'你留下的紀錄將協助下一位行動員。掩體、補給與適時撤退，都能改變下一次任務。'}</p><p>${game.missionSummary}</p>${purgeReportMarkup(game)}${resultStoriesMarkup(game,profile())}${isEndless(game)?`<div class="result-stats"><div><b>${pad(game.floor)}</b>到達深度</div><div><b>${pad(p.level)}</b>等級</div><div><b>${p.kills}</b>消滅敵人</div></div>${endlessResult(p,abandoned)}<p>行動 ${game.turn} 回合</p>`:`<div class="result-stats"><div><b>${pad(game.deepestFloor)}</b>最深樓層</div><div><b>${p.kills}</b>消滅敵人</div><div><b>${game.turn}</b>行動回合</div></div>`}<p>${game.realMode?`真實模式 · 本次協定點數 +${protocolSettlement(game).base}，真實加成 +${protocolSettlement(game).bonus}`:`本次協定點數 +${game.protocol.earned}`} · 累計持有 ${profile().protocol.balance}<br>死亡仍保留，可在 UNLOCKS 解鎖職業與故事。</p><div class="operator-identity result-identity">${portraitMarkup(p.portrait,game.status)}<p>${characterName(p.character)}<br>總傷害 ${p.stats.damage} · 投擲 ${p.stats.grenades} · 資料 ${p.lore.length}/6</p></div><div class="modal-footer"><button class="modal-button secondary" data-modal="lastBattle">查看最後戰場</button><button class="modal-button" data-modal="deploy">重新部署 →</button></div>`);}
 // Kill house sessions (docs/KILLHOUSE.md section 10). A simulation replaces the game on screen without abandoning or
 // saving the campaign; leaving puts the stashed campaign back exactly as it was.
 let simulationReturn=null;const simulationResults=new WeakMap();
@@ -661,7 +669,9 @@ document.addEventListener('click',e=>{
     case 'backupPrevious':{const raw=read('ash-backup-before-restore');if(raw)downloadJSON(raw,'ash-protocol-before-restore.json');break;}
     case 'backupConfirm':applyBackup();break;case 'backupCancel':pendingBackup=null;settings();break;
     case 'export':exportSave();break;case 'import':$('#import-save').click();break;
-    case 'restart':case 'deploy':if(isSimulation(game))exitSimulation();if(tutorialGate(profile()).required)modal(tutorialGateMarkup());else showDeployment();break;
+    // Deployment reached from a finished run (the result sheet's 重新部署) belongs to the title flow too, so it covers
+    // the run that just ended; deploying mid-run keeps the sheet, because that battle is still the player's context.
+    case 'restart':case 'deploy':if(isSimulation(game))exitSimulation();if(!runIsLive())titleFlow=true;if(tutorialGate(profile()).required)modal(tutorialGateMarkup());else showDeployment();break;
     case 'killhouse':showKillhouseMenu();break;case 'khTutorial':startSimulation({mode:'tutorial'});break;case 'khArcade':startSimulation({mode:'arcade',character:b.dataset.character});break;
     case 'khRetry':startSimulation({mode:'arcade',character:game.player.character});break;case 'khMenu':exitSimulation();showIntro();break;
     case 'khSkip':if(!saveTutorialOutcome('skipped'))notify('無法寫入略過紀錄，下次部署仍會詢問。',{danger:true});showDeployment();break;
@@ -697,6 +707,7 @@ $('#orientation-guard').addEventListener('cancel',e=>e.preventDefault());
 // Devices that cannot rotate may continue in landscape until the page reloads (3.44).
 $('#orientation-continue').addEventListener('click',()=>{orientationOverride=true;updateOrientation();});
 $('#field-messages').addEventListener('click',e=>{if(!e.target.closest('button')&&entered&&!playback&&!orientationBlocked&&!$('#modal').open)showLog();});
+$('#modal').addEventListener('close',()=>{titleFlow=false;});
 $('#modal').addEventListener('cancel',e=>{if(!entered||game.pendingPerks||game.status!=='playing')e.preventDefault();});
 let pointerStart=null;
 $('#battle').addEventListener('pointerdown',e=>{pointerStart=playback||orientationBlocked?null:{x:e.clientX,y:e.clientY};});
@@ -767,6 +778,8 @@ document.addEventListener('selectstart',e=>{const target=e.target instanceof Ele
 document.addEventListener('contextmenu',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(target?.closest('.battle-panel'))e.preventDefault();});
 // Older iOS Safari still pans or bounces a locked page; stop drags outside menus, which keep their own scrolling.
 document.addEventListener('touchmove',e=>{if(document.documentElement.classList.contains('scroll-locked')&&!(e.target instanceof Element&&e.target.closest('dialog')))e.preventDefault();},{passive:false});
+// No pinch zoom (3.98.1, user request): iOS Safari ignores user-scalable=no, so block the WebKit gesture events too.
+for(const type of ['gesturestart','gesturechange','gestureend'])document.addEventListener(type,e=>e.preventDefault(),{passive:false});
 window.addEventListener('pagehide',()=>{if(entered)saveGame(game);});update();showIntro();
 // The title modal is open by now, so revealing the shell cannot flash the battle UI.
 document.body.classList.remove('booting');

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
   <meta name="theme-color" content="#101212"><meta name="description" content="灰燼協定：為觸控打造的科幻回合制戰術 roguelike。每一步，都有代價。">
   <title>ASH PROTOCOL — 灰燼協定</title>
   <link rel="icon" href="./assets/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="./assets/icon.svg"><link rel="manifest" href="./manifest.webmanifest"><link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./expansion.css">
@@ -21,7 +21,7 @@
 </div>
 <div id="field-messages" aria-label="戰術提示"></div>
 </div></section></main></div>
-<dialog id="modal"><button id="modal-close" class="modal-close" data-modal="close" aria-label="關閉">×</button><div id="modal-content"></div></dialog>
+<dialog id="modal"><div id="modal-content"></div></dialog>
 <dialog id="orientation-guard" aria-labelledby="orientation-title"><div><span aria-hidden="true">↻</span><h2 id="orientation-title">請轉回直向遊玩</h2><p>目前回合與選單已保留。</p><p class="orientation-note">觸控筆電或無法旋轉的裝置：</p><button class="modal-button secondary" id="orientation-continue">仍以橫向繼續</button></div></dialog>
 <input type="file" id="import-backup" accept=".json,application/json" hidden>
 <input type="file" id="import-save" accept=".json,application/json" hidden><script type="module" src="./src/main.js"></script>

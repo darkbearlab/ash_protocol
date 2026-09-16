@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.98.0**（操作區排版與方向鍵大小做成設定，Claude；3.97.3 為升級三選一改貼畫面上緣；3.97.2 為選單底部抽屜；3.97.1 為手機介面修正；3.97.0 為手機介面；3.96.0 為工坊第 6 階段修理；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.98.1**（移除右上角的 ×、禁止縮放、標題與結算畫面改回整頁，Claude；3.98.0 為操作區排版與方向鍵大小設定；3.97.3 為升級三選一改貼畫面上緣；3.97.2 為選單底部抽屜；3.97.1 為手機介面修正；3.97.0 為手機介面；3.96.0 為工坊第 6 階段修理；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -253,3 +253,12 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 - **九宮格**：`.control-deck.corner-pad` 把 `#interact` 放 `grid-area:1/1`、`[data-action="reload"]` 放 `1/3`，右側 `.action-buttons` 改兩欄兩列並拉滿方向鍵的高度。
 - **搬動而非複製**：`applyDeck()` 把同兩顆按鈕移進 `.direction-pad`，回經典時放回「開火之後」與最後一顆（就是原本的 HTML 順序）。因為程式一律用 `[data-action]` 全域查詢，狀態更新、長按綁定、`.aiming` 高亮都不用改。
 - **設定**：`ash-pad-layout`（classic／corner）與 `ash-pad-cell`（44／52／60／68）存本機，開機時讀回並套用。
+
+3.98.1（Claude）：移除選單右上角的 ×，並禁止縮放。
+- **×**：`index.html` 的 `#modal-close`、`style.css` 的 `.modal-close` 與 `modal()` 的 `closable` 都拿掉。它只在內容含 `data-modal="close"` 時出現，所以每個會顯示它的選單本來就有返回鍵。
+- **為什麼要拿掉**：`float:right` 的方塊碰上 3.97.2 之後的 flex 欄內容（自成格式化脈絡）會整塊避開，`#modal-content` 在 375 寬時從 343 被壓成 295。
+- **禁止縮放**：viewport 加 `maximum-scale=1,user-scalable=no`；`html{touch-action:pan-x pan-y}`（touch-action 沿祖先鏈取交集，等於全頁禁止縮放但保留捲動）；另外擋掉 WebKit 的 `gesturestart`／`gesturechange`／`gestureend`，因為 iOS Safari 會忽略 `user-scalable=no`。
+- **注意**：需要自己處理拖曳的元件要保留自己的 `touch-action`（例如白線滑桿的 `pan-y`），取交集後才不會被當成捲動。
+- **標題流程**：`modal()` 依 `titleFlow` 加上 `standalone`，樣式抄標題畫面（整頁、不透明 `#0d1211`、`::backdrop` 同色），內容欄在寬螢幕上限 470／`.wide` 650。
+- **`titleFlow` 何時為真**：`showIntro()`、`showResult()`、以及在非進行中的局按下部署（結算畫面的「重新部署」）。`#modal` 的 `close` 事件一律設回 false，因為對話框關閉就代表要露出戰場。
+- **邊界**：局內選單（`entered` 且 `status==='playing'`）維持 3.97.2 的底部抽屜，看得到戰場；「查看最後戰場」仍然是結算後看地圖的方式。
