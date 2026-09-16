@@ -47,7 +47,7 @@ import {BARRIER_TYPES,vaultable,isBarrier,barrierName,barrierBetween,blockedBetw
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
-import {PREPARED_CATALOG,defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns} from './prepared.js';
+import {PREPARED_CATALOG,defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns,isWearable,wornEntry,prepareCost,syncWearableTraits} from './prepared.js';
 import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
@@ -60,6 +60,31 @@ import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './com
 
 // Consumables (3.106.0, user request): the spray matches the ground armour pickup, and adrenaline is priced in health.
 export const SPRAY_PLATES=20,SURGE_COST=15,SURGE_STEPS=2,TERMINAL_STOCK=3;
+// One table for the terminal's item stock (3.108.0). 3.106.0 taught the lesson: useTerminal accepted 'spray' and
+// 'adrenaline' while the terminal's own screen had no buttons for them, so neither could actually be bought.
+export const TERMINAL_ITEMS={
+ spray:{cost:15,resource:'sprays'},
+ adrenaline:{cost:20,resource:'adrenaline'},
+ nvg:{cost:40,wear:'nvg'},
+};
+export const terminalCost=option=>TERMINAL_ITEMS[option]?.cost??TERMINAL_AMMO[option]?.cost??(option==='grenade'?12:GRENADES[option]?.cost??15);
+// One answer to "can this be bought", shared by validateAction, useTerminal and the terminal screen. 3.106.0 shipped
+// three separate copies of this list and the two new items made it into only one of them, so they could not be bought
+// at all. An empty string means the trade is allowed.
+export function terminalReason(g,option){
+ const p=g.player,item=TERMINAL_ITEMS[option];
+ if(!g.nearbyTerminal)return '附近沒有可用補給終端。';
+ if(!item&&!['heal','ammo','grenade','smoke','emp','stun',...AMMO_IDS].includes(option))return '沒有可用終端或補給選項。';
+ const cost=terminalCost(option);
+ if(p.scrap<cost)return `終端需要 ${cost} 廢料。`;
+ if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return '生命值已滿。';
+ if(item?.resource&&p[item.resource]>=TERMINAL_STOCK)return '已達攜帶上限。';
+ if(item?.wear&&p.wearables.includes(item.wear))return '已經有一件了。';
+ const kind=grenadeByItem(option)?'grenade':TERMINAL_AMMO[option]?option:null;
+ if(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=g.ammoCapacity(kind))return '此彈種已達攜帶上限。';
+ if(option==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=g.ammoCapacity(id)))return '各類備彈皆已滿。';
+ return '';
+}
 const ITEM_BY_ACTION=Object.fromEntries(Object.entries(PREPARED_CATALOG.item).map(([id,entry])=>[entry.action,id]));
 // 3.107.0 (user request): consumables are usable straight from the pack, so the pack has to know why a button is
 // dead before the modal closes. One helper answers both it and validateAction, so the two can never disagree.
@@ -73,7 +98,7 @@ export function itemUseReason(g,id){
  if(entry.action==='surge')return p.control.disabled?'失能中無法使用':g.shadowSteps?'免費移動還沒用完':p.hp>SURGE_COST?'':'生命不足以承受';
  return '';
 }
-const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -226,11 +251,14 @@ export class Game {
   supplyPack(amounts){for(const [type,amount]of Object.entries(amounts))this.receiveAmmo(type,amount);}
   weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index);if(w.unarmed)return {min:w.min,max:w.max};const close=target&&w.closeRange&&distance(this.player,target)<=w.closeRange,bonus=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5;return {min:(close?w.closeMin:w.min)+bonus,max:(close?w.closeMax:w.max)+bonus};}
   fail(text){this.log(text);return false;}
+  // The only place the prepared slot is written. Wearables hang their passives off it, so the two can never drift.
+  setPrepared(category,id){this.player.prepared[category]=id;syncWearableTraits(this.player);return true;}
   recoverOperator(){return recoverOperator(this);}
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
   bumpMeleeSlot(){return this.player.owned.find(slot=>{const w=this.weaponAt(slot);return w.melee&&weaponSwitchTurns(w,this.weapon)===0&&weaponSwitchTurns(this.weapon,w)===0;})??UNARMED_SLOT;}
-  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning','surge'].includes(type))return 0;return type==='skill'?(SKILLS[arg]?.cost??1):type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
+  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning','surge'].includes(type))return 0;
+    if(type==='prepare')return prepareCost(this.player,arg);return type==='skill'?(SKILLS[arg]?.cost??1):type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
   // Validate the intent before any actor acts: rejected input cannot scout fast enemies.
   validateAction(type,arg){
     const p=this.player,w=this.weapon;
@@ -280,11 +308,7 @@ export class Game {
     if(type==='salvageGround')return (Boolean(this.nearbyWeapon(Number(arg)))&&!this.weaponAt(Number(arg)).locked)||this.fail('附近沒有這把武器，或它不能拆解。');
     if(type==='replaceWeapon')return (Boolean(this.nearbyWeapon(arg?.take))&&p.owned.includes(arg?.leave)&&!this.weaponAt(arg.leave).locked)||this.fail('要交換的武器已不在原處。');
     if(type==='upgrade'){const level=p.upgrades[p.weapon];return (level<3&&p.scrap>=25+level*15)||this.fail('改裝已滿或廢料不足。');}
-    if(type==='terminal'){
-      if(!this.nearbyTerminal||!['heal','ammo','grenade','smoke','emp','stun',...AMMO_IDS].includes(arg))return this.fail('沒有可用終端或補給選項。');
-      const cost=TERMINAL_AMMO[arg]?.cost??(arg==='grenade'?12:GRENADES[arg]?.cost??15),kind=grenadeByItem(arg)?'grenade':TERMINAL_AMMO[arg]?arg:null;
-      return (p.scrap>=cost&&!(arg==='heal'&&p.hp===p.maxHp&&!p.poison)&&!(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=this.ammoCapacity(kind))&&!(arg==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=this.ammoCapacity(id))))||this.fail('廢料不足或補給已滿。');
-    }
+    if(type==='terminal'){const reason=terminalReason(this,arg);return !reason||this.fail(reason);}
     if(type==='interact'&&pinned(p))return this.fail('壓制中無法換層。');
     if(type==='interact'&&skillActive(p,'anchor'))return this.fail('下錨中無法換層，請先解除。');
     if(type==='interact')return (this.canTouch(this.exitPoint)&&!this.exitBlocked)||this.fail(this.exitBlocked||'需要靠近綠色電梯。');
@@ -317,7 +341,7 @@ export class Game {
     if(type==='skill'&&arg==='grapple'){type='grapple';arg={id:this.target};}
     // Free preparation/equipment commits outside the turn queue and preserves all timed state.
     if(this.actionCost(type,arg)===0){
-      if(type==='prepare')p.prepared[arg.category]=arg.id;
+      if(type==='prepare')this.setPrepared(arg.category,arg.id);
       else if(type==='weapon'){p.weapon=Number(arg);this.log(`切換至${this.weapon.name}，不耗回合。`);}
       else if(type==='reload')return this.reload();
       else if(type==='skill')return this.activateSkill(arg);
@@ -401,6 +425,13 @@ export class Game {
     let success=false;
     p.guard=false;p.moved=false;p.moveDelta=[0,0];if(type!=='fire')p.fireChain=null;
     switch(type) {
+      // Only wearables reach here; a free prepare commits in action()'s zero-cost branch.
+      case 'prepare': {
+        const off=wornEntry(p),on=isWearable(arg.id)?PREPARED_CATALOG.item[arg.id]:null;
+        this.setPrepared(arg.category,arg.id);
+        this.log(on&&off?`脫下${off.name}，換上${on.name}。`:on?`戴上${on.name}。`:`脫下${off?.name||'裝備'}。`);
+        success=true;break;
+      }
       case 'feedPet': return presentStep(this,()=>feedPet(this,arg));
       case 'move': {
         if(!Array.isArray(arg)||!Number.isInteger(arg[0])||!Number.isInteger(arg[1])||Math.abs(arg[0])+Math.abs(arg[1])!==1)return false;
@@ -797,21 +828,13 @@ export class Game {
     p.scrap-=cost;p.upgrades[p.weapon]++;this.log(`${this.weapon.name}改裝 +${level+1}，單次傷害 +5。`);return true;
   }
   useTerminal(option) {
-    const terminal=this.nearbyTerminal,p=this.player;
-    if(!terminal)return this.fail('附近沒有可用補給終端。');
-    if(!['heal','spray','adrenaline','ammo','grenade','smoke','emp','stun',...AMMO_IDS].includes(option))return false;
-    const cost=option==='spray'?15:option==='adrenaline'?20:TERMINAL_AMMO[option]?.cost??(option==='grenade'?12:GRENADES[option]?.cost??15);
-    const kind=grenadeByItem(option)?'grenade':TERMINAL_AMMO[option]?option:null;
-    if(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=this.ammoCapacity(kind))return this.fail('此彈種已達攜帶上限。');
-    if(option==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=this.ammoCapacity(id)))return this.fail('各類備彈皆已滿。');
-    if(p.scrap<cost)return this.fail(`終端需要 ${cost} 廢料。`);
-    if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return this.fail('生命值已滿。');
-    if(option==='spray'&&p.sprays>=TERMINAL_STOCK)return this.fail('已達攜帶上限。');
-    if(option==='adrenaline'&&p.adrenaline>=TERMINAL_STOCK)return this.fail('已達攜帶上限。');
-    p.scrap-=cost;terminal.used=true;
+    const terminal=this.nearbyTerminal,p=this.player,item=TERMINAL_ITEMS[option];
+    const reason=terminalReason(this,option);
+    if(reason)return this.fail(reason);
+    p.scrap-=terminalCost(option);terminal.used=true;
     if(option==='heal'){healActor(p,60);clearPoison(p);}
-    if(option==='spray')p.sprays++;
-    if(option==='adrenaline')p.adrenaline++;
+    if(item?.resource)p[item.resource]++;
+    if(item?.wear)p.wearables.push(item.wear);
     if(option==='ammo')this.supplyPack({rifle:24,pistol:24,shell:6,energy:12,ordnance:3});
     if(TERMINAL_AMMO[option])this.receiveAmmo(option,TERMINAL_AMMO[option].amount);
     if(grenadeByItem(option)){const id=grenadeByItem(option);this.receiveGrenade(id,GRENADES[id].amount);}
@@ -905,6 +928,8 @@ export class Game {
       if(version<10)p.portrait=portraitForLegacy(data.runId??data.seed);
       if(!validPortrait(p.portrait))return null;
       if(version<8){p.prepared=defaultPrepared();p.skills=[];}
+      // Wearables are owned (3.108.0) and validPrepared reads the raw player, so the default has to land before it.
+      if(version<53&&data.player)data.player.wearables??=[];
       if(!validPrepared(version>=8?data.player:p))return null;
       if(version<7){p.traits=[];for(const e of data.enemies)e.traits=startingTraits(e.type,data.floor);}
       if((version>=7&&!validTraits(data.player.traits))||!validTraits(p.traits)||data.enemies.some(e=>!validTraits(e.traits)))return null;
@@ -999,6 +1024,8 @@ export class Game {
       if(version<31)g.classPerkMisses=0;
       // 3.106.0: two new consumables; older saves simply have none of either.
       if(version<52){g.player.sprays??=0;g.player.adrenaline??=0;}
+      // 3.108.0: the worn item's passives are derived from the slot, never trusted from the file.
+      g.player.wearables??=[];syncWearableTraits(g.player);
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
       if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g))return null;
