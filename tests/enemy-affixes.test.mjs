@@ -34,7 +34,7 @@ test('6: grenade prepare can interrupt, pin does not cancel; flight persists aft
 test('7/10: resistance subtracts once after summed sources, innate rank and repeatable manual max three, machines immune',()=>{
  const g=affixArena('bulwark'),p=g.player;assert.equal(suppressionResistance(p),1);finishSuppression([p],new Set([p]),3,1);assert.equal(p.suppression,1);p.learningItems.trait_suppression_resistance=4;const turn=g.turn;assert.ok(g.action('learn','trait_suppression_resistance'));assert.ok(g.action('learn','trait_suppression_resistance'));assert.equal(suppressionResistance(p),3);assert.equal(g.action('learn','trait_suppression_resistance'),false);assert.equal(p.learningItems.trait_suppression_resistance,2);assert.equal(g.turn,turn);assert.ok(Game.restore(g.serialize()));
  for(const type of ['brute','boss','warden'])assert.equal(suppressionResistance(makeEnemy(type,1,1,'a')),1);
- const robot=makeEnemy('drone',1,1,'r');applySuppression(robot,100);assert.equal(robot.suppression,0);assert.equal(UNKNOWN_LOOT.length,28);
+ const robot=makeEnemy('drone',1,1,'r');applySuppression(robot,100);assert.equal(robot.suppression,0);assert.equal(UNKNOWN_LOOT.length,20);
 });
 test('8: v37 elites migrate revealed, resistance preserves inventory and RNG; strict current schemas reject tampering',()=>{
  const scenes=affixScenes();for(const v of Object.values(scenes))assert.ok(Game.restore(v instanceof Game?v.serialize():JSON.stringify(v)));

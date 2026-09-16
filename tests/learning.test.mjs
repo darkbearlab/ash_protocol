@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
-import {LEARNING_ITEMS,UNKNOWN_LOOT,LEARNING_SCRAP,fillUnknownContainers} from '../src/learning-data.js';
+import {LEARNING_ITEMS,UNKNOWN_LOOT,LEARNING_SCRAP,RETIRED_LEARNING,validLearningId,fillUnknownContainers} from '../src/learning-data.js';
 import {learningInventory} from '../src/learning.js';
-import {WEAPONS} from '../src/data.js';
+import {WEAPONS,SAVE_VERSION} from '../src/data.js';
+import {initializeAllies} from '../src/allies.js';
 import {hasTrait} from '../src/traits.js';
 import {salvageValue} from '../src/weapons.js';
 import {validContainers} from '../src/containers.js';
@@ -20,18 +21,38 @@ test('every manual is free, independently usable by a soldier, duplicates remain
   const scrap=p.scrap;assert.ok(g.action('dismantleLearning',id));assert.equal(p.scrap,scrap+LEARNING_SCRAP);assert.equal(g.turn,t);assert.ok(learningInventory(g).every(x=>x.count>0));
  }
 });
-test('pet learning initializes exactly one body, workshop learning one built unit, and both survive full backup',()=>{
- const g=game();for(const id of ['skill_drones','skill_pet_command','skill_raise_dead']){g.player.learningItems[id]=2;assert.ok(g.action('learn',id));assert.equal(g.action('learn',id),false);}
+// 3.113.0 (user request): class skills are no longer learnable. An older save that still carries one of those data
+// items, anywhere, turns it into the scrap it would have dismantled for and keeps loading; skills it already learned stay.
+test('retired class-skill data turns into scrap in the pack, on the ground and in cases, and learned skills stay',()=>{
+ for(const id of RETIRED_LEARNING)assert.equal(validLearningId(id),false,`${id} is retired`);
+ const g=game(),p=g.player;
+ p.skills.push('grapple');p.skillState.grapple={remaining:0,cooldown:0};
+ const raw=JSON.parse(g.serialize());raw.version=SAVE_VERSION-1;
+ const scrap=raw.data.player.scrap;
+ raw.data.player.learningItems={skill_grapple:2,trait_rapid_fire:1};
+ raw.data.items.push({x:raw.data.player.x,y:raw.data.player.y,type:'learning',learningId:'skill_anchor'});
+ const box=raw.data.props.find(c=>c.type==='container');box.kind='unknown';box.opened=false;box.contents=[{type:'learning',learningId:'skill_camouflage'}];
+ const back=Game.restore(JSON.stringify(raw));
+ assert.ok(back,'the save still loads');
+ assert.equal(back.player.scrap,scrap+2*LEARNING_SCRAP,'two retired items in the pack are refunded');
+ assert.deepEqual(back.player.learningItems,{trait_rapid_fire:1},'what is still learnable is untouched');
+ assert.ok(back.items.some(i=>i.type==='scrap'&&i.amount===LEARNING_SCRAP&&i.x===raw.data.player.x&&i.y===raw.data.player.y),'the ground copy becomes scrap where it lay');
+ assert.deepEqual(back.props.find(c=>c.id===box.id).contents,[{type:'scrap',amount:LEARNING_SCRAP}],'the case copy becomes scrap');
+ assert.ok(back.player.skills.includes('grapple'),'a skill already learned is kept');
+});
+test('workshop and pet bodies still initialize once from a learned skill, and survive full backup',()=>{
+ const g=game();for(const id of ['drones','pet_command','raise_dead']){g.player.skills.push(id==='drones'?'workshop':id);g.player.skillState[id==='drones'?'workshop':id]={remaining:0,cooldown:0};}initializeAllies(g);initializeAllies(g);
  assert.equal(g.allies.filter(a=>a.kind==='pet').length,1);assert.equal(g.allies.filter(a=>a.kind==='drone').length,0);assert.deepEqual(g.player.productionLines,[{blueprint:'drone_follow'}]);assert.ok(g.player.petBond);const copy=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(copy.player.learningItems,g.player.learningItems);assert.deepEqual(copy.allies,JSON.parse(JSON.stringify(g.allies)));
 });
 test('learning validates ownership, counters and IDs and never consumes rejected input',()=>{
  const g=game(),t=g.turn;assert.equal(g.action('learn','trait_rapid_fire'),false);g.player.learningItems.trait_rapid_fire=1;g.player.control.disabled=1;assert.equal(g.action('learn','trait_rapid_fire'),false);assert.equal(g.player.learningItems.trait_rapid_fire,1);assert.equal(g.turn,t);
  for(const data of [{bad:1},{trait_rapid_fire:0},{trait_rapid_fire:-1},{trait_rapid_fire:1.5},[]]){const raw=JSON.parse(g.serialize());raw.data.player.learningItems=data;assert.equal(Game.restore(JSON.stringify(raw)),null);}
 });
-test('container pool has exactly 3 weapons + 9 active + 16 passive manuals; deterministic seed-derived contents ignore combat RNG',()=>{
- assert.equal(UNKNOWN_LOOT.length,28);const found=new Set();
+// 3.113.0: the eight class skills left the pool; suppressive fire belongs to no class and is the one active manual left.
+test('container pool has exactly 3 weapons + 1 active + 16 passive manuals; deterministic seed-derived contents ignore combat RNG',()=>{
+ assert.equal(UNKNOWN_LOOT.length,20);const found=new Set();
  for(let seed=0;seed<1000;seed++){const base={generation:{version:2},props:[{id:'case-1-unknown-0',type:'container',kind:'unknown',opened:false}]};const a=fillUnknownContainers(structuredClone(base),seed,1),b=fillUnknownContainers(structuredClone(base),seed,1);assert.deepEqual(a,b);assert.equal(a.props[0].contents.length,1);found.add(JSON.stringify(a.props[0].contents[0]));}
- assert.equal(found.size,28);assert.ok(UNKNOWN_LOOT.every(x=>Object.hasOwn(x,'unlockId')));
+ assert.equal(found.size,20);assert.ok(UNKNOWN_LOOT.every(x=>Object.hasOwn(x,'unlockId')));
 });
 test('container contents persist, weapon opening registers a stable slot, duplicate manuals are collected unchanged',()=>{
  const g=game(),c=g.props.find(c=>c.type==='container');assert.ok(c);c.kind='unknown';c.contents=[{type:'weapon',weapon:11}];assert.ok(validContainers(g.props,g.grid));Object.assign(g.player,{x:c.x,y:c.y});assert.ok(g.openContainer(c.id));const item=g.items.find(i=>i.weapon===11);assert.ok(Number.isInteger(item.slot));assert.equal(g.player.weaponBases[item.slot],11);assert.ok(Game.restore(g.serialize()));
@@ -45,9 +66,11 @@ test('loot blades can be dismantled on the ground or fed to a pet without treati
  const g=game(),item=g.registerWeapon({x:g.player.x,y:g.player.y,type:'weapon',weapon:12});g.items.push(item);const scrap=g.player.scrap;assert.ok(g.salvageGround(item.slot));assert.equal(g.player.scrap,scrap+20);assert.ok(Game.restore(g.serialize()));
  const h=new Game(330,[],0,'druid','onyx');const slot=h.addWeapon(11);assert.ok(Number.isInteger(slot));const ammo=h.player.reserve;assert.ok(h.action('feedPet',{optionId:'weapon',weaponSlot:slot}));assert.equal(h.player.petBond.growth.turret,20);assert.equal(h.player.reserve,ammo);assert.ok(Game.restore(h.serialize()));
 });
-test('soldier learns and uses grapple with virtual unarmed fallback; anchor and other skills do not require native class',()=>{
+// 3.113.0: these can no longer be learned from data, but a save that learned them before keeps them, so the engine must
+// still run a class skill on a class that does not own it.
+test('a soldier who already knows grapple uses it with virtual unarmed fallback; other class skills need no native class',()=>{
  const g=game();g.grid=g.grid.map(r=>r.map(()=>1));g.lighting=g.grid.map(r=>r.slice());g.props=[];g.items=[];g.barriers=[];g.enemies=[];g.hazards=[];g.rooms=[];clearGeneratedMap(g);Object.assign(g.player,{x:10,y:10});const e=makeEnemy('rifleman',12,10,'qa-target');e.hp=500;g.enemies.push(e);g.target=e.id;g.reveal();
- for(const id of ['grapple','anchor','camouflage','signal_break']){g.player.learningItems[`skill_${id}`]=1;assert.ok(g.action('learn',`skill_${id}`));assert.ok(g.action('prepare',{category:'skill',id}));assert.ok(g.action('usePrepared',{category:'skill'}),id);}
+ for(const id of ['grapple','anchor','camouflage','signal_break']){g.player.skills.push(id);g.player.skillState[id]={remaining:0,cooldown:0};assert.ok(g.action('prepare',{category:'skill',id}));assert.ok(g.action('usePrepared',{category:'skill'}),id);}
  assert.equal(e.x,11);assert.equal(g.player.skillState.anchor.remaining,1);assert.ok(g.player.skillState.camouflage.remaining>0);assert.ok(g.player.skillState.signal_break.remaining>0);
 });
 test('enemy drops prefer adjacent empty reachable floor, retain original when surrounded, including multiple drops',()=>{

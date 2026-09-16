@@ -16,12 +16,13 @@ test('suppression tags show stacks, penalty and pinning, and stay silent at zero
 
 test('learning entries list skills before passives and keep rules-layer reasons',()=>{
  const g=new Game(374,[],0,'soldier','onyx');
- g.player.learningItems={trait_rapid_fire:1,skill_suppressive_fire:2,skill_early_warning:1};
+ g.player.learningItems={trait_rapid_fire:1,skill_suppressive_fire:2,trait_braced:1};
  const entries=learningEntries(learningInventory(g));
- assert.deepEqual(entries.map(e=>e.kind),['主動技能','主動技能','被動']);
- const warning=entries.find(e=>e.id==='skill_early_warning');
- assert.ok(warning.useReason.length>0,'a soldier already knows early warning');
- assert.equal(warning.dismantleReason,'');
+ assert.deepEqual(entries.map(e=>e.kind),['主動技能','被動','被動']);
+ // 3.113.0: class skills are not learnable any more, so "already known" is shown with the soldier's own passive.
+ const braced=entries.find(e=>e.id==='trait_braced');
+ assert.ok(braced.useReason.length>0,'a soldier already knows braced');
+ assert.equal(braced.dismantleReason,'');
  const fire=entries.find(e=>e.id==='skill_suppressive_fire');
  assert.equal(fire.count,2);assert.equal(fire.useReason,'');assert.match(fire.detail,/壓制射擊/);
  assert.match(entries.find(e=>e.id==='trait_rapid_fire').detail,/^被動 · 學會後直接生效/);

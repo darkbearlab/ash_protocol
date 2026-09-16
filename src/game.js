@@ -18,7 +18,17 @@ import {DIFFICULTY_TUNING,validDifficultyOffset} from './endless.js';
 import {shotDamageAllowed,pinned,tickSuppression,finishSuppression,migrateSuppression} from './suppression.js';
 import {suppressiveReason,suppressiveFire} from './suppressive-fire.js';
 import {learningReason,useLearning,validLearningInventory} from './learning.js';
-import {validLearningId,LEARNING_ITEMS} from './learning-data.js';
+import {validLearningId,LEARNING_ITEMS,LEARNING_SCRAP,RETIRED_LEARNING} from './learning-data.js';
+function retireLearning(data){
+ const retired=id=>RETIRED_LEARNING.includes(id),scrap=()=>({type:'scrap',amount:LEARNING_SCRAP});
+ const p=data.player;
+ if(p?.learningItems&&typeof p.learningItems==='object')for(const id of Object.keys(p.learningItems))if(retired(id)){p.scrap=(p.scrap||0)+LEARNING_SCRAP*(Number(p.learningItems[id])||0);delete p.learningItems[id];}
+ const floors=[data,...Object.values(data.floorStates||{})];
+ for(const f of floors){
+  if(Array.isArray(f.items))f.items=f.items.map(i=>i?.type==='learning'&&retired(i.learningId)?{x:i.x,y:i.y,...scrap()}:i);
+  for(const c of (f.props||[]))if(c?.type==='container'&&Array.isArray(c.contents))c.contents=c.contents.map(i=>i?.type==='learning'&&retired(i.learningId)?scrap():i);
+ }
+}
 import {petHit,petDefense,petReactions,syncPetSenses,petScanContacts,migratePetNodes,petFeedQuote,feedPet,outputChoiceReason,tickPetBond,petCombat,petDeath,petSurvives,petRank,migratePetBond,validPetBond,PET_FEEDING_TUNING} from './pet-growth.js';
 import {cornerRay,cornerStatus,recordExposure,clearMovedExposure,expireExposure,validCorner} from './corner.js';
 import {combatStep,validTactics} from './tactics.js';
@@ -979,6 +989,10 @@ export class Game {
       if(typeof data.realMode!=='boolean')return null;
       if(version<38){data.marks??=[];migrateEnemyAffixes(data);migrateResistance(data);}
       if(!validDifficultyOffset(data.difficultyOffset))return null;
+      // 3.113.0: class skills are no longer learnable. Anything still holding one of the retired data items becomes
+      // the scrap it would have dismantled for, wherever it is: in the pack, on the ground, or in an unopened case,
+      // on this floor and on every archived one. Skills already learned from them are kept.
+      if(version<55)retireLearning(data);
       if(!validLearningInventory(data.player)||data.items.some(i=>i.type==='learning'&&!validLearningId(i.learningId)))return null;
       if(data.mapGenerations===undefined)data.mapGenerations=[...new Set([data.generation?.version||1,...Object.values(data.floorStates||{}).map(f=>f.generation?.version||1)])].sort((a,b)=>a-b);
       if(!validGenerationHistory(data.mapGenerations)||!data.mapGenerations.includes(data.generation?.version||1))return null;
