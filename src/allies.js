@@ -8,6 +8,7 @@ import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {floorLimit} from './endless.js';
 import {ENEMY_TYPES,SIZE} from './data.js';
 import {weaponStats,volleyAt} from './weapons.js';
+import {shotgunBand} from './shotgun.js';
 import {AMMUNITION} from './ammunition.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
@@ -186,7 +187,7 @@ export function allyAct(g,a){
 }
 // Mounted-weapon hit: close-range damage, pierce, explosive rounds (radius 1) and shotgun splash, as the player's gun.
 function mountedHit(g,a,e,w){
- const close=w.closeRange&&distance(a,e)<=w.closeRange,low=close?w.closeMin:w.min,high=close?w.closeMax:w.max,damage=low+Math.floor(g.rng()*(high-low+1));
+ const {min:low,max:high}=shotgunBand(w,distance(a,e)),damage=low+Math.floor(g.rng()*(high-low+1));
  if(w.explosive)g.explode(e,1,damage,a);else g.hitTarget(e,damage,a,w.pierce||0,w);
  if(w.splash)for(const other of g.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&g.sight(a,o)))g.hitTarget(other,Math.round(damage*.45),a,w.pierce||0,w);
 }

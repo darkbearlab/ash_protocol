@@ -12,7 +12,9 @@ export const SUPPLY_ROOMS={ammo:{name:'彈藥庫',color:'#d9bd7b'},medical:{name
 export const RARE_ARMORY={weapon:8,minFloor:3,chance:.2};
 export const WEAPONS = [
   { id:'rifle', weaponClass:'rifle', name:'餘燼突擊步槍', type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'rifle', desc:'可靠的中距離主力，適合多數交戰。' },
-  { id:'shotgun', weaponClass:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, closeRange:2, closeMin:60, closeMax:72, closeAccuracy:15, range:4, mag:4, file:'shotgun', ammoType:'shell', splash:1, desc:'1–2 格傷害 60–72、命中 +15；更遠傷害 42–54。目標鄰格受到 45% 濺射傷害。' },
+  // 3.112.0 (user request): range 6 and a 60 degree cone. Close and middle bands keep their numbers; 5-6 tiles is new and weak.
+  // splash stays for the paths that still fire it at one target: mounted drones and suppressive fire.
+  { id:'shotgun', weaponClass:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, closeRange:2, closeMin:60, closeMax:72, closeAccuracy:15, farFrom:5, farMin:21, farMax:27, cone:30, range:6, mag:4, file:'shotgun', ammoType:'shell', splash:1, desc:'錐形射擊：一發打中錐形內所有目標（包含友軍），每個目標各自判定命中與傷害，被前方單位擋住的打不到。1–2 格 60–72、命中 +15；3–4 格 42–54；5–6 格 21–27。對掩體與門只打單一目標。' },
   { id:'smg', weaponClass:'smg', name:'蜂群衝鋒槍', type:'SUBMACHINE GUN', code:'SM–24', min:13, max:17, range:5, mag:18, file:'smg', ammoType:'pistol', burst:2, desc:'每回合射擊兩發。適合清理近距離輕裝敵人。' },
   { id:'sniper', weaponClass:'sniper', name:'寂靜精準步槍', type:'PRECISION RIFLE', code:'SR–07', min:52, max:66, range:10, mag:3, file:'sniper', ammoType:'rifle', pierce:0.7, aimPenalty:40, desc:'長距離單發重擊，穿透 70% 裝甲與掩體減傷。沒有先原地等待一回合瞄準時，命中 −40。' },
   { id:'plasma', weaponClass:'plasma', name:'極光電漿步槍', type:'PLASMA CARBINE', code:'PL–08', min:35, max:44, range:7, mag:6, file:'plasma', ammoType:'energy', pierce:0.5, desc:'消耗能量電池，穿透 50% 防護並擅長對抗機械。' },

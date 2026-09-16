@@ -19,6 +19,7 @@ export function weaponStats(base,affix=null,actor=null){
   return {...w,name:a.name?`${a.name}・${w.name}`:w.name,affix,affixText:(a.text||'標準型，沒有詞條')+(w.lootOnly?` · ${w.desc}`:'')+(extended?` · 延伸點射：${burstRange} 格內兩發，${burstRange+1}–${burstRange+2} 格單發`:''),
     min:Math.round(w.min*(a.damage||1)),max:Math.round(w.max*(a.damage||1)),
     ...(w.closeRange?{closeMin:Math.round(w.closeMin*(a.damage||1)),closeMax:Math.round(w.closeMax*(a.damage||1))}:{}),
+    ...(w.farFrom?{farMin:Math.round(w.farMin*(a.damage||1)),farMax:Math.round(w.farMax*(a.damage||1))}:{}),
     mag:Math.max(1,Math.floor(w.mag*(a.mag||1))),range:burstRange+(extended?2:0),...(extended?{burstRange}:{}),
     pierce:Math.min(.95,(w.pierce||0)+(a.pierce||0)),extraRounds:rapidFireModifiers(actor).extraRounds,accuracyBonus:(a.accuracy||0)+rapidFireModifiers(actor).accuracyBonus,tracking:a.tracking||0};
 }

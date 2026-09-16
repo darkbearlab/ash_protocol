@@ -47,6 +47,7 @@ import {BARRIER_TYPES,BARRIER_LIMIT,makeBarrier,vaultable,isBarrier,barrierName,
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
+import {coneTargets,shotgunBand} from './shotgun.js';
 import {PREPARED_CATALOG,defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns,isWearable,wornEntry,prepareCost,syncWearableTraits} from './prepared.js';
 import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
@@ -273,7 +274,7 @@ export class Game {
   dropGrenade(id,amount){const def=GRENADES[id],p=this.player,item=this.items.find(o=>o.type===def.item&&distance(o,p)===0);if(item)item.amount=(item.amount??1)+amount;else this.items.push({x:p.x,y:p.y,type:def.item,amount});}
   trimGrenades(){let excess=grenadeTotal(this.player)-this.ammoCapacity('grenade');for(const [id,def]of Object.entries(GRENADES)){const n=Math.min(Math.max(0,excess),this.player[def.resource]);if(n){this.player[def.resource]-=n;this.dropGrenade(id,n);excess-=n;}}}
   supplyPack(amounts){for(const [type,amount]of Object.entries(amounts))this.receiveAmmo(type,amount);}
-  weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index);if(w.unarmed)return {min:w.min,max:w.max};const close=target&&w.closeRange&&distance(this.player,target)<=w.closeRange,bonus=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5;return {min:(close?w.closeMin:w.min)+bonus,max:(close?w.closeMax:w.max)+bonus};}
+  weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index);if(w.unarmed)return {min:w.min,max:w.max};const band=target?shotgunBand(w,distance(this.player,target)):{min:w.min,max:w.max},bonus=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5;return {min:band.min+bonus,max:band.max+bonus};}
   fail(text){this.log(text);return false;}
   // The only place the prepared slot is written. Wearables hang their passives off it, so the two can never drift.
   setPrepared(category,id){this.player.prepared[category]=id;syncWearableTraits(this.player);return true;}
@@ -565,10 +566,37 @@ export class Game {
     this.log(hits.size?`榴彈落地爆炸，波及 ${hits.size} 名敵人。`:'榴彈落地爆炸。');
     return true;
   }
+  // 3.112.0 (user request): one shell, every enemy and ally the cone reaches, each rolling its own hit and damage band.
+  fireCone(aim){
+    const p=this.player,w=this.weapon;
+    if(p.ammo[p.weapon]<=0)return this.fail('彈匣已空，請裝填。');
+    p.facing=[Math.sign(aim.x-p.x),Math.sign(aim.y-p.y)];
+    const targets=coneTargets(this,p,aim,w),hits=new Set();
+    presentStep(this,()=>{
+      this.recordExposure(p,aim);p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
+      if(!targets.length){
+        this.effects.push({type:'shot',weaponId:w.id,style:'bullet',from:{x:p.x,y:p.y},to:{x:aim.x,y:aim.y},damage:0,miss:true});
+        this.log('霰彈沒有打中任何目標。',false,'霰彈落空。');return;
+      }
+      for(const o of targets){
+        const band=this.weaponDamage(p.weapon,o),damage=band.min+Math.floor(this.rng()*(band.max-band.min+1));
+        const chance=this.accuracy(p,o).chance,hit=this.rng()*100<chance;
+        this.effects.push({type:'shot',weaponId:w.id,style:'bullet',from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!hit});
+        if(!hit)continue;
+        if(this.enemies.includes(o)){const before=o.hp;this.hitTarget(o,damage,p,w.pierce||0);if(o.hp<before)hits.add(o);}
+        else this.damageAlly(o,damage,p);
+      }
+    });
+    finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),1,0,this);
+    const primary=this.targeted;
+    if(primary&&this.enemies.includes(primary))recordShot(p,primary.id,this.turn);else p.fireChain=null;
+    return true;
+  }
   fire(intent=null) {
     const p=this.player,e=this.targeted,w=this.weapon;
     if(w.melee)return this.strike(intent);
     // A committed shot still fires at the last confirmed tile if its target is lost.
+    if(intent&&w.cone&&(!e||distance(p,e)>w.range||!this.shotClear(p,e)))return this.fireCone(intent);
     if(intent&&(!e||distance(p,e)>w.range||!this.shotClear(p,e))){
       p.facing=[Math.sign(intent.x-p.x),Math.sign(intent.y-p.y)];
       const singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),p.ammo[p.weapon]);
@@ -583,6 +611,8 @@ export class Game {
     if(!e)return this.fail('射線內沒有目標。');
     if(distance(p,e)>w.range)return this.fail('目標超出射程，靠近再開火。');
     if(p.ammo[p.weapon]<=0)return this.fail('彈匣已空，請裝填。');
+    // Doors, cover and barrels are still breached one at a time; an enemy gets the cone.
+    if(w.cone&&this.enemies.includes(e))return this.fireCone(e);
     p.facing=[Math.sign(e.x-p.x),Math.sign(e.y-p.y)];
     const singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),p.ammo[p.weapon]);
     let rounds=0;const hits=new Set();

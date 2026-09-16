@@ -18,7 +18,7 @@ test('six tradeoffs change real stats; launchers never roll meaningless penetrat
   assert.equal(weaponStats(3,'piercing').pierce,.95);assert.equal(weaponStats(3,'piercing').mag,2);
   assert.equal(weaponStats(0,'extended').mag,12);assert.equal(weaponStats(0,'extended').accuracyBonus,-8);
   assert.equal(weaponStats(0,'powerful').min,25);assert.equal(weaponStats(0,'powerful').mag,6);
-  assert.equal(weaponStats(1,'longbarrel').range,6);assert.equal(weaponStats(1,'longbarrel').min,38);
+  assert.equal(weaponStats(1,'longbarrel').range,8,'3.112.0: the shotgun is range 6, and longbarrel still adds 2');assert.equal(weaponStats(1,'longbarrel').min,38);
   assert.equal(weaponStats(0,'tracking').tracking,12);
   const seen=new Set();for(let seed=0;seed<1000;seed++){seen.add(rollAffix(0,seed));assert.notEqual(rollAffix(5,seed),'piercing');}
   assert.equal(seen.size,7);
@@ -69,7 +69,7 @@ test('extended magazine reload and salvage conserve capped ammunition',()=>{
 test('penetration and longer range affect actual attacks; visuals retain gun family',()=>{
   const shoot=affix=>{const g=arena(),e=makeEnemy('brute',14,10,'e');g.enemies=[e];g.target=e.id;g.player.affixes[0]=affix;g.rng=()=>0;g.action('fire');return {hp:e.hp,effect:g.effects.find(o=>o.type==='shot')};};
   const normal=shoot(null),piercing=shoot('piercing');assert.ok(piercing.hp<normal.hp);assert.equal(piercing.effect.weaponId,'rifle');
-  const g=arena(),e=makeEnemy('brute',16,10,'e');g.enemies=[e];g.target=e.id;g.player.weapon=1;assert.equal(g.action('fire'),false);
+  const g=arena(),e=makeEnemy('brute',17,10,'e');g.enemies=[e];g.target=e.id;g.player.weapon=1;assert.equal(g.action('fire'),false,'7 tiles is past the range-6 shotgun');
   g.player.affixes[1]='longbarrel';assert.equal(g.action('fire'),true);
 });
 test('v4 migration preserves old guns, ground weapons, ammo, currency and RNG exactly once',()=>{

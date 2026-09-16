@@ -24,6 +24,7 @@ import {isBarrier,edgeCells} from './barriers.js';
 import {areaCells} from './throwables.js';
 import {cameraFrame} from './camera.js';
 import {targetCardPlacement,actorObstacle,spriteSize} from './target-card.js';
+import {inCone,coneTargets} from './shotgun.js';
 import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTelegraphs} from './engine.js';
 
 // Orthographic board: world +x = screen right, world +y = screen down.
@@ -162,6 +163,17 @@ export class Renderer {
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
     if(this.mode==='launch'&&this.aim)this.markArea(this.aim,1,'#e6a95b33','#eacb84aa','');
+    // 3.112.0: the shotgun's cone, faint on the floor and firm on everyone one shell will reach; red for a friend.
+    const coneAim=this.targetingEnabled&&!this.mode&&g.weapon?.cone&&g.targeted&&g.enemies.includes(g.targeted)?g.targeted:null;
+    if(coneAim){
+      const p=g.player,w=g.weapon,t=this.tile;
+      for(let y=p.y-w.range;y<=p.y+w.range;y++)for(let x=p.x-w.range;x<=p.x+w.range;x++){
+        const cell={x,y};
+        if((x===p.x&&y===p.y)||distance(p,cell)>w.range||g.grid[y]?.[x]!==1||!g.visible(cell)||!inCone(p,coneAim,cell,w.cone))continue;
+        const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,'#e6a95b24');
+      }
+      for(const o of coneTargets(g,p,coneAim,w)){const a=this.projectActor(o),friend=!g.enemies.includes(o);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,friend?'#e9696933':'#e6a95b26',friend?'#f89969cc':'#eacb84aa');}
+    }
     if(this.mode==='suppress'&&this.aim)this.markArea(this.aim,1,'#8fb2ea33','#b8cff5bb','');
     for(const e of g.visibleEnemies.filter(e=>e.charge)) {
       const a=this.projectActor(e),target=unitTree(e).fixedTile&&e.aim?e.aim:g.activeAllies.find(a=>a.id===e.focusTarget)||p,b=this.projectActor(target);
