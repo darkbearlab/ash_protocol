@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {createKillhouse} from '../src/killhouse.js';
-import {killhouseMap,armoryWeapons} from '../src/killhouse-maps.js';
+import {killhouseMap,armoryWeapons,ARMORY_SCRAP} from '../src/killhouse-maps.js';
 import {KILLHOUSE_OPTIONS} from '../src/killhouse-policy.js';
 import {CHARACTERS} from '../src/characters.js';
 import {WEAPONS} from '../src/data.js';
@@ -36,6 +36,17 @@ test('all classes use tiny enemy-free armory; all ammo and unbound weapons suppl
   assert.ok(g.items.filter(i=>i.type==='weapon').every(i=>g.player.affixes[i.slot]===null));assert.ok(AMMO_IDS.every(id=>g.items.some(i=>i.type===AMMUNITION[id].item)));
   const restricted=armoryWeapons(character,'class');assert.ok(restricted.every(i=>CHARACTERS[character].weapons.some(n=>WEAPONS[n].weaponClass===WEAPONS[i].weaponClass)));
  }
+});
+test('armory floor carries scrap, loose on the ground, so the engineer can build inside a simulation',()=>{
+ const g=createKillhouse({mode:'arcade',character:'engineer'});
+ const scrap=g.items.find(i=>i.type==='scrap');
+ // A simulation refuses containers and terminals, so the scrap has to stay a ground item next to the start.
+ assert.ok(scrap);assert.equal(scrap.amount,ARMORY_SCRAP);assert.equal(g.player.scrap,0);
+ assert.equal(g.props.filter(p=>p.type==='container').length,0);
+ const step=[[1,0],[-1,0],[0,1],[0,-1]].find(([dx,dy])=>g.grid[scrap.y-dy]?.[scrap.x-dx]===1);
+ Object.assign(g.player,{x:scrap.x-step[0],y:scrap.y-step[1]});
+ assert.equal(g.action('move',step),true);
+ assert.equal(g.player.scrap,ARMORY_SCRAP);
 });
 test('arcade transitions preserve loadout, do not resupply, and only combat paid turns are scored',()=>{
  const g=createKillhouse({mode:'arcade'});for(let i=0;i<7;i++)g.action('wait');g.player.hp=70;g.player.reserve=5;const before=g.turn;

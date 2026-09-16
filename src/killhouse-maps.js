@@ -45,6 +45,8 @@ export function tutorialMap(){
  for(const [x,y,type,amount]of [[4,5,'ammo',32],[19,7,'med',1],[15,15,'grenade',2],[3,19,'ammo',32],[11,23,'med',1]])items.push({x,y,type,amount});
  return {grid,rooms,cells,openings,annexes:[],barriers,start,end,startRoom:0,endRoom:5,links,mainRoute:[0,1,2,3,4,5],rewardRooms:[],enemies,items,props,hazards:[],marks:[],lighting:fullLighting(grid),mapStyle:'killhouse',killhouseRecipe:recipe.id,tutorialEntrances};
 }
+// Enough for the engineer's opening build; every class may also spend it on one weapon modification.
+export const ARMORY_SCRAP=100;
 export function armoryWeapons(character,selection='all'){
  const owned=CHARACTERS[character].weapons,classes=new Set(owned.map(i=>WEAPONS[i].weaponClass));
  return WEAPONS.flatMap((w,i)=>(!w.locked&&(selection==='all'||classes.has(w.weaponClass)))?[i]:[]);
@@ -56,5 +58,8 @@ export function killhouseMap(seed,phase,character,options){
  for(const weapon of armoryWeapons(character,options.armory))items.push({...cells.shift(),type:'weapon',weapon});
  for(const id of AMMO_IDS)items.push({...cells.shift(),type:AMMUNITION[id].item,amount:AMMUNITION[id].base*3});
  for(const type of ['grenade','smoke','emp','stun'])items.push({...cells.shift(),type,amount:4});
+ // Scrap on the armory floor (3.99.0, user request): a simulation gives nothing from containers or terminals, so
+ // without this the engineer cannot build a single unit. Appended last, so the other supplies keep their tiles.
+ items.push({...cells.shift(),type:'scrap',amount:ARMORY_SCRAP});
  return {grid,rooms:[r],barriers:[],start:{x:11,y:13},end:{x:15,y:13},startRoom:0,endRoom:0,links:[],mainRoute:[0],rewardRooms:[],enemies:[],items,props:[],hazards:[],marks:[],lighting:fullLighting(grid),mapStyle:'killhouse',killhouseRecipe:'armory'};
 }
