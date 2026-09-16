@@ -32,6 +32,9 @@
 .action-buttons .action.primary{background:#dc935d;border-color:#f4b17b;color:#20281c}
 .action-icon{font:23px/1 var(--mono);margin:0}.action strong{font-size:10px;font-weight:500;white-space:normal;text-align:center}.action b{font:10px var(--mono);margin:0}
 .action.aiming{border-color:#f5be76!important;background:#826037!important;color:#ffe2af!important}
+/* 3.109.0 (user request): carried cover picks its side with the direction keys, so those four are what the deck is
+   waiting for — light them the same way as any other armed button. */
+.control-deck [data-move].aiming{border-color:#f5be76;background:#826037;color:#ffe2af}
 /* Nine-cell pad (3.98.0, user request): reload and interact move into the 7 and 9 corners, which leaves four larger
    action buttons on the right. The two buttons keep their identity and handlers; only their parent and look change. */
 .control-deck.corner-pad{align-items:stretch}

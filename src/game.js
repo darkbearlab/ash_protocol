@@ -43,7 +43,7 @@ import {addTrace,spentCase,validTraces} from './traces.js';
 import {missionDefinition,missionDepth,returning,exitPoint,exitLabel,deepestFloor,newMission,prepareMission,validMission,missionObjects,missionTarget,missionSummary,exitBlocked} from './missions.js';
 import {validModules} from './modules.js';
 import {isContainer,containerName,validContainers,rigContainers,isRigged,RIG_TUNING} from './containers.js';
-import {BARRIER_TYPES,vaultable,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,firstBarrierOnRay,validBarriers} from './barriers.js';
+import {BARRIER_TYPES,BARRIER_LIMIT,makeBarrier,vaultable,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,firstBarrierOnRay,validBarriers} from './barriers.js';
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
@@ -66,6 +66,7 @@ export const TERMINAL_ITEMS={
  spray:{cost:15,resource:'sprays'},
  adrenaline:{cost:20,resource:'adrenaline'},
  nvg:{cost:40,wear:'nvg'},
+ barricade:{cost:25,resource:'barricades'},
 };
 export const terminalCost=option=>TERMINAL_ITEMS[option]?.cost??TERMINAL_AMMO[option]?.cost??(option==='grenade'?12:GRENADES[option]?.cost??15);
 // One answer to "can this be bought", shared by validateAction, useTerminal and the terminal screen. 3.106.0 shipped
@@ -85,6 +86,20 @@ export function terminalReason(g,option){
  if(option==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=g.ammoCapacity(id)))return '各類備彈皆已滿。';
  return '';
 }
+// 3.109.0 (user request): carried cover goes on the edge between you and the side you pick, so any of the four
+// sides is one action — no turning — and because a low partition can be vaulted it can never seal a corridor.
+export const DEPLOY_COVER='low_partition';
+export function deployCoverReason(g,arg){
+ const p=g.player;
+ if(!p.barricades)return '沒有摺疊掩體';
+ if(!Array.isArray(arg)||!Number.isInteger(arg[0])||!Number.isInteger(arg[1])||Math.abs(arg[0])+Math.abs(arg[1])!==1)return '先選一個方向';
+ const spot={x:p.x+arg[0],y:p.y+arg[1]};
+ if(g.grid[spot.y]?.[spot.x]!==1)return '那一側不是平地';
+ const edge=barrierBetween(g.barriers,p,spot);
+ if(edge&&edge.hp>0)return `那一側已經有${barrierName(edge)}`;
+ if(!edge&&g.barriers.length>=BARRIER_LIMIT)return '這一層的障礙物已經太多';
+ return '';
+}
 const ITEM_BY_ACTION=Object.fromEntries(Object.entries(PREPARED_CATALOG.item).map(([id,entry])=>[entry.action,id]));
 // 3.107.0 (user request): consumables are usable straight from the pack, so the pack has to know why a button is
 // dead before the modal closes. One helper answers both it and validateAction, so the two can never disagree.
@@ -98,7 +113,7 @@ export function itemUseReason(g,id){
  if(entry.action==='surge')return p.control.disabled?'失能中無法使用':g.shadowSteps?'免費移動還沒用完':p.hp>SURGE_COST?'':'生命不足以承受';
  return '';
 }
-const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -300,6 +315,7 @@ export class Game {
     if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail('彈匣已滿或沒有對應備彈。');
     // Consumables (3.106.0). Adrenaline is free to use but may never be the thing that kills you; the reasons
     // live in itemUseReason so the pack can grey the same buttons this would refuse.
+    if(type==='deployCover'){const reason=deployCoverReason(this,arg);return !reason||this.fail(reason+'。');}
     if(ITEM_BY_ACTION[type]){const reason=itemUseReason(this,ITEM_BY_ACTION[type]);return !reason||this.fail(reason+'。');}
     if(type==='grenade')return (p[preparedEntry(p,'grenade').resource]>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail('需要手榴彈與視線內 5 格的有效落點。');
     if(type==='weapon')return (p.owned.includes(Number(arg))&&Number(arg)!==p.weapon)||this.fail('無法換裝此武器。');
@@ -472,6 +488,16 @@ export class Game {
         if(room<=0)return this.fail('護甲板已滿。');
         p.sprays--;const gained=Math.min(SPRAY_PLATES,room);p.plates=(p.plates||0)+gained;
         this.log(`使用修復噴劑，護甲板 +${gained}。`);success=true;break;
+      }
+      case 'deployCover': {
+        const reason=deployCoverReason(this,arg);
+        if(reason)return this.fail(reason+'。');
+        const spot={x:p.x+arg[0],y:p.y+arg[1]},dead=barrierBetween(this.barriers,p,spot);
+        const built=makeBarrier(DEPLOY_COVER,p,spot,dead?.id||`edge-deploy-${this.floor}-${spot.x}-${spot.y}-${p.x!==spot.x?'x':'y'}`);
+        // Rebuilding over a wreck keeps its id and edge, so the barrier list can never grow a duplicate.
+        if(dead)Object.assign(dead,built);else this.barriers.push(built);
+        p.barricades--;p.facing=[arg[0],arg[1]];
+        this.log('架起摺疊掩體。');success=true;break;
       }
       case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
       case 'weapon': {
@@ -929,7 +955,8 @@ export class Game {
       if(!validPortrait(p.portrait))return null;
       if(version<8){p.prepared=defaultPrepared();p.skills=[];}
       // Wearables are owned (3.108.0) and validPrepared reads the raw player, so the default has to land before it.
-      if(version<53&&data.player)data.player.wearables??=[];
+      // An absent list simply means none owned, whatever the version claims; a malformed one is still rejected below.
+      if(data.player)data.player.wearables??=[];
       if(!validPrepared(version>=8?data.player:p))return null;
       if(version<7){p.traits=[];for(const e of data.enemies)e.traits=startingTraits(e.type,data.floor);}
       if((version>=7&&!validTraits(data.player.traits))||!validTraits(p.traits)||data.enemies.some(e=>!validTraits(e.traits)))return null;
@@ -1024,6 +1051,8 @@ export class Game {
       if(version<31)g.classPerkMisses=0;
       // 3.106.0: two new consumables; older saves simply have none of either.
       if(version<52){g.player.sprays??=0;g.player.adrenaline??=0;}
+      // 3.109.0: carried cover; older saves have none.
+      if(version<54)g.player.barricades??=0;
       // 3.108.0: the worn item's passives are derived from the slot, never trusted from the file.
       g.player.wearables??=[];syncWearableTraits(g.player);
       if(version<33)g.pursuit=0;

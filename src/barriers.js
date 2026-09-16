@@ -34,8 +34,10 @@ export function firstBarrierOnRay(edges,from,to,channel='shot'){
     if(t>0&&t<=1&&Math.abs(along-center)<=.500001)hits.push({b,t});
   }return hits.sort((a,b)=>a.t-b.t)[0]?.b||null;
 }
+// The cap the loader has always enforced, named so the deploy rule can refuse before it writes an illegal save.
+export const BARRIER_LIMIT=256;
 export function validBarriers(edges,grid,ids=[]){
-  if(!Array.isArray(edges)||edges.length>256)return false;
+  if(!Array.isArray(edges)||edges.length>BARRIER_LIMIT)return false;
   const keys=new Set(),names=new Set(ids);
   for(const b of edges){
     if(!b||!Object.hasOwn(BARRIER_TYPES,b.type)||!['x','y'].includes(b.axis)||typeof b.id!=='string'||!/^edge-[a-zA-Z0-9_-]{1,90}$/.test(b.id)||names.has(b.id))return false;

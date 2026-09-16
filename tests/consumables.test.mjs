@@ -60,7 +60,7 @@ test('adrenaline can never be the thing that kills you, and does not stack',()=>
 });
 
 test('the terminal sells both up to a carry cap, and old saves migrate to none',()=>{
- assert.equal(SAVE_VERSION,53);
+ assert.equal(SAVE_VERSION,54);
  const g=run(),p=g.player;
  p.sprays=TERMINAL_STOCK;p.adrenaline=TERMINAL_STOCK;p.scrap=999;
  const terminal={type:'terminal',x:p.x,y:p.y,used:false};

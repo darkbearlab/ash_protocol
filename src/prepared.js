@@ -10,6 +10,9 @@ export const PREPARED_CATALOG={
   item:{medkit:{name:'醫療包',short:'醫療包',icon:'✚',resource:'meds',action:'heal',text:'回復生命並清除中毒。使用消耗 1 回合，滿血且未中毒時不消耗。'},
    spray:{name:'修復噴劑',short:'噴劑',icon:'▣',resource:'sprays',action:'plate',text:'補上 20 點護甲板。使用消耗 1 回合，護甲板已滿時無法使用。'},
    adrenaline:{name:'腎上腺素',short:'腎上腺素',icon:'⚡',resource:'adrenaline',action:'surge',text:'不消耗回合。接下來可免費移動 2 格，做其他事就結束；代價是 15 生命。'},
+   // 3.109.0 (user request): cover you carry. It goes on an edge rather than a tile, so it can be vaulted and can
+   // never seal a corridor, and `aim:'side'` tells the UI to ask for a direction before running the action.
+   barricade:{name:'摺疊掩體',short:'掩體',icon:'▬',resource:'barricades',action:'deployCover',aim:'side',text:'在身邊任一側的邊線架起矮隔板：擋住移動並提供掩體，但不擋視線與射線，任何人都能翻越（翻越者下次被射擊命中 +20）。使用消耗 1 回合。'},
    // 3.108.0 (user, docs/ITEMS.md): the first wearable. It has no action — the prepared slot is its 生效欄, not a
    // quick-use slot — so wearing it is what does the work, and the item button greys while it is on.
    nvg:{name:'夜視鏡',short:'夜視',icon:'◉',wear:true,traits:['night_vision'],text:'佩戴期間忽略目標暗區的射擊命中懲罰（不穿煙）。戴上與脫下各消耗 1 回合，佩戴期間道具鍵停用。'}},
