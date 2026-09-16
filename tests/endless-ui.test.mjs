@@ -28,7 +28,7 @@ test('cap supply log names every item of the real supply',()=>{
 
 test('endless arrival text: no tutorial line past floor 6 and no extraction wording on core floors',()=>{
  assert.doesNotMatch(endlessFloorText(6),/撤離/);assert.doesNotMatch(endlessFloorText(12),/撤離/);
- assert.doesNotMatch(endlessFloorText(13),/熟悉掩體/);assert.match(endlessFloorText(1),/熟悉掩體/);assert.equal(endlessFloorText(8),endlessFloorText(2));
+ assert.doesNotMatch(endlessFloorText(13),/殘存補給/);assert.match(endlessFloorText(1),/殘存補給/);assert.equal(endlessFloorText(8),endlessFloorText(2));
 });
 
 test('rules texts quote the tuning constants',()=>{

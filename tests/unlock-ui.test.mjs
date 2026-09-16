@@ -34,7 +34,7 @@ test('unlock page shows prices, refusal reasons and hints; story text is escaped
 
 test('results list only stories the profile saved, death lists lost data, and locked classes show in deploy and kill house',()=>{
   const p=normalizeProfile();p.unlocks.stories.push('qa-saved');
-  assert.match(resultStoriesMarkup({status:'won',pendingStories:['qa-saved','qa-unsaved']},p),/解鎖故事 1/);
+  assert.match(resultStoriesMarkup({status:'won',pendingStories:['qa-saved','qa-unsaved']},p),/解鎖設施紀錄 1/);
   assert.match(resultStoriesMarkup({status:'won',pendingStories:['qa-unsaved']},p),/沒有寫入/);
   assert.match(resultStoriesMarkup({status:'dead',pendingStories:['qa-unsaved']},p),/資料遺失 1/);
   assert.equal(resultStoriesMarkup({status:'won',pendingStories:[]},p),'');

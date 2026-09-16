@@ -31,7 +31,7 @@ export const growthLabel=floor=>floor<=6?'':`敵人生命 ×${((1+ENDLESS_TUNING
 // extraction wording on core floors (endless never extracts).
 export function endlessFloorText(floor){
   const info=floorInfo(floor);
-  if(info.cycleFloor===6)return '擊敗本層頭目才能開電梯；注意頭目的預告標記。';
+  if(info.cycleFloor===6)return '電梯由頭目鎖定。留意預告標記。';
   if(info.cycleFloor===1&&floor>6)return '深層重新循環：敵人更多、更強，精英可能帶快速、紅外線或夜視。';
   return info.text;
 }

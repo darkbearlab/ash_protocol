@@ -29,12 +29,12 @@ export const WEAPONS = [
 for(const [base,id] of [[9,'loot_axe'],[10,'loot_katana']]){const {locked,boundCharacter,...weapon}=WEAPONS[base];WEAPONS.push({...weapon,id,lootOnly:true,type:'MELEE WEAPON',desc:'拾獲近戰武器，雙向切換免費，可交換、拆解與改裝。'});}
 export const FLOORS = ['軌道轉運站','污染冷卻區','軍械封鎖區','生化培養艙','高壓熔爐','深淵反應核心'];
 export const FLOOR_INFO = [
-  { color:'#a4b484', subtitle:'TRANSIT HUB', text:'轉運站仍有備用物資。熟悉掩體，收集裝備。', hazard:null },
-  { color:'#73b8a0', subtitle:'COOLANT WORKS', text:'綠色污染格會造成傷害。保持距離，別踩進毒液。', hazard:'acid' },
-  { color:'#cead71', subtitle:'ARMORY LOCKDOWN', text:'擊敗本層頭目才能開啟電梯。軍械箱內有新式武器。', hazard:null, get boss(){return factionBoss(DEFAULT_FACTION,3);} },
-  { color:'#bc89b6', subtitle:'BIO CULTURE', text:'自爆單位會引爆周遭油桶；地面散布綠色毒液。', hazard:'acid' },
-  { color:'#de885a', subtitle:'THERMAL FORGE', text:'熔爐地板炙熱。重裝單位與狙擊手守住長廊。', hazard:'fire' },
-  { color:'#d56e60', subtitle:'ABYSS CORE', text:'擊敗本層頭目，再啟動撤離。注意頭目的預告標記。', hazard:'fire', get boss(){return factionBoss(DEFAULT_FACTION,6);} },
+  { color:'#a4b484', subtitle:'TRANSIT HUB', text:'轉運站。殘存補給未清點。', hazard:null },
+  { color:'#73b8a0', subtitle:'COOLANT WORKS', text:'冷卻區遭污染，綠色格會造成傷害。', hazard:'acid' },
+  { color:'#cead71', subtitle:'ARMORY LOCKDOWN', text:'電梯由頭目鎖定。軍械箱內存有新式武器。', hazard:null, get boss(){return factionBoss(DEFAULT_FACTION,3);} },
+  { color:'#bc89b6', subtitle:'BIO CULTURE', text:'自爆單位會引爆周遭油桶。地面有綠色毒液。', hazard:'acid' },
+  { color:'#de885a', subtitle:'THERMAL FORGE', text:'熔爐地板高溫。重裝單位與狙擊手據守長廊。', hazard:'fire' },
+  { color:'#d56e60', subtitle:'ABYSS CORE', text:'頭目擊殺後方可撤離。留意預告標記。', hazard:'fire', get boss(){return factionBoss(DEFAULT_FACTION,6);} },
 ];
 export function floorInfo(floor){const index=((floor-1)%FLOORS.length+FLOORS.length)%FLOORS.length;return {...FLOOR_INFO[index],name:FLOORS[index],cycleFloor:index+1,weapon:[2,3,4,5,3,4][index]};}
 export const ENEMY_TYPES = {

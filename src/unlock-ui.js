@@ -13,11 +13,11 @@ const characterLabel=id=>CHARACTERS[id]?.label||id;
 const factionName=id=>id==='any'?'任何設施':FACTIONS[id]?.name||id;
 const floorsLabel=([from,to])=>from===to?`第 ${from} 層`:`第 ${from}–${to} 層`;
 
-export const UNLOCK_TABS={characters:'職業',stories:'故事'};
+export const UNLOCK_TABS={characters:'職業',stories:'設施紀錄'};
 export const CORPSE_HINT='無盡第 8 層起可能發現遺體，回收即解鎖。';
-export const UNLOCK_HELP='主選單 UNLOCKS 用協定點數解鎖職業與故事。無盡模式第 8 層起，樓層可能有失聯行動員的遺體，進入樓層時會提示識別訊號；靠近後按右下互動回收，不耗回合，立即解鎖，這局陣亡也會保留。沒回收就換層，這一局不會再出現同一個職業。戰役的資料物件會帶回一段故事，成功撤離才解鎖，陣亡或放棄就遺失。';
+export const UNLOCK_HELP='主選單 UNLOCKS 用協定點數解鎖職業與設施紀錄。無盡模式第 8 層起，樓層可能有失聯幹員的遺體，進入樓層時會提示識別訊號；靠近後按右下互動回收，不耗回合，立即解鎖，這局陣亡也會保留。沒回收就換層，這一局不會再出現同一個職業。戰役的資料物件會帶回一份設施紀錄，成功撤離才解鎖，陣亡或放棄就遺失。';
 export const storyHint=s=>`戰役 · ${factionName(s.faction)} · ${floorsLabel(s.floors)}的資料物件，撤離後解鎖。`;
-export const operatorSignal=g=>g.operatorCorpse&&!g.operatorCorpse.recovered?' 偵測到失聯行動員的識別訊號。':'';
+export const operatorSignal=g=>g.operatorCorpse&&!g.operatorCorpse.recovered?' 偵測到失聯幹員的識別訊號。':'';
 
 // Mirrors the refusals in unlock-catalog.grantUnlock so a disabled button can say why; the write still decides.
 export function purchaseReason(profile,entry,{settings=UNLOCK_SETTINGS,available=true}={}){
@@ -46,16 +46,16 @@ export function unlockPageMarkup(profile,{tab='characters',message='',settings=U
   const archived=RETIRED_STORY_IDS.filter(id=>profile.unlocks.stories?.includes(id));
   const tabs=`<div class="inventory-tabs unlock-tabs" role="tablist" aria-label="解鎖分類">${Object.entries(UNLOCK_TABS).map(([id,label])=>`<button role="tab" aria-selected="${id===tab}" data-unlock-tab="${id}">${label}</button>`).join('')}</div>`;
   const panel=tab==='stories'
-    ?`<div class="story-list">${stories.map(s=>storyEntry(profile,s,options)).join('')}${archived.map(()=>'<div class="story-entry archived"><h3>已封存</h3><p>這段紀錄已從資料庫移除，解鎖紀錄保留。</p></div>').join('')}${stories.length||archived.length?'':'<p>尚無故事。</p>'}</div>`
+    ?`<div class="story-list">${stories.map(s=>storyEntry(profile,s,options)).join('')}${archived.map(()=>'<div class="story-entry archived"><h3>已封存</h3><p>這段紀錄已從資料庫移除，解鎖紀錄保留。</p></div>').join('')}${stories.length||archived.length?'':'<p>尚無設施紀錄。</p>'}</div>`
     :`<div class="upgrade-grid unlock-grid">${classes.map(id=>characterCard(profile,id,options)).join('')}</div>`;
   return `<div class="eyebrow">PROTOCOL / UNLOCKS</div><h2>解鎖</h2>
-<p>協定點數 <b>${profile.protocol.balance}</b> · 職業 ${classes.filter(id=>unlocked(profile,id)).length}/${classes.length} · 故事 ${stories.filter(s=>unlocked(profile,s.id)).length}/${stories.length}<br>${settings.demo?'試玩版只開放起始三個職業。':'點數在任務中累積，陣亡也保留。職業也能在無盡深處回收，故事也能從戰役撤離帶回。'}</p>
+<p>協定點數 <b>${profile.protocol.balance}</b> · 職業 ${classes.filter(id=>unlocked(profile,id)).length}/${classes.length} · 紀錄 ${stories.filter(s=>unlocked(profile,s.id)).length}/${stories.length}<br>${settings.demo?'試玩版只開放起始三個職業。':'點數在任務中累積，陣亡也保留。職業也能在無盡深處回收，設施紀錄也能從戰役撤離帶回。'}</p>
 ${tabs}${message?`<p role="status">${escapeHTML(message)}</p>`:''}<section role="tabpanel">${panel}</section>
 <button class="modal-button secondary" data-modal="intro">← 返回主選單</button>`;
 }
 
 export function purchaseConfirmMarkup(profile,id){
-  const entry=unlockEntry(id),story=entry.kind==='story',name=story?`故事「${escapeHTML(entry.title)}」`:`職業「${characterLabel(id)}」`;
+  const entry=unlockEntry(id),story=entry.kind==='story',name=story?`設施紀錄「${escapeHTML(entry.title)}」`:`職業「${characterLabel(id)}」`;
   return `<div class="eyebrow">PROTOCOL / CONFIRM</div><h2>解鎖${name}？</h2><p>花費 ${entry.price} 協定點數，剩餘 ${profile.protocol.balance-entry.price}。解鎖永久保留。</p>
 <button class="modal-button" data-unlock-confirm="${escapeHTML(id)}">確認解鎖</button><button class="modal-button secondary" data-unlock-tab="${story?'stories':'characters'}">取消</button>`;
 }
@@ -71,7 +71,7 @@ export function resultStoriesMarkup(game,profile){
   const pending=game.pendingStories||[];if(!pending.length)return '';
   const title=id=>escapeHTML(STORIES.find(s=>s.id===id)?.title||'已封存的紀錄');
   if(game.status==='won'){const saved=pending.filter(id=>profile.unlocks.stories?.includes(id));
-    return `<section class="result-unlocks"><h3>解鎖故事 ${saved.length}</h3><p>${saved.length?`${saved.map(title).join('、')}<br>可到主選單 UNLOCKS 的故事頁閱讀。`:'撤離紀錄沒有寫入，這次的故事暫時沒有解鎖。'}</p></section>`;}
+    return `<section class="result-unlocks"><h3>解鎖設施紀錄 ${saved.length}</h3><p>${saved.length?`${saved.map(title).join('、')}<br>可到主選單 UNLOCKS 的設施紀錄頁閱讀。`:'撤離紀錄沒有寫入，這次的設施紀錄暫時沒有解鎖。'}</p></section>`;}
   return `<section class="result-unlocks lost"><h3>資料遺失 ${pending.length}</h3><p>沒有撤離，這次帶著的資料沒有解鎖：${pending.map(title).join('、')}。</p></section>`;
 }
 

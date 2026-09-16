@@ -12,5 +12,5 @@ export function deploymentPortraits(characters,random=Math.random){
 export const portraitPath=id=>`./assets/pixel/portraits/${validPortrait(id)?id:PORTRAITS[0]}.png`;
 export function portraitMarkup(id,outcome='playing'){
   const dead=outcome==='dead';
-  return `<span class="operator-portrait${dead?' is-kia':''}"><img src="${portraitPath(id)}" width="64" height="64" alt="行動員頭像" draggable="false">${dead?'<b class="kia-stamp" aria-label="陣亡">KIA</b>':''}</span>`;
+  return `<span class="operator-portrait${dead?' is-kia':''}"><img src="${portraitPath(id)}" width="64" height="64" alt="幹員頭像" draggable="false">${dead?'<b class="kia-stamp" aria-label="陣亡">KIA</b>':''}</span>`;
 }
