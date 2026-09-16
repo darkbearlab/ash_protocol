@@ -77,3 +77,21 @@ test('shooting it down sets it off where it stands, out of reach of the player',
  assert.equal(m.hp,0);
  assert.equal(p.hp,hp,'at strike range the blast cannot reach the player');
 });
+
+test('the munition is only visible from inside its own hook range',()=>{
+ assert.equal(ENEMY_TYPES.munition.revealRange,ENEMY_TYPES.munition.range,'seen exactly when it can reach you');
+ const {g,p,e}=scene();
+ g.rng=()=>0;g.enemyAct(e);
+ const [m]=munitions(g);
+ assert.equal(distance(m,p),STRIKE);
+ assert.ok(g.visible(m),'it shows itself the moment it arrives');
+ assert.ok(g.visibleEnemies.includes(m));
+ // One step back and it is gone: no sprite, no target, no exposure count.
+ p.x-=Math.sign(m.x-p.x)||1;
+ assert.ok(distance(m,p)>STRIKE);
+ assert.equal(g.visible(m),false);
+ assert.equal(g.visibleEnemies.includes(m),false);
+ assert.equal(g.teamVisible(m),false);
+ // The launcher itself has no reveal range, so it stays visible at the same distance.
+ assert.ok(g.visible(e));
+});

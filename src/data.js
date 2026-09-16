@@ -115,7 +115,8 @@ export const LORE = STORIES.map(s=>s.body);
 // step back escapes it, and on its next turn it hooks itself to the player's side and detonates. Low hp on purpose —
 // shooting it down has to be reliable, or the one turn of warning is not really a choice.
 ENEMY_TYPES.munition={sprite:{key:'drone'},drawing:{shape:'drone',color:'#e0a65c',glow:'#f0b06a44'},glyph:'◈',tags:['flying'],traits:['no_cover'],behavior:'munition',rounds:1,attackStyle:'plasma',projectile:'plasma',
- name:'浮游彈藥',hp:10,damage:34,range:3,armor:0,color:'#e0a65c',xp:1,mechanical:true,expendable:true,
+ // revealRange matches range on purpose: you see it exactly when it is close enough to hook you (3.105.0, user request).
+ name:'浮游彈藥',hp:10,damage:34,range:3,revealRange:3,armor:0,color:'#e0a65c',xp:1,mechanical:true,expendable:true,
  role:'出現後下一回合以鉤索移到你身邊引爆。退出射程或直接打下來。'};
 ENEMY_TYPES.civilian={tags:['noncombatant'],traits:[],behavior:'civilian',voice:'civilian',name:'滯留研究員',hp:12,damage:0,range:0,rounds:0,armor:0,xp:0,color:'#d9ddd2',sprite:{key:'civilian'},drawing:{color:'#d9ddd2',unarmed:true},role:'不戰鬥的設施人員。看到你會尖叫並一直逃跑。'};
 

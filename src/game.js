@@ -120,8 +120,13 @@ export class Game {
   get nearbyTerminal(){return this.props.find(o=>o.type==='terminal'&&!o.used&&this.canTouch(o));}
   get groundWeapon(){return this.items.find(o=>o.type==='weapon'&&this.canTouch(o));}
   get cover(){if(activeTrait(this.player,'no_cover'))return [];return [...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,this.player)===1),...adjacentWalls(this.grid,this.player),...this.barriers.filter(b=>edgeAdjacent(b,this.player)&&edgeBlocks(b,'cover'))];}
-  visible(e){return distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e));}
-  teamVisible(e){return this.visible(e)||this.activeAllies.some(a=>connected(this,a)&&distance(a,e)<=8&&this.sight(a,e));}
+  // Detection range (3.105.0, user request): a card may only be seen from close up, whatever the light or the line of
+  // sight. It is per card so each unit can set its own — the loitering munition uses its own hook range, so it shows
+  // itself exactly when it could reach you. Everything funnels through visible()/teamVisible(), so drawing, targeting,
+  // the exposure count and the allies all obey the same number.
+  revealed(watcher,e){const reach=ENEMY_TYPES[e?.type]?.revealRange;return reach===undefined||distance(watcher,e)<=reach;}
+  visible(e){return this.revealed(this.player,e)&&distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e));}
+  teamVisible(e){return this.visible(e)||this.activeAllies.some(a=>connected(this,a)&&this.revealed(a,e)&&distance(a,e)<=8&&this.sight(a,e));}
   sight(a,b){syncPetSenses(this);return !(b===this.player&&a!==this.player&&skillActive(this.player))&&tacticalSight(this,a,b);}
   shotClear(a,b){return cornerRay(this,a,b).clear;}
   attackStatus(a,b){return cornerStatus(this,a,b);}
