@@ -142,7 +142,8 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
     if(i%3===1)props.push({id:`${floor}-barrel-${i}`,x:r.x+r.w-1,y:r.y+r.h-2,type:'barrel',hp:18,maxHp:18});
     props.push({id:`${floor}-console-${i}`,x:r.x+r.w-1,y:r.y,type:'terminal',used:false});
     // 3.110.0 (user request): about half of everything in a case used to be ammunition, and ammunition is capped, so
-    // a full pack turned a case into "已滿，留在原地". 3.110.1 takes the cut the whole way to a third: the cache now
+    // a full pack turned a case into "已滿，留在原地". Taking this cycle from mod 3 to mod 5 swaps one rifle slot AND one
+    // pistol slot (not only rifle, as 3.110.0 first claimed). 3.110.1 takes the cut the whole way to a third: the cache now
     // carries the three rounds usable from floor 1, and the two late weapons' ammunition (energy, launcher) comes
     // from the start-room drop on the floors those weapons can actually appear on.
     if(i===startRoom||i%2===0)items.push({x:r.x+1,y:r.y+r.h-2,type:i===startRoom?'med':['ammo','pistol','shell','spray','adrenaline'][Math.floor(i/2)%5]});

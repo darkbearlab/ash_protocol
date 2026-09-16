@@ -48,7 +48,8 @@ test('every floor stocks the field kit, and ammunition is no longer half the con
  const total=Object.values(byType).reduce((a,b)=>a+b,0);
  for(const id of FIELD_ITEMS)assert.ok(rate(id)>=.7,`${id} appears ${rate(id).toFixed(2)}/floor`);
  assert.ok(ammo/total<.35,`ammunition is ${(100*ammo/total).toFixed(1)}% of case contents`);
- // Pistol and shotgun supply is untouched: the user reports the SMG starving late and the shotgun already weakest.
+ // Shells are untouched and pistol rounds stay common. Pistol rounds DID drop (2.80 -> 1.81 per floor) in 3.110.0,
+ // despite what that release first said; the floor below keeps a future change from starving the SMG further.
  assert.ok(rate('pistol')>=1.5,'pistol rounds stay common');
  assert.ok(rate('shell')>=1.5,'shells stay common');
 });
