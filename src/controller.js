@@ -51,7 +51,7 @@ import {targetDetails} from './target-card.js';
 import {enemyGlyph,floorTraitNote} from './enemy-visuals.js';
 import {unitTree} from './behavior-tree.js';
 import {read,write,loadGame,saveGame,storage,profile,recordResult,TEST_MODE,exportBackup,previewBackup,restoreBackup,abandonRun,resetProgress} from './storage.js';
-import {DECK_GRID,DECK_COLUMNS,deckPlacement} from './deck-layout.js';
+import {DECK_GRID,DECK_COLUMNS,DECK_SLOTS,DECK_LABELS,DECK_GLYPHS,deckPlacement,mirrorDeck,swapSlots,parseDeckLayout} from './deck-layout.js';
 
 const $=s=>document.querySelector(s),audio=new AudioFX();
 const savedGame=loadGame();
@@ -69,6 +69,8 @@ const PAD_SIZES=[44,52,60,68],PAD_LABELS={44:'標準',52:'大',60:'特大',68:'�
 // size setting has nothing to say there, because the cell size is the deck width divided by five.
 const DECK_LAYOUTS=['classic','corner','grid'],DECK_LAYOUT_LABELS={classic:'經典',corner:'九宫格',grid:'格狀'},GRID_CELL_MAX=76;
 let padLayout=DECK_LAYOUTS.includes(read('ash-pad-layout'))?read('ash-pad-layout'):'classic';
+let deckLayout=parseDeckLayout(read('ash-deck-layout'))||[...DECK_GRID];
+let deckPick=null;
 let padCell=PAD_SIZES.includes(Number(read('ash-pad-cell')))?Number(read('ash-pad-cell')):PAD_SIZES[0];
 renderer.boundaryOpacity=boundaryOpacityPercent(read('ash-boundary-opacity'));
 {const color=read('ash-operator-color');renderer.operatorColor=validOperatorColor(color)?color:DEFAULT_OPERATOR_COLOR;}
@@ -381,7 +383,7 @@ function applyDeck(){
   const deck=$('.control-deck'),pad=$('.direction-pad'),actions=$('.action-buttons'),corner=padLayout==='corner',grid=padLayout==='grid';
   deck.classList.toggle('corner-pad',corner);deck.classList.toggle('grid-deck',grid);
   for(const button of deck.querySelectorAll('button'))button.style.gridArea='';
-  if(grid)for(const {selector,row,column} of deckPlacement(DECK_GRID)){const button=$(selector);pad.append(button);button.style.gridArea=`${row}/${column}`;}
+  if(grid)for(const {selector,row,column} of deckPlacement(deckLayout)){const button=$(selector);pad.append(button);button.style.gridArea=`${row}/${column}`;}
   else{
     // Back to the two containers in markup order, so classic and 九宫格 are unchanged by the grid existing.
     pad.append($('[data-move="0,-1"]'),$('[data-move="-1,0"]'),$('[data-action="wait"]'),$('[data-move="1,0"]'),$('[data-move="0,1"]'));
@@ -542,6 +544,7 @@ ${inRun?`<div class="modal-row"><button class="modal-button secondary" data-moda
 <p id="boundary-opacity-help">0% 完全透明，100% 不透明；只調整白線，綠色門提示不受影響。</p>
 <div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">操作區排版：${DECK_LAYOUT_LABELS[padLayout]}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>方向鍵大小：${padLayout==='grid'?'格狀不適用':`${PAD_LABELS[padCell]}（${padCell}）`}</button></div>
 <p>九宫格把「裝填」、「互動」移到方向鍵的右上與左上，右側只剩四顆更大的按鈕。格狀則沒有左右之分：整條操作區是五欄三列的同尺寸方格，尺寸由寬度推出來，所以沒有方向鍵大小可調。關閉設定後即可看到效果。</p>
+<button class="modal-button secondary" data-modal="deckEditor" ${padLayout==='grid'?'':'disabled'}>編輯按鈕位置${padLayout==='grid'?'':'（格狀限定）'}</button>
 ${sec('存檔')}
 <div class="modal-row"><button class="modal-button secondary" data-modal="backupExport">完整備份</button>${simulating?'':'<button class="modal-button secondary" data-modal="backupImport">還原備份</button>'}</div>
 ${read('ash-backup-before-restore')?'<button class="modal-button secondary" data-modal="backupPrevious">下載還原前備份</button>':''}
@@ -595,6 +598,23 @@ function showSimulationResult(){
 function newGame(seed,character,mission,options={facilityFaction:'random'}){if(isSimulation(game))exitSimulation();const portrait=deploymentFaces[character];if(!availableCharacters(profile()).includes(character)||!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify('請選擇有效角色。');return;}if(game.status==='playing'&&(entered||resumable)){try{abandonRun(game);}catch(error){backupError(error);return;}}entered=true;resumable=false;game=startCampaign({seed,character,portrait,mission,options});playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();}
 function exportSave(){const blob=new Blob([game.serialize()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`ash-protocol-${game.seed}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('存檔已匯出。');}
 function downloadJSON(raw,name){const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+// Layout editor (3.102.0, user request): tap one cell then another and they swap, which reaches any arrangement
+// without a function picker. Only 格狀 is editable, because only its cells are interchangeable.
+function showDeckEditor(message=''){
+  const cells=deckLayout.map((id,index)=>`<button class="deck-slot${deckPick===index?' picked':''}${id?'':' empty'}" data-slot="${index}" aria-pressed="${deckPick===index}" aria-label="${index+1} \u865f\u4f4d\u7f6e\uff1a${id?DECK_LABELS[id]:'\u7a7a\u683c'}"><span class="deck-slot-icon" aria-hidden="true">${id?DECK_GLYPHS[id]:'\u00b7'}</span><span>${id?DECK_LABELS[id]:'\u7a7a\u683c'}</span></button>`).join('');
+  modal(`<div class="eyebrow">CONTROL DECK / LAYOUT</div><h2>\u7de8\u8f2f\u6309\u9215\u4f4d\u7f6e</h2>
+<p>\u9ede\u4e00\u683c\uff0c\u518d\u9ede\u53e6\u4e00\u683c\uff0c\u5169\u8005\u4e92\u63db\u3002\u8ddf\u7a7a\u683c\u4e92\u63db\u5c31\u662f\u628a\u6309\u9215\u642c\u904e\u53bb\u3002\u6539\u5b8c\u95dc\u9589\u5c31\u80fd\u770b\u5230\u7d50\u679c\u3002</p>
+<div class="deck-editor">${cells}</div>
+${message?`<p>${message}</p>`:''}
+<div class="modal-row"><button class="modal-button secondary" data-modal="deckMirror">\u5de6\u53f3\u93e1\u50cf</button><button class="modal-button secondary" data-modal="deckReset">\u9084\u539f\u9810\u8a2d</button></div>
+<button class="modal-button secondary" data-modal="settings">\u2190 \u8fd4\u56de\u8a2d\u5b9a</button>`);
+}
+function saveDeckLayout(){write('ash-deck-layout',JSON.stringify(deckLayout));applyDeck();fitLayout();}
+function pickDeckSlot(index){
+  if(deckPick===null){deckPick=index;showDeckEditor();return;}
+  if(deckPick===index){deckPick=null;showDeckEditor();return;}
+  deckLayout=swapSlots(deckLayout,deckPick,index);deckPick=null;saveDeckLayout();showDeckEditor();
+}
 function backupError(error){modal(`<h2>備份操作未完成</h2><p>${escapeHTML(error.message)}</p><button class="modal-button" data-modal="backupCancel">返回設定</button>`);}
 function adoptSnapshot(next){
   game=next.game?connectUnlocks(next.game):new Game(undefined,profile().unlocks.weapons,profile().upgrades.carrying);entered=Boolean(next.game);resumable=Boolean(next.game);
@@ -640,6 +660,7 @@ document.addEventListener('click',e=>{
   }
   if(b.dataset.context){close();if(b.dataset.context.startsWith('objective:')){act('recoverObjective',b.dataset.context.slice(10));return;}if(b.dataset.context.startsWith('case:')){act('openContainer',b.dataset.context.slice(5));return;}if(b.dataset.context.startsWith('door:')){const door=game.nearbyDoors.find(d=>d.id===b.dataset.context.slice(5));if(door)act('door',{id:door.id,open:!door.open});}else if(b.dataset.context==='bag')showInventory('weapon');else if(b.dataset.context==='terminal')showTerminal();else if(b.dataset.context==='operator')recoverCorpse();else if(b.dataset.context==='exitStep'){if(exitStep(game))act('move',exitStep(game));}else act('interact');return;}
   if(b.dataset.move){move(...b.dataset.move.split(',').map(Number));return;}
+  if(b.dataset.slot!==undefined){pickDeckSlot(Number(b.dataset.slot));return;}
   if(b.dataset.perk){game.choosePerk(b.dataset.perk);$('#modal').close();audio.play('heal');update();return;}
   if(b.dataset.equip!==undefined){modalAction('weapon',Number(b.dataset.equip));return;}
   if(b.dataset.compare!==undefined){showWeaponComparison(Number(b.dataset.compare),b.dataset.against===undefined?game.player.weapon:Number(b.dataset.against));return;}
@@ -680,6 +701,9 @@ document.addEventListener('click',e=>{
     case 'resetProgress':modal('<h2>重置遊戲進度？</h2><p>清除目前任務、全部協定點數、解鎖與任務紀錄，從零開始。只影響目前正式／測試區。</p><p>會先保存完整備份，之後可在設定下載「還原前備份」。音效與瞄準偏好不變；再次放棄任務、還原或重置會覆寫這份備份，請先下載留存。</p><button class="modal-button secondary" data-modal="backupExport">先下載目前完整備份</button><button class="modal-button" data-modal="resetConfirm">確認清空遊戲進度</button><button class="modal-button secondary" data-modal="settings">取消</button>');break;
     case 'resetConfirm':try{adoptSnapshot(resetProgress(game));notify('遊戲進度已重置；原資料可從設定下載。');}catch(error){backupError(error);}break;
     case 'settings':settings();break;
+    case 'deckEditor':deckPick=null;showDeckEditor();break;
+    case 'deckMirror':deckLayout=mirrorDeck(deckLayout);deckPick=null;saveDeckLayout();showDeckEditor('\u5df2\u5de6\u53f3\u93e1\u50cf\u3002');break;
+    case 'deckReset':deckLayout=[...DECK_GRID];deckPick=null;saveDeckLayout();showDeckEditor('\u5df2\u9084\u539f\u9810\u8a2d\u3002');break;
     case 'padLayout':padLayout=DECK_LAYOUTS[(DECK_LAYOUTS.indexOf(padLayout)+1)%DECK_LAYOUTS.length];write('ash-pad-layout',padLayout);applyDeck();fitLayout();settings();break;
     case 'padCell':padCell=PAD_SIZES[(PAD_SIZES.indexOf(padCell)+1)%PAD_SIZES.length];write('ash-pad-cell',String(padCell));applyDeck();fitLayout();settings();break;
     case 'movementBoundaries':renderer.movementBoundaries=!renderer.movementBoundaries;write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off');settings();break;

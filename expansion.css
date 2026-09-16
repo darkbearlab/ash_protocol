@@ -50,6 +50,12 @@
 .control-deck.grid-deck .direction-pad .action.primary{background-color:#dc935d;border-color:#f4b17b;color:#20281c}
 .control-deck.grid-deck .direction-pad .action .action-icon{font-size:calc(var(--pad-cell)*.3)}
 .control-deck.grid-deck .direction-pad .action strong{font-size:clamp(9px,calc(var(--pad-cell)*.15),11px)}
+/* Layout editor (3.102.0, user request): the same five-by-three field, as a picker rather than as controls. */
+.deck-editor{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:12px 0}
+.deck-editor .deck-slot{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;aspect-ratio:1;min-width:0;padding:2px;border:1px solid #526143;background-color:#273420;color:#c4d1b3;font-size:9px;line-height:1.15}
+.deck-editor .deck-slot-icon{font:18px/1 var(--mono)}
+.deck-editor .deck-slot.empty{border-style:dashed;border-color:#41513a;background-color:#1d2a1e;color:#7d8d72}
+.deck-editor .deck-slot.picked{outline:2px solid #e8ce98;outline-offset:-3px;background-color:#3c4b2d;color:#f0e3c4}
 #field-messages{grid-area:messages;min-height:28px;display:flex;flex-direction:column;align-items:stretch;background:#121c17;border-bottom:1px solid #384036}
 .battle-notice{position:static;transform:none;max-width:none;min-width:0;min-height:28px;height:auto;padding:5px 8px;border:0;background:none;color:#c5cbaa;font-size:10px;text-align:left;opacity:1;transition:none;white-space:normal;line-height:1.6;pointer-events:none}
 .battle-notice:not(.show){color:#8e9c80}
