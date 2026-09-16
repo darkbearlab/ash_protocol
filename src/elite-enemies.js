@@ -15,8 +15,13 @@ export function rollEnemyElite(e,seed,floor,offset=0){
  e.elite=true;
  // A faction may ask for more affixes on its elites (rebels, 3.81.0); otherwise ELITE_TUNING.minAffixes.
  const wanted=factionDef(enemyFaction(e))?.eliteAffixes??ELITE_TUNING.minAffixes;
- while((e.affixes?.length||0)<wanted){
-  const pool=ENEMY_AFFIXES.filter(d=>!e.affixes?.some(a=>a.id===d.id)&&d.applies(e));
+ // Special affixes do not count towards the quota either: an elite keeps the same number of ordinary affixes it
+ // always had, and a 投放 rolled on its own stream is simply extra.
+ const ordinary=()=>(e.affixes||[]).filter(a=>!ENEMY_AFFIXES.find(d=>d.id===a.id)?.special).length;
+ while(ordinary()<wanted){
+  // Special affixes (3.103.0: 投放) roll on their own stream, so they never enter the elite top-up; letting them in
+  // would shift every existing elite's picks.
+  const pool=ENEMY_AFFIXES.filter(d=>!d.special&&!e.affixes?.some(a=>a.id===d.id)&&d.applies(e));
   if(!pool.length)break;
   giveEnemyAffix(e,pool[Math.floor(rng()*pool.length)].id);
  }

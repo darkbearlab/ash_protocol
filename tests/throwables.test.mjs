@@ -21,7 +21,7 @@ const toss=(g,x=14,y=10)=>g.action('usePrepared',{category:'grenade',target:{x,y
 
 test('body keywords classify all starters and enemies; both can coexist without implicit traits',()=>{
   for(const id of ['soldier','recon','bulwark']){const p=arena(id).player;assert.ok(activeTrait(p,'biological'));assert.equal(activeTrait(p,'mechanical'),false);}
-  for(const type of Object.keys(ENEMY_TYPES)){const e=makeEnemy(type,1,1,'body');assert.equal(activeTrait(e,'mechanical'),['drone','warden','boss','bomber_bot'].includes(type));assert.equal(activeTrait(e,'biological'),!['drone','warden','boss','bomber_bot'].includes(type));}
+  for(const type of Object.keys(ENEMY_TYPES)){const e=makeEnemy(type,1,1,'body');assert.equal(activeTrait(e,'mechanical'),['drone','warden','boss','bomber_bot','munition'].includes(type));assert.equal(activeTrait(e,'biological'),!['drone','warden','boss','bomber_bot','munition'].includes(type));}
   const p={traits:[]};grantTrait(p,'biological','test');grantTrait(p,'mechanical','test');assert.ok(activeTrait(p,'biological')&&activeTrait(p,'mechanical'));assert.equal(activeTrait(p,'large'),false);
 });
 test('plasma reactions follow mechanical keyword, even on a different species',()=>{

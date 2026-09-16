@@ -7,11 +7,12 @@ import {DIRECTIONS,distance,key} from './world.js';
 import {activeTrait,recordShot} from './traits.js';
 import {pinned,finishSuppression,rapidFireModifiers} from './suppression.js';
 import {scaleEnemy} from './endless.js';
-import {AFFIX_TUNING,revealEnemyAffix,enemyDisplayName as enemyName} from './enemy-affixes.js';
+import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
 import {UNIT_TREES,unitTree,registerUnitTree,registerAffixBranch,runAffixBranches} from './behavior-tree.js';
 import {occupied} from './allies.js';
 import {enemyRoom} from './runtime-enemies.js';
+import {pullLanding} from './melee-classes.js';
 import {combatStep} from './tactics.js';
 import {barrierBetween,vaultable,edgeBlocks,firstBarrierOnRay} from './barriers.js';
 import {petCombat} from './pet-growth.js';
@@ -66,6 +67,52 @@ function grenade(ctx){const {g,e,p,los}=ctx,intent=e.grenadeIntent;
  e.grenadeIntent={stage:'prepare',targetId:p.id||'player',x:p.x,y:p.y,origin:{x:e.x,y:e.y}};revealEnemyAffix(g,e,'grenadier');g.effects.push({type:'enemyTelegraph',phase:'prepare',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});enemyCallout(g,e,'telegraph',{action:'grenade'});g.log(`${enemyName(e)}準備投彈！`,true);return true;
 }
 registerAffixBranch({id:'grenadier',reveal:'effect',applies:({e})=>e.affixes?.some(a=>a.id==='grenadier'),trigger:({g,e,p,los})=>Boolean(e.grenadeIntent)||(!e.charge&&los&&distance(e,p)<=AFFIX_TUNING.grenadeRange),get chance(){return AFFIX_TUNING.grenadeChance;},pending:({e})=>Boolean(e.grenadeIntent),steps:['prepare','flight','explode'],run:grenade});
+// Loitering munition (3.103.0, user request). The launch puts it exactly at its own strike range from the player and
+// where the player can see it, so the turn it appears is a real choice: step out of reach, or shoot it down. On its next
+// turn it takes the berserker's hook route to a tile beside the player and detonates, which is why it needs no speed.
+const munitionRange=()=>ENEMY_TYPES.munition.range;
+const MUNITION_RADIUS=1;
+function munitionSpot(g,e,p){
+ const range=munitionRange(),spots=[];
+ for(let y=p.y-range;y<=p.y+range;y++)for(let x=p.x-range;x<=p.x+range;x++){
+  const spot={x,y};
+  if(distance(spot,p)!==range||!g.passable(x,y)||occupied(g,spot))continue;
+  // Seen by the player and with a clear line to them: an unseen launch would spend the warning turn for nothing.
+  if(!g.visible(spot)||!g.sight(spot,p))continue;
+  spots.push(spot);
+ }
+ return spots.sort((a,b)=>distance(e,a)-distance(e,b)||key(a).localeCompare(key(b)))[0]||null;
+}
+function deployMunition(ctx){
+ const {g,e,p}=ctx,spot=munitionSpot(g,e,p);
+ if(!spot)return false;
+ e.munitionSpent=true;revealEnemyAffix(g,e,'deployer');
+ const munition=g.spawnEnemy(ENEMY_AFFIXES.find(a=>a.id==='deployer').spawns,spot.x,spot.y,`${e.id}-munition`);
+ munition.alert=true;munition.spawnTurn=g.turn;munition.lastKnown={x:p.x,y:p.y};
+ g.enemies.push(munition);
+ g.effects.push({type:'enemyTelegraph',phase:'flight',from:{x:e.x,y:e.y},to:{x:spot.x,y:spot.y},damage:0});
+ g.log(`${enemyName(e)}\u653e\u51fa\u4e86\u6d6e\u6e38\u5f48\u85e5\uff01`,true);
+ return true;
+}
+registerAffixBranch({id:'deployer',reveal:'effect',applies:({e})=>e.affixes?.some(a=>a.id==='deployer'),
+ // Launching replaces this turn's shot, so an enemy already lining one up may still do it; only a pending grenade
+ // blocks it, to keep one enemy from carrying two intents at once.
+ trigger:({e,p,los})=>!e.munitionSpent&&!e.grenadeIntent&&los&&distance(e,p)<=AFFIX_TUNING.deployerRange&&distance(e,p)>munitionRange(),
+ get chance(){return AFFIX_TUNING.deployerFire;},run:deployMunition});
+function munitionAct(ctx){
+ const {g,e,p}=ctx;
+ // The turn it arrives it only hovers, so the player always gets exactly one action before it strikes.
+ if(e.spawnTurn===g.turn)return true;
+ if(distance(e,p)>munitionRange()||!g.sight(e,p))return false;
+ const point=pullLanding(g,e,p);
+ if(point){e.x=point.x;e.y=point.y;e.moved=true;g.effects.push({type:'enemyTelegraph',phase:'flight',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});}
+ g.log(`${enemyName(e)}\u9264\u7d22\u8cbc\u8fd1\uff0c\u5f15\u7206\uff01`,true);
+ g.hurt(e,e.hp,e);
+ return true;
+}
+// Shooting it down sets it off where it stands, exactly like a barrel or a rigged case; at its strike range the blast
+// cannot reach the player, which is what makes shooting it the safe answer.
+registerUnitTree('munition',{before:munitionAct,death:({g,e})=>g.explode(e,MUNITION_RADIUS,scaleEnemy(ENEMY_TYPES.munition.damage,g.floor,'damage',g.difficultyOffset))});
 registerUnitTree('civilian',{before:civilianAction});
 registerUnitTree('sniper',{windup:2,fixedTile:true});
 registerUnitTree('boss',{beforeAttack:({g,e,p})=>{if((e.attackCount||0)%2!==1||e.charge)return false;g.marks.push({x:p.x,y:p.y,due:g.turn+2});e.attackCount++;enemyCallout(g,e,'telegraph',{action:'bombard'});g.log('核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！',true);return true;},after:reinforce});
