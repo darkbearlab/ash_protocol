@@ -1,7 +1,7 @@
 /* Portrait gameplay; compact HUD overlays stay within the square battlefield. */
 .app{min-height:100dvh;display:block;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 .workspace{width:100%;max-width:480px;margin:0 auto;padding:0}
-.battle-panel{--board-size:320px;display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"header" "messages" "board" "loadout" "controls";width:100%;border:1px solid #3b4238;background:#151e19;min-width:0}
+.battle-panel{--board-size:320px;display:grid;grid-template-columns:minmax(0,1fr);grid-template-areas:"header" "board" "loadout" "controls";width:100%;border:1px solid #3b4238;background:#151e19;min-width:0}
 .tactical-panel{display:contents}
 .viewport{grid-area:board;width:var(--board-size);height:var(--board-size);min-height:0;max-height:none;aspect-ratio:1;position:relative;overflow:hidden;justify-self:center;background:#10191a}
 .viewport:after{display:none}
@@ -56,7 +56,8 @@
 .deck-editor .deck-slot-icon{font:18px/1 var(--mono)}
 .deck-editor .deck-slot.empty{border-style:dashed;border-color:#41513a;background-color:#1d2a1e;color:#7d8d72}
 .deck-editor .deck-slot.picked{outline:2px solid #e8ce98;outline-offset:-3px;background-color:#3c4b2d;color:#f0e3c4}
-#field-messages{grid-area:messages;min-height:28px;display:flex;flex-direction:column;align-items:stretch;background:#121c17;border-bottom:1px solid #384036}
+/* The message bar lives in the header row now (3.104.0, user request), one line with an ellipsis. */
+#field-messages{flex:1;min-width:0;min-height:28px;display:flex;flex-direction:column;align-items:stretch;background:none;border:0}
 .battle-notice{position:static;transform:none;max-width:none;min-width:0;min-height:28px;height:auto;padding:5px 8px;border:0;background:none;color:#c5cbaa;font-size:10px;text-align:left;opacity:1;transition:none;white-space:normal;line-height:1.6;pointer-events:none}
 .battle-notice:not(.show){color:#8e9c80}
 #overview{width:100%;height:auto;aspect-ratio:1;image-rendering:pixelated;touch-action:auto}
@@ -68,6 +69,12 @@ body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 .battle-panel,.battle-panel button{touch-action:manipulation}
 #field-messages{height:28px;min-height:28px;max-height:28px;overflow:hidden}
+/* A message fades back to the bare bar a couple of seconds after it lands, so the row is usually quiet. */
+.battle-notice{opacity:1;transition:opacity .55s ease-out}
+.battle-notice:not(.show){opacity:0}
+.battle-notice.resting{color:#93a889}
+.log-button{position:absolute;top:0;right:0;height:28px;min-width:0;padding:0 6px;border:0;background:none;color:#f0c27a;font:11px var(--mono)}
+.log-button:empty{display:none}
 .battle-notice{height:28px;min-height:28px;max-height:28px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .loadout-bar{height:44px;min-height:44px;max-height:44px;overflow:hidden}
 #status-effects{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -240,7 +247,7 @@ body.booting .boot-screen{display:flex;position:fixed;inset:0;flex-direction:col
 @keyframes boot-reveal{to{opacity:1}}
 /* 3.44: the message bar opens the combat log; its button counts the extra lines of the last action. */
 #field-messages{position:relative;cursor:pointer}
-#field-messages .battle-notice{padding-right:56px}
+#field-messages .battle-notice{padding-right:34px}
 .battle-notice.danger.show{color:#f0a48f}
 .log-button{position:absolute;top:0;right:0;height:28px;min-width:48px;padding:0 8px;border:0;border-left:1px solid #2b3a2f;background:#16221b;color:#9fb48f;font:11px var(--mono);cursor:pointer}
 .log-button.more{color:#f0c27a}

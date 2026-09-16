@@ -28,6 +28,8 @@ import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTele
 
 // Orthographic board: world +x = screen right, world +y = screen down.
 // Pixel atlases use nearest-neighbor drawing, with procedural missing-image fallbacks.
+// Two source pixels over 2.4s, the value the user picked from qa/breathing-lab.html.
+const BREATH_DROP=2,BREATH_PERIOD=2400;
 export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
@@ -386,6 +388,15 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     if(p.type==='barrel'){const c=this.ctx;c.fillStyle='#795032';c.beginPath();c.ellipse(a.x,a.y,10,13,0,0,Math.PI*2);c.fill();this.box(a.x-9,a.y-7,18,3,'#ca8b4f');this.box(a.x-9,a.y+6,18,3,'#ce9859');this.text('!',a.x,a.y+4,'#ffdaa0',12);this.objectHealth(p,a.x-12,a.y-16);return;}
     const t=this.tile;this.box(a.x-t*.4,a.y-t*.35+5,t*.8,t*.7,'#17281f99');this.box(a.x-t*.4,a.y-t*.35,t*.8,t*.7,'#717354','#aea87988');this.box(a.x-t*.32,a.y-t*.27,t*.64,t*.54,'#525c40','#93966f66');this.line(a.x-t*.29,a.y-t*.23,a.x+t*.29,a.y+t*.23,'#b6b17999',2);this.line(a.x+t*.29,a.y-t*.23,a.x-t*.29,a.y+t*.23,'#b6b17999',2);this.objectHealth(p,a.x-12,a.y-t*.39,24,'#c4c394');
   }
+  // Idle breathing (3.104.0, user request): the sprite is cut at the waist and the top half settles two source pixels
+  // and comes back. Phases are staggered by actor id so a room does not rise and fall in unison, machines do not
+  // breathe, and reduced motion turns it off entirely.
+  breathOffset(actor,type,time,size){
+    if(this.reduceMotion||!actor||actor.hp<=0||ENEMY_TYPES[type]?.mechanical)return 0;
+    let h=2166136261;for(const ch of String(actor.id||'player')){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
+    const t=(((h>>>0)%BREATH_PERIOD+time)%BREATH_PERIOD)/BREATH_PERIOD;
+    return Math.round((1-Math.cos(t*Math.PI*2))/2*BREATH_DROP*size/32);
+  }
   actor(a,type,time,e,hidden=false) {
     const c=this.ctx,dark=isDark(this.game,this.unproject(a.x,a.y)),player=type==='player',def=ENEMY_TYPES[type],look=enemySprite(type),drawing=enemyDrawing(type),s=this.tile/45*look.scale;
     const spriteType=look.key;
@@ -393,7 +404,16 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
       const size=spriteSize(this.tile)*look.size;
       if(player){this.box(a.x-17,a.y-17,34,34,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(a.x,a.y,20,0,Math.PI*2);c.stroke();}}
       // Optical camouflage (3.47.1): the ninja's sprite fades while it is active; the frame and label stay readable.
-      c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;if(!player||!this.classSprite(a,size,e.character,false,dark)){if(player)this.sprite(spriteType,a,size,dark,hidden);else this.enemySprite(spriteType,a,size,dark,hidden,enemyTint(e),e?.elite?ELITE_VISUAL.outline:null);}c.restore();
+      c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;
+      const body=()=>{if(!player||!this.classSprite(a,size,e.character,false,dark)){if(player)this.sprite(spriteType,a,size,dark,hidden);else this.enemySprite(spriteType,a,size,dark,hidden,enemyTint(e),e?.elite?ELITE_VISUAL.outline:null);}};
+      const drop=this.breathOffset(e,type,time,size);
+      if(!drop)body();
+      else{
+        // Clip rather than slice the atlas, so every sprite path (class, enemy, tinted, outlined) breathes the same way.
+        c.save();c.beginPath();c.rect(a.x-size,a.y,size*2,size*2);c.clip();body();c.restore();
+        c.save();c.beginPath();c.rect(a.x-size,a.y-size*2,size*2,size*2);c.clip();c.translate(0,drop);body();c.restore();
+      }
+      c.restore();
       if(e.control?.disabled){this.box(a.x-size/2,a.y-size/2,size,size,'#b9d5e94f');this.text(`×${e.control.disabled}`,a.x+this.tile*.35,a.y-10,'#d6edff',11);}
       if(player){this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);const f=e.facing||[0,1];this.box(a.x+f[0]*18-1,a.y+f[1]*18-1,3,3,'#ffe3ab');}
       else{this.enemyBars(a,e,def);if(e.charge)this.text(unitTree(e).fixedTile?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}

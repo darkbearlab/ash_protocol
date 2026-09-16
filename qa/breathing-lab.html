@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>假呼吸效果 · BREATHING LAB</title>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/expansion.css">
+<style>
+/* Dev-only lab (3.103.1+, user request): the sprite is cut in half and the top half drops a pixel or two, then returns.
+   Every variant draws the same atlas cell; only the shift, the period and the shape of the motion change. */
+body{padding:0 0 60px;background:#111814}
+h1{margin:16px 12px 4px;font:13px var(--mono);color:var(--orange);letter-spacing:2px}
+p.note{margin:0 12px 10px;font-size:11px;line-height:1.6;color:#9fae95}
+.rows{display:flex;flex-wrap:wrap;gap:10px;padding:0 12px}
+.cell{border:1px solid #3b4238;background:#1b2b22;padding:8px;text-align:center}
+.cell canvas{display:block;image-rendering:pixelated;background:#243a2c;margin:0 auto}
+.cell b{display:block;margin-top:6px;font:10px var(--mono);color:#c2a06f}
+.cell small{display:block;font-size:10px;color:#8fa382}
+h2{margin:18px 12px 6px;font-size:13px;color:#dfe8d6}
+</style>
+</head>
+<body>
+<h1>BREATHING LAB</h1>
+<p class="note">同一張 32×32 的職業圖，從第 16 列切開，上半在週期內往下移 1–2 像素再回來。上排是 4 倍放大（看得清楚在做什麼），下排是實際遊戲大小（44px 格子）。</p>
+<h2>4 倍放大</h2>
+<div class="rows" id="zoom"></div>
+<h2>實際大小（和遊戲中的格子一樣）</h2>
+<div class="rows" id="real"></div>
+<script type="module">
+const VARIANTS=[
+ {id:'none',label:'不做',note:'現況',shift:0,period:0},
+ {id:'slow1',label:'1px · 2.4 秒',note:'慢，幾乎只在餘光看到',shift:1,period:2400},
+ {id:'mid1',label:'1px · 1.6 秒',note:'一般呼吸速度',shift:1,period:1600},
+ {id:'deep2',label:'2px · 2.4 秒',note:'明顯起伏',shift:2,period:2400},
+ {id:'hold',label:'1px · 吸快吐慢',note:'下移快、回位慢，比較像喘息',shift:1,period:2200,ease:'hold'},
+];
+const atlas=new Image();
+atlas.src='/assets/pixel/classes-v1/atlas.png';
+const CELL=32,SRC={x:0,y:0};           // index 0 of classes-v1 is the soldier
+const offsetFor=(v,time)=>{
+ if(!v.shift||!v.period)return 0;
+ const t=(time%v.period)/v.period;
+ if(v.ease==='hold'){const down=t<.25?t/.25:t<.5?1:t<.9?1-(t-.5)/.4:0;return Math.round(down*v.shift);}
+ return Math.round((1-Math.cos(t*Math.PI*2))/2*v.shift);
+};
+function build(host,scale){
+ return VARIANTS.map(v=>{
+  const wrap=document.createElement('div');wrap.className='cell';
+  const canvas=document.createElement('canvas');canvas.width=CELL*scale;canvas.height=CELL*scale;
+  wrap.append(canvas);
+  const b=document.createElement('b');b.textContent=v.label;wrap.append(b);
+  const s=document.createElement('small');s.textContent=v.note;wrap.append(s);
+  host.append(wrap);
+  return {v,ctx:canvas.getContext('2d'),scale,canvas};
+ });
+}
+const panels=[...build(document.getElementById('zoom'),4),...build(document.getElementById('real'),44/CELL)];
+function frame(time){
+ for(const {v,ctx,scale,canvas} of panels){
+  ctx.imageSmoothingEnabled=false;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(!atlas.complete||!atlas.naturalWidth){requestAnimationFrame(frame);return;}
+  const drop=offsetFor(v,time),half=CELL/2;
+  // Bottom half stays put; the top half slides down and back, so the figure settles rather than bobs.
+  ctx.drawImage(atlas,SRC.x,SRC.y+half,CELL,half,0,half*scale,CELL*scale,half*scale);
+  ctx.drawImage(atlas,SRC.x,SRC.y,CELL,half,0,drop*scale,CELL*scale,half*scale);
+ }
+ requestAnimationFrame(frame);
+}
+atlas.addEventListener('load',()=>requestAnimationFrame(frame));
+requestAnimationFrame(frame);
+</script>
+</body></html>
