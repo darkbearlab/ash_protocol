@@ -213,7 +213,9 @@ function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify('é
 // The corner Ã— appears on screens that already offer a way back, so the player never has to scroll to leave (3.54.0).
 // On phones a menu is a bottom sheet (3.97.2, user request): its buttons and tab row sit on the screen's bottom edge for
 // one-handed use, and a tabbed menu fills the height so its top does not move when tabs of different heights change.
-function modal(html,wide=false,title=false,closable=html.includes('data-modal="close"')){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal').classList.toggle('closable',closable);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
+// The upgrade pick is the exception (3.97.3, user report): it opens on its own under a thumb that is still tapping, so it
+// is anchored to the top edge and the queued tap lands on the backdrop.
+function modal(html,wide=false,title=false,closable=html.includes('data-modal="close"')){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal').classList.toggle('closable',closable);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
 // Main buttons stay on screen (3.97.0, user request): a menu marks them with .modal-footer; otherwise its final button
 // (or button row) is pinned. When that final button is a secondary back/cancel button, the button just before it (the
 // action) is pinned beside it, back first. Title screens lay themselves out and are left alone.
