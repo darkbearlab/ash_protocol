@@ -58,7 +58,9 @@ import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
 
-const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+// Consumables (3.106.0, user request): the spray matches the ground armour pickup, and adrenaline is priced in health.
+export const SPRAY_PLATES=20,SURGE_COST=15,SURGE_STEPS=2,TERMINAL_STOCK=3;
+const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -215,7 +217,7 @@ export class Game {
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
   bumpMeleeSlot(){return this.player.owned.find(slot=>{const w=this.weaponAt(slot);return w.melee&&weaponSwitchTurns(w,this.weapon)===0&&weaponSwitchTurns(this.weapon,w)===0;})??UNARMED_SLOT;}
-  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning'].includes(type))return 0;return type==='skill'?(SKILLS[arg]?.cost??1):type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
+  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning','surge'].includes(type))return 0;return type==='skill'?(SKILLS[arg]?.cost??1):type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='prepare'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
   // Validate the intent before any actor acts: rejected input cannot scout fast enemies.
   validateAction(type,arg){
     const p=this.player,w=this.weapon;
@@ -255,6 +257,9 @@ export class Game {
     if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');if(!this.shotClear(p,e)||(w.melee&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?'目標藏在轉角後，換個射擊位置。':'射線或近戰路徑被障礙物擋住。');return w.melee||p.ammo[p.weapon]>0||this.fail('彈匣已空，請裝填。');}
     if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail('彈匣已滿或沒有對應備彈。');
     if(type==='heal')return (p.meds>0&&(p.hp<p.maxHp||p.poison>0))||this.fail('無法使用醫療包。');
+    if(type==='plate')return (p.sprays>0&&(p.plates||0)<this.plateCapacity)||this.fail('無法使用修復噴劊。');
+    // Free to use, but it may never be the thing that kills you.
+    if(type==='surge')return (p.adrenaline>0&&!this.shadowSteps&&p.hp>SURGE_COST&&!p.control.disabled)||this.fail('無法使用腎上腺素。');
     if(type==='grenade')return (p[preparedEntry(p,'grenade').resource]>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail('需要手榴彈與視線內 5 格的有效落點。');
     if(type==='weapon')return (p.owned.includes(Number(arg))&&Number(arg)!==p.weapon)||this.fail('無法換裝此武器。');
     if(type==='salvage')return (p.owned.includes(Number(arg))&&p.owned.length>1&&!this.weaponAt(Number(arg)).locked)||this.fail('無法拆解此武器。');
@@ -283,6 +288,9 @@ export class Game {
     if(type==='weapon'&&arg===undefined)arg=p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length];
     if(type==='grenade'){const pos=arg||this.targeted;arg=pos?{x:pos.x,y:pos.y,grenade:p.prepared.grenade}:null;}
     if(type==='move'&&this.shadowSteps>0)return p.control.disabled?this.fail('失能中無法使用影步。'):this.shadowMove(arg);
+    // Tapping adrenaline while free moves are still running would silently charge the health twice, so refuse before
+    // the forfeit rule below takes them away (3.106.0).
+    if(type==='surge'&&this.shadowSteps>0)return this.fail('免費移動還沒用完。');
     if(this.shadowSteps>0){this.shadowSteps=0;this.pursuit=0;}
     if(!this.validateAction(type,arg))return false;
     if(p.control.disabled&&type!=='prepare'&&this.actionCost(type,arg)===0)return this.fail('失能中，按中央等待恢復。');
@@ -302,6 +310,7 @@ export class Game {
       else if(type==='skill')return this.activateSkill(arg);
       else if(type==='commandPet')return commandPet(this,arg);
       else if(type==='learn'||type==='dismantleLearning')return useLearning(this,arg,type==='dismantleLearning');
+      else if(type==='surge')return this.surge();
       else if(type==='setPetOutput'){p.petBond.outputChoice=arg.kind;return true;}
       return true;
     }
@@ -413,6 +422,13 @@ export class Game {
         if(p.hp===p.maxHp&&p.poison===0)return this.fail('生命值已滿。');
         p.meds--;const recovered=healActor(p,45+p.healBonus);clearPoison(p);
         this.log(`使用醫療包，回復 ${recovered} 生命並清除中毒。`);success=true;break;
+      case 'plate': {
+        if(p.sprays<=0)return this.fail('修復噴劊已用盡。');
+        const room=this.plateCapacity-(p.plates||0);
+        if(room<=0)return this.fail('護甲板已滿。');
+        p.sprays--;const gained=Math.min(SPRAY_PLATES,room);p.plates=(p.plates||0)+gained;
+        this.log(`使用修復噴劊，護甲板 +${gained}。`);success=true;break;
+      }
       case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
       case 'weapon': {
         const index=arg===undefined?p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length]:Number(arg);
@@ -431,6 +447,16 @@ export class Game {
       default:return false;
     }
     return success;
+  }
+  // Adrenaline (3.106.0, user request): the ninja's free steps for everyone else, paid for in health. Movement only,
+  // and any other action forfeits what is left — both rules come from 影步 and are what keep free actions honest.
+  surge(){
+    const p=this.player;
+    if(p.adrenaline<=0)return this.fail('腎上腺素已用盡。');
+    if(p.hp<=SURGE_COST)return this.fail('生命不足以承受腎上腺素。');
+    p.adrenaline--;p.hp-=SURGE_COST;this.shadowSteps=SURGE_STEPS;this.pursuit=0;
+    this.log(`腎上腺素：生命 −${SURGE_COST}，可免費移動 ${SURGE_STEPS} 格。`,true);
+    return true;
   }
   reload(){
     if(this.weapon.melee)return this.fail('近戰武器無須裝填。');
@@ -502,7 +528,7 @@ export class Game {
     const p=this.player;if(!Array.isArray(delta)||delta.length!==2||!delta.every(Number.isInteger)||Math.abs(delta[0])+Math.abs(delta[1])!==1)return this.fail('影步需要選擇相鄰方向。');
     const point={x:p.x+delta[0],y:p.y+delta[1]},edge=barrierBetween(this.barriers,p,point);
     if(!this.passable(point.x,point.y)||!this.canCross(p,point)||vaultable(edge)||occupied(this,point))return this.fail('影步落點必須是沒有障礙與單位的平地。');
-    presentStep(this,()=>{Object.assign(p,{x:point.x,y:point.y,facing:[...delta],moved:true,moveDelta:[...delta]});this.shadowSteps--;this.pickup();this.reveal();this.log(this.shadowSteps?`影步尚可移動 ${this.shadowSteps} 格。`:'影步移動結束。');});
+    presentStep(this,()=>{Object.assign(p,{x:point.x,y:point.y,facing:[...delta],moved:true,moveDelta:[...delta]});this.shadowSteps--;this.pickup();this.reveal();this.log(this.shadowSteps?`尚可免費移動 ${this.shadowSteps} 格。`:'免費移動結束。');});
     if(this.shadowSteps===0&&classPerkRank(p,'ninja_shadowstep')>=3){const target=[this.targeted,...this.enemies].find((e,i,a)=>e&&e.hp>0&&distance(p,e)<=1&&this.canCross(p,e)&&a.indexOf(e)===i);if(target){const slot=this.bumpMeleeSlot();if(slot!==undefined){const before=target.hp;this.target=target.id;this.shadowBonus=true;this.strike({id:target.id,x:target.x,y:target.y},slot);this.shadowBonus=false;if(before>0&&target.hp<=0){const cam=p.skillState?.camouflage;if(cam?.remaining)cam.remaining=Math.min(skillValues(p,'camouflage').duration,cam.remaining+CLASS_PERK_TUNING.shadowDuration);else if(cam)cam.cooldown=Math.max(0,cam.cooldown-CLASS_PERK_TUNING.shadowCooldown);}}}}
     return true;
   }
@@ -760,15 +786,19 @@ export class Game {
   useTerminal(option) {
     const terminal=this.nearbyTerminal,p=this.player;
     if(!terminal)return this.fail('附近沒有可用補給終端。');
-    if(!['heal','ammo','grenade','smoke','emp','stun',...AMMO_IDS].includes(option))return false;
-    const cost=TERMINAL_AMMO[option]?.cost??(option==='grenade'?12:GRENADES[option]?.cost??15);
+    if(!['heal','spray','adrenaline','ammo','grenade','smoke','emp','stun',...AMMO_IDS].includes(option))return false;
+    const cost=option==='spray'?15:option==='adrenaline'?20:TERMINAL_AMMO[option]?.cost??(option==='grenade'?12:GRENADES[option]?.cost??15);
     const kind=grenadeByItem(option)?'grenade':TERMINAL_AMMO[option]?option:null;
     if(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=this.ammoCapacity(kind))return this.fail('此彈種已達攜帶上限。');
     if(option==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=this.ammoCapacity(id)))return this.fail('各類備彈皆已滿。');
     if(p.scrap<cost)return this.fail(`終端需要 ${cost} 廢料。`);
     if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return this.fail('生命值已滿。');
+    if(option==='spray'&&p.sprays>=TERMINAL_STOCK)return this.fail('已達攜帶上限。');
+    if(option==='adrenaline'&&p.adrenaline>=TERMINAL_STOCK)return this.fail('已達攜帶上限。');
     p.scrap-=cost;terminal.used=true;
     if(option==='heal'){healActor(p,60);clearPoison(p);}
+    if(option==='spray')p.sprays++;
+    if(option==='adrenaline')p.adrenaline++;
     if(option==='ammo')this.supplyPack({rifle:24,pistol:24,shell:6,energy:12,ordnance:3});
     if(TERMINAL_AMMO[option])this.receiveAmmo(option,TERMINAL_AMMO[option].amount);
     if(grenadeByItem(option)){const id=grenadeByItem(option);this.receiveGrenade(id,GRENADES[id].amount);}
@@ -954,6 +984,8 @@ export class Game {
       if(version<28)migratePerks(g);
       if(version<30){if(![g.pendingPerks,g.perkPicks].every(n=>Number.isSafeInteger(n)&&n>=0))return null;g.legacyPerkPicks=g.perkPicks>perkLimit(p.level)?g.perkPicks:0;const kept=Math.max(0,Math.min(g.pendingPerks,perkLimit(p.level)-g.perkPicks));if(kept!==g.pendingPerks)g.perkDraft=null;g.pendingPerks=kept;}
       if(version<31)g.classPerkMisses=0;
+      // 3.106.0: two new consumables; older saves simply have none of either.
+      if(version<52){g.player.sprays??=0;g.player.adrenaline??=0;}
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
       if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g))return null;

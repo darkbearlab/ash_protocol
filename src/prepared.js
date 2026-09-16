@@ -4,7 +4,11 @@ import {GRENADES} from './throwables.js';
 export const PREPARED_CATEGORIES={grenade:'手榴彈',item:'道具',skill:'技能'};
 export const PREPARED_CATALOG={
   grenade:GRENADES,
-  item:{medkit:{name:'醫療包',short:'醫療包',icon:'✚',resource:'meds',action:'heal',text:'回復生命並清除中毒。使用消耗 1 回合，滿血且未中毒時不消耗。'}},
+  // 3.106.0 (docs/ITEMS.md, user): the repair spray is the medkit's armour twin; adrenaline is the ninja's shadow step
+  // with a price, so it is free to use and buys movement only.
+  item:{medkit:{name:'醫療包',short:'醫療包',icon:'✚',resource:'meds',action:'heal',text:'回復生命並清除中毒。使用消耗 1 回合，滿血且未中毒時不消耗。'},
+   spray:{name:'修復噴劊',short:'噴劊',icon:'▣',resource:'sprays',action:'plate',text:'補上 20 點護甲板。使用消耗 1 回合，護甲板已滿時無法使用。'},
+   adrenaline:{name:'腎上腺素',short:'腎上腺素',icon:'⚡',resource:'adrenaline',action:'surge',text:'不消耗回合。接下來可免費移動 2 格，做其他事就結束；代價是 15 生命。'}},
   skill:SKILLS,
 };
 export const defaultPrepared=()=>({grenade:'frag',item:'medkit',skill:null});
