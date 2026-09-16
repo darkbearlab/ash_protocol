@@ -38,11 +38,14 @@ export function shotChance(game,attacker,target) {
   const innateAccuracy=actorStat(attacker,'rangedAccuracy'),innateEvasion=actorStat(target,'rangedEvasion');
   const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)-(weapon?.tracking||0)):0,coverPenalty=protection.penalty;
   const focusBonus=attacker.focus?15:0,evasionPenalty=target.evasive?15:0;
+  // 3.111.0 (user request): a precision rifle that has not spent a turn aiming is far less accurate. Waiting already sets
+  // focus for every weapon, so the aim is the existing wait. Player only: allies and enemies have no way to aim.
+  const aimPenalty=attacker===game.player&&weapon?.aimPenalty&&!attacker.focus?weapon.aimPenalty:0;
   const bracedBonus=bracingBonus(game,attacker,target),trackingBonus=correctionBonus(attacker,target===game.player?'player':target.id,game.turn),sideBase=sidestepPenalty(attacker,target);
   // In the open, lateral evasion must match wall cover even against tracking.
   const sidePenalty=sideBase?Math.max(sideBase,cover?0:42-movePenalty):0;
   const closeBonus=weapon?.closeRange&&distance(attacker,target)<=weapon.closeRange?weapon.closeAccuracy:0,vaultBonus=target.vaultExposed?20:0;
   const specialEvasion=(game.defensiveEvasion?.(attacker,target)||0)+(target===game.player&&activeTrait(attacker,'exposed')?classPerkRank(target,'soldier_marked')*CLASS_PERK_TUNING.markedAccuracy:0);
-  const chance=Math.max(10,Math.min(99,-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty));
-  return {chance,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
+  const chance=Math.max(10,Math.min(99,-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-aimPenalty));
+  return {chance,aimPenalty,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }

@@ -87,6 +87,16 @@ export function terminalReason(g,option){
 }
 // 3.109.0 (user request): carried cover goes on the edge between you and the side you pick, so any of the four
 // sides is one action — no turning — and because a low partition can be vaulted it can never seal a corridor.
+// 3.111.0 (user request): a point-target launcher is aimed like a thrown grenade — at a floor tile, not at an enemy's
+// body — and always detonates where it lands. There is deliberately no minimum range (user: hitting yourself is on you).
+export function launchReason(g,pos){
+ const p=g.player,w=g.weapon;
+ if(!w.pointTarget)return '這把武器不能對地發射';
+ if(p.ammo[p.weapon]<=0)return '彈匣已空，請裝填';
+ if(!pos||!Number.isInteger(pos.x)||!Number.isInteger(pos.y)||g.grid[pos.y]?.[pos.x]!==1)return '先選擇視線內的地板作為落點';
+ if(distance(p,pos)>w.range||!g.visible(pos))return `落點需在視線內 ${w.range} 格以內`;
+ return '';
+}
 export const DEPLOY_COVER='low_partition';
 export function deployCoverReason(g,arg){
  const p=g.player;
@@ -315,6 +325,7 @@ export class Game {
     // Consumables (3.106.0). Adrenaline is free to use but may never be the thing that kills you; the reasons
     // live in itemUseReason so the pack can grey the same buttons this would refuse.
     if(type==='deployCover'){const reason=deployCoverReason(this,arg);return !reason||this.fail(reason+'。');}
+    if(type==='launch'){const reason=launchReason(this,arg);return !reason||this.fail(reason+'。');}
     if(ITEM_BY_ACTION[type]){const reason=itemUseReason(this,ITEM_BY_ACTION[type]);return !reason||this.fail(reason+'。');}
     if(type==='grenade')return (p[preparedEntry(p,'grenade').resource]>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail('需要手榴彈與視線內 5 格的有效落點。');
     if(type==='weapon')return (p.owned.includes(Number(arg))&&Number(arg)!==p.weapon)||this.fail('無法換裝此武器。');
@@ -339,6 +350,7 @@ export class Game {
     }
     if(type==='weapon'&&arg===undefined)arg=p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length];
     if(type==='grenade'){const pos=arg||this.targeted;arg=pos?{x:pos.x,y:pos.y,grenade:p.prepared.grenade}:null;}
+    if(type==='fire'&&this.weapon.pointTarget){const t=this.targeted,pos=arg||(isBarrier(t)?barrierFace(t,p):t);type='launch';arg=pos?{x:pos.x,y:pos.y}:null;}
     if(type==='move'&&this.shadowSteps>0)return p.control.disabled?this.fail('失能中無法使用影步。'):this.shadowMove(arg);
     // Tapping adrenaline while free moves are still running would silently charge the health twice, so refuse before
     // the forfeit rule below takes them away (3.106.0).
@@ -366,7 +378,7 @@ export class Game {
       else if(type==='setPetOutput'){p.petBond.outputChoice=arg.kind;return true;}
       return true;
     }
-    if(this.pursuit&&['fire','bumpMelee','grenade','grapple','suppressiveFire'].includes(type)){
+    if(this.pursuit&&['fire','launch','bumpMelee','grenade','grapple','suppressiveFire'].includes(type)){
       this.pursuit=0;const intent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:arg;
       const success=this.executePlayer(type,intent);p.guard=false;p.focus=false;p.evasive=false;p.moved=success&&type==='grapple'&&p.moved;
       this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';}this.finishPursuit();return success;
@@ -488,6 +500,7 @@ export class Game {
         p.sprays--;const gained=Math.min(SPRAY_PLATES,room);p.plates=(p.plates||0)+gained;
         this.log(`使用修復噴劑，護甲板 +${gained}。`);success=true;break;
       }
+      case 'launch': success=presentStep(this,()=>this.launch(arg));break;
       case 'deployCover': {
         const reason=deployCoverReason(this,arg);
         if(reason)return this.fail(reason+'。');
@@ -534,6 +547,23 @@ export class Game {
     if(p[reserve]<=0)return this.fail('沒有對應備彈。探索補給箱或切換武器。');
     const amount=Math.min(need,p[reserve]);p.ammo[p.weapon]+=amount;p[reserve]-=amount;
     this.log(`裝填完成，補充 ${amount} 發${this.actionCost('reload')===0?'，不耗回合':''}。`);return true;
+  }
+  // No hit roll: the round lands on the chosen tile and the blast decides who is caught, which is what makes the launcher
+  // a crowd weapon rather than a single-target one that loses its whole area effect on a miss.
+  launch(pos){
+    const reason=launchReason(this,pos);if(reason)return this.fail(reason+'。');
+    const p=this.player,w=this.weapon;
+    p.facing=[Math.sign(pos.x-p.x),Math.sign(pos.y-p.y)];
+    this.recordExposure(p,pos);p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
+    const range=this.weaponDamage(p.weapon),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
+    this.effects.push({type:'shot',weaponId:w.id,style:'grenade',from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
+    const before=this.enemies.map(o=>[o,o.hp]);
+    this.explode(pos,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p);
+    const hits=new Set(before.filter(([o,hp])=>o.hp<hp).map(([o])=>o));
+    finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),1,0,this);
+    p.fireChain=null;
+    this.log(hits.size?`榴彈落地爆炸，波及 ${hits.size} 名敵人。`:'榴彈落地爆炸。');
+    return true;
   }
   fire(intent=null) {
     const p=this.player,e=this.targeted,w=this.weapon;

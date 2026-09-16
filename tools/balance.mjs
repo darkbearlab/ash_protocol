@@ -23,6 +23,17 @@ function safeMove(g,predicate) {
   const p=g.player;
   return [[0,-1],[1,0],[0,1],[-1,0]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy,step:[dx,dy]})).filter(n=>g.passable(n.x,n.y)&&g.canCross(p,n)&&!g.hazards.some(h=>distance(h,n)===0)&&!g.enemies.some(e=>e.hp>0&&distance(e,n)===0)&&predicate(n)).sort((a,b)=>g.visibleEnemies.filter(e=>e.charge&&distance(e,a)<=1).length-g.visibleEnemies.filter(e=>e.charge&&distance(e,b)<=1).length)[0]?.step;
 }
+function blastSpot(g,priority){
+  const p=g.player,r=g.weapon.range;let best=null,score=0;
+  for(let y=p.y-r;y<=p.y+r;y++)for(let x=p.x-r;x<=p.x+r;x++){
+    const tile={x,y};
+    if(distance(tile,p)>r||distance(tile,p)<2||g.grid[y]?.[x]!==1||!g.visible(tile))continue;
+    const caught=g.visibleEnemies.filter(e=>e.hp>0&&distance(e,tile)<=1).length;
+    const s=caught*10+(distance(priority,tile)===0?1:0);
+    if(s>score){score=s;best=tile;}
+  }
+  return best;
+}
 export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
   const g=new GameType(seed,[],0,character);let invalid=0,actions=0,huntingBossFloor=null,progress='',detourUntil=0,navigation=null;const visits=new Map();
   const act=(type,arg)=>{actions++;if(!g.action(type,arg))invalid++;};
@@ -43,7 +54,11 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     if(grenade&&p.grenades>0){if(p.prepared.grenade!=='frag')act('prepare',{category:'grenade',id:'frag'});act('grenade',grenade);continue;}
     if(targets.length&&p.ammo[p.weapon]>0){g.target=targets[0].id;
       // Darkness makes unaimed fire waste scarce ammo. Brace using the same public wait as a player.
-      if(g.accuracy(p,targets[0]).darkPenalty&&!p.focus){act('wait');continue;}
+      // 3.111.0: the precision rifle needs that wait too, but not with something close enough to punish it.
+      const aim=g.accuracy(p,targets[0]);
+      if((aim.darkPenalty||aim.aimPenalty&&!g.visibleEnemies.some(e=>distance(e,p)<=2))&&!p.focus){act('wait');continue;}
+      // 3.111.0: a point-target launcher aims at the tile that catches the most enemies without catching the bot.
+      if(g.weapon.pointTarget){const spot=blastSpot(g,targets[0]);if(spot){act('launch',spot);continue;}}
       act('fire');continue;}
     if(p.ammo[p.weapon]<g.weapon.mag&&p[g.reserveKey()]>0&&(!targets.length||p.ammo[p.weapon]===0)){act('reload');continue;}
     if(p.ammo[p.weapon]===0&&p[g.reserveKey()]===0){const other=p.owned.find(index=>index!==p.weapon&&(p.ammo[index]>0||p[g.reserveKey(g.weaponAt(index))]>0));if(other!==undefined){act('weapon',other);continue;}}

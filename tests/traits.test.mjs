@@ -121,8 +121,10 @@ test('target cards explain effective order and cancelled traits; spawn defaults 
   assert.equal(initiative(makeEnemy('crawler',1,1,'early',1)),0);assert.equal(initiative(makeEnemy('crawler',1,1,'late',4)),-1);
 });
 
+// 3.111.0: GL-03 is no longer in this list. It fires at a tile, not at an enemy, so a target that slips away does not
+// make it miss — see the launcher test right after this one.
 test('lost-target commitment respects every weapon ammunition cost, burst remainder and replay',()=>{
-  for(const [slot,ammo,spent] of [[0,8,1],[1,4,1],[2,18,2],[2,1,1],[3,3,1],[4,5,1],[5,2,1],[6,30,3],[8,9,3],[8,2,2]]){
+  for(const [slot,ammo,spent] of [[0,8,1],[1,4,1],[2,18,2],[2,1,1],[3,3,1],[4,5,1],[6,30,3],[8,9,3],[8,2,2]]){
     const g=arena(EscapeGame),e=enemy(g,'escape');trait(e,'fast');g.escape={x:14,y:12};g.target=e.id;
     for(let x=0;x<SIZE;x++)g.grid[11][x]=0;
     g.player.owned=[slot];g.player.weapon=slot;g.player.ammo[slot]=ammo;
@@ -134,4 +136,20 @@ test('lost-target commitment respects every weapon ammunition cost, burst remain
     const plan=planPresentation(steps);assert.ok(plan.events.some(e=>e.effects.some(f=>f.type==='miss')));
     const restored=Game.restore(g.serialize());assert.ok(restored);assert.equal(restored.player.ammo[slot],ammo-spent);
   }
+});
+// 3.111.0 (user request): the launcher is committed to a tile. When a faster enemy slips out before it resolves, the
+// round still lands where it was aimed and detonates there; it just catches nobody.
+test('a launcher committed to a tile still detonates there after its target escapes',()=>{
+  const g=arena(EscapeGame),e=enemy(g,'escape');trait(e,'fast');g.escape={x:14,y:12};g.target=e.id;
+  for(let x=0;x<SIZE;x++)g.grid[11][x]=0;
+  g.player.owned=[5];g.player.weapon=5;g.player.ammo[5]=2;
+  const tile={x:e.x,y:e.y};
+  const {steps}=captureAction(g,()=>g.action('fire'));
+  assert.equal(g.player.ammo[5],1,'one round');
+  assert.equal(g.player.stats.shots,1);
+  const blast=steps.flatMap(s=>s.effects).find(f=>f.type==='blast');
+  assert.ok(blast,'it still explodes');
+  assert.deepEqual(blast.from,tile,'on the tile it was aimed at, not on the enemy');
+  assert.equal(e.hp,500,'and the enemy that moved away is untouched');
+  assert.ok(Game.restore(g.serialize()));
 });

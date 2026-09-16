@@ -161,6 +161,7 @@ export class Renderer {
     for(const m of g.marks)if(m.kind!=='grenade')this.markArea(m,1,m.kind==='ally'?'#e9a2494f':'#e969494f',m.kind==='ally'?'#f8c46977':'#f8996977',String(Math.max(1,m.due-g.turn)));
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
+    if(this.mode==='launch'&&this.aim)this.markArea(this.aim,1,'#e6a95b33','#eacb84aa','');
     if(this.mode==='suppress'&&this.aim)this.markArea(this.aim,1,'#8fb2ea33','#b8cff5bb','');
     for(const e of g.visibleEnemies.filter(e=>e.charge)) {
       const a=this.projectActor(e),target=unitTree(e).fixedTile&&e.aim?e.aim:g.activeAllies.find(a=>a.id===e.focusTarget)||p,b=this.projectActor(target);
