@@ -337,6 +337,9 @@ dialog .pack-weapon{padding:8px 10px}
 .pack-weapon-head h3{margin:0;font-size:14px}
 dialog .pack-weapon .pack-actions{margin-top:6px}
 dialog .pack-weapon .pack-actions button{min-height:40px}
+/* The free-slot pickup sits with the other weapon actions (3.100.1, user report): below the comparison table it was
+   off the bottom of a phone screen and had to be scrolled to. It keeps the primary colour so it still reads first. */
+.pack-actions button.primary{background:#dc935d;border-color:#f4b17b;color:#20281c}
 /* 3.97.1 (user report): the message line sits under the header, away from the thumbs.
    3.97.2 (user request): on phones a menu is a bottom sheet, so its buttons and tab row sit on the screen's bottom edge
    for one-handed use; a tabbed menu fills the height so its top stays put when tabs of different heights change. */
