@@ -29,12 +29,19 @@ test('invalid, repeated, ended or upgrade-blocked preparation cannot mutate stat
   for(const arg of [null,{}, {category:'weapon',id:'frag'},{category:'item',id:'frag'},{category:'skill',id:'unknown'},{category:'item',id:'medkit'},{category:'__proto__',id:null}])assert.equal(g.action('prepare',arg),false);
   assert.equal(g.serialize(),before);g.pendingPerks=1;assert.equal(prepare(g,'item',null),false);g.pendingPerks=0;g.status='dead';assert.equal(prepare(g,'item',null),false);
 });
-test('unprepared items cannot bypass the slot through legacy actions; actual use spends a turn',()=>{
+// 3.107.0: a consumable works straight from the pack, so it no longer needs the slot. A grenade still does, because
+// there the slot also chooses which grenade is thrown.
+test('a consumable needs no slot, a grenade does, and either way use spends a turn',()=>{
   const g=arena();g.player.hp=30;prepare(g,'item',null);const turn=g.turn,meds=g.player.meds;
-  assert.equal(g.action('heal'),false);assert.equal(g.action('usePrepared',{category:'item'}),false);assert.equal(g.turn,turn);assert.equal(g.player.meds,meds);
-  prepare(g,'item','medkit');assert.equal(g.action('usePrepared',{category:'item'}),true);assert.equal(g.player.hp,75);assert.equal(g.player.meds,meds-1);assert.equal(g.turn,turn+1);
-  prepare(g,'grenade',null);assert.equal(g.action('grenade',{x:14,y:10}),false);assert.equal(g.action('usePrepared',{category:'grenade',target:{x:14,y:10}}),false);assert.equal(g.turn,turn+1);
-  prepare(g,'grenade','frag');assert.equal(g.action('usePrepared',{category:'grenade',target:{x:14,y:10}}),true);assert.equal(g.player.grenades,1);assert.equal(g.player.meds,meds-1);assert.equal(g.turn,turn+2);
+  assert.equal(g.action('usePrepared',{category:'item'}),false,'the item button still needs something prepared');
+  assert.equal(g.turn,turn);assert.equal(g.player.meds,meds);
+  assert.equal(g.action('heal'),true,'but the pack can use it in place');
+  assert.equal(g.player.hp,75);assert.equal(g.player.meds,meds-1);assert.equal(g.turn,turn+1);
+  assert.equal(g.player.prepared.item,null,'using it from the pack does not fill the slot');
+  g.player.hp=30;g.player.meds=meds;
+  prepare(g,'item','medkit');assert.equal(g.action('usePrepared',{category:'item'}),true);assert.equal(g.player.hp,75);assert.equal(g.player.meds,meds-1);assert.equal(g.turn,turn+2);
+  prepare(g,'grenade',null);assert.equal(g.action('grenade',{x:14,y:10}),false);assert.equal(g.action('usePrepared',{category:'grenade',target:{x:14,y:10}}),false);assert.equal(g.turn,turn+2);
+  prepare(g,'grenade','frag');assert.equal(g.action('usePrepared',{category:'grenade',target:{x:14,y:10}}),true);assert.equal(g.player.grenades,1);assert.equal(g.player.meds,meds-1);assert.equal(g.turn,turn+3);
   assert.deepEqual(g.effects.find(e=>e.style==='grenade').to,{x:14,y:10});
 });
 test('zero stock keeps its selection, and invalid usage never advances the queue',()=>{

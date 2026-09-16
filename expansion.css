@@ -344,6 +344,10 @@ dialog .inventory-tabs{margin:6px 0 8px}
 .pack-pick .pack-name{font-size:14px;overflow-wrap:anywhere}
 .pack-pick small{margin-left:auto;padding-left:6px;font:11px var(--mono);color:#e8ce98;text-align:right}
 .pack-row.equipped .pack-pick small{color:#c8e6b0}
+/* 3.107.0 (user request): a consumable row carries its own 使用 button, so it needs a third column. */
+.pack-row-usable{grid-template-columns:minmax(0,1fr) auto auto}
+.pack-use{min-height:44px;padding:0 12px;border:0;border-left:1px solid #91ab8133;background:#25342b;color:#dfe8d6;font:12px var(--mono)}
+.pack-use:disabled{background:none;color:#6f7f68}
 .pack-info{width:44px;min-height:44px;border:0;border-left:1px solid #91ab8133;background:none;color:#9fae95;font:14px var(--mono)}
 .pack-info[aria-expanded="true"]{color:#e8ce98}
 .pack-desc{grid-column:1/-1;margin:0!important;padding:0 10px 8px;font-size:12px!important;line-height:1.6!important;color:#b8c6a7!important}

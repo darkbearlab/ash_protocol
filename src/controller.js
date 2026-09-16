@@ -21,7 +21,7 @@ import {isContainer,containerName} from './containers.js';
 import {ammoName,magazineLabel} from './weapons.js';
 import {deploymentPortraits,portraitMarkup,validPortrait} from './portraits.js';
 import {CHARACTERS,validCharacter,characterName,startingSupplies,classCarryBonus} from './characters.js';
-import {PREPARED_CATEGORIES,preparedOptions,preparedEntry} from './prepared.js';
+import {PREPARED_CATEGORIES,PREPARED_CATALOG,preparedOptions,preparedEntry} from './prepared.js';
 import {isBarrier,barrierFace} from './barriers.js';
 import {GRENADES,grenadeTotal,SMOKE_DURATION,DISRUPT_TURNS,BOSS_DISRUPT_TURNS,DISRUPT_IMMUNITY} from './throwables.js';
 import {MELEE_TUNING,GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN} from './melee-classes.js';
@@ -40,7 +40,7 @@ import {VERSION} from './version.js';
 import {TRAITS,traitLabels,startingTraits,initiative} from './traits.js';
 import {AMMUNITION,AMMO_IDS,MELEE_TINT,CARRY_COSTS,capacity,TERMINAL_AMMO,carryingSpent} from './ammunition.js';
 import {captureAction,planPresentation,Playback} from './presentation.js';
-import {Game,WEAPONS,FLOORS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,protocolSettlement} from './engine.js';
+import {Game,WEAPONS,FLOORS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,protocolSettlement,itemUseReason} from './engine.js';
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MODE_NOTE,runOptions,FACILITY_OPTIONS,facilityOption} from './deploy-ui.js';
 import {Renderer} from './render.js';
 import {AudioFX} from './audio.js';
@@ -482,9 +482,19 @@ function showInventory(tab=inventoryTab,message='') {
   else {
     const options=preparedOptions(p,category);
     const status=(id,entry)=>entry.resource?`×${p[entry.resource]}`:category==='skill'?(ALLY_SKILLS.includes(id)?allySkillState(game,id):`${skillStatus(p,id)}${p.skillState[id]?.cooldown?` · 冷卻 ${p.skillState[id].cooldown}`:''}`):'已學會';
-    const row=([id,entry])=>{const on=p.prepared[category]===id;return `<div class="pack-row${on?' equipped':''}"><button class="pack-pick" data-prepare-category="${category}" data-prepare-id="${on?'':id}" aria-pressed="${on}"><span class="pack-icon" aria-hidden="true">${entry.icon}</span><span class="pack-name">${entry.name}</span><small>${on?'已預備 · ':''}${status(id,entry)}</small></button>${packInfo(`${category}-${id}`,entry.text+(id==='medkit'?` 目前回復 ${healingAmount(p,45+p.healBonus)} 生命。`:''))}</div>`;};
+    // 3.107.0 (user request): a consumable is usable from the pack itself, so it needs no prepared slot. The slot
+    // is on its way to becoming a 生效欄 for wearables, and a quick-use slot that also has to hold a medkit
+    // cannot be both. The refusal comes from the rules layer, so a greyed button always matches what the turn
+    // would have said.
+    const useCell=(id,entry)=>{
+      if(category!=='item'||!entry.action)return '';
+      const reason=itemUseReason(game,id),cost=game.actionCost(entry.action);
+      return `<button class="pack-use" data-use-item="${id}"${reason?' disabled':''} title="${reason||`使用${entry.name}，${cost?'消耗 1 回合':'不耗回合'}`}">使用</button>`;
+    };
+    const useReason=(id,entry)=>category==='item'&&entry.action&&p[entry.resource]?itemUseReason(game,id):'';
+    const row=([id,entry])=>{const on=p.prepared[category]===id,reason=useReason(id,entry);return `<div class="pack-row${on?' equipped':''}${category==='item'&&entry.action?' pack-row-usable':''}"><button class="pack-pick" data-prepare-category="${category}" data-prepare-id="${on?'':id}" aria-pressed="${on}"><span class="pack-icon" aria-hidden="true">${entry.icon}</span><span class="pack-name">${entry.name}</span><small>${on?'已預備 · ':''}${status(id,entry)}</small></button>${useCell(id,entry)}${packInfo(`${category}-${id}`,entry.text+(id==='medkit'?` 目前回復 ${healingAmount(p,45+p.healBonus)} 生命。`:''))}${reason?`<p class="pack-reason">${reason}。</p>`:''}</div>`;};
     const allies=category==='skill'&&(game.allies.length||p.skills.includes('workshop'))?`<h3 class="pack-subhead">同行與留置友軍</h3>${game.allies.length?`<ul class="pack-allies">${game.allies.map(a=>`<li><span>${allyName(a)}</span><small>${allyStatus(a)}</small></li>`).join('')}</ul>`:'<p class="pack-hint">無。</p>'}${p.skills.includes('workshop')?`<p class="pack-hint">工坊 · ${allySkillState(game,'workshop')} · 預備後按技能鈕打開</p>`:''}`:'';
-    content=`<p class="pack-hint">${category==='grenade'?`共用容量 ${grenadeTotal(p)} / ${game.ammoCapacity('grenade')} · `:''}點一下預備，再點一下取消，不耗回合。</p>${options.length?`<div class="pack-rows">${options.map(row).join('')}</div>`:`<p class="pack-empty">${category==='skill'?'尚未學會主動技能。':'目前沒有可預備的項目。'}</p>`}${category==='item'?learningSection():''}${category==='skill'?petFeedingSection():''}${allies}`;
+    content=`<p class="pack-hint">${category==='grenade'?`共用容量 ${grenadeTotal(p)} / ${game.ammoCapacity('grenade')} · `:''}${category==='item'?'消耗品可直接按「使用」，不必先預備。點一下預備，再點一下取消，兩者都不耗回合。':'點一下預備，再點一下取消，不耗回合。'}</p>${options.length?`<div class="pack-rows">${options.map(row).join('')}</div>`:`<p class="pack-empty">${category==='skill'?'尚未學會主動技能。':'目前沒有可預備的項目。'}</p>`}${category==='item'?learningSection():''}${category==='skill'?petFeedingSection():''}${allies}`;
   }
   modal(`<h2 class="visually-hidden">作戰背包</h2><div class="pack-resources"><span>◇ 廢料 <b>${p.scrap}</b></span><span>▣ 護甲板 <b>${p.plates}/${game.plateCapacity}</b></span><span>▤ 武器 <b>${p.owned.length}/${game.weaponCapacity}</b></span></div>
     <div class="inventory-tabs" role="tablist" aria-label="背包分類">${Object.entries(INVENTORY_TABS).map(([id,label])=>`<button id="pack-tab-${id}" role="tab" aria-controls="pack-panel" aria-selected="${id===category}" tabindex="${id===category?0:-1}" data-inventory-tab="${id}">${label}</button>`).join('')}</div>
@@ -667,6 +677,9 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button');if(performance.now()<swallowClicksUntil){swallowClicksUntil=0;return;}if(playback||orientationBlocked||!b||b.disabled)return;
   if(b.dataset.packInfo){const desc=document.getElementById('pack-desc-'+b.dataset.packInfo);if(desc){desc.hidden=!desc.hidden;b.setAttribute('aria-expanded',String(!desc.hidden));}return;}
   if(b.dataset.inventoryTab){showInventory(b.dataset.inventoryTab);$(`[data-inventory-tab="${inventoryTab}"]`).focus({preventScroll:true});return;}
+  if(b.dataset.useItem){const id=b.dataset.useItem,entry=PREPARED_CATALOG.item[id],reason=itemUseReason(game,id);
+    if(reason){showInventory('item',reason+'。');return;}
+    modalAction(entry.action);return;}
   if(b.dataset.prepareCategory){
     const category=b.dataset.prepareCategory,id=b.dataset.prepareId||null;
     if(game.action('prepare',{category,id})){update();showInventory(category,id?'已預備，不耗回合。':'已取消預備，不耗回合。');$(`[data-inventory-tab="${category}"]`).focus({preventScroll:true});}return;

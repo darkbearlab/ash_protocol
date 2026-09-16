@@ -47,7 +47,7 @@ import {BARRIER_TYPES,vaultable,isBarrier,barrierName,barrierBetween,blockedBetw
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
-import {defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns} from './prepared.js';
+import {PREPARED_CATALOG,defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns} from './prepared.js';
 import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
@@ -60,6 +60,19 @@ import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './com
 
 // Consumables (3.106.0, user request): the spray matches the ground armour pickup, and adrenaline is priced in health.
 export const SPRAY_PLATES=20,SURGE_COST=15,SURGE_STEPS=2,TERMINAL_STOCK=3;
+const ITEM_BY_ACTION=Object.fromEntries(Object.entries(PREPARED_CATALOG.item).map(([id,entry])=>[entry.action,id]));
+// 3.107.0 (user request): consumables are usable straight from the pack, so the pack has to know why a button is
+// dead before the modal closes. One helper answers both it and validateAction, so the two can never disagree.
+// An empty string means the item can be used right now.
+export function itemUseReason(g,id){
+ const p=g.player,entry=PREPARED_CATALOG.item[id];
+ if(!entry?.action)return '沒有這個道具';
+ if(!p[entry.resource])return `沒有${entry.name}`;
+ if(entry.action==='heal')return p.hp<p.maxHp||p.poison>0?'':'生命已滿且未中毒';
+ if(entry.action==='plate')return (p.plates||0)<g.plateCapacity?'':'護甲板已滿';
+ if(entry.action==='surge')return p.control.disabled?'失能中無法使用':g.shadowSteps?'免費移動還沒用完':p.hp>SURGE_COST?'':'生命不足以承受';
+ return '';
+}
 const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
@@ -235,7 +248,8 @@ export class Game {
     if(type==='skill'&&arg==='grapple'&&canUseSkill(p,arg)){const plan=grapplePlan(this);return !plan.reason||this.fail(plan.reason);}
     if(type==='skill')return (ALLY_SKILLS.includes(arg)?canAllySkill(this,arg):canUseSkill(p,arg))||this.fail((arg==='pet_command'&&p.prepared.skill===arg&&petSkillReason(this))||(arg==='raise_dead'&&p.prepared.skill===arg&&!p.control.disabled&&'目前沒有召喚物可以集結。')||'技能無法啟動：請確認預備欄與冷卻狀態。');
     if(type==='prepare')return Boolean(arg&&canPrepare(p,arg.category,arg.id)&&p.prepared[arg.category]!==arg.id);
-    if(type==='heal'&&p.prepared.item!=='medkit')return this.fail('請先在背包預備醫療包。');
+    // 3.107.0 (user request): consumables no longer need the prepared slot — the pack uses them in place. The
+    // grenade slot stays, because there it also chooses which grenade is thrown.
     if(type==='grenade'&&!preparedEntry(p,'grenade'))return this.fail('請先在背包預備手榴彈。');
     if(type==='move'){
       if(!Array.isArray(arg)||!Number.isInteger(arg[0])||!Number.isInteger(arg[1])||Math.abs(arg[0])+Math.abs(arg[1])!==1)return false;
@@ -256,10 +270,9 @@ export class Game {
     if(type==='door')return Boolean(arg&&typeof arg.open==='boolean'&&this.nearbyDoors.some(b=>b.id===arg.id&&b.open!==arg.open));
     if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');if(!this.shotClear(p,e)||(w.melee&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?'目標藏在轉角後，換個射擊位置。':'射線或近戰路徑被障礙物擋住。');return w.melee||p.ammo[p.weapon]>0||this.fail('彈匣已空，請裝填。');}
     if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail('彈匣已滿或沒有對應備彈。');
-    if(type==='heal')return (p.meds>0&&(p.hp<p.maxHp||p.poison>0))||this.fail('無法使用醫療包。');
-    if(type==='plate')return (p.sprays>0&&(p.plates||0)<this.plateCapacity)||this.fail('無法使用修復噴劊。');
-    // Free to use, but it may never be the thing that kills you.
-    if(type==='surge')return (p.adrenaline>0&&!this.shadowSteps&&p.hp>SURGE_COST&&!p.control.disabled)||this.fail('無法使用腎上腺素。');
+    // Consumables (3.106.0). Adrenaline is free to use but may never be the thing that kills you; the reasons
+    // live in itemUseReason so the pack can grey the same buttons this would refuse.
+    if(ITEM_BY_ACTION[type]){const reason=itemUseReason(this,ITEM_BY_ACTION[type]);return !reason||this.fail(reason+'。');}
     if(type==='grenade')return (p[preparedEntry(p,'grenade').resource]>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail('需要手榴彈與視線內 5 格的有效落點。');
     if(type==='weapon')return (p.owned.includes(Number(arg))&&Number(arg)!==p.weapon)||this.fail('無法換裝此武器。');
     if(type==='salvage')return (p.owned.includes(Number(arg))&&p.owned.length>1&&!this.weaponAt(Number(arg)).locked)||this.fail('無法拆解此武器。');
@@ -423,11 +436,11 @@ export class Game {
         p.meds--;const recovered=healActor(p,45+p.healBonus);clearPoison(p);
         this.log(`使用醫療包，回復 ${recovered} 生命並清除中毒。`);success=true;break;
       case 'plate': {
-        if(p.sprays<=0)return this.fail('修復噴劊已用盡。');
+        if(p.sprays<=0)return this.fail('修復噴劑已用盡。');
         const room=this.plateCapacity-(p.plates||0);
         if(room<=0)return this.fail('護甲板已滿。');
         p.sprays--;const gained=Math.min(SPRAY_PLATES,room);p.plates=(p.plates||0)+gained;
-        this.log(`使用修復噴劊，護甲板 +${gained}。`);success=true;break;
+        this.log(`使用修復噴劑，護甲板 +${gained}。`);success=true;break;
       }
       case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
       case 'weapon': {
@@ -990,7 +1003,10 @@ export class Game {
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
       if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g))return null;
       if(version<32)g.shadowSteps=0;
-      if(!Number.isInteger(g.shadowSteps)||g.shadowSteps<0||g.shadowSteps>2||g.shadowSteps>0&&classPerkRank(p,'ninja_shadowstep')===0)return null;
+      // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
+      // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run
+      // was simply lost. The bound still matches the largest grant either source can make.
+      if(!Number.isInteger(g.shadowSteps)||g.shadowSteps<0||g.shadowSteps>Math.max(SURGE_STEPS,2))return null;
       if(!validPerks(g))return null;
       if(version<35&&!migratePetBond(g))return null;
       if(version<36&&!migratePetNodes(g,version===35))return null;
