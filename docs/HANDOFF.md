@@ -300,7 +300,7 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 - **不影響 AI**：敵人用 `sight()`，看得到你與你看不看得到它無關。
 - **裂隙**：隱形單位之後只要填 `revealRange`，不必改視線系統；但要記得同時設計反制手段（偵察感測、聲音等），不然「看不到卻被看到」會很難受。
 
-3.113.0（Claude）：8 種職業主動技能移出學習資料池（`RETIRED_LEARNING` 保留 ID 供遷移），未識別貨櫃內容池 28 → 20。SAVE 55 的 `retireLearning` 把背包、地上、未開箱子與封存樓層中的舊資料換成 15 廢料，已學會的技能保留。`learning.js` 裡為伴生指揮與工坊預留的學習分支目前已無入口，但保留不動（已學會的舊存檔仍走 `initializeAllies`）。被動學習資料未動，待使用者決定。
+3.113.0（Claude）：8 種職業主動技能移出學習資料池（`RETIRED_LEARNING` 保留 ID 供遷移），未識別貨櫃內容池 28 → 20。SAVE 55 的 `retireLearning` 把背包、地上、未開箱子與封存樓層中的舊資料換成 15 廢料，已學會的技能保留。`learning.js` 裡為伴生指揮與工坊預留的學習分支目前已無入口，但保留不動（已學會的舊存檔仍走 `initializeAllies`）。被動學習資料未動。使用者決定（2026-09-17）：**被動暫時保留**，等之後內容更多再刪，暫且當作等級滿了之後的成長來源之一。
 
 3.112.0（Claude）：霰彈槍錐形。規則在新模組 src/shotgun.js：`coneTargets`（錐形內、射程內、看得見、射線通、未被更近單位遮擋，由近到遠）、`inCone`、`rayCells`（與 lineOfSight 同步進）、`shotgunBand`（三段距離傷害，玩家、機體、壓制射擊共用）。`Game.fireCone(aim)` 一發一顆霰彈、每個目標各擲命中與傷害，友軍走 `damageAlly`；鎖定目標是門、掩體、油桶時仍走原本單發。卡片 `SG-12` 新增 `cone:30, farFrom:5, farMin:21, farMax:27`，射程 6，保留 `splash` 給機體與壓制射擊。identity 完全未動。
 
