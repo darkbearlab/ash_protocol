@@ -7,8 +7,11 @@ export const CONTAINER_KINDS={
   ammo:{name:'彈藥箱',color:'#d9bd7b',symbol:'R'},medical:{name:'醫療箱',color:'#a9d9ac',symbol:'+'},
   armor:{name:'護甲箱',color:'#92c4df',symbol:'▣'},ordnance:{name:'投擲物箱',color:'#b8c694',symbol:'G'},
   salvage:{name:'廢料箱',color:'#c5a171',symbol:'◇'},supply:{name:'補給箱',color:'#c9c6ac',symbol:'·'},
+  // 3.110.0 (user request): a case that is neither ammunition nor a refill — the things you have to decide how to spend.
+  field:{name:'器材箱',color:'#d0b3d9',symbol:'▬'},
 };
-const types=new Set(['ammo','pistol','shell','energy','ordnance','grenade','emp','stun','smoke','med','armor','scrap']);
+export const FIELD_ITEMS=['spray','adrenaline','barricade'];
+const types=new Set(['ammo','pistol','shell','energy','ordnance','grenade','emp','stun','smoke','med','armor','scrap',...FIELD_ITEMS]);
 export const isContainer=o=>o?.type==='container';
 // Rigged cases (3.100.0, user request): rebel floors leave booby-trapped cases among the real ones. A normal case is
 // indestructible and carries no hp, so it can never be locked; a rigged one has hp, which is the only tell — tapping it
@@ -29,7 +32,7 @@ export function rigContainers(g){
  return g;
 }
 export const containerName=o=>CONTAINER_KINDS[o.kind]?.name||'補給箱';
-const kindFor=type=>['ammo','pistol','shell','energy','ordnance'].includes(type)?'ammo':['grenade','emp','stun','smoke'].includes(type)?'ordnance':type==='med'?'medical':type==='armor'?'armor':type==='scrap'?'salvage':'supply';
+const kindFor=type=>['ammo','pistol','shell','energy','ordnance'].includes(type)?'ammo':['grenade','emp','stun','smoke'].includes(type)?'ordnance':type==='med'?'medical':type==='armor'?'armor':type==='scrap'?'salvage':FIELD_ITEMS.includes(type)?'field':'supply';
 export function packSupplies(map,floor){
   const grouped=new Set(),cases=[];
   const pack=(items,pos,kind)=>{

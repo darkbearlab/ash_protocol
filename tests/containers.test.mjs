@@ -71,7 +71,9 @@ test('all generated cases remain reachable and contain unchanged classified rewa
   for(let seed=1;seed<=24;seed++)for(let floor=1;floor<=6;floor++){
     const map=generate(seed,floor),seen=reachable(map,map.start),cases=map.props.filter(isContainer);assert.ok(cases.length>=6);assert.ok(validContainers(map.props,map.grid));
     for(const c of cases)assert.ok(seen.has(`${c.x},${c.y}`));assert.ok(map.items.every(i=>i.type==='weapon'||i.type==='lore'));
-    const rewards=allSupplies(map).filter(i=>i.cache);for(const type of ['ammo','pistol','shell','energy','ordnance','med','armor','emp','stun','smoke'])assert.ok(rewards.some(i=>i.type===type));
+    // 3.110.0: the classified caches lost their launcher rounds and gained a folding cover (docs/WEAPONS.md records why).
+    const rewards=allSupplies(map).filter(i=>i.cache);for(const type of ['ammo','pistol','shell','energy','barricade','med','armor','emp','stun','smoke'])assert.ok(rewards.some(i=>i.type===type));
+    assert.ok(!rewards.some(i=>i.type==='ordnance'));
     assert.deepEqual(map,generate(seed,floor));
   }
 });

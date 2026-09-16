@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,TERMINAL_ITEMS,TERMINAL_STOCK,terminalReason} from '../src/game.js';
+import {Game,TERMINAL_ITEMS,terminalReason} from '../src/game.js';
 import {PREPARED_CATALOG,WEARABLE_IDS,isWearable,wornEntry,prepareCost,preparedOptions,canPrepare,validPrepared,validWearableCatalog} from '../src/prepared.js';
 import {lightingEffects} from '../src/lighting.js';
 import {activeTrait} from '../src/traits.js';
@@ -108,9 +108,9 @@ test('the terminal stocks exactly what the rules will sell, and only one of each
  assert.equal(p.wearables.length,1);
  assert.equal(g.useTerminal('spray'),true);
  assert.equal(p.sprays,1);
- p.sprays=TERMINAL_STOCK;
+ p.sprays=99;
  g.props.push({type:'terminal',x:p.x,y:p.y,used:false});
- assert.equal(g.useTerminal('spray'),false,'carry cap still applies');
+ assert.equal(g.useTerminal('spray'),true,'consumables have no carry cap (3.110.0)');
 });
 
 // Caught in browser QA: validateAction kept a second whitelist that never learned about the 3.106.0 items, so the

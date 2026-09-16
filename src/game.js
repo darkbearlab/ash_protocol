@@ -42,7 +42,7 @@ import {bestCover,coverEffects} from './cover.js';
 import {addTrace,spentCase,validTraces} from './traces.js';
 import {missionDefinition,missionDepth,returning,exitPoint,exitLabel,deepestFloor,newMission,prepareMission,validMission,missionObjects,missionTarget,missionSummary,exitBlocked} from './missions.js';
 import {validModules} from './modules.js';
-import {isContainer,containerName,validContainers,rigContainers,isRigged,RIG_TUNING} from './containers.js';
+import {isContainer,containerName,validContainers,rigContainers,isRigged,RIG_TUNING,FIELD_ITEMS} from './containers.js';
 import {BARRIER_TYPES,BARRIER_LIMIT,makeBarrier,vaultable,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,firstBarrierOnRay,validBarriers} from './barriers.js';
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
@@ -59,7 +59,7 @@ import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './w
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
 
 // Consumables (3.106.0, user request): the spray matches the ground armour pickup, and adrenaline is priced in health.
-export const SPRAY_PLATES=20,SURGE_COST=15,SURGE_STEPS=2,TERMINAL_STOCK=3;
+export const SPRAY_PLATES=20,SURGE_COST=15,SURGE_STEPS=2;
 // One table for the terminal's item stock (3.108.0). 3.106.0 taught the lesson: useTerminal accepted 'spray' and
 // 'adrenaline' while the terminal's own screen had no buttons for them, so neither could actually be bought.
 export const TERMINAL_ITEMS={
@@ -79,7 +79,6 @@ export function terminalReason(g,option){
  const cost=terminalCost(option);
  if(p.scrap<cost)return `終端需要 ${cost} 廢料。`;
  if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return '生命值已滿。';
- if(item?.resource&&p[item.resource]>=TERMINAL_STOCK)return '已達攜帶上限。';
  if(item?.wear&&p.wearables.includes(item.wear))return '已經有一件了。';
  const kind=grenadeByItem(option)?'grenade':TERMINAL_AMMO[option]?option:null;
  if(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=g.ammoCapacity(kind))return '此彈種已達攜帶上限。';
@@ -793,6 +792,9 @@ export class Game {
         if(accepted)this.log(`拾取${AMMUNITION[ammo].name} +${accepted}。`);
         if(accepted<amount){item.amount=amount-accepted;this.log(`${AMMUNITION[ammo].name}容量已滿，剩餘 ${item.amount} 留在原地。`);return true;}
       }      else if(item.type==='med'){p.meds++;this.log('拾取醫療包 +1。');}
+      // 3.110.0 (user request): field kit has no carry cap, exactly like the medkit, so a case holding it is never
+      // "already full, left on the ground". The ground type is the catalogue id, so the resource follows from it.
+      else if(FIELD_ITEMS.includes(item.type)){const entry=PREPARED_CATALOG.item[item.type],amount=item.amount||1;p[entry.resource]+=amount;this.log(`拾取${entry.name} +${amount}。`);}
       else if(item.type==='armor'){const amount=Math.min(item.amount||20,this.plateCapacity-(p.plates||0));if(amount<=0){this.log('護甲板已滿，補給留在原地。');return true;}p.plates=(p.plates||0)+amount;this.log(`修復護甲板 +${amount}（${p.plates}/${this.plateCapacity}）。`);}
       else if(item.type==='scrap'){const amount=Math.round((item.amount||15)*(1+p.scavenger*.5));p.scrap+=amount;this.log(`回收廢料 +${amount}。`);}
       else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;const story=collectStory(this,item);this.log(story?`資料已解密：${story.body}`:`資料已回收。`);}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,SPRAY_PLATES,SURGE_COST,SURGE_STEPS,TERMINAL_STOCK,itemUseReason} from '../src/game.js';
+import {Game,SPRAY_PLATES,SURGE_COST,SURGE_STEPS,itemUseReason} from '../src/game.js';
 import {PREPARED_CATALOG} from '../src/prepared.js';
 import {SAVE_VERSION} from '../src/data.js';
 
@@ -59,15 +59,20 @@ test('adrenaline can never be the thing that kills you, and does not stack',()=>
  assert.equal(g.action('surge'),false,'refused while free moves are already running');
 });
 
-test('the terminal sells both up to a carry cap, and old saves migrate to none',()=>{
+// 3.110.0 (user request): consumables have no carry cap anywhere — the pack picks them up uncapped, so the terminal
+// must not cap them either, or the two would tell the player different things.
+test('the terminal sells both without a carry cap, and old saves migrate to none',()=>{
  assert.equal(SAVE_VERSION,54);
  const g=run(),p=g.player;
- p.sprays=TERMINAL_STOCK;p.adrenaline=TERMINAL_STOCK;p.scrap=999;
- const terminal={type:'terminal',x:p.x,y:p.y,used:false};
- g.props.push(terminal);
- assert.equal(g.useTerminal('spray'),false,'carry cap');
- assert.equal(g.useTerminal('adrenaline'),false,'carry cap');
+ p.sprays=99;p.adrenaline=99;p.scrap=999;
+ g.props.push({type:'terminal',x:p.x,y:p.y,used:false});
+ assert.equal(g.useTerminal('spray'),true,'no carry cap');
+ assert.equal(p.sprays,100);
+ g.props.push({type:'terminal',x:p.x,y:p.y,used:false});
+ assert.equal(g.useTerminal('adrenaline'),true,'no carry cap');
+ assert.equal(p.adrenaline,100);
  p.sprays=0;
+ g.props.push({type:'terminal',x:p.x,y:p.y,used:false});
  assert.equal(g.useTerminal('spray'),true);
  assert.equal(p.sprays,1);
  const legacy=JSON.parse(g.serialize());legacy.version=SAVE_VERSION-1;
