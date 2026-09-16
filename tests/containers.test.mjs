@@ -71,9 +71,10 @@ test('all generated cases remain reachable and contain unchanged classified rewa
   for(let seed=1;seed<=24;seed++)for(let floor=1;floor<=6;floor++){
     const map=generate(seed,floor),seen=reachable(map,map.start),cases=map.props.filter(isContainer);assert.ok(cases.length>=6);assert.ok(validContainers(map.props,map.grid));
     for(const c of cases)assert.ok(seen.has(`${c.x},${c.y}`));assert.ok(map.items.every(i=>i.type==='weapon'||i.type==='lore'));
-    // 3.110.0: the classified caches lost their launcher rounds and gained a folding cover (docs/WEAPONS.md records why).
-    const rewards=allSupplies(map).filter(i=>i.cache);for(const type of ['ammo','pistol','shell','energy','barricade','med','armor','emp','stun','smoke'])assert.ok(rewards.some(i=>i.type===type));
-    assert.ok(!rewards.some(i=>i.type==='ordnance'));
+    // 3.110.1: the classified caches keep the rounds a floor-1 weapon can use and carry field kit instead of the two
+    // late weapons' ammunition, which now comes from the start room (docs/WEAPONS.md records why).
+    const rewards=allSupplies(map).filter(i=>i.cache);for(const type of ['ammo','pistol','shell','spray','barricade','med','armor','emp','stun','smoke'])assert.ok(rewards.some(i=>i.type===type));
+    for(const type of ['ordnance','energy'])assert.ok(!rewards.some(i=>i.type===type),type);
     assert.deepEqual(map,generate(seed,floor));
   }
 });

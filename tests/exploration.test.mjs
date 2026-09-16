@@ -22,13 +22,13 @@ test('routes vary entrances, exits and connections; reward rooms remain reachabl
   assert.ok(starts.size>=4);assert.ok(ends.size>=4);assert.ok(routes.size>=30);
 });
 
-// 3.110.0 (user request): the ammunition cache traded its launcher rounds for a folding cover, so the classified
-// caches now carry four ammo pools and one piece of field kit. Launcher rounds still arrive in the start room from
-// floor 3, which is the first floor a launcher can exist on.
-test('classified caches carry four ammo pools, medical supplies, armor plates and field kit',()=>{
+// 3.110.1 (user request): the ammunition cache carries the three rounds a floor-1 weapon can use, plus two pieces of
+// field kit. Energy cells and launcher rounds come from the start-room drop on the floors those weapons exist on, so
+// neither appears in a classified cache any more.
+test('classified caches carry the floor-one rounds, medical supplies, armor plates and field kit',()=>{
   const g=arena();g.items=allSupplies(generate(21,1)).filter(i=>i.cache).map(i=>({...i,x:10,y:10}));g.pickup();
-  assert.equal(g.player.pistol,48);assert.equal(g.player.shell,18);assert.equal(g.player.reserve,68);assert.equal(g.player.energy,30);assert.equal(g.player.ordnance,4);
-  assert.equal(g.player.meds,3);assert.equal(g.player.plates,20);assert.equal(g.player.barricades,1);
+  assert.equal(g.player.pistol,48);assert.equal(g.player.shell,18);assert.equal(g.player.reserve,68);assert.equal(g.player.energy,18);assert.equal(g.player.ordnance,4);
+  assert.equal(g.player.meds,3);assert.equal(g.player.plates,20);assert.equal(g.player.barricades,1);assert.equal(g.player.sprays,1);
 });
 
 test('plates absorb only half of post-mitigation damage, deplete, and do not protect against hazards',()=>{

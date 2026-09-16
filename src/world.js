@@ -142,13 +142,15 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
     if(i%3===1)props.push({id:`${floor}-barrel-${i}`,x:r.x+r.w-1,y:r.y+r.h-2,type:'barrel',hp:18,maxHp:18});
     props.push({id:`${floor}-console-${i}`,x:r.x+r.w-1,y:r.y,type:'terminal',used:false});
     // 3.110.0 (user request): about half of everything in a case used to be ammunition, and ammunition is capped, so
-    // a full pack turned a case into "已滿，留在原地". The cut comes only from rifle and launcher rounds.
+    // a full pack turned a case into "已滿，留在原地". 3.110.1 takes the cut the whole way to a third: the cache now
+    // carries the three rounds usable from floor 1, and the two late weapons' ammunition (energy, launcher) comes
+    // from the start-room drop on the floors those weapons can actually appear on.
     if(i===startRoom||i%2===0)items.push({x:r.x+1,y:r.y+r.h-2,type:i===startRoom?'med':['ammo','pistol','shell','spray','adrenaline'][Math.floor(i/2)%5]});
     if(i===1||i===6)items.push({x:r.x+r.w-2,y:r.y+r.h-2,type:'grenade',amount:1});
     if(i===2||i===7)items.push({x:r.x+2,y:r.y+r.h-2,type:'scrap',amount:18});
     if(floor<=6&&i===rewardRooms[0])items.push({x:r.cx,y:r.cy-1,type:'lore',floor});
     if(info.hazard&&i!==startRoom&&i%2===1)hazards.push({x:r.x+r.w-2,y:r.y+2,type:info.hazard});
-    if(r.supply==='ammo'){items.push({x:r.cx-1,y:r.cy,type:'ammo',amount:20,cache:true},{x:r.cx,y:r.cy,type:'energy',amount:12,cache:true},{x:r.cx+1,y:r.cy,type:'barricade',amount:1,cache:true},{x:r.cx-1,y:r.cy+1,type:'pistol',amount:24,cache:true},{x:r.cx+1,y:r.cy+1,type:'shell',amount:6,cache:true});}
+    if(r.supply==='ammo'){items.push({x:r.cx-1,y:r.cy,type:'ammo',amount:20,cache:true},{x:r.cx,y:r.cy,type:'spray',amount:1,cache:true},{x:r.cx+1,y:r.cy,type:'barricade',amount:1,cache:true},{x:r.cx-1,y:r.cy+1,type:'pistol',amount:24,cache:true},{x:r.cx+1,y:r.cy+1,type:'shell',amount:6,cache:true});}
     if(r.supply)items.push({x:r.cx,y:r.cy+1,type:{ammo:'emp',medical:'stun',armor:'smoke'}[r.supply],amount:1,cache:true});
     if(r.supply==='medical')items.push({x:r.cx,y:r.cy,type:'med',amount:1,cache:true});
     if(r.supply==='armor')items.push({x:r.cx,y:r.cy,type:'armor',amount:20,cache:true});

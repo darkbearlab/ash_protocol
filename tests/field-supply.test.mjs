@@ -47,17 +47,18 @@ test('every floor stocks the field kit, and ammunition is no longer half the con
  const ammo=['ammo','pistol','shell','energy','ordnance'].reduce((a,t)=>a+(byType[t]||0),0);
  const total=Object.values(byType).reduce((a,b)=>a+b,0);
  for(const id of FIELD_ITEMS)assert.ok(rate(id)>=.7,`${id} appears ${rate(id).toFixed(2)}/floor`);
- assert.ok(ammo/total<.42,`ammunition is ${(100*ammo/total).toFixed(1)}% of case contents`);
+ assert.ok(ammo/total<.35,`ammunition is ${(100*ammo/total).toFixed(1)}% of case contents`);
  // Pistol and shotgun supply is untouched: the user reports the SMG starving late and the shotgun already weakest.
  assert.ok(rate('pistol')>=1.5,'pistol rounds stay common');
  assert.ok(rate('shell')>=1.5,'shells stay common');
 });
 
-test('launcher rounds still arrive from floor three, the first floor a launcher exists on',()=>{
+// The plasma rifle first appears on floor 3 and the launchers on 3 (rare) and 4, so both feeds start on floor 3.
+test('energy cells and launcher rounds still arrive from floor three, where those weapons start',()=>{
  for(let seed=1;seed<=8;seed++){
   for(const floor of [3,4,5,6]){
    const supplies=allSupplies(generate(seed,floor));
-   assert.ok(supplies.some(i=>i.type==='ordnance'),`seed ${seed} floor ${floor} has launcher rounds`);
+   for(const type of ['ordnance','energy'])assert.ok(supplies.some(i=>i.type===type),`seed ${seed} floor ${floor} has ${type}`);
   }
  }
 });
