@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>方向鍵放大方案 · CONTROL DECK LAB</title>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/expansion.css">
+<style>
+/* Dev-only lab (3.97.2+, user request): compares direction-pad sizes against the action buttons in three languages.
+   Every mock reuses the real classes so style.css/expansion.css drive it; only the variables below change per variant. */
+body{padding:0 0 40px;background:#0d1211}
+h1{margin:16px 12px 4px;font:13px var(--mono);color:var(--orange);letter-spacing:2px}
+h2{margin:18px 12px 2px;font-size:13px;color:#dfe8d6}
+p.note{margin:0 12px 8px;font-size:11px;line-height:1.6;color:#9fae95}
+.lang{margin:0 12px 2px;font:10px var(--mono);color:#8fa382;letter-spacing:1px}
+/* The defaults live on .mock itself: a rule on a descendant would shadow the per-variant values set inline here. */
+.mock{width:375px;max-width:100%;margin:0 auto 10px;border:1px solid #3b4238;background:#151e19;--pad-cell:44px;--pad-gap:2px;--action-cols:3;--action-min:66px;--action-font:10px}
+.mock .direction-pad{grid-template-columns:repeat(3,var(--pad-cell));grid-template-rows:repeat(3,var(--pad-cell));gap:var(--pad-gap)}
+.mock .direction-pad button{font-size:calc(var(--pad-cell)*.55)}
+.mock .direction-pad .wait{font-size:calc(var(--pad-cell)*.45)}
+.mock .direction-pad .wait small{font-size:calc(var(--pad-cell)*.2)}
+.mock .action-buttons{grid-template-columns:repeat(var(--action-cols),minmax(0,1fr))}
+.mock .action-buttons .action{min-height:var(--action-min)}
+.mock .action strong{font-size:var(--action-font)}
+/* Variant G/H: the pad fills out to a full nine-cell grid, with reload and interact in the 7/9 corners. */
+.mock .direction-pad .corner{grid-row:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.15;font-size:calc(var(--pad-cell)*.32);color:#e6d3a6;background:#36382a;border-color:#8b8358}
+.mock .direction-pad .corner small{font:9px 'Noto Sans TC',sans-serif;color:#d7ddc8}
+.mock .direction-pad .reload{grid-column:1}
+.mock .direction-pad .interact{grid-column:3}
+.mock[data-swap="1"] .direction-pad .reload{grid-column:3}
+.mock[data-swap="1"] .direction-pad .interact{grid-column:1}
+.mock[data-layout="corner"] .action-buttons{grid-template-rows:repeat(2,minmax(0,1fr))}
+.widths{margin:2px 12px 10px;font:10px var(--mono);color:#c2a06f}
+</style>
+</head>
+<body>
+<h1>CONTROL DECK LAB</h1>
+<p class="note">同一份 CSS，只改方向鍵格子大小與動作鈕排列。每個方案下面依序是中文、英文、日文標籤，用來看最長的字會不會擠爆。數字是實測的動作鈕寬度。</p>
+<div id="lab"></div>
+<script type="module">
+const LANGS={
+  'zh-Hant':{wait:'等待',fire:'開火',reload:'裝填 18/18',grenade:'破片彈 2',item:'醫療包 2',skill:'工坊 序列 0/1 · 部署 1/1',interact:'互動',reloadWord:'裝填',ammo:'18/18'},
+  'en':{wait:'WAIT',fire:'FIRE',reload:'RELOAD 18/18',grenade:'FRAG 2',item:'MEDKIT 2',skill:'WORKSHOP 0/1 · 1/1',interact:'INTERACT',reloadWord:'RELOAD',ammo:'18/18'},
+  'ja':{wait:'待機',fire:'攻撃',reload:'リロード 18/18',grenade:'破片手榴弾 2',item:'救急キット 2',skill:'工房 列 0/1 · 配備 1/1',interact:'干渉',reloadWord:'リロード',ammo:'18/18'},
+};
+const VARIANTS=[
+  {id:'A',name:'A · 現況（格子 44）',note:'目前線上的大小，動作鈕三欄。',style:{}},
+  {id:'B',name:'B · 格子 52',note:'方向鍵放大 18%，動作鈕仍三欄。',style:{'--pad-cell':'52px','--pad-gap':'3px'}},
+  {id:'C',name:'C · 格子 60 + 動作兩欄',note:'方向鍵放大 36%；動作鈕改兩欄三列，每顆更寬但較矮。',style:{'--pad-cell':'60px','--pad-gap':'3px','--action-cols':'2','--action-min':'52px','--action-font':'11px'}},
+  {id:'D',name:'D · 格子 60 + 動作三欄',note:'方向鍵放大 36%，動作鈕維持三欄，字級縮到 9。',style:{'--pad-cell':'60px','--pad-gap':'3px','--action-font':'9px'}},
+  {id:'E',name:'E · 格子 64 + 動作三欄、按鈕加高',note:'用主畫面捷徑下方多出來的空間：方向鍵放大 45%，動作鈕加高。',style:{'--pad-cell':'64px','--pad-gap':'3px','--action-min':'74px','--action-font':'9px'}},
+  {id:'F',name:'F · 格子 56 + 動作三欄（折衷）',note:'方向鍵放大 27%，動作鈕維持三欄、字級不縮。介於 B 與 D 之間。',style:{'--pad-cell':'56px','--pad-gap':'3px'}},
+  {id:'G',name:'G · 左九宮格（裝填→7、互動→9）+ 右四格',note:'格子 60：左邊補滿九宮格，裝填放左上、互動放右上；右側只剩四顆，改兩欄兩列，每顆更大。',layout:'corner',style:{'--pad-cell':'60px','--pad-gap':'3px','--action-cols':'2','--action-min':'91px','--action-font':'12px'}},
+  {id:'H',name:'H · 同一排法、格子 68',note:'同樣的排法放大到 68 格（方向鍵 +55%），右側四顆跟著加高。',layout:'corner',style:{'--pad-cell':'68px','--pad-gap':'3px','--action-cols':'2','--action-min':'103px','--action-font':'12px'}},
+  {id:'I',name:'I · 左九宮格、互動→7、裝填→9（G 的左右對調）',note:'跟 G 完全一樣，只把兩個角互換：互動在左上，裝填在右上。',layout:'corner',swap:true,style:{'--pad-cell':'60px','--pad-gap':'3px','--action-cols':'2','--action-min':'91px','--action-font':'12px'}},
+];
+const standardDeck=(lang)=>`<div class="control-deck">
+  <div class="direction-pad" aria-label="移動與等待">
+    <button class="north">↑</button><button class="west">←</button>
+    <button class="wait"><span>◷</span><small>${lang.wait}</small></button>
+    <button class="east">→</button><button class="south">↓</button>
+  </div>
+  <div class="action-buttons">
+    <button class="action primary"><span class="action-icon">⌖</span><strong>${lang.fire}</strong></button>
+    <button class="action"><span class="action-icon">⟳</span><strong>${lang.reload}</strong></button>
+    <button class="action"><span class="action-icon">◉</span><strong>${lang.grenade}</strong></button>
+    <button class="action"><span class="action-icon">✚</span><strong>${lang.item}</strong></button>
+    <button class="action"><span class="action-icon">◇</span><strong>${lang.skill}</strong></button>
+    <button class="action"><span class="action-icon">⇩</span><strong>${lang.interact}</strong></button>
+  </div>
+</div>`;
+const cornerDeck=(lang)=>`<div class="control-deck">
+  <div class="direction-pad" aria-label="移動、等待、裝填與互動">
+    <button class="corner reload"><span>⟳</span><small>${lang.reloadWord}</small><small>${lang.ammo}</small></button>
+    <button class="north">↑</button>
+    <button class="corner interact"><span>⇩</span><small>${lang.interact}</small></button>
+    <button class="west">←</button>
+    <button class="wait"><span>◷</span><small>${lang.wait}</small></button>
+    <button class="east">→</button>
+    <button class="south">↓</button>
+  </div>
+  <div class="action-buttons">
+    <button class="action primary"><span class="action-icon">⌖</span><strong>${lang.fire}</strong></button>
+    <button class="action"><span class="action-icon">◉</span><strong>${lang.grenade}</strong></button>
+    <button class="action"><span class="action-icon">✚</span><strong>${lang.item}</strong></button>
+    <button class="action"><span class="action-icon">◇</span><strong>${lang.skill}</strong></button>
+  </div>
+</div>`;
+const deck=(lang,v)=>v.layout==='corner'?cornerDeck(lang):standardDeck(lang);
+const lab=document.getElementById('lab');
+lab.innerHTML=VARIANTS.map(v=>`<h2>${v.name}</h2><p class="note">${v.note}</p>`+
+  Object.entries(LANGS).map(([code,lang])=>`<p class="lang">${code}</p><div class="mock" data-variant="${v.id}" data-lang="${code}" data-layout="${v.layout||'standard'}" data-swap="${v.swap?1:0}" style="${Object.entries(v.style).map(([k,val])=>`${k}:${val}`).join(';')}">${deck(lang,v)}</div>`).join('')+
+  `<p class="widths" data-widths="${v.id}"></p>`).join('');
+// Report the measured action-button width and deck height per variant, so the trade-off is a number, not a guess.
+for(const v of VARIANTS){
+  const mock=lab.querySelector(`.mock[data-variant="${v.id}"][data-lang="zh-Hant"]`);
+  const action=mock.querySelector('.action'),pad=mock.querySelector('.direction-pad'),line=lab.querySelector(`[data-widths="${v.id}"]`);
+  const a=action.getBoundingClientRect(),p=pad.getBoundingClientRect(),d=mock.querySelector('.control-deck').getBoundingClientRect();
+  line.textContent=`方向鍵 ${Math.round(p.width)}×${Math.round(p.height)} · 動作鈕 ${Math.round(a.width)}×${Math.round(a.height)} · 整條操作區高 ${Math.round(d.height)}`;
+}
+// Flag any label that overflows its button, which is what breaks first in a longer language.
+for(const mock of lab.querySelectorAll('.mock')){
+  for(const strong of mock.querySelectorAll('.action strong')){
+    const button=strong.closest('.action');
+    if(strong.scrollWidth>strong.clientWidth+1||button.scrollHeight>button.clientHeight+1)button.style.outline='2px solid #f0a48f';
+  }
+}
+</script>
+</body></html>

@@ -20,17 +20,27 @@
 .loadout-bar>div{display:flex;justify-content:center;flex-direction:column;gap:3px;flex:1;min-width:0;padding-right:4px}
 #quick-weapon{font:10px var(--mono);color:#dcc396}#status-effects{font-size:9px;line-height:1.4;color:#b8cda6}
 .loadout-bar button{min-width:44px;min-height:44px;height:auto;padding:0 7px;border:1px solid #45583b;background:#263622;color:#c1d0b2;font-size:11px;white-space:nowrap}
-.control-deck{grid-area:controls;display:flex;align-items:center;gap:8px;padding:6px;position:static}
-.direction-pad{display:grid;grid-template-columns:44px 44px 44px;grid-template-rows:44px 44px 44px;gap:2px;flex:none}
-.direction-pad button{border:1px solid #526143;background:#293725;color:#c4d5b3;font:25px var(--mono);padding:0}
+/* Pad size and deck layout are settings (3.98.0, user request), so both come from variables the controller writes. */
+.control-deck{grid-area:controls;display:flex;align-items:center;gap:8px;padding:6px;position:static;--pad-cell:44px;--pad-gap:2px}
+.direction-pad{display:grid;grid-template-columns:repeat(3,var(--pad-cell));grid-template-rows:repeat(3,var(--pad-cell));gap:var(--pad-gap);flex:none}
+.direction-pad button{border:1px solid #526143;background:#293725;color:#c4d5b3;font:calc(var(--pad-cell)*.55)/1 var(--mono);padding:0}
 .direction-pad .north{grid-area:1/2}.direction-pad .west{grid-area:2/1}.direction-pad .east{grid-area:2/3}.direction-pad .south{grid-area:3/2}
-.direction-pad .wait{grid-area:2/2;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:20px;color:#edca92;background:#41412b;border-color:#aa915a}
-.direction-pad .wait small{font:9px 'Noto Sans TC',sans-serif}
+.direction-pad .wait{grid-area:2/2;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:calc(var(--pad-cell)*.45);color:#edca92;background:#41412b;border-color:#aa915a}
+.direction-pad .wait small{font:clamp(9px,calc(var(--pad-cell)*.2),12px) 'Noto Sans TC',sans-serif}
 .action-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;flex:1;max-width:none}
 .action-buttons .action{min-width:0;min-height:66px;height:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;border:1px solid #526143;background:#273420;color:#c4d1b3;padding:3px}
 .action-buttons .action.primary{background:#dc935d;border-color:#f4b17b;color:#20281c}
 .action-icon{font:23px/1 var(--mono);margin:0}.action strong{font-size:10px;font-weight:500;white-space:normal;text-align:center}.action b{font:10px var(--mono);margin:0}
 .action.aiming{border-color:#f5be76!important;background:#826037!important;color:#ffe2af!important}
+/* Nine-cell pad (3.98.0, user request): reload and interact move into the 7 and 9 corners, which leaves four larger
+   action buttons on the right. The two buttons keep their identity and handlers; only their parent and look change. */
+.control-deck.corner-pad{align-items:stretch}
+.control-deck.corner-pad .direction-pad #interact{grid-area:1/1}
+.control-deck.corner-pad .direction-pad [data-action="reload"]{grid-area:1/3}
+.control-deck.corner-pad .direction-pad .action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;padding:2px;line-height:1.15;border:1px solid #8b8358;background:#36382a;color:#e6d3a6}
+.control-deck.corner-pad .direction-pad .action .action-icon{font-size:calc(var(--pad-cell)*.3)}
+.control-deck.corner-pad .direction-pad .action strong{font-size:clamp(9px,calc(var(--pad-cell)*.18),11px);color:#d7ddc8}
+.control-deck.corner-pad .action-buttons{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
 #field-messages{grid-area:messages;min-height:28px;display:flex;flex-direction:column;align-items:stretch;background:#121c17;border-bottom:1px solid #384036}
 .battle-notice{position:static;transform:none;max-width:none;min-width:0;min-height:28px;height:auto;padding:5px 8px;border:0;background:none;color:#c5cbaa;font-size:10px;text-align:left;opacity:1;transition:none;white-space:normal;line-height:1.6;pointer-events:none}
 .battle-notice:not(.show){color:#8e9c80}

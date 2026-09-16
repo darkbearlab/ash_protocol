@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.97.3**（升級三選一改貼畫面上緣，避免連點誤觸，Claude；3.97.2 為選單底部抽屜；3.97.1 為手機介面修正；3.97.0 為手機介面；3.96.0 為工坊第 6 階段修理；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.98.0**（操作區排版與方向鍵大小做成設定，Claude；3.97.3 為升級三選一改貼畫面上緣；3.97.2 為選單底部抽屜；3.97.1 為手機介面修正；3.97.0 為手機介面；3.96.0 為工坊第 6 階段修理；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -243,3 +243,13 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 - **版面**：`@media(max-width:600px)` 下 `#modal:not(.title)` 貼齊底部、滿寬；`#modal.tabbed` 再填滿高度，上緣固定。
 - **底部列**：`pinFooter` 把分頁列（`[role="tablist"]` 或 `.journal-tabs`）移進 `.modal-footer`，和主按鈕一起固定；`.modal-footer` 的下方內距加上 `env(safe-area-inset-bottom)`。
 - **注意**：填滿高度的抽屜要靠 `#modal-content` 的 flex 欄與 `.modal-footer{margin-top:auto}` 把底部列推到下緣；只有 sticky 時，內容短的分頁會讓它停在中間。
+
+3.97.3（Claude）：升級三選一改貼畫面上緣（使用者回報連點誤觸）。
+- **判斷**：`modal()` 看內容裡有沒有 `[data-perk]`，有就加上 `raised`；升級是唯一會自己跳出來的選單。
+- **版面**：`@media(max-width:600px)` 下 `#modal.raised:not(.title)` 改成 `margin:0 0 auto`，上方內距加 `env(safe-area-inset-top)`；三張卡片落在畫面上半部，拇指那一下打在遮罩上。
+
+3.98.0（Claude）：操作區排版與方向鍵大小做成設定。
+- **變數**：`.control-deck` 帶 `--pad-cell`／`--pad-gap`，方向鍵格子與字級都由變數算出；controller 的 `applyDeck()` 負責寫入。
+- **九宮格**：`.control-deck.corner-pad` 把 `#interact` 放 `grid-area:1/1`、`[data-action="reload"]` 放 `1/3`，右側 `.action-buttons` 改兩欄兩列並拉滿方向鍵的高度。
+- **搬動而非複製**：`applyDeck()` 把同兩顆按鈕移進 `.direction-pad`，回經典時放回「開火之後」與最後一顆（就是原本的 HTML 順序）。因為程式一律用 `[data-action]` 全域查詢，狀態更新、長按綁定、`.aiming` 高亮都不用改。
+- **設定**：`ash-pad-layout`（classic／corner）與 `ash-pad-cell`（44／52／60／68）存本機，開機時讀回並套用。
