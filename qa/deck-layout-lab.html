@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>操作區格狀配置 · DECK LAYOUT LAB</title>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/expansion.css">
+<style>
+/* Dev-only lab (3.100.1+, user request): compares a 15-cell labelled deck with an 18-cell icon deck, both at 375 wide.
+   Every cell is the same object; only the right grid's column count and the label mode change per variant. */
+body{padding:0 0 60px;background:#0d1211}
+h1{margin:16px 12px 4px;font:13px var(--mono);color:var(--orange);letter-spacing:2px}
+h2{margin:20px 12px 2px;font-size:14px;color:#dfe8d6}
+p.note{margin:0 12px 8px;font-size:11px;line-height:1.6;color:#9fae95}
+.widths{margin:4px 12px 14px;font:10px var(--mono);color:#c2a06f}
+.mock{width:375px;max-width:100%;margin:0 auto;border:1px solid #3b4238;background:#151e19}
+.deck{display:flex;align-items:stretch;gap:8px;padding:6px}
+.grid{display:grid;gap:3px}
+.pad{grid-template-columns:repeat(3,var(--cell));grid-template-rows:repeat(3,var(--rowh,var(--cell)));flex:none}
+.acts{flex:1;grid-template-columns:repeat(var(--cols),var(--acw,minmax(0,1fr)));grid-template-rows:repeat(3,minmax(0,1fr))}
+.uniform .acts{flex:none}
+/* One continuous field: no split, no divider, 15 identical cells across the whole deck. */
+.deck.single{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(3,var(--ch));gap:3px}
+.cell{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;padding:2px;
+ border:1px solid #526143;background:#293725;color:#c4d5b3;line-height:1.15;position:relative}
+.cell .ic{font:21px/1 var(--mono)}
+.cell .tx{font-size:10px;text-align:center}
+.cell.primary{background:#dc935d;border-color:#f4b17b;color:#20281c}
+.cell.wait{background:#41412b;border-color:#aa915a;color:#edca92}
+.cell.move .ic{font-size:26px}
+.cell.empty{border-style:dashed;border-color:#41513a;background:#1d2a1e}
+.cell .badge{position:absolute;top:2px;right:3px;font:9px var(--mono);color:#e8ce98}
+.icons .tx{display:none}
+.icons .cell .ic{font-size:24px}
+</style>
+</head>
+<body>
+<h1>DECK LAYOUT LAB</h1>
+<p class="note">同一份 CSS、同一批功能，只改右側欄數與要不要顯示文字。全部用 375 寬度排版，數字是實測值。虛線格＝尚未指派，之後可以放上排那些按鈕或新功能。</p>
+<div id="lab"></div>
+<script type="module">
+const F={
+ up:{ic:'↑',cls:'move'},down:{ic:'↓',cls:'move'},left:{ic:'←',cls:'move'},right:{ic:'→',cls:'move'},
+ wait:{ic:'◷',tx:'等待',cls:'wait'},
+ fire:{ic:'⌖',tx:'開火',cls:'primary'},
+ reload:{ic:'⟳',tx:'裝填 8/8',badge:'8'},
+ grenade:{ic:'◉',tx:'破片彈 2',badge:'2'},
+ item:{ic:'✚',tx:'醫療包 2',badge:'2'},
+ skill:{ic:'◇',tx:'工坊 序列 1/1 · 部署 0/1',badge:'1'},
+ interact:{ic:'⇩',tx:'互動'},
+ target:{ic:'⊕',tx:'目標'},aim:{ic:'⊙',tx:'瞄準'},bag:{ic:'▤',tx:'背包'},map:{ic:'▦',tx:'地圖'},menu:{ic:'☰',tx:'選單'},
+ empty:{ic:'',tx:'',cls:'empty'},
+};
+const cell=id=>{const f=F[id]||F.empty;return `<div class="cell ${f.cls||''}">${f.badge?`<span class="badge">${f.badge}</span>`:''}${f.ic?`<span class="ic">${f.ic}</span>`:''}${f.tx?`<span class="tx">${f.tx}</span>`:''}</div>`;};
+const single=(cells,style)=>`<div class="mock" style="${style}"><div class="deck single">${cells.map(cell).join('')}</div></div>`;
+const deck=(pad,acts,cols,icons,style='--cell:56px')=>`<div class="mock${icons?' icons':''}${style.includes('--acw')?' uniform':''}" style="${style};--cols:${cols}">
+ <div class="deck">
+  <div class="grid pad">${pad.map(cell).join('')}</div>
+  <div class="grid acts">${acts.map(cell).join('')}</div>
+ </div></div>`;
+// Reading order is row by row, so index 0 is the top-left cell of each grid.
+const PAD=['reload','up','interact','left','wait','right','empty','down','empty'];
+const SINGLE=['reload','up','interact','fire','grenade','left','wait','right','item','skill','empty','down','empty','empty','empty'];
+const PAD_MIRROR=['interact','up','reload','left','wait','right','empty','down','empty'];
+const VARIANTS=[
+ {id:'A',name:'A · 15 格（左 3×3 ＋ 右 3×2，保留文字）',
+  note:'右側兩欄，每顆比現在還寬，所有標籤原封不動。左側九宮格照 3.98.0 的排法，裝填與互動在上兩角，下兩角留空。',
+  pad:PAD,acts:['fire','grenade','item','skill','empty','empty'],cols:2,icons:false},
+ {id:'B',name:'B · 18 格（兩個九宮格，純圖示）',
+  note:'右側三欄，每格都是正方形，文字換成圖示＋數字角標。目前只有四個功能在右側，所以空了五格。',
+  pad:PAD,acts:['fire','grenade','item','skill','empty','empty','empty','empty','empty'],cols:3,icons:true},
+ {id:'C',name:'C · 18 格、把上排也收進來（純圖示）',
+  note:'同 B，但把目標／瞄準／背包／地圖／選單一起放進右側——18 格要填滿，大概就是這個程度。',
+  pad:PAD,acts:['fire','grenade','item','skill','target','aim','bag','map','menu'],cols:3,icons:true},
+ {id:'E',name:'E · 15 格，全部同尺寸的正方形',
+  note:'左右共五欄平均分寬度，每格 69×69。按鈕比現在大，但整條操作區高度也跟著變高。',
+  pad:PAD,acts:['fire','grenade','item','skill','empty','empty'],cols:2,icons:false,style:'--cell:69px;--acw:69px'},
+ {id:'F',name:'F · 15 格，全部同尺寸但壓扁',
+  note:'同樣五欄均分，但每格 69×56；操作區高度回到與 A、B 相同。',
+  pad:PAD,acts:['fire','grenade','item','skill','empty','empty'],cols:2,icons:false,style:'--cell:69px;--rowh:56px;--acw:69px'},
+ {id:'G',name:'G · 15 格一體格網（正方 70×70）',
+  note:'沒有左右之分、沒有中間那條間隔：整條操作區就是五欄三列的同尺寸方格。資料上就是一個 15 格的陣列。',
+  cells:SINGLE,style:'--ch:70px'},
+ {id:'H',name:'H · 同一體格網，壓扁（70×56）',
+  note:'同 G，只是每格矮一點；操作區高度回到與 A、F 相同。',
+  cells:SINGLE,style:'--ch:56px'},
+ {id:'D',name:'D · A 的左右鏡像（左手）',
+  note:'自由配置真正買到的東西：同一套功能整組鏡像，慣用左手的人可以把方向鍵放右邊。',
+  pad:PAD_MIRROR,acts:['grenade','fire','skill','item','empty','empty'],cols:2,icons:false,mirror:true},
+];
+const lab=document.getElementById('lab');
+lab.innerHTML=VARIANTS.map(v=>{
+ const html=v.cells?single(v.cells,v.style):deck(v.pad,v.acts,v.cols,v.icons,v.style);
+ const body=v.mirror?html.replace('<div class="deck">','<div class="deck" style="flex-direction:row-reverse">'):html;
+ return `<h2>${v.name}</h2><p class="note">${v.note}</p>${body}<p class="widths" data-widths="${v.id}"></p>`;
+}).join('');
+for(const [i,v] of VARIANTS.entries()){
+ const mock=lab.querySelectorAll('.mock')[i],d=mock.querySelector('.deck'),box=d.getBoundingClientRect();
+ const line=lab.querySelector(`[data-widths="${v.id}"]`);
+ if(v.cells){const c=mock.querySelector('.cell').getBoundingClientRect();line.textContent=`每格 ${Math.round(c.width)}×${Math.round(c.height)} · 五欄三列共 15 格 · 整條操作區高 ${Math.round(box.height)}`;}
+ else{const p=mock.querySelector('.pad').getBoundingClientRect(),a=mock.querySelector('.acts .cell').getBoundingClientRect();
+  line.textContent=`方向鍵 ${Math.round(p.width)}×${Math.round(p.height)} · 右側每格 ${Math.round(a.width)}×${Math.round(a.height)} · 整條操作區高 ${Math.round(box.height)}`;}
+}
+// Flag any label that no longer fits its cell, which is what decides whether text can stay.
+for(const t of lab.querySelectorAll('.tx')){const c=t.closest('.cell');if(t.scrollWidth>t.clientWidth+1||c.scrollHeight>c.clientHeight+1)c.style.outline='2px solid #f0a48f';}
+</script>
+</body></html>

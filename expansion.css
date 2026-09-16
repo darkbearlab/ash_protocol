@@ -37,10 +37,19 @@
 .control-deck.corner-pad{align-items:stretch}
 .control-deck.corner-pad .direction-pad #interact{grid-area:1/1}
 .control-deck.corner-pad .direction-pad [data-action="reload"]{grid-area:1/3}
-.control-deck.corner-pad .direction-pad .action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;padding:2px;line-height:1.15;border:1px solid #8b8358;background:#36382a;color:#e6d3a6}
+.control-deck.corner-pad .direction-pad .action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;padding:2px;line-height:1.15;border:1px solid #8b8358;background-color:#36382a;color:#e6d3a6}
 .control-deck.corner-pad .direction-pad .action .action-icon{font-size:calc(var(--pad-cell)*.3)}
 .control-deck.corner-pad .direction-pad .action strong{font-size:clamp(9px,calc(var(--pad-cell)*.18),11px);color:#d7ddc8}
 .control-deck.corner-pad .action-buttons{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr))}
+/* Grid deck (3.101.0, user request): no split and no divider. Every button is a cell of one five-by-three field,
+   placed by grid-area, so any function can sit in any slot without changing size. */
+.control-deck.grid-deck{display:block;align-items:stretch}
+.control-deck.grid-deck .direction-pad{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(3,var(--pad-cell));gap:var(--pad-gap);width:100%}
+.control-deck.grid-deck .action-buttons{display:none}
+.control-deck.grid-deck .direction-pad .action{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;padding:3px;line-height:1.15;border:1px solid #526143;background-color:#273420;color:#c4d1b3}
+.control-deck.grid-deck .direction-pad .action.primary{background-color:#dc935d;border-color:#f4b17b;color:#20281c}
+.control-deck.grid-deck .direction-pad .action .action-icon{font-size:calc(var(--pad-cell)*.3)}
+.control-deck.grid-deck .direction-pad .action strong{font-size:clamp(9px,calc(var(--pad-cell)*.15),11px)}
 #field-messages{grid-area:messages;min-height:28px;display:flex;flex-direction:column;align-items:stretch;background:#121c17;border-bottom:1px solid #384036}
 .battle-notice{position:static;transform:none;max-width:none;min-width:0;min-height:28px;height:auto;padding:5px 8px;border:0;background:none;color:#c5cbaa;font-size:10px;text-align:left;opacity:1;transition:none;white-space:normal;line-height:1.6;pointer-events:none}
 .battle-notice:not(.show){color:#8e9c80}
@@ -76,7 +85,7 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .target-card{position:absolute;left:0;top:0;z-index:2;width:104px;display:flex;flex-direction:column;gap:0;padding:4px 2px;border:1px solid #89d8cb88;border-left:2px solid #97eee0;background:linear-gradient(120deg,#102729da,#112026b8);box-shadow:none;pointer-events:none;user-select:none;color:#c8eee3;font:10px/1.15 var(--mono);text-shadow:0 1px 2px #071515;overflow-wrap:anywhere}
 .target-card strong{font:600 11px/1.15 'Noto Sans TC',sans-serif;letter-spacing:0;color:#c7fff0}.target-card>b{font-weight:500;color:#ecd18f}.target-state{font-size:9px;color:#efb18d}.target-state:empty{display:none}.target-card>:empty{display:none}.target-card.out-of-range{border-color:#c1946d99}.target-card.out-of-range>b{color:#efab88}
 .target-link{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:visible}.target-link path{fill:none;stroke:#a5ebda99;stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}.vitals-bar{z-index:3}
-.action-buttons .action[data-action="skill"]:disabled{opacity:.38;cursor:default}
+.control-deck .action[data-action="skill"]:disabled{opacity:.38;cursor:default}
 .target-card.compact{padding:3px 1px;gap:0;font-size:9px;line-height:1.1}.target-card.compact strong{font-size:10px}.target-card.compact .target-state{font-size:8px}
 
 .loadout-bar [data-action="toggleTargeting"]{min-width:52px;padding:0 5px}
@@ -306,10 +315,10 @@ dialog .modal-footer{position:sticky;bottom:calc(-1*var(--dialog-pad-y));z-index
 dialog .modal-footer>.modal-button{flex:1;min-width:0;margin-top:0}
 dialog .modal-footer>.modal-row{flex:1;margin:0}
 dialog .modal-footer .modal-button{margin-top:0}
-.action-buttons .action.unavailable{opacity:.45}
-.action-buttons .action.pressing{background-image:linear-gradient(#e8ce9848,#e8ce9848);background-repeat:no-repeat;background-position:bottom;background-size:100% 0;animation:long-press .45s linear forwards}
+.control-deck .action.unavailable{opacity:.45}
+.control-deck .action.pressing{background-image:linear-gradient(#e8ce9848,#e8ce9848);background-repeat:no-repeat;background-position:bottom;background-size:100% 0;animation:long-press .45s linear forwards}
 @keyframes long-press{to{background-size:100% 100%}}
-@media(prefers-reduced-motion:reduce){.action-buttons .action.pressing{animation:none;background-size:100% 100%}}
+@media(prefers-reduced-motion:reduce){.control-deck .action.pressing{animation:none;background-size:100% 100%}}
 dialog .pack-resources{padding:4px 0 8px;gap:8px}
 dialog .inventory-tabs{margin:6px 0 8px}
 .pack-hint{margin:0 0 6px!important;font-size:11px!important;line-height:1.5!important;color:#9fae95}

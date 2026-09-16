@@ -51,6 +51,7 @@ import {targetDetails} from './target-card.js';
 import {enemyGlyph,floorTraitNote} from './enemy-visuals.js';
 import {unitTree} from './behavior-tree.js';
 import {read,write,loadGame,saveGame,storage,profile,recordResult,TEST_MODE,exportBackup,previewBackup,restoreBackup,abandonRun,resetProgress} from './storage.js';
+import {DECK_GRID,DECK_COLUMNS,deckPlacement} from './deck-layout.js';
 
 const $=s=>document.querySelector(s),audio=new AudioFX();
 const savedGame=loadGame();
@@ -64,7 +65,10 @@ renderer.targetingEnabled=read('ash-targeting')!=='off';
 renderer.movementBoundaries=read('ash-movement-boundaries')==='on';
 // Control deck (3.98.0, user request): pad size and layout are display preferences, kept local like the boundary lines.
 const PAD_SIZES=[44,52,60,68],PAD_LABELS={44:'標準',52:'大',60:'特大',68:'巨大'};
-let padLayout=read('ash-pad-layout')==='corner'?'corner':'classic';
+// 3.101.0 (user request): 格狀 drops the split entirely - one five-by-three field of identical cells, so the pad
+// size setting has nothing to say there, because the cell size is the deck width divided by five.
+const DECK_LAYOUTS=['classic','corner','grid'],DECK_LAYOUT_LABELS={classic:'經典',corner:'九宫格',grid:'格狀'},GRID_CELL_MAX=76;
+let padLayout=DECK_LAYOUTS.includes(read('ash-pad-layout'))?read('ash-pad-layout'):'classic';
 let padCell=PAD_SIZES.includes(Number(read('ash-pad-cell')))?Number(read('ash-pad-cell')):PAD_SIZES[0];
 renderer.boundaryOpacity=boundaryOpacityPercent(read('ash-boundary-opacity'));
 {const color=read('ash-operator-color');renderer.operatorColor=validOperatorColor(color)?color:DEFAULT_OPERATOR_COLOR;}
@@ -368,17 +372,33 @@ function fitLayout(){const panel=$('.battle-panel'),hud=$('.tactical-panel'),wid
   panel.style.setProperty('--board-size',`${Math.max(128,Math.floor(side))}px`);
   // Handheld feel (3.97.0, user request): once the battle screen fits, the page is locked against scrolling and bounce;
   // a layout that cannot fit (such as the landscape override) still scrolls.
+  sizeDeck();
   document.documentElement.classList.toggle('scroll-locked',panel.getBoundingClientRect().height<=height+2);updateOrientation();
 }
 // The nine-cell layout moves the two buttons rather than duplicating them, so every [data-action] lookup, handler and
 // disabled state keeps working; classic puts reload back after fire and interact last, which is the markup order.
 function applyDeck(){
-  const deck=$('.control-deck'),pad=$('.direction-pad'),corner=padLayout==='corner';
-  deck.style.setProperty('--pad-cell',`${padCell}px`);deck.style.setProperty('--pad-gap',padCell>=52?'3px':'2px');
-  deck.classList.toggle('corner-pad',corner);
-  if(corner)pad.append($('[data-action="reload"]'),$('#interact'));
-  else{$('[data-action="fire"]').after($('[data-action="reload"]'));$('.action-buttons').append($('#interact'));}
-  pad.setAttribute('aria-label',corner?'移動、等待、裝填與互動':'移動與等待');
+  const deck=$('.control-deck'),pad=$('.direction-pad'),actions=$('.action-buttons'),corner=padLayout==='corner',grid=padLayout==='grid';
+  deck.classList.toggle('corner-pad',corner);deck.classList.toggle('grid-deck',grid);
+  for(const button of deck.querySelectorAll('button'))button.style.gridArea='';
+  if(grid)for(const {selector,row,column} of deckPlacement(DECK_GRID)){const button=$(selector);pad.append(button);button.style.gridArea=`${row}/${column}`;}
+  else{
+    // Back to the two containers in markup order, so classic and 九宫格 are unchanged by the grid existing.
+    pad.append($('[data-move="0,-1"]'),$('[data-move="-1,0"]'),$('[data-action="wait"]'),$('[data-move="1,0"]'),$('[data-move="0,1"]'));
+    actions.append($('[data-action="fire"]'),$('[data-action="reload"]'),$('[data-action="grenade"]'),$('[data-action="item"]'),$('[data-action="skill"]'),$('#interact'));
+    if(corner)pad.append($('[data-action="reload"]'),$('#interact'));
+    deck.style.setProperty('--pad-cell',`${padCell}px`);deck.style.setProperty('--pad-gap',padCell>=52?'3px':'2px');
+  }
+  pad.setAttribute('aria-label',grid?'操作區':corner?'移動、等待、裝填與互動':'移動與等待');
+  sizeDeck();
+}
+// The cells are square and share the deck's width, so their size is measured rather than chosen.
+function sizeDeck(){
+  if(padLayout!=='grid')return;
+  const deck=$('.control-deck'),style=getComputedStyle(deck);
+  const inner=deck.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight);
+  const cell=Math.max(40,Math.min(GRID_CELL_MAX,(inner-3*(DECK_COLUMNS-1))/DECK_COLUMNS));
+  deck.style.setProperty('--pad-cell',`${Math.floor(cell)}px`);deck.style.setProperty('--pad-gap','3px');
 }
 applyDeck();
 const layoutObserver=new ResizeObserver(()=>requestAnimationFrame(fitLayout));
@@ -520,8 +540,8 @@ ${inRun?`<div class="modal-row"><button class="modal-button secondary" data-moda
 <p>沿可見牆與障礙物標示輪廓；斷點不延伸。門另以綠線表示關閉、兩側綠點表示開啟。</p>
 <label class="boundary-opacity" for="boundary-opacity">白線不透明度 <output id="boundary-opacity-value" for="boundary-opacity">${renderer.boundaryOpacity}%</output><input id="boundary-opacity" type="range" min="0" max="100" step="5" value="${renderer.boundaryOpacity}" aria-describedby="boundary-opacity-help"></label>
 <p id="boundary-opacity-help">0% 完全透明，100% 不透明；只調整白線，綠色門提示不受影響。</p>
-<div class="modal-row"><button class="modal-button secondary" data-modal="padLayout" aria-pressed="${padLayout==='corner'}">操作區排版：${padLayout==='corner'?'九宫格':'經典'}</button><button class="modal-button secondary" data-modal="padCell">方向鍵大小：${PAD_LABELS[padCell]}（${padCell}）</button></div>
-<p>九宫格把「裝填」、「互動」移到方向鍵的右上與左上，右側只剩四顆更大的按鈕；方向鍵越大，地圖就越短。關閉設定後即可看到效果。</p>
+<div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">操作區排版：${DECK_LAYOUT_LABELS[padLayout]}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>方向鍵大小：${padLayout==='grid'?'格狀不適用':`${PAD_LABELS[padCell]}（${padCell}）`}</button></div>
+<p>九宫格把「裝填」、「互動」移到方向鍵的右上與左上，右側只剩四顆更大的按鈕。格狀則沒有左右之分：整條操作區是五欄三列的同尺寸方格，尺寸由寬度推出來，所以沒有方向鍵大小可調。關閉設定後即可看到效果。</p>
 ${sec('存檔')}
 <div class="modal-row"><button class="modal-button secondary" data-modal="backupExport">完整備份</button>${simulating?'':'<button class="modal-button secondary" data-modal="backupImport">還原備份</button>'}</div>
 ${read('ash-backup-before-restore')?'<button class="modal-button secondary" data-modal="backupPrevious">下載還原前備份</button>':''}
@@ -660,7 +680,7 @@ document.addEventListener('click',e=>{
     case 'resetProgress':modal('<h2>重置遊戲進度？</h2><p>清除目前任務、全部協定點數、解鎖與任務紀錄，從零開始。只影響目前正式／測試區。</p><p>會先保存完整備份，之後可在設定下載「還原前備份」。音效與瞄準偏好不變；再次放棄任務、還原或重置會覆寫這份備份，請先下載留存。</p><button class="modal-button secondary" data-modal="backupExport">先下載目前完整備份</button><button class="modal-button" data-modal="resetConfirm">確認清空遊戲進度</button><button class="modal-button secondary" data-modal="settings">取消</button>');break;
     case 'resetConfirm':try{adoptSnapshot(resetProgress(game));notify('遊戲進度已重置；原資料可從設定下載。');}catch(error){backupError(error);}break;
     case 'settings':settings();break;
-    case 'padLayout':padLayout=padLayout==='corner'?'classic':'corner';write('ash-pad-layout',padLayout);applyDeck();fitLayout();settings();break;
+    case 'padLayout':padLayout=DECK_LAYOUTS[(DECK_LAYOUTS.indexOf(padLayout)+1)%DECK_LAYOUTS.length];write('ash-pad-layout',padLayout);applyDeck();fitLayout();settings();break;
     case 'padCell':padCell=PAD_SIZES[(PAD_SIZES.indexOf(padCell)+1)%PAD_SIZES.length];write('ash-pad-cell',String(padCell));applyDeck();fitLayout();settings();break;
     case 'movementBoundaries':renderer.movementBoundaries=!renderer.movementBoundaries;write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off');settings();break;
     case 'sound':audio.enabled=!audio.enabled;write('ash-sound',audio.enabled?'on':'off');settings();break;
@@ -741,7 +761,7 @@ $('#battle').addEventListener('pointercancel',()=>{pointerStart=null;});
 // orphan one, and the timer re-checks the game state before opening the pack.
 const LONG_PRESS_MS=450,presses=new Map();let swallowPointer=null,swallowClicksUntil=0;
 const pressReady=()=>!playback&&!orientationBlocked&&entered&&!$('#modal').open&&game.status==='playing';
-for(const b of document.querySelectorAll('.action-buttons [data-action="grenade"],.action-buttons [data-action="item"],.action-buttons [data-action="skill"]')){
+for(const b of document.querySelectorAll('.control-deck [data-action="grenade"],.control-deck [data-action="item"],.control-deck [data-action="skill"]')){
   const stop=()=>{const press=presses.get(b);if(press){clearTimeout(press.timer);presses.delete(b);}b.classList.remove('pressing');};
   b.addEventListener('pointerdown',e=>{
     if(!pressReady()||b.disabled||e.button>0)return;
