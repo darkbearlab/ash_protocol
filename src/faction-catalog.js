@@ -4,7 +4,13 @@ export const DEFAULT_FACTION='legacy';
 // fill numbers with drones and suicide robots and add always-elite hero cards. Neither has fodder or nests, which wait
 // for the swarm and rift factions. Rebels still spawn the same bosses as a placeholder. Roster numbers are first-pass.
 // 3.81.0 (user): rebels get more elites, from floor 1, with eliteAffixes 4; some loyalist riflemen and raiders wear armour 1.
-const WATCH_DOG={name:'警犬'};
+// Faction names (3.104.0, user request): the two human factions field the same cards, so they get their own names.
+// Loyalists are the garrison and say what the unit does; the rebels are the same unit that turned, so 叛變 goes in front.
+// The armoured loyalist variants deliberately share their plain card's name. legacy keeps the ENEMY_TYPES names.
+const LOYALIST_NAMES={rifleman:{name:'步槍兵'},rifleman_armored:{name:'步槍兵'},raider:{name:'突擊兵'},raider_armored:{name:'突擊兵'},
+ gunner:{name:'破門手'},sniper:{name:'狙擊手'},crawler:{name:'軍犬'}};
+const REBEL_NAMES={drone:{name:'叛變無人機'},brute:{name:'叛變破壞者'},rifleman:{name:'叛變步槍兵'},raider:{name:'叛變突擊兵'},raider_elite:{name:'叛變突擊兵'},
+ gunner:{name:'叛變破門手'},gunner_elite:{name:'叛變破門手'},sniper:{name:'叛變狙擊手'},crawler:{name:'叛變軍犬'}};
 export const FACTIONS={
  legacy:{name:'現行混合',tag:false,roster:{
   early:[['rifleman',2],['raider',1],['gunner',1],['drone',1],['crawler',1]],
@@ -15,12 +21,12 @@ export const FACTIONS={
   early:[['rifleman',1],['rifleman_armored',1],['raider',1],['gunner',1],['drone',1],['crawler',1]],
   late:[['rifleman',1],['rifleman_armored',1],['raider',1],['raider_armored',1],['gunner',1],['drone',1],['brute',1],['sniper',1],['crawler',1]],
   deepExtra:[['brute',1],['sniper',1]],
- },bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:{crawler:WATCH_DOG}},
+ },bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
  rebel:{name:'叛軍',tag:true,pickable:true,voice:'rebel',eliteAffixes:4,roster:{
   early:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',1],['crawler',1],['raider_elite',1]],
   late:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',2],['brute',1],['sniper',1],['crawler',1],['raider_elite',1],['gunner_elite',1]],
   deepExtra:[['bomber_bot',1],['gunner_elite',1]],
- },bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:{crawler:WATCH_DOG}},
+ },bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:REBEL_NAMES},
  // Swarm (3.83.0, user): creature cards and infected soldiers, a giant bug, oversized bug bosses and burrow nests only.
  // The venom shot, the tongue pull and the infected affixes come with the Codex rules (docs/SWARM.md).
  swarm:{hordeType:'brood',infectedAffixes:['venomous','brood_host'],name:'蟲族',tag:true,pickable:true,voice:'creature',nestStyle:'burrow',roster:{
