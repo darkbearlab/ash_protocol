@@ -42,7 +42,7 @@ import {bestCover,coverEffects} from './cover.js';
 import {addTrace,spentCase,validTraces} from './traces.js';
 import {missionDefinition,missionDepth,returning,exitPoint,exitLabel,deepestFloor,newMission,prepareMission,validMission,missionObjects,missionTarget,missionSummary,exitBlocked} from './missions.js';
 import {validModules} from './modules.js';
-import {isContainer,containerName,validContainers} from './containers.js';
+import {isContainer,containerName,validContainers,rigContainers,isRigged,RIG_TUNING} from './containers.js';
 import {BARRIER_TYPES,vaultable,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,firstBarrierOnRay,validBarriers} from './barriers.js';
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
@@ -84,7 +84,7 @@ export class Game {
     Object.assign(this,{swarmWaves:undefined,mapStyle:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
-    prepareMission(this);populateRunUnlocks(this);registerPurgeFloor(this);
+    prepareMission(this);rigContainers(this);populateRunUnlocks(this);registerPurgeFloor(this);
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
   get petSensorContacts(){return petScanContacts(this);}
@@ -140,6 +140,7 @@ export class Game {
   }
   openContainer(id){
     const c=this.nearbyContainers.find(c=>c.id===id);if(!c)return this.fail('附近沒有可開啟的補給箱。');
+    if(isRigged(c))return this.detonateCase(c,this.player);
     const pos=this.containerDrop(c),contents=c.contents;c.opened=true;c.contents=[];
     this.items.push(...contents.map(i=>i.type==='weapon'?this.registerWeapon({...i,...pos},true):({...i,...pos})));
     this.effects.push({type:'unpack',from:{x:c.x,y:c.y},to:pos,damage:0});
@@ -564,9 +565,18 @@ export class Game {
     if(prop.hp>0)return;
     if(prop.type==='nest'){collapseNest(this,prop);return;}
     addTrace(this,prop,'debris');
+    if(isRigged(prop)){this.detonateCase(prop,attacker);return;}
     this.log(prop.type==='barrel'?'油桶被引爆！':prop.type==='nest'?'巢穴已摧毀，停止產出。':'掩體已摧毀。');
     if(prop.type==='barrel')this.explode(prop,2,45,attacker);
     if(prop.style)this.reveal();
+  }
+  // A rigged case goes off where it stands, with a player frag's numbers; whatever was inside is destroyed either way,
+  // so shooting it from range costs the supplies but not your health (3.100.0, user request).
+  detonateCase(c,attacker=null){
+    const lost=c.contents.length;c.contents=[];c.opened=true;c.hp=0;
+    this.log(`${containerName(c)}裝了引信——爆炸！${lost?'裡面的補給全毀。':''}`);
+    this.explode(c,RIG_TUNING.radius,FRAG_DAMAGE,attacker);
+    return true;
   }
   throwGrenade(pos) {
     const p=this.player,id=pos?.grenade??p.prepared.grenade,def=GRENADES[id];

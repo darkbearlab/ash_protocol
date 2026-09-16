@@ -1,6 +1,6 @@
 # 快速接手：ASH PROTOCOL（現況手冊）
 
-目前版本 **3.99.0**（KILL HOUSE 整備層放 100 廢料，Claude；3.98.1 為移除右上角的 ×、禁止縮放、標題與結算改回整頁；3.98.0 為操作區排版與方向鍵大小設定；3.97.3 為升級三選一改貼畫面上緣；3.97.2 為選單底部抽屜；3.97.1 為手機介面修正；3.97.0 為手機介面；3.96.0 為工坊第 6 階段修理；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
+目前版本 **3.100.0**（叛軍詭雷箱，SAVE 51，Claude；3.99.0 為 KILL HOUSE 整備層放 100 廢料；3.98.1 為移除右上角的 ×、禁止縮放、標題與結算改回整頁；3.98.0 為操作區排版與方向鍵大小設定；3.97.3 為升級三選一改貼畫面上緣；3.97.2 為選單底部抽屜；3.97.1 為手機介面修正；3.97.0 為手機介面；3.96.0 為工坊第 6 階段修理；3.95.0 為工坊第 5 階段頭目藍圖；3.94.0 為工坊第 4 階段敵方藍圖；3.93.0 為工坊第 3 階段武器掛載；3.92.1 為浮游彈藥不再避開玩家；3.92.0 為工坊第 2 階段浮游彈藥；3.91.0 為第 1 階段；3.90.0 解鎖規則由 Codex 實作、Claude 代為提交，3.90.1 為 Claude 的解鎖介面與複查修正）（最新提交以 `git log origin/main` 為準）。這份手冊只寫現在的樣子。逐版經過看 [CHANGELOG](CHANGELOG.md)；3.44.0 以前的逐版接手段落原文封存在 [archive/handoff-to-3.44.md](archive/handoff-to-3.44.md)。
 
 **本檔何時更新**：架構、模組、存檔格式、發版流程或分工改變時。一般版本只更新 CHANGELOG、對應規格、報告和驗證紙條最新段（見 [RELEASE.md](RELEASE.md)）。
 
@@ -262,3 +262,9 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 - **標題流程**：`modal()` 依 `titleFlow` 加上 `standalone`，樣式抄標題畫面（整頁、不透明 `#0d1211`、`::backdrop` 同色），內容欄在寬螢幕上限 470／`.wide` 650。
 - **`titleFlow` 何時為真**：`showIntro()`、`showResult()`、以及在非進行中的局按下部署（結算畫面的「重新部署」）。`#modal` 的 `close` 事件一律設回 false，因為對話框關閉就代表要露出戰場。
 - **邊界**：局內選單（`entered` 且 `status==='playing'`）維持 3.97.2 的底部抽屜，看得到戰場；「查看最後戰場」仍然是結算後看地圖的方式。
+
+3.100.0（Claude）：叛軍詭雷箱，SAVE 51。
+- **規則**：`src/containers.js` 的 `rigContainers(g)` 在 `loadFloor()` 的 `prepareMission` 之後跑；只在 `facilityFaction==='rebel'`、非模擬時生效，用 `unlockRandom(seed,floor,箱子 id)` 抽，每箱 `RIG_TUNING.chance`、每層最多 `RIG_TUNING.perFloor`。
+- **線索**：詭雷箱把 `indestructible` 刪掉、補上 `hp/maxHp`。controller 的點擊鎖定會從「有 hp 的 prop」裡挑，所以它鎖得到；`autoTarget()` 與 `cycleTarget()` 都只讀 `visibleEnemies`，所以不會自動鎖也不會輪到。
+- **引爆**：`Game.detonateCase()` 清空內容、標記 opened、hp 歸零後才 `explode`（避免自己再被波及），開箱與被打壞共用它。
+- **驗證**：`validContainers` 現在是二選一——正常箱（`indestructible:true` 且無 hp）或詭雷箱（`rigged:true`、無 `indestructible`、hp 在 0..maxHp）。
