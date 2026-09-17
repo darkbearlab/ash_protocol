@@ -43,6 +43,12 @@
 
 輕機槍、榴彈發射器與雷鳴爆彈槍發射、所有近戰（玩家與敵人）、毒液、友軍寵物砲台、投擲物出手與煙霧／EMP／震撼、撿取與開箱、終端、電梯與換層、修復噴劑、腎上腺素、佩戴件、設置掩體、門與隔板被破壞、技能、蟲巢與舌頭、頭目、玩家陣亡、撤離與結算、選單返回；玩家受傷目前和命中共用同一聲。製作規格見 [AUDIO_SFX_BRIEF.md](AUDIO_SFX_BRIEF.md)（第四輪，交給 Codex；也重做 Claude 先前做的 7 個已核准音效，讓使用者比對版本）。
 
+## 第四輪 P1 回饋（2026-09-17）
+
+使用者要求撲咬更濕，其餘無意見：輕機槍、投擲、拾取、開箱、玩家受傷五項採用。已收入 adopted、更新 SHA-256，獨立製作程式 md-sfx-round4-p1.mjs 的輸出與試聽版逐位元組一致；尚未替換遊戲。Claude 可依 AUDIO_SFX_BRIEF 的接入流程處理這五項。
+
+新版濕撲咬約 229 ms，仍放 ignored candidates/round4-p1-wet，待使用者試聽，不提交候選。P2、P3 與 B 部分七項比較仍未製作。
+
 ## 已決定的方向
 
 - 全部使用 Mega Drive 風格；既有合成器是近似音源，不宣稱逐暫存器實機相容。
@@ -52,7 +58,7 @@
 
 > **2026-09-17 整理（使用者：只留採用的）**：Codex 的四筆素材提交合成一筆，只保留採用的檔案。試聽合輯、比較檔、MP3 預覽、草稿、沒採用的環境音與電漿 B、三發衝鋒槍試聽檔、獨立循環母帶都沒有進版本控制；電漿 A 移到 `adopted/md3-03-plasma-a.wav`，六段派系配樂與 `faction-loops.json`（原 manifest）移到 `music/`。每個採用檔與產生輸出的對應與雜湊見 `art/audio/audio-checksums.json`。下文若提到已不存在的預覽或比較檔，只是製作歷史。
 
-## 音效採用表（15 項）
+## 音效採用表（20 項；新增五項待 Claude 接入）
 
 以下路徑以 art/audio/ 為根；不必重新產生或從比較用 MP3 擷取。
 
@@ -73,6 +79,11 @@
 | 升級通訊 | adopted/md3-07-transmission.wav | 採用 |
 | 氣動門 | adopted/md3-08-door.wav | 採用 |
 | 電漿 | adopted/md3-03-plasma-a.wav | 暫用 A；B 不採用，不須重新試選 |
+| 輕機槍單發 | adopted/md4-lmg.wav | P1 採用，120 ms，未接入 |
+| 投擲出手 | adopted/md4-throw.wav | P1 採用，未接入 |
+| 拾取 | adopted/md4-pickup.wav | P1 採用，未接入 |
+| 開箱 | adopted/md4-open-case.wav | P1 採用，未接入 |
+| 玩家受傷 | adopted/md4-hurt.wav | P1 採用，未接入 |
 
 WAV 為 44.1 kHz、16-bit、mono。保留製作時的相對音量，不逐檔正規化。第三輪音效若超過峰值限制有單檔衰減，不應假設每檔完全相同增益。
 

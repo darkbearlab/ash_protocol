@@ -110,6 +110,31 @@
       "sha256": "d05ab2d7b56da67f4d3d76148dcca158e13780b894baa32bce41e192c1ba6575",
       "generatedAs": "faction-sketches/swarm-combat.wav",
       "generator": "md-faction-sketches.mjs"
+    },
+    "adopted/md4-lmg.wav": {
+      "sha256": "82219be29f01d2a39899d05607bcb5ffbe04b27d72276ca201d432c10527e43c",
+      "generatedAs": "candidates/round4-p1-adopted/lmg.wav",
+      "generator": "md-sfx-round4-p1.mjs"
+    },
+    "adopted/md4-throw.wav": {
+      "sha256": "31b724f9fe0a7abda2064ea32abb8148c5195d3118bfeb3a44e8c1d1e2fec571",
+      "generatedAs": "candidates/round4-p1-adopted/throw.wav",
+      "generator": "md-sfx-round4-p1.mjs"
+    },
+    "adopted/md4-pickup.wav": {
+      "sha256": "959e0acd3748c90f630ba6e1100ee3c45140f7152a941b0cb40fcac240bee059",
+      "generatedAs": "candidates/round4-p1-adopted/pickup.wav",
+      "generator": "md-sfx-round4-p1.mjs"
+    },
+    "adopted/md4-open-case.wav": {
+      "sha256": "124d6e3a700f318757ab0334c1181febed11f51f5634493aab6e9fa2a9ae8455",
+      "generatedAs": "candidates/round4-p1-adopted/open-case.wav",
+      "generator": "md-sfx-round4-p1.mjs"
+    },
+    "adopted/md4-hurt.wav": {
+      "sha256": "38ec2a3243d6ede40234b8b921790977f0c314391f7cdd8142a0cf778b037ee9",
+      "generatedAs": "candidates/round4-p1-adopted/hurt.wav",
+      "generator": "md-sfx-round4-p1.mjs"
     }
   }
 }
