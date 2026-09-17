@@ -374,9 +374,13 @@ function main(argv){
  if(first==='new'){
   const file=second??fail('new 需要檔名。'),o=options(more);
   if(existsSync(file)&&!o.force)fail(`${file} 已存在；加 --force 覆寫。`);
-  const seed=o.seed===undefined?Math.floor(Math.random()*1000000):Number(o.seed),character=o.class||'soldier',mission=o.mission||'extraction';
+  const seed=o.seed===undefined?Math.floor(Math.random()*1000000):Number(o.seed),mission=o.mission||'extraction';
+  // 'random' everywhere, so a run can be dealt rather than chosen.
+  const pick=list=>list[Math.floor(Math.random()*list.length)];
+  const character=o.class==='random'?pick(Object.keys(CHARACTERS)):o.class||'soldier';
   if(!CHARACTERS[character])fail(`未知職業 ${character}。`);if(!MISSIONS[mission])fail(`未知任務 ${mission}。`);
   const faction=o.faction||'random',facilityFaction=faction==='random'?rollFacilityFaction(seed):faction;
+  if(faction!=='random'&&!factionDef(facilityFaction))fail(`未知派系 ${faction}。`);
   const fresh=new Game(seed,[],0,character,'onyx',mission,{facilityFaction,realMode:false});
   const {log,game}=createReplay(fresh,{seed,character,mission,facilityFaction,tool:'text-play'});
   save(file,log,game);console.log([`已建立 ${file}（種子 ${seed}）。`,...look(game),LEGEND,'輸入 help 看指令。'].join('\n'));return;
