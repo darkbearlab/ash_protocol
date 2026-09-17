@@ -16,7 +16,7 @@
 | 每批開發與驗證報告 | `qa/results/` |
 | 發版流程 | [RELEASE.md](RELEASE.md) |
 | Claude 的授權範圍 | [給Claude的交接.md](../給Claude的交接.md)、[ALLY_ITERATION_SCOPE.md](ALLY_ITERATION_SCOPE.md) |
-| 聲音與標題音樂（未接進遊戲）：方向、已採用、待重做、音樂規格 | [AUDIO.md](AUDIO.md)、[MENU_MUSIC.md](MENU_MUSIC.md)、`art/audio/` |
+| 聲音與音樂（3.117.0 已接入）：規則、採用素材、下一輪音效規格 | [AUDIO.md](AUDIO.md)、[AUDIO_SFX_BRIEF.md](AUDIO_SFX_BRIEF.md)、`art/audio/` |
 | 舊的逐版段落（原文） | [archive/](archive/README.md) |
 
 ## 分工
