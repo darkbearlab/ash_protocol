@@ -15,6 +15,8 @@ export const PREPARED_CATALOG={
    barricade:{name:'摺疊掩體',short:'掩體',icon:'▬',resource:'barricades',action:'deployCover',aim:'side',text:'在身邊任一側的邊線架起矮隔板：擋住移動並提供掩體，但不擋視線與射線，任何人都能翻越（翻越者下次被射擊命中 +20）。使用消耗 1 回合。'},
    // 3.108.0 (user, docs/ITEMS.md): the first wearable. It has no action — the prepared slot is its 生效欄, not a
    // quick-use slot — so wearing it is what does the work, and the item button greys while it is on.
+   // 3.123.0 (user decisions, docs/ITEMS.md 照明彈): an item, but aimed like a throwable (`aim:'throw'`).
+   flare:{name:'照明彈',short:'照明彈',icon:'✺',resource:'flares',action:'flare',aim:'throw',text:'射程 5 格、半徑 3 格，持續 8 輪。落點看得到、而且沒有對照明彈取得完整掩體的暗格會被照亮：站在上面的敵我都失去暗區的命中懲罰。'},
    nvg:{name:'夜視鏡',short:'夜視',icon:'◉',wear:true,traits:['night_vision'],text:'佩戴期間忽略目標暗區的射擊命中懲罰（不穿煙）。戴上與脫下各消耗 1 回合，佩戴期間道具鍵停用。'}},
   skill:SKILLS,
 };

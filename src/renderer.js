@@ -1,6 +1,7 @@
 import {mapStyleAtlases,mapStyle} from './map-styles.js';
 import {FRAME_RATE_DEFAULT,frameDue,nextDue} from './frame-rate.js';
 import {terminalRemaining,TERMINAL_TUNING} from './terminal.js';
+import {flareCells} from './flares.js';
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
@@ -181,6 +182,9 @@ export class Renderer {
     for(const m of g.marks)if(m.kind!=='grenade')this.markArea(m,1,m.kind==='ally'?'#e9a2494f':'#e969494f',m.kind==='ally'?'#f8c46977':'#f8996977',String(Math.max(1,m.due-g.turn)));
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
+    // 3.123.0: a flare's aim shows exactly the tiles it would light now (shadows and full cover stay unmarked).
+    if(this.mode==='flare'&&this.aim){const t=this.tile;for(const {x,y} of flareCells(g,this.aim)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,'#ffd27a26','#ffe0a066');}const a=this.project(this.aim.x,this.aim.y);this.text('✺',a.x,a.y+5,'#ffe3a8',15);}
+    for(const flare of g.flares||[])if(g.seen?.[flare.y]?.[flare.x]){const a=this.project(flare.x,flare.y),t=this.tile;this.glow(a.x,a.y,t*1.6,'#ffd27a30');this.box(a.x-2,a.y-2,4,4,'#fff1c4');this.text(String(Math.max(1,flare.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#ffe3a8',8);}
     if(this.mode==='launch'&&this.aim)this.markArea(this.aim,1,'#e6a95b33','#eacb84aa','');
     // 3.112.0: the shotgun's cone, faint on the floor and firm on everyone one shell will reach; red for a friend.
     const coneAim=this.targetingEnabled&&!this.mode&&g.weapon?.cone&&g.targeted&&g.enemies.includes(g.targeted)?g.targeted:null;
@@ -374,7 +378,7 @@ export class Renderer {
 
   hazard(a,h,time){const t=this.tile,l=a.x-t*.43,top=a.y-t*.43;this.box(l,top,t*.86,t*.86,h.type==='acid'?'#709a4855':'#cf672c55');for(let i=0;i<4;i++){const n=(i*13)%25;this.box(l+5+n,top+5+(i*7)%23,4,3,h.type==='acid'?'#b8d47388':'#efa65a99');}this.glow(a.x,a.y,t*.7,h.type==='acid'?'#b4cd5312':'#f99a381a');}
   exit(a,time){const t=this.tile;this.box(a.x-t*.44,a.y-t*.44,t*.88,t*.88,'#284b40','#8fca9b');this.box(a.x-t*.32,a.y-t*.32,t*.64,t*.64,'#2e5b4a','#a1d3a655');for(let i=-1;i<=1;i++)this.line(a.x+i*9,a.y-8,a.x+i*9,a.y+6,'#102e24',2);this.text(this.game.exitBlocked?'LOCK':this.game.exitLabel==='上樓'?'UP':this.game.exitLabel==='下樓'?'DOWN':'EXIT',a.x,a.y+16,'#ceebbb',8);this.glow(a.x,a.y,t*.8,'#9de0aa1c');}
-  item(a,item,time){const c=this.ctx;const colors={smoke:'#a9bbcb',emp:'#81dce9',stun:'#eee0a0',armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db',learning:'#b9a2e6',spray:'#b6a2d6',adrenaline:'#e0a7c4',barricade:'#c9b48c'};const color=colors[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol={smoke:'≋',emp:'E',stun:'✦',armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D',spray:'▣',adrenaline:'⚡',barricade:'▬',learning:String(item.learningId||'').startsWith('trait_')?'◆':'✦'}[item.type];this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache&&SUPPLY_NAMES[item.type])this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text(this.game.weaponAt(item.slot).code,a.x,a.y-15,'#ffe0a3',8);this.box(a.x-11,a.y-11,22,18,'#00000000','#f6cf82');}if(item.type==='learning')this.glow(a.x,a.y,22,'#b9a2e633');}
+  item(a,item,time){const c=this.ctx;const colors={smoke:'#a9bbcb',emp:'#81dce9',stun:'#eee0a0',armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db',learning:'#b9a2e6',spray:'#b6a2d6',adrenaline:'#e0a7c4',barricade:'#c9b48c',flare:'#e7c46e'};const color=colors[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol={smoke:'≋',emp:'E',stun:'✦',armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D',spray:'▣',adrenaline:'⚡',barricade:'▬',flare:'✺',learning:String(item.learningId||'').startsWith('trait_')?'◆':'✦'}[item.type];this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache&&SUPPLY_NAMES[item.type])this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text(this.game.weaponAt(item.slot).code,a.x,a.y-15,'#ffe0a3',8);this.box(a.x-11,a.y-11,22,18,'#00000000','#f6cf82');}if(item.type==='learning')this.glow(a.x,a.y,22,'#b9a2e633');}
   moduleFloor(a,m){
     const t=this.tile,l=a.x-t/2,top=a.y-t/2,color=MODULE_TYPES[m.theme].color;
     this.box(l+2,top+2,t-4,t-4,m.theme==='restroom'?'#73939455':m.theme==='checkpoint'?'#8c784344':'#687b5744');

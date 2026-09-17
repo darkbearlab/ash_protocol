@@ -19,7 +19,9 @@ export function createLighting(grid,rooms,start,seed,floor,corridors=[]){
 }
 export const validLighting=(light,grid)=>Array.isArray(light)&&light.length===grid.length&&light.every((row,y)=>Array.isArray(row)&&row.length===grid[y].length&&row.every(n=>n===0||n===1));
 // Missing lighting is lit for read-only previews and legacy callers; restore validates saves.
-export const isDark=(game,point)=>game.lighting?.[point.y]?.[point.x]===0;
+// 3.123.0: a flare lights dark tiles for a while (src/flares.js); this is the one place that decides darkness, so hit
+// chances, the floor shading and the dark-actor drawing all follow it.
+export const isDark=(game,point)=>game.lighting?.[point.y]?.[point.x]===0&&!game.flareLit?.(point);
 export function lightingEffects(game,attacker,target){
   const dark=isDark(game,target),nightVision=activeTrait(attacker,'night_vision');
   return {dark,nightVision,penalty:dark&&!nightVision?DARK_PENALTY:0};

@@ -28,7 +28,8 @@ test('retired class-skill data turns into scrap in the pack, on the ground and i
  for(const id of RETIRED_LEARNING)assert.equal(validLearningId(id),false,`${id} is retired`);
  const g=game(),p=g.player;
  p.skills.push('grapple');p.skillState.grapple={remaining:0,cooldown:0};
- const raw=JSON.parse(g.serialize());raw.version=SAVE_VERSION-1;
+ // The last version before the retirement (3.113.0 moved to SAVE 55); pinned, since SAVE_VERSION-1 moves on.
+ const raw=JSON.parse(g.serialize());raw.version=54;
  const scrap=raw.data.player.scrap;
  raw.data.player.learningItems={skill_grapple:2,trait_rapid_fire:1};
  raw.data.items.push({x:raw.data.player.x,y:raw.data.player.y,type:'learning',learningId:'skill_anchor'});

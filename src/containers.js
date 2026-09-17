@@ -10,7 +10,7 @@ export const CONTAINER_KINDS={
   // 3.110.0 (user request): a case that is neither ammunition nor a refill — the things you have to decide how to spend.
   field:{name:'器材箱',color:'#d0b3d9',symbol:'▬'},
 };
-export const FIELD_ITEMS=['spray','adrenaline','barricade'];
+export const FIELD_ITEMS=['spray','adrenaline','barricade','flare'];
 const types=new Set(['ammo','pistol','shell','energy','ordnance','grenade','emp','stun','smoke','med','armor','scrap',...FIELD_ITEMS]);
 export const isContainer=o=>o?.type==='container';
 // Rigged cases (3.100.0, user request): rebel floors leave booby-trapped cases among the real ones. A normal case is

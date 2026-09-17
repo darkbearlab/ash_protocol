@@ -9,12 +9,13 @@ import {missionDefinition,missionObjects,returning} from './missions.js';
 
 // Only floor-owned state is archived. Player, mission, rewards and RNG stay global.
 export const REQUIRED_FLOOR_FIELDS=['grid','lighting','rooms','start','end','startRoom','endRoom','links','mainRoute','rewardRooms','enemies','items','props','hazards','marks','barriers','seen','smoke','traces','reinforcements'];
-export const FLOOR_FIELDS=[...REQUIRED_FLOOR_FIELDS,...MAP_FIELDS,'swarmWaves','mapStyle','facilityFaction'];
+export const FLOOR_FIELDS=[...REQUIRED_FLOOR_FIELDS,...MAP_FIELDS,'swarmWaves','mapStyle','facilityFaction','flares'];
 export function archiveFloor(g){
   const frame=structuredClone(Object.fromEntries([['savedTurn',g.turn],...FLOOR_FIELDS.filter(k=>g[k]!==undefined).map(k=>[k,g[k]])]));
   // The departure action has already advanced the global clock. Expired smoke
   // cannot be resurrected when this floor is resumed later.
   frame.smoke=frame.smoke.filter(s=>s.expires>g.turn);
+  if(frame.flares)frame.flares=frame.flares.filter(f=>f.expires>g.turn);
   expireExposure(frame.enemies,g.turn);
   // A bombardment due on departure resumes on the first action back.
   for(const mark of frame.marks)mark.due=Math.max(mark.due,g.turn+1);
@@ -22,8 +23,10 @@ export function archiveFloor(g){
   return frame;
 }
 export function resumedFloor(frame,turn){
-  const state={swarmWaves:undefined,mapStyle:undefined,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...structuredClone(frame)},elapsed=turn-state.savedTurn;delete state.savedTurn;
+  // flares (3.123.0) are optional so older archived floors still resume, and a floor never inherits another's flares.
+  const state={swarmWaves:undefined,mapStyle:undefined,flares:[],...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...structuredClone(frame)},elapsed=turn-state.savedTurn;delete state.savedTurn;
   for(const cloud of state.smoke)cloud.expires+=elapsed;
+  for(const flare of state.flares)flare.expires+=elapsed;
   for(const mark of state.marks)mark.due+=elapsed;
   for(const spawn of state.reinforcements)spawn.due+=elapsed;
   for(const spawn of state.swarmWaves?.pending||[])spawn.due+=elapsed;

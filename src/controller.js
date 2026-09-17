@@ -50,6 +50,7 @@ import {Renderer} from './render.js';
 import {AudioEngine,AUDIO_TUNING,volumePercent} from './audio.js';
 import {GRIT_LEVELS,gritLevel} from './audio-grit.js';
 import {frameRate,nextFrameRate} from './frame-rate.js';
+import {FLARE_TUNING,flareReason} from './flares.js';
 import {HOTKEY_ACTIONS,HOTKEY_SLOTS,HOTKEY_BUTTONS,normalizeKey,validHotkey,keyLabel,parseBindings,defaultBindings,bindKey,clearKey,keyLookup,actionLabel,primaryKey} from './hotkeys.js';
 import {eventSounds,actionSound} from './sound-cues.js';
 import {engagementHeard,freshCombat,stepCombat,musicTrack} from './music-state.js';
@@ -259,9 +260,9 @@ function act(type,arg) {
     }
   }
   if(!playback&&game.logs[0]!==oldLog){lastActionLogs=freshLogs(oldLog);notifyLatest();}
-  if(success||(type!=='grenade'&&type!=='launch'&&type!=='deployCover'&&!(type==='usePrepared'&&arg?.category==='grenade')))cancelAim();update();return success;
+  if(success||(type!=='grenade'&&type!=='launch'&&type!=='deployCover'&&type!=='flare'&&!(type==='usePrepared'&&arg?.category==='grenade')))cancelAim();update();return success;
 }
-function move(dx,dy){if(renderer.mode==='deploy'){act('deployCover',[dx,dy]);return;}if(renderer.mode==='launch'){const from=renderer.aim||game.player;setAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='pet'){setPetAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='drone'){setDroneAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='grenade'){const pos={x:renderer.aim.x+dx,y:renderer.aim.y+dy};setAim(pos);}else if(renderer.mode==='suppress'){setSuppressAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});}else act('move',[dx,dy]);}
+function move(dx,dy){if(renderer.mode==='deploy'){act('deployCover',[dx,dy]);return;}if(renderer.mode==='launch'){const from=renderer.aim||game.player;setAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='pet'){setPetAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='drone'){setDroneAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='grenade'||renderer.mode==='flare'){const pos={x:renderer.aim.x+dx,y:renderer.aim.y+dy};setAim(pos);}else if(renderer.mode==='suppress'){setSuppressAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});}else act('move',[dx,dy]);}
 function floorToast(){if(isSimulation(game))return;if(isEndless(game)){const growth=growthLabel(game.floor);notify(`第 ${depthLabel(game.floor)} 層 · ${floorInfo(game.floor).name}：${growth?growth+'。':''}${endlessFloorText(game.floor)}${operatorSignal(game)}`);return;}notify(`第 ${game.floor} 層 · ${floorInfo(game.floor).name}：${returning(game)?game.missionSummary:game.floor===missionDepth(game)?missionDefinition(game).text:floorInfo(game.floor).text}`);}
 const slotLabel=(view,category)=>{const p=view.player,entry=preparedEntry(p,category),count=entry?.resource?p[entry.resource]:null;
   return entry?`${entry.short}${category==='skill'?' '+skillLabel(view,p.prepared.skill):count===null?'':` ${count}`}`:`${PREPARED_CATEGORIES[category]}未預備`;};
@@ -283,20 +284,20 @@ function fireWeapon(){
 }
 const operatorReady=view=>!isSimulation(view)&&view.status==='playing'&&!!view.operatorCorpse&&!view.operatorCorpse.recovered&&view.canTouch(view.operatorCorpse);
 function interactions(view=renderer.game){return [...view.nearbyObjectives.map(t=>({label:'回收機密',action:`objective:${t.id}`})),...view.nearbyContainers.map(c=>({label:`開${view.containerLabel(c)}`,action:`case:${c.id}`})),...view.nearbyDoors.map(b=>({label:view.doorLabel(b),action:`door:${b.id}`})),...(view.groundWeapon?[{label:'拾取',action:'bag'}]:[]),...(view.nearbyTerminal?[{label:`終端 ${terminalRemaining(view.nearbyTerminal)}`,action:'terminal'}]:[]),...(operatorReady(view)?[{label:'回收識別資料',action:'operator'}]:[]),...(view.canTouch(view.exitPoint)&&(!isSimulation(view)||exitStep(view))?[{label:view.exitBlocked?'電梯鎖定':view.exitLabel+(view.allyTravelSummary?' · '+view.allyTravelSummary:''),action:isSimulation(view)?'exitStep':'descend'}]:[])];}
-function updateAim(view=renderer.game){const launching=renderer.mode==='launch',deploying=renderer.mode==='deploy',commanding=renderer.mode==='pet'||renderer.mode==='drone',aiming=renderer.mode==='grenade',suppressing=renderer.mode==='suppress',preview=suppressing&&renderer.aim?suppressivePreview(view,renderer.aim):null,b=$('#interact'),options=interactions(view);
+function updateAim(view=renderer.game){const launching=renderer.mode==='launch',deploying=renderer.mode==='deploy',commanding=renderer.mode==='pet'||renderer.mode==='drone',aiming=renderer.mode==='grenade',flaring=renderer.mode==='flare',suppressing=renderer.mode==='suppress',preview=suppressing&&renderer.aim?suppressivePreview(view,renderer.aim):null,b=$('#interact'),options=interactions(view);
   const entry=preparedEntry(view.player,'grenade');
   $('#grenade-label').textContent=aiming?'取消投擲':entry?`${entry.short} ${view.player[entry.resource]}`:'手榴彈未預備';
   $('[data-action="grenade"]').classList.toggle('aiming',aiming);
-  b.disabled=(Boolean(playback)&&!skipEnabled())||(view.status==='playing'&&!aiming&&!launching&&!commanding&&!suppressing&&!deploying&&!options.length)||Boolean(preview?.reason);
-  b.querySelector('strong').textContent=view.status!=='playing'?'結果':launching?'確認發射':deploying?'取消設置':commanding?(renderer.mode==='drone'?'確認部署':'確認指揮'):aiming?'確認投擲':suppressing?`確認壓制 · ${preview?.rounds??0} 發`:options.length>1?'互動':options[0]?.label||'互動';
-  b.classList.toggle('aiming',aiming||launching||commanding||suppressing||deploying);
+  b.disabled=(Boolean(playback)&&!skipEnabled())||(view.status==='playing'&&!aiming&&!flaring&&!launching&&!commanding&&!suppressing&&!deploying&&!options.length)||Boolean(preview?.reason);
+  b.querySelector('strong').textContent=view.status!=='playing'?'結果':launching?'確認發射':deploying?'取消設置':commanding?(renderer.mode==='drone'?'確認部署':'確認指揮'):aiming?'確認投擲':flaring?'確認照明':suppressing?`確認壓制 · ${preview?.rounds??0} 發`:options.length>1?'互動':options[0]?.label||'互動';
+  b.classList.toggle('aiming',aiming||flaring||launching||commanding||suppressing||deploying);
   const fire=$('[data-action="fire"]');
   if(fire){fire.classList.toggle('aiming',launching);fire.querySelector('strong').textContent=launching?'取消發射':view.weapon?.melee?'揮拳':'開火';}$('[data-action="skill"]')?.classList.toggle('aiming',suppressing);b.title=view.allyTravelSummary||'';
   const item=$('[data-action="item"]');
-  if(item){item.classList.toggle('aiming',deploying);item.querySelector('strong').textContent=deploying?'取消設置':slotLabel(view,'item');}
+  if(item){item.classList.toggle('aiming',deploying||flaring);item.querySelector('strong').textContent=deploying?'取消設置':flaring?'取消照明':slotLabel(view,'item');}
   for(const key of ['0,-1','0,1','-1,0','1,0'])$(`[data-move="${key}"]`)?.classList.toggle('aiming',deploying);
 }
-function interact(){if(renderer.mode==='deploy'){cancelAim();return;}if(renderer.mode==='launch'){if(renderer.aim)act('launch',renderer.aim);else notify('先點地圖選落點。');return;}if(renderer.mode==='pet'){act('commandPet',renderer.aim);return;}if(renderer.mode==='drone'){act('deployUnit',{line:deployLine,x:renderer.aim.x,y:renderer.aim.y});return;}if(game.status!=='playing'){showResult();return;}if(renderer.mode==='grenade'){act('usePrepared',{category:'grenade',target:renderer.aim});return;}if(renderer.mode==='suppress'){const turn=game.turn;act('usePrepared',{category:'skill',target:renderer.aim});if(game.turn!==turn)cancelAim();return;}
+function interact(){if(renderer.mode==='deploy'){cancelAim();return;}if(renderer.mode==='launch'){if(renderer.aim)act('launch',renderer.aim);else notify('先點地圖選落點。');return;}if(renderer.mode==='pet'){act('commandPet',renderer.aim);return;}if(renderer.mode==='drone'){act('deployUnit',{line:deployLine,x:renderer.aim.x,y:renderer.aim.y});return;}if(game.status!=='playing'){showResult();return;}if(renderer.mode==='grenade'){act('usePrepared',{category:'grenade',target:renderer.aim});return;}if(renderer.mode==='flare'){act('flare',renderer.aim);return;}if(renderer.mode==='suppress'){const turn=game.turn;act('usePrepared',{category:'skill',target:renderer.aim});if(game.turn!==turn)cancelAim();return;}
   const options=interactions();if(options.length>1){modal('<h2>附近互動</h2>'+options.map(o=>`<button class="modal-button secondary" data-context="${o.action}">${o.label}</button>`).join('')+'<button class="modal-button" data-modal="close">返回戰場</button>');return;}
   if(options[0]?.action.startsWith('objective:'))act('recoverObjective',options[0].action.slice(10));
   else if(options[0]?.action.startsWith('case:'))act('openContainer',options[0].action.slice(5));
@@ -311,14 +312,22 @@ function grenade(){if(renderer.mode==='grenade'){cancelAim();return;}const entry
 // With nothing prepared, the item button opens the item tab instead of refusing (3.97.0).
 // 3.108.0: the slot is a 生效欄 now. Something in it with no action is worn, not held, so the button opens the pack
 // instead — and the long press still does, which is why that shortcut had to stay.
-function useItem(){if(renderer.mode==='deploy'){cancelAim();return;}
+function useItem(){if(renderer.mode==='deploy'||renderer.mode==='flare'){cancelAim();return;}
   const entry=preparedEntry(game.player,'item');
   if(!entry){showInventory('item','還沒有預備道具，點一個道具預備。');return;}
   if(!entry.action){showInventory('item',`佩戴中：${entry.name}。脫下要 1 回合；消耗品可以直接在這裡按「使用」。`);return;}
   if(entry.aim==='side'){startDeploy();return;}
+  if(entry.aim==='throw'){startFlareAim();return;}
   act('usePrepared',{category:'item'});}
 // 3.109.0 (user request): carried cover picks its side with the direction keys, so putting it behind you costs the
 // same one turn as putting it in front — no turning, and no second tap to confirm.
+// 3.123.0: a flare is an item aimed like a throwable: pick a floor tile, confirm with 互動, press 道具 again to cancel.
+function startFlareAim(){
+  const p=game.player;if(!(p.flares>0)){notify('照明彈已用盡。');return;}
+  const locked=game.targeted,e=isBarrier(locked)?barrierFace(locked,p):locked;
+  renderer.mode='flare';renderer.aim=e&&!flareReason(game,{x:e.x,y:e.y})?{x:e.x,y:e.y}:{x:p.x,y:p.y};updateAim();
+  notify(`點 ${FLARE_TUNING.range} 格內看得見的地板，亮起的格子就是會被照亮的範圍；按右下確認，再按道具鍵取消。`);
+}
 function startDeploy(){
   // Refuse up front only when no side would work at all; the reason of the first blocked side explains why.
   const sides=[[0,-1],[0,1],[-1,0],[1,0]].map(d=>deployCoverReason(game,d));
@@ -889,6 +898,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.useItem){const id=b.dataset.useItem,entry=PREPARED_CATALOG.item[id],reason=itemUseReason(game,id);
     if(reason){showInventory('item',reason+'。');return;}
     if(entry.aim==='side'){close();startDeploy();return;}
+    if(entry.aim==='throw'){close();startFlareAim();return;}
     modalAction(entry.action);return;}
   if(b.dataset.prepareCategory){
     const category=b.dataset.prepareCategory,id=b.dataset.prepareId||null;
@@ -1018,7 +1028,7 @@ $('#battle').addEventListener('pointerup',e=>{
   const r=$('#battle').getBoundingClientRect(),pos=renderer.unproject(e.clientX-r.left,e.clientY-r.top);
   if(renderer.mode==='pet'){setPetAim(pos);return;}
   if(renderer.mode==='drone'){setDroneAim(pos);return;}
-  if(renderer.mode==='grenade'||renderer.mode==='launch'){setAim(pos);return;}
+  if(renderer.mode==='grenade'||renderer.mode==='launch'||renderer.mode==='flare'){setAim(pos);return;}
   if(renderer.mode==='suppress'){setSuppressAim(pos);return;}
   const ally=game.localAllies.find(a=>distance(a,pos)===0);if(ally){notify(`${allyName(ally)} · ${ally.status==='reforming'?'消散，重生倒數中':ally.status==='arriving'?'等候落點':ally.status==='destroyed'?'已毀':`HP ${ally.hp}/${ally.maxHp}${repairTargets(game).includes(ally)?' · 在你旁邊，可以打開工坊修理':''}${ally.kind==='drone'?(ally.payload?` · 裝填${GRENADES[ally.payload].name}`:['unit_bomber','unit_warden','unit_boss'].includes(ally.sourceId)?(ally.primed?(ally.sourceId==='unit_bomber'?' · 蓄勢中，下次行動自爆':' · 蓄力中，下次行動射擊'):ally.bombard?' · 下次攻擊改為轟炸':''):` · ${Number.isInteger(ally.weapon)?game.weaponAt(ally.weapon).name+' · ':''}彈藥 ${ally.ammo}/${allyWeapon(ally,game.player).mag}`):''}`}。`);return;}
   const edge=renderer.hitBarrier(e.clientX-r.left,e.clientY-r.top);

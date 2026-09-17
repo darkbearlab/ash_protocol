@@ -23,6 +23,7 @@ export const TERMINAL_ITEMS={
  adrenaline:{cost:20,resource:'adrenaline'},
  nvg:{cost:40,wear:'nvg'},
  barricade:{cost:25,resource:'barricades'},
+ flare:{cost:15,resource:'flares'},
 };
 export const TERMINAL_PACK=Object.freeze({rifle:24,pistol:24,shell:12,energy:18,ordnance:3});
 export const upgradeCost=level=>T.upgradeBase+level*T.upgradeStep;
