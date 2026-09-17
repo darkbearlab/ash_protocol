@@ -11,12 +11,15 @@ test('a level-up shows the transmission first, once per level of a run, and conf
   assert.ok(source.includes('if(game.pendingPerks){showLevelUp();return;}'),'closing a menu with a choice pending comes back to it');
   assert.ok(source.includes('const transmissionKey=()=>`${game.runId}:${game.player.level}`;'),'keyed per run, so a new run at the same level still sees it');
   assert.ok(source.includes("case 'transmission':transmissionSeen=transmissionKey();showPerks();break;"));
-  assert.ok(source.includes('INCOMING</span><span>TRANSMISSION'));
+  assert.ok(source.includes("drawPixelText(heading,['INCOMING','TRANSMISSION']"),'3.116.0: the heading is pixel lettering');
+  assert.ok(source.includes('<span class="visually-hidden">INCOMING TRANSMISSION</span>'),'and still readable by a screen reader');
   assert.ok(source.includes("if($('#modal').open&&$('#modal-content .transmission'))return;"),'a redraw does not restart the card');
   assert.equal((source.match(/showPerks\(\)/g)||[]).length,3,'the list opens only from showLevelUp, the confirm button, and its own definition');
   const css=await read('../expansion.css');
-  assert.ok(css.includes('#modal.transmission:not(.title){margin:auto;width:calc(100% - 40px);max-width:360px;height:fit-content;'),'a centred card sized to its content, not the stretched bottom sheet');
-  assert.ok(/prefers-reduced-motion:reduce\)\{\.transmission-title/.test(css),'reduced motion stops the flicker');
+  assert.ok(css.includes('#modal.transmission:not(.title){margin:auto;width:calc(100% - 64px);max-width:252px;height:fit-content;'),'a small centred card sized to its content, not the stretched bottom sheet');
+  assert.ok(css.includes('#modal.transmission::backdrop{background:#030607c7;backdrop-filter:blur(2px)'),'3.116.0: a lighter blur and a darker veil');
+  assert.ok(css.includes('.transmission-pixels{display:block;margin:0 auto;max-width:100%;image-rendering:pixelated'));
+  assert.ok(css.includes('@media (prefers-reduced-motion:reduce){.transmission-title{animation:none}}'),'reduced motion stops the flicker');
 });
 
 test('the VHS filter is off by default, remembered, and covers the page and any open dialog',async()=>{
@@ -25,8 +28,8 @@ test('the VHS filter is off by default, remembered, and covers the page and any 
   assert.ok(source.includes("write('ash-vhs',vhsFilter?'on':'off')"));
   assert.ok(source.includes('data-modal="vhs"'));
   const html=await read('../index.html');
-  assert.ok(html.includes('</section></main></div>\n<div class="vhs-layer" aria-hidden="true"></div>'),'one layer above the app');
-  assert.ok(html.includes('<dialog id="modal"><div id="modal-content"></div><div class="vhs-layer" aria-hidden="true"></div></dialog>'),'one inside the dialog, which sits above everything');
+  assert.ok(html.includes('</section></main></div>\n<div class="tone-layer" aria-hidden="true"></div><div class="vhs-layer" aria-hidden="true"></div>'),'one layer above the app');
+  assert.ok(html.includes('<dialog id="modal"><div id="modal-content"></div><div class="tone-layer" aria-hidden="true"></div><div class="vhs-layer" aria-hidden="true"></div></dialog>'),'one inside the dialog, which sits above everything');
   const css=await read('../expansion.css');
   assert.ok(css.includes('.vhs-layer{display:none}'));
   assert.ok(css.includes('pointer-events:none'),'the layer never takes a tap');

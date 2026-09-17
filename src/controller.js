@@ -14,6 +14,8 @@ import {suppressivePreview} from './suppressive-fire.js';
 import {suppressionStatus,learningEntries,suppressionHelp,traitRuleLines} from './suppression-ui.js';
 import {SKILLS,skillActive,skillStatus,canUseSkill} from './skills.js';
 import {boundaryOpacityPercent} from './movement-boundaries.js';
+import {SCREEN_BRIGHTNESS,OPERATOR_TINT,screenBrightnessPercent,operatorTintPercent} from './screen-tone.js';
+import {drawPixelText} from './pixel-text.js';
 import {actorStat,clampHit,combatStatSummary} from './actor-stats.js';
 import {isDark} from './lighting.js';
 import {missionDepth,returning,MISSIONS,RANDOM_MISSION_IDS,validMissionId,missionDefinition,missionProgress} from './missions.js';
@@ -70,6 +72,11 @@ let skipPresentation=read('ash-skip-presentation')!=='off';
 // 3.115.0 (user request): a VHS filter over the whole screen, a display preference that is off by default. It is CSS only
 // (expansion.css): the class on <html> shows the layer after the app and the one inside the dialog.
 let vhsFilter=read('ash-vhs')==='on';document.documentElement.classList.toggle('vhs',vhsFilter);
+// 3.116.0 (user request): whole-screen brightness. A root filter would miss the dialog (it sits in the top layer), so two
+// backdrop-filter layers do it, the same way as the VHS layers; at 100% they are not drawn at all.
+let screenBrightness=screenBrightnessPercent(read('ash-brightness'));
+function applyBrightness(){document.documentElement.style.setProperty('--screen-brightness',String(screenBrightness/100));document.documentElement.classList.toggle('toned',screenBrightness!==SCREEN_BRIGHTNESS.initial);}
+applyBrightness();
 // The level-up transmission (showLevelUp) is shown once per level of a run.
 let transmissionSeen=null;
 const transmissionKey=()=>`${game.runId}:${game.player.level}`;
@@ -84,6 +91,8 @@ let deckPick=null;
 let padCell=PAD_SIZES.includes(Number(read('ash-pad-cell')))?Number(read('ash-pad-cell')):PAD_SIZES[0];
 renderer.boundaryOpacity=boundaryOpacityPercent(read('ash-boundary-opacity'));
 {const color=read('ash-operator-color');renderer.operatorColor=validOperatorColor(color)?color:DEFAULT_OPERATOR_COLOR;}
+// 3.116.0 (user request): how strongly the operator colour covers the grey class art, so a colour can sit back in the scene.
+renderer.operatorTint=operatorTintPercent(read('ash-operator-tint'))/100;
 renderer.targetUI={card:$('#target-card'),link:$('#target-link'),path:$('#target-link path'),dirty:true};
 document.fonts?.ready.then(()=>{renderer.targetUI.dirty=true;});
 audio.enabled=read('ash-sound')!=='off';
@@ -408,7 +417,7 @@ function operatorColorPicker(){
 function drawOperatorSprites(){
   const image=renderer.classSprites,color=$('input[name="operator-color"]:checked')?.value||renderer.operatorColor;
   if(!image.complete||!image.naturalWidth){image.addEventListener('load',drawOperatorSprites,{once:true});return;}
-  for(const canvas of document.querySelectorAll('#modal canvas[data-class-sprite]')){const r=classSpriteRect(canvas.dataset.classSprite),tinted=tintedSprite(image,r,color,renderer.tintCache),c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.clearRect(0,0,32,32);c.drawImage(tinted||image,tinted?0:r.x,tinted?0:r.y,32,32,0,0,32,32);}
+  for(const canvas of document.querySelectorAll('#modal canvas[data-class-sprite]')){const r=classSpriteRect(canvas.dataset.classSprite),tinted=tintedSprite(image,r,color,renderer.tintCache,renderer.operatorTint),c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.clearRect(0,0,32,32);c.drawImage(tinted||image,tinted?0:r.x,tinted?0:r.y,32,32,0,0,32,32);}
 }
 function missionDetails(){
   if(isSimulation(game))return `<p><strong>${simulationLabel(game)}</strong><br>${simulationBrief(game)}</p>`;
@@ -597,7 +606,9 @@ function runPerks(){
 function showLevelUp(){
   if(transmissionSeen===transmissionKey()){showPerks();return;}
   if($('#modal').open&&$('#modal-content .transmission'))return;   // already on screen; do not restart its animation
-  modal(`<div class="transmission" role="alert"><div class="eyebrow">PRIORITY SIGNAL / LV. ${game.player.level}</div><p class="transmission-title"><span>INCOMING</span><span>TRANSMISSION</span></p><p class="transmission-note">臨時強化授權待接收。</p></div><div class="modal-footer"><button class="modal-button" data-modal="transmission">確認</button></div>`);
+  modal(`<div class="transmission" role="alert"><div class="eyebrow">PRIORITY SIGNAL / LV. ${game.player.level}</div><p class="transmission-title"><canvas class="transmission-pixels" aria-hidden="true"></canvas><span class="visually-hidden">INCOMING TRANSMISSION</span></p><p class="transmission-note">臨時強化授權待接收。</p></div><div class="modal-footer"><button class="modal-button" data-modal="transmission">確認</button></div>`);
+  // 3.116.0 (user request): the heading is drawn as pixel letters (src/pixel-text.js) instead of a smooth font.
+  const heading=$('#modal .transmission-pixels');if(heading)drawPixelText(heading,['INCOMING','TRANSMISSION'],{color:'#f0c27a',shadow:'#5a3a1e'});
 }
 function showPerks(){modal(`<div class="eyebrow">UPGRADE AVAILABLE / LV. ${game.player.level}</div><h2>臨時強化已授權。</h2><p>強化生效至本次任務結束。${game.pendingPerks>1?`還有 ${game.pendingPerks} 次選擇。`:''}</p>${game.perkChoices.map(p=>`<button class="perk" data-perk="${p.id}"><strong>＋ ${p.name} ${perkPips(game.player,p,true)}</strong><span>${p.text}${p.effect==='health'?`（本角色回血 ${healingAmount(game.player,p.heal)}）`:''}</span></button>`).join('')}${runPerks()}`);}
 // Journal and result: endless records (3.49.1), class names from the character labels.
@@ -628,6 +639,10 @@ ${inRun?`<div class="modal-row"><button class="modal-button secondary" data-moda
 <p id="boundary-opacity-help">0% 完全透明，100% 不透明；只調整白線，綠色門提示不受影響。</p>
 <button class="modal-button secondary" data-modal="skipPresentation" aria-pressed="${skipPresentation}">演出中按指令直接執行：${skipPresentation?'開啟':'關閉'}</button>
 <p>開啟時，上一回合的動畫還沒播完就按下一個指令，會立刻結束動畫並執行；關閉時要等動畫播完。本回合陣亡或任務結束時一定會播完。</p>
+<label class="boundary-opacity" for="screen-brightness">畫面明度 <output id="screen-brightness-value" for="screen-brightness">${screenBrightness}%</output><input id="screen-brightness" type="range" min="${SCREEN_BRIGHTNESS.min}" max="${SCREEN_BRIGHTNESS.max}" step="${SCREEN_BRIGHTNESS.step}" value="${screenBrightness}" aria-describedby="screen-brightness-help"></label>
+<p id="screen-brightness-help">整個畫面一起調，包括選單與結算畫面；100% 為原始亮度。和 VHS 濾鏡可以一起用。</p>
+<label class="boundary-opacity" for="operator-tint">幹員塗裝濃度 <output id="operator-tint-value" for="operator-tint">${Math.round(renderer.operatorTint*100)}%</output><input id="operator-tint" type="range" min="${OPERATOR_TINT.min}" max="${OPERATOR_TINT.max}" step="${OPERATOR_TINT.step}" value="${Math.round(renderer.operatorTint*100)}" aria-describedby="operator-tint-help"></label>
+<p id="operator-tint-help">部署時選的塗裝顏色蓋在灰色角色圖上的程度；0% 是原本的灰色，100% 是完整顏色。</p>
 <button class="modal-button secondary" data-modal="vhs" aria-pressed="${vhsFilter}">VHS 濾鏡：${vhsFilter?'開啟':'關閉'}</button>
 <p>在整個畫面疊上掃描線、雜訊、暗角與緩慢捲動的訊號帶。系統設定減少動態效果時，雜訊與訊號帶不會動。</p>
 <div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">操作區排版：${DECK_LAYOUT_LABELS[padLayout]}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>方向鍵大小：${padLayout==='grid'?'格狀不適用':`${PAD_LABELS[padCell]}（${padCell}）`}</button></div>
@@ -733,6 +748,8 @@ document.addEventListener('change',e=>{
   for(const p of document.querySelectorAll('.mission-brief>p'))p.classList.toggle('active',p.dataset.mission===e.target.value);
 });
 document.addEventListener('input',e=>{
+  if(e.target.id==='screen-brightness'){screenBrightness=screenBrightnessPercent(e.target.value);write('ash-brightness',String(screenBrightness));applyBrightness();const out=$('#screen-brightness-value');if(out)out.textContent=screenBrightness+'%';return;}
+  if(e.target.id==='operator-tint'){const percent=operatorTintPercent(e.target.value);renderer.operatorTint=percent/100;write('ash-operator-tint',String(percent));const out=$('#operator-tint-value');if(out)out.textContent=percent+'%';return;}
   if(e.target.id!=='boundary-opacity')return;
   renderer.boundaryOpacity=boundaryOpacityPercent(e.target.value);write('ash-boundary-opacity',String(renderer.boundaryOpacity));
   const output=$('#boundary-opacity-value');if(output)output.textContent=renderer.boundaryOpacity+'%';

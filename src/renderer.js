@@ -23,6 +23,7 @@ import {isContainer,CONTAINER_KINDS} from './containers.js';
 import {isBarrier,edgeCells} from './barriers.js';
 import {areaCells} from './throwables.js';
 import {cameraFrame,zoomStep} from './camera.js';
+import {MUZZLE_FLASHES,flashCells,flashUnit,muzzlePoint} from './muzzle-flash.js';
 import {targetCardPlacement,actorObstacle,spriteSize} from './target-card.js';
 import {inCone,coneTargets} from './shotgun.js';
 import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTelegraphs} from './engine.js';
@@ -40,7 +41,7 @@ export class Renderer {
     for(const url of [SCENERY_ATLAS,DOOR_ATLAS,NEST_ATLAS,...mapStyleAtlases()]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
     this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;this.terrainImages.set(WALL_ATLAS,this.wallImage);this.artTones=new ArtToneCache();
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
-    this.classSprites=new Image();this.classSprites.src=CLASS_ATLAS;this.operatorColor=DEFAULT_OPERATOR_COLOR;this.tintCache=new Map();
+    this.classSprites=new Image();this.classSprites.src=CLASS_ATLAS;this.operatorColor=DEFAULT_OPERATOR_COLOR;this.operatorTint=1;this.tintCache=new Map();
     this.aftermath=new Image();this.aftermath.src=new URL('../assets/pixel/aftermath.png',import.meta.url).href;
     // Precompute once at native resolution; avoids Canvas filter support differences on phones.
     this.corpseAtlas=document.createElement('canvas');
@@ -212,10 +213,13 @@ export class Renderer {
       const a=this.project(fx.from.x,fx.from.y),b=this.project(fx.to.x,fx.to.y),color=fx.color||(fx.type==='shot'?'#ffe1ad':'#ff986c');
       c.globalAlpha=1-age;
       const angle=Math.atan2(b.y-a.y,b.x-a.x),step=Math.floor(age*8)/8;
+      // 3.116.0 (user decision): a flash only for a shooter the player can see, judged once per shot on the state it came from.
+      const shot=fx.type==='shot'||fx.type==='enemyShot';
+      if(shot&&fx.flash){fx.shooterSeen??=fx.type==='enemyShot'?g.visibleEnemies.some(e=>e.x===fx.from.x&&e.y===fx.from.y):g.visible(fx.from);if(fx.shooterSeen)this.muzzleFlash(fx,a,angle,elapsed);}
       if(fx.type==='nestCollapse'||fx.type==='nestSpawn'){if(g.visible(fx.type==='nestCollapse'?fx.from:fx.to))drawNestEffect(c,this.terrainImages?.get(NEST_ATLAS),fx,a,b,t,elapsed);c.globalAlpha=1;continue;}
       if(fx.quiet){
-        const q=fx.type==='shot'||fx.type==='enemyShot'?a:b;
-        if(age<.25)this.box(q.x-5,q.y-5,10,10,'#ffe1ad55');
+        const q=shot?a:b;
+        if(age<.25&&!(shot&&fx.flash))this.box(q.x-5,q.y-5,10,10,'#ffe1ad55');
       }else if(fx.type==='fall'){
         if(elapsed<140){c.globalAlpha=(1-elapsed/140)*.85;this.effectSprite('impact',b,32);}
       }else if(fx.type==='miss'){
@@ -246,7 +250,6 @@ export class Renderer {
         if(elapsed<(fx.travel||80))this.effectSprite(fx.style,b,32,angle);
       }else if(elapsed<(fx.travel||125)){
         const progress=Math.min(1,elapsed/(fx.travel||125)),offset=(fx.spread||0)+(fx.missPath ? .35 : 0),end={x:b.x+Math.cos(angle+1.57)*t*offset,y:b.y+Math.sin(angle+1.57)*t*offset};
-        if(age<.22)this.effectSprite('muzzle',a,16,angle);
         const q={x:a.x+(end.x-a.x)*progress,y:a.y+(end.y-a.y)*progress};
         if(fx.style==='grenade'){q.y-=Math.sin(progress*Math.PI)*t*.35;this.box(q.x-3,q.y-3,6,6,color,'#e9efca');}
         else if(fx.style==='pellet')this.box(q.x-1,q.y-1,3,3,'#ffe1ad');
@@ -351,7 +354,7 @@ export class Renderer {
   deadOutline(name,a,size,color){const index=this.aftermathNames.indexOf(name);if(index<0||!this.aftermath?.complete||!this.aftermath.naturalWidth)return;const image=this.corpseReady?this.corpseAtlas:this.aftermath;this.drawOutline(image,{x:(index%4)*32,y:Math.floor(index/4)*32},name,color,a,size);}
   effectSprite(name,a,size=32,angle=0,dark=false){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);const source=name.startsWith('dead-')&&this.corpseReady?this.corpseAtlas:this.aftermath;c.drawImage(dark?this.darkActors.get(source):source,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
   // The operator colour (3.48.2) tints the grey class art from a cached canvas; without one the grey cell is drawn as is.
-  classSprite(a,size,character,dead=false,dark=false){const image=this.classSprites;if(!image?.complete||!image.naturalWidth)return false;const r=classSpriteRect(character,dead),tinted=tintedSprite(image,r,this.operatorColor,this.tintCache),c=this.ctx;c.drawImage(dark?this.darkActors.get(tinted||image):tinted||image,tinted?0:r.x,tinted?0:r.y,r.w,r.h,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
+  classSprite(a,size,character,dead=false,dark=false){const image=this.classSprites;if(!image?.complete||!image.naturalWidth)return false;const r=classSpriteRect(character,dead),tinted=tintedSprite(image,r,this.operatorColor,this.tintCache,this.operatorTint),c=this.ctx;c.drawImage(dark?this.darkActors.get(tinted||image):tinted||image,tinted?0:r.x,tinted?0:r.y,r.w,r.h,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
   // Endless class corpse (docs/UNLOCKS.md section 4, Claude 3.90.1): the operator's fallen sprite with a pulsing ID tag, dimmed once recovered.
   operatorCorpse(a,corpse,time){const size=spriteSize(this.tile),c=this.ctx;c.save();if(corpse.recovered)c.globalAlpha*=.45;if(!this.classSprite(a,size,corpse.character,true,isDark(this.game,corpse)))this.box(a.x-9,a.y-5,18,10,'#4e302780');c.restore();if(corpse.recovered)return;c.save();c.globalAlpha*=this.reduceMotion?1:.7+.3*Math.sin(time/260);const top=Math.round(a.y-this.tile*.46);this.box(a.x-9,top,18,11,'#123d46','#82e6ec');this.text('ID',a.x,top+9,'#b7fcff',8);c.restore();}
   corpse(a,type,character,actor){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=spriteSize(this.tile),dark=isDark(this.game,this.unproject(a.x,a.y));const c=this.ctx;c.save();const drawn=(type==='player'&&this.classSprite(a,size,character,true,dark))||(this.effectSprite('dead-'+enemySprite(type).corpse,a,size,0,dark)&&(actor?.elite&&this.deadOutline('dead-'+enemySprite(type).corpse,a,size,ELITE_VISUAL.corpseOutline),true));c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
@@ -479,5 +482,14 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
   markArea(center,radius,fill,stroke,label){const g=this.game,t=this.tile;for(const {x,y} of areaCells(g.grid,center,radius,g.barriers,g)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}if(label){const a=this.project(center.x,center.y);this.text(label,a.x,a.y+5,'#ffd3a4',17);}}
   drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?(isDark(g,{x,y})?'#343e62':'#809672'):(isDark(g,{x,y})?'#232a40':'#384b3a');c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const m of g.props.filter(p=>p.type==='module'))for(const q of moduleCells(m))if(g.seen[q.y]?.[q.x]){c.strokeStyle=MODULE_TYPES[m.theme].color+'88';c.lineWidth=1;c.strokeRect(q.x*k+1,q.y*k+1,k-2,k-2);}for(const station of g.props.filter(p=>p.type==='terminal'&&g.seen[p.y]?.[p.x])){c.fillStyle=station.used?'#526c62':'#a3e3c0';c.fillRect(station.x*k+3,station.y*k+3,k-6,k-6);}for(const b of g.barriers)if(b.hp>0&&edgeCells(b).some(p=>g.seen[p.y]?.[p.x])){const x=(b.x+.5)*k,y=(b.y+.5)*k;c.strokeStyle=b.open?'#8ad2bb':b.type==='door'?'#dec184':'#bdc7bd';c.lineWidth=2;c.beginPath();c.moveTo(x-(b.axis==='y'?k/2:0),y-(b.axis==='x'?k/2:0));c.lineTo(x+(b.axis==='y'?k/2:0),y+(b.axis==='x'?k/2:0));c.stroke();}for(const box of g.props.filter(o=>isContainer(o)&&!o.opened&&g.seen[o.y]?.[o.x])){c.strokeStyle=CONTAINER_KINDS[box.kind].color;c.lineWidth=2;c.strokeRect(box.x*k+3,box.y*k+3,Math.max(3,k-6),Math.max(3,k-6));}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.exitPoint,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),...(g.localAllies||[]).map(a=>[a,a.hp>0?'#83efd1':'#b5a774']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}for(const o of [...missionObjects(g).filter(t=>!t.done),...g.visibleEnemies.filter(e=>missionTarget(g,e))])if(g.seen[o.y]?.[o.x]){c.strokeStyle='#88f3ff';c.lineWidth=2;c.strokeRect(o.x*k+1,o.y*k+1,k-2,k-2);}const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
   // Callouts go to the bubble board, timed from the moment playback reaches them; everything else is a short effect.
+  // Pixel cells laid along the barrel (src/muzzle-flash.js), over the shooter's sprite. In a dark room the first frames
+  // also throw a small light; it is only paint, lighting and sight rules never see it.
+  muzzleFlash(fx,from,angle,elapsed){
+    const t=this.tile,u=flashUnit(t),cells=flashCells(fx.flash,angle,elapsed,{unit:u,still:fx.quiet});if(!cells.length)return;
+    const c=this.ctx,m=muzzlePoint(from,angle,t),alpha=c.globalAlpha,spec=MUZZLE_FLASHES[fx.flash];c.globalAlpha=1;
+    if(!fx.quiet&&elapsed<spec.frameMs*2&&isDark(this.game,fx.from))this.glow(m.x,m.y,t*1.1,spec.glow+'55');
+    for(const cell of cells){c.fillStyle=cell.color;c.fillRect(Math.round(m.x+cell.x-u/2),Math.round(m.y+cell.y-u/2),u,u);}
+    c.globalAlpha=alpha;
+  }
   addEffects(effects,elapsed=0){const start=this.time-Math.max(0,elapsed);for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);}
 }

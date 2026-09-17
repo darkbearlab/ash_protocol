@@ -18,21 +18,22 @@ const rgb=hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
 // The class art uses nine greys, mostly dark (16–181). Map that range onto a gradient: deep shade → full colour → light
 // tint, so outlines stay dark and the body reads as the chosen colour instead of a darkened multiply.
 const LOW=16,HIGH=181,SHADE=.22,MID=.45,LIGHT=.55;
-export function tintPixels(data,hex){
-  if(!hex)return data;
+// strength (3.116.0, user request) mixes the tinted pixel back towards the original grey: 1 is the full colour, 0 none.
+export function tintPixels(data,hex,strength=1){
+  if(!hex||strength<=0)return data;
   const color=rgb(hex);
   for(let i=0;i<data.length;i+=4){
     if(!data[i+3])continue;
     const grey=(data[i]+data[i+1]+data[i+2])/3,t=Math.max(0,Math.min(1,(grey-LOW)/(HIGH-LOW)));
-    for(let k=0;k<3;k++)data[i+k]=Math.round(t<=MID?color[k]*(SHADE+(1-SHADE)*t/MID):color[k]+(255-color[k])*LIGHT*(t-MID)/(1-MID));
+    for(let k=0;k<3;k++){const tinted=t<=MID?color[k]*(SHADE+(1-SHADE)*t/MID):color[k]+(255-color[k])*LIGHT*(t-MID)/(1-MID);data[i+k]=Math.round(data[i+k]+(tinted-data[i+k])*Math.min(1,strength));}
   }
   return data;
 }
 // One small canvas per sprite cell and colour; null when the colour is "none" or the browser refuses pixel access.
-export function tintedSprite(image,rect,id,cache){
-  const hex=operatorColor(id).hex;if(!hex)return null;
-  const key=`${rect.x},${rect.y},${id}`;if(cache?.has(key))return cache.get(key);
+export function tintedSprite(image,rect,id,cache,strength=1){
+  const hex=operatorColor(id).hex;if(!hex||strength<=0)return null;
+  const key=`${rect.x},${rect.y},${id},${strength}`;if(cache?.has(key))return cache.get(key);
   let canvas=null;
-  try{canvas=document.createElement('canvas');canvas.width=rect.w;canvas.height=rect.h;const c=canvas.getContext('2d');c.drawImage(image,rect.x,rect.y,rect.w,rect.h,0,0,rect.w,rect.h);const pixels=c.getImageData(0,0,rect.w,rect.h);tintPixels(pixels.data,hex);c.putImageData(pixels,0,0);}catch{canvas=null;}
+  try{canvas=document.createElement('canvas');canvas.width=rect.w;canvas.height=rect.h;const c=canvas.getContext('2d');c.drawImage(image,rect.x,rect.y,rect.w,rect.h,0,0,rect.w,rect.h);const pixels=c.getImageData(0,0,rect.w,rect.h);tintPixels(pixels.data,hex,strength);c.putImageData(pixels,0,0);}catch{canvas=null;}
   cache?.set(key,canvas);return canvas;
 }

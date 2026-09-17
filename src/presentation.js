@@ -25,19 +25,20 @@ export function captureAction(game,action){
   try{return {success:action(),steps};}finally{observers.delete(game);}
 }
 // Cosmetic projectiles per resolved shot; these never affect ammunition or damage.
+// flash (3.116.0): the muzzle flash family from src/muzzle-flash.js; thrown grenades, melee and venom have none.
 export const WEAPON_VISUALS={
   // Semantic style only; the venom trail drawing is handed to Claude.
   venom:{count:1,flight:130,stagger:0,spread:0,style:'venom'},
-  pet_turret:{count:1,stagger:0,spread:0,flight:85,style:'bullet'},
-  thunder:{count:1,flight:100,stagger:0,spread:0,style:'grenade'},
-  lmg:{count:2,flight:60,stagger:15,spread:.07,style:'bullet'},
+  pet_turret:{count:1,stagger:0,spread:0,flight:85,style:'bullet',flash:'rifle'},
+  thunder:{count:1,flight:100,stagger:0,spread:0,style:'grenade',flash:'launcher'},
+  lmg:{count:2,flight:60,stagger:15,spread:.07,style:'bullet',flash:'smg'},
   powerfist:{count:1,flight:100,stagger:0,spread:0,style:'slash'},
-  rifle:{count:3,flight:85,stagger:20,spread:.04,style:'bullet'},
-  shotgun:{count:6,flight:95,stagger:0,spread:.5,style:'pellet'},
-  smg:{count:3,flight:60,stagger:15,spread:.07,style:'bullet'},
-  sniper:{count:1,flight:110,stagger:0,spread:0,style:'tracer'},
-  plasma:{count:1,flight:130,stagger:0,spread:0,style:'plasma'},
-  launcher:{count:1,flight:170,stagger:0,spread:0,style:'grenade'},
+  rifle:{count:3,flight:85,stagger:20,spread:.04,style:'bullet',flash:'rifle'},
+  shotgun:{count:6,flight:95,stagger:0,spread:.5,style:'pellet',flash:'shotgun'},
+  smg:{count:3,flight:60,stagger:15,spread:.07,style:'bullet',flash:'smg'},
+  sniper:{count:1,flight:110,stagger:0,spread:0,style:'tracer',flash:'sniper'},
+  plasma:{count:1,flight:130,stagger:0,spread:0,style:'plasma',flash:'plasma'},
+  launcher:{count:1,flight:170,stagger:0,spread:0,style:'grenade',flash:'launcher'},
   grenade:{count:1,flight:180,stagger:0,spread:0,style:'grenade'},
   melee:{count:1,flight:80,stagger:0,spread:0}
 };
@@ -49,9 +50,13 @@ export const KILL_HOLD_MS=400,KILL_HOLD_REACH=4;
 export function projectileVisuals(effect,reduceMotion=false){
   const id=effect.style==='grenade'?'grenade':effect.weaponId==='unarmed'?'melee':effect.weaponId||enemyProjectile(effect.attackerType)||'rifle';
   const base=WEAPON_VISUALS[id]||WEAPON_VISUALS.rifle,spec=effect.singleShot?{...base,count:1,spread:0}:base;
+  // A launched grenade flies like a thrown one but still leaves the launcher's flash. A spread shot (the shotgun's pellets)
+  // flashes once; a staggered burst flashes with every round.
+  const flash=(WEAPON_VISUALS[effect.weaponId]||base).flash||null;
   return Array.from({length:reduceMotion?1:spec.count},(_,i)=>({...effect,damage:0,miss:false,missPath:effect.miss,
     style:spec.style||effect.style||(id==='melee'?enemyMeleeStyle(effect.attackerType):'bullet'),travel:reduceMotion?70:spec.flight,delay:reduceMotion?0:i*spec.stagger,
-    spread:reduceMotion?0:spec.spread*(i-(spec.count-1)/2)/Math.max(1,(spec.count-1)/2),quiet:reduceMotion}));
+    spread:reduceMotion?0:spec.spread*(i-(spec.count-1)/2)/Math.max(1,(spec.count-1)/2),quiet:reduceMotion,
+    flash:flash&&(i===0||(!reduceMotion&&spec.stagger>0))?flash:null}));
 }
 // Consecutive steps that only move units (and may speak) play at the same time (3.84.2, user; docs/SWARM.md 3.4): a swarm
 // of walkers would otherwise take one move animation each. Anything else ends the group: a shot, an effect, a death, the

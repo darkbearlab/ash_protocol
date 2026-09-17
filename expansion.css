@@ -395,16 +395,18 @@ dialog .modal-footer>[role="tablist"],dialog .modal-footer>.journal-tabs{flex:1 
 #modal.standalone:not(.title) .modal-footer{margin-top:auto;background:#0d1211}
 
 /* Incoming transmission (3.115.0, user request): a centred card over the battlefield before the three upgrade choices. */
-#modal.transmission:not(.title){margin:auto;width:calc(100% - 40px);max-width:360px;height:fit-content;border:1px solid #c98b55;background:#0b1110f2;text-align:center}
-#modal.transmission::backdrop{background:#050a0b8c}
+/* 3.116.0 (user request): smaller, pixel lettering, a lighter blur and a darker veil. */
+#modal.transmission:not(.title){margin:auto;width:calc(100% - 64px);max-width:252px;height:fit-content;padding:14px 16px;--dialog-pad-x:16px;--dialog-pad-y:14px;border:1px solid #c98b55;background:#0b1110f2;text-align:center}
+#modal.transmission::backdrop{background:#030607c7;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+#modal.transmission .eyebrow{font-size:9px;margin-bottom:0}
+#modal.transmission .modal-button{min-height:38px;font-size:13px}
+.transmission-pixels{display:block;margin:0 auto;max-width:100%;image-rendering:pixelated;image-rendering:crisp-edges}
 #modal.transmission .modal-footer{background:#0b1110}
 .transmission .eyebrow{color:#c98b55}
-.transmission-title{display:flex;flex-direction:column;align-items:center;margin:16px 0 10px;font:700 25px/1.2 var(--mono);letter-spacing:.14em;color:#f0c27a;animation:transmission-flicker 1.8s steps(1) infinite}
-.transmission-title span:last-child::after{content:'_';animation:transmission-caret 1s steps(1) infinite}
-.transmission-note{margin:0;color:#b6c3a8;font-size:13px}
+.transmission-title{margin:12px 0 8px;animation:transmission-flicker 1.8s steps(1) infinite}
+.transmission-note{margin:0;color:#b6c3a8;font-size:12px}
 @keyframes transmission-flicker{0%,100%{opacity:1}44%{opacity:.5}46%{opacity:1}71%{opacity:.8}72%{opacity:1}}
-@keyframes transmission-caret{50%{opacity:0}}
-@media (prefers-reduced-motion:reduce){.transmission-title,.transmission-title span:last-child::after{animation:none}}
+@media (prefers-reduced-motion:reduce){.transmission-title{animation:none}}
 
 /* VHS filter (3.115.0, user request). One layer after the app and one inside the dialog, since a modal dialog sits above
    everything else; only the one on top shows. Static scanlines and vignette, a tiled noise image that jumps between a few
@@ -413,10 +415,20 @@ dialog .modal-footer>[role="tablist"],dialog .modal-footer>.journal-tabs{flex:1 
 html.vhs .vhs-layer{display:block;position:fixed;inset:0;z-index:2147483000;overflow:hidden;pointer-events:none;
  background:repeating-linear-gradient(to bottom,#0000 0 2px,#00000033 2px 3px),radial-gradient(ellipse at 50% 50%,#0000 56%,#00000080 100%)}
 html.vhs body:has(#modal[open])>.vhs-layer{display:none}
-html.vhs .vhs-layer::before{content:'';position:absolute;inset:-60px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.7 -.35'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E") 0 0/180px 180px;opacity:.07;animation:vhs-grain .45s steps(1) infinite}
-html.vhs .vhs-layer::after{content:'';position:absolute;left:0;right:0;top:0;height:16vh;background:linear-gradient(#0000,#ffffff0a 40%,#c8d7ff17 55%,#0000);transform:translateY(-20vh);animation:vhs-roll 9s linear infinite}
+/* 3.116.0 (user report: the filter brightened the screen): the grain was white only, about 3.5% white over everything, which
+   lifted the near-black backgrounds. It is now sparse white over denser black specks; measured on flat colours, 13 -> 15
+   (was 22), 128 -> 126 (was 132), before the scanlines. */
+html.vhs .vhs-layer::before{content:'';position:absolute;inset:-60px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.7 -.75'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E") 0 0/180px 180px,url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.7 -.45'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)'/%3E%3C/svg%3E") 90px 45px/180px 180px;opacity:.08;animation:vhs-grain .45s steps(1) infinite}
+html.vhs .vhs-layer::after{content:'';position:absolute;left:0;right:0;top:0;height:16vh;background:linear-gradient(#0000,#ffffff05 40%,#c8d7ff0d 55%,#0000);transform:translateY(-20vh);animation:vhs-roll 9s linear infinite}
 @keyframes vhs-grain{0%{transform:translate(0,0)}20%{transform:translate(-27px,19px)}40%{transform:translate(21px,-33px)}60%{transform:translate(-41px,-11px)}80%{transform:translate(13px,31px)}}
 @keyframes vhs-roll{from{transform:translateY(-20vh)}to{transform:translateY(120vh)}}
 html.vhs #battle{filter:saturate(.8) contrast(1.07) brightness(.96)}
 html.vhs body{text-shadow:.6px 0 #ff5a5a40,-.6px 0 #5ac8ff40}
 @media (prefers-reduced-motion:reduce){html.vhs .vhs-layer::before{animation:none}html.vhs .vhs-layer::after{display:none}}
+
+/* Screen brightness (3.116.0, user request). A filter on <html> does not reach the dialog in the top layer, so, like the VHS
+   layers, one backdrop-filter layer sits over the app and one inside the dialog; only the one on top shows. Not drawn at
+   100%. It sits under the VHS layer, so the scanlines themselves are not brightened. */
+.tone-layer{display:none}
+html.toned .tone-layer{display:block;position:fixed;inset:0;z-index:2147482990;pointer-events:none;-webkit-backdrop-filter:brightness(var(--screen-brightness));backdrop-filter:brightness(var(--screen-brightness))}
+html.toned body:has(#modal[open])>.tone-layer{display:none}
