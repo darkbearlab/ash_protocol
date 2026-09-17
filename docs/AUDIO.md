@@ -47,7 +47,7 @@
 
 使用者要求撲咬更濕，其餘無意見：輕機槍、投擲、拾取、開箱、玩家受傷五項採用。已收入 adopted、更新 SHA-256，獨立製作程式 md-sfx-round4-p1.mjs 的輸出與試聽版逐位元組一致；尚未替換遊戲。Claude 可依 AUDIO_SFX_BRIEF 的接入流程處理這五項。
 
-新版濕撲咬約 229 ms，仍放 ignored candidates/round4-p1-wet，待使用者試聽，不提交候選。P2、P3 與 B 部分七項比較仍未製作。
+使用者否決濕版，改採 P1 原版撲咬，已收入 adopted 並更新雜湊。P1 六項全部採用，遊戲接入仍由 Claude 處理。P2、P3 與 B 部分七項比較仍未製作。
 
 ## 已決定的方向
 
@@ -58,7 +58,7 @@
 
 > **2026-09-17 整理（使用者：只留採用的）**：Codex 的四筆素材提交合成一筆，只保留採用的檔案。試聽合輯、比較檔、MP3 預覽、草稿、沒採用的環境音與電漿 B、三發衝鋒槍試聽檔、獨立循環母帶都沒有進版本控制；電漿 A 移到 `adopted/md3-03-plasma-a.wav`，六段派系配樂與 `faction-loops.json`（原 manifest）移到 `music/`。每個採用檔與產生輸出的對應與雜湊見 `art/audio/audio-checksums.json`。下文若提到已不存在的預覽或比較檔，只是製作歷史。
 
-## 音效採用表（20 項；新增五項待 Claude 接入）
+## 音效採用表（21 項；新增六項待 Claude 接入）
 
 以下路徑以 art/audio/ 為根；不必重新產生或從比較用 MP3 擷取。
 
@@ -79,6 +79,7 @@
 | 升級通訊 | adopted/md3-07-transmission.wav | 採用 |
 | 氣動門 | adopted/md3-08-door.wav | 採用 |
 | 電漿 | adopted/md3-03-plasma-a.wav | 暫用 A；B 不採用，不須重新試選 |
+| 生物撲咬／爪擊 | adopted/md4-creature-attack.wav | 原版採用，濕版不採用；未接入 |
 | 輕機槍單發 | adopted/md4-lmg.wav | P1 採用，120 ms，未接入 |
 | 投擲出手 | adopted/md4-throw.wav | P1 採用，未接入 |
 | 拾取 | adopted/md4-pickup.wav | P1 採用，未接入 |
@@ -114,3 +115,7 @@ WAV 為 44.1 kHz、16-bit、mono。保留製作時的相對音量，不逐檔正
 - 使用者已做：素材試聽採用。沒有因此宣稱遊戲內或手機瀏覽器的播放驗收通過。
 - 接入後要測：首次點擊出聲、離線重開、音量／靜音持久化、各派系與無盡換層、交戰進退與不洩漏未知敵人、快速連續輸入、死亡演出、背景恢復、壓縮音樂循環與長時間重疊音量。
 - 本輪只更新文件，不更動遊戲／存檔、不升版本。依最新流程本機提交，等使用者放行推送。
+
+## 新戰鬥配樂候選（未採用）
+
+使用者要求重金屬一點、BPM 加倍。三派系候選在 ignored candidates/combat-metal-v2，忠誠者 208、叛軍 224、蟲族 240 BPM；Mega Drive FM riff、鼓組與半拍段落。現行 music/ 及遊戲配樂完全不改。等待 Telegram 試聽確認，候選不提交。

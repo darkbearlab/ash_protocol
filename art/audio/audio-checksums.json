@@ -135,6 +135,11 @@
       "sha256": "38ec2a3243d6ede40234b8b921790977f0c314391f7cdd8142a0cf778b037ee9",
       "generatedAs": "candidates/round4-p1-adopted/hurt.wav",
       "generator": "md-sfx-round4-p1.mjs"
+    },
+    "adopted/md4-creature-attack.wav": {
+      "sha256": "ea9d023fb21fc6a08a3da8112d61a8c952edb23754120749ba33161b525b5b89",
+      "generatedAs": "candidates/round4-p1-adopted/creature-attack.wav",
+      "generator": "md-sfx-round4-p1.mjs"
     }
   }
 }

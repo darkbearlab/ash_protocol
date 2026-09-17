@@ -1,5 +1,4 @@
-// Five adopted P1 sounds. Unadopted creature evaluation retained only to preserve
-// subsequent seeded-noise order; it is never written by this export.
+// Six adopted P1 sounds. Original creature attack adopted after wet revision was declined.
 import {OUT,TAU,rand,biquad,dac,fmVoice,op,mix,wav,writeFileSync,mkdirSync} from './md-engine.mjs';
 const dir=new URL('../candidates/round4-p1-adopted/',import.meta.url),G=.89/1.6243;
 const off=()=>op(1,96,.001,0,0,0,500);
@@ -19,7 +18,6 @@ const S=[
 
 mkdirSync(dir,{recursive:true});
 for(const [id,label,limit,parts] of S){
- if(id==='creature-attack')continue;
  const raw=mix(parts),n=Math.min(raw.length,Math.round(limit*OUT)),samples=raw.slice(0,n);
  for(let i=0;i<n;i++)samples[i]*=G*Math.min(1,i/(OUT*.0004),(n-1-i)/(OUT*.012));
  if(samples.some(v=>Math.abs(v)>10**(-1/20)))throw Error(id+' peak exceeded');
