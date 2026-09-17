@@ -87,8 +87,9 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const flights=step.effects.filter(e=>e.type==='shot'||e.type==='enemyShot');
     const visuals=flights.flatMap(e=>projectileVisuals(e,reduceMotion));
     const rewards=step.effects.filter(e=>e.type==='capSupply');
-    const announcements=step.effects.filter(e=>e.type==='callout');
-    const impacts=step.effects.filter(e=>e.type!=='shot'&&e.type!=='enemyShot'&&e.type!=='capSupply'&&e.type!=='callout');
+    // A pickup (3.118.0) only cues a sound when the step lands; like a callout it takes no time of its own.
+    const announcements=step.effects.filter(e=>e.type==='callout'||e.type==='pickup');
+    const impacts=step.effects.filter(e=>e.type!=='shot'&&e.type!=='enemyShot'&&e.type!=='capSupply'&&e.type!=='callout'&&e.type!=='pickup');
     const travel=Math.max(0,...visuals.map(e=>e.delay+e.travel),...moves.map(e=>e.travel));
     events.push({time,state:step.before,effects:[...moves,...visuals]});
     for(const e of flights)if(e.damage>0||e.miss)impacts.push({...e,type:e.miss?'miss':'impact',style:undefined,from:e.to});

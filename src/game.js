@@ -223,7 +223,8 @@ export class Game {
     if(isRigged(c))return this.detonateCase(c,this.player);
     const pos=this.containerDrop(c),contents=c.contents;c.opened=true;c.contents=[];
     this.items.push(...contents.map(i=>i.type==='weapon'?this.registerWeapon({...i,...pos},true):({...i,...pos})));
-    this.effects.push({type:'unpack',from:{x:c.x,y:c.y},to:pos,damage:0});
+    // container (3.118.0): tells the open-case sound apart from a pet's unpack, which uses the same visual.
+    this.effects.push({type:'unpack',container:true,from:{x:c.x,y:c.y},to:pos,damage:0});
     if(!contents.length){this.log(`${containerName(c)}已開啟，裡面是空的。`);return true;}
     this.log(`${containerName(c)}已開啟，補給${distance(pos,this.player)===0?'留在腳下，移開再走回拾取':'落在地上，走上去拾取'}。`);return true;
   }
@@ -846,7 +847,9 @@ export class Game {
     for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying')))if(this.hazards.some(h=>h.x===e.x&&h.y===e.y))this.hurt(e,6);
   }
   pickup() {
-    const p=this.player;
+    // 3.118.0: a presentation-only 'pickup' effect when anything was collected, including part of a pile left behind by a
+    // full pouch, so the pickup sound plays. Effects are never saved and never read by the rules.
+    const p=this.player,before=this.items.length;let partial=false;
     this.items=this.items.filter(item=>{
       if(distance(item,p)!==0)return true;
       if(item.type==='learning'){if(!validLearningId(item.learningId))return true;p.learningItems[item.learningId]=(p.learningItems[item.learningId]||0)+1;this.log(`拾取${LEARNING_ITEMS[item.learningId].name}。`);return false;}
@@ -856,10 +859,10 @@ export class Game {
         this.collectWeapon(item);return false;
       }
       const utility=grenadeByItem(item.type);
-      if(utility){const amount=item.amount??1,accepted=this.receiveGrenade(utility,amount,{spill:false});if(accepted)this.log(`拾取${GRENADES[utility].name} +${accepted}。`);if(accepted<amount){item.amount=amount-accepted;this.log('投擲物共用容量已滿，剩餘留在原地。');return true;}return false;}
+      if(utility){const amount=item.amount??1,accepted=this.receiveGrenade(utility,amount,{spill:false});if(accepted){partial=true;this.log(`拾取${GRENADES[utility].name} +${accepted}。`);}if(accepted<amount){item.amount=amount-accepted;this.log('投擲物共用容量已滿，剩餘留在原地。');return true;}return false;}
       const ammo=itemAmmo(item.type);
       if(ammo){const amount=item.amount??AMMUNITION[ammo].pickup,accepted=this.receiveAmmo(ammo,amount,{spill:false});
-        if(accepted)this.log(`拾取${AMMUNITION[ammo].name} +${accepted}。`);
+        if(accepted){partial=true;this.log(`拾取${AMMUNITION[ammo].name} +${accepted}。`);}
         if(accepted<amount){item.amount=amount-accepted;this.log(`${AMMUNITION[ammo].name}容量已滿，剩餘 ${item.amount} 留在原地。`);return true;}
       }      else if(item.type==='med'){p.meds++;this.log('拾取醫療包 +1。');}
       // 3.110.0 (user request): field kit has no carry cap, exactly like the medkit, so a case holding it is never
@@ -870,6 +873,7 @@ export class Game {
       else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;const story=collectStory(this,item);this.log(story?`資料已解密：${story.body}`:`資料已回收。`);}
       return false;
     });
+    if(partial||this.items.length<before)this.effects.push({type:'pickup',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});
   }
   registerWeapon(item,roll=false) {
     if(item.slot!==undefined)return item;

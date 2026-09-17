@@ -5,6 +5,8 @@
 - **A. 補齊還沒有聲音的動作**（目前靜音）。
 - **B. 重做 Claude 先前做、使用者已核准的 7 個音效**，讓使用者和現行版本比對後決定用哪一版。**比對結果出來前，遊戲裡維持現行版本。**
 
+> 進度：A 部分 P1 六項（lmg、creature-attack、throw、pickup、open-case、hurt）已由使用者採用，3.118.0 接進遊戲。P2、P3 與 B 部分還沒做。
+
 ## 共通要求
 
 - **風格**：和已採用的素材同一套 Mega Drive 風格（YM2612 FM、8 位元 DAC 取樣、SN76489 PSG、一代機輸出濾波）。可以直接用 `art/audio/generators/md-engine.mjs`。不要寫實錄音或現代合成器質感。

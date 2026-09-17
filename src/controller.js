@@ -47,6 +47,7 @@ import {Game,WEAPONS,FLOORS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,proto
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MODE_NOTE,runOptions,FACILITY_OPTIONS,facilityOption} from './deploy-ui.js';
 import {Renderer} from './render.js';
 import {AudioEngine,AUDIO_TUNING,volumePercent} from './audio.js';
+import {GRIT_LEVELS,gritLevel} from './audio-grit.js';
 import {eventSounds,actionSound} from './sound-cues.js';
 import {engagementHeard,freshCombat,stepCombat,musicTrack} from './music-state.js';
 import {landscapeTouch} from './layout.js';
@@ -99,6 +100,8 @@ document.fonts?.ready.then(()=>{renderer.targetUI.dirty=true;});
 audio.enabled=read('ash-sound')!=='off';
 // 3.117.0 (user request): music and effects each have a volume; the old on/off switch stays as the master.
 audio.setVolumes({music:volumePercent(read('ash-music-volume'),AUDIO_TUNING.musicDefault)/100,sfx:volumePercent(read('ash-sfx-volume'),AUDIO_TUNING.sfxDefault)/100});
+audio.setGrit(gritLevel(read('ash-audio-grit')));
+const GRIT_LABELS={off:'關閉',light:'輕',heavy:'重'};
 // Browsers only allow sound after a gesture; the first press anywhere starts it, and a hidden page goes quiet.
 for(const type of ['pointerdown','keydown'])document.addEventListener(type,()=>{audio.unlock();syncMusic();},{capture:true});
 document.addEventListener('visibilitychange',()=>audio.background(document.hidden));
@@ -661,6 +664,8 @@ ${sec('聲音')}
 <label class="boundary-opacity" for="music-volume">音樂音量 <output id="music-volume-value" for="music-volume">${Math.round(audio.musicVolume*100)}%</output><input id="music-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.musicVolume*100)}"></label>
 <label class="boundary-opacity" for="sfx-volume">音效音量 <output id="sfx-volume-value" for="sfx-volume">${Math.round(audio.sfxVolume*100)}%</output><input id="sfx-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.sfxVolume*100)}"></label>
 <p>選單播放〈待命〉；進入設施後播放該派系的探索配樂，敵人喊出交戰的台詞時切換成交戰配樂，視野內連續十回合沒有敵人再切回探索。</p>
+<button class="modal-button secondary" data-modal="audioGrit" aria-pressed="${audio.grit!=='off'}">訊號雜訊：${GRIT_LABELS[audio.grit]}</button>
+<p>每個音效播放時隨機偏一點音高與時間，偶爾混進爆音、靜電或訊號斷一下；配樂加上錄影帶的抖音。按一下切換 關閉／輕／重。</p>
 ${sec('顯示')}
 ${inRun?`<div class="modal-row"><button class="modal-button secondary" data-modal="help">作戰指南</button><button class="modal-button secondary" data-modal="log">戰鬥紀錄</button></div>`:''}
 <button class="modal-button secondary" data-modal="movementBoundaries" aria-pressed="${renderer.movementBoundaries}">移動邊界白線：${renderer.movementBoundaries?'開啟':'關閉'}</button>
@@ -861,6 +866,7 @@ document.addEventListener('click',e=>{
     case 'deckReset':deckLayout=[...DECK_GRID];deckPick=null;saveDeckLayout();showDeckEditor('\u5df2\u9084\u539f\u9810\u8a2d\u3002');break;
     case 'padLayout':padLayout=DECK_LAYOUTS[(DECK_LAYOUTS.indexOf(padLayout)+1)%DECK_LAYOUTS.length];write('ash-pad-layout',padLayout);applyDeck();fitLayout();settings();break;
     case 'padCell':padCell=PAD_SIZES[(PAD_SIZES.indexOf(padCell)+1)%PAD_SIZES.length];write('ash-pad-cell',String(padCell));applyDeck();fitLayout();settings();break;
+    case 'audioGrit':{const order=Object.keys(GRIT_LEVELS),next=order[(order.indexOf(audio.grit)+1)%order.length];audio.setGrit(next);write('ash-audio-grit',next);settings();break;}
     case 'vhs':vhsFilter=!vhsFilter;write('ash-vhs',vhsFilter?'on':'off');document.documentElement.classList.toggle('vhs',vhsFilter);settings();break;
     case 'transmission':transmissionSeen=transmissionKey();showPerks();break;
     case 'skipPresentation':skipPresentation=!skipPresentation;write('ash-skip-presentation',skipPresentation?'on':'off');settings();break;

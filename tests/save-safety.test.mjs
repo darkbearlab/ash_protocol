@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,readdirSync} from 'node:fs';
+import {readFileSync,readdirSync,existsSync} from 'node:fs';
 import {SAVE_VERSION,LEGACY_SAVE_VERSIONS} from '../src/data.js';
 import {PROFILE_VERSION,normalizeProfile} from '../src/progression.js';
 import {validateProfile} from '../src/backup.js';
@@ -49,4 +49,8 @@ test('the daily seed hashes the date with a phrase: valid, stable, and not the d
 test('the offline cache lists every source module, so a new file cannot break offline starts',()=>{
   const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
   for(const file of readdirSync(new URL('../src/',import.meta.url)).filter(f=>f.endsWith('.js')))assert.ok(sw.includes(`./src/${file}`),file);
+  // 3.118.0: the other way round too. One missing file rejects the whole install, and 3.117.0 shipped a deleted module
+  // in the list, which left players on the previous offline copy.
+  const listed=JSON.parse(sw.match(/const FILES=(\[[^\]]*\]);/)[1].replace(/'/g,'"'));
+  assert.deepEqual(listed.filter(file=>file!=='./'&&!existsSync(new URL(`../${file}`,import.meta.url))),[],'every cached file exists');
 });

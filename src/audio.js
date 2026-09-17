@@ -1,4 +1,5 @@
 import {SFX_FILES} from './sound-cues.js';
+import {GRIT_LEVELS,GRIT_DEFAULT,gritLevel,gritPlan,popShape,noiseBurst,POP_SHAPES,STATIC_Q,STATIC_ATTACK,DROPOUT_RAMP,WOW_HZ,FLUTTER_HZ} from './audio-grit.js';
 // Sound playback (3.117.0): the adopted Mega Drive-style effects and music (docs/AUDIO.md, files in assets/audio/).
 // Web Audio only. The context is created on the first user gesture, as browsers require. Every failure (no Web Audio,
 // a blocked context, a missing or undecodable file) is swallowed: sound must never be able to interrupt a turn.
@@ -27,6 +28,7 @@ export class AudioEngine{
   constructor(base=new URL('../assets/audio/',import.meta.url)){
     this.base=base;this.enabled=true;this.musicVolume=AUDIO_TUNING.musicDefault/100;this.sfxVolume=AUDIO_TUNING.sfxDefault/100;
     this.ctx=null;this.buffers=new Map();this.pending=new Map();this.voices=[];this.track=null;this.wanted=null;this.hidden=false;
+    this.grit=GRIT_DEFAULT;this.gritSources=null;
   }
   // Called from a user gesture. Safe to call repeatedly.
   unlock(){
@@ -46,6 +48,8 @@ export class AudioEngine{
     }catch{}
   }
   applyVolumes(){if(!this.ctx)return;this.sfxBus.gain.value=this.sfxVolume;this.musicBus.gain.value=this.musicVolume;}
+  // Signal noise (src/audio-grit.js). Takes effect on the next sound; the music's wow follows at once.
+  setGrit(level){this.grit=gritLevel(level);this.applyWobble(this.track);}
   setVolumes({music=this.musicVolume,sfx=this.sfxVolume}={}){this.musicVolume=music;this.sfxVolume=sfx;this.applyVolumes();}
   setEnabled(on){
     this.enabled=on;
@@ -81,12 +85,52 @@ export class AudioEngine{
       const same=this.voices.filter(v=>v.cue===cue);
       if(same.length>=AUDIO_TUNING.voicesPerCue)this.stopVoice(same[0]);
       if(this.voices.filter(v=>!v.ended).length>=AUDIO_TUNING.voices)this.stopVoice(this.voices.find(v=>!v.ended));
-      const source=this.ctx.createBufferSource(),voice={cue,source,ended:false};
-      source.buffer=buffer;source.connect(this.sfxBus);source.onended=()=>{voice.ended=true;};source.start();
+      const source=this.ctx.createBufferSource(),voice={cue,source,ended:false,gain:null};
+      source.buffer=buffer;source.onended=()=>{voice.ended=true;};
+      const plan=gritPlan(buffer.duration,this.grit);
+      if(plan)source.start(this.roughen(voice,plan));else{source.connect(this.sfxBus);source.start();}
       this.voices.push(voice);
     }catch{}
   }
-  stopVoice(voice){if(!voice)return;voice.ended=true;try{voice.source.stop();}catch{}}
+  stopVoice(voice){if(!voice)return;voice.ended=true;try{voice.source.stop();}catch{}try{voice.gain?.disconnect();}catch{}}
+  // Plays a sound through its own gain so the pops, static and dropouts drawn for it stop with it. Returns the start time.
+  roughen(voice,plan){
+    const ctx=this.ctx,start=ctx.currentTime+plan.delay,gain=voice.gain=ctx.createGain();
+    this.gritSources??={pops:Array.from({length:POP_SHAPES},(_,i)=>this.bufferOf(popShape(i,ctx.sampleRate))),noise:this.bufferOf(noiseBurst(ctx.sampleRate))};
+    voice.source.playbackRate.value=plan.rate;voice.source.connect(gain);gain.connect(this.sfxBus);
+    for(const pop of plan.pops){
+      const source=ctx.createBufferSource(),level=ctx.createGain();source.buffer=this.gritSources.pops[pop.shape];level.gain.value=pop.gain;
+      source.connect(level);level.connect(gain);source.start(start+pop.at);
+    }
+    for(const burst of plan.statics){
+      const source=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),level=ctx.createGain(),at=start+burst.at;
+      source.buffer=this.gritSources.noise;filter.type='bandpass';filter.frequency.value=burst.freq;filter.Q.value=STATIC_Q;
+      level.gain.setValueAtTime(0,at);level.gain.linearRampToValueAtTime(burst.gain,at+STATIC_ATTACK);level.gain.linearRampToValueAtTime(0,at+burst.length);
+      source.connect(filter);filter.connect(level);level.connect(gain);source.start(at,0,burst.length+.01);
+    }
+    for(const dropout of plan.dropouts){
+      const at=start+dropout.at;
+      gain.gain.setValueAtTime(1,at);gain.gain.linearRampToValueAtTime(dropout.depth,at+DROPOUT_RAMP);
+      gain.gain.setValueAtTime(dropout.depth,at+dropout.length);gain.gain.linearRampToValueAtTime(1,at+dropout.length+DROPOUT_RAMP);
+    }
+    return start;
+  }
+  bufferOf(samples){const buffer=this.ctx.createBuffer(1,samples.length,this.ctx.sampleRate);buffer.getChannelData(0).set(samples);return buffer;}
+  // Tape wow and flutter on the music: two slow oscillators on the track's detune, silent while the noise is off.
+  wobble(track){
+    try{
+      if(!track.source.detune)return;
+      track.wobble=[WOW_HZ,FLUTTER_HZ].map(hz=>{const oscillator=this.ctx.createOscillator(),depth=this.ctx.createGain();oscillator.frequency.value=hz;oscillator.connect(depth);depth.connect(track.source.detune);oscillator.start();return {oscillator,depth};});
+      this.applyWobble(track);
+    }catch{}
+  }
+  applyWobble(track){
+    try{
+      if(!track?.wobble)return;
+      const spec=GRIT_LEVELS[this.grit],[wow,flutter]=track.wobble;
+      wow.depth.gain.value=spec?.wowCents??0;flutter.depth.gain.value=spec?.flutterCents??0;
+    }catch{}
+  }
   // The wanted track is remembered even before the first gesture, so the right music starts as soon as sound can.
   setMusic(id){
     const next=id&&MUSIC_TRACKS[id]?id:null;
@@ -106,7 +150,7 @@ export class AudioEngine{
         source.buffer=buffer;source.loop=true;source.loopStart=spec.loopStart/MUSIC_RATE;source.loopEnd=Math.min(buffer.duration,spec.loopEnd/MUSIC_RATE);
         gain.gain.setValueAtTime(0,now);gain.gain.linearRampToValueAtTime(1,now+AUDIO_TUNING.crossfade);
         source.connect(gain);gain.connect(this.musicBus);source.start(now);
-        Object.assign(token,{pending:false,source,gain});
+        Object.assign(token,{pending:false,source,gain});this.wobble(token);
       });
     }catch{}
   }
@@ -115,6 +159,7 @@ export class AudioEngine{
       if(!track||track.pending||!this.ctx)return;
       const now=this.ctx.currentTime;track.gain.gain.cancelScheduledValues(now);track.gain.gain.setValueAtTime(track.gain.gain.value,now);
       track.gain.gain.linearRampToValueAtTime(0,now+AUDIO_TUNING.crossfade);track.source.stop(now+AUDIO_TUNING.crossfade+.05);
+      for(const {oscillator} of track.wobble||[])oscillator.stop(now+AUDIO_TUNING.crossfade+.05);
     }catch{}
   }
 }

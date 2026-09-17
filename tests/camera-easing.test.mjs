@@ -74,6 +74,6 @@ test('the renderer keys the zoom on what it frames, and skips the hold when draw
   const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8');
   assert.ok(source.includes("key=[this.zoom,this.mode||'',this.aim?'aim':'',locked?.id??'',holds.length?'hold':''].join('|')"));
   assert.ok(source.includes("scene=[g.seed,g.floor,this.w,this.h].join(':')"),'a new run, floor or board size starts exact');
-  assert.ok(source.includes("fx.type==='cameraHold')continue;"));
+  assert.ok(source.includes("fx.type==='cameraHold'||fx.type==='pickup')continue;"),'a pickup (3.118.0) only cues a sound');
   assert.ok(source.includes('time-e.time<Math.max(700,e.duration||0)'),'a hold outlives the usual effect lifetime if it needs to');
 });

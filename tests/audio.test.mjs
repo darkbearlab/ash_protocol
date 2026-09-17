@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile,readdir,stat} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
+import {WEAPONS} from '../src/data.js';
 import {captureAction,planPresentation} from '../src/presentation.js';
 import {eventSounds,actionSound,SFX_FILES,WEAPON_SFX} from '../src/sound-cues.js';
 import {engagementHeard,freshCombat,stepCombat,musicTrack,musicFaction,MUSIC_TUNING} from '../src/music-state.js';
@@ -22,12 +23,12 @@ test('a shot is heard once per actual shot, with its weapon family, from the pla
   const g=arena(),e=makeEnemy('brute',13,10,'b');e.hp=900;e.maxHp=900;g.enemies.push(e);g.reveal();
   g.rng=Object.assign(()=>.99,{state:()=>0});      // every roll misses, so only the firing sound is in play
   g.target='b';
-  assert.deepEqual(allSounds(planPresentation(captureAction(g,()=>g.action('fire')).steps)).filter(c=>c!=='hit'),['rifle'],'three cosmetic rounds, one rifle shot, and a player miss is silent');
+  assert.deepEqual(allSounds(planPresentation(captureAction(g,()=>g.action('fire')).steps)).filter(c=>c==='rifle'),['rifle'],'three cosmetic rounds, one rifle shot, and a player miss is silent');
   const shotgun=[0,1,2,3,4,5].map(i=>({type:'shot',weaponId:'shotgun',from:{x:1,y:1},to:{x:5,y:i},primary:true}));
   assert.deepEqual(eventSounds(shotgun),['shotgun'],'a cone sends one trace per target but is one blast');
   assert.deepEqual(eventSounds([{type:'enemyShot',attackerType:'raider',from:{x:3,y:3},primary:true},{type:'enemyShot',attackerType:'raider',from:{x:3,y:3},primary:false}]),['smg']);
   assert.deepEqual(eventSounds([{type:'enemyShot',attackerType:'drone',from:{x:3,y:3},primary:true},{type:'enemyShot',attackerType:'sniper',from:{x:6,y:3},primary:true}]),['plasma','precision'],'two shooters, two sounds');
-  for(const id of ['lmg','launcher','powerfist','thunder','unarmed'])assert.deepEqual(eventSounds([{type:'shot',weaponId:id,from:{x:1,y:1},primary:true}]),[],`${id} waits for its own sound`);
+  for(const id of ['launcher','powerfist','thunder','unarmed'])assert.deepEqual(eventSounds([{type:'shot',weaponId:id,from:{x:1,y:1},primary:true}]),[],`${id} waits for its own sound`);
   assert.deepEqual(Object.values(WEAPON_SFX).filter(cue=>!SFX_FILES[cue]),[]);
 });
 
@@ -73,9 +74,9 @@ test('the menu theme before deployment, the facility faction inside, kill house 
 
 test('game audio files are the adopted ones, byte for byte, and the loop points match their sources',async()=>{
   const sums=JSON.parse(await read('../art/audio/audio-checksums.json')).files;
-  const sources={rifle:'md-01-rifle-a',shotgun:'md-04-shotgun',smg:'md3-01-smg-single',precision:'md3-02-precision',plasma:'md3-03-plasma-a',hit:'md-07-hit',kill:'md3-04-kill',enemyMiss:'md2-08-miss-a',blast:'md-11-grenade',footstep:'md-12-footstep',reload:'md3-05-reload',heal:'md3-06-heal',transmission:'md3-07-transmission',door:'md3-08-door',select:'md2-15-ui-select'};
+  const sources={rifle:'md-01-rifle-a',shotgun:'md-04-shotgun',smg:'md3-01-smg-single',precision:'md3-02-precision',plasma:'md3-03-plasma-a',hit:'md-07-hit',kill:'md3-04-kill',enemyMiss:'md2-08-miss-a',blast:'md-11-grenade',footstep:'md-12-footstep',reload:'md3-05-reload',heal:'md3-06-heal',transmission:'md3-07-transmission',door:'md3-08-door',select:'md2-15-ui-select',lmg:'md4-lmg',creatureAttack:'md4-creature-attack',throw:'md4-throw',pickup:'md4-pickup',openCase:'md4-open-case',hurt:'md4-hurt'};
   for(const [cue,file] of Object.entries(SFX_FILES)){
-    assert.equal(await sha(`../assets/audio/sfx/${file}`),sums[`adopted/${sources[cue]}.wav`].sha256,cue);
+    assert.equal(await sha(`../assets/audio/sfx/${file}`),sums[`adopted/${sources[cue]}.wav`]?.sha256,cue);
   }
   assert.deepEqual((await readdir(new URL('../assets/audio/sfx/',import.meta.url))).sort(),Object.values(SFX_FILES).sort(),'no stray files');
   const menu=JSON.parse(await read('../art/audio/music/menu-theme-loop.json')),loops=JSON.parse(await read('../art/audio/music/faction-loops.json'));
@@ -98,4 +99,63 @@ test('the controller plays from events, keeps sound failures away from turns, an
   assert.equal((engine.match(/catch\{\}/g)||[]).length>=6,true,'every playback path swallows its errors');
   for(const file of Object.values(SFX_FILES))assert.ok(worker.includes(`./assets/audio/sfx/${file}`),`${file} is cached for offline play`);
   for(const module of ['sound-cues','music-state'])assert.ok(worker.includes(`./src/${module}.js`),module);
+});
+
+// 3.118.0: round four, P1 (Codex's adopted lmg, creature attack, throw, pickup, open case, hurt).
+test('round four P1: the light machine gun, a creature attack, and a throw are heard; launcher and thunder are not thrown',()=>{
+  assert.deepEqual(eventSounds([{type:'shot',weaponId:'lmg',from:{x:1,y:1},primary:true},{type:'shot',weaponId:'lmg',from:{x:1,y:1},primary:false}]),['lmg']);
+  assert.deepEqual(eventSounds([{type:'enemyShot',attackerType:'crawler',from:{x:3,y:3},primary:true}]),['creatureAttack']);
+  assert.deepEqual(eventSounds([{type:'enemyShot',attackerType:'brute',from:{x:3,y:3},primary:true}]),['creatureAttack'],'every melee enemy uses it for now');
+  assert.deepEqual(eventSounds([{type:'shot',style:'grenade',from:{x:1,y:1},to:{x:4,y:4},primary:true}]),['throw']);
+  for(const id of ['launcher','thunder'])assert.deepEqual(eventSounds([{type:'shot',weaponId:id,style:'grenade',from:{x:1,y:1},primary:true}]),[],`${id} is fired, and waits for its own sound`);
+});
+
+test('round four P1: the player being hit is hurt, not hit; opening a case and picking something up are heard',()=>{
+  const state={player:{x:2,y:2},enemies:[{x:3,y:4,hp:5}]};
+  assert.deepEqual(eventSounds([{type:'impact',from:{x:2,y:2}}],state),['hurt']);
+  assert.deepEqual(eventSounds([{type:'impact',from:{x:3,y:4}},{type:'impact',from:{x:2,y:2}}],state),['hit','hurt'],'a blast catching both');
+  assert.deepEqual(eventSounds([{type:'impact',from:{x:2,y:2}},{type:'miss',attackerType:'rifleman',from:{x:2,y:2}}],state),['hurt'],'a hit and a miss in one volley is a hit');
+  assert.deepEqual(eventSounds([{type:'unpack',container:true,from:{x:4,y:4}}],state),['openCase']);
+  assert.deepEqual(eventSounds([{type:'unpack',from:{x:4,y:4}}],state),[],"a pet's unpack uses the same visual but is not a case");
+  assert.deepEqual(eventSounds([{type:'pickup',from:{x:2,y:2}}],state),['pickup']);
+});
+
+test('a crawler biting the player plays the bite and the hurt sound from the real rules',()=>{
+  const g=arena(),e=makeEnemy('crawler',11,10,'c');g.enemies.push(e);g.reveal();
+  g.rng=Object.assign(()=>.01,{state:()=>0});      // every roll hits
+  g.player.hp=g.player.maxHp=500;
+  const sounds=allSounds(planPresentation(captureAction(g,()=>{for(let i=0;i<3;i++)g.action('wait');}).steps));
+  assert.ok(sounds.includes('creatureAttack'),sounds.join());
+  assert.ok(sounds.includes('hurt')&&!sounds.includes('hit'),sounds.join());
+});
+
+test('pickup: collected, partly collected, or nothing collected; the effect takes no presentation time',()=>{
+  const pickups=g=>g.effects.filter(e=>e.type==='pickup').length;
+  let g=arena();g.effects=[];g.items=[{x:10,y:10,type:'armor',amount:5}];g.player.plates=0;g.pickup();
+  assert.equal(pickups(g),1);assert.equal(g.items.length,0);
+  g=arena();g.effects=[];g.player.plates=g.plateCapacity;g.items=[{x:10,y:10,type:'armor',amount:20}];g.pickup();
+  assert.equal(pickups(g),0,'a full pouch collects nothing and is silent');
+  g=arena();g.effects=[];g.items=[{x:10,y:10,type:'ammo',ammo:'rifle',amount:200}];g.pickup();
+  assert.equal(g.items.length,1,'the rest of the pile stays');assert.equal(pickups(g),1,'part of a pile is still a pickup');
+  const walk=items=>{const w=arena();w.items=items;return planPresentation(captureAction(w,()=>w.action('move',[1,0])).steps);};
+  const bare=walk([]),carrying=walk([{x:11,y:10,type:'armor',amount:5}]);
+  assert.ok(allSounds(carrying).includes('pickup'));assert.ok(!allSounds(bare).includes('pickup'));
+  assert.equal(carrying.duration,bare.duration,'stepping onto an item takes as long as stepping onto the floor');
+});
+
+test('from the real rules: a thrown grenade and a light machine gun burst, and the launcher stays silent until its own sound',()=>{
+  const armed=base=>{
+    const g=arena(),p=g.player,slot=p.weaponBases.length;
+    p.weaponBases.push(base);p.affixes.push(null);p.upgrades.push(0);p.ammo.push(WEAPONS[base].mag);p.owned=[slot];p.weapon=slot;p.reserve=p.ordnance=99;
+    const e=makeEnemy('brute',14,10,'b');e.hp=e.maxHp=900;g.enemies.push(e);g.target='b';g.reveal();return g;
+  };
+  let g=armed(0);g.player.grenades=1;
+  let sounds=allSounds(planPresentation(captureAction(g,()=>g.action('grenade',{x:13,y:10})).steps));
+  assert.deepEqual(sounds.filter(c=>c==='throw'),['throw'],sounds.join());assert.ok(sounds.includes('blast'));
+  g=armed(WEAPONS.findIndex(w=>w.id==='lmg'));g.rng=Object.assign(()=>.01,{state:()=>0});
+  sounds=allSounds(planPresentation(captureAction(g,()=>g.action('fire')).steps));
+  assert.equal(sounds.filter(c=>c==='lmg').length,WEAPONS.find(w=>w.id==='lmg').burst,'one per round of the burst');
+  g=armed(WEAPONS.findIndex(w=>w.id==='launcher'));
+  sounds=allSounds(planPresentation(captureAction(g,()=>g.action('launch',{x:14,y:10})).steps));
+  assert.ok(!sounds.includes('throw')&&sounds.includes('blast'),sounds.join());
 });
