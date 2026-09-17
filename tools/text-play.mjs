@@ -37,7 +37,7 @@ import {petFeedingState} from '../src/pet-growth.js';
 import {fuelLabel,lineProgress,petStatusLine} from '../src/pet-ui.js';
 
 const DIRS={n:[0,-1],s:[0,1],e:[1,0],w:[-1,0]};
-const LETTERS='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const RESERVED='ctoBCTNMWX@&?>*!%#.,:;',LETTERS=[...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'].filter(c=>!RESERVED.includes(c)).join('');
 const out=[];const say=(...lines)=>out.push(...lines);
 const fail=message=>{throw new Error(message);};
 
@@ -443,10 +443,10 @@ function main(argv){
   if((why||halt)&&i<commands.length-1&&!['look','map','inv','term','enemy','log','help'].includes(text.split(/\s+/)[0])){stopped=commands.slice(i+1).join('; ');if(why&&!results.at(-1)?.includes('中斷'))results.push(`  （中斷：${why}）`);break;}
  }
  save(file,log,g);
- const fresh=oldLog?g.logs.slice(0,Math.max(0,g.logs.indexOf(oldLog))):g.logs;
+ const since=oldLog?g.logs.indexOf(oldLog):-1,fresh=since>=0?g.logs.slice(0,since):g.logs;
  const lines=[...results];
  if(stopped)lines.push(`未執行：${stopped}`);
- if(fresh.length)lines.push('戰鬥紀錄（舊→新）：',...fresh.slice().reverse().map(l=>`  ${String(l.turn).padStart(3,'0')} ${l.danger?'⚠ ':''}${l.text}`));
+ if(fresh.length)lines.push(`戰鬥紀錄（舊→新）${since<0&&oldLog?'，這批超過 50 行，只留得下最後 50 行':''}：`,...fresh.slice().reverse().map(l=>`  ${String(l.turn).padStart(3,'0')} ${l.danger?'⚠ ':''}${l.text}`));
  const calls=heard.map(e=>e.visibility==='visible'?`${e.name}${at(e.position)}：「${calloutLine(e)}」`:`${DIRECTION_ARROWS[e.direction]||''}聽到${COMPASS[e.direction]||e.direction}方：「${calloutLine(e)}」`).filter((v,i,a)=>a.indexOf(v)===i);
  if(calls.length)lines.push(`喊話：${calls.join(' ')}`);
  if(!commands.length)lines.push(...look(g));else if(!infoOnly)lines.push('',...brief(g));
