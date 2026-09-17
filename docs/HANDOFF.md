@@ -16,6 +16,7 @@
 | 每批開發與驗證報告 | `qa/results/` |
 | 發版流程 | [RELEASE.md](RELEASE.md) |
 | Claude 的授權範圍 | [給Claude的交接.md](../給Claude的交接.md)、[ALLY_ITERATION_SCOPE.md](ALLY_ITERATION_SCOPE.md) |
+| 聲音與標題音樂（未接進遊戲）：方向、已採用、待重做、音樂規格 | [AUDIO.md](AUDIO.md)、[MENU_MUSIC.md](MENU_MUSIC.md)、`art/audio/` |
 | 舊的逐版段落（原文） | [archive/](archive/README.md) |
 
 ## 分工
@@ -23,6 +24,7 @@
 - **Codex**：規則層，包括行動承諾、回合與先後手、命中與掩體判定、AI、地圖拓樸、存檔所有權。
 - **Claude**（2026-09-10 起）：數值、局內與全域經濟、選單與介面、文件，範圍見〈給Claude的交接〉。另外依 ALLY_ITERATION_SCOPE 迭代工程師、德魯伊、死靈法師的友軍。
 - **2026-09-15 起（Codex 暫停）**：使用者決定先假設一段時間無法使用 Codex。規則層、發布與推送改由 Claude 決定並維護，設計以 Claude 能維護為主。Claude 在原 Codex 範圍的變更記在對應規格（例如 UNLOCKS 第 13 節），Codex 回來後複查。
+- **2026-09-17（Codex 回來嘗試聲音）**：使用者請 Codex 接著做音效與標題音樂。現況、已採用檔案、待重做清單與使用者每輪的要求見 [AUDIO.md](AUDIO.md) 最上面的交接總表，標題音樂規格見 [MENU_MUSIC.md](MENU_MUSIC.md)。Codex 暫停期間（3.90.1～3.116.0）的所有變更由 Claude 完成，逐版見 CHANGELOG；Claude 在原 Codex 範圍（規則層、地圖生成、存檔）的變更都記在對應規格，identity 基準線每次只以逐筆證明更新。
 - **使用者**：明確決定優先於文件，決定會記在對應規格或授權文件。真手機驗收與自然平衡由使用者判斷；介面可由 Claude 在 `?test=1` 驗證。
 
 ## 啟動與測試
