@@ -15,7 +15,7 @@ import {suppressionStatus,learningEntries,suppressionHelp,traitRuleLines} from '
 import {SKILLS,skillActive,skillStatus,canUseSkill} from './skills.js';
 import {boundaryOpacityPercent} from './movement-boundaries.js';
 import {SCREEN_BRIGHTNESS,OPERATOR_TINT,screenBrightnessPercent,operatorTintPercent} from './screen-tone.js';
-import {drawPixelText} from './pixel-text.js';
+import {drawTinyText,TINY_TEXT} from './pixel-text.js';
 import {actorStat,clampHit,combatStatSummary} from './actor-stats.js';
 import {isDark} from './lighting.js';
 import {missionDepth,returning,MISSIONS,RANDOM_MISSION_IDS,validMissionId,missionDefinition,missionProgress} from './missions.js';
@@ -46,8 +46,9 @@ import {captureAction,planPresentation,Playback} from './presentation.js';
 import {Game,WEAPONS,FLOORS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,protocolSettlement,itemUseReason,deployCoverReason,TERMINAL_ITEMS,terminalReason} from './engine.js';
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MODE_NOTE,runOptions,FACILITY_OPTIONS,facilityOption} from './deploy-ui.js';
 import {Renderer} from './render.js';
-import {AudioFX} from './audio.js';
-import {impactSound} from './combat-sounds.js';
+import {AudioEngine,AUDIO_TUNING,volumePercent} from './audio.js';
+import {eventSounds,actionSound} from './sound-cues.js';
+import {engagementHeard,freshCombat,stepCombat,musicTrack} from './music-state.js';
 import {landscapeTouch} from './layout.js';
 import {BACKUP_LIMIT} from './backup.js';
 import {targetDetails} from './target-card.js';
@@ -56,7 +57,7 @@ import {unitTree} from './behavior-tree.js';
 import {read,write,loadGame,saveGame,storage,profile,recordResult,TEST_MODE,exportBackup,previewBackup,restoreBackup,abandonRun,resetProgress} from './storage.js';
 import {DECK_GRID,DECK_COLUMNS,DECK_SLOTS,DECK_LABELS,DECK_GLYPHS,deckPlacement,mirrorDeck,swapSlots,parseDeckLayout} from './deck-layout.js';
 
-const $=s=>document.querySelector(s),audio=new AudioFX();
+const $=s=>document.querySelector(s),audio=new AudioEngine();
 const savedGame=loadGame();
 let inventoryTab='weapon',deploymentFaces={};
 // Title flow (3.98.1, user report): the title screen and every menu reached from it take the full-screen terminal
@@ -96,6 +97,25 @@ renderer.operatorTint=operatorTintPercent(read('ash-operator-tint'))/100;
 renderer.targetUI={card:$('#target-card'),link:$('#target-link'),path:$('#target-link path'),dirty:true};
 document.fonts?.ready.then(()=>{renderer.targetUI.dirty=true;});
 audio.enabled=read('ash-sound')!=='off';
+// 3.117.0 (user request): music and effects each have a volume; the old on/off switch stays as the master.
+audio.setVolumes({music:volumePercent(read('ash-music-volume'),AUDIO_TUNING.musicDefault)/100,sfx:volumePercent(read('ash-sfx-volume'),AUDIO_TUNING.sfxDefault)/100});
+// Browsers only allow sound after a gesture; the first press anywhere starts it, and a hidden page goes quiet.
+for(const type of ['pointerdown','keydown'])document.addEventListener(type,()=>{audio.unlock();syncMusic();},{capture:true});
+document.addEventListener('visibilitychange',()=>audio.background(document.hidden));
+// Test mode only (?test=1): lets a browser check read the music state and decoded buffers; it cannot listen.
+if(TEST_MODE)globalThis.__ashAudio={engine:audio,get combat(){return combatMusic;}};
+// Music follows the screen and, in a facility, the combat state (src/music-state.js). The state is per floor of a run.
+// A title-flow menu counts only while the dialog is actually open: the close event that clears titleFlow arrives later.
+let combatMusic=freshCombat(),combatScene=null;
+function syncMusic(){
+  const scene=`${game.runId}:${game.floor}:${isSimulation(game)}`;if(scene!==combatScene){combatScene=scene;combatMusic=freshCombat();}
+  audio.setMusic(musicTrack({menu:!entered||(titleFlow&&$('#modal').open),playing:game.status==='playing',simulation:isSimulation(game),faction:game.facilityFaction,combat:combatMusic.combat}));
+}
+function noteCombat(engaged){
+  syncMusic();
+  combatMusic=stepCombat(combatMusic,engaged?{engaged:true}:{turn:game.turn,enemiesInView:game.visibleEnemies.filter(e=>!isNoncombatant(e)).length});
+  syncMusic();
+}
 const notice=document.createElement('div');notice.className='battle-notice';notice.setAttribute('role','status');$('#field-messages').append(notice);
 // The message bar shows one line; the button opens the whole combat log and counts the extra lines of the last action (3.44).
 // 3.104.0 (user request): the message bar sits in the header, one line with an ellipsis, and the extra-line counter
@@ -137,6 +157,7 @@ function skillLabel(view,id){
   return skillStatus(view.player,id);
 }
 function update(view=renderer.game) {
+  syncMusic();
   const p=view.player,w=view.weapon,reserve=p[view.reserveKey()]??0;
   const sectorLabel=isSimulation(view)?'模擬':isEndless(view)?depthLabel(view.floor):`${pad(view.floor)} 層`;
   if(notice.classList.contains('resting'))restNotice();
@@ -212,15 +233,16 @@ function act(type,arg) {
   const oldLog=game.logs[0],{success,steps}=captureAction(game,()=>game.action(type,arg));
   if(success){
     // Persist the fully resolved turn before presenting any of its snapshots.
-    lastActionLogs=freshLogs(oldLog);persist();lockUntil=performance.now()+120;if(type!=='fire')audio.play(type==='usePrepared'?preparedEntry(game.player,arg.category)?.action:type);
+    lastActionLogs=freshLogs(oldLog);persist();lockUntil=performance.now()+120;const cue=actionSound(type==='usePrepared'?preparedEntry(game.player,arg.category)?.action:type);if(cue)audio.play(cue);noteCombat(false);
     if(steps.length){
       renderer.effects=[];
       playback=new Playback(planPresentation(steps,{reduceMotion:renderer.reduceMotion}),event=>{
-        renderer.game=event.state;renderer.addEffects(event.effects,playback.elapsed-event.time);if(playback.skipping)return;update();
-        if(event.effects.some(e=>['slash','claw'].includes(e.style)))audio.play('melee');
-        else if(event.effects.some(e=>e.type==='enemyShot'||(e.type==='shot'&&e.style!=='grenade')))audio.play('fire');
+        renderer.game=event.state;renderer.addEffects(event.effects,playback.elapsed-event.time);
+        // An engagement line counts even when the animation is skipped; only the sounds are dropped.
+        if(engagementHeard(event.effects))noteCombat(true);
+        if(playback.skipping)return;update();
+        for(const cue of eventSounds(event.effects,event.state))audio.play(cue);
         if(navigator.vibrate&&event.effects.some(e=>e.type==='impact'||e.type==='blast'))navigator.vibrate(25);
-        const result=impactSound(event.effects,event.state);if(result)audio.play(result);
       });
       playback.advance(0);
     }
@@ -301,7 +323,7 @@ function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify('�
 // one-handed use, and a tabbed menu fills the height so its top does not move when tabs of different heights change.
 // The upgrade pick is the exception (3.97.3, user report): it opens on its own under a thumb that is still tapping, so it
 // is anchored to the top edge and the queued tap lands on the backdrop.
-function modal(html,wide=false,title=false){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('transmission',Boolean($('#modal-content').querySelector('.transmission')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
+function modal(html,wide=false,title=false){queueMicrotask(syncMusic);cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('transmission',Boolean($('#modal-content').querySelector('.transmission')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
 // Main buttons stay on screen (3.97.0, user request): a menu marks them with .modal-footer; otherwise its final button
 // (or button row) is pinned. When that final button is a secondary back/cancel button, the button just before it (the
 // action) is pinned beside it, back first. Title screens lay themselves out and are left alone.
@@ -608,7 +630,10 @@ function showLevelUp(){
   if($('#modal').open&&$('#modal-content .transmission'))return;   // already on screen; do not restart its animation
   modal(`<div class="transmission" role="alert"><div class="eyebrow">PRIORITY SIGNAL / LV. ${game.player.level}</div><p class="transmission-title"><canvas class="transmission-pixels" aria-hidden="true"></canvas><span class="visually-hidden">INCOMING TRANSMISSION</span></p><p class="transmission-note">臨時強化授權待接收。</p></div><div class="modal-footer"><button class="modal-button" data-modal="transmission">確認</button></div>`);
   // 3.116.0 (user request): the heading is drawn as pixel letters (src/pixel-text.js) instead of a smooth font.
-  const heading=$('#modal .transmission-pixels');if(heading)drawPixelText(heading,['INCOMING','TRANSMISSION'],{color:'#f0c27a',shadow:'#5a3a1e'});
+  // 3.117.0 (user correction): tiny real text with hard pixels, redrawn once the webfont has loaded.
+  const draw=()=>{const heading=$('#modal .transmission-pixels');if(heading)drawTinyText(heading,'INCOMING TRANSMISSION',{color:'#f0c27a',shadow:'#3a2412'});};
+  draw();document.fonts?.load?.(`${TINY_TEXT.weight} ${TINY_TEXT.px}px ${TINY_TEXT.font}`).then(draw,()=>{});
+  audio.play('transmission');
 }
 function showPerks(){modal(`<div class="eyebrow">UPGRADE AVAILABLE / LV. ${game.player.level}</div><h2>臨時強化已授權。</h2><p>強化生效至本次任務結束。${game.pendingPerks>1?`還有 ${game.pendingPerks} 次選擇。`:''}</p>${game.perkChoices.map(p=>`<button class="perk" data-perk="${p.id}"><strong>＋ ${p.name} ${perkPips(game.player,p,true)}</strong><span>${p.text}${p.effect==='health'?`（本角色回血 ${healingAmount(game.player,p.heal)}）`:''}</span></button>`).join('')}${runPerks()}`);}
 // Journal and result: endless records (3.49.1), class names from the character labels.
@@ -631,8 +656,13 @@ function settings(){
   const simulating=isSimulation(game),inRun=runIsLive(),sec=label=>`<div class="eyebrow settings-section">${label}</div>`;
   modal(`<div class="eyebrow">SYSTEM / BUILD ${VERSION}</div><h2>${inRun?'作戰設定':'系統設定'}</h2>${inRun?runPerks():''}
 <p>${inRun?`${characterName(game.player.character)} · ${simulating?simulationLabel(game):`任務 ${game.seed} · 第 ${game.floor} 層`} · ${game.turn} 回合`:`協定點數 ${profile().protocol.balance}`}<br>${simulating?'模擬不保存中途進度。':storage.available?'進度已自動儲存。':'本機儲存不可用，請匯出存檔保留進度。'}</p>
+${sec('聲音')}
+<button class="modal-button secondary" data-modal="sound" aria-pressed="${audio.enabled}">聲音：${audio.enabled?'開啟':'關閉'}</button>
+<label class="boundary-opacity" for="music-volume">音樂音量 <output id="music-volume-value" for="music-volume">${Math.round(audio.musicVolume*100)}%</output><input id="music-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.musicVolume*100)}"></label>
+<label class="boundary-opacity" for="sfx-volume">音效音量 <output id="sfx-volume-value" for="sfx-volume">${Math.round(audio.sfxVolume*100)}%</output><input id="sfx-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.sfxVolume*100)}"></label>
+<p>選單播放〈待命〉；進入設施後播放該派系的探索配樂，敵人喊出交戰的台詞時切換成交戰配樂，視野內連續十回合沒有敵人再切回探索。</p>
 ${sec('顯示')}
-${inRun?`<div class="modal-row"><button class="modal-button secondary" data-modal="sound">音效：${audio.enabled?'開啟':'關閉'}</button><button class="modal-button secondary" data-modal="help">作戰指南</button></div><button class="modal-button secondary" data-modal="log">戰鬥紀錄</button>`:`<button class="modal-button secondary" data-modal="sound">音效：${audio.enabled?'開啟':'關閉'}</button>`}
+${inRun?`<div class="modal-row"><button class="modal-button secondary" data-modal="help">作戰指南</button><button class="modal-button secondary" data-modal="log">戰鬥紀錄</button></div>`:''}
 <button class="modal-button secondary" data-modal="movementBoundaries" aria-pressed="${renderer.movementBoundaries}">移動邊界白線：${renderer.movementBoundaries?'開啟':'關閉'}</button>
 <p>沿可見牆與障礙物標示輪廓；斷點不延伸。門另以綠線表示關閉、兩側綠點表示開啟。</p>
 <label class="boundary-opacity" for="boundary-opacity">白線不透明度 <output id="boundary-opacity-value" for="boundary-opacity">${renderer.boundaryOpacity}%</output><input id="boundary-opacity" type="range" min="0" max="100" step="5" value="${renderer.boundaryOpacity}" aria-describedby="boundary-opacity-help"></label>
@@ -748,6 +778,8 @@ document.addEventListener('change',e=>{
   for(const p of document.querySelectorAll('.mission-brief>p'))p.classList.toggle('active',p.dataset.mission===e.target.value);
 });
 document.addEventListener('input',e=>{
+  if(e.target.id==='music-volume'||e.target.id==='sfx-volume'){const music=e.target.id==='music-volume',percent=volumePercent(e.target.value,music?AUDIO_TUNING.musicDefault:AUDIO_TUNING.sfxDefault);
+    audio.setVolumes(music?{music:percent/100}:{sfx:percent/100});write(music?'ash-music-volume':'ash-sfx-volume',String(percent));const out=$(`#${e.target.id}-value`);if(out)out.textContent=percent+'%';return;}
   if(e.target.id==='screen-brightness'){screenBrightness=screenBrightnessPercent(e.target.value);write('ash-brightness',String(screenBrightness));applyBrightness();const out=$('#screen-brightness-value');if(out)out.textContent=screenBrightness+'%';return;}
   if(e.target.id==='operator-tint'){const percent=operatorTintPercent(e.target.value);renderer.operatorTint=percent/100;write('ash-operator-tint',String(percent));const out=$('#operator-tint-value');if(out)out.textContent=percent+'%';return;}
   if(e.target.id!=='boundary-opacity')return;
@@ -760,6 +792,8 @@ document.addEventListener('click',e=>{
   // Settling the animation may raise a menu (level-up, room prompt); then this press was only the skip.
   if(b&&!b.disabled&&skipPlayback()&&$('#modal').open)return;
   if(playback||orientationBlocked||!b||b.disabled)return;
+  // 3.117.0: pressing a button in a menu is heard (the adopted select sound); the battle controls have their own sounds.
+  if(b.closest('#modal'))audio.play('select');
   if(b.dataset.packInfo){const desc=document.getElementById('pack-desc-'+b.dataset.packInfo);if(desc){desc.hidden=!desc.hidden;b.setAttribute('aria-expanded',String(!desc.hidden));}return;}
   if(b.dataset.inventoryTab){showInventory(b.dataset.inventoryTab);$(`[data-inventory-tab="${inventoryTab}"]`).focus({preventScroll:true});return;}
   if(b.dataset.useItem){const id=b.dataset.useItem,entry=PREPARED_CATALOG.item[id],reason=itemUseReason(game,id);
@@ -775,7 +809,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.context){close();if(b.dataset.context.startsWith('objective:')){act('recoverObjective',b.dataset.context.slice(10));return;}if(b.dataset.context.startsWith('case:')){act('openContainer',b.dataset.context.slice(5));return;}if(b.dataset.context.startsWith('door:')){const door=game.nearbyDoors.find(d=>d.id===b.dataset.context.slice(5));if(door)act('door',{id:door.id,open:!door.open});}else if(b.dataset.context==='bag')showInventory('weapon');else if(b.dataset.context==='terminal')showTerminal();else if(b.dataset.context==='operator')recoverCorpse();else if(b.dataset.context==='exitStep'){if(exitStep(game))act('move',exitStep(game));}else act('interact');return;}
   if(b.dataset.move){move(...b.dataset.move.split(',').map(Number));return;}
   if(b.dataset.slot!==undefined){pickDeckSlot(Number(b.dataset.slot));return;}
-  if(b.dataset.perk){game.choosePerk(b.dataset.perk);$('#modal').close();audio.play('heal');update();return;}
+  if(b.dataset.perk){game.choosePerk(b.dataset.perk);$('#modal').close();update();return;}
   if(b.dataset.equip!==undefined){modalAction('weapon',Number(b.dataset.equip));return;}
   if(b.dataset.compare!==undefined){showWeaponComparison(Number(b.dataset.compare),b.dataset.against===undefined?game.player.weapon:Number(b.dataset.against));return;}
   if(b.dataset.replace!==undefined){modalAction('replaceWeapon',{take:Number(b.dataset.replace),leave:Number(b.dataset.leave)});return;}
@@ -831,7 +865,7 @@ document.addEventListener('click',e=>{
     case 'transmission':transmissionSeen=transmissionKey();showPerks();break;
     case 'skipPresentation':skipPresentation=!skipPresentation;write('ash-skip-presentation',skipPresentation?'on':'off');settings();break;
     case 'movementBoundaries':renderer.movementBoundaries=!renderer.movementBoundaries;write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off');settings();break;
-    case 'sound':audio.enabled=!audio.enabled;write('ash-sound',audio.enabled?'on':'off');settings();break;
+    case 'sound':audio.setEnabled(!audio.enabled);write('ash-sound',audio.enabled?'on':'off');syncMusic();settings();break;
     case 'backupExport':try{downloadJSON(exportBackup(game),'ash-protocol-backup.json');notify('完整備份已匯出。');}catch(error){backupError(error);}break;
     case 'backupImport':$('#import-backup').click();break;
     case 'backupPrevious':{const raw=read('ash-backup-before-restore');if(raw)downloadJSON(raw,'ash-protocol-before-restore.json');break;}
@@ -875,7 +909,7 @@ $('#orientation-guard').addEventListener('cancel',e=>e.preventDefault());
 // Devices that cannot rotate may continue in landscape until the page reloads (3.44).
 $('#orientation-continue').addEventListener('click',()=>{orientationOverride=true;updateOrientation();});
 $('#field-messages').addEventListener('click',e=>{if(!e.target.closest('button')&&entered&&!playback&&!orientationBlocked&&!$('#modal').open)showLog();});
-$('#modal').addEventListener('close',()=>{titleFlow=false;});
+$('#modal').addEventListener('close',()=>{titleFlow=false;syncMusic();});
 $('#modal').addEventListener('cancel',e=>{if(!entered||game.pendingPerks||game.status!=='playing')e.preventDefault();});
 let pointerStart=null;
 $('#battle').addEventListener('pointerdown',e=>{pointerStart=(playback&&!skipEnabled())||orientationBlocked?null:{x:e.clientX,y:e.clientY};});

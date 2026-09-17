@@ -56,7 +56,9 @@ export function projectileVisuals(effect,reduceMotion=false){
   return Array.from({length:reduceMotion?1:spec.count},(_,i)=>({...effect,damage:0,miss:false,missPath:effect.miss,
     style:spec.style||effect.style||(id==='melee'?enemyMeleeStyle(effect.attackerType):'bullet'),travel:reduceMotion?70:spec.flight,delay:reduceMotion?0:i*spec.stagger,
     spread:reduceMotion?0:spec.spread*(i-(spec.count-1)/2)/Math.max(1,(spec.count-1)/2),quiet:reduceMotion,
-    flash:flash&&(i===0||(!reduceMotion&&spec.stagger>0))?flash:null}));
+    flash:flash&&(i===0||(!reduceMotion&&spec.stagger>0))?flash:null,
+    // 3.117.0: the first cosmetic round stands for the shot, so the shot is heard once (src/sound-cues.js).
+    primary:i===0}));
 }
 // Consecutive steps that only move units (and may speak) play at the same time (3.84.2, user; docs/SWARM.md 3.4): a swarm
 // of walkers would otherwise take one move animation each. Anything else ends the group: a shot, an effect, a death, the

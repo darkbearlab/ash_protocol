@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {SCREEN_BRIGHTNESS,OPERATOR_TINT,screenBrightnessPercent,operatorTintPercent} from '../src/screen-tone.js';
 import {tintPixels,OPERATOR_COLORS} from '../src/operator-color.js';
-import {pixelTextLayout,PIXEL_GLYPHS,GLYPH_W,GLYPH_H} from '../src/pixel-text.js';
+import {hardenText,TINY_TEXT} from '../src/pixel-text.js';
 
 // 3.116.0 (user requests): screen brightness, operator colour strength, the VHS grain no longer brightening, pixel lettering.
 const read=path=>readFile(new URL(path,import.meta.url),'utf8');
@@ -39,13 +39,14 @@ test('the controller, page and styles wire brightness, colour strength and the q
   assert.ok(!css.includes("0 0 0 1.7 -.35'"),'the old all-white grain is gone');
 });
 
-test('the transmission heading is laid out in the bitmap face',()=>{
-  const {width,height,cells}=pixelTextLayout(['INCOMING','TRANSMISSION']);
-  assert.equal(width,12*(GLYPH_W+1));assert.equal(height,2*GLYPH_H+3+1);
-  for(const ch of 'INCOMINGTRANSMISSION')assert.ok(PIXEL_GLYPHS[ch],ch);
-  for(const glyph of Object.values(PIXEL_GLYPHS)){assert.equal(glyph.length,GLYPH_H);assert.ok(glyph.every(row=>row.length===GLYPH_W));}
-  assert.ok(cells.every(c=>c.x>=0&&c.x<width-1&&c.y>=0&&c.y<height-1),'the shadow column and row stay free');
-  const top=cells.filter(c=>c.y<GLYPH_H),left=Math.min(...top.map(c=>c.x));
-  assert.equal(left,Math.floor((71-47)/2),'the shorter line is centred');
-  assert.equal(pixelTextLayout(['I?I']).cells.length,pixelTextLayout(['I I']).cells.length,'an unknown character is a gap');
+test('the transmission heading is tiny real text with hard pixels and a one-pixel shadow (3.117.0 correction)',()=>{
+  assert.ok(TINY_TEXT.px<=10,'small');assert.match(TINY_TEXT.font,/Plex Mono/,'the game font, not a bitmap face');
+  // A 3x2 render: one solid pixel, one half-covered below the cut, one just above it.
+  const data=new Uint8ClampedArray(3*2*4);data[3]=255;data[7]=TINY_TEXT.alphaCut-1;data[11]=TINY_TEXT.alphaCut;
+  const lit=hardenText(data,3,2,{color:'#f0c27a',shadow:'#3a2412'});
+  assert.equal(lit,2);
+  assert.deepEqual([...data.slice(0,4)],[240,194,122,255],'covered pixels become solid');
+  assert.equal(data[7],0,'faint anti-aliasing is dropped');
+  assert.deepEqual([...data.slice(16,20)],[58,36,18,255],'the shadow sits down and right of a lit pixel');
+  assert.equal(data[23],0,'a shadow never wraps past the right edge');assert.equal(data[15],0,'nothing below-left');
 });

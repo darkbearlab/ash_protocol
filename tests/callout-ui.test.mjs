@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {CALLOUT_CUES} from '../src/engine.js';
 import {CalloutBoard,CALLOUT_UI_TUNING as T,calloutLine,calloutVoice,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from '../src/callout-ui.js';
-import {impactSound} from '../src/combat-sounds.js';
 
 const seen=(cue,actorId='a1',enemyType='rifleman')=>({type:'callout',cue,...CALLOUT_CUES[cue],visibility:'visible',actorId,enemyType,name:'x',position:{x:1,y:1}});
 const heard=(cue,direction='east')=>({type:'callout',cue,...CALLOUT_CUES[cue],visibility:'heard',direction});
@@ -54,11 +53,3 @@ test('heard bubbles sit on the screen edge in their direction and render fainter
  assert.ok(bubbleAlpha(far,0)<1);assert.equal(bubbleAlpha(near,0),1);assert.equal(bubbleAlpha(near,near.expires),0);
 });
 
-test('impact sounds: kill beats hit beats miss; the player or an ally falling is not a kill',()=>{
- assert.equal(impactSound([{type:'miss'}]),'miss');assert.equal(impactSound([{type:'miss'},{type:'impact'}]),'hit');
- const state={enemies:[{x:3,y:4,hp:0}]};
- assert.equal(impactSound([{type:'impact'},{type:'fall',actorType:'rifleman',from:{x:3,y:4}}],state),'kill');
- assert.equal(impactSound([{type:'fall',actorType:'player',from:{x:1,y:1}}],state),null);
- assert.equal(impactSound([{type:'fall',actorType:'drone',from:{x:9,y:9}}],state),null,'an allied drone going down is not a kill');
- assert.equal(impactSound([{type:'shot'}]),null);
-});

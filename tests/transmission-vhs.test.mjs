@@ -11,7 +11,8 @@ test('a level-up shows the transmission first, once per level of a run, and conf
   assert.ok(source.includes('if(game.pendingPerks){showLevelUp();return;}'),'closing a menu with a choice pending comes back to it');
   assert.ok(source.includes('const transmissionKey=()=>`${game.runId}:${game.player.level}`;'),'keyed per run, so a new run at the same level still sees it');
   assert.ok(source.includes("case 'transmission':transmissionSeen=transmissionKey();showPerks();break;"));
-  assert.ok(source.includes("drawPixelText(heading,['INCOMING','TRANSMISSION']"),'3.116.0: the heading is pixel lettering');
+  assert.ok(source.includes("drawTinyText(heading,'INCOMING TRANSMISSION'"),'3.117.0: the heading is tiny real text, not a bitmap face');
+  assert.ok(source.includes("audio.play('transmission');"),'and it is heard');
   assert.ok(source.includes('<span class="visually-hidden">INCOMING TRANSMISSION</span>'),'and still readable by a screen reader');
   assert.ok(source.includes("if($('#modal').open&&$('#modal-content .transmission'))return;"),'a redraw does not restart the card');
   assert.equal((source.match(/showPerks\(\)/g)||[]).length,3,'the list opens only from showLevelUp, the confirm button, and its own definition');
