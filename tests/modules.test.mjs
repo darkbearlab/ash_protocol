@@ -48,9 +48,10 @@ test('restroom perimeter uses shared doors and partitions and does not leak thro
   const a=door.axis==='x'?{x:door.x-.5,y:door.y}:{x:door.x,y:door.y-.5},b=door.axis==='x'?{x:door.x+.5,y:door.y}:{x:door.x,y:door.y+.5};
   const inside=cells.some(p=>p.x===a.x&&p.y===a.y)?a:b,outside=inside===a?b:a;assert.equal(g.sight(inside,outside),false);g.setDoor(door,true);assert.equal(g.sight(inside,outside),true);
 });
-test('two stations retain original prices and single-use behavior',()=>{
+// 3.120.0: stations keep their prices; a purchase spends that much of the station's credit instead of using it up.
+test('two stations retain original prices and spend their credit',()=>{
   const g=new Game(7);g.enemies=[];g.player.scrap=100;g.player.reserve=0;const station=g.props.find(p=>p.type==='terminal');Object.assign(g.player,{x:station.x,y:station.y});g.reveal();
-  const cost=TERMINAL_AMMO.rifle.cost;assert.ok(g.action('terminal','rifle'));assert.equal(g.player.scrap,100-cost);assert.equal(station.used,true);const turn=g.turn;assert.equal(g.action('terminal','rifle'),false);assert.equal(g.turn,turn);
+  const cost=TERMINAL_AMMO.rifle.cost;assert.ok(g.action('terminal','rifle'));assert.equal(g.player.scrap,100-cost);assert.equal(station.used,false);assert.equal(station.spent,cost);const turn=g.turn;assert.ok(g.action('terminal','rifle'));assert.equal(g.turn,turn+1,'one transaction, one turn');assert.equal(station.spent,cost*2);
 });
 test('module identity, destroyed furniture and station usage survive saves and complete backups',()=>{
   const g=new Game(7),f=g.props.find(p=>p.moduleId),station=g.props.find(p=>p.type==='terminal');g.damageProp(f,999);station.used=true;

@@ -68,34 +68,12 @@ import {SIZE,SAVE_VERSION,LEGACY_SAVE_VERSIONS,RARE_ARMORY,WEAPONS,FLOORS,floorI
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
+import {terminalReason,useTerminal,validTerminalSpent} from './terminal.js';
 
 // Consumables (3.106.0, user request): the spray matches the ground armour pickup, and adrenaline is priced in health.
 export const SPRAY_PLATES=20,SURGE_COST=15,SURGE_STEPS=2;
-// One table for the terminal's item stock (3.108.0). 3.106.0 taught the lesson: useTerminal accepted 'spray' and
-// 'adrenaline' while the terminal's own screen had no buttons for them, so neither could actually be bought.
-export const TERMINAL_ITEMS={
- spray:{cost:15,resource:'sprays'},
- adrenaline:{cost:20,resource:'adrenaline'},
- nvg:{cost:40,wear:'nvg'},
- barricade:{cost:25,resource:'barricades'},
-};
-export const terminalCost=option=>TERMINAL_ITEMS[option]?.cost??TERMINAL_AMMO[option]?.cost??(option==='grenade'?12:GRENADES[option]?.cost??15);
-// One answer to "can this be bought", shared by validateAction, useTerminal and the terminal screen. 3.106.0 shipped
-// three separate copies of this list and the two new items made it into only one of them, so they could not be bought
-// at all. An empty string means the trade is allowed.
-export function terminalReason(g,option){
- const p=g.player,item=TERMINAL_ITEMS[option];
- if(!g.nearbyTerminal)return '附近沒有可用補給終端。';
- if(!item&&!['heal','ammo','grenade','smoke','emp','stun',...AMMO_IDS].includes(option))return '沒有可用終端或補給選項。';
- const cost=terminalCost(option);
- if(p.scrap<cost)return `終端需要 ${cost} 廢料。`;
- if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return '生命值已滿。';
- if(item?.wear&&p.wearables.includes(item.wear))return '已經有一件了。';
- const kind=grenadeByItem(option)?'grenade':TERMINAL_AMMO[option]?option:null;
- if(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=g.ammoCapacity(kind))return '此彈種已達攜帶上限。';
- if(option==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=g.ammoCapacity(id)))return '各類備彈皆已滿。';
- return '';
-}
+// The supply terminal's stock, prices and trade-ins live in src/terminal.js (3.120.0 economy); re-exported for callers.
+export {TERMINAL_ITEMS,terminalCost,terminalReason} from './terminal.js';
 // 3.109.0 (user request): carried cover goes on the edge between you and the side you pick, so any of the four
 // sides is one action — no turning — and because a low partition can be vaulted it can never seal a corridor.
 // 3.111.0 (user request): a point-target launcher is aimed like a thrown grenade — at a floor tile, not at an enemy's
@@ -345,7 +323,7 @@ export class Game {
     if(type==='takeWeapon')return (Boolean(this.nearbyWeapon(Number(arg)))&&p.owned.length<this.weaponCapacity)||this.fail('附近沒有這把武器或背包已滿。');
     if(type==='salvageGround')return (Boolean(this.nearbyWeapon(Number(arg)))&&!this.weaponAt(Number(arg)).locked)||this.fail('附近沒有這把武器，或它不能拆解。');
     if(type==='replaceWeapon')return (Boolean(this.nearbyWeapon(arg?.take))&&p.owned.includes(arg?.leave)&&!this.weaponAt(arg.leave).locked)||this.fail('要交換的武器已不在原處。');
-    if(type==='upgrade'){const level=p.upgrades[p.weapon];return (level<3&&p.scrap>=25+level*15)||this.fail('改裝已滿或廢料不足。');}
+    if(type==='upgrade')return this.fail('武器改裝只能在補給終端進行。');   // 3.120.0: bought at a terminal, for any weapon
     if(type==='terminal'){const reason=terminalReason(this,arg);return !reason||this.fail(reason);}
     if(type==='interact'&&pinned(p))return this.fail('壓制中無法換層。');
     if(type==='interact'&&skillActive(p,'anchor'))return this.fail('下錨中無法換層，請先解除。');
@@ -534,8 +512,7 @@ export class Game {
       case 'takeWeapon':success=this.takeWeapon(Number(arg));break;
       case 'salvageGround':success=this.salvageGround(Number(arg));break;
       case 'replaceWeapon':success=this.replaceWeapon(arg);break;
-      case 'upgrade':success=this.upgrade();break;
-      case 'terminal':success=this.useTerminal(arg);break;
+      case 'terminal':success=this.useTerminal(arg);break;   // the method, so a simulation can refuse it
       case 'wait':this.log('防禦待機：直接傷害減半、被射擊命中率 −15；下次行動射擊命中 +15。',false,'防禦待機，穩定瞄準。');success=true;break;
       case 'interact':success=this.descend(false);return success;
       default:return false;
@@ -923,25 +900,7 @@ export class Game {
     this.items=this.items.filter(o=>o!==item);
     this.log(`就地拆解${w.name}，回收彈匣與 ${scrap} 廢料。`);return true;
   }
-  upgrade() {
-    const p=this.player,level=p.upgrades[p.weapon]||0,cost=25+level*15;
-    if(level>=3)return this.fail('此武器已達最高改裝等級。');
-    if(p.scrap<cost)return this.fail(`改裝需要 ${cost} 廢料。`);
-    p.scrap-=cost;p.upgrades[p.weapon]++;this.log(`${this.weapon.name}改裝 +${level+1}，單次傷害 +5。`);return true;
-  }
-  useTerminal(option) {
-    const terminal=this.nearbyTerminal,p=this.player,item=TERMINAL_ITEMS[option];
-    const reason=terminalReason(this,option);
-    if(reason)return this.fail(reason);
-    p.scrap-=terminalCost(option);terminal.used=true;
-    if(option==='heal'){healActor(p,60);clearPoison(p);}
-    if(item?.resource)p[item.resource]++;
-    if(item?.wear)p.wearables.push(item.wear);
-    if(option==='ammo')this.supplyPack({rifle:24,pistol:24,shell:12,energy:18,ordnance:3});
-    if(TERMINAL_AMMO[option])this.receiveAmmo(option,TERMINAL_AMMO[option].amount);
-    if(grenadeByItem(option)){const id=grenadeByItem(option);this.receiveGrenade(id,GRENADES[id].amount);}
-    this.log('終端補給完成。此終端已耗盡。');return true;
-  }
+  useTerminal(arg){return useTerminal(this,arg);}
   descend(advanceTurn=true) {
     if(skillActive(this.player,'anchor'))return this.fail('下錨中無法換層，請先解除。');
     const p=this.player;
@@ -1004,6 +963,7 @@ export class Game {
       if(!validBarriers(data.barriers,data.grid,[...data.enemies,...data.props].map(o=>o.id)))return null;
       if(!validContainers(data.props,data.grid,[...data.enemies,...data.barriers,...data.props.filter(p=>!isContainer(p))].map(o=>o.id)))return null;
       if(!validModules(data.props,data.grid,[...data.enemies,...data.barriers,...data.props.filter(p=>p.type!=='module')].map(o=>o.id)))return null;
+      if(!data.props.every(o=>o?.type!=='terminal'||validTerminalSpent(o.spent)))return null;
       if(version<18)data.lighting=fullLighting(data.grid);
       if(!validLighting(data.lighting,data.grid))return null;
       if(version<17)data.traces=[];

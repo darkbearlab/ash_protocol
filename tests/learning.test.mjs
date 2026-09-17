@@ -13,12 +13,13 @@ import {normalizeProfile} from '../src/progression.js';
 import {makeEnemy} from '../src/world.js';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 const game=()=>new Game(330,[],0,'soldier','onyx');
-test('every manual is free, independently usable by a soldier, duplicates remain dismantlable, and all learned states restore',()=>{
+test('every manual is free, independently usable by a soldier, duplicates stay for terminal trade-in, and all learned states restore',()=>{
  for(const [id,def] of Object.entries(LEARNING_ITEMS).filter(([id])=>id!=='trait_suppression_resistance')){
   const g=game(),p=g.player,t=g.turn,rng=g.rng.state();p.learningItems[id]=2;const native=def.trait?hasTrait(p,def.trait):def.skills.every(s=>p.skills.includes(s));
   assert.equal(g.action('learn',id),!native,id);assert.equal(g.turn,t);assert.equal(g.rng.state(),rng);assert.equal(p.learningItems[id],native?2:1);assert.equal(g.action('learn',id),false);assert.ok(Game.restore(g.serialize()),id);
   if(def.trait)assert.ok(hasTrait(p,def.trait));else for(const skill of def.skills){assert.ok(p.skills.includes(skill));assert.deepEqual(p.skillState[skill],{remaining:0,cooldown:0});}
-  const scrap=p.scrap;assert.ok(g.action('dismantleLearning',id));assert.equal(p.scrap,scrap+LEARNING_SCRAP);assert.equal(g.turn,t);assert.ok(learningInventory(g).every(x=>x.count>0));
+  // 3.120.0 (user decision): no more dismantling in the pack; the same value is a trade-in at a supply terminal.
+  const scrap=p.scrap;assert.equal(g.action('dismantleLearning',id),false);assert.equal(p.scrap,scrap);assert.equal(g.turn,t);assert.ok(learningInventory(g).every(x=>x.count>0));assert.equal(LEARNING_SCRAP,15);
  }
 });
 // 3.113.0 (user request): class skills are no longer learnable. An older save that still carries one of those data

@@ -4,7 +4,7 @@ import {isContainer} from '../src/containers.js';
 import {AMMUNITION,itemAmmo,TERMINAL_AMMO} from '../src/ammunition.js';
 // Headless gameplay agent. Uses only legal public actions; no stat/map mutation.
 // It knows the floor plan for routing, so win rate is a regression signal, not player telemetry.
-import {Game,distance,WEAPONS} from '../src/engine.js';
+import {Game,distance,WEAPONS,terminalReason} from '../src/engine.js';
 import {pathToFileURL} from 'node:url';
 
 export function route(game,goal,{ignoreEnemies=false}={}) {
@@ -66,9 +66,10 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     const memory=!g.visibleEnemies.length&&navigation.tactics?.until>=g.turn?navigation.tactics.target:null;
     const sheltered=g.visibleEnemies.find(e=>!g.shotClear(p,e))||memory;
     if(sheltered&&p.ammo[p.weapon]>0&&g.turn>=detourUntil){const plan=combatStep(g,navigation,sheltered,{range:g.weapon.range,melee:g.weapon.melee,investigate:sheltered===memory});if(plan?.step){act('move',[plan.step.x-p.x,plan.step.y-p.y]);continue;}}
-    if(!g.visibleEnemies.length&&p.scrap>=25+p.upgrades[p.weapon]*15&&p.upgrades[p.weapon]<3){act('upgrade');continue;}
     if(g.canTouch(g.end)&&!g.bossAlive){act('interact');continue;}
-    if(g.nearbyTerminal){if(p.scrap>=15&&p.hp<p.maxHp-55){act('terminal','heal');continue;}const offer=TERMINAL_AMMO[g.weapon.ammoType];if(offer&&p.scrap>=offer.cost&&p[g.reserveKey()]<Math.min(g.ammoCapacity(g.weapon.ammoType),g.weapon.mag*2)){act('terminal',g.weapon.ammoType);continue;}}
+    // 3.120.0: terminals keep a credit instead of serving once, and weapon modifications are bought there (scrap only; the
+    // bot never trades anything in).
+    if(g.nearbyTerminal){if(p.hp<p.maxHp-55&&!terminalReason(g,'heal')){act('terminal','heal');continue;}if(!g.visibleEnemies.length&&!terminalReason(g,`upgrade:${p.weapon}`)){act('terminal',`upgrade:${p.weapon}`);continue;}const offer=TERMINAL_AMMO[g.weapon.ammoType];if(offer&&!terminalReason(g,g.weapon.ammoType)&&p[g.reserveKey()]<Math.min(g.ammoCapacity(g.weapon.ammoType),g.weapon.mag*2)){act('terminal',g.weapon.ammoType);continue;}}
     const needed=item=>{const type=itemAmmo(item.type),weapons=p.owned.map(i=>g.weaponAt(i)).filter(w=>w.ammoType===type);return (type&&weapons.length&&p[AMMUNITION[type].key]<Math.min(g.ammoCapacity(type),Math.max(...weapons.map(w=>w.mag))*2))||(item.type==='med'&&p.meds<1)||(item.type==='grenade'&&p.grenades<1&&grenadeTotal(p)<g.ammoCapacity('grenade'));};
     const crates=g.props.filter(c=>isContainer(c)&&!c.opened&&c.contents.some(needed));
     const nearby=crates.find(c=>g.canTouch(c));if(nearby){act('openContainer',nearby.id);continue;}

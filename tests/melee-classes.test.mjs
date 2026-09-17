@@ -108,7 +108,7 @@ test('grapple dash may land on hazards, spends cooldown, and does not alter boss
  assert.equal(skill(g),false);const turn=g.turn;for(let i=0;i<3;i++)g.action('wait');assert.equal(g.turn,turn+3);assert.equal(g.player.skillState.grapple.cooldown,0);
 });
 test('bound weapons cannot be exchanged or imported on a different class; normal slot upgrades remain available',()=>{
- for(const id of ['berserker','ninja']){const g=arena(id),slot=g.player.weapon;g.player.scrap=100;const min=g.weaponDamage().min;assert.ok(g.action('upgrade'));assert.equal(g.weaponDamage().min,min+5);
+ for(const id of ['berserker','ninja']){const g=arena(id),slot=g.player.weapon;g.player.scrap=100;const min=g.weaponDamage().min;g.props.push({id:'term',x:g.player.x+1,y:g.player.y,type:'terminal',used:false});assert.ok(g.action('terminal',`upgrade:${slot}`));assert.equal(g.weaponDamage().min,min+5);
  const item=g.registerWeapon({type:'weapon',weapon:0,x:10,y:10});g.items.push(item);assert.equal(g.action('replaceWeapon',{take:item.slot,leave:slot}),false);
  const raw=JSON.parse(g.serialize());raw.data.player.character='soldier';assert.equal(Game.restore(JSON.stringify(raw)),null);
  }

@@ -925,10 +925,10 @@
   "druid:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 297,
+   "turn": 280,
    "hp": 0,
-   "kills": 48,
-   "actions": 297,
+   "kills": 57,
+   "actions": 280,
    "invalid": 0
   },
   "druid:2": {
@@ -942,11 +942,11 @@
   },
   "druid:3": {
    "status": "dead",
-   "floor": 4,
-   "turn": 451,
+   "floor": 3,
+   "turn": 249,
    "hp": 0,
-   "kills": 85,
-   "actions": 451,
+   "kills": 50,
+   "actions": 250,
    "invalid": 0
   },
   "necromancer:1": {
@@ -961,28 +961,28 @@
   "necromancer:2": {
    "status": "dead",
    "floor": 2,
-   "turn": 219,
+   "turn": 161,
    "hp": 0,
    "kills": 32,
-   "actions": 218,
+   "actions": 160,
    "invalid": 0
   },
   "necromancer:3": {
    "status": "dead",
-   "floor": 3,
-   "turn": 229,
+   "floor": 2,
+   "turn": 165,
    "hp": 0,
-   "kills": 53,
-   "actions": 228,
+   "kills": 32,
+   "actions": 164,
    "invalid": 0
   },
   "soldier:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 299,
+   "turn": 241,
    "hp": 0,
-   "kills": 45,
-   "actions": 300,
+   "kills": 37,
+   "actions": 241,
    "invalid": 0
   },
   "soldier:2": {
@@ -996,65 +996,65 @@
   },
   "soldier:3": {
    "status": "dead",
-   "floor": 4,
-   "turn": 476,
+   "floor": 3,
+   "turn": 259,
    "hp": 0,
-   "kills": 100,
-   "actions": 476,
+   "kills": 52,
+   "actions": 259,
    "invalid": 0
   },
   "bulwark:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 287,
+   "turn": 318,
    "hp": 0,
-   "kills": 46,
-   "actions": 286,
+   "kills": 49,
+   "actions": 317,
    "invalid": 0
   },
   "bulwark:2": {
    "status": "dead",
    "floor": 5,
-   "turn": 851,
+   "turn": 1091,
    "hp": 0,
-   "kills": 129,
-   "actions": 851,
+   "kills": 144,
+   "actions": 1091,
    "invalid": 0
   },
   "bulwark:3": {
    "status": "dead",
    "floor": 4,
-   "turn": 698,
+   "turn": 342,
    "hp": 0,
-   "kills": 122,
-   "actions": 700,
+   "kills": 56,
+   "actions": 341,
    "invalid": 0
   },
   "recon:1": {
    "status": "dead",
-   "floor": 5,
-   "turn": 433,
+   "floor": 3,
+   "turn": 233,
    "hp": 0,
-   "kills": 89,
-   "actions": 492,
+   "kills": 44,
+   "actions": 264,
    "invalid": 0
   },
   "recon:2": {
    "status": "dead",
-   "floor": 6,
-   "turn": 541,
+   "floor": 2,
+   "turn": 179,
    "hp": 0,
-   "kills": 113,
-   "actions": 606,
+   "kills": 31,
+   "actions": 199,
    "invalid": 0
   },
   "recon:3": {
    "status": "dead",
    "floor": 3,
-   "turn": 209,
+   "turn": 251,
    "hp": 0,
-   "kills": 42,
-   "actions": 231,
+   "kills": 37,
+   "actions": 271,
    "invalid": 0
   },
   "berserker:1": {

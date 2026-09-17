@@ -6,8 +6,9 @@ export function learningReason(g,id,dismantle=false){
  const p=g.player,d=LEARNING_ITEMS[id];
  if(!validLearningId(id)||!(p.learningItems?.[id]>0))return '沒有這份學習資料。';
  if(g.status!=='playing'||g.pendingPerks||p.control.disabled)return '目前無法使用學習資料。';
- if(dismantle)return '';
- if(d.trait?(d.trait==='suppression_resistance'?suppressionResistance(p)>=3:hasTrait(p,d.trait)):d.skills.every(s=>p.skills.includes(s)))return '已經學會，這份資料可拆解。';
+ // 3.120.0 (user decision): data is no longer dismantled in the pack; it is traded in at a supply terminal for the same value.
+ if(dismantle)return '學習資料只能在補給終端抵價。';
+ if(d.trait?(d.trait==='suppression_resistance'?suppressionResistance(p)>=3:hasTrait(p,d.trait)):d.skills.every(s=>p.skills.includes(s)))return '已經學會，這份資料可在補給終端抵價。';
  if(d.trait&&p.traits.length>=68)return '被動規則已滿。';
  const needed=d.skills?.filter(s=>s==='pet_command'&&!g.allies.some(a=>a.kind==='pet')).length||0;
  if(g.allies.length+needed>32)return '友軍名額已滿。';

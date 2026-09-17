@@ -38,6 +38,8 @@ export function rollAffix(base,seed){
 export const ammoName=w=>w.melee?'無限使用':AMMUNITION[w.ammoType].name;
 export const magazineLabel=(w,rounds)=>w.melee?'∞':`${rounds}/${w.mag}`;
 
-// Shared dismantling/feeding value; magazine ammunition is handled separately.
-export const salvageValue=(p,slot)=>20+(p.upgrades[slot]||0)*10;
+// Shared dismantling/feeding/trade-in value; magazine ammunition is handled separately. The engineer's own passive
+// (3.120.0, user decision) raises it by half: the workshop spends scrap all the time, and terminals now take it too.
+export const SALVAGE_TUNING=Object.freeze({base:20,perLevel:10,engineer:1.5});
+export const salvageValue=(p,slot)=>{const value=SALVAGE_TUNING.base+(p.upgrades[slot]||0)*SALVAGE_TUNING.perLevel;return p.character==='engineer'?Math.round(value*SALVAGE_TUNING.engineer):value;};
 export const canSalvageOwned=(g,slot)=>Number.isInteger(slot)&&g.player.owned.includes(slot)&&g.player.owned.length>1&&!g.weaponAt(slot).locked;

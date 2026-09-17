@@ -32,7 +32,7 @@ test('ground rolls persist across inspection, collecting and reloading without c
 });
 test('duplicates have independent magazines and tuning, never become scrap automatically',()=>{
   const g=arena(),slot=loot(g);assert.equal(g.action('takeWeapon',slot),true);assert.deepEqual(g.player.owned,[0,1,slot]);
-  g.player.ammo[0]=2;g.player.scrap=100;g.action('weapon',slot);g.action('upgrade');
+  g.player.ammo[0]=2;g.player.scrap=100;g.action('weapon',slot);g.props.push({id:'term',x:11,y:10,type:'terminal',used:false});g.action('terminal',`upgrade:${slot}`);
   assert.equal(g.player.upgrades[0],0);assert.equal(g.player.upgrades[slot],1);assert.equal(g.weaponDamage().min,25);
   assert.equal(g.player.ammo[0],2);assert.equal(g.player.ammo[slot],8);
   const other=loot(g,0,'powerful');g.items.find(o=>o.slot===other).x=10;const scrap=g.player.scrap;g.pickup();

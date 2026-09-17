@@ -434,3 +434,14 @@ html.vhs body{text-shadow:.6px 0 #ff5a5a40,-.6px 0 #5ac8ff40}
    looked frozen at any brightness other than 100%. A filter on the element itself has no such snapshot.
    None of the three has fixed-position descendants, so the containing block a filter creates changes nothing. */
 html.toned :is(.app,.boot-screen,#modal-content){filter:brightness(var(--screen-brightness))}
+
+/* Supply terminal payment (3.120.0): one row per thing that can go into the value pool, with a stepper. */
+.terminal-trades{display:flex;flex-direction:column;gap:4px}
+.terminal-trade{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 8px;border:1px solid #91ab8133;background:#202e28}
+.terminal-trade>span:first-child{display:flex;flex-direction:column;min-width:0}
+.terminal-trade small{color:var(--muted);font-size:11px}
+.terminal-stepper{display:flex;align-items:center;gap:6px;flex:none}
+.terminal-stepper button{width:44px;height:44px;border:1px solid #526143;background:#273420;color:#c4d1b3;font-size:18px}
+.terminal-stepper button:disabled{opacity:.4}
+.terminal-stepper b{min-width:24px;text-align:center;font-family:var(--mono)}
+.terminal-total{margin:10px 0 6px;font-family:var(--mono);font-size:12px;color:#e8ce98}

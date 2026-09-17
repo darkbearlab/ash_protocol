@@ -51,7 +51,9 @@ test('slow melee commits its original target; an enemy that moves away causes an
 test('fixed fist cannot be salvaged or exchanged, but upgrades work and ranged weapons remain replaceable',()=>{
   const g=arena();const item=g.registerWeapon({type:'weapon',weapon:0,x:10,y:10});g.items.push(item);g.player.scrap=100;g.action('weapon',7);
   const turn=g.turn;assert.equal(g.action('salvage',7),false);assert.equal(g.salvage(7),false);assert.equal(g.action('replaceWeapon',{take:item.slot,leave:7}),false);assert.equal(g.replaceWeapon({take:item.slot,leave:7}),false);assert.equal(g.turn,turn);
-  assert.equal(g.action('upgrade'),true);assert.equal(g.player.upgrades[7],1);assert.equal(g.weaponDamage().min,75);
+  // 3.120.0: modifications are bought at a supply terminal.
+  g.props.push({id:'term',x:11,y:10,type:'terminal',used:false});assert.equal(g.action('upgrade'),false);
+  assert.equal(g.action('terminal','upgrade:7'),true);assert.equal(g.player.upgrades[7],1);assert.equal(g.weaponDamage().min,75);
   assert.equal(g.action('replaceWeapon',{take:item.slot,leave:6}),true);assert.ok(g.player.owned.includes(7));assert.equal(g.player.weapon,7);
   assert.equal(rollAffix(7,'any-seed'),null);assert.equal(weaponStats(7,'longbarrel').range,1);
 });

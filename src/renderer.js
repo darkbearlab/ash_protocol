@@ -1,5 +1,6 @@
 import {mapStyleAtlases,mapStyle} from './map-styles.js';
 import {FRAME_RATE_DEFAULT,frameDue,nextDue} from './frame-rate.js';
+import {terminalRemaining,TERMINAL_TUNING} from './terminal.js';
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
@@ -77,6 +78,8 @@ export class Renderer {
     if(b.type==='door'){this.box(p.x-3,p.y-3,6,6,'#283e36');this.box(p.x-1,p.y-1,2,2,'#f2d691');}
     this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');
   }
+  // 3.120.0: a terminal someone has bought from shows what it can still hand out; a fresh one is always full.
+  terminalCredit(p,a){if(p.used||!p.spent)return;this.text(`${terminalRemaining(p)}/${TERMINAL_TUNING.credit}`,a.x,a.y-this.tile*.42,'#9ee3b4',9);}
   objectHealth(object,x,y,width=24,color='#cad396'){
     if(this.game.realMode||!(object.hp>0&&object.hp<object.maxHp))return;
     this.box(x,y,width,2,'#17281f');this.box(x,y,width*object.hp/object.maxHp,2,color);
@@ -412,9 +415,9 @@ export class Renderer {
     }
 if((p.hp>0||p.type==='terminal')&&this.terrain(p.type,a,p)){
       this.objectHealth(p,a.x-12,a.y-16);
-      if(p.type==='terminal'&&p.used)this.box(a.x-8,a.y-9,16,12,'#17241ad0');return;
+      if(p.type==='terminal'&&p.used)this.box(a.x-8,a.y-9,16,12,'#17241ad0');if(p.type==='terminal')this.terminalCredit(p,a);return;
     }
-if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,a.x-12,a.y-16);if(p.type==='terminal'&&p.used)this.box(a.x-8,a.y-7,15,10,'#17241ab0');return;}if(p.type==='terminal'){this.box(a.x-13,a.y-13,26,27,'#263c34','#75977755');this.box(a.x-9,a.y-10,18,12,p.used?'#354339':'#82b6a0');this.line(a.x-7,a.y+7,a.x+7,a.y+7,'#9da77955',2);if(!p.used)this.glow(a.x,a.y-4,20,'#9ee3b41a');return;}
+if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,a.x-12,a.y-16);if(p.type==='terminal'&&p.used)this.box(a.x-8,a.y-7,15,10,'#17241ab0');if(p.type==='terminal')this.terminalCredit(p,a);return;}if(p.type==='terminal'){this.box(a.x-13,a.y-13,26,27,'#263c34','#75977755');this.box(a.x-9,a.y-10,18,12,p.used?'#354339':'#82b6a0');this.line(a.x-7,a.y+7,a.x+7,a.y+7,'#9da77955',2);if(!p.used)this.glow(a.x,a.y-4,20,'#9ee3b41a');this.terminalCredit(p,a);return;}
     if(p.hp<=0){this.box(a.x-13,a.y-5,9,8,'#6f705751');this.box(a.x+2,a.y+3,12,6,'#85775a51');return;}
     if(p.type==='barrel'){const c=this.ctx;c.fillStyle='#795032';c.beginPath();c.ellipse(a.x,a.y,10,13,0,0,Math.PI*2);c.fill();this.box(a.x-9,a.y-7,18,3,'#ca8b4f');this.box(a.x-9,a.y+6,18,3,'#ce9859');this.text('!',a.x,a.y+4,'#ffdaa0',12);this.objectHealth(p,a.x-12,a.y-16);return;}
     const t=this.tile;this.box(a.x-t*.4,a.y-t*.35+5,t*.8,t*.7,'#17281f99');this.box(a.x-t*.4,a.y-t*.35,t*.8,t*.7,'#717354','#aea87988');this.box(a.x-t*.32,a.y-t*.27,t*.64,t*.54,'#525c40','#93966f66');this.line(a.x-t*.29,a.y-t*.23,a.x+t*.29,a.y+t*.23,'#b6b17999',2);this.line(a.x+t*.29,a.y-t*.23,a.x-t*.29,a.y+t*.23,'#b6b17999',2);this.objectHealth(p,a.x-12,a.y-t*.39,24,'#c4c394');
