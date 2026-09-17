@@ -4,7 +4,7 @@
 
 **還沒有任何聲音接進遊戲。** 這一節是給接手的人的總表，下面各節是每一輪的完整紀錄。
 
-- **方向**：像素加 VHS 風格，聲音用舊主機的音質。紅白機與 Mega Drive 各做過一輪，使用者目前採用的全部是 **Mega Drive 風格**。
+- **方向**：像素加 VHS 風格，聲音用舊主機的音質。紅白機做過一輪、Mega Drive 做過兩輪，使用者目前採用的全部是 **Mega Drive 風格**。
 - **音樂**：只在出擊前的選單（標題、部署、設定、解鎖與紀錄）；戰場不放音樂，用環境音。標題音樂規格見 [MENU_MUSIC.md](MENU_MUSIC.md)（原本由使用者交給 GPT，現在也交給 Codex 嘗試）。那份規格寫的是紅白機四聲部；如果要改成 Mega Drive 音源，先和使用者確認。
 - **檔案**：已採用的 WAV 在 `art/audio/adopted/`，產生程式在 `art/audio/generators/`，說明見 [art/audio/README.md](../art/audio/README.md)。
 - **試聽方式**：使用者在手機上用 Telegram 聽，先不要接進遊戲。
@@ -85,7 +85,7 @@ Claude 寫了一個照紅白機 2A03 音源規則運作的離線合成器，產�
 
 使用者試聽第一輪的回饋：「非常紅白機」。
 
-## 音效樣本（第二輪：Mega Drive 風格，未接進遊戲）
+## 音效樣本（Mega Drive 第一輪，未接進遊戲）
 
 使用者要求做一版 16 位元、對齊 Mega Drive 的版本，編號與名稱和紅白機版一一對應，方便對照。同樣傳到 Telegram。程式現在在 `art/audio/generators/md-sfx.mjs`。
 
