@@ -21,7 +21,7 @@ import {isContainer,containerName} from '../src/containers.js';
 import {isBarrier,barrierName,barrierBetween,edgeBlocks} from '../src/barriers.js';
 import {isDark} from '../src/lighting.js';
 import {targetDetails} from '../src/target-card.js';
-import {traitLabels} from '../src/traits.js';
+import {traitLabels,startingTraits} from '../src/traits.js';
 import {suppressionStatus} from '../src/suppression-ui.js';
 import {grenadeMarkers} from '../src/affix-ui.js';
 import {tongueTelegraphs} from '../src/swarm.js';
@@ -66,7 +66,7 @@ function findEnemy(g,token){
 }
 function findTarget(g,token){
  const e=findEnemy(g,token);if(e)return e;
- return [...g.props,...g.barriers].find(o=>o.id===token&&o.hp>0&&g.teamVisible(o))||null;
+ return [...g.props,...g.barriers].find(o=>o.id===token&&(o.hp===undefined||o.hp>0)&&g.teamVisible(o))||null;
 }
 function point(g,token){
  if(!token)return null;
@@ -80,6 +80,7 @@ const hp=o=>`${Math.max(0,o.hp)}/${o.maxHp??o.hp}`;
 const at=o=>`(${o.x},${o.y})`;
 const itemName=i=>i.type==='weapon'?'武器':i.type==='learning'?(LEARNING_ITEMS[i.learningId]?.name||'學習資料'):SUPPLY_NAMES[i.type]||AMMUNITION[i.type]?.name||i.type;
 const amount=i=>i.amount>1?` ×${i.amount}`:'';
+const COMPASS={east:'東',southeast:'東南',south:'南',southwest:'西南',west:'西',northwest:'西北',north:'北',northeast:'東北'};
 
 // ---- map -----------------------------------------------------------------------------------------------------------
 // Two characters per tile: the tile, then the edge to its east; an edge row under each tile row holds the south edges.
@@ -179,6 +180,7 @@ function surroundings(g){
  const items=g.items.filter(i=>near(i)&&i.type!=='weapon');if(items.length)rows.push(`地上物品：${items.map(i=>`${itemName(i)}${amount(i)}${at(i)}`).join('、')}`);
  const weapons=g.items.filter(i=>near(i)&&i.type==='weapon');if(weapons.length)rows.push(`地上武器：${weapons.map(i=>`${g.weaponAt(i.slot).name}[${i.slot}]${at(i)}`).join('、')}`);
  const cases=g.props.filter(o=>isContainer(o)&&!o.opened&&near(o));if(cases.length)rows.push(`未開的箱子：${cases.map(c=>`${c.id} ${containerName(c)}${at(c)}`).join('、')}`);
+ const barrels=g.props.filter(o=>o.type==='barrel'&&o.hp>0&&near(o));if(barrels.length)rows.push(`爆裂油桶（可鎖定射擊）：${barrels.map(b=>`${b.id}${at(b)} 耐久 ${hp(b)}`).join('、')}`);
  const terminals=g.props.filter(o=>o.type==='terminal'&&near(o));if(terminals.length)rows.push(`終端：${terminals.map(t=>`${t.id}${at(t)} 額度 ${terminalRemaining(t)}`).join('、')}`);
  const doors=g.barriers.filter(b=>b.type==='door'&&b.hp>0&&(g.seen[Math.floor(b.y)]?.[Math.floor(b.x)]||g.seen[Math.ceil(b.y)]?.[Math.ceil(b.x)])&&distance(b,p)<=8);
  if(doors.length)rows.push(`門：${doors.map(b=>`${b.id} ${edgeAt(b)}${b.open?'開':'關'}`).join('、')}`);
@@ -237,9 +239,19 @@ const HELP=`指令（用 ; 分隔可一次下多個；遇到新敵人、受傷�
 背包  prep <grenade|item|skill> <id|none>（預備，換配件耗 1 回合）· swap/take/salvage/scrapgun/replace（見下）
      take <地上槽> · salvage <背包槽>（拆背包武器）· scrapgun <地上槽>（就地拆）· replace <地上槽> <背包槽>
 互動  open [id] · door <id> · obj <id> · buy <品項> [抵價id=數量 ...] · down（電梯）· perk <id> · recover
-資訊  look · map（全圖）· inv · term · enemy <敵人> · log [n] · help
+     learn <學習資料 id>（背包裡的學習資料，不耗回合；id 看 inv）
+資訊  look · map（全圖）· inv · term · enemy <敵人>（含圖鑑）· codex [兵種]（敵人圖鑑）· log [n] · help
+鎖定  油桶、補給箱、門、隔板都可以 t <id> 鎖定再 f 開火（油桶會爆炸）。
 其他  act <type> <json>（直接送出任何規則動作，用於工程師/德魯伊等特殊操作）
 座標 X 往東增加、Y 往南增加。`;
+
+// The hostile database the game keeps open in the journal: what a card is, not where it is now.
+function codexRows(g,type){
+ const e=ENEMY_TYPES[type];if(!e)return [`圖鑑沒有 ${type}。`];
+ const name=enemyName({type,faction:g.facilityFaction});
+ return [`圖鑑 ${type}：${name} · 生命 ${e.hp} · 射程 ${e.range} · 護甲 ${e.armor||0}${e.damage?` · 傷害 ${e.damage.min??e.damage}-${e.damage.max??e.damage}`:''}${e.revealRange?` · 只在 ${e.revealRange} 格內看得到`:''}`,
+  `  ${e.role||''}${startingTraits(type,g.floor).length?` · 被動：${traitLabels({traits:startingTraits(type,g.floor)}).join('、')}`:''}`];
+}
 
 // ---- commands ------------------------------------------------------------------------------------------------------
 function route(g,goal){
@@ -272,6 +284,8 @@ function interruption(g,before){
 }
 function command(file,log,g,text,report){
  const [name,...rest]=text.trim().split(/\s+/),arg=rest[0];
+ // A pending level-up refuses every action with no message of its own, so say so instead of reporting a silent success.
+ if(g.pendingPerks&&g.status==='playing'&&!['perk','look','map','inv','term','enemy','codex','log','help'].includes(name))fail(`升級待選中：先用 perk <id> 選一個（${g.perkChoices.map(o=>o.id).join('／')}）。`);
  const act=(type,value)=>perform(log,g,makeOp('action',type,value));
  const need=(value,message)=>value??fail(message);
  const walk=(goalTest,label,limit=80)=>{
@@ -304,7 +318,7 @@ function command(file,log,g,text,report){
   case 't':case 'target':{const t=target(need(arg,'t 需要敵人。'));return report(`鎖定 ${t.id}`);}
   case 'f':case 'fire':{if(arg)target(arg);const ok=act('fire');return report(`開火：${ok?'完成':'被拒絕'}`,!ok);}
   case 'r':case 'reload':{const ok=act('reload');return report(`裝填：${ok?'完成':'被拒絕'}`,!ok);}
-  case 'wait':case 'guard':act('wait');return report('防禦待機');
+  case 'wait':case 'guard':{const ok=act('wait');return report(`防禦待機：${ok?'完成':'被拒絕'}`,!ok);}
   case 'swap':{const ok=act('weapon',arg===undefined?undefined:Number(arg));return report(`換武器：${ok?g.weapon.name:'被拒絕'}`,!ok);}
   case 'g':case 'grenade':{const ok=act('usePrepared',{category:'grenade',target:where(need(arg,'g 需要落點。'))});return report(`投擲：${ok?'完成':'被拒絕'}`,!ok);}
   case 'launch':{const ok=act('launch',where(need(arg,'launch 需要落點。')));return report(`發射：${ok?'完成':'被拒絕'}`,!ok);}
@@ -338,7 +352,11 @@ function command(file,log,g,text,report){
   case 'map':say(...drawMap(g,0),LEGEND);return report(null);
   case 'inv':say(...inventory(g));return report(null);
   case 'term':say(...terminalRows(g));return report(null);
-  case 'enemy':{const e=findTarget(g,need(arg,'enemy 需要目標。'));if(!e)fail(`視野內沒有 ${arg}。`);const view=Object.create(g);view.target=e.id;say(JSON.stringify(targetDetails(view),null,1),`特性：${(e.traits||[]).map(t=>t.id).join(', ')}`);return report(null);}
+  case 'enemy':{
+   const e=findTarget(g,need(arg,'enemy 需要目標。'));if(!e)fail(`視野內沒有 ${arg}。`);
+   const view=Object.create(g);view.target=e.id;say(JSON.stringify(targetDetails(view),null,1),`特性：${(e.traits||[]).map(t=>t.id).join(', ')}`,...codexRows(g,e.type));return report(null);
+  }
+  case 'codex':say(...(arg?codexRows(g,arg):Object.keys(ENEMY_TYPES).filter(id=>!ENEMY_TYPES[id].variantOf).flatMap(id=>codexRows(g,id))));return report(null);
   case 'log':say(...g.logs.slice(0,Number(arg)||15).map(l=>`${String(l.turn).padStart(3,'0')} ${l.text}`));return report(null);
   case 'help':say(HELP,LEGEND);return report(null);
   default:fail(`不認得的指令 ${name}（help 看說明）。`);
@@ -383,7 +401,7 @@ function main(argv){
  const lines=[...results];
  if(stopped)lines.push(`未執行：${stopped}`);
  if(fresh.length)lines.push('戰鬥紀錄（舊→新）：',...fresh.slice().reverse().map(l=>`  ${String(l.turn).padStart(3,'0')} ${l.danger?'⚠ ':''}${l.text}`));
- const calls=heard.map(e=>e.visibility==='visible'?`${e.name}${at(e.position)}：「${calloutLine(e)}」`:`${DIRECTION_ARROWS[e.direction]||''}聽到${e.direction}方：「${calloutLine(e)}」`).filter((v,i,a)=>a.indexOf(v)===i);
+ const calls=heard.map(e=>e.visibility==='visible'?`${e.name}${at(e.position)}：「${calloutLine(e)}」`:`${DIRECTION_ARROWS[e.direction]||''}聽到${COMPASS[e.direction]||e.direction}方：「${calloutLine(e)}」`).filter((v,i,a)=>a.indexOf(v)===i);
  if(calls.length)lines.push(`喊話：${calls.join(' ')}`);
  if(!commands.length)lines.push(...look(g));else if(!infoOnly)lines.push('',...brief(g));
  lines.push(...out);
