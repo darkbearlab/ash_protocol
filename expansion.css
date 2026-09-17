@@ -426,9 +426,11 @@ html.vhs #battle{filter:saturate(.8) contrast(1.07) brightness(.96)}
 html.vhs body{text-shadow:.6px 0 #ff5a5a40,-.6px 0 #5ac8ff40}
 @media (prefers-reduced-motion:reduce){html.vhs .vhs-layer::before{animation:none}html.vhs .vhs-layer::after{display:none}}
 
-/* Screen brightness (3.116.0, user request). A filter on <html> does not reach the dialog in the top layer, so, like the VHS
-   layers, one backdrop-filter layer sits over the app and one inside the dialog; only the one on top shows. Not drawn at
-   100%. It sits under the VHS layer, so the scanlines themselves are not brightened. */
-.tone-layer{display:none}
-html.toned .tone-layer{display:block;position:fixed;inset:0;z-index:2147482990;pointer-events:none;-webkit-backdrop-filter:brightness(var(--screen-brightness));backdrop-filter:brightness(var(--screen-brightness))}
-html.toned body:has(#modal[open])>.tone-layer{display:none}
+/* Screen brightness (3.116.0, user request). A filter on <html> does not reach the dialog in the top layer, so the app and
+   the dialog's content each carry the filter. Not applied at 100%. The VHS layers are outside both, so the scanlines
+   themselves are not brightened; the dialog's own dark panel colour is not either.
+   3.118.0: this used to be backdrop-filter layers over the app and inside the dialog. On a phone home-screen app (user report) the
+   layer kept showing an old picture of what was behind it until the app was switched away and back, so a still menu
+   looked frozen at any brightness other than 100%. A filter on the element itself has no such snapshot.
+   None of the three has fixed-position descendants, so the containing block a filter creates changes nothing. */
+html.toned :is(.app,.boot-screen,#modal-content){filter:brightness(var(--screen-brightness))}

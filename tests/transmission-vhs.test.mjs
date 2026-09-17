@@ -29,8 +29,8 @@ test('the VHS filter is off by default, remembered, and covers the page and any 
   assert.ok(source.includes("write('ash-vhs',vhsFilter?'on':'off')"));
   assert.ok(source.includes('data-modal="vhs"'));
   const html=await read('../index.html');
-  assert.ok(html.includes('</section></main></div>\n<div class="tone-layer" aria-hidden="true"></div><div class="vhs-layer" aria-hidden="true"></div>'),'one layer above the app');
-  assert.ok(html.includes('<dialog id="modal"><div id="modal-content"></div><div class="tone-layer" aria-hidden="true"></div><div class="vhs-layer" aria-hidden="true"></div></dialog>'),'one inside the dialog, which sits above everything');
+  assert.ok(html.includes('</section></main></div>\n<div class="vhs-layer" aria-hidden="true"></div>'),'one layer above the app');
+  assert.ok(html.includes('<dialog id="modal"><div id="modal-content"></div><div class="vhs-layer" aria-hidden="true"></div></dialog>'),'one inside the dialog, which sits above everything');
   const css=await read('../expansion.css');
   assert.ok(css.includes('.vhs-layer{display:none}'));
   assert.ok(css.includes('pointer-events:none'),'the layer never takes a tap');

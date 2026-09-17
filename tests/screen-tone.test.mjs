@@ -30,10 +30,12 @@ test('the controller, page and styles wire brightness, colour strength and the q
   assert.ok(source.includes("renderer.operatorTint=operatorTintPercent(read('ash-operator-tint'))/100;"));
   assert.ok(source.includes('tintedSprite(image,r,color,renderer.tintCache,renderer.operatorTint)'),'the deploy preview matches the battlefield');
   assert.ok(colour.includes('const key=`${rect.x},${rect.y},${id},${strength}`;'),'a new strength never reuses a cached tint');
-  assert.ok(html.includes('<div class="tone-layer" aria-hidden="true"></div><div class="vhs-layer" aria-hidden="true"></div>\n<dialog'),'over the app, under the VHS layer');
-  assert.ok(html.includes('<div id="modal-content"></div><div class="tone-layer" aria-hidden="true"></div><div class="vhs-layer"'),'and inside the dialog, which a root filter cannot reach');
-  assert.ok(css.includes('backdrop-filter:brightness(var(--screen-brightness))'));
-  assert.ok(css.includes('html.toned body:has(#modal[open])>.tone-layer{display:none}'),'never applied twice');
+  // 3.118.0: a filter on the app and on the dialog's content, not backdrop-filter layers, which froze still menus in a
+  // phone home-screen app (user report).
+  assert.ok(css.includes('html.toned :is(.app,.boot-screen,#modal-content){filter:brightness(var(--screen-brightness))}'),'the app, and the dialog content a root filter cannot reach');
+  assert.ok(!css.includes('backdrop-filter:brightness')&&!html.includes('tone-layer'),'no backdrop snapshot layer is left');
+  const fixed=[...css.matchAll(/([^{}]+)\{[^}]*position:fixed/g)].map(m=>m[1].trim());
+  assert.deepEqual(fixed,['#orientation-guard','body.booting .boot-screen','html.scroll-locked body','html.vhs .vhs-layer'],'a filter re-anchors fixed-position descendants, so nothing fixed may live inside the app or the dialog content');
   assert.ok(css.includes('0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.7 -.45'),'dark grain specks');
   assert.ok(css.includes('0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.7 -.75'),'and sparse light ones');
   assert.ok(!css.includes("0 0 0 1.7 -.35'"),'the old all-white grain is gone');
