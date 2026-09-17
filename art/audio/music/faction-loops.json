@@ -1,0 +1,2150 @@
+[
+  {
+    "id": "loyalist-explore",
+    "faction": "loyalist",
+    "name": "忠誠者",
+    "mode": "explore",
+    "bpm": 72,
+    "loopStartSample": 0,
+    "loopEndSample": 1176000,
+    "sampleRate": 44100,
+    "seconds": 26.666666666666668,
+    "peakDbFS": -16.006069926537595,
+    "seamDelta": 9.72280677118874e-22,
+    "score": [
+      {
+        "part": "mist",
+        "n": "E3",
+        "beat": 0,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "B3",
+        "beat": 1,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "E3",
+        "beat": 4,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "thread",
+        "n": "E4",
+        "beat": 5,
+        "duration": 1.7,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 8,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "F4",
+        "beat": 9,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "E3",
+        "beat": 12,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "metal",
+        "n": "F4",
+        "beat": 14,
+        "duration": 0.6,
+        "level": 36
+      },
+      {
+        "part": "mist",
+        "n": "E3",
+        "beat": 16,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "B3",
+        "beat": 17,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 20,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "thread",
+        "n": "B3",
+        "beat": 21,
+        "duration": 1.7,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 24,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "G4",
+        "beat": 25,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "E3",
+        "beat": 28,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "metal",
+        "n": "G4",
+        "beat": 30,
+        "duration": 0.6,
+        "level": 36
+      }
+    ]
+  },
+  {
+    "id": "loyalist-combat",
+    "faction": "loyalist",
+    "name": "忠誠者",
+    "mode": "combat",
+    "bpm": 104,
+    "loopStartSample": 0,
+    "loopEndSample": 814154,
+    "sampleRate": 44100,
+    "seconds": 18.46154195011338,
+    "peakDbFS": -6.439486107345241,
+    "seamDelta": 2.553298275967498e-17,
+    "score": [
+      {
+        "part": "mist",
+        "n": "E3",
+        "beat": 0,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "B3",
+        "beat": 1,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 0,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 1,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 2,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 3,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 0.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "F4",
+        "beat": 1.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "B3",
+        "beat": 2.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 3.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "E3",
+        "beat": 4,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 4,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 5,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 6,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 7,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "metal",
+        "n": "F4",
+        "beat": 4.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "B3",
+        "beat": 5.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 6.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 7.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 8,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "F4",
+        "beat": 9,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 8,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 9,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 10,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 11,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "metal",
+        "n": "B3",
+        "beat": 8.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 9.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 10.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "F4",
+        "beat": 11.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "thread",
+        "n": "E4",
+        "beat": 8,
+        "duration": 1.55,
+        "level": 22
+      },
+      {
+        "part": "thread",
+        "n": "F4",
+        "beat": 10,
+        "duration": 0.65,
+        "level": 25
+      },
+      {
+        "part": "thread",
+        "n": "B3",
+        "beat": 11,
+        "duration": 0.7,
+        "level": 25
+      },
+      {
+        "part": "mist",
+        "n": "E3",
+        "beat": 12,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 12,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 13,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 14,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 15,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "mist",
+        "n": "E3",
+        "beat": 16,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "B3",
+        "beat": 17,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 16,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 17,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 18,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 19,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 16.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "F4",
+        "beat": 17.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "B3",
+        "beat": 18.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 19.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 20,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 20,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 21,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 22,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 23,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "metal",
+        "n": "F4",
+        "beat": 20.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "B3",
+        "beat": 21.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 22.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 23.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 24,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "G4",
+        "beat": 25,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 24,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 25,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 26,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 27,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "metal",
+        "n": "B3",
+        "beat": 24.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 25.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "E4",
+        "beat": 26.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "F4",
+        "beat": 27.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "thread",
+        "n": "E4",
+        "beat": 24,
+        "duration": 1.55,
+        "level": 22
+      },
+      {
+        "part": "thread",
+        "n": "F4",
+        "beat": 26,
+        "duration": 0.65,
+        "level": 25
+      },
+      {
+        "part": "thread",
+        "n": "B3",
+        "beat": 27,
+        "duration": 0.7,
+        "level": 25
+      },
+      {
+        "part": "mist",
+        "n": "E3",
+        "beat": 28,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 28,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 29,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 30,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "E3",
+        "beat": 31,
+        "duration": 0.3,
+        "level": 18
+      }
+    ]
+  },
+  {
+    "id": "rebel-explore",
+    "faction": "rebel",
+    "name": "叛軍",
+    "mode": "explore",
+    "bpm": 72,
+    "loopStartSample": 0,
+    "loopEndSample": 1176000,
+    "sampleRate": 44100,
+    "seconds": 26.666666666666668,
+    "peakDbFS": -15.001162554308413,
+    "seamDelta": 1.0973457154889763e-21,
+    "score": [
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 0,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "A3",
+        "beat": 1,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 4,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "thread",
+        "n": "D4",
+        "beat": 5,
+        "duration": 1.7,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "G3",
+        "beat": 8,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "D4",
+        "beat": 9,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 12,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 14,
+        "duration": 0.6,
+        "level": 36
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 16,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "G#3",
+        "beat": 17,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 20,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "thread",
+        "n": "G4",
+        "beat": 21,
+        "duration": 1.7,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "C3",
+        "beat": 24,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "F4",
+        "beat": 25,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 28,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "metal",
+        "n": "F4",
+        "beat": 30,
+        "duration": 0.6,
+        "level": 36
+      }
+    ]
+  },
+  {
+    "id": "rebel-combat",
+    "faction": "rebel",
+    "name": "叛軍",
+    "mode": "combat",
+    "bpm": 112,
+    "loopStartSample": 0,
+    "loopEndSample": 756000,
+    "sampleRate": 44100,
+    "seconds": 17.142857142857142,
+    "peakDbFS": -6.181899677132922,
+    "seamDelta": 1.5078464871480257e-8,
+    "score": [
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 0,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "A3",
+        "beat": 1,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 0,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 1.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 2,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 3.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 0.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "G#4",
+        "beat": 1.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "G4",
+        "beat": 2.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 3.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 4,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 4,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 5.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 6,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 7.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "metal",
+        "n": "G#4",
+        "beat": 4.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "G4",
+        "beat": 5.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 6.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 7.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "G3",
+        "beat": 8,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "D4",
+        "beat": 9,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "G3",
+        "beat": 8,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "G3",
+        "beat": 9.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "G3",
+        "beat": 10,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "G3",
+        "beat": 11.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "metal",
+        "n": "G4",
+        "beat": 8.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 9.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 10.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "G#4",
+        "beat": 11.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "thread",
+        "n": "D4",
+        "beat": 8,
+        "duration": 1.55,
+        "level": 22
+      },
+      {
+        "part": "thread",
+        "n": "G#4",
+        "beat": 10,
+        "duration": 0.65,
+        "level": 25
+      },
+      {
+        "part": "thread",
+        "n": "G4",
+        "beat": 11,
+        "duration": 0.7,
+        "level": 25
+      },
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 12,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 12,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 13.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 14,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 15.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 16,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "G#3",
+        "beat": 17,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 16,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 17.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 18,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 19.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 16.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "G#4",
+        "beat": 17.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "G4",
+        "beat": 18.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 19.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 20,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 20,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 21.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 22,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 23.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "metal",
+        "n": "G#4",
+        "beat": 20.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "G4",
+        "beat": 21.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 22.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 23.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "C3",
+        "beat": 24,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "F4",
+        "beat": 25,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "C3",
+        "beat": 24,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "C3",
+        "beat": 25.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "C3",
+        "beat": 26,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "C3",
+        "beat": 27.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "metal",
+        "n": "G4",
+        "beat": 24.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 25.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "D4",
+        "beat": 26.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "metal",
+        "n": "G#4",
+        "beat": 27.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "thread",
+        "n": "D4",
+        "beat": 24,
+        "duration": 1.55,
+        "level": 22
+      },
+      {
+        "part": "thread",
+        "n": "G#4",
+        "beat": 26,
+        "duration": 0.65,
+        "level": 25
+      },
+      {
+        "part": "thread",
+        "n": "G4",
+        "beat": 27,
+        "duration": 0.7,
+        "level": 25
+      },
+      {
+        "part": "mist",
+        "n": "D3",
+        "beat": 28,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 28,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 29.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 30,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D3",
+        "beat": 31.5,
+        "duration": 0.3,
+        "level": 22
+      }
+    ]
+  },
+  {
+    "id": "swarm-explore",
+    "faction": "swarm",
+    "name": "蟲族",
+    "mode": "explore",
+    "bpm": 72,
+    "loopStartSample": 0,
+    "loopEndSample": 1176000,
+    "sampleRate": 44100,
+    "seconds": 26.666666666666668,
+    "peakDbFS": -14.497753585193287,
+    "seamDelta": 7.006877572106423e-22,
+    "score": [
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 0,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "C4",
+        "beat": 1,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 4,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "thread",
+        "n": "F4",
+        "beat": 5,
+        "duration": 1.7,
+        "level": 31
+      },
+      {
+        "part": "pulse",
+        "n": "F3",
+        "beat": 5,
+        "duration": 0.6,
+        "level": 32
+      },
+      {
+        "part": "pulse",
+        "n": "F#3",
+        "beat": 6,
+        "duration": 0.55,
+        "level": 36
+      },
+      {
+        "part": "mist",
+        "n": "F#3",
+        "beat": 8,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "F#4",
+        "beat": 9,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 12,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "metal",
+        "n": "F#4",
+        "beat": 14,
+        "duration": 0.6,
+        "level": 36
+      },
+      {
+        "part": "pulse",
+        "n": "F3",
+        "beat": 13,
+        "duration": 0.6,
+        "level": 32
+      },
+      {
+        "part": "pulse",
+        "n": "F#3",
+        "beat": 14,
+        "duration": 0.55,
+        "level": 36
+      },
+      {
+        "part": "mist",
+        "n": "D#3",
+        "beat": 16,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "B3",
+        "beat": 17,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 20,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "thread",
+        "n": "C4",
+        "beat": 21,
+        "duration": 1.7,
+        "level": 31
+      },
+      {
+        "part": "pulse",
+        "n": "F3",
+        "beat": 21,
+        "duration": 0.6,
+        "level": 32
+      },
+      {
+        "part": "pulse",
+        "n": "F#3",
+        "beat": 22,
+        "duration": 0.55,
+        "level": 36
+      },
+      {
+        "part": "mist",
+        "n": "F#3",
+        "beat": 24,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "mist",
+        "n": "G#4",
+        "beat": 25,
+        "duration": 2.4,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 28,
+        "duration": 3.35,
+        "level": 24
+      },
+      {
+        "part": "metal",
+        "n": "G#4",
+        "beat": 30,
+        "duration": 0.6,
+        "level": 36
+      },
+      {
+        "part": "pulse",
+        "n": "F3",
+        "beat": 29,
+        "duration": 0.6,
+        "level": 32
+      },
+      {
+        "part": "pulse",
+        "n": "F#3",
+        "beat": 30,
+        "duration": 0.55,
+        "level": 36
+      }
+    ]
+  },
+  {
+    "id": "swarm-combat",
+    "faction": "swarm",
+    "name": "蟲族",
+    "mode": "combat",
+    "bpm": 120,
+    "loopStartSample": 0,
+    "loopEndSample": 705600,
+    "sampleRate": 44100,
+    "seconds": 16,
+    "peakDbFS": -6.262292597681261,
+    "seamDelta": 0.000005030184020902214,
+    "score": [
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 0,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "C4",
+        "beat": 1,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 0,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 0.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 1.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 2,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 2.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 3.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "pulse",
+        "n": "F4",
+        "beat": 0.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "F#4",
+        "beat": 1.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "C4",
+        "beat": 2.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "B3",
+        "beat": 3.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 4,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 4,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 4.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 5.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 6,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 6.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 7.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "pulse",
+        "n": "F#4",
+        "beat": 4.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "C4",
+        "beat": 5.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "B3",
+        "beat": 6.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "F4",
+        "beat": 7.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "F#3",
+        "beat": 8,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "F#4",
+        "beat": 9,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 8,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 8.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 9.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 10,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 10.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 11.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "pulse",
+        "n": "C4",
+        "beat": 8.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "B3",
+        "beat": 9.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "F4",
+        "beat": 10.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "F#4",
+        "beat": 11.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "thread",
+        "n": "F4",
+        "beat": 8,
+        "duration": 1.55,
+        "level": 22
+      },
+      {
+        "part": "thread",
+        "n": "F#4",
+        "beat": 10,
+        "duration": 0.65,
+        "level": 25
+      },
+      {
+        "part": "thread",
+        "n": "C4",
+        "beat": 11,
+        "duration": 0.7,
+        "level": 25
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 12,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 12,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 12.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 13.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 14,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 14.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 15.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "mist",
+        "n": "D#3",
+        "beat": 16,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "B3",
+        "beat": 17,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "D#3",
+        "beat": 16,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D#3",
+        "beat": 16.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "D#3",
+        "beat": 17.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "D#3",
+        "beat": 18,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "D#3",
+        "beat": 18.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "D#3",
+        "beat": 19.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "pulse",
+        "n": "F4",
+        "beat": 16.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "F#4",
+        "beat": 17.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "C4",
+        "beat": 18.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "B3",
+        "beat": 19.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 20,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 20,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 20.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 21.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 22,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 22.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 23.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "pulse",
+        "n": "F#4",
+        "beat": 20.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "C4",
+        "beat": 21.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "B3",
+        "beat": 22.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "F4",
+        "beat": 23.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "mist",
+        "n": "F#3",
+        "beat": 24,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "mist",
+        "n": "G#4",
+        "beat": 25,
+        "duration": 2.4,
+        "level": 34
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 24,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 24.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 25.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 26,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 26.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F#3",
+        "beat": 27.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "pulse",
+        "n": "C4",
+        "beat": 24.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "B3",
+        "beat": 25.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "F4",
+        "beat": 26.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "pulse",
+        "n": "F#4",
+        "beat": 27.5,
+        "duration": 0.22,
+        "level": 28
+      },
+      {
+        "part": "thread",
+        "n": "F4",
+        "beat": 24,
+        "duration": 1.55,
+        "level": 22
+      },
+      {
+        "part": "thread",
+        "n": "F#4",
+        "beat": 26,
+        "duration": 0.65,
+        "level": 25
+      },
+      {
+        "part": "thread",
+        "n": "C4",
+        "beat": 27,
+        "duration": 0.7,
+        "level": 25
+      },
+      {
+        "part": "mist",
+        "n": "F3",
+        "beat": 28,
+        "duration": 3.35,
+        "level": 31
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 28,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 28.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 29.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 30,
+        "duration": 0.3,
+        "level": 18
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 30.5,
+        "duration": 0.3,
+        "level": 22
+      },
+      {
+        "part": "bass",
+        "n": "F3",
+        "beat": 31.5,
+        "duration": 0.3,
+        "level": 22
+      }
+    ]
+  }
+]

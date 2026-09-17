@@ -1,0 +1,8 @@
+{
+  "file": "adopted/md3-01-smg-single.wav",
+  "frames": 6152,
+  "rate": 44100,
+  "duration": 0.13950113378684809,
+  "sha256": "3985af1bdf2df58519f6474e23a4e53b25b8c56966bbdb966bf1422cff4ddbe8",
+  "verified": "first 3900 PCM frames match approved burst exactly; existing batch hashes unchanged; full isolated tail; no clipping"
+}

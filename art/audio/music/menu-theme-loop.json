@@ -1,0 +1,16 @@
+{
+  "bpm": 88,
+  "loopStartSample": 120273,
+  "loopEndSample": 3487909,
+  "loopStartSeconds": 2.7272789115646257,
+  "loopEndSeconds": 79.09090702947846,
+  "loopDuration": 76.36362811791383,
+  "loopSamples": 3367636,
+  "rate": 44100,
+  "seamDelta": 1.57330894253408e-10,
+  "gain": 1.8715509432539812,
+  "structure": "A8 / B8 / bridge4 / A-return8",
+  "motif": "E F B E",
+  "source": "md-menu-theme.mjs; md-engine.mjs",
+  "note": "Standalone loop WAV is the exact repeat region; intro-only tail fade is 10 ms. Not a register-exact hardware export."
+}

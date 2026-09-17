@@ -1,0 +1,115 @@
+{
+  "note": "SHA-256 of every versioned audio file, and the generator output each one is a byte-identical copy of. Regenerate with the scripts in generators/ (outputs land in gitignored staging folders), then compare.",
+  "files": {
+    "adopted/md-01-rifle-a.wav": {
+      "sha256": "6236eaaff15b58d2b529877abadb56ab1319f3650c8cb1bc6e3ce610bea85bf3",
+      "generatedAs": "generators/out/md-01-rifle-a.wav",
+      "generator": "md-sfx.mjs"
+    },
+    "adopted/md-04-shotgun.wav": {
+      "sha256": "d719746123e057907c07e12e4564b39a387c8c3f036bd271adead7fa2470c71a",
+      "generatedAs": "generators/out/md-04-shotgun.wav",
+      "generator": "md-sfx.mjs"
+    },
+    "adopted/md-07-hit.wav": {
+      "sha256": "e57a163e7245a6aed5dd3dc38e3b0ca9da63caabdf355ae6e30ae6b31f9d6f3a",
+      "generatedAs": "generators/out/md-07-hit.wav",
+      "generator": "md-sfx.mjs"
+    },
+    "adopted/md-11-grenade.wav": {
+      "sha256": "87963b530747fbe5f6569a564b87ae72c3dc09236ce78f066ca986025cd5dfb8",
+      "generatedAs": "generators/out/md-11-grenade.wav",
+      "generator": "md-sfx.mjs"
+    },
+    "adopted/md-12-footstep.wav": {
+      "sha256": "23fda47ca51936eee25f3cd826acb4757fb762ee35afa17f31c2426c2af64ba8",
+      "generatedAs": "generators/out/md-12-footstep.wav",
+      "generator": "md-sfx.mjs"
+    },
+    "adopted/md2-08-miss-a.wav": {
+      "sha256": "a733f0332552f5d7e793768cd4844d145186e68322706bdc4acd79651780f691",
+      "generatedAs": "generators/out-v2/md2-08-miss-a.wav",
+      "generator": "md-sfx-v2.mjs"
+    },
+    "adopted/md2-15-ui-select.wav": {
+      "sha256": "5bd4afc31d7aabb47e1837d16c83cd65a56b65144ae28f32bd82c9aae03b9011",
+      "generatedAs": "generators/out-v2/md2-15-ui-select.wav",
+      "generator": "md-sfx-v2.mjs"
+    },
+    "adopted/md3-01-smg-single.wav": {
+      "sha256": "3985af1bdf2df58519f6474e23a4e53b25b8c56966bbdb966bf1422cff4ddbe8",
+      "generatedAs": "adopted/md3-01-smg-single.wav",
+      "generator": "md-audio-round3.mjs"
+    },
+    "adopted/md3-02-precision.wav": {
+      "sha256": "117f38173cf3ab28bde5030ac8d0d17ee58f76217b4e4468db520e1214e9cc3f",
+      "generatedAs": "round3/02-precision.wav",
+      "generator": "md-audio-round3.mjs"
+    },
+    "adopted/md3-03-plasma-a.wav": {
+      "sha256": "bd270f93357fab8fe79b7c31f85c02c09f53afbd990f573da42f1a0125d7f7ab",
+      "generatedAs": "faction-sketches/plasma-a.wav",
+      "generator": "md-faction-sketches.mjs"
+    },
+    "adopted/md3-04-kill.wav": {
+      "sha256": "5bf5a1361ab1f298845ffa337655aa1994cd9ed7df547b7d678d67a1fcbd8a59",
+      "generatedAs": "round3/04-kill.wav",
+      "generator": "md-audio-round3.mjs"
+    },
+    "adopted/md3-05-reload.wav": {
+      "sha256": "ccf8c59fbb422e8ed3663d3ca25a5ba05245d91b8eb7f88713f8a8296dbda834",
+      "generatedAs": "round3/05-reload.wav",
+      "generator": "md-audio-round3.mjs"
+    },
+    "adopted/md3-06-heal.wav": {
+      "sha256": "44883250340151e0db0e83a5cb9afd20ec7ebfd4076ed3e1e44c3a8d33317290",
+      "generatedAs": "round3/06-heal.wav",
+      "generator": "md-audio-round3.mjs"
+    },
+    "adopted/md3-07-transmission.wav": {
+      "sha256": "8ec20d849b4b2705fc997f08740c42e533e4c3e940734c1d71446a525a72d0dd",
+      "generatedAs": "round3/07-transmission.wav",
+      "generator": "md-audio-round3.mjs"
+    },
+    "adopted/md3-08-door.wav": {
+      "sha256": "56893ae30ce64ff04e0f82de89fed3d067fd5d8cfe1e9e3dd3a264510922c54d",
+      "generatedAs": "round3/08-door.wav",
+      "generator": "md-audio-round3.mjs"
+    },
+    "music/menu-theme.wav": {
+      "sha256": "859428c7d663c6417c842744e55894c24935b1f49e9b9f83aafcd9df4fd4f0a5",
+      "generatedAs": "music/menu-theme.wav",
+      "generator": "md-menu-theme.mjs"
+    },
+    "music/loyalist-explore.wav": {
+      "sha256": "3e69ccf61669dcd23e5d101f26bb7ce396d8b38fa2221812b3b81fe9ba80e73f",
+      "generatedAs": "faction-sketches/loyalist-explore.wav",
+      "generator": "md-faction-sketches.mjs"
+    },
+    "music/loyalist-combat.wav": {
+      "sha256": "0a95019d231791f78625aeb123cfeb511b2708255457e5e63e0318a4a67d94bb",
+      "generatedAs": "faction-sketches/loyalist-combat.wav",
+      "generator": "md-faction-sketches.mjs"
+    },
+    "music/rebel-explore.wav": {
+      "sha256": "287bf1dca559aec43af4a8e925f9687759c8b8a71eada5f497504d0e04d0dae2",
+      "generatedAs": "faction-sketches/rebel-explore.wav",
+      "generator": "md-faction-sketches.mjs"
+    },
+    "music/rebel-combat.wav": {
+      "sha256": "4d0481aae225a0ba195daf90d53737e67cdd0ae7716d28b0232c7e6ccaa20c03",
+      "generatedAs": "faction-sketches/rebel-combat.wav",
+      "generator": "md-faction-sketches.mjs"
+    },
+    "music/swarm-explore.wav": {
+      "sha256": "ff46e445ff62d693e492295b9816cf02b78da8e09ed96a28579c99c33c3dc6b9",
+      "generatedAs": "faction-sketches/swarm-explore.wav",
+      "generator": "md-faction-sketches.mjs"
+    },
+    "music/swarm-combat.wav": {
+      "sha256": "d05ab2d7b56da67f4d3d76148dcca158e13780b894baa32bce41e192c1ba6575",
+      "generatedAs": "faction-sketches/swarm-combat.wav",
+      "generator": "md-faction-sketches.mjs"
+    }
+  }
+}
