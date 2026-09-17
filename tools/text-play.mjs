@@ -94,11 +94,12 @@ const shown=(g,q)=>g.grid[q.y]?.[q.x]===1?g.seen[q.y][q.x]:[[0,-1],[1,0],[0,1],[
 function tileChar(g,x,y,marks){
  const p=g.player,q={x,y};
  if(p.x===x&&p.y===y)return '@';
- if(g.grid[y][x]!==1)return shown(g,q)?'#':' ';
- if(!g.seen[y][x])return ' ';
+ const contact=[...(g.sensorContacts||[]),...(g.petSensorContacts||[])].some(c=>c.x===x&&c.y===y);
+ if(g.grid[y][x]!==1)return contact?'?':shown(g,q)?'#':' ';
+ if(!g.seen[y][x])return contact?'?':' ';
  const enemy=visibleEnemies(g).find(e=>e.x===x&&e.y===y);if(enemy)return letterOf(g,enemy);
  if(g.localAllies?.some(a=>a.hp>0&&a.status==='active'&&a.x===x&&a.y===y))return '&';
- if((g.sensorContacts||[]).some(c=>c.x===x&&c.y===y))return '?';
+ if(contact)return '?';
  if(marks.has(`${x},${y}`))return '!';
  if(g.exitPoint.x===x&&g.exitPoint.y===y)return '>';
  const prop=g.props.find(o=>o.x===x&&o.y===y&&o.type!=='module'&&(o.hp===undefined||o.hp>0||isContainer(o)));
@@ -293,7 +294,9 @@ function command(file,log,g,text,report){
   while(steps<limit){
    if(goalTest(g.player))return {text:`${label}：抵達（${steps} 步）`,ok:true};
    const step=route(g,goalTest);if(!step)return {text:`${label}：找不到已探索的路線（走了 ${steps} 步）`};
+   const from={x:g.player.x,y:g.player.y};
    if(!act('move',step))return {text:`${label}：移動被拒絕（走了 ${steps} 步）：${g.logs[0]?.text||''}`};
+   if(g.player.x===from.x&&g.player.y===from.y)return {text:`${label}：前進受阻，停下（走了 ${steps} 步）：${g.logs[0]?.text||''}`};
    steps++;const why=interruption(g,before);if(why)return {text:`${label}：中斷，${why}（走了 ${steps} 步）`};
   }
   return {text:`${label}：超過 ${limit} 步，先停下`};
