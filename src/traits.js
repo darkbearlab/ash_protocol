@@ -1,6 +1,6 @@
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {validSuppression} from './suppression.js';
-import {ENEMY_TYPES} from './data.js';
+import {ENEMY_TYPES,SIZE} from './data.js';
 import {enemyStartingTraitIds} from './enemy-data.js';
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const TRAITS={
@@ -71,9 +71,12 @@ export function sidestepPenalty(attacker,target){
   const [mx,my]=target.moveDelta,dx=attacker.x-target.x,dy=attacker.y-target.y;
   return Math.abs(mx*dy-my*dx)>Math.abs(mx*dx+my*dy)?20+classPerkRank(target,'recon_sidestep')*CLASS_PERK_TUNING.sidestep:0;
 }
+// 3.124.0: a move is not always one step. The swarm tongue pull records the whole displacement (up to five tiles, and
+// diagonal), and the old one-step bound rejected every save taken right after a pull, which lost the run on reload.
+// Sidestep only reads the direction, so any in-board displacement is valid.
 export function validCombatMemory(actor,turn){
   const d=actor.moveDelta,c=actor.fireChain;
-  return validSuppression(actor)&&Array.isArray(d)&&d.length===2&&d.every(Number.isInteger)&&Math.abs(d[0])+Math.abs(d[1])<=1&&
+  return validSuppression(actor)&&Array.isArray(d)&&d.length===2&&d.every(n=>Number.isInteger(n)&&Math.abs(n)<SIZE)&&
     (c===null||(c&&typeof c==='object'&&!Array.isArray(c)&&typeof c.targetId==='string'&&c.targetId.length>0&&c.targetId.length<=100&&Number.isInteger(c.turn)&&c.turn>=1&&c.turn<=turn&&Number.isInteger(c.count)&&c.count>=1&&c.count<=correctionLimit(actor)));
 }
 

@@ -33,6 +33,8 @@ test('tongue shares grapple geometry, prepares for an opportunity, then pulls wi
  const g=arena(),e=spawn(g,'hive_beast');const plan=tonguePlan(g,e);assert.deepEqual(plan.point,pullLanding(g,g.player,e));const state=g.rng.state();g.enemyAct(e);
  assert.deepEqual(tongueTelegraphs(g)[0].target,{x:10,y:10});assert.equal(g.player.x,10);assert.equal(g.rng.state(),state);
  g.enemyAct(e);assert.equal(g.player.x,13);assert.equal(g.player.hp,100);assert.equal(e.tongueIntent,undefined);assert.equal(e.tongueCooldown,4);assert.ok(g.effects.some(f=>f.type==='tonguePull'));
+ // 3.124.0: the pull records a three-tile move; a save taken now must load (it used to be rejected).
+ assert.deepEqual(g.player.moveDelta,[3,0]);const reloaded=Game.restore(g.serialize());assert.ok(reloaded);assert.deepEqual(reloaded.player.moveDelta,[3,0]);
  g.player.x=10;for(let n=0;n<3;n++)tickTongues(g);g.enemyAct(e);assert.equal(e.tongueIntent,undefined);tickTongues(g);g.enemyAct(e);assert.ok(e.tongueIntent);
  // The ability is card data, not a boss-ID test.
  ENEMY_TYPES.qa_tongue={...ENEMY_TYPES.crawler,tongue:true};try{const h=arena(),q=spawn(h,'qa_tongue');h.enemyAct(q);assert.ok(q.tongueIntent);}finally{delete ENEMY_TYPES.qa_tongue;}

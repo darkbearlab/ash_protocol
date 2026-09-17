@@ -50,5 +50,8 @@ test('the controller skips only on a live turn, keeps the input lock, and lets t
   assert.ok(/function skipPlayback\(\)\{\s*if\(!playback\|\|!skipEnabled\(\)\|\|orientationBlocked\|\|!entered\|\|performance\.now\(\)<lockUntil\)return false;/.test(source),'the double-input lock still applies');
   assert.ok(source.includes('if(playback.skipping)return;update();'),'settled events neither redraw one by one nor play their sounds');
   assert.ok(source.includes("command&&!e.repeat&&"),'a held key never skips');
-  assert.equal((source.match(/\.finish\(\)/g)||[]).length,1,'every path goes through skipPlayback');
+  // 3.124.0: the only other caller is the test-mode replay's fast playback, which is not the player's skip and
+  // deliberately ignores that setting; it still waits for the input lock before the next step.
+  assert.equal((source.match(/\.finish\(\)/g)||[]).length,2,'every player path goes through skipPlayback');
+  assert.ok(source.includes('if(replay.fast&&playback){playback.finish();endPlayback();}'),'the second is the replay fast path');
 });

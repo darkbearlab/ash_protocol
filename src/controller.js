@@ -61,6 +61,7 @@ import {enemyGlyph,floorTraitNote} from './enemy-visuals.js';
 import {unitTree} from './behavior-tree.js';
 import {read,write,loadGame,saveGame,storage,profile,recordResult,TEST_MODE,exportBackup,previewBackup,restoreBackup,abandonRun,resetProgress} from './storage.js';
 import {DECK_GRID,DECK_COLUMNS,DECK_SLOTS,DECK_LABELS,DECK_GLYPHS,deckPlacement,mirrorDeck,swapSlots,parseDeckLayout} from './deck-layout.js';
+import {createReplay,recordReplay,replayLog,stateHash,validReplay} from './replay.js';
 
 const $=s=>document.querySelector(s),audio=new AudioEngine();
 const savedGame=loadGame();
@@ -216,7 +217,7 @@ function update(view=renderer.game) {
   if(playback)return;
   if(view.floor!==previousFloor){previousFloor=view.floor;floorToast();}
   if(entered)persist();
-  if(game.status!=='playing'&&lastStatus==='playing'){lastStatus=game.status;recordResult(game);showResult();}
+  if(game.status!=='playing'&&lastStatus==='playing'){lastStatus=game.status;if(!replay)recordResult(game);showResult();}
   else if(entered&&isSimulation(game)&&game.status==='playing'&&!$('#modal').open&&promptDue(game,promptLog(game)))showRoomPrompt();
   else if(entered&&game.pendingPerks&&game.status==='playing')showLevelUp();
   else if(entered&&saveWarningDue&&!$('#modal').open)showSaveWarning();
@@ -782,6 +783,9 @@ ${sec('存檔')}
 ${read('ash-backup-before-restore')?'<button class="modal-button secondary" data-modal="backupPrevious">下載還原前備份</button>':''}
 ${simulating?'<p>模擬中：完整備份保存的是原本的戰役；還原、單局匯出入與重置要先結束模擬。</p>':`<p>完整備份包含點數、解鎖、任務歷史與目前任務。下方僅匯出／匯入單局任務。</p>
 <div class="modal-row"><button class="modal-button secondary" data-modal="export">匯出任務</button><button class="modal-button secondary" data-modal="import">匯入任務</button></div>`}
+${TEST_MODE?`${sec('測試：操作紀錄')}<div class="modal-row"><button class="modal-button secondary" data-modal="replayLoad">播放操作紀錄</button><button class="modal-button secondary" data-modal="replayFast">快速播放</button></div>
+<div class="modal-row"><button class="modal-button secondary" data-modal="recordStart" ${runIsLive()&&!simulating?'':'disabled'}>從現在開始記錄</button><button class="modal-button secondary" data-modal="recordDownload" ${recording?.game===game?'':'disabled'}>下載操作紀錄</button></div>
+<p>只在測試模式出現。操作紀錄來自 tools/text-play.mjs 或這裡的記錄；播放時畫面照常演出，每一步都和紀錄的狀態比對，不同就暫停。播放中不接受操作，左下角可以暫停或停止，停止後可以接手玩。</p>`:''}
 ${sec('紀錄')}
 <button class="modal-button secondary" data-modal="journal">幹員狀態、任務紀錄與敵人圖鑑</button>
 ${simulating?`${sec('模擬')}<button class="modal-button secondary" data-modal="mission">模擬說明</button><button class="modal-button secondary" data-modal="khMenu">結束模擬</button>`:inRun?`${sec('本局')}<button class="modal-button secondary" data-modal="mission">任務簡介</button><button class="modal-button secondary" data-modal="abandon" ${game.status!=='playing'?'disabled':''}>放棄本局（保留永久進度）</button><button class="modal-button secondary" data-modal="restart">重新部署新任務</button>`:''}
@@ -974,6 +978,9 @@ document.addEventListener('click',e=>{
     case 'sound':audio.setEnabled(!audio.enabled);write('ash-sound',audio.enabled?'on':'off');syncMusic();settings();break;
     case 'backupExport':try{downloadJSON(exportBackup(game),'ash-protocol-backup.json');notify('完整備份已匯出。');}catch(error){backupError(error);}break;
     case 'backupImport':$('#import-backup').click();break;
+    case 'replayLoad':case 'replayFast':replayOptions={fast:b.dataset.modal==='replayFast'};$('#import-replay').click();break;
+    case 'recordStart':startRecording();settings();break;
+    case 'recordDownload':downloadRecording();break;
     case 'backupPrevious':{const raw=read('ash-backup-before-restore');if(raw)downloadJSON(raw,'ash-protocol-before-restore.json');break;}
     case 'backupConfirm':applyBackup();break;case 'backupCancel':pendingBackup=null;settings();break;
     case 'export':exportSave();break;case 'import':$('#import-save').click();break;
@@ -1080,6 +1087,64 @@ document.addEventListener('keydown',e=>{
   if(command==='menu'){if(renderer.mode)cancelAim();else settings();return;}
   e.preventDefault();HOTKEY_RUN[command]?.();
 });
+// Operation logs (3.124.0, user request; test mode only). A log from tools/text-play.mjs, or one recorded here, plays
+// back through act() with the full presentation. Every step is checked against the hash in the log and the first
+// difference pauses the replay. The replayed run is not connected to the profile, and input is ignored while it plays
+// (a stray tap would change the run); the controls pause, resume or stop it, and after stopping you can play on.
+let replay=null,replayOptions={fast:false},replayResult=null,recording=null;
+const replayControls=document.createElement('div');replayControls.id='replay-controls';replayControls.hidden=true;
+Object.assign(replayControls.style,{position:'fixed',left:'8px',bottom:'8px',zIndex:60,display:'flex',gap:'6px'});
+replayControls.innerHTML='<button type="button" data-replay="toggle"></button><button type="button" data-replay="stop">■ 停止</button>';
+for(const b of replayControls.querySelectorAll('button'))Object.assign(b.style,{font:'12px monospace',padding:'6px 10px',background:'#1b2420e6',color:'#cfe6c3',border:'1px solid #6f8f63'});
+document.body.append(replayControls);
+function replayBadge(){if(replay)replayControls.querySelector('[data-replay="toggle"]').textContent=`${replay.paused?'▶':'⏸'} 重播 ${replay.index}/${replay.log.ops.length}${replay.fast?' 快速':''}${replay.mismatch?' ✗':''}`;}
+function loadReplay(raw,{from=0,fast=false}={}){
+  const log=JSON.parse(raw),reason=validReplay(log);if(reason)throw new Error(reason);
+  const start=replayLog(log,{until:Math.max(0,Math.min(Number(from)||0,log.ops.length))});
+  if(start.mismatch)throw new Error(`第 ${start.mismatch.step} 步就與紀錄不同，無法播放。`);
+  if(isSimulation(game))exitSimulation();
+  stopReplay(false);recording=null;replayResult=null;
+  game=start.game;entered=true;resumable=false;playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus=game.status;previousFloor=game.floor;
+  replay={log,index:start.step,fast,paused:false,mismatch:null,timer:setInterval(replayTick,50)};
+  $('#modal').close();replayControls.hidden=false;update();replayBadge();floorToast();
+}
+function replayTick(){
+  if(!replay||replay.paused||playback||orientationBlocked||performance.now()<lockUntil)return;
+  if(replay.index>=replay.log.ops.length){finishReplay();return;}
+  const op=replay.log.ops[replay.index];
+  if(op.op==='perk'){game.choosePerk(op.id);$('#modal').close();update();}
+  else if(op.op==='target'){game.target=op.id??null;update();}
+  else if(op.op==='recover'){game.recoverOperator();update();}
+  else{
+    if($('#modal').open)$('#modal').close();
+    act(op.type,op.arg===undefined?undefined:structuredClone(op.arg));
+    if(replay.fast&&playback){playback.finish();endPlayback();}
+  }
+  replay.index++;
+  const hash=stateHash(game);
+  if(op.h&&hash!==op.h){replay.paused=true;replay.mismatch={step:replay.index,op,expected:op.h,actual:hash};notify(`重播第 ${replay.index} 步與紀錄不同，已暫停。`,{danger:true});console.warn('[replay] mismatch',replay.mismatch);}
+  replayBadge();
+}
+function finishReplay(){
+  const done=replay;stopReplay(false);replayResult={steps:done.log.ops.length,mismatch:done.mismatch,hash:stateHash(game)};
+  notify(done.mismatch?`重播結束：第 ${done.mismatch.step} 步與紀錄不同。`:`重播完成：${done.log.ops.length} 步全部與紀錄相同。`,{danger:Boolean(done.mismatch)});
+  console.info('[replay] finished',replayResult);
+}
+function stopReplay(message=true){if(!replay)return;clearInterval(replay.timer);replay=null;replayControls.hidden=true;if(message)notify('已停止重播，可以從這裡接手操作。');}
+replayControls.addEventListener('click',e=>{const b=e.target.closest('[data-replay]');if(!b||!replay)return;if(b.dataset.replay==='stop')stopReplay();else{replay.paused=!replay.paused;replayBadge();}});
+for(const type of ['pointerdown','pointerup','click','keydown','touchstart'])window.addEventListener(type,e=>{if(replay&&!(e.target instanceof Element&&e.target.closest('#replay-controls'))){e.stopPropagation();if(e.cancelable&&type!=='touchstart')e.preventDefault();}},{capture:true,passive:false});
+// Recording starts from the run on screen as it is now; a new run or a loaded save ends it.
+function startRecording(){const made=createReplay(game,{tool:'browser'});recording={log:made.log,game,...recordReplay(game,made.log)};notify('開始記錄操作；到設定下載操作紀錄。');}
+function downloadRecording(){if(!recording||recording.game!==game){notify('目前沒有記錄中的任務。');return;}recording.flush();downloadJSON(JSON.stringify(recording.log),`ash-replay-${game.seed}-t${game.turn}.json`);notify(`已下載 ${recording.log.ops.length} 步的操作紀錄。`);}
+$('#import-replay').addEventListener('change',async e=>{
+  const file=e.target.files[0];e.target.value='';if(!file)return;
+  try{if(file.size>20000000)throw new Error('檔案超過 20 MB。');loadReplay(await file.text(),replayOptions);}
+  catch(error){modal('<h2>無法播放操作紀錄</h2><p>'+escapeHTML(error.message)+'</p><button class="modal-button" data-modal="close">返回</button>');}
+});
+if(TEST_MODE)globalThis.__ashReplay={load:(raw,options)=>loadReplay(typeof raw==='string'?raw:JSON.stringify(raw),options),
+  pause(){if(replay){replay.paused=true;replayBadge();}},resume(){if(replay){replay.paused=false;replayBadge();}},stop:()=>stopReplay(),record:startRecording,hash:()=>stateHash(game),
+  get state(){return replay?{index:replay.index,total:replay.log.ops.length,paused:replay.paused,fast:replay.fast,mismatch:replay.mismatch}:{done:replayResult};},
+  get recording(){return recording?.game===game?recording.log:null;}};
 $('#import-save').addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
   try{if(file.size>1000000)throw new Error('存檔超過大小限制。');const imported=Game.restore(await file.text());if(!imported)throw new Error('存檔格式不相容或任務已結束。');const kept=write('ash-save-before-import',game.serialize());game=connectUnlocks(imported);entered=true;resumable=true;game.setCarryLevel(profile().upgrades.carrying);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify(kept?'存檔已匯入；原進度已在本機備份。':'存檔已匯入；原進度的本機備份沒有寫入成功。'); }catch(error){modal('<h2>無法匯入存檔</h2><p>'+escapeHTML(error.message)+'</p><button class="modal-button" data-modal="close">返回戰場</button>');}e.target.value='';

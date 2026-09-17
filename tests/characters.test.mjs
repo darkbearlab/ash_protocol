@@ -92,7 +92,9 @@ test('character, movement and correction survive snapshots, complete backup and 
   assert.deepEqual(Game.restore(migrated.serialize()).player,migrated.player);
 });
 test('v9 rejects unknown characters and malformed movement or correction histories',()=>{
-  for(const mutate of [p=>delete p.character,p=>p.character='scout',p=>p.moveDelta=[1,1],p=>p.moveDelta=[.5,0],p=>delete p.fireChain,p=>p.fireChain={targetId:'e',turn:999,count:1},p=>p.fireChain={targetId:'e',turn:1,count:4}]){
+  // 3.124.0: a pull moves more than one tile, diagonally too, and such a save must still load.
+  for(const delta of [[3,0],[-4,3],[0,-5]]){const raw=JSON.parse(arena().serialize());raw.data.player.moveDelta=delta;raw.data.player.moved=true;assert.deepEqual(Game.restore(JSON.stringify(raw))?.player.moveDelta,delta);}
+  for(const mutate of [p=>delete p.character,p=>p.character='scout',p=>p.moveDelta=[27,0],p=>p.moveDelta=[0,1,0],p=>p.moveDelta=[.5,0],p=>delete p.fireChain,p=>p.fireChain={targetId:'e',turn:999,count:1},p=>p.fireChain={targetId:'e',turn:1,count:4}]){
     const raw=JSON.parse(arena().serialize());mutate(raw.data.player);assert.equal(Game.restore(JSON.stringify(raw)),null);
   }
 });
