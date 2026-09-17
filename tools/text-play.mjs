@@ -31,6 +31,10 @@ import {levelLabel,levelTitle} from '../src/endless-ui.js';
 import {isNoncombatant} from '../src/enemy-data.js';
 import {LEARNING_ITEMS} from '../src/learning-data.js';
 import {rollFacilityFaction} from '../src/faction-catalog.js';
+import {UNIT_BLUEPRINTS,deployedUnits,repairTargets} from '../src/workshop.js';
+import {deployLimit,lineLimit} from '../src/allies.js';
+import {petFeedingState} from '../src/pet-growth.js';
+import {fuelLabel,lineProgress,petStatusLine} from '../src/pet-ui.js';
 
 const DIRS={n:[0,-1],s:[0,1],e:[1,0],w:[-1,0]};
 const LETTERS='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -241,7 +245,9 @@ const HELP=`指令（用 ; 分隔可一次下多個；遇到新敵人、受傷�
      take <地上槽> · salvage <背包槽>（拆背包武器）· scrapgun <地上槽>（就地拆）· replace <地上槽> <背包槽>
 互動  open [id] · door <id> · obj <id> · buy <品項> [抵價id=數量 ...] · down（電梯）· perk <id> · recover
      learn <學習資料 id>（背包裡的學習資料，不耗回合；id 看 inv）
-資訊  look · map（全圖）· inv · term · enemy <敵人>（含圖鑑）· codex [兵種]（敵人圖鑑）· log [n] · help
+職業  class（獵獸與工坊面板）· pet <X,Y|@>（指揮獵獸，需先 prep skill pet_command）· feed <飼料 id|weapon <槽>>
+     build <藍圖> [投擲物] [武器槽] · deploy <序列> <X,Y> · repair <機體 id>
+資訊  look · map（全圖）· inv · term · class · enemy <敵人>（含圖鑑）· codex [兵種]（敵人圖鑑）· log [n] · help
 鎖定  油桶、補給箱、門、隔板都可以 t <id> 鎖定再 f 開火（油桶會爆炸）。
 其他  act <type> <json>（直接送出任何規則動作，用於工程師/德魯伊等特殊操作）
 座標 X 往東增加、Y 往南增加。`;
@@ -253,6 +259,30 @@ function codexRows(g,type){
  return [`圖鑑 ${type}：${name} · 生命 ${e.hp} · 射程 ${e.range} · 護甲 ${e.armor||0}${e.damage?` · 傷害 ${e.damage.min??e.damage}-${e.damage.max??e.damage}`:''}${e.revealRange?` · 只在 ${e.revealRange} 格內看得到`:''}`,
   `  ${e.role||''}${startingTraits(type,g.floor).length?` · 被動：${traitLabels({traits:startingTraits(type,g.floor)}).join('、')}`:''}`];
 }
+
+// What the class panels show in the game: the pet's stomach and growth, the workshop's lines and chassis.
+function classRows(g){
+ const p=g.player,rows=[];
+ const pet=petFeedingState(g);
+ if(pet){
+  rows.push(`獵獸 ${pet.actorId}：${petStatusLine(pet)} · ${fuelLabel(pet)}`);
+  rows.push(`  成長：${Object.entries(pet.growth).map(([line,v])=>`${line} ${v.rank} 階（${lineProgress(line,v)}）`).join(' · ')}`);
+  const feed=pet.options.filter(o=>o.allowed);
+  rows.push(`  可餵（feed <id>）：${feed.map(o=>`${o.action.optionId}${o.action.weaponSlot!==undefined?` ${o.action.weaponSlot}`:''}（${o.resource||''} ${o.amount||1}→成長 +${o.gain}）`).join('、')||'目前沒有可餵的東西'}`);
+  rows.push('  指揮：先 prep skill pet_command，再 pet <X,Y>；點自己＝召回。');
+ }
+ if(p.skills?.includes('workshop')){
+  rows.push(`工坊：廢料 ${p.scrap||0} · 生產序列 ${p.productionLines.length}/${lineLimit(p)} · 已部署 ${deployedUnits(g).length}/${deployLimit(p)}`);
+  rows.push(`  序列：${p.productionLines.map((unit,i)=>`[${i}] ${unit?`${unit.name||unit.blueprint} 完成，deploy ${i} <X,Y>`:'空'}`).join('；')||'（空）'}`);
+  const blueprints=Object.entries(UNIT_BLUEPRINTS).filter(([id,def])=>!def.enemy||p.blueprints.includes(id));
+  rows.push(`  可生產（build <id> [投擲物] [武器槽]）：${blueprints.map(([id,def])=>`${id}（${def.name} ${def.cost}${def.payload?' 需投擲物':''}${def.mount?' 可掛武器':''}）`).join('、')}`);
+  const repairable=repairTargets(g);
+  rows.push(`  可修理（repair <id>）：${repairable.map(a=>`${a.id} HP ${a.hp}/${a.maxHp}`).join('、')||'附近沒有相鄰的機體'}`);
+ }
+ if(!rows.length)rows.push('這個職業沒有額外的面板；技能看 inv。');
+ return rows;
+}
+const ACTION_TYPES=['move','fire','launch','reload','wait','weapon','grenade','flare','usePrepared','prepare','heal','plate','surge','skill','grapple','suppressiveFire','deployCover','openContainer','door','recoverObjective','takeWeapon','salvage','salvageGround','replaceWeapon','terminal','learn','dismantleLearning','commandPet','setPetOutput','feedPet','buildUnit','deployUnit','repairUnit','interact'];
 
 // ---- commands ------------------------------------------------------------------------------------------------------
 function route(g,goal){
@@ -347,10 +377,19 @@ function command(file,log,g,text,report){
    const ok=act('terminal',{buy:need(arg,'buy 需要品項。'),trade});return report(`終端購買 ${arg}：${ok?'完成':'被拒絕'}`,!ok);
   }
   case 'down':{const floor=g.floor,ok=act('interact');return report(ok?(g.floor!==floor?`進入第 ${g.floor} 層`:`電梯：${g.status}`):'電梯：被拒絕',true);}
+  case 'pet':{const ok=act('commandPet',where(need(arg,'pet 需要目的地（點自己＝召回）。')));return report(`指揮獵獸：${ok?'完成':'被拒絕（需要預備 pet_command 技能，目的地要在已探索的 6 格內）'}`,!ok);}
+  case 'feed':{const value=arg==='weapon'?{optionId:'weapon',weaponSlot:Number(rest[1])}:{optionId:need(arg,'feed 需要飼料 id（看 class）。')};const ok=act('feedPet',value);return report(`餵食：${ok?'完成':'被拒絕'}`,!ok);}
+  case 'build':{const ok=act('buildUnit',{blueprint:need(arg,'build 需要藍圖 id（看 class）。'),...(rest[1]?{payload:rest[1]}:{}),...(rest[2]!==undefined?{weapon:Number(rest[2])}:{})});return report(`生產：${ok?'完成':'被拒絕'}`,!ok);}
+  case 'deploy':{const spot=where(need(rest[1],'deploy 需要序列與落點：deploy <序列> <X,Y>。'));const ok=act('deployUnit',{line:Number(arg),x:spot.x,y:spot.y});return report(`部署：${ok?'完成':'被拒絕'}`,!ok);}
+  case 'repair':{const ok=act('repairUnit',need(arg,'repair 需要機體 id（看 class）。'));return report(`修理：${ok?'完成':'被拒絕'}`,!ok);}
+  case 'class':say(...classRows(g));return report(null);
   case 'perk':{const ok=perform(log,g,makeOp('perk',need(arg,'perk 需要 id。')));return report(`選擇強化 ${arg}：${ok?'完成':'被拒絕'}`,!ok);}
   case 'recover':{const ok=perform(log,g,makeOp('recover'));return report(`回收識別資料：${ok?'完成':'被拒絕'}`,!ok);}
   case 'learn':{const ok=act('learn',arg);return report(`學習 ${arg}：${ok?'完成':'被拒絕'}`,!ok);}
-  case 'act':{const json=text.trim().slice(4+rest[0].length).trim();const ok=act(rest[0],json?JSON.parse(json):undefined);return report(`act ${rest[0]}：${ok?'完成':'被拒絕'}`,!ok);}
+  case 'act':{
+   if(!arg){say(`act 可用的動作：${ACTION_TYPES.join('、')}。參數是 JSON，例如 act door {"id":"edge-1","open":true}、act repairUnit "ally-3"。`);return report(null);}
+   const json=text.trim().slice(4+rest[0].length).trim();const ok=act(rest[0],json?JSON.parse(json):undefined);return report(`act ${rest[0]}：${ok?'完成':'被拒絕'}`,!ok);
+  }
   case 'look':say(...look(g));return report(null);
   case 'map':say(...drawMap(g,0),LEGEND);return report(null);
   case 'inv':say(...inventory(g));return report(null);

@@ -82,7 +82,13 @@ node tools/text-play.mjs verify runs/rebel-1.json     # 從頭重播，逐步比
   - `open [id]` 開箱；`door <id>` 開關門；`obj <id>` 回收機密。
   - `buy <品項> [抵價id=數量…]` 終端購買。
   - `down` 搭電梯；`perk <id>` 選強化；`recover` 回收識別資料；`learn <id>` 學習資料。
-- **資訊**：`look`、`map`（全圖）、`inv`、`term`、`enemy <敵人>`（附圖鑑）、`codex [兵種]`、`log [n]`。
+- **職業**（德魯伊、工程師）
+  - `class`：獵獸的燃料與四條成長線、工坊的生產序列、藍圖、部署上限、可修理的機體。
+  - `pet <X,Y|@>`：指揮獵獸，要先 `prep skill pet_command`；點自己＝召回。
+  - `feed <飼料 id>` 或 `feed weapon <槽>`：餵獵獸，id 看 `class`。
+  - `build <藍圖> [投擲物] [武器槽]`、`deploy <序列> <X,Y>`、`repair <機體 id>`。
+- **資訊**：`look`、`map`（全圖）、`inv`、`term`、`class`、`enemy <敵人>`（附圖鑑）、`codex [兵種]`、`log [n]`。
+- `act` 不帶參數會列出所有合法的動作名稱。
 - **鎖定物件**：油桶、補給箱、門、隔板都可以 `t <id>` 鎖定再 `f` 開火，和正式版點擊它們一樣；附近的油桶會列出 id。
 - **特殊**：`act <type> <json>`，直接送出任何規則動作，給工程師工坊、德魯伊餵食這類沒有簡寫的操作。
 
