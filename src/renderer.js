@@ -22,7 +22,7 @@ import {MODULE_TYPES,moduleCells,modulePoint} from './modules.js';
 import {isContainer,CONTAINER_KINDS} from './containers.js';
 import {isBarrier,edgeCells} from './barriers.js';
 import {areaCells} from './throwables.js';
-import {cameraFrame} from './camera.js';
+import {cameraFrame,zoomStep} from './camera.js';
 import {targetCardPlacement,actorObstacle,spriteSize} from './target-card.js';
 import {inCone,coneTargets} from './shotgun.js';
 import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTelegraphs} from './engine.js';
@@ -85,8 +85,17 @@ export class Renderer {
   text(value,x,y,color='#c1ceb2',size=9){const c=this.ctx;c.font=`${size}px monospace`;c.textAlign='center';c.fillStyle=color;c.fillText(value,x,y);}
   frame(t) {
     const dt=Math.min((t-this.last)/1000,.1);this.last=t;
-    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);const frame=cameraFrame(this.visualActor(this.game.player),this.targetingEnabled&&this.game.targeted?this.visualActor(this.game.targeted):null,this.aim,this.w,this.h,this.zoom);this.camera={x:frame.x,y:frame.y};this.tile=frame.tile;this.draw(this.time);this.placeTargetCard();}
+    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);this.updateCamera(dt*1000);this.draw(this.time);this.placeTargetCard();}
     requestAnimationFrame(v=>this.frame(v));
+  }
+  // The frame is recomputed every frame; only the zoom eases (src/camera.js). A new run, a new floor or a resized board
+  // starts from the exact framing instead of easing across it.
+  updateCamera(dt){
+    const g=this.game,locked=this.targetingEnabled?g.targeted:null,holds=this.effects.filter(e=>e.type==='cameraHold'&&this.time-e.time<e.duration).map(e=>e.to);
+    const frame=cameraFrame(this.visualActor(g.player),locked?this.visualActor(locked):null,this.aim,this.w,this.h,this.zoom,holds);
+    const scene=[g.seed,g.floor,this.w,this.h].join(':'),key=[this.zoom,this.mode||'',this.aim?'aim':'',locked?.id??'',holds.length?'hold':''].join('|');
+    this.zoomState=zoomStep(scene===this.cameraScene?this.zoomState:null,{key,want:frame.tile,dt,reduceMotion:this.reduceMotion});this.cameraScene=scene;
+    this.camera={x:frame.x,y:frame.y};this.tile=this.zoomState.tile;
   }
   placeTargetCard(){
     const ui=this.targetUI,target=this.game.targeted;if(!ui)return;
@@ -198,7 +207,7 @@ export class Renderer {
     const hook=this.targetingEnabled?this.grapplePreview:null;if(hook){const a=this.project(hook.from.x,hook.from.y),b=this.project(hook.point.x,hook.point.y);c.setLineDash([4,4]);this.line(a.x,a.y,b.x,b.y,'#e6c07a99',1.5);c.setLineDash([]);this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,'#e6c07a24','#f0cf8a');this.text(hook.dash?'衝':'拉',b.x,b.y+4,'#ffe0a3',10);}
     const target=this.targetingEnabled?g.targeted:null;if(target){const a=this.projectActor(target),r=t*.43;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(a.x+dx*r,a.y+dy*r,a.x+dx*(r-7),a.y+dy*r,'#f1b07c',1.5);this.line(a.x+dx*r,a.y+dy*r,a.x+dx*r,a.y+dy*(r-7),'#f1b07c',1.5);}}
     for(const fx of this.effects) {
-      if(fx.type==='move'||fx.type==='callout')continue;
+      if(fx.type==='move'||fx.type==='callout'||fx.type==='cameraHold')continue;
       const elapsed=time-fx.time-(fx.delay||0),age=elapsed/650;if(age<0||age>1)continue;
       const a=this.project(fx.from.x,fx.from.y),b=this.project(fx.to.x,fx.to.y),color=fx.color||(fx.type==='shot'?'#ffe1ad':'#ff986c');
       c.globalAlpha=1-age;
@@ -245,7 +254,7 @@ export class Renderer {
       }
       if(fx.miss||fx.damage>0&&!this.game.realMode)this.text(fx.miss?'MISS':'−'+fx.damage,b.x,b.y-20-(fx.quiet?0:age*23),color,fx.miss?10:14);c.globalAlpha=1;
     }
-    this.effects=this.effects.filter(e=>time-e.time<700);
+    this.effects=this.effects.filter(e=>time-e.time<Math.max(700,e.duration||0));
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}
     // Raised partitions share the wall occlusion layer; footprints remain on ground edges.
     const seenBarriers=g.barriers.filter(b=>edgeCells(b).some(q=>g.seen[q.y]?.[q.x]));

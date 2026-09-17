@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
-import {captureAction,planPresentation,Playback,FLIGHT_MS,snapshot,projectileVisuals,DEATH_MS} from '../src/presentation.js';
+import {captureAction,planPresentation,Playback,FLIGHT_MS,snapshot,projectileVisuals,DEATH_MS,KILL_HOLD_MS} from '../src/presentation.js';
 
 function arena(){
   const g=new Game(51);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));
@@ -107,7 +107,8 @@ test('single remaining SMG round and first-shot kills never invent another damag
     const g=arena();enemy(g,'brute',hp);Object.assign(g.player,{weapon:2,owned:[0,1,2]});g.player.ammo[2]=hp===1?2:1;
     const plan=planPresentation(captureAction(g,()=>g.action('fire')).steps);
     assert.equal(g.player.stats.shots,1);assert.equal(plan.events[0].effects.length,3);
-    if(hp===1){assert.ok(plan.events[1].effects.some(e=>e.type==='fall'));assert.equal(plan.duration-plan.events[1].time,DEATH_MS);}
+    // The brute stands 4 tiles away, so the kill is held in frame for a beat (3.115.0).
+    if(hp===1){assert.ok(plan.events[1].effects.some(e=>e.type==='fall'));assert.equal(plan.duration-plan.events[1].time,DEATH_MS+KILL_HOLD_MS);}
   }
 });
 

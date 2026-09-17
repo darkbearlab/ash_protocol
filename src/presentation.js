@@ -42,6 +42,10 @@ export const WEAPON_VISUALS={
   melee:{count:1,flight:80,stagger:0,spread:0}
 };
 export const FLIGHT_MS=125,IMPACT_MS=130,DEATH_MS=220;
+// Kill confirmation (3.115.0, user request): a kill far enough away that the camera had to zoom out for it keeps that
+// tile framed through the fall and a short beat, and the turn waits for it. Closer kills never moved the camera, so they
+// get no beat and a swarm fight does not slow down. KILL_HOLD_REACH is where cameraFrame starts zooming out.
+export const KILL_HOLD_MS=400,KILL_HOLD_REACH=4;
 export function projectileVisuals(effect,reduceMotion=false){
   const id=effect.style==='grenade'?'grenade':effect.weaponId==='unarmed'?'melee':effect.weaponId||enemyProjectile(effect.attackerType)||'rifle';
   const base=WEAPON_VISUALS[id]||WEAPON_VISUALS.rifle,spec=effect.singleShot?{...base,count:1,spread:0}:base;
@@ -85,6 +89,9 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     if(step.before.player.hp>0&&step.after.player.hp<=0)deaths.push({...step.after.player,type:'player'});
     // A brief impact flash precedes the grey corpse's settling motion.
     for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0});
+    const player=step.before.player,settle=reduceMotion?120:DEATH_MS;
+    const far=deaths.filter(dead=>dead.type!=='player'&&step.before.enemies.some(b=>b.id===dead.id&&step.before.visible?.(b))&&Math.max(Math.abs(dead.x-player.x),Math.abs(dead.y-player.y))>=KILL_HOLD_REACH);
+    for(const dead of far)impacts.push({type:'cameraHold',from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},duration:settle+KILL_HOLD_MS,damage:0});
     time+=travel;
     // The kill settles before cap resources/logs appear. Rules already committed them;
     // only this presentation copy hides the pending visual reward.
@@ -93,6 +100,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     events.push({time,state:impactState,effects:[...impacts.map(e=>({...e,quiet:reduceMotion})),...announcements]});
     const burstContinues=flights.some(e=>['smg','lmg','thunder'].includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&['smg','lmg','thunder'].includes(e.weaponId));
     time+=!flights.length&&!impacts.length&&!rewards.length?0:reduceMotion?120:impacts.some(e=>e.type==='nestCollapse'||e.type==='nestSpawn')?NEST_EFFECT_MS:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
+    if(far.length)time+=KILL_HOLD_MS;
     if(rewards.length){events.push({time,state:step.after,effects:rewards.map(({beforeSupply,...e})=>e)});time+=reduceMotion?60:IMPACT_MS;}
   }
   return {events,duration:time};

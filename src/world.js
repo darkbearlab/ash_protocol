@@ -151,7 +151,7 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
     if(i===2||i===7)items.push({x:r.x+2,y:r.y+r.h-2,type:'scrap',amount:18});
     if(floor<=6&&i===rewardRooms[0])items.push({x:r.cx,y:r.cy-1,type:'lore',floor});
     if(info.hazard&&i!==startRoom&&i%2===1)hazards.push({x:r.x+r.w-2,y:r.y+2,type:info.hazard});
-    if(r.supply==='ammo'){items.push({x:r.cx-1,y:r.cy,type:'ammo',amount:20,cache:true},{x:r.cx,y:r.cy,type:'spray',amount:1,cache:true},{x:r.cx+1,y:r.cy,type:'barricade',amount:1,cache:true},{x:r.cx-1,y:r.cy+1,type:'pistol',amount:24,cache:true},{x:r.cx+1,y:r.cy+1,type:'shell',amount:6,cache:true});}
+    if(r.supply==='ammo'){items.push({x:r.cx-1,y:r.cy,type:'ammo',amount:20,cache:true},{x:r.cx,y:r.cy,type:'spray',amount:1,cache:true},{x:r.cx+1,y:r.cy,type:'barricade',amount:1,cache:true},{x:r.cx-1,y:r.cy+1,type:'pistol',amount:24,cache:true},{x:r.cx+1,y:r.cy+1,type:'shell',amount:12,cache:true});}
     if(r.supply)items.push({x:r.cx,y:r.cy+1,type:{ammo:'emp',medical:'stun',armor:'smoke'}[r.supply],amount:1,cache:true});
     if(r.supply==='medical')items.push({x:r.cx,y:r.cy,type:'med',amount:1,cache:true});
     if(r.supply==='armor')items.push({x:r.cx,y:r.cy,type:'armor',amount:20,cache:true});
@@ -164,7 +164,7 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
   if(floor>=RARE_ARMORY.minFloor&&rng()<RARE_ARMORY.chance)items.push({x:armory.cx,y:armory.cy+1,type:'weapon',weapon:RARE_ARMORY.weapon});
   // The launcher only exists from floor 3 (GL-03 on 4, the rare TB-09 from 3), so this stays the one reliable source
   // of launcher rounds now that the ammunition cache trades its own for a folding cover.
-  if(floor>=3){const r=rooms[startRoom];items.push({x:r.x+r.w-2,y:r.y+r.h-2,type:'energy',amount:18});items.push({x:r.x+r.w-2,y:r.y+1,type:'ordnance',amount:4});}
+  if(floor>=3){const r=rooms[startRoom];items.push({x:r.x+r.w-2,y:r.y+r.h-2,type:'energy',amount:27});items.push({x:r.x+r.w-2,y:r.y+1,type:'ordnance',amount:4});}
   const spawn=rooms[startRoom];enemies.unshift(spawnEnemy(factionDef(faction).scout,spawn.x+spawn.w-1,spawn.y+1,`${floor}-scout`,floor));
   // Doorways can now enter from any side. Never place a solid prop or hazard on a connecting lane.
   for(let i=props.length-1;i>=0;i--)if(props[i].hp>0&&corridors.has(key(props[i])))props.splice(i,1);

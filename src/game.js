@@ -712,7 +712,7 @@ export class Game {
     const loot=enemyDef(e)?.loot;
     if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.dropEnemyWeapon(e,loot.weapon);
     if(this.floor>=RARE_ARMORY.minFloor&&loot?.rareWeapon!==undefined&&this.rng()<loot.rareChance)this.dropEnemyWeapon(e,loot.rareWeapon);
-    if(this.rng()<ammoDropChance(this.player)){const type=loot?.ammo||'ammo';this.items.push({...this.enemyDropPoint(e),type,amount:type==='energy'?6:type==='ordnance'?2:type==='pistol'?18:type==='shell'?4:10});}
+    if(this.rng()<ammoDropChance(this.player)){const type=loot?.ammo||'ammo';this.items.push({...this.enemyDropPoint(e),type,amount:type==='energy'?9:type==='ordnance'?2:type==='pistol'?18:type==='shell'?8:10});}
     if(this.rng()<.06)this.items.push({...this.enemyDropPoint(e),type:'med'});
     const plate=plateDrop(this.player,(ENEMY_TYPES[e.type]?.armor||0)>0);
     if(plate.chance>0&&this.rng()<plate.chance)this.items.push({...this.enemyDropPoint(e),type:'armor',amount:plate.amount});
@@ -933,7 +933,7 @@ export class Game {
     if(option==='heal'){healActor(p,60);clearPoison(p);}
     if(item?.resource)p[item.resource]++;
     if(item?.wear)p.wearables.push(item.wear);
-    if(option==='ammo')this.supplyPack({rifle:24,pistol:24,shell:6,energy:12,ordnance:3});
+    if(option==='ammo')this.supplyPack({rifle:24,pistol:24,shell:12,energy:18,ordnance:3});
     if(TERMINAL_AMMO[option])this.receiveAmmo(option,TERMINAL_AMMO[option].amount);
     if(grenadeByItem(option)){const id=grenadeByItem(option);this.receiveGrenade(id,GRENADES[id].amount);}
     this.log('終端補給完成。此終端已耗盡。');return true;
@@ -957,7 +957,7 @@ export class Game {
     }
     if(missionDefinition(this).returnTrip)this.floorStates[this.floor]=archiveFloor(this);
     this.floor++;if(advanceTurn)this.turn++;const recovered=healActor(p,25);
-    this.loadFloor();arriveAllies(this,companions);this.reveal();this.supplyPack({rifle:20,pistol:24,shell:6,energy:10,ordnance:2});this.log(`進入${floorInfo(this.floor).name}。生命 +${recovered}，補充各類備彈。`);return true;
+    this.loadFloor();arriveAllies(this,companions);this.reveal();this.supplyPack({rifle:20,pistol:24,shell:12,energy:15,ordnance:2});this.log(`進入${floorInfo(this.floor).name}。生命 +${recovered}，補充各類備彈。`);return true;
   }
   choosePerk(id) {
     if(this.status!=='playing'||!this.pendingPerks||this.perkPicks>=perkLimit(this.player.level)||this.perkPicks+this.pendingPerks>perkLimit(this.player.level))return false;

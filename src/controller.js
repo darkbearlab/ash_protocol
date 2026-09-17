@@ -67,6 +67,12 @@ renderer.movementBoundaries=read('ash-movement-boundaries')==='on';
 // 3.114.0 (user request): a command pressed while the last turn is still animating ends that animation and runs. On by
 // default; the settings menu turns it off.
 let skipPresentation=read('ash-skip-presentation')!=='off';
+// 3.115.0 (user request): a VHS filter over the whole screen, a display preference that is off by default. It is CSS only
+// (expansion.css): the class on <html> shows the layer after the app and the one inside the dialog.
+let vhsFilter=read('ash-vhs')==='on';document.documentElement.classList.toggle('vhs',vhsFilter);
+// The level-up transmission (showLevelUp) is shown once per level of a run.
+let transmissionSeen=null;
+const transmissionKey=()=>`${game.runId}:${game.player.level}`;
 // Control deck (3.98.0, user request): pad size and layout are display preferences, kept local like the boundary lines.
 const PAD_SIZES=[44,52,60,68],PAD_LABELS={44:'標準',52:'大',60:'特大',68:'巨大'};
 // 3.101.0 (user request): 格狀 drops the split entirely - one five-by-three field of identical cells, so the pad
@@ -173,7 +179,7 @@ function update(view=renderer.game) {
   if(entered)persist();
   if(game.status!=='playing'&&lastStatus==='playing'){lastStatus=game.status;recordResult(game);showResult();}
   else if(entered&&isSimulation(game)&&game.status==='playing'&&!$('#modal').open&&promptDue(game,promptLog(game)))showRoomPrompt();
-  else if(entered&&game.pendingPerks&&game.status==='playing')showPerks();
+  else if(entered&&game.pendingPerks&&game.status==='playing')showLevelUp();
   else if(entered&&saveWarningDue&&!$('#modal').open)showSaveWarning();
 }
 renderer.isPaused=()=>orientationBlocked;
@@ -286,7 +292,7 @@ function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify('�
 // one-handed use, and a tabbed menu fills the height so its top does not move when tabs of different heights change.
 // The upgrade pick is the exception (3.97.3, user report): it opens on its own under a thumb that is still tapping, so it
 // is anchored to the top edge and the queued tap lands on the backdrop.
-function modal(html,wide=false,title=false){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
+function modal(html,wide=false,title=false){cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('transmission',Boolean($('#modal-content').querySelector('.transmission')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
 // Main buttons stay on screen (3.97.0, user request): a menu marks them with .modal-footer; otherwise its final button
 // (or button row) is pinned. When that final button is a secondary back/cancel button, the button just before it (the
 // action) is pinned beside it, back first. Title screens lay themselves out and are left alone.
@@ -302,7 +308,7 @@ function pinFooter(title){
   // The tab row joins the pinned bar, so tabs are as reachable as the buttons (3.97.2).
   const tabs=content.querySelector('[role="tablist"],.journal-tabs');if(tabs&&!footer.contains(tabs))footer.prepend(tabs);
 }
-function close(){if(!entered){showIntro();return;}if(game.pendingPerks){showPerks();return;}if(game.status!=='playing'){showIntro();return;}$('#modal').close();$('#battle').focus({preventScroll:true});}
+function close(){if(!entered){showIntro();return;}if(game.pendingPerks){showLevelUp();return;}if(game.status!=='playing'){showIntro();return;}$('#modal').close();$('#battle').focus({preventScroll:true});}
 function modalAction(type,arg){close();act(type,arg);}
 
 function showIntro(){
@@ -586,6 +592,13 @@ function runPerks(){
   const acquired=PERKS.filter(o=>(game.player.perks?.[o.id]||0)>0);
   return acquired.length?`<section class="run-perks" aria-label="本局強化"><h3>本局強化</h3><ul>${acquired.map(o=>`<li><span>${o.name}</span>${perkPips(game.player,o)}</li>`).join('')}</ul></section>`:'';
 }
+// Level-up (3.115.0, user request): the award first lands as an incoming transmission over the battlefield, and the three
+// choices open only once it is confirmed. Once per level of a run, so a second pending choice goes straight to the list.
+function showLevelUp(){
+  if(transmissionSeen===transmissionKey()){showPerks();return;}
+  if($('#modal').open&&$('#modal-content .transmission'))return;   // already on screen; do not restart its animation
+  modal(`<div class="transmission" role="alert"><div class="eyebrow">PRIORITY SIGNAL / LV. ${game.player.level}</div><p class="transmission-title"><span>INCOMING</span><span>TRANSMISSION</span></p><p class="transmission-note">臨時強化授權待接收。</p></div><div class="modal-footer"><button class="modal-button" data-modal="transmission">確認</button></div>`);
+}
 function showPerks(){modal(`<div class="eyebrow">UPGRADE AVAILABLE / LV. ${game.player.level}</div><h2>臨時強化已授權。</h2><p>強化生效至本次任務結束。${game.pendingPerks>1?`還有 ${game.pendingPerks} 次選擇。`:''}</p>${game.perkChoices.map(p=>`<button class="perk" data-perk="${p.id}"><strong>＋ ${p.name} ${perkPips(game.player,p,true)}</strong><span>${p.text}${p.effect==='health'?`（本角色回血 ${healingAmount(game.player,p.heal)}）`:''}</span></button>`).join('')}${runPerks()}`);}
 // Journal and result: endless records (3.49.1), class names from the character labels.
 const classLabels=()=>Object.fromEntries(Object.entries(CHARACTERS).map(([id,c])=>[id,c.label]));
@@ -615,6 +628,8 @@ ${inRun?`<div class="modal-row"><button class="modal-button secondary" data-moda
 <p id="boundary-opacity-help">0% 完全透明，100% 不透明；只調整白線，綠色門提示不受影響。</p>
 <button class="modal-button secondary" data-modal="skipPresentation" aria-pressed="${skipPresentation}">演出中按指令直接執行：${skipPresentation?'開啟':'關閉'}</button>
 <p>開啟時，上一回合的動畫還沒播完就按下一個指令，會立刻結束動畫並執行；關閉時要等動畫播完。本回合陣亡或任務結束時一定會播完。</p>
+<button class="modal-button secondary" data-modal="vhs" aria-pressed="${vhsFilter}">VHS 濾鏡：${vhsFilter?'開啟':'關閉'}</button>
+<p>在整個畫面疊上掃描線、雜訊、暗角與緩慢捲動的訊號帶。系統設定減少動態效果時，雜訊與訊號帶不會動。</p>
 <div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">操作區排版：${DECK_LAYOUT_LABELS[padLayout]}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>方向鍵大小：${padLayout==='grid'?'格狀不適用':`${PAD_LABELS[padCell]}（${padCell}）`}</button></div>
 <p>九宫格把「裝填」、「互動」移到方向鍵的右上與左上，右側只剩四顆更大的按鈕。格狀則沒有左右之分：整條操作區是五欄三列的同尺寸方格，尺寸由寬度推出來，所以沒有方向鍵大小可調。關閉設定後即可看到效果。</p>
 <button class="modal-button secondary" data-modal="deckEditor" ${padLayout==='grid'?'':'disabled'}>編輯按鈕位置${padLayout==='grid'?'':'（格狀限定）'}</button>
@@ -795,6 +810,8 @@ document.addEventListener('click',e=>{
     case 'deckReset':deckLayout=[...DECK_GRID];deckPick=null;saveDeckLayout();showDeckEditor('\u5df2\u9084\u539f\u9810\u8a2d\u3002');break;
     case 'padLayout':padLayout=DECK_LAYOUTS[(DECK_LAYOUTS.indexOf(padLayout)+1)%DECK_LAYOUTS.length];write('ash-pad-layout',padLayout);applyDeck();fitLayout();settings();break;
     case 'padCell':padCell=PAD_SIZES[(PAD_SIZES.indexOf(padCell)+1)%PAD_SIZES.length];write('ash-pad-cell',String(padCell));applyDeck();fitLayout();settings();break;
+    case 'vhs':vhsFilter=!vhsFilter;write('ash-vhs',vhsFilter?'on':'off');document.documentElement.classList.toggle('vhs',vhsFilter);settings();break;
+    case 'transmission':transmissionSeen=transmissionKey();showPerks();break;
     case 'skipPresentation':skipPresentation=!skipPresentation;write('ash-skip-presentation',skipPresentation?'on':'off');settings();break;
     case 'movementBoundaries':renderer.movementBoundaries=!renderer.movementBoundaries;write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off');settings();break;
     case 'sound':audio.enabled=!audio.enabled;write('ash-sound',audio.enabled?'on':'off');settings();break;
