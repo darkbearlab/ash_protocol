@@ -56,3 +56,11 @@ python tools/pixelize.py --source art/source-aftermath.png --aftermath --remove-
 3.48.2 起玩家可在新任務的行動員畫面選塗裝顏色（`src/operator-color.js`）。renderer 把灰階依明暗對應到「陰影 → 顏色 → 高光」後快取成小畫布，站姿與倒地共用；選「原色」就畫原本的灰圖。所以重畫這組圖時要維持中性灰與透明背景，灰階範圍大致落在 16～181，顏色對應才會正確。
 
 3.48.3：狂戰士與忍者的站姿、倒地換成使用者選的新造型（本機 _gptImageCaller 產圖，同一套縮圖流程），提示詞見 `art/classes-v1/PROMPT-melee-v3.md`，備用候選在 `art/classes-v1/candidates/`。
+
+## 3.122.0 原色加外框（Codex 美術，使用者採用）
+
+八職業站姿與倒地、十二組敵人與共用角色的站姿與倒地（共 40 格）在透明處補深色外框（12,14,18），原有像素一律不改；狂戰士站姿另依使用者核准水平放大 125%。三張正式圖集換成 `art/sprites/adopted/original-outline-2026-09-17/` 的採用快照，尺寸、索引、物件格（掩體、油桶、補給、終端）與特效格都不變。
+
+- 重製：`generator.lua`（Aseprite 批次）讀的是 `assets/pixel/` 的正式圖集，**現在正式圖已有外框**，重跑前要先把來源改指向同資料夾的 `source/`（本次修改前的三張正式圖），否則會重複加框。
+- 各角色的單張 PNG（`assets/pixel/*.png`、`classes-v1/*.png`）與它們的 json 雜湊沒有跟著換，遊戲只讀圖集；測試仍檢查那些單張檔。
+- 交接與逐格核對見 [SPRITE_OUTLINE_HANDOFF.md](SPRITE_OUTLINE_HANDOFF.md) 與 qa/results/2026-09-17-claude-3.122.0-sprite-outline.md。
