@@ -48,6 +48,7 @@ import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MOD
 import {Renderer} from './render.js';
 import {AudioEngine,AUDIO_TUNING,volumePercent} from './audio.js';
 import {GRIT_LEVELS,gritLevel} from './audio-grit.js';
+import {frameRate,nextFrameRate} from './frame-rate.js';
 import {eventSounds,actionSound} from './sound-cues.js';
 import {engagementHeard,freshCombat,stepCombat,musicTrack} from './music-state.js';
 import {landscapeTouch} from './layout.js';
@@ -216,6 +217,9 @@ function update(view=renderer.game) {
   else if(entered&&saveWarningDue&&!$('#modal').open)showSaveWarning();
 }
 renderer.isPaused=()=>orientationBlocked;
+renderer.frameRate=frameRate(read('ash-frame-rate'));
+// The title and every menu opened from it sit on an opaque backdrop, so the battlefield behind them is not drawn.
+renderer.isCovered=()=>$('#modal').open&&$('#modal').matches('.title,.standalone');
 // Rules are resolved before a presentation starts, so skipping only drops frames. A turn that ended the run always plays
 // out, so a death is never covered by the result screen mid-fall; the 120ms double-input lock still applies.
 function skipEnabled(){return skipPresentation&&game.status==='playing';}
@@ -674,6 +678,8 @@ ${inRun?`<div class="modal-row"><button class="modal-button secondary" data-moda
 <p id="boundary-opacity-help">0% 完全透明，100% 不透明；只調整白線，綠色門提示不受影響。</p>
 <button class="modal-button secondary" data-modal="skipPresentation" aria-pressed="${skipPresentation}">演出中按指令直接執行：${skipPresentation?'開啟':'關閉'}</button>
 <p>開啟時，上一回合的動畫還沒播完就按下一個指令，會立刻結束動畫並執行；關閉時要等動畫播完。本回合陣亡或任務結束時一定會播完。</p>
+<button class="modal-button secondary" data-modal="frameRate" aria-pressed="${renderer.frameRate!==60}">畫面更新：每秒 ${renderer.frameRate} 次</button>
+<p>戰場每秒重畫的次數，全遊戲共用，按一下切換 60／30／15。越低越省電、手機越不會熱，動畫越不順，但動作的快慢不變；15 適合舊手機，槍口火光這類很短的效果可能看不到。整頁選單蓋住戰場時一律不重畫。</p>
 <label class="boundary-opacity" for="screen-brightness">畫面明度 <output id="screen-brightness-value" for="screen-brightness">${screenBrightness}%</output><input id="screen-brightness" type="range" min="${SCREEN_BRIGHTNESS.min}" max="${SCREEN_BRIGHTNESS.max}" step="${SCREEN_BRIGHTNESS.step}" value="${screenBrightness}" aria-describedby="screen-brightness-help"></label>
 <p id="screen-brightness-help">整個畫面一起調，包括選單與結算畫面；100% 為原始亮度。和 VHS 濾鏡可以一起用。</p>
 <label class="boundary-opacity" for="operator-tint">幹員塗裝濃度 <output id="operator-tint-value" for="operator-tint">${Math.round(renderer.operatorTint*100)}%</output><input id="operator-tint" type="range" min="${OPERATOR_TINT.min}" max="${OPERATOR_TINT.max}" step="${OPERATOR_TINT.step}" value="${Math.round(renderer.operatorTint*100)}" aria-describedby="operator-tint-help"></label>
@@ -869,6 +875,7 @@ document.addEventListener('click',e=>{
     case 'audioGrit':{const order=Object.keys(GRIT_LEVELS),next=order[(order.indexOf(audio.grit)+1)%order.length];audio.setGrit(next);write('ash-audio-grit',next);settings();break;}
     case 'vhs':vhsFilter=!vhsFilter;write('ash-vhs',vhsFilter?'on':'off');document.documentElement.classList.toggle('vhs',vhsFilter);settings();break;
     case 'transmission':transmissionSeen=transmissionKey();showPerks();break;
+    case 'frameRate':renderer.frameRate=nextFrameRate(renderer.frameRate);write('ash-frame-rate',String(renderer.frameRate));settings();break;
     case 'skipPresentation':skipPresentation=!skipPresentation;write('ash-skip-presentation',skipPresentation?'on':'off');settings();break;
     case 'movementBoundaries':renderer.movementBoundaries=!renderer.movementBoundaries;write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off');settings();break;
     case 'sound':audio.setEnabled(!audio.enabled);write('ash-sound',audio.enabled?'on':'off');syncMusic();settings();break;

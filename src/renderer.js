@@ -1,4 +1,5 @@
 import {mapStyleAtlases,mapStyle} from './map-styles.js';
+import {FRAME_RATE_DEFAULT,frameDue,nextDue} from './frame-rate.js';
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
@@ -35,7 +36,7 @@ const BREATH_DROP=2,BREATH_PERIOD=2400;
 export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
-    this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.time=0;
+    this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.frameRate=FRAME_RATE_DEFAULT;this.time=0;
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.callouts=new CalloutBoard();this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
     for(const url of [SCENERY_ATLAS,DOOR_ATLAS,NEST_ATLAS,...mapStyleAtlases()]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
@@ -84,9 +85,14 @@ export class Renderer {
   glow(x,y,r,color){const c=this.ctx,g=c.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'transparent');c.fillStyle=g;c.fillRect(x-r,y-r,2*r,2*r);}
   box(x,y,w,h,color,stroke){const c=this.ctx;c.fillStyle=color;c.fillRect(x,y,w,h);if(stroke){c.strokeStyle=stroke;c.lineWidth=1;c.strokeRect(x+.5,y+.5,w-1,h-1);}}
   text(value,x,y,color='#c1ceb2',size=9){const c=this.ctx;c.font=`${size}px monospace`;c.textAlign='center';c.fillStyle=color;c.fillText(value,x,y);}
+  // 3.119.0: redraws at the chosen rate (src/frame-rate.js), and the clock, playback and camera keep running under a
+  // full-page menu while the hidden battlefield is not drawn at all.
   frame(t) {
+    const tick=t-(this.lastTick??t);this.lastTick=t;
+    if(!frameDue(t,this.due??t,tick)){requestAnimationFrame(v=>this.frame(v));return;}
+    this.due=nextDue(this.due??t,t,this.frameRate);
     const dt=Math.min((t-this.last)/1000,.1);this.last=t;
-    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);this.updateCamera(dt*1000);this.draw(this.time);this.placeTargetCard();}
+    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);this.updateCamera(dt*1000);if(!this.isCovered?.()){this.draw(this.time);this.placeTargetCard();}}
     requestAnimationFrame(v=>this.frame(v));
   }
   // The frame is recomputed every frame; only the zoom eases (src/camera.js). A new run, a new floor or a resized board
