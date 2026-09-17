@@ -300,7 +300,7 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 - **不影響 AI**：敵人用 `sight()`，看得到你與你看不看得到它無關。
 - **裂隙**：隱形單位之後只要填 `revealRange`，不必改視線系統；但要記得同時設計反制手段（偵察感測、聲音等），不然「看不到卻被看到」會很難受。
 
-3.114.0（Claude）：結算文字移到 src/result-copy.js（`resultCopy`、`lossCopy`、`retryPlan`），陣亡依任務深度與肅清評估分段，空的肅清帳本不會被判成優異。陣亡畫面新增「繼續投入幹員」：`retryPlan` 帶回任務、種子與選項（由種子擲出的設施派系傳回 'random' 以重擲出同一個），沿用部署第二步的幹員選擇畫面（`mode:'retry'`），按「投入」直接 `newGame`。行動員全面改稱幹員，故事改稱設施紀錄。
+3.114.0（Claude）：結算文字移到 src/result-copy.js（`resultCopy`、`lossCopy`、`retryPlan`），陣亡依任務深度與肅清評估分段，空的肅清帳本不會被判成優異。陣亡畫面新增「繼續投入幹員」：`retryPlan` 帶回任務、種子與選項（由種子擲出的設施派系傳回 'random' 以重擲出同一個），沿用部署第二步的幹員選擇畫面（`mode:'retry'`），按「投入」直接 `newGame`。行動員全面改稱幹員，故事改稱設施紀錄。同版追加（未升版號）：演出中按指令直接執行。`Playback.finish()`（src/presentation.js）把剩下的事件一次送完並標記 `skipping`；控制器所有輸入入口都先呼叫 `skipPlayback()`，條件是設定 `ash-skip-presentation` 開啟（預設開）、`game.status==='playing'`（結束任務的回合一定播完）、未被直向提示擋住、超過 120ms 防重複鎖；鍵盤連發不跳過。正常播完與跳過共用 `endPlayback()`。
 
 3.113.0（Claude）：8 種職業主動技能移出學習資料池（`RETIRED_LEARNING` 保留 ID 供遷移），未識別貨櫃內容池 28 → 20。SAVE 55 的 `retireLearning` 把背包、地上、未開箱子與封存樓層中的舊資料換成 15 廢料，已學會的技能保留。`learning.js` 裡為伴生指揮與工坊預留的學習分支目前已無入口，但保留不動（已學會的舊存檔仍走 `initializeAllies`）。被動學習資料未動。使用者決定（2026-09-17）：**被動暫時保留**，等之後內容更多再刪，暫且當作等級滿了之後的成長來源之一。
 

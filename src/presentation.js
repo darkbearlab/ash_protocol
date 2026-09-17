@@ -108,4 +108,12 @@ export class Playback {
     while(this.index<this.plan.events.length&&this.plan.events[this.index].time<=this.elapsed)this.emit(this.plan.events[this.index++]);
     this.done=this.elapsed>=this.plan.duration;
   }
+  // Skipping (3.114.0, user request): every remaining event is emitted at once and flagged, so the caller can drop the
+  // sounds and redraw once. Callouts and the final state still arrive; only the frames in between are lost.
+  finish(){
+    if(this.done)return;
+    this.skipping=true;this.elapsed=this.plan.duration;
+    while(this.index<this.plan.events.length)this.emit(this.plan.events[this.index++]);
+    this.done=true;
+  }
 }

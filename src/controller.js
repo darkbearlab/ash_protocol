@@ -64,6 +64,9 @@ let playback=null,entered=false,orientationBlocked=false,orientationOverride=fal
 let game=savedGame||new Game(undefined,profile().unlocks.weapons,profile().upgrades.carrying),renderer=new Renderer($('#battle'),game),lockUntil=0,lastStatus='playing',previousFloor=game.floor,noticeTimer;
 renderer.targetingEnabled=read('ash-targeting')!=='off';
 renderer.movementBoundaries=read('ash-movement-boundaries')==='on';
+// 3.114.0 (user request): a command pressed while the last turn is still animating ends that animation and runs. On by
+// default; the settings menu turns it off.
+let skipPresentation=read('ash-skip-presentation')!=='off';
 // Control deck (3.98.0, user request): pad size and layout are display preferences, kept local like the boundary lines.
 const PAD_SIZES=[44,52,60,68],PAD_LABELS={44:'標準',52:'大',60:'特大',68:'巨大'};
 // 3.101.0 (user request): 格狀 drops the split entirely - one five-by-three field of identical cells, so the pad
@@ -160,7 +163,7 @@ function update(view=renderer.game) {
   for(const b of document.querySelectorAll('.control-deck button')){
     const slot=Object.hasOwn(PREPARED_CATEGORIES,b.dataset.action);
     const unusable=(b.dataset.action==='skill'&&(!(ALLY_SKILLS.includes(p.prepared.skill)?canAllySkill(view,p.prepared.skill):canUseSkill(p,p.prepared.skill))||p.control.disabled))||(b.dataset.action==='reload'&&w.melee)||(slot&&(!preparedEntry(p,b.dataset.action)||!preparedEntry(p,b.dataset.action).action||(preparedEntry(p,b.dataset.action).resource&&p[preparedEntry(p,b.dataset.action).resource]<=0)));
-    b.disabled=Boolean(playback)||view.status!=='playing'||(!slot&&unusable);
+    b.disabled=(Boolean(playback)&&!skipEnabled())||view.status!=='playing'||(!slot&&unusable);
     b.classList.toggle('unavailable',slot&&unusable);
   }
   $('[data-action="fire"] strong').textContent=w.melee?'揮拳':'開火';
@@ -174,12 +177,21 @@ function update(view=renderer.game) {
   else if(entered&&saveWarningDue&&!$('#modal').open)showSaveWarning();
 }
 renderer.isPaused=()=>orientationBlocked;
+// Rules are resolved before a presentation starts, so skipping only drops frames. A turn that ended the run always plays
+// out, so a death is never covered by the result screen mid-fall; the 120ms double-input lock still applies.
+function skipEnabled(){return skipPresentation&&game.status==='playing';}
+function endPlayback(){playback=null;renderer.game=game;update();notifyLatest();}
+function skipPlayback(){
+  if(!playback||!skipEnabled()||orientationBlocked||!entered||performance.now()<lockUntil)return false;
+  playback.finish();endPlayback();return true;
+}
 renderer.onFrame=dt=>{
   if(!playback)return;
   playback.advance(dt);
-  if(playback.done){playback=null;renderer.game=game;update();notifyLatest();}
+  if(playback.done)endPlayback();
 };
 function act(type,arg) {
+  skipPlayback();
   if(playback||orientationBlocked||!entered||$('#modal').open||performance.now()<lockUntil)return false;
   pointerStart=null;
   const oldLog=game.logs[0],{success,steps}=captureAction(game,()=>game.action(type,arg));
@@ -189,7 +201,7 @@ function act(type,arg) {
     if(steps.length){
       renderer.effects=[];
       playback=new Playback(planPresentation(steps,{reduceMotion:renderer.reduceMotion}),event=>{
-        renderer.game=event.state;renderer.addEffects(event.effects,playback.elapsed-event.time);update();
+        renderer.game=event.state;renderer.addEffects(event.effects,playback.elapsed-event.time);if(playback.skipping)return;update();
         if(event.effects.some(e=>['slash','claw'].includes(e.style)))audio.play('melee');
         else if(event.effects.some(e=>e.type==='enemyShot'||(e.type==='shot'&&e.style!=='grenade')))audio.play('fire');
         if(navigator.vibrate&&event.effects.some(e=>e.type==='impact'||e.type==='blast'))navigator.vibrate(25);
@@ -227,7 +239,7 @@ function updateAim(view=renderer.game){const launching=renderer.mode==='launch',
   const entry=preparedEntry(view.player,'grenade');
   $('#grenade-label').textContent=aiming?'取消投擲':entry?`${entry.short} ${view.player[entry.resource]}`:'手榴彈未預備';
   $('[data-action="grenade"]').classList.toggle('aiming',aiming);
-  b.disabled=Boolean(playback)||(view.status==='playing'&&!aiming&&!launching&&!commanding&&!suppressing&&!deploying&&!options.length)||Boolean(preview?.reason);
+  b.disabled=(Boolean(playback)&&!skipEnabled())||(view.status==='playing'&&!aiming&&!launching&&!commanding&&!suppressing&&!deploying&&!options.length)||Boolean(preview?.reason);
   b.querySelector('strong').textContent=view.status!=='playing'?'結果':launching?'確認發射':deploying?'取消設置':commanding?(renderer.mode==='drone'?'確認部署':'確認指揮'):aiming?'確認投擲':suppressing?`確認壓制 · ${preview?.rounds??0} 發`:options.length>1?'互動':options[0]?.label||'互動';
   b.classList.toggle('aiming',aiming||launching||commanding||suppressing||deploying);
   const fire=$('[data-action="fire"]');
@@ -601,6 +613,8 @@ ${inRun?`<div class="modal-row"><button class="modal-button secondary" data-moda
 <p>沿可見牆與障礙物標示輪廓；斷點不延伸。門另以綠線表示關閉、兩側綠點表示開啟。</p>
 <label class="boundary-opacity" for="boundary-opacity">白線不透明度 <output id="boundary-opacity-value" for="boundary-opacity">${renderer.boundaryOpacity}%</output><input id="boundary-opacity" type="range" min="0" max="100" step="5" value="${renderer.boundaryOpacity}" aria-describedby="boundary-opacity-help"></label>
 <p id="boundary-opacity-help">0% 完全透明，100% 不透明；只調整白線，綠色門提示不受影響。</p>
+<button class="modal-button secondary" data-modal="skipPresentation" aria-pressed="${skipPresentation}">演出中按指令直接執行：${skipPresentation?'開啟':'關閉'}</button>
+<p>開啟時，上一回合的動畫還沒播完就按下一個指令，會立刻結束動畫並執行；關閉時要等動畫播完。本回合陣亡或任務結束時一定會播完。</p>
 <div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">操作區排版：${DECK_LAYOUT_LABELS[padLayout]}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>方向鍵大小：${padLayout==='grid'?'格狀不適用':`${PAD_LABELS[padCell]}（${padCell}）`}</button></div>
 <p>九宫格把「裝填」、「互動」移到方向鍵的右上與左上，右側只剩四顆更大的按鈕。格狀則沒有左右之分：整條操作區是五欄三列的同尺寸方格，尺寸由寬度推出來，所以沒有方向鍵大小可調。關閉設定後即可看到效果。</p>
 <button class="modal-button secondary" data-modal="deckEditor" ${padLayout==='grid'?'':'disabled'}>編輯按鈕位置${padLayout==='grid'?'':'（格狀限定）'}</button>
@@ -710,7 +724,10 @@ document.addEventListener('input',e=>{
 });
 
 document.addEventListener('click',e=>{
-  const b=e.target.closest('button');if(performance.now()<swallowClicksUntil){swallowClicksUntil=0;return;}if(playback||orientationBlocked||!b||b.disabled)return;
+  const b=e.target.closest('button');if(performance.now()<swallowClicksUntil){swallowClicksUntil=0;return;}
+  // Settling the animation may raise a menu (level-up, room prompt); then this press was only the skip.
+  if(b&&!b.disabled&&skipPlayback()&&$('#modal').open)return;
+  if(playback||orientationBlocked||!b||b.disabled)return;
   if(b.dataset.packInfo){const desc=document.getElementById('pack-desc-'+b.dataset.packInfo);if(desc){desc.hidden=!desc.hidden;b.setAttribute('aria-expanded',String(!desc.hidden));}return;}
   if(b.dataset.inventoryTab){showInventory(b.dataset.inventoryTab);$(`[data-inventory-tab="${inventoryTab}"]`).focus({preventScroll:true});return;}
   if(b.dataset.useItem){const id=b.dataset.useItem,entry=PREPARED_CATALOG.item[id],reason=itemUseReason(game,id);
@@ -778,6 +795,7 @@ document.addEventListener('click',e=>{
     case 'deckReset':deckLayout=[...DECK_GRID];deckPick=null;saveDeckLayout();showDeckEditor('\u5df2\u9084\u539f\u9810\u8a2d\u3002');break;
     case 'padLayout':padLayout=DECK_LAYOUTS[(DECK_LAYOUTS.indexOf(padLayout)+1)%DECK_LAYOUTS.length];write('ash-pad-layout',padLayout);applyDeck();fitLayout();settings();break;
     case 'padCell':padCell=PAD_SIZES[(PAD_SIZES.indexOf(padCell)+1)%PAD_SIZES.length];write('ash-pad-cell',String(padCell));applyDeck();fitLayout();settings();break;
+    case 'skipPresentation':skipPresentation=!skipPresentation;write('ash-skip-presentation',skipPresentation?'on':'off');settings();break;
     case 'movementBoundaries':renderer.movementBoundaries=!renderer.movementBoundaries;write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off');settings();break;
     case 'sound':audio.enabled=!audio.enabled;write('ash-sound',audio.enabled?'on':'off');settings();break;
     case 'backupExport':try{downloadJSON(exportBackup(game),'ash-protocol-backup.json');notify('完整備份已匯出。');}catch(error){backupError(error);}break;
@@ -826,8 +844,9 @@ $('#field-messages').addEventListener('click',e=>{if(!e.target.closest('button')
 $('#modal').addEventListener('close',()=>{titleFlow=false;});
 $('#modal').addEventListener('cancel',e=>{if(!entered||game.pendingPerks||game.status!=='playing')e.preventDefault();});
 let pointerStart=null;
-$('#battle').addEventListener('pointerdown',e=>{pointerStart=playback||orientationBlocked?null:{x:e.clientX,y:e.clientY};});
+$('#battle').addEventListener('pointerdown',e=>{pointerStart=(playback&&!skipEnabled())||orientationBlocked?null:{x:e.clientX,y:e.clientY};});
 $('#battle').addEventListener('pointerup',e=>{
+  if(pointerStart&&skipPlayback()&&$('#modal').open){pointerStart=null;return;}
   if(playback||orientationBlocked||$('#modal').open||!pointerStart){pointerStart=null;return;}
   const dx=e.clientX-pointerStart.x,dy=e.clientY-pointerStart.y;pointerStart=null;
   // One swipe = one cardinal step. No hidden pathfinding or multi-turn tap movement.
@@ -856,13 +875,13 @@ $('#battle').addEventListener('pointercancel',()=>{pointerStart=null;});
 // window after the release is dropped wherever it lands. Each button keeps its own timer, so a second finger cannot
 // orphan one, and the timer re-checks the game state before opening the pack.
 const LONG_PRESS_MS=450,presses=new Map();let swallowPointer=null,swallowClicksUntil=0;
-const pressReady=()=>!playback&&!orientationBlocked&&entered&&!$('#modal').open&&game.status==='playing';
+const pressReady=()=>(!playback||skipEnabled())&&!orientationBlocked&&entered&&!$('#modal').open&&game.status==='playing';
 for(const b of document.querySelectorAll('.control-deck [data-action="grenade"],.control-deck [data-action="item"],.control-deck [data-action="skill"]')){
   const stop=()=>{const press=presses.get(b);if(press){clearTimeout(press.timer);presses.delete(b);}b.classList.remove('pressing');};
   b.addEventListener('pointerdown',e=>{
     if(!pressReady()||b.disabled||e.button>0)return;
     stop();b.classList.add('pressing');
-    presses.set(b,{x:e.clientX,y:e.clientY,timer:setTimeout(()=>{presses.delete(b);b.classList.remove('pressing');if(!pressReady())return;swallowPointer=e.pointerId;swallowClicksUntil=performance.now()+1500;navigator.vibrate?.(15);cancelAim();showInventory(b.dataset.action);},LONG_PRESS_MS)});
+    presses.set(b,{x:e.clientX,y:e.clientY,timer:setTimeout(()=>{presses.delete(b);b.classList.remove('pressing');if(!pressReady())return;if(playback&&(!skipPlayback()||$('#modal').open))return;swallowPointer=e.pointerId;swallowClicksUntil=performance.now()+1500;navigator.vibrate?.(15);cancelAim();showInventory(b.dataset.action);},LONG_PRESS_MS)});
   });
   b.addEventListener('pointermove',e=>{const press=presses.get(b);if(press&&Math.hypot(e.clientX-press.x,e.clientY-press.y)>12)stop();});
   for(const type of ['pointerup','pointercancel','pointerleave'])b.addEventListener(type,stop);
@@ -875,9 +894,12 @@ document.addEventListener('keydown',e=>{
     showInventory(ids[next]);$(`[data-inventory-tab="${inventoryTab}"]`).focus({preventScroll:true});return;
   }
   if(e.ctrlKey||e.metaKey||e.altKey)return;
+  const moves={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]},actions={' ':'fire',r:'reload',h:'item',e:'interact',f:'wait','.':'wait'},key=e.key.length===1?e.key.toLowerCase():e.key;
+  // Only a command key skips, and never a held key's auto-repeat: holding an arrow must not walk blind through turns.
+  const command=Boolean(moves[key]||actions[key])||['q','Tab','g','b','Escape'].includes(key);
+  if(command&&!e.repeat&&!e.target.matches('input,textarea,select')&&skipPlayback()&&$('#modal').open){e.preventDefault();return;}
   if(playback){if(e.key.length===1||e.key.startsWith('Arrow')||e.key==='Tab')e.preventDefault();return;}
   if(orientationBlocked||$('#modal').open||e.target.matches('input,textarea,select'))return;
-  const moves={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]},actions={' ':'fire',r:'reload',h:'item',e:'interact',f:'wait','.':'wait'},key=e.key.length===1?e.key.toLowerCase():e.key;
   if(moves[key]){e.preventDefault();move(...moves[key]);}
   else if(actions[key]){e.preventDefault();if(key==='e')interact();else if(key==='h')useItem();else if(key===' ')fireWeapon();else act(actions[key]);}
   else if(key==='q'){e.preventDefault();toggleTargeting();}
