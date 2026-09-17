@@ -445,3 +445,15 @@ html.toned :is(.app,.boot-screen,#modal-content){filter:brightness(var(--screen-
 .terminal-stepper button:disabled{opacity:.4}
 .terminal-stepper b{min-width:24px;text-align:center;font-family:var(--mono)}
 .terminal-total{margin:10px 0 6px;font-family:var(--mono);font-size:12px;color:#e8ce98}
+
+/* Keyboard hints (3.121.0): the bound key in a button's top-left corner, like a mobile emulator's key overlay. The key is
+   an attribute, so buttons whose label the game rewrites keep it; nothing shows while the setting is off. */
+html.hotkey-hints [data-hotkey]{position:relative}
+html.hotkey-hints [data-hotkey]::before{content:attr(data-hotkey);position:absolute;left:2px;top:2px;z-index:1;min-width:9px;padding:0 3px;border-radius:2px;background:#e6d3a6e8;color:#1b2219;font:700 9px/13px var(--mono);text-align:center;pointer-events:none}
+html.hotkey-hints [data-hotkey]:disabled::before{opacity:.55}
+/* Hotkey settings */
+.hotkey-rows{display:flex;flex-direction:column;gap:4px}
+.hotkey-row{display:grid;grid-template-columns:minmax(0,1fr) 96px 96px;align-items:center;gap:6px;padding:4px 8px;border:1px solid #91ab8133;background:#202e28}
+.hotkey-slot{height:40px;border:1px solid #526143;background:#273420;color:#e6d3a6;font:600 13px var(--mono)}
+.hotkey-slot.waiting{border-color:#f4b17b;background:#3a3322;color:#ffd2a6}
+.hotkey-message{color:#e8ce98}
