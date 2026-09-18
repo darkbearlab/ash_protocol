@@ -1,1 +1,8 @@
 # 一行一筆；以 # 開頭為註解。
+# 2026-09-18：依 docs/STORY.md 第 7 節整組重寫（使用者指示），舊的 6 段設施紀錄停用。
+core-response
+evacuation-cancelled
+final-protocol
+research-record
+sealed-orders
+unlisted-signal
