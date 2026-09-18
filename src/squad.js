@@ -151,8 +151,11 @@ export function squadSet(g,leader){
 export const squadStale=(g,leader,weaponId)=>!leader.squad||leader.squad.weapon!==weaponId;
 // 已就緒: the player's wait, handed to the squad. Setting the aim as well is what makes it a volley instead of another
 // turn of telegraphing — they are already set, so the shot comes on their next action.
+// 3.128.1 (user decision): a member still walking to its spot is not ready yet — it keeps walking, and the leader's next
+// re-application reaches it once it has arrived. So the deadline readies whoever is in place, not the stragglers.
+// Bounding advancers are not stragglers: their callers decide (patience keeps them ready, contact leaves them out).
 export function makeReady(g,leader,members){
- for(const actor of [leader,...members]){
+ for(const actor of [leader,...members.filter(m=>m.squad?.set!==false||m.squad?.role==='move')]){
   grantTrait(actor,READY_TRAIT,SQUAD_SOURCE,SQUAD_TUNING.readyTurns);
   if(actor!==leader&&(enemyDef(actor)?.range||1)>1){actor.charge=true;actor.windup=1;actor.aim={x:g.player.x,y:g.player.y};}
  }
@@ -184,7 +187,9 @@ export function holdsTheRoute(g,leader,members){
 export function assignMovers(g,leader,mine,target,search){
  for(const m of mine)if(m.squad.role==='move'&&distance(m,m.squad.goal)===0)m.squad.role='cover';
  const moving=mine.filter(m=>m.squad.role==='move');
- const slots=Math.max(1,Math.floor(mine.length/2))-moving.length;if(slots<=0)return;
+ // 3.128.1 (user decision): in contact half rounds up, so three members bound in a pair instead of one at a time; the
+ // search stays at half rounded down, as the user decided for 3.126.0.
+ const slots=Math.max(1,search?Math.floor(mine.length/2):Math.ceil(mine.length/2))-moving.length;if(slots<=0)return;
  const answer=weaponAnswer(g),taken=new Set(mine.map(m=>key(m.squad.role==='move'?m.squad.goal:m)));
  const candidates=mine.filter(m=>m.squad.role!=='move'&&(search||!canShoot(g,m,g.player)))
   .sort((a,b)=>(search?0:Number(g.sight(a,g.player))-Number(g.sight(b,g.player)))||(a.squad.lastMove||0)-(b.squad.lastMove||0)||distance(a,target)-distance(b,target)||a.id.localeCompare(b.id));

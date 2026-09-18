@@ -164,6 +164,40 @@ test('whoever cannot shoot advances, never more than half, fast on the move and 
   assert.ok(arrived.length&&arrived.every(e=>activeTrait(e,'fast')),'still fast on the turn it arrives');
 });
 
+// 3.128.1 (user decision): in contact, half rounds up — three members bound in a pair, not one at a time.
+test('a squad of three bounds in a pair when two of them cannot shoot',()=>{
+  const wall=[];for(let y=11;y<=20;y++)wall.push([11,y]);
+  const {g,leader,squad}=walled({wall,members:[['r1',6,10],['r2',9,10],['r3',14,10]]});
+  ready(g);assert.equal(leader.squad.state,'ready');
+  // Step to a tile, next to where you stand, that two of the three cannot shoot.
+  const shoots=(e,q)=>g.sight(e,q)&&g.shotClear(e,q)&&Math.abs(e.x-q.x)+Math.abs(e.y-q.y)<=ENEMY_TYPES.rifleman.range;
+  let spot=null;for(let y=12;y<=20&&!spot;y++)for(let x=12;x<=16&&!spot;x++){const q={x,y};if(g.grid[y][x]===1&&!g.enemies.some(e=>e.x===x&&e.y===y)&&squad.filter(e=>!shoots(e,q)).length>=2&&squad.some(e=>shoots(e,q)))spot=q;}
+  assert.ok(spot,'a tile where one covers and two are blind');
+  Object.assign(g.player,spot);g.reveal();
+  const blind=squad.filter(e=>!shoots(e,g.player)).length;
+  g.action('wait');
+  const movers=squad.filter(e=>e.squad.role==='move').length;
+  assert.ok(blind>=2,`need two who cannot shoot, got ${blind}`);
+  assert.equal(movers,Math.min(2,blind),'two advance together');
+});
+
+// 3.128.1 (user decision): the deadline readies whoever is in place; a straggler keeps walking and is readied on arrival.
+test('at the deadline a straggler is not ready: it keeps walking and is readied once it arrives',()=>{
+  const {g,leader,squad}=walled({members:[['r1',9,10],['r2',11,10],['late',3,10]]});
+  const late=squad[2];
+  for(let i=0;i<8&&leader.squad?.state!=='ready';i++)g.action('wait');
+  assert.equal(leader.squad.state,'ready');
+  assert.equal(late.squad.set,false,'still on its way');
+  assert.ok(!activeTrait(late,'ready'),'not ready while walking');
+  assert.ok(squad.slice(0,2).every(e=>activeTrait(e,'ready')),'those in place are');
+  const goal=late.squad.goal,far=Math.abs(late.x-goal.x)+Math.abs(late.y-goal.y);g.action('wait');
+  assert.ok(Math.abs(late.x-goal.x)+Math.abs(late.y-goal.y)<far||late.squad.set,'it keeps walking');
+  for(let i=0;i<12&&!late.squad.set;i++)g.action('wait');
+  assert.ok(late.squad.set,'it arrives');
+  g.action('wait');
+  assert.ok(activeTrait(late,'ready'),'and the leader readies it');
+});
+
 test('through smoke the leader calls out your tile: blind shots at −40 that replace darkness',()=>{
   const {g,leader,squad}=walled();
   ready(g);
