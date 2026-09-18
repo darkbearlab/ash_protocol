@@ -77,7 +77,7 @@ test('a wreck is rebuilt in place, so the edge list never grows a duplicate',()=
 });
 
 test('it never writes a floor the loader would reject',()=>{
- assert.equal(SAVE_VERSION,59);   // 3.127.0: rebel morale
+ assert.equal(SAVE_VERSION,60);   // 3.131.0: hiding is a retreat order
  const g=stocked(3),p=g.player,side=openSide(g);
  assert.equal(g.action('deployCover',side),true);
  const back=Game.restore(g.serialize());

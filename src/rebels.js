@@ -17,6 +17,7 @@ import {pinned} from './suppression.js';
 import {unitTree} from './behavior-tree.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {DETOUR_TRAIT} from './detour.js';
+import {registerOrder,giveOrder,endOrder} from './orders.js';
 import {SIZE} from './data.js';
 
 export const REBEL_TUNING=Object.freeze({witnessRadius:4,coverSearch:6,enforcerRange:7,alarmRadius:8,alarmCooldown:5});
@@ -52,11 +53,13 @@ export function cower(g,e){
  grantTrait(e,COWER_TRAIT,COWER_SOURCE);
  // 3.129.0 迂迴: the run for cover takes the way you cannot see; a rally removes both with the source.
  grantTrait(e,DETOUR_TRAIT,COWER_SOURCE);
- const spot=coverSpot(g,e);e.cowerAt=spot?{x:spot.x,y:spot.y}:{x:e.x,y:e.y};
+ // 3.131.0: hiding is a retreat order the rebel gives itself — no time limit, nothing but a rally ends it.
+ const spot=coverSpot(g,e);
+ giveOrder(g,e,{kind:'retreat',by:'self',at:spot?{x:spot.x,y:spot.y}:{x:e.x,y:e.y},patience:null,breakOn:[]});
  g.enemyCallout?.(e,'state',{state:'flee'});
  return true;
 }
-export function rally(e){removeTraitSource(e,COWER_SOURCE);delete e.cowerAt;}
+export function rally(g,e){removeTraitSource(e,COWER_SOURCE);if(e.order?.kind==='retreat')endOrder(g,e,'rallied');}
 
 // A comrade shot down in plain sight within four tiles breaks the ones who saw it. Only deaths the player's side
 // caused: an execution or a suicide bot going off is not the enemy's doing, and must never undo a rally.
@@ -68,19 +71,22 @@ export function witnessDeath(g,dead){
 
 // A cowering rebel's own turn: shoot back when it can, otherwise make for its cover and stay there. Pinned, it cannot
 // run — suppression is how the player finishes one.
-export function cowerAct(ctx){
+// Personality: a wounded ordinary rebel breaks by itself (witnessing a death breaks it from witnessDeath).
+export function selfRetreat(ctx){
+ const {g,e}=ctx;
+ if(isRebel(e)&&!isCowering(e)&&canCower(e)&&e.hp<e.maxHp/2)cower(g,e);
+}
+// The retreat order (docs/ORDERS.md): walk to the cover spot and stay; shoot back only when it can reach you.
+registerOrder('retreat',{act(ctx,order){
  const {g,e,p}=ctx;
- if(!isRebel(e))return false;
- if(!isCowering(e)&&canCower(e)&&e.hp<e.maxHp/2)cower(g,e);
- if(!isCowering(e))return false;
  if(p&&g.sight(e,p)&&g.shotClear(e,p)&&distance(e,p)<=(enemyDef(e)?.range||1))return false;
- const goal=e.cowerAt;
- if(goal&&distance(e,goal)>0&&!pinned(e)){
+ const goal=order.at;
+ if(distance(e,goal)>0&&!pinned(e)){
   const step=g.nextStep(e,goal);
   if(step&&distance(step,g.player)!==0&&!g.enemies.some(o=>o.hp>0&&o!==e&&distance(o,step)===0)){e.x=step.x;e.y=step.y;e.moved=true;return true;}
  }
  return true;
-}
+}});
 
 // The attack and the grenade throw belong to enemy-behavior.js; it hands them over so the two files never import each
 // other, the same arrangement as src/squad.js.
@@ -107,7 +113,7 @@ export function execute(g,enforcer,target){
  g.hurt(target,target.hp,enforcer);
  const inRange=g.enemies.filter(o=>o.hp>0&&isRebel(o)&&o!==enforcer&&distance(enforcer,o)<=range);
  g.enemyCallout?.(enforcer,'telegraph',{action:'execute'});
- const rallied=inRange.filter(o=>isCowering(o));for(const o of rallied)rally(o);
+ const rallied=inRange.filter(o=>isCowering(o));for(const o of rallied)rally(g,o);
  const fired=inRange.map(o=>advanceCharge(g,o)).filter(r=>r==='fire'||r==='grenade').length;
  // 3.127.1 (user request): a rally is announced by the soldier it happens to, so the turnaround can be seen. It is
  // shouted after the charge, so it stays over any shot the same soldier just fired instead of being replaced by it.
@@ -191,7 +197,8 @@ export function recruitConscripts(g){
 const point=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&q.x>=0&&q.y>=0&&q.x<SIZE&&q.y<SIZE;
 export function validRebels(g){
  const actors=[...(g.enemies||[]),...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])];
- return actors.every(e=>(e.conscript===undefined||e.conscript===true)&&(e.cowerAt===undefined||point(e.cowerAt))&&
+ // 3.131.0: the cover spot lives in the retreat order now; a stray cowerAt only arrives through a pre-60 save and is migrated.
+ return actors.every(e=>(e.conscript===undefined||e.conscript===true)&&e.cowerAt===undefined&&(!isCowering(e)||e.order?.kind==='retreat')&&
   (e.alarmCooldown===undefined||Number.isSafeInteger(e.alarmCooldown)&&e.alarmCooldown>=0&&e.alarmCooldown<=REBEL_TUNING.alarmCooldown)&&
   (e.executeIntent===undefined||e.executeIntent&&typeof e.executeIntent.id==='string'&&e.executeIntent.id.length>0&&e.executeIntent.id.length<=100));
 }

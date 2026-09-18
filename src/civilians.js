@@ -6,6 +6,7 @@ import {roomTiles,roomContains} from './map-geometry.js';
 import {occupied} from './allies.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
 import {pinned} from './suppression.js';
+import {registerOrder,giveOrder,runOrder} from './orders.js';
 
 export const CIVILIAN_TUNING={screamCooldown:5,screamRadius:8,fleeCalloutEvery:3};
 // A separate, post-combat population. No combat roster, reservation or RNG is changed.
@@ -33,7 +34,14 @@ export function scream(g,e){
  for(const guard of g.enemies)if(guard.hp>0&&!isNoncombatant(guard)&&distance(e,guard)<=CIVILIAN_TUNING.screamRadius){guard.alert=true;guard.lastKnown={x:g.player.x,y:g.player.y};}
  g.log(`${enemyBaseName(e)}尖叫，附近的守衛警戒了。`,true);g.enemyCallout(e,'telegraph',{action:'scream'});return true;
 }
-export function civilianAction({g,e}){
+// 3.131.0: a civilian's flight is a flee order it gives itself on its first turn — no time limit, nothing ends it.
+// The order runs from the card's `before`, where the flight always ran, so nothing about when it acts has changed.
+export function civilianAction(ctx){
+ const {g,e}=ctx;
+ if(!e.order)giveOrder(g,e,{kind:'flee',by:'self',patience:null,breakOn:[]});
+ return runOrder(ctx)!==false;
+}
+registerOrder('flee',{act({g,e}){
  const visible=g.sight(e,g.player);if(visible)e.lastKnown={x:g.player.x,y:g.player.y};
  scream(g,e);
  if(g.turn%CIVILIAN_TUNING.fleeCalloutEvery===0)g.enemyCallout(e,'state',{state:'flee'});
@@ -46,7 +54,7 @@ export function civilianAction({g,e}){
  const p=choices[0];if(!p)return true;const edge=barrierBetween(g.barriers,e,p);
  if(edgeBlocks(edge)&&!vaultable(edge)){g.setDoor(edge,true);return true;}
  e.x=p.x;e.y=p.y;e.moved=true;if(vaultable(edge))e.vaultExposed=true;return true;
-}
+}});
 export function tickCivilianCooldowns(g){for(const e of g.enemies)if(isNoncombatant(e)&&e.hp>0)e.screamCooldown=Math.max(0,e.screamCooldown-1);}
 export function migrateCivilians(g){for(const e of factionActors(g))if(isNoncombatant(e))e.screamCooldown??=0;}
 export const validCivilians=g=>factionActors(g).every(e=>isNoncombatant(e)?Number.isSafeInteger(e.screamCooldown)&&e.screamCooldown>=0&&!e.elite&&!e.affixes?.length: e.screamCooldown===undefined);

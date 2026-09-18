@@ -17,7 +17,7 @@ import {combatStep} from './tactics.js';
 import {barrierBetween,vaultable,edgeBlocks,firstBarrierOnRay} from './barriers.js';
 import {petCombat} from './pet-growth.js';
 import {squadLeaderAct,squadMemberAct,useSquadAttack} from './squad.js';
-import {enforcerAct,cowerAct,useRebelHooks} from './rebels.js';
+import {enforcerAct,selfRetreat,useRebelHooks} from './rebels.js';
 import {runOrder} from './orders.js';
 import {selfAmbush} from './ambush.js';
 import {spentCase} from './traces.js';
@@ -127,7 +127,7 @@ registerUnitTree('squad_leader',{before:squadLeaderAct});
 useSquadAttack(attack);
 // 3.127.0 rebels (docs/REBELS.md): the enforcer commands through fear; a rebel that breaks hides before it would charge.
 registerUnitTree('enforcer',{before:enforcerAct});
-registerAffixBranch({id:'rebel-cower',applies:({e})=>e.faction==='rebel',trigger:()=>true,chance:1,pending:()=>true,run:cowerAct});
+// 3.131.0: a rebel's hiding is its retreat order now (src/rebels.js), run with the other orders before the affixes.
 useRebelHooks({attack,grenade});
 registerAffixBranch({id:'squad',applies:({e})=>Boolean(e.squad),trigger:()=>true,chance:1,pending:()=>true,run:squadMemberAct});
 // The bot is its own attacker when it blows itself up, so a self-destruct never gives the workshop a blueprint (3.94.0).
@@ -139,7 +139,7 @@ export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
  if(tongueAction(ctx)||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
  // 3.130.0 orders (docs/ORDERS.md): a committed order acts before the affix branches; 'fire' goes straight to the attack.
- selfAmbush(ctx);const order=runOrder(ctx);if(order===true)return;
+ selfRetreat(ctx);selfAmbush(ctx);const order=runOrder(ctx);if(order===true)return;
  if(order!=='fire'&&(runAffixBranches(ctx)||seekCover(ctx)))return;
  let fired=false;
  if((los&&g.shotClear(e,p)&&d<=def.range&&(def.range>1||g.canCross(e,p)))||(tree.fixedTile&&e.charge&&e.aim)){

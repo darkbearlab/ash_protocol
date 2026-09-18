@@ -74,3 +74,12 @@ test('save42 preserves cooldown/flee and archives; migration supplies zero; malf
  raw.version=41;for(const x of raw.data.enemies)if(isNoncombatant(x))delete x.screamCooldown;assert.ok(Game.restore(JSON.stringify(raw)));
  for(const val of [-1,1.5,'3',null]){const raw=JSON.parse(g.serialize());raw.data.floorStates[1].enemies.find(isNoncombatant).screamCooldown=val;assert.equal(Game.restore(JSON.stringify(raw)),null);}
 });
+
+// 3.131.0 (docs/ORDERS.md): the flight is a flee order the civilian gives itself — no time limit, and it survives a save.
+test('a civilian flees under its own flee order, which has no time limit and survives a save',()=>{
+ const g=affixArena(),e=civilian(g);e.alert=true;e.lastKnown={x:10,y:10};g.sight=()=>false;
+ assert.equal(e.order,undefined);g.enemyAct(e);
+ assert.equal(e.order?.kind,'flee');assert.equal(e.order.by,'self');assert.equal(e.order.patience,null);assert.deepEqual(e.order.breakOn,[]);
+ for(let i=0;i<12;i++){g.turn++;g.enemyAct(e);}
+ assert.equal(e.order?.kind,'flee','still fleeing: nothing ends it');
+});

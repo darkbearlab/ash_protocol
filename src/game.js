@@ -1060,6 +1060,8 @@ export class Game {
       if(version<34){for(const a of tacticalActors){if(a===p){a.cornerExposure=null;a.tactics=null;}else{delete a.cornerExposure;delete a.tactics;}}for(const frame of Object.values(data.floorStates||{}))for(const a of frame.enemies||[]){delete a.cornerExposure;delete a.tactics;}}
       if(!tacticalActors.every(a=>(a===p||validEnemyAffixes(a))&&validEnemyIntent(a,point))||!validEnemyMarks(data.marks,point,data.turn))return null;
       if(!tacticalActors.every(a=>validCorner(a,data.turn)&&validTactics(a,data.turn)))return null;
+      // 3.131.0 (SAVE 60): a hiding rebel's cover spot moved from cowerAt into its retreat order.
+      if(version<60)for(const e of [...data.enemies,...Object.values(data.floorStates||{}).flatMap(f=>f.enemies||[])])if(e.cowerAt&&!e.order){e.order={kind:'retreat',by:'self',at:e.cowerAt,since:Number.isSafeInteger(data.turn)?data.turn:0,patience:null,breakOn:[]};delete e.cowerAt;}
       if(version<9){p.character='soldier';p.moveDelta=[0,0];p.fireChain=null;grantCharacterTraits(p);for(const e of data.enemies){e.moveDelta=[0,0];e.fireChain=null;}}
       if(!validCharacter(version>=9?data.player.character:p.character)||!validCombatMemory(version>=9?data.player:p,data.turn)||data.enemies.some(e=>!validCombatMemory(e,data.turn)))return null;
       if(version<18&&p.character==='recon')for(const id of ['night_vision','infrared'])if(!p.traits.some(t=>t.id===id&&t.source==='character:recon'))grantTrait(p,id,'character:recon');

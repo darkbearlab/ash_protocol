@@ -39,7 +39,8 @@ test('an ordinary rebel below half health breaks for cover and holds it, shootin
   const g=arena(),e=add(g,'rifleman',8,10,'r');
   e.hp=Math.floor(e.maxHp/2)-1;                    // the player at (10,17) is nine tiles off: seen, but out of its range
   g.action('wait');
-  assert.ok(isCowering(e),'it breaks');assert.deepEqual(e.cowerAt,{x:7,y:10},'the nearest tile the crate shields from the player');
+  assert.ok(isCowering(e),'it breaks');assert.deepEqual(e.order?.kind,'retreat');assert.deepEqual(e.order.at,{x:7,y:10},'the nearest tile the crate shields from the player');
+  assert.equal(e.order.patience,null,'no time limit (3.131.0: hiding is a retreat order)');
   for(let i=0;i<3;i++)g.action('wait');
   assert.deepEqual({x:e.x,y:e.y},{x:7,y:10},'and it stays there');
   assert.ok(activeTrait(e,'cowering'),'the card shows 躲藏');
@@ -194,13 +195,21 @@ test('floor caps: at most two enforcers a floor, three from floor 7',()=>{
 });
 
 test('rebel state survives a save, and tampered state is refused',()=>{
-  assert.equal(SAVE_VERSION,59);
+  assert.equal(SAVE_VERSION,60);
   const g=arena(),e=add(g,'rifleman',8,10,'r'),enforcer=add(g,'enforcer',10,6,'E'),c=add(g,'rifleman',12,10,'c',{conscript:true});
   cower(g,e);enforcer.executeIntent={id:'r'};
   const back=Game.restore(g.serialize());assert.ok(back);
-  assert.ok(validRebels(back));assert.ok(isCowering(back.enemies.find(o=>o.id==='r')));
-  for(const [id,mutate] of [['c',o=>o.conscript='yes'],['r',o=>o.cowerAt={x:1.5,y:2}],['E',o=>o.executeIntent={id:''}]]){
+  assert.ok(validRebels(back));assert.ok(isCowering(back.enemies.find(o=>o.id==='r')));assert.deepEqual(back.enemies.find(o=>o.id==='r').order,e.order);
+  for(const [id,mutate] of [['c',o=>o.conscript='yes'],['r',o=>o.order.at={x:1.5,y:2}],['r',o=>delete o.order],['E',o=>o.executeIntent={id:''}]]){
     const raw=JSON.parse(g.serialize());mutate(raw.data.enemies.find(o=>o.id===id));
     assert.equal(Game.restore(JSON.stringify(raw)),null,id);
   }
+});
+
+// 3.131.0 (SAVE 60): a pre-60 save kept the cover spot in cowerAt; it loads as the retreat order.
+test('an old save with cowerAt loads as a retreat order',()=>{
+  const g=arena(),e=add(g,'rifleman',8,10,'r');cower(g,e);
+  const raw=JSON.parse(g.serialize());raw.version=59;const old=raw.data.enemies.find(o=>o.id==='r');old.cowerAt={...old.order.at};delete old.order;
+  const back=Game.restore(JSON.stringify(raw));assert.ok(back);
+  const r=back.enemies.find(o=>o.id==='r');assert.equal(r.cowerAt,undefined);assert.equal(r.order.kind,'retreat');assert.deepEqual(r.order.at,e.order.at);
 });

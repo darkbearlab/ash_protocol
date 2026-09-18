@@ -71,7 +71,7 @@
 - `src/traits.js`：特性「躲藏」。`src/callout-ui.js`：叛軍的逃跑與歸隊台詞、強徵兵與督戰官兩組聲音（**全是草稿，待使用者重寫**）。
 - `src/callouts.js`（3.127.1）：新提示 `alarm`、`execute`（危險）與 `rally`（戰術，但高優先、可重複）；強徵兵與督戰官（卡片 `speaksAs`）的事件帶自己的聲音。
 - 督戰官的警告在 `game.reveal()` 的發現迴圈裡，和研究員尖叫同一處；冷卻在回合結束的嘲笑階段倒數，存檔欄位 `alarmCooldown`（0～5，舊存檔沒有這欄照常讀）。3.127.2：警告冷卻改在回合最後倒數，真的每 5 回合一次（與研究員相同）；讀檔時不觸發新的警告。
-- 存檔 SAVE 59：敵人多了 `conscript`、`cowerAt`、`executeIntent`。
+- 存檔 SAVE 59：敵人多了 `conscript`、`cowerAt`、`executeIntent`。3.131.0（SAVE 60）：躲藏改成撤退命令（docs/ORDERS.md），`cowerAt` 併進命令的 `at`，舊存檔讀取時轉換；歸隊是 `rally(g,e)`。
 
 ## 待觀察
 

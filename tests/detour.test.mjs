@@ -61,5 +61,5 @@ test('who has 迂迴: a hiding rebel until it rallies; nothing else by default',
   for(const e of g.enemies)assert.ok(!activeTrait(e,DETOUR_TRAIT),e.type);
   const e=g.enemies.find(o=>o.type==='rifleman'&&!o.elite);assert.ok(e);
   cower(g,e);assert.ok(activeTrait(e,DETOUR_TRAIT),'hiding: detours');
-  rally(e);assert.ok(!activeTrait(e,DETOUR_TRAIT),'rallied: straight at you again');
+  rally(g,e);assert.ok(!activeTrait(e,DETOUR_TRAIT),'rallied: straight at you again');assert.equal(e.order,undefined,'and its retreat order is over');
 });

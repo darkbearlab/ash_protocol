@@ -9,6 +9,7 @@
 import {SIZE} from './data.js';
 
 export const ORDER_TUNING=Object.freeze({patience:6,maxPatience:99});
+// patience:null is an order with no time limit (a rebel's retreat, a civilian's flight): only its breaks end it.
 export const ORDER_BREAKS=Object.freeze(['spotted','hit','passed']);
 const ORDERS={};
 // def: {start(g,e,order), act(ctx,order) → true (acted) | 'fire' (fall through to the attack) | false, end(g,e,order,why)}
@@ -30,7 +31,7 @@ export function endOrder(g,e,why){
 export function runOrder(ctx){
  const {g,e}=ctx,order=e.order;if(!order)return false;
  if(!ORDERS[order.kind]){delete e.order;return false;}
- if(g.turn-order.since>=order.patience){endOrder(g,e,'patience');return false;}
+ if(order.patience!==null&&g.turn-order.since>=order.patience){endOrder(g,e,'patience');return false;}
  return ORDERS[order.kind].act(ctx,order);
 }
 // Called from hurt(): being hit breaks an order that lists it.
@@ -46,7 +47,7 @@ export function validOrders(g){
   return Boolean(ORDERS[o.kind])&&typeof o.by==='string'&&o.by.length>0&&o.by.length<=100&&
    ['at','watch','from'].every(k=>o[k]===undefined||point(o[k]))&&
    Number.isSafeInteger(o.since)&&o.since>=0&&o.since<=(g.turn??o.since)&&
-   Number.isSafeInteger(o.patience)&&o.patience>=1&&o.patience<=ORDER_TUNING.maxPatience&&
+   (o.patience===null||Number.isSafeInteger(o.patience)&&o.patience>=1&&o.patience<=ORDER_TUNING.maxPatience)&&
    Array.isArray(o.breakOn)&&o.breakOn.every(b=>ORDER_BREAKS.includes(b))&&new Set(o.breakOn).size===o.breakOn.length;
  });
 }
