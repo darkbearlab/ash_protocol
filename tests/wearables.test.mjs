@@ -66,7 +66,7 @@ test('the passives follow the slot, and the goggles really cancel the dark penal
 });
 
 test('saves carry ownership, re-derive the passives, and refuse a slot the run cannot fill',()=>{
- assert.equal(SAVE_VERSION,58);   // 3.126.0: bounding orders
+ assert.equal(SAVE_VERSION,59);   // 3.127.0: rebel morale
  const g=own(run()),p=g.player;
  assert.equal(g.action('prepare',{category:'item',id:'nvg'}),true);
  const back=Game.restore(g.serialize());

@@ -137,7 +137,7 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
       const drawn=i===endRoom&&j===0&&factionBoss(faction,info.cycleFloor)?factionBoss(faction,info.cycleFloor):pool[Math.floor(rng()*pool.length)];
       // A card may cap how many of it a floor can hold (3.125.0: one squad leader). The draw is never repeated, so the
       // seeded stream is identical; the card that is over its cap becomes the faction's plain scout.
-      const cap=ENEMY_TYPES[drawn]?.maxPerFloor;
+      const card=ENEMY_TYPES[drawn],cap=floor>6?(card?.maxPerFloorDeep??card?.maxPerFloor):card?.maxPerFloor;
       const type=cap&&enemies.filter(e=>e.type===drawn).length>=cap?factionDef(faction).scout:drawn;
       const post=posts[j];if(!post)throw new Error("Legacy enemy post capacity exceeded");
       enemies.push(spawnEnemy(type,post.x,post.y,`${floor}-${i}-${j}`,floor));

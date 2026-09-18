@@ -2,6 +2,7 @@ import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,reco
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
 import {validSquad} from './squad.js';
+import {recruitConscripts,rebelMorale,witnessDeath,isEnforcer,validRebels} from './rebels.js';
 import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
 import {tickTongues,validSwarm,SWARM_TUNING} from './swarm.js';
 import {scream,tickCivilianCooldowns,migrateCivilians,validCivilians} from './civilians.js';
@@ -139,7 +140,7 @@ export class Game {
     Object.assign(this,{swarmWaves:undefined,mapStyle:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
-    prepareMission(this);rigContainers(this);populateRunUnlocks(this);registerPurgeFloor(this);
+    prepareMission(this);recruitConscripts(this);rigContainers(this);populateRunUnlocks(this);registerPurgeFloor(this);
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
   get petSensorContacts(){return petScanContacts(this);}
@@ -419,6 +420,8 @@ export class Game {
     this.flares=(this.flares||[]).filter(f=>f.expires>this.turn);
     expireExposure([p,...this.enemies,...this.allies],this.turn);
     for(const actor of [p,...this.enemies,...this.activeAllies]){tickTraits(actor);tickSuppression(actor);}
+    // 3.127.0: rebels taunt their cowards before the player gets control, so the boosts show on the target cards.
+    if(this.status==='playing'&&p.hp>0)rebelMorale(this);
     this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';this.log('生命訊號中斷。',true);}
     this.finishPursuit();return true;
   }
@@ -681,8 +684,10 @@ export class Game {
     if(e.hp>0)return;
     if(isNoncombatant(e)){this.log(enemyName(e)+'已倒下。');enemyDeath(this,e);return;}
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
-    this.player.kills++;if(!e.expendable&&simulationUpgrades(this))this.player.xp+=enemyKillXp(e);
-    if(!e.expendable&&simulationDrops(this))this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
+    // 3.127.0: an enforcer's execution is not the player's kill, and a conscript pays out nothing.
+    const executed=isEnforcer(attacker);
+    if(!executed)this.player.kills++;if(!e.expendable&&!executed&&simulationUpgrades(this))this.player.xp+=enemyKillXp(e);
+    if(!e.expendable&&!e.conscript&&!executed&&simulationDrops(this))this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
     this.log(`${enemyName(e)}已消滅。`);if(missionTarget(this,e))this.log(this.missionSummary+'。');salvageBlueprint(this,e,attacker);
     // The number stops at MAX_LEVEL (3.52.0, user call). Past it the threshold stays at the level-20 cost and each
     // one hands over supplies instead of a pick, so the HUD can simply read MAX.
@@ -690,8 +695,10 @@ export class Game {
     while(p.level<MAX_LEVEL&&p.xp>=p.level+2){p.xp-=p.level+2;p.level++;if(activeTrait(p,'tactical_supply')){this.log('戰術配給：煙霧彈 +1。');this.receiveGrenade('smoke',1);}if(this.perkPicks+this.pendingPerks<perkLimit(p.level))this.pendingPerks++;}
     while(p.level>=MAX_LEVEL&&p.xp>=MAX_LEVEL+2){p.xp-=MAX_LEVEL+2;giveCapSupply(this);}
     enemyDeath(this,e);
+    // A comrade gunned down in sight breaks the rebels who saw it; executions and self-destruction never do.
+    if(attacker&&!this.enemies.includes(attacker))witnessDeath(this,e);
     if(isBossClass(e))this.awardProtocol(e.type,`${this.floor}:${e.id}`);
-    if(e.reinforcement||e.expendable||!simulationDrops(this))return; // Retreat waves add pressure, not replacement supplies.
+    if(e.reinforcement||e.expendable||e.conscript||!simulationDrops(this))return; // Retreat waves add pressure, not replacement supplies.
     const loot=enemyDef(e)?.loot;
     if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.dropEnemyWeapon(e,loot.weapon);
     if(this.floor>=RARE_ARMORY.minFloor&&loot?.rareWeapon!==undefined&&this.rng()<loot.rareChance)this.dropEnemyWeapon(e,loot.rareWeapon);
@@ -1114,7 +1121,7 @@ export class Game {
       g.player.wearables??=[];syncWearableTraits(g.player);
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
-      if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSquad(g))return null;
+      if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSquad(g)||!validRebels(g))return null;
       if(version<32)g.shadowSteps=0;
       // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
       // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run

@@ -23,8 +23,8 @@ export const FACTIONS={
   deepExtra:[['brute',1],['sniper',1]],
  },bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
  rebel:{name:'叛軍',tag:true,pickable:true,voice:'rebel',eliteAffixes:4,roster:{
-  early:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',1],['crawler',1],['raider_elite',1]],
-  late:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',2],['brute',1],['sniper',1],['crawler',1],['raider_elite',1],['gunner_elite',1]],
+  early:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',1],['crawler',1],['raider_elite',1],['enforcer',1]],
+  late:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',2],['brute',1],['sniper',1],['crawler',1],['raider_elite',1],['gunner_elite',1],['enforcer',1]],
   deepExtra:[['bomber_bot',1],['gunner_elite',1]],
  },bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:REBEL_NAMES},
  // Swarm (3.83.0, user): creature cards and infected soldiers, a giant bug, oversized bug bosses and burrow nests only.

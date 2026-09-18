@@ -27,6 +27,6 @@ export function rollEnemyElite(e,seed,floor,offset=0){
  }
  return e;
 }
-export const enemyKillXp=e=>isNoncombatant(e)||e.expendable?0:Math.round((enemyDef(e)?.xp??1)*(e.elite?ELITE_TUNING.xpMultiplier:1));
+export const enemyKillXp=e=>isNoncombatant(e)||e.expendable||e.conscript?0:Math.round((enemyDef(e)?.xp??1)*(e.elite?ELITE_TUNING.xpMultiplier:1));
 export function migrateElites(g){for(const e of factionActors(g))delete e.elite;}
 export const validElites=g=>factionActors(g).every(e=>!Object.hasOwn(e,'elite')||e.elite===true);

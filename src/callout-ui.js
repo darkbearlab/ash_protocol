@@ -37,6 +37,8 @@ const REBEL={
  move:['往前壓，別當縮頭烏龜！','衝過去！'],cover:['找東西躲，笨蛋！','趴下，別送死！'],hold:['老子就站這！','有種過來啊！'],reload:['等我換彈，別催！','子彈沒了，該死！'],flank:['繞過去捅他後背！','從旁邊包抄，快！'],
  hit:['該死，被打中了！','混蛋，我中彈了！'],wounded:['可惡……還沒完！','痛死了，你給我記住！'],critical:['救我……誰來救我！','我不想死在這！'],suppressed:['火力也太猛了吧！','頭都抬不起來！'],pinned:['動不了，該死！','被釘死在這了！'],
  spotted:['在那！宰了他！','找到你了，雜碎！'],lost:['人呢？跑哪去了！','讓他溜了，該死！'],search:['給我搜，挖地三尺！','出來啊，別躲了！'],
+ // 3.127.0 draft lines for the rebel who breaks (docs/REBELS.md); the user rewrites the voice.
+ flee:['我不幹了！','掩護我，我要撤！'],
 };
 // Civilians (3.82.1, docs/CIVILIANS.md 5): staff left behind in an ember facility. They know the war is lost, still wait
 // for word from headquarters and recognise the numbered clones. No company names (docs/STORY.md 2). Only the cues the

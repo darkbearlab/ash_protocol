@@ -2,7 +2,7 @@ import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 58;
+export const SAVE_VERSION = 59;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -71,6 +71,9 @@ for(const [base,rounds,ammo,tint,name] of [['rifleman',3,'ammo','#8fa06a','被�
 // Squad leader (3.125.0, user design): support first, rifle second. It identifies the player's weapon, sends the squad
 // to positions that answer it, and spends its own action keeping them 已就緒, so it is the unit to shoot first.
 ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],traits:['suppression_resistance','night_vision','infrared'],rounds:1,attackStyle:'bullet',behavior:'squad_leader',maxPerFloor:1,loot:{weapon:0,chance:.2,ammo:'ammo'},name:'小隊長',hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:'指揮官：識別你手上的武器，把隊員派到能有效還擊的位置，並讓全隊保持「已就緒」。它活著時隊員會壓制你。'};
+// Enforcer (3.127.0, user design, docs/REBELS.md): slow, with a long and hopeless gun; its real work is executing the
+// rebels who hide, which throws the whole unit back into the fight. Two a floor, three from floor 7.
+ENEMY_TYPES.enforcer={sprite:{key:'rifleman',tint:'#8a3a34'},drawing:{shape:'humanoid',color:'#8a3a34'},projectile:'rifle',casing:'pistol',tags:['armed'],traits:['slow'],rounds:1,attackStyle:'bullet',behavior:'enforcer',maxPerFloor:2,maxPerFloorDeep:3,combat:{rangedAccuracy:-40},loot:{weapon:2,chance:.18,ammo:'pistol'},name:'督戰官',hp:40,damage:10,range:10,armor:1,color:'#8a3a34',xp:2,role:'叛軍的督戰官：行動緩慢，一把射程很遠卻幾乎打不中的槍。盯上躲起來的叛軍、下一回合處決，讓周圍所有人立刻歸隊開火。先殺它，或搶先殺掉被盯上的那個。'};
 // Stable IDs; append content without changing saved offers. null cap means consumable reward.
 export const PERKS = [
   {id:'damage',name:'武器增幅',cap:3,effect:'weapon',amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'},

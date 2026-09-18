@@ -17,6 +17,7 @@ import {combatStep} from './tactics.js';
 import {barrierBetween,vaultable,edgeBlocks,firstBarrierOnRay} from './barriers.js';
 import {petCombat} from './pet-growth.js';
 import {squadLeaderAct,squadMemberAct,useSquadAttack} from './squad.js';
+import {enforcerAct,cowerAct,useRebelHooks} from './rebels.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
 import {tacticalSight} from './throwables.js';
@@ -122,6 +123,10 @@ registerUnitTree('warden',{after:reinforce});
 // charge, so deployment and suppression replace the shot without touching any other card's behaviour.
 registerUnitTree('squad_leader',{before:squadLeaderAct});
 useSquadAttack(attack);
+// 3.127.0 rebels (docs/REBELS.md): the enforcer commands through fear; a rebel that breaks hides before it would charge.
+registerUnitTree('enforcer',{before:enforcerAct});
+registerAffixBranch({id:'rebel-cower',applies:({e})=>e.faction==='rebel',trigger:()=>true,chance:1,pending:()=>true,run:cowerAct});
+useRebelHooks({attack,grenade});
 registerAffixBranch({id:'squad',applies:({e})=>Boolean(e.squad),trigger:()=>true,chance:1,pending:()=>true,run:squadMemberAct});
 // The bot is its own attacker when it blows itself up, so a self-destruct never gives the workshop a blueprint (3.94.0).
 registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultyOffset))});
