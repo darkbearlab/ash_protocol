@@ -30,7 +30,7 @@ test('enemy definitions and spawn references use valid rule data',()=>{
 });
 
 // Pre-refactor snapshot: order and source strings are serialized, not just membership.
-const initial={fodder:['slow','no_cover','biological'],brood:['fast','no_cover','biological'],rifleman:['biological'],raider:['biological'],crawler:['biological'],gunner:['biological'],drone:['no_cover','mechanical'],brute:['large','suppression_resistance','biological'],sniper:['night_vision','biological'],bomber:['biological'],warden:['infrared','suppression_resistance','mechanical'],boss:['suppression_resistance','mechanical']};
+const initial={fodder:['slow','no_cover','biological'],brood:['fast','no_cover','underfoot','biological'],rifleman:['biological'],raider:['biological'],crawler:['biological'],gunner:['biological'],drone:['no_cover','mechanical'],brute:['large','suppression_resistance','biological'],sniper:['night_vision','biological'],bomber:['biological'],warden:['infrared','suppression_resistance','mechanical'],boss:['suppression_resistance','mechanical']};
 test('all original trait arrays and sources match at floors 1 through 12',()=>{
  assert.deepEqual(Object.keys(ENEMY_TYPES).slice(0,Object.keys(initial).length),Object.keys(initial));
  for(const [id,base] of Object.entries(initial))for(let floor=1;floor<=12;floor++){

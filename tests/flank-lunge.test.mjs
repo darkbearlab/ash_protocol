@@ -45,6 +45,6 @@ test('side attack: it picks a spot your cover does not face, walks there unseen 
 });
 
 test('being hit breaks a side attack; lunge and side attack belong to no card yet',()=>{
-  const g=field({crate:{x:10,y:15}}),e=unit(g,'rifleman',10,10,'e');orderFlank(g,e);g.hurt(e,1,g.player);assert.equal(e.order,undefined);
+  const g=field({crate:{x:10,y:15}}),e=unit(g,'rifleman',10,10,'e');orderFlank(g,e,{by:'test'});g.hurt(e,1,g.player);assert.equal(e.order,undefined);
   for(const [id,def] of Object.entries(ENEMY_TYPES))assert.ok(!(def.traits||[]).includes('lunge')&&!(def.accepts||[]).includes('flank'),id);
 });

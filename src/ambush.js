@@ -7,7 +7,8 @@
 // - It picks the spot that best protects it while still hurting you; a dark tile counts in its favour (you shoot
 //   worse into the dark), it is not a hiding place.
 // - When the order ends — fired, broken or out of patience — the unit is back to normal.
-import {registerOrder,giveOrder,endOrder} from './orders.js';
+import {registerOrder,giveOrder,endOrder,resting} from './orders.js';
+import {accepts,selfTerms} from './personality.js';
 import {DETOUR_TRAIT,exposedFrom} from './detour.js';
 import {grantTrait,removeTraitSource} from './traits.js';
 import {enemyDef} from './enemy-data.js';
@@ -53,9 +54,10 @@ export function chokeOnRoute(g,route){
 // Where to wait: unseen from your last known tile, with a clear shot at the choke inside its own range, reachable,
 // never in the line you come out along, and scored for protection (cover towards the choke, darkness, not too close)
 // and for damage (the choke lit, the shot short). Ties go to the nearer spot, then the upper-left one; no dice.
-export function ambushSpot(g,e,from,choke,taken=new Set()){
+// 堅守 (hidden:false) takes the same doorway but does not need a tile you cannot see.
+export function ambushSpot(g,e,from,choke,taken=new Set(),{hidden=true}={}){
  const range=enemyDef(e)?.range||1;if(range<=1)return null;
- const reach=Math.min(range,AMBUSH_TUNING.reach),seen=exposedFrom(g,from),found=[];
+ const reach=Math.min(range,AMBUSH_TUNING.reach),seen=hidden?exposedFrom(g,from):new Set(),found=[];
  const others=[g.player,...g.enemies.filter(o=>o.hp>0&&o!==e),...g.activeAllies];
  for(let y=choke.y-reach;y<=choke.y+reach;y++)for(let x=choke.x-reach;x<=choke.x+reach;x++){
   if(x<0||y<0||x>=SIZE||y>=SIZE)continue;
@@ -73,18 +75,21 @@ export function ambushSpot(g,e,from,choke,taken=new Set()){
  return found.find(f=>f.near===0||g.routeSearch(e,f.q,null))?.q||null;
 }
 // Gives the order if the map allows one; false when there is no choke or no spot, and the unit carries on as before.
-export function orderAmbush(g,e,{by='self',from=e.lastKnown,taken}={}){
+export function orderAmbush(g,e,{by='self',from=e.lastKnown,taken,kind='ambush',inRange=false}={}){
  const exit=g.exitPoint;if(!from||!exit)return false;
  const choke=chokeOnRoute(g,playerRoute(g,from,exit));if(!choke)return false;
- const at=ambushSpot(g,e,from,choke,taken||reserved(g));if(!at)return false;
+ // 堅守: only a doorway already inside the soldier's own range (user: 必經門口在牠射程內).
+ if(inRange&&distance(e,choke)>(enemyDef(e)?.range||1))return false;
+ const at=ambushSpot(g,e,from,choke,taken||reserved(g),{hidden:kind==='ambush'});if(!at)return false;
  // A leader's order carries what the leader knows: the member now takes your last tile from it.
  e.lastKnown={x:from.x,y:from.y};
- return giveOrder(g,e,{kind:'ambush',by,at,watch:{x:choke.x,y:choke.y},from:{x:from.x,y:from.y}});
+ const order={kind,by,at,watch:{x:choke.x,y:choke.y},from:{x:from.x,y:from.y},patience:6,breakOn:kind==='ambush'?['spotted','hit','passed']:['hit','passed']};
+ return giveOrder(g,e,by==='self'?selfTerms(e,order):order);
 }
 const reserved=g=>new Set(g.enemies.filter(o=>o.hp>0&&o.order?.at).map(o=>key(o.order.at)));
 
 const canShoot=(g,e,p)=>g.sight(e,p)&&g.shotClear(e,p)&&distance(e,p)<=(enemyDef(e)?.range||1);
-registerOrder('ambush',{
+const watchOrder=cue=>({
  start(g,e){grantTrait(e,DETOUR_TRAIT,SOURCE);e.tactics=null;},
  end(g,e,order,why){
   removeTraitSource(e,SOURCE);
@@ -110,15 +115,24 @@ registerOrder('ambush',{
    e.x=step.x;e.y=step.y;e.moved=true;return true;
   }
   // In place: aim held on the doorway, so the first shot needs no warning. It says something, never what.
-  if(!e.charge||e.aim?.x!==order.watch.x||e.aim?.y!==order.watch.y){order.since=g.turn;e.charge=true;e.windup=1;e.aim={...order.watch};enemyCallout(g,e,'state',{state:'lurk'});}
+  if(!e.charge||e.aim?.x!==order.watch.x||e.aim?.y!==order.watch.y){order.since=g.turn;e.charge=true;e.windup=1;e.aim={...order.watch};enemyCallout(g,e,'state',{state:cue});}
   e.moved=false;return true;
  },
 });
+registerOrder('ambush',watchOrder('lurk'));
+// 堅守 (3.133.0): the same watch in the open, for a disciplined soldier who knows where you are but cannot see you.
+registerOrder('hold',watchOrder('hold'));
 
 // Personality (docs/ORDERS.md §8): a unit whose card accepts ambush takes one by itself when it knows where you were
 // but cannot see you, has no order, and belongs to no squad (a squad's orders come from its leader).
 export function selfAmbush(ctx){
  const {g,e,p,los}=ctx;
- if(e.order||e.squad||los||p!==g.player||!e.alert||!e.lastKnown||!enemyDef(e)?.accepts?.includes('ambush'))return false;
+ if(e.order||e.squad||los||p!==g.player||!e.alert||!e.lastKnown||!accepts(e,'ambush')||resting(g,e,'ambush'))return false;
  return orderAmbush(g,e);
+}
+// 堅守 (3.133.0): knows where you were, cannot see you, and your way to the lift runs through a doorway in its range.
+export function selfHold(ctx){
+ const {g,e,p,los}=ctx;
+ if(e.order||e.squad||los||p!==g.player||!e.alert||!e.lastKnown||!accepts(e,'hold')||resting(g,e,'hold'))return false;
+ return orderAmbush(g,e,{kind:'hold',inRange:true});
 }

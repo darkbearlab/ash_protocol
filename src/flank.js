@@ -4,7 +4,8 @@
 //   spot; the unit's own cover counts in its favour, then nearness. No dice.
 // - It walks there by the way the target cannot see (迂迴) and fires as soon as it has that open shot — which may be
 //   before it arrives. Being hit breaks it; so do six turns, counted from the order.
-import {registerOrder,giveOrder,endOrder} from './orders.js';
+import {registerOrder,giveOrder,endOrder,resting} from './orders.js';
+import {accepts,selfTerms} from './personality.js';
 import {DETOUR_TRAIT} from './detour.js';
 import {grantTrait,removeTraitSource} from './traits.js';
 import {enemyDef} from './enemy-data.js';
@@ -30,7 +31,16 @@ export function flankSpot(g,e,target,taken=new Set()){
 }
 export function orderFlank(g,e,{by='self',target=g.player}={}){
  const at=flankSpot(g,e,target);if(!at)return false;
- return giveOrder(g,e,{kind:'flank',by,at,watch:{x:target.x,y:target.y},breakOn:['hit']});
+ const order={kind:'flank',by,at,watch:{x:target.x,y:target.y},patience:6,breakOn:['hit']};
+ return giveOrder(g,e,by==='self'?selfTerms(e,order):order);
+}
+// 3.133.0 (user decision): one pins, one goes round. A disciplined or cunning unit that sees you behind cover it cannot
+// shoot past, while another unit already has an open shot at you, takes the flank itself.
+export function selfFlank(ctx){
+ const {g,e,p,los}=ctx;
+ if(e.order||e.squad||!los||p!==g.player||!e.alert||(enemyDef(e)?.range||1)<=1||!accepts(e,'flank')||resting(g,e,'flank'))return false;
+ if(openShot(g,e,p)||!g.enemies.some(o=>o!==e&&o.hp>0&&(enemyDef(o)?.range||1)>1&&openShot(g,o,p)))return false;
+ return orderFlank(g,e);
 }
 registerOrder('flank',{
  start(g,e){grantTrait(e,DETOUR_TRAIT,SOURCE);e.tactics=null;},

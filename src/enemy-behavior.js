@@ -19,8 +19,10 @@ import {petCombat} from './pet-growth.js';
 import {squadLeaderAct,useSquadAttack} from './squad.js';
 import {enforcerAct,selfRetreat,useRebelHooks} from './rebels.js';
 import {runOrder} from './orders.js';
-import {selfAmbush} from './ambush.js';
-import './flank.js';   // 3.132.0: registers the flank order (given to nobody yet)
+import {selfAmbush,selfHold} from './ambush.js';
+import {selfFlank} from './flank.js';
+import {pounceAction,usePounceHooks} from './pounce.js';
+import {personalityOf} from './personality.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
 import {tacticalSight} from './throwables.js';
@@ -130,6 +132,15 @@ useSquadAttack(attack);
 registerUnitTree('enforcer',{before:enforcerAct});
 // 3.131.0: a rebel's hiding is its retreat order now (src/rebels.js), run with the other orders before the affixes.
 useRebelHooks({attack,grenade});
+usePounceHooks({attack});
+// 3.133.0 personality (docs/ORDERS.md §8.1): a unit with no order checks the kinds its personality accepts, in that
+// order, and takes the first whose moment has come. Units of a faction without a table keep the old checks.
+const SELF={retreat:selfRetreat,ambush:selfAmbush,hold:selfHold,flank:selfFlank};
+function selfOrders(ctx){
+ const p=personalityOf(ctx.e);
+ if(!p){selfRetreat(ctx);selfAmbush(ctx);return;}
+ for(const kind of p.accepts){if(ctx.e.order)return;SELF[kind]?.(ctx);}
+}
 // 3.132.0: a member's part is the post or bound order its leader gives it (src/squad.js), run with the other orders.
 // The bot is its own attacker when it blows itself up, so a self-destruct never gives the workshop a blueprint (3.94.0).
 registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultyOffset))});
@@ -138,9 +149,9 @@ registerUnitTree('brood',{});
 export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);}
 export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
- if(tongueAction(ctx)||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
+ if(tongueAction(ctx)||pounceAction(ctx)||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
  // 3.130.0 orders (docs/ORDERS.md): a committed order acts before the affix branches; 'fire' goes straight to the attack.
- selfRetreat(ctx);selfAmbush(ctx);const order=runOrder(ctx);if(order===true)return;
+ selfOrders(ctx);const order=runOrder(ctx);if(order===true)return;
  if(order!=='fire'&&(runAffixBranches(ctx)||seekCover(ctx)))return;
  let fired=false;
  if((los&&g.shotClear(e,p)&&d<=def.range&&(def.range>1||g.canCross(e,p)))||(tree.fixedTile&&e.charge&&e.aim)){

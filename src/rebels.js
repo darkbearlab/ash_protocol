@@ -18,6 +18,7 @@ import {unitTree} from './behavior-tree.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {DETOUR_TRAIT} from './detour.js';
 import {registerOrder,giveOrder,endOrder} from './orders.js';
+import {accepts} from './personality.js';
 import {SIZE} from './data.js';
 
 export const REBEL_TUNING=Object.freeze({witnessRadius:4,coverSearch:6,enforcerRange:7,alarmRadius:8,alarmCooldown:5});
@@ -31,7 +32,7 @@ export const isCowering=e=>activeTrait(e,COWER_TRAIT);
 const biological=e=>!activeTrait(e,'mechanical');
 const elite=e=>Boolean(e?.elite||enemyDef(e)?.elite);
 // Who can break: ordinary armed rebels. Elites never run, machines have no fear, the enforcer is the fear.
-export const canCower=e=>isRebel(e)&&e.hp>0&&!elite(e)&&biological(e)&&!isBossClass(e)&&!isNoncombatant(e)&&!isEnforcer(e)&&(enemyDef(e)?.range||1)>1;
+export const canCower=e=>isRebel(e)&&accepts(e,'retreat')&&e.hp>0&&!elite(e)&&biological(e)&&!isBossClass(e)&&!isNoncombatant(e)&&!isEnforcer(e)&&(enemyDef(e)?.range||1)>1;
 
 // Cover to run to: the nearest tile that shields it from the player, never a one-tile corridor (it would seal its own
 // side in), never occupied. None found: it cowers where it stands.

@@ -7,8 +7,9 @@
 // - A unit drops its order only when a break condition fires or its patience runs out — that is the commitment.
 // - When an order ends the unit is back to normal, free to take or give a new one.
 import {SIZE} from './data.js';
+import {hasPersonalityTable} from './personality.js';
 
-export const ORDER_TUNING=Object.freeze({patience:6,maxPatience:99});
+export const ORDER_TUNING=Object.freeze({patience:6,maxPatience:99,rest:6});
 // patience:null is an order with no time limit (a rebel's retreat, a civilian's flight): only its breaks end it.
 export const ORDER_BREAKS=Object.freeze(['spotted','hit','passed']);
 const ORDERS={};
@@ -27,7 +28,11 @@ export function giveOrder(g,e,order){
 export function endOrder(g,e,why){
  const order=e.order;if(!order)return;
  delete e.order;ORDERS[order.kind]?.end?.(g,e,order,why);
+ // 3.133.0: a unit with a personality that waited out its own order does not take the same kind again for a while,
+ // so a disciplined soldier does not hold one doorway for ever.
+ if(why==='patience'&&order.by==='self'&&hasPersonalityTable(e))e.orderRest={kind:order.kind,until:g.turn+ORDER_TUNING.rest};
 }
+export const resting=(g,e,kind)=>e.orderRest?.kind===kind&&g.turn<e.orderRest.until;
 // Runs before the affix branches. Patience is checked here for every kind; the rest is the order's own business.
 export function runOrder(ctx){
  const {g,e}=ctx,order=e.order;if(!order)return false;
@@ -43,6 +48,8 @@ const ORDER_KEYS=new Set(['kind','by','at','watch','from','since','patience','br
 export function validOrders(g){
  const actors=[...(g.enemies||[]),...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])];
  return actors.every(e=>{
+  const r=e.orderRest;
+  if(r!==undefined&&(!r||typeof r!=='object'||!ORDERS[r.kind]||!Number.isSafeInteger(r.until)||r.until<0||r.until>(g.turn??0)+ORDER_TUNING.rest||Object.keys(r).length!==2))return false;
   const o=e.order;if(o===undefined)return true;
   const def=o&&ORDERS[o.kind];
   if(!o||typeof o!=='object'||Array.isArray(o)||!def||!Object.keys(o).every(k=>ORDER_KEYS.has(k)||def.keys?.includes(k)))return false;

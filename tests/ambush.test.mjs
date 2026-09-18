@@ -53,15 +53,15 @@ test('you step into the door: it fires at once and the order is done',()=>{
 });
 
 test('it gives up after six turns of waiting, when hit, when seen, or when you go another way',()=>{
-  const patient=rooms(),a=unit(patient,'rifleman',20,8,'a');orderAmbush(patient,a);
+  const patient=rooms(),a=unit(patient,'rifleman',20,8,'a');orderAmbush(patient,a,{by:'test'});
   until(patient,()=>a.charge&&a.x===a.order?.at.x&&a.y===a.order?.at.y);
   let waited=0;while(a.order&&waited<20){patient.action('wait');waited++;}
   assert.equal(waited,ORDER_TUNING.patience,'six turns, like the squad');
   assert.equal(a.aim,null,'no blind shot at the empty door afterwards');
-  const hit=rooms(),b=unit(hit,'rifleman',20,8,'b');orderAmbush(hit,b);hit.hurt(b,1,hit.player);assert.equal(b.order,undefined,'hit');
-  const seen=rooms(),c=unit(seen,'rifleman',20,8,'c');orderAmbush(seen,c);
+  const hit=rooms(),b=unit(hit,'rifleman',20,8,'b');orderAmbush(hit,b,{by:'test'});hit.hurt(b,1,hit.player);assert.equal(b.order,undefined,'hit');
+  const seen=rooms(),c=unit(seen,'rifleman',20,8,'c');orderAmbush(seen,c,{by:'test'});
   const look=seen.teamVisible.bind(seen);seen.teamVisible=o=>o===c||look(o);seen.action('wait');assert.equal(c.order,undefined,'seen');
-  const other=rooms(),d=unit(other,'rifleman',20,8,'d');orderAmbush(other,d);
+  const other=rooms(),d=unit(other,'rifleman',20,8,'d');orderAmbush(other,d,{by:'test'});
   d.lastKnown={x:18,y:9};other.action('wait');assert.equal(d.order,undefined,'you are already past its door');
 });
 
