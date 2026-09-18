@@ -12,7 +12,8 @@ export const ORDER_TUNING=Object.freeze({patience:6,maxPatience:99});
 // patience:null is an order with no time limit (a rebel's retreat, a civilian's flight): only its breaks end it.
 export const ORDER_BREAKS=Object.freeze(['spotted','hit','passed']);
 const ORDERS={};
-// def: {start(g,e,order), act(ctx,order) → true (acted) | 'fire' (fall through to the attack) | false, end(g,e,order,why)}
+// def: {start(g,e,order), act(ctx,order) → true (acted) | 'fire' (fall through to the attack) | false, end(g,e,order,why),
+//       keys: extra fields this kind carries, valid(order): their check}
 export function registerOrder(kind,def){ORDERS[kind]=Object.freeze(def);}
 export const orderKinds=()=>Object.keys(ORDERS);
 
@@ -43,8 +44,9 @@ export function validOrders(g){
  const actors=[...(g.enemies||[]),...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])];
  return actors.every(e=>{
   const o=e.order;if(o===undefined)return true;
-  if(!o||typeof o!=='object'||Array.isArray(o)||!Object.keys(o).every(k=>ORDER_KEYS.has(k)))return false;
-  return Boolean(ORDERS[o.kind])&&typeof o.by==='string'&&o.by.length>0&&o.by.length<=100&&
+  const def=o&&ORDERS[o.kind];
+  if(!o||typeof o!=='object'||Array.isArray(o)||!def||!Object.keys(o).every(k=>ORDER_KEYS.has(k)||def.keys?.includes(k)))return false;
+  return def.valid?.(o)!==false&&typeof o.by==='string'&&o.by.length>0&&o.by.length<=100&&
    ['at','watch','from'].every(k=>o[k]===undefined||point(o[k]))&&
    Number.isSafeInteger(o.since)&&o.since>=0&&o.since<=(g.turn??o.since)&&
    (o.patience===null||Number.isSafeInteger(o.patience)&&o.patience>=1&&o.patience<=ORDER_TUNING.maxPatience)&&

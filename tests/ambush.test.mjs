@@ -75,7 +75,7 @@ test('a sniper takes an ambush by itself; a rifleman does not',()=>{
 test('a squad that loses you sends the half farthest from your last tile to ambush, on the leader\'s order',()=>{
   const g=rooms(),leader=unit(g,'squad_leader',21,4,'L');
   const members=[unit(g,'rifleman',14,9,'m1'),unit(g,'rifleman',16,9,'m2'),unit(g,'rifleman',23,9,'m3'),unit(g,'rifleman',24,3,'m4')];
-  deploySquad(g,leader,members,g.weapon.id);for(const m of members){m.squad.set=true;m.squad.goal={x:m.x,y:m.y};}
+  deploySquad(g,leader,members,g.weapon.id);for(const m of members){m.order.set=true;m.order.at={x:m.x,y:m.y};}
   Object.assign(leader.squad,{state:'patience',patience:1,last:{...LAST}});
   g.action('wait');
   assert.equal(leader.squad.state,'search');
@@ -84,7 +84,7 @@ test('a squad that loses you sends the half farthest from your last tile to ambu
   assert.ok(ambushers.every(m=>m.order.by==='L'),'on the leader\'s order');
   const far=[...members].sort((a,b)=>(Math.abs(b.x-LAST.x)+Math.abs(b.y-LAST.y))-(Math.abs(a.x-LAST.x)+Math.abs(a.y-LAST.y))).slice(0,2);
   assert.ok(ambushers.every(m=>far.includes(m)),'the farthest go');
-  assert.ok(members.filter(m=>!m.order).some(m=>m.squad.role==='move'),'the rest still search');
+  assert.ok(members.filter(m=>m.order?.kind!=='ambush').some(m=>m.order?.kind==='bound'),'the rest still search');
 });
 
 test('an order survives a save; a tampered one is refused',()=>{

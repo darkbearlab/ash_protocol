@@ -27,6 +27,7 @@ import {enemyDisplayName} from './enemy-affixes.js';
 import {enemyCallout} from './enemy-intents.js';
 import {grantTrait,activeTrait,removeTraitSource} from './traits.js';
 import {DETOUR_TRAIT} from './detour.js';
+import {registerOrder,giveOrder,endOrder} from './orders.js';
 import {orderAmbush} from './ambush.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {roomTiles} from './map-geometry.js';
@@ -63,7 +64,7 @@ export function weaponAnswer(game){
  if((w.range||0)>=8)return {kind:'long',closeIn:SQUAD_TUNING.closeIn};
  return {kind:'standard'};
 }
-export const squadMembers=(g,leader)=>g.enemies.filter(e=>e!==leader&&e.hp>0&&e.alert&&!e.order&&!isNoncombatant(e)&&!isSquadLeader(e)&&(enemyDef(e)?.range||1)>1&&distance(e,leader)<=SQUAD_TUNING.radius).slice(0,SQUAD_TUNING.members);
+export const squadMembers=(g,leader)=>g.enemies.filter(e=>e!==leader&&e.hp>0&&e.alert&&(!e.order||onDutyFor(e,leader))&&!isNoncombatant(e)&&!isSquadLeader(e)&&(enemyDef(e)?.range||1)>1&&distance(e,leader)<=SQUAD_TUNING.radius).slice(0,SQUAD_TUNING.members);
 
 // A firing position for one member: it can shoot from there, it keeps the distance the player's weapon demands, and
 // cover beats no cover. Taken tiles are reserved so a squad never stacks up on one doorway.
@@ -135,7 +136,8 @@ export function deploySquad(g,leader,members,weaponId){
  for(const member of members){
   const spot=firingSpot(g,member,p,answer,taken);
   if(spot)taken.add(key(spot));
-  member.squad={leader:leader.id,goal:spot||{x:member.x,y:member.y},set:!spot||distance(member,spot)===0,suppressed:0};
+  member.squad={leader:leader.id,suppressed:0};
+  givePost(g,leader,member,spot||{x:member.x,y:member.y},!spot||distance(member,spot)===0);
  }
  leader.squad={weapon:weaponId,state:'deploy',suppressTurn:0,answer:answer.kind,set:true,since:g.turn,at:{x:p.x,y:p.y}};
  return members.length>0;
@@ -147,7 +149,7 @@ export function squadSet(g,leader){
  // Deployment is always a real phase: even a squad that already stands well spends a turn suppressing before the order
  // to go ready, so the player always gets the window. A straggler cannot hold the squad past the deadline.
  if(waited<SQUAD_TUNING.deployMin)return false;
- return members.every(m=>m.squad.set)||waited>=SQUAD_TUNING.deployTurns;
+ return members.every(m=>dutyOf(m)?.set??true)||waited>=SQUAD_TUNING.deployTurns;
 }
 // Only a new weapon reopens the identification window; moving away is answered by the formation moving with you.
 export const squadStale=(g,leader,weaponId)=>!leader.squad||leader.squad.weapon!==weaponId;
@@ -157,7 +159,7 @@ export const squadStale=(g,leader,weaponId)=>!leader.squad||leader.squad.weapon!
 // re-application reaches it once it has arrived. So the deadline readies whoever is in place, not the stragglers.
 // Bounding advancers are not stragglers: their callers decide (patience keeps them ready, contact leaves them out).
 export function makeReady(g,leader,members){
- for(const actor of [leader,...members.filter(m=>m.squad?.set!==false||m.squad?.role==='move')]){
+ for(const actor of [leader,...members.filter(m=>dutyOf(m)?.set!==false||m.order?.kind==='bound')]){
   grantTrait(actor,READY_TRAIT,SQUAD_SOURCE,SQUAD_TUNING.readyTurns);
   if(actor!==leader&&(enemyDef(actor)?.range||1)>1){actor.charge=true;actor.windup=1;actor.aim={x:g.player.x,y:g.player.y};}
  }
@@ -169,7 +171,7 @@ export const canShoot=(g,member,player)=>g.sight(member,player)&&g.shotClear(mem
 // Asked with and without the squad, so a lift that is out of reach for other reasons never counts as their doing.
 export function holdsTheRoute(g,leader,members){
  const exit=g.exitPoint,p=g.player;if(!exit)return false;
- const walls=new Set([leader,...members].flatMap(m=>[key(m),...(m.squad?.goal?[key(m.squad.goal)]:[])]));
+ const walls=new Set([leader,...members].flatMap(m=>[key(m),...(dutyOf(m)?[key(dutyOf(m).at)]:[])]));
  const reach=blocked=>{
   const queue=[{x:p.x,y:p.y}],seen=new Set([key(p)]);
   for(let i=0;i<queue.length;i++){
@@ -187,20 +189,20 @@ export function holdsTheRoute(g,leader,members){
 // Who advances: never more than half the squad at once, so someone always covers. In contact the ones who cannot see
 // you go first; while searching, whoever moved least recently goes, so the two halves take turns.
 export function assignMovers(g,leader,mine,target,search){
- for(const m of mine)if(m.squad.role==='move'&&distance(m,m.squad.goal)===0){m.squad.role='cover';syncDetour(m);}
- const moving=mine.filter(m=>m.squad.role==='move');
+ for(const m of mine)if(m.order?.kind==='bound'&&distance(m,m.order.at)===0)givePost(g,leader,m,m.order.at,m.order.set);
+ const moving=mine.filter(m=>m.order?.kind==='bound');
  // 3.128.1 (user decision): in contact half rounds up, so three members bound in a pair instead of one at a time; the
  // search stays at half rounded down, as the user decided for 3.126.0.
  const slots=Math.max(1,search?Math.floor(mine.length/2):Math.ceil(mine.length/2))-moving.length;if(slots<=0)return;
- const answer=weaponAnswer(g),taken=new Set(mine.map(m=>key(m.squad.role==='move'?m.squad.goal:m)));
- const candidates=mine.filter(m=>m.squad.role!=='move'&&(search||!canShoot(g,m,g.player)))
+ const answer=weaponAnswer(g),taken=new Set(mine.map(m=>key(m.order?.kind==='bound'?m.order.at:m)));
+ const candidates=mine.filter(m=>m.order?.kind!=='bound'&&(search||!canShoot(g,m,g.player)))
   .sort((a,b)=>(search?0:Number(g.sight(a,g.player))-Number(g.sight(b,g.player)))||(a.squad.lastMove||0)-(b.squad.lastMove||0)||distance(a,target)-distance(b,target)||a.id.localeCompare(b.id));
  for(const m of candidates.slice(0,slots)){
   taken.delete(key(m));
   const goal=search?searchSpot(g,m,target,taken):firingSpot(g,m,g.player,answer,taken);
   if(!goal){taken.add(key(m));continue;}
   taken.add(key(goal));
-  Object.assign(m.squad,{goal,role:'move',set:false,lastMove:g.turn});syncDetour(m);
+  m.squad.lastMove=g.turn;giveOrder(g,m,{kind:'bound',by:leader.id,at:goal,set:false,patience:null,breakOn:[]});
   grantTrait(m,'fast','squad:advance',SQUAD_TUNING.fastTurns);
   m.charge=true;m.windup=1;
  }
@@ -210,11 +212,17 @@ function searchSpot(g,member,target,taken){
  return spots.filter(q=>g.passable(q.x,q.y,member)&&!taken.has(key(q))&&!g.enemies.some(e=>e.hp>0&&e!==member&&distance(e,q)===0))
   .sort((a,b)=>distance(member,a)-distance(member,b)||key(a).localeCompare(key(b)))[0]||null;
 }
-// 3.129.0 迂迴: a member carries the trait exactly while it is bounding or searching (role 'move'), so its route to the
-// new spot is the one you cannot see; the trait shows on its target card for as long as that lasts.
+// 3.132.0 (docs/ORDERS.md phase three): what a member does is an order its leader gives it — 'post' (go to the
+// firing spot, suppress while the squad deploys, then cover) or 'bound' (the cross-covering advance, and the search).
+// e.squad keeps only who leads it and its own suppression and move stamps. 'set' is whether it has reached its spot,
+// or given up walking because the way was blocked. A bounding member carries 迂迴 (3.129.0) for as long as it bounds.
+const DUTY=new Set(['post','bound']);
 const SQUAD_DETOUR='squad:detour';
-export function syncDetour(e){if(e.squad?.role==='move')grantTrait(e,DETOUR_TRAIT,SQUAD_DETOUR);else removeTraitSource(e,SQUAD_DETOUR);}
-export function disbandSquad(leader,mine){for(const m of mine){delete m.squad;syncDetour(m);}delete leader.squad;}
+export const dutyOf=m=>DUTY.has(m?.order?.kind)?m.order:null;
+function onDutyFor(e,leader){return DUTY.has(e.order?.kind)&&e.order.by===leader.id;}
+function givePost(g,leader,m,at,set){giveOrder(g,m,{kind:'post',by:leader.id,at:{x:at.x,y:at.y},set,patience:null,breakOn:[]});}
+// A disbanded squad's members are back to normal; a member away on an ambush keeps it (it is its own commitment now).
+export function disbandSquad(g,leader,mine){for(const m of mine){delete m.squad;if(dutyOf(m))endOrder(g,m,'disbanded');}delete leader.squad;}
 // The leader's callout turns a blinded soldier's shot into a shot at a tile: −40, and the darkness penalty is replaced.
 // The attack itself is the card's own, handed in by enemy-behavior.js so the two files do not import each other.
 let cardAttack=null;
@@ -229,7 +237,7 @@ function blindFire(ctx){
 }
 // The turn the orders go out is quiet even for a soldier who happens to be standing in a good spot already: the user's
 // rule is that identification costs the squad its fire, which is what makes it the player's window.
-export const canSuppress=(g,member,leader)=>Boolean(leader)&&Boolean(member.squad?.set)&&leader.squad?.since!==g.turn&&
+export const canSuppress=(g,member,leader)=>Boolean(leader)&&(member===leader?Boolean(leader.squad?.set):Boolean(dutyOf(member)?.set))&&leader.squad?.since!==g.turn&&
  (g.turn-(member.squad.suppressed||0)>SQUAD_TUNING.suppressCooldown||leader.squad?.suppressTurn!==g.turn);
 // Suppression at the player, or at the tile beside them when the corner still hides them. The area is the same radius
 // the player's own suppressive fire uses, so a tile beside the player always reaches the player.
@@ -252,20 +260,19 @@ export function suppressFrom(g,member,player,leader){
  g.log(`${enemyDisplayName(member)}朝${distance(point,player)===0?'你':'你身邊'}壓制射擊。`,distance(point,player)===0);
  return true;
 }
-// The member's own turn while the squad works: walk to the assigned tile, then keep the player's head down.
-export function squadMemberAct(ctx){
+// The member's own turn while the squad works: walk to the assigned tile, then keep the player's head down. Both
+// duty orders share it; a bounding member is fast until it arrives, then turns to cover (a post where it stands).
+function dutyAct(ctx,order){
  const {g,e,p}=ctx,state=e.squad;
- if(!state)return false;
- const leader=g.enemies.find(o=>o.id===state.leader&&o.hp>0&&isSquadLeader(o));
- if(!leader){delete e.squad;syncDetour(e);return false;}
- syncDetour(e);
+ const leader=state&&g.enemies.find(o=>o.id===state.leader&&o.hp>0&&isSquadLeader(o));
+ if(!leader){delete e.squad;endOrder(g,e,'leaderless');return false;}
  if(p!==g.player)return false;
- if(!state.set){
-  if(distance(e,state.goal)===0)state.set=true;
+ if(!order.set){
+  if(distance(e,order.at)===0)order.set=true;
   else{
-   const step=g.nextStep(e,state.goal);
+   const step=g.nextStep(e,order.at);
    if(step&&!g.enemies.some(o=>o.hp>0&&o!==e&&distance(o,step)===0)&&distance(step,g.player)!==0){e.x=step.x;e.y=step.y;e.moved=true;enemyCallout(g,e,'state',{state:'move'});return true;}
-   state.set=true;   // blocked: fight from here rather than shuffle for ever
+   order.set=true;   // blocked: fight from here rather than shuffle for ever
   }
  }
  if(leader.squad?.state==='deploy'){
@@ -275,15 +282,15 @@ export function squadMemberAct(ctx){
   return true;
  }
  // Bounding: an advancer walks to its new spot, fast; the turn it arrives it is still fast and still aimed.
- if(state.role==='move'){
-  if(distance(e,state.goal)>0){
-   const step=g.nextStep(e,state.goal);
+ if(order.kind==='bound'){
+  if(distance(e,order.at)>0){
+   const step=g.nextStep(e,order.at);
    if(step&&!g.enemies.some(o=>o.hp>0&&o!==e&&distance(o,step)===0)&&distance(step,g.player)!==0){
     e.x=step.x;e.y=step.y;e.moved=true;grantTrait(e,'fast','squad:advance',SQUAD_TUNING.fastTurns);
     enemyCallout(g,e,'state',{state:leader.squad.state==='search'?'search':'flank'});return true;
    }
   }
-  state.role='cover';state.set=true;syncDetour(e);grantTrait(e,'fast','squad:advance',SQUAD_TUNING.fastTurns);
+  givePost(g,leader,e,order.at,true);grantTrait(e,'fast','squad:advance',SQUAD_TUNING.fastTurns);
  }
  if(canShoot(g,e,p))return false;                     // a covering soldier with a line shoots, 已就緒 or not
  // Only a leader who senses you right now can call you out: a stunned or blinded one leaves no stale report behind.
@@ -291,6 +298,10 @@ export function squadMemberAct(ctx){
  enemyCallout(g,e,'state',{state:'hold'});
  return true;                                         // no line: hold the spot and wait for you to show
 }
+const dutyKeys=['set'],dutyValid=o=>typeof o.set==='boolean';
+registerOrder('post',{keys:dutyKeys,valid:dutyValid,act:dutyAct});
+registerOrder('bound',{keys:dutyKeys,valid:dutyValid,act:dutyAct,
+ start(g,e){grantTrait(e,DETOUR_TRAIT,SQUAD_DETOUR);},end(g,e){removeTraitSource(e,SQUAD_DETOUR);}});
 // The leader's own turn: identify and deploy, or hold the squad ready. It never fires while it has a squad.
 export function squadLeaderAct(ctx){
  const {g,e,p,los}=ctx;
@@ -298,7 +309,9 @@ export function squadLeaderAct(ctx){
  const weaponId=g.weapon?.id??'unarmed';
  const members=squadMembers(g,e);
  // A member away on an order (3.130.0 伏擊) keeps its place in the squad but is out of the rotation until it is back.
- const all=g.enemies.filter(o=>o.hp>0&&o.squad?.leader===e.id),mine=all.filter(o=>!o.order);
+ const all=g.enemies.filter(o=>o.hp>0&&o.squad?.leader===e.id),mine=all.filter(o=>!o.order||DUTY.has(o.order.kind));
+ // A member back from an ambush takes up a post where it stands.
+ for(const m of mine)if(!m.order)givePost(g,e,m,{x:m.x,y:m.y},true);
  if(!los&&!all.length)return false;
  if(squadStale(g,e,weaponId)||!all.length){
   if(!los||!members.length)return false;
@@ -319,11 +332,11 @@ export function squadLeaderAct(ctx){
   return true;
  }
  const hold=holdsTheRoute(g,e,mine);
- if(hold)for(const m of mine)if(m.squad.role==='move'){m.squad.role='cover';m.squad.goal={x:m.x,y:m.y};syncDetour(m);}
+ if(hold)for(const m of mine)if(m.order?.kind==='bound')givePost(g,e,m,{x:m.x,y:m.y},m.order.set);
  if(sensed||reported){
   e.squad.state='ready';e.squad.blind=reported;
   if(!hold)assignMovers(g,e,mine,p,false);
-  makeReady(g,e,mine.filter(m=>m.squad.role!=='move'));
+  makeReady(g,e,mine.filter(m=>m.order?.kind!=='bound'));
   if(reported)g.log(`${enemyDisplayName(e)}回報你的位置。`,true);
   return true;
  }
@@ -339,15 +352,15 @@ export function squadLeaderAct(ctx){
   // your last tile go, so the nearest still search.
   const searchers=Math.max(1,Math.floor(mine.length/2)),last=e.squad.last||{x:e.x,y:e.y};
   const ambushers=[...mine].sort((a,b)=>distance(b,last)-distance(a,last)||a.id.localeCompare(b.id)).slice(0,mine.length-searchers);
-  for(const m of ambushers){if(m.squad.role==='move'){m.squad.role='cover';syncDetour(m);}orderAmbush(g,m,{by:e.id,from:last});}
+  for(const m of ambushers){if(m.order?.kind==='bound')givePost(g,e,m,m.order.at,m.order.set);orderAmbush(g,m,{by:e.id,from:last});}
  }
  // The searchers are whoever is not away on an ambush; among them the search bounds half at a time, as before.
- const last=e.squad.last||{x:e.x,y:e.y},search=mine.filter(m=>!m.order);
+ const last=e.squad.last||{x:e.x,y:e.y},search=mine.filter(m=>m.order?.kind!=='ambush');
  if(search.some(m=>distance(m,last)<=1)||!search.length){
-  disbandSquad(e,all);g.log(`${enemyDisplayName(e)}的小隊找不到你，解散搜索。`,true);return true;
+  disbandSquad(g,e,all);g.log(`${enemyDisplayName(e)}的小隊找不到你，解散搜索。`,true);return true;
  }
  assignMovers(g,e,search,last,true);
- makeReady(g,e,search.filter(m=>m.squad.role!=='move'));
+ makeReady(g,e,search.filter(m=>m.order?.kind!=='bound'));
  return true;
 }
 const point=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&q.x>=0&&q.y>=0&&q.x<SIZE&&q.y<SIZE;
@@ -358,7 +371,8 @@ export function validSquad(g){
   if(!s||typeof s!=='object'||Array.isArray(s))return false;
   if(isSquadLeader(e))return typeof s.weapon==='string'&&['deploy','ready','patience','search'].includes(s.state)&&Number.isSafeInteger(s.suppressTurn)&&s.suppressTurn>=0&&(s.answer===undefined||typeof s.answer==='string')&&(s.set===undefined||typeof s.set==='boolean')&&(s.since===undefined||Number.isSafeInteger(s.since))&&(s.at===undefined||point(s.at))&&
    (s.patience===undefined||Number.isSafeInteger(s.patience)&&s.patience>=0&&s.patience<=SQUAD_TUNING.patience)&&(s.last===undefined||point(s.last))&&(s.blind===undefined||typeof s.blind==='boolean');
-  return typeof s.leader==='string'&&s.leader.length>0&&s.leader.length<=100&&point(s.goal)&&typeof s.set==='boolean'&&Number.isSafeInteger(s.suppressed)&&s.suppressed>=0&&
-   (s.role===undefined||['cover','move'].includes(s.role))&&(s.lastMove===undefined||Number.isSafeInteger(s.lastMove)&&s.lastMove>=0);
+  // 3.132.0 (SAVE 61): a member's spot and state live in its duty order; goal/set/role only arrive in older saves.
+  return typeof s.leader==='string'&&s.leader.length>0&&s.leader.length<=100&&Number.isSafeInteger(s.suppressed)&&s.suppressed>=0&&
+   s.goal===undefined&&s.set===undefined&&s.role===undefined&&(s.lastMove===undefined||Number.isSafeInteger(s.lastMove)&&s.lastMove>=0);
  });
 }

@@ -4,6 +4,7 @@ import {pinned} from './suppression.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {activeTrait,healActor} from './traits.js';
 import {DIRECTIONS,distance,lineOfSight} from './world.js';
+import {sweptGrid,sweptClear} from './line-move.js';
 import {WEAPONS,ENEMY_TYPES} from './data.js';
 import {isDark} from './lighting.js';
 import {presentStep} from './presentation.js';
@@ -58,9 +59,8 @@ export function validMeleeState(p,turn){const s=p.battleSpirit;return s&&typeof 
 
 // Shared swept pull geometry; preserves grapple candidate and tie order.
 export function pullLanding(g,mover,anchor){
- // Straight swept path, with occupied/solid cells excluded; diagonal corner crossing must have an open side.
- const grid=g.grid.map(row=>row.slice());for(let y=0;y<grid.length;y++)for(let x=0;x<grid[y].length;x++)if(g.solid(x,y))grid[y][x]=0;
- for(const a of [g.player,...g.enemies.filter(a=>a.hp>0),...g.activeAllies])if(a!==mover)grid[a.y][a.x]=0;
- const choices=DIRECTIONS.map(([dx,dy])=>({x:anchor.x+dx,y:anchor.y+dy})).filter(q=>g.passable(q.x,q.y)&&grid[q.y]?.[q.x]===1&&g.canCross(q,anchor)&&lineOfSight(grid,mover,q,g.barriers,'move')).sort((a,b)=>distance(a,mover)-distance(b,mover));
+ // Straight swept path (src/line-move.js, 3.132.0): occupied/solid cells excluded; a diagonal corner needs an open side.
+ const grid=sweptGrid(g,mover);
+ const choices=DIRECTIONS.map(([dx,dy])=>({x:anchor.x+dx,y:anchor.y+dy})).filter(q=>g.passable(q.x,q.y)&&sweptClear(g,mover,q,grid)&&g.canCross(q,anchor)).sort((a,b)=>distance(a,mover)-distance(b,mover));
  return choices[0]||null;
 }

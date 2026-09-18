@@ -16,10 +16,11 @@ import {pullLanding} from './melee-classes.js';
 import {combatStep} from './tactics.js';
 import {barrierBetween,vaultable,edgeBlocks,firstBarrierOnRay} from './barriers.js';
 import {petCombat} from './pet-growth.js';
-import {squadLeaderAct,squadMemberAct,useSquadAttack} from './squad.js';
+import {squadLeaderAct,useSquadAttack} from './squad.js';
 import {enforcerAct,selfRetreat,useRebelHooks} from './rebels.js';
 import {runOrder} from './orders.js';
 import {selfAmbush} from './ambush.js';
+import './flank.js';   // 3.132.0: registers the flank order (given to nobody yet)
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
 import {tacticalSight} from './throwables.js';
@@ -129,7 +130,7 @@ useSquadAttack(attack);
 registerUnitTree('enforcer',{before:enforcerAct});
 // 3.131.0: a rebel's hiding is its retreat order now (src/rebels.js), run with the other orders before the affixes.
 useRebelHooks({attack,grenade});
-registerAffixBranch({id:'squad',applies:({e})=>Boolean(e.squad),trigger:()=>true,chance:1,pending:()=>true,run:squadMemberAct});
+// 3.132.0: a member's part is the post or bound order its leader gives it (src/squad.js), run with the other orders.
 // The bot is its own attacker when it blows itself up, so a self-destruct never gives the workshop a blueprint (3.94.0).
 registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultyOffset))});
 registerUnitTree('fodder',{before:({e})=>{if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return true;}e.actionDelay=1;return false;}});

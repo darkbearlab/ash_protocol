@@ -45,6 +45,8 @@ import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambu
 import {healActor} from './traits.js';
 import {DETOUR_TRAIT,DETOUR_TUNING,exposedFrom,watchPoint} from './detour.js';
 import {orderHit,validOrders} from './orders.js';
+import {sweptGrid,sweptClear} from './line-move.js';
+export const LUNGE_TRAIT='lunge',LUNGE_TUNING=Object.freeze({reach:3});
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
 import {ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickSummons,petSkillReason,fitDrone,DRONE_HP} from './allies.js';
 import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop,isMunition,munitionAct,isBomber,bomberAct,unitDestroyed,salvageBlueprint,repairReason,repairUnit} from './workshop.js';
@@ -831,6 +833,8 @@ export class Game {
   executeEnemy(e){return executeEnemyTree(this,e);}
   nextStep(e,target) {
     // 3.129.0 迂迴: a unit with the trait walks the covered route to any destination but you (docs/DETOUR.md).
+    // 3.132.0 突進: along its route it covers up to three tiles in one straight sweep (src/line-move.js).
+    if(activeTrait(e,LUNGE_TRAIT)){const leap=this.lungeStep(e,target);if(leap)return leap;}
     if(activeTrait(e,DETOUR_TRAIT)&&distance(target,this.player)>0){const step=this.coveredStep(e,target);if(step!==undefined)return step;}
     const queue=[{x:e.x,y:e.y,first:null}],visited=new Set([key(e)]);
     const occupied=new Set([...this.enemies.filter(o=>o!==e&&o.hp>0),...this.activeAllies].filter(a=>a!==target).map(key));
@@ -847,10 +851,10 @@ export class Game {
   // Uniform-cost search under nextStep's walking rules. `exposed` tiles cost extra; undefined means "use nextStep".
   routeSearch(e,target,exposed){
     const occupied=new Set([...this.enemies.filter(o=>o!==e&&o.hp>0),...this.activeAllies].filter(a=>a!==target).map(key));
-    const extra=DETOUR_TUNING.exposedCost,buckets=[[{x:e.x,y:e.y,first:null,steps:0}]],best=new Map([[key(e),0]]);
+    const extra=DETOUR_TUNING.exposedCost,buckets=[[{x:e.x,y:e.y,first:null,steps:0,prev:null}]],best=new Map([[key(e),0]]);
     for(let cost=0;cost<buckets.length;cost++)for(const q of buckets[cost]||[]){
       if(best.get(key(q))<cost)continue;
-      if(q.x===target.x&&q.y===target.y)return {first:q.first,steps:q.steps};
+      if(q.x===target.x&&q.y===target.y){const path=[];for(let c=q;c;c=c.prev)path.unshift({x:c.x,y:c.y});return {first:q.first,steps:q.steps,path};}
       for(const [dx,dy] of DIRECTIONS){
         const x=q.x+dx,y=q.y+dy,k=`${x},${y}`,isTarget=x===target.x&&y===target.y;
         if(!this.passable(x,y,e))continue;
@@ -858,8 +862,20 @@ export class Game {
         if(skillActive(this.player)&&x===this.player.x&&y===this.player.y)continue;
         if(!isTarget&&occupied.has(k))continue;
         const next=cost+1+(exposed?.has(k)?extra:0);if(best.has(k)&&best.get(k)<=next)continue;
-        best.set(k,next);(buckets[next]||=[]).push({x,y,first:q.first||{x,y},steps:q.steps+1});
+        best.set(k,next);(buckets[next]||=[]).push({x,y,first:q.first||{x,y},steps:q.steps+1,prev:q});
       }
+    }
+    return null;
+  }
+  // The farthest tile, within the lunge's reach along the route it would walk anyway (the covered one if it also
+  // detours), that one straight sweep reaches. Null when that is no further than a single step.
+  lungeStep(e,target){
+    const from=activeTrait(e,DETOUR_TRAIT)&&distance(target,this.player)>0?watchPoint(e):null;
+    const route=this.routeSearch(e,target,from?exposedFrom(this,from):null);if(!route)return null;
+    const grid=sweptGrid(this,e),path=route.path;
+    for(let i=Math.min(LUNGE_TUNING.reach,path.length-1);i>=2;i--){
+      const q=path[i];if(distance(q,this.player)===0||!this.passable(q.x,q.y,e))continue;
+      if(sweptClear(this,e,q,grid))return {x:q.x,y:q.y};
     }
     return null;
   }
@@ -1061,6 +1077,12 @@ export class Game {
       if(!tacticalActors.every(a=>(a===p||validEnemyAffixes(a))&&validEnemyIntent(a,point))||!validEnemyMarks(data.marks,point,data.turn))return null;
       if(!tacticalActors.every(a=>validCorner(a,data.turn)&&validTactics(a,data.turn)))return null;
       // 3.131.0 (SAVE 60): a hiding rebel's cover spot moved from cowerAt into its retreat order.
+      // 3.132.0 (SAVE 61): a squad member's spot, arrival and role moved from e.squad into its duty order.
+      if(version<61)for(const e of [...data.enemies,...Object.values(data.floorStates||{}).flatMap(f=>f.enemies||[])]){
+        const s=e.squad;if(!s||typeof s!=='object'||s.goal===undefined)continue;
+        if(!e.order)e.order={kind:s.role==='move'?'bound':'post',by:s.leader,at:s.goal,set:s.set,since:Number.isSafeInteger(data.turn)?data.turn:0,patience:null,breakOn:[]};
+        delete s.goal;delete s.set;delete s.role;
+      }
       if(version<60)for(const e of [...data.enemies,...Object.values(data.floorStates||{}).flatMap(f=>f.enemies||[])])if(e.cowerAt&&!e.order){e.order={kind:'retreat',by:'self',at:e.cowerAt,since:Number.isSafeInteger(data.turn)?data.turn:0,patience:null,breakOn:[]};delete e.cowerAt;}
       if(version<9){p.character='soldier';p.moveDelta=[0,0];p.fireChain=null;grantCharacterTraits(p);for(const e of data.enemies){e.moveDelta=[0,0];e.fireChain=null;}}
       if(!validCharacter(version>=9?data.player.character:p.character)||!validCombatMemory(version>=9?data.player:p,data.turn)||data.enemies.some(e=>!validCombatMemory(e,data.turn)))return null;

@@ -63,7 +63,7 @@ test('the identification turn only gives orders: nobody suppresses and nobody is
   g.action('wait');
   assert.ok(g.logs.some(l=>l.text.includes('識別')),'the leader announces the weapon it read');
   assert.equal(leader.squad.weapon,g.weapon.id);
-  assert.ok(squad.every(e=>e.squad?.leader===leader.id&&e.squad.goal),'every member carries an order');
+  assert.ok(squad.every(e=>e.squad?.leader===leader.id&&e.order?.at),'every member carries an order');
   assert.equal(suppressionState(g.player).stacks,0,'no suppression on the identification turn');
   assert.equal(g.player.hp,hp);
   assert.equal(squadMembers(g,leader).length,squad.length);
@@ -153,15 +153,15 @@ test('whoever cannot shoot advances, never more than half, fast on the move and 
   const {g,leader,squad}=walled({wall});
   ready(g);assert.equal(leader.squad.state,'ready');
   Object.assign(g.player,{x:9,y:15});g.reveal();g.action('wait');
-  const movers=squad.filter(e=>e.squad.role==='move');
+  const movers=squad.filter(e=>e.order?.kind==='bound');
   assert.ok(movers.length>=1&&movers.length<=Math.floor(squad.length/2),'movers '+movers.length);
   assert.ok(movers.every(e=>activeTrait(e,'fast')),'an advancer is fast');
-  assert.ok(squad.filter(e=>e.squad.role!=='move').every(e=>activeTrait(e,'ready')),'the rest hold 已就緒');
+  assert.ok(squad.filter(e=>e.order?.kind!=='bound').every(e=>activeTrait(e,'ready')),'the rest hold 已就緒');
   // It keeps its aim, so the arrival shot needs no telegraph.
   assert.ok(movers.every(e=>e.charge));
   assert.ok(movers.every(e=>activeTrait(e,'detour')),'an advancer carries 迂迴 (3.129.0)');
-  for(let i=0;i<6&&squad.some(e=>e.squad.role==='move');i++)g.action('wait');
-  const arrived=movers.filter(e=>e.squad.role==='cover');
+  for(let i=0;i<6&&squad.some(e=>e.order?.kind==='bound');i++)g.action('wait');
+  const arrived=movers.filter(e=>e.order?.kind==='post');
   assert.ok(arrived.length&&arrived.every(e=>activeTrait(e,'fast')),'still fast on the turn it arrives');
   assert.ok(arrived.every(e=>!activeTrait(e,'detour')),'and no longer detours once there');
 });
@@ -178,7 +178,7 @@ test('a squad of three bounds in a pair when two of them cannot shoot',()=>{
   Object.assign(g.player,spot);g.reveal();
   const blind=squad.filter(e=>!shoots(e,g.player)).length;
   g.action('wait');
-  const movers=squad.filter(e=>e.squad.role==='move').length;
+  const movers=squad.filter(e=>e.order?.kind==='bound').length;
   assert.ok(blind>=2,`need two who cannot shoot, got ${blind}`);
   assert.equal(movers,Math.min(2,blind),'two advance together');
 });
@@ -189,13 +189,13 @@ test('at the deadline a straggler is not ready: it keeps walking and is readied 
   const late=squad[2];
   for(let i=0;i<8&&leader.squad?.state!=='ready';i++)g.action('wait');
   assert.equal(leader.squad.state,'ready');
-  assert.equal(late.squad.set,false,'still on its way');
+  assert.equal(late.order.set,false,'still on its way');
   assert.ok(!activeTrait(late,'ready'),'not ready while walking');
   assert.ok(squad.slice(0,2).every(e=>activeTrait(e,'ready')),'those in place are');
-  const goal=late.squad.goal,far=Math.abs(late.x-goal.x)+Math.abs(late.y-goal.y);g.action('wait');
-  assert.ok(Math.abs(late.x-goal.x)+Math.abs(late.y-goal.y)<far||late.squad.set,'it keeps walking');
-  for(let i=0;i<12&&!late.squad.set;i++)g.action('wait');
-  assert.ok(late.squad.set,'it arrives');
+  const goal=late.order.at,far=Math.abs(late.x-goal.x)+Math.abs(late.y-goal.y);g.action('wait');
+  assert.ok(Math.abs(late.x-goal.x)+Math.abs(late.y-goal.y)<far||late.order.set,'it keeps walking');
+  for(let i=0;i<12&&!late.order.set;i++)g.action('wait');
+  assert.ok(late.order.set,'it arrives');
   g.action('wait');
   assert.ok(activeTrait(late,'ready'),'and the leader readies it');
 });
@@ -239,10 +239,10 @@ test('blind, the squad holds 已就緒 for six turns, then half of it bounds to 
   assert.equal(leader.squad.state,'search');
   // 3.130.0: the half farthest from your last tile goes to ambush the doorway on your way to the lift; the rest
   // search, bounding half at a time as before.
-  const ambushers=squad.filter(e=>e.order?.kind==='ambush'),searchers=squad.filter(e=>!e.order);
+  const ambushers=squad.filter(e=>e.order?.kind==='ambush'),searchers=squad.filter(e=>e.order?.kind!=='ambush');
   assert.ok(ambushers.length<=squad.length-Math.floor(squad.length/2),'at most the other half ambushes');
-  assert.equal(searchers.filter(e=>e.squad.role==='move').length,Math.max(1,Math.floor(searchers.length/2)),'the searchers bound half at a time');
-  assert.ok(squad.filter(e=>e.squad.role==='move').every(e=>activeTrait(e,'detour')),'searchers carry 迂迴 too');
+  assert.equal(searchers.filter(e=>e.order?.kind==='bound').length,Math.max(1,Math.floor(searchers.length/2)),'the searchers bound half at a time');
+  assert.ok(squad.filter(e=>e.order?.kind==='bound').every(e=>activeTrait(e,'detour')),'searchers carry 迂迴 too');
   for(let i=0;i<20&&leader.squad;i++)g.action('wait');
   assert.equal(leader.squad,undefined,'nobody at the last tile: the squad disbands');
   assert.ok(squad.every(e=>!e.squad));
@@ -257,7 +257,7 @@ test('a squad standing on your only way to the lift never advances and never los
   Object.assign(g.player,{x:3,y:20});for(let y=11;y<=22;y++)g.grid[y][5]=0;g.reveal();
   for(let i=0;i<SQUAD_TUNING.patience+4;i++)g.action('wait');
   assert.equal(leader.squad.state,'patience');assert.equal(leader.squad.patience,SQUAD_TUNING.patience);
-  assert.ok(squad.every(e=>e.squad.role!=='move'),'nobody leaves the corridor');
+  assert.ok(squad.every(e=>e.order?.kind!=='bound'),'nobody leaves the corridor');
   // Get behind them and the route no longer runs through the squad: the hold is lifted.
   Object.assign(g.player,{x:10,y:5});assert.ok(!holdsTheRoute(g,leader,squad));
 });
@@ -265,7 +265,7 @@ test('a squad standing on your only way to the lift never advances and never los
 test('squad orders survive a save, and a tampered order is refused',()=>{
   const {g}=scene({members:2});
   turns(g,SQUAD_TUNING.deployTurns+2);
-  assert.equal(SAVE_VERSION,60);
+  assert.equal(SAVE_VERSION,61);
   const restored=Game.restore(g.serialize());
   assert.ok(restored);
   assert.equal(restored.enemies.find(e=>isSquadLeader(e)).squad.state,'ready');
@@ -292,4 +292,16 @@ test('a firing spot always keeps the player inside the members range, even when 
   assert.ok(boxed,'a spot is still found');
   assert.ok(Math.abs(boxed.x-g.player.x)+Math.abs(boxed.y-g.player.y)<=range,`within range: ${boxed.x},${boxed.y}`);
   assert.ok(g.passable(boxed.x,boxed.y,far));
+});
+
+// 3.132.0 (SAVE 61): a member's spot, arrival and role moved into its duty order; older saves convert on load.
+test('an old save with squad goal/set/role loads as post and bound orders',()=>{
+  const {g,leader,squad}=scene();turns(g,1);
+  const raw=JSON.parse(g.serialize());raw.version=60;
+  const [a,b]=raw.data.enemies.filter(e=>e.squad&&e.squad.leader===leader.id);
+  for(const [m,role] of [[a,'cover'],[b,'move']]){Object.assign(m.squad,{goal:{...m.order.at},set:false,role});delete m.order;}
+  const back=Game.restore(JSON.stringify(raw));assert.ok(back);
+  const [na,nb]=[a,b].map(m=>back.enemies.find(e=>e.id===m.id));
+  assert.equal(na.order.kind,'post');assert.equal(nb.order.kind,'bound');assert.equal(na.order.by,leader.id);
+  assert.equal(na.order.set,false);assert.equal(na.squad.goal,undefined);assert.equal(nb.squad.role,undefined);
 });

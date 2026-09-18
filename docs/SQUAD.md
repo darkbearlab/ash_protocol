@@ -60,6 +60,8 @@
 
 ## 實作
 
+3.132.0：隊員的任務改成小隊長給的命令（就位 `post`／推進 `bound`），見 docs/ORDERS.md §11.7。`e.squad` 只剩隸屬、壓制冷卻、上次移動；下面提到的 `goal`／`set`／`role` 現在是命令的 `at`／`set`／種類。
+
 - `src/squad.js`：狀態機與全部規則。
 - `src/enemy-behavior.js`：小隊長走自己的行為樹（`before`），隊員走一個永遠成立的分支，排在蓄勢與攻擊之前。
 - `src/traits.js`：`ready` 特性（目標卡會顯示「已就緒」），傷害減半走既有的 `reduceDirectDamage`。

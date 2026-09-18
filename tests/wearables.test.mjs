@@ -66,7 +66,7 @@ test('the passives follow the slot, and the goggles really cancel the dark penal
 });
 
 test('saves carry ownership, re-derive the passives, and refuse a slot the run cannot fill',()=>{
- assert.equal(SAVE_VERSION,60);   // 3.131.0: hiding is a retreat order
+ assert.equal(SAVE_VERSION,61);   // 3.131.0: hiding is a retreat order
  const g=own(run()),p=g.player;
  assert.equal(g.action('prepare',{category:'item',id:'nvg'}),true);
  const back=Game.restore(g.serialize());
