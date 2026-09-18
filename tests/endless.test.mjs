@@ -12,7 +12,7 @@ const kill=g=>{const e=makeEnemy('rifleman',g.player.x,g.player.y,'xp-victim');g
 
 test('levels 2–20 grant exactly nineteen picks; past the cap the level freezes and every 22 experience grants capped resources, no RNG reroll or paid turn',()=>{
  const g=run();rank(g,19);g.player.xp=20;kill(g);assert.equal(g.player.level,20);assert.equal(g.pendingPerks,1);assert.ok(g.choosePerk(g.perkChoices[0].id));assert.equal(g.perkPicks,19);
- const before=g.player.meds,turn=g.turn;g.player.xp=22+23+24-1;kill(g);assert.equal(g.player.level,20);assert.equal(g.pendingPerks,0);assert.deepEqual(g.perkChoices,[]);assert.equal(g.player.meds,before+CAP_SUPPLY.meds*3);assert.equal(g.turn,turn);
+ const before=g.player.meds,turn=g.turn;g.player.xp=22+23+24-1;kill(g);assert.equal(g.player.level,20);assert.equal(g.pendingPerks,0);assert.deepEqual(g.perkChoices,[]);assert.equal(g.player.meds,Math.min(g.itemCapacity(),before+CAP_SUPPLY.meds*3));assert.equal(g.player.meds+(g.items.find(i=>i.type==='med'&&i.x===g.player.x&&i.y===g.player.y)?.amount||0),before+CAP_SUPPLY.meds*3,'3.136.0: past the carry cap they wait at your feet');assert.equal(g.turn,turn);
  assert.equal(g.logs.filter(l=>l.text.includes('獲得封頂補給')).length,3);assert.equal(g.effects.filter(e=>e.type==='capSupply').length,3);
  g.pendingPerks=1;g.perkDraft={index:19,ids:['med']};assert.equal(g.choosePerk('med'),false);
 });
@@ -92,7 +92,7 @@ test('all modes limit a full level progression to nineteen choices',()=>{
   for(let level=2;level<=MAX_LEVEL;level++){g.player.xp=g.player.level+1;kill(g);assert.equal(g.player.level,level);assert.equal(g.pendingPerks,1);assert.ok(g.choosePerk(g.perkChoices[0].id));}
   // Past the cap the number stops; each MAX_LEVEL+2 experience buys supplies instead of a choice.
   for(let extra=1;extra<=2;extra++){const meds=g.player.meds;g.player.xp=MAX_LEVEL+1;kill(g);
-   assert.equal(g.player.level,MAX_LEVEL);assert.equal(g.pendingPerks,0);assert.equal(g.player.meds,meds+CAP_SUPPLY.meds);}
+   assert.equal(g.player.level,MAX_LEVEL);assert.equal(g.pendingPerks,0);assert.equal(g.player.meds,Math.min(g.itemCapacity(),meds+CAP_SUPPLY.meds));}
   assert.equal(g.perkPicks,19);
  }
 });

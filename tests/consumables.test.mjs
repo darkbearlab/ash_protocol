@@ -61,16 +61,17 @@ test('adrenaline can never be the thing that kills you, and does not stack',()=>
 
 // 3.110.0 (user request): consumables have no carry cap anywhere — the pack picks them up uncapped, so the terminal
 // must not cap them either, or the two would tell the player different things.
-test('the terminal sells both without a carry cap, and old saves migrate to none',()=>{
- assert.equal(SAVE_VERSION,62);   // 3.131.0: hiding is a retreat order
+// 3.136.0 (user decision): the carry cap of five applies; one bought past it waits at your feet.
+test('the terminal sells both up to the carry cap, and old saves migrate to none',()=>{
+ assert.equal(SAVE_VERSION,63);   // 3.136.0: the bump pick and the chainsaw's lost action
  const g=run(),p=g.player;
- p.sprays=99;p.adrenaline=99;p.scrap=999;
+ p.sprays=4;p.adrenaline=5;p.scrap=999;g.items=[];
  g.props.push({type:'terminal',x:p.x,y:p.y,used:false});
- assert.equal(g.useTerminal('spray'),true,'no carry cap');
- assert.equal(p.sprays,100);
+ assert.equal(g.useTerminal('spray'),true);
+ assert.equal(p.sprays,5);
  g.props.push({type:'terminal',x:p.x,y:p.y,used:false});
- assert.equal(g.useTerminal('adrenaline'),true,'no carry cap');
- assert.equal(p.adrenaline,100);
+ assert.equal(g.useTerminal('adrenaline'),true,'still sold at the cap');
+ assert.equal(p.adrenaline,5);assert.equal(g.items.find(i=>i.type==='adrenaline'&&i.x===p.x&&i.y===p.y)?.amount,1,'left at your feet');
  p.sprays=0;
  g.props.push({type:'terminal',x:p.x,y:p.y,used:false});
  assert.equal(g.useTerminal('spray'),true);

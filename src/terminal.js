@@ -164,8 +164,9 @@ function deliver(g,buy){
  const p=g.player,slot=upgradeSlot(buy),item=TERMINAL_ITEMS[buy];
  if(slot!==null){p.upgrades[slot]=(p.upgrades[slot]||0)+1;return `${g.weaponAt(slot).name}改裝 +${p.upgrades[slot]}，單次傷害 +5`;}
  if(buy==='heal'){healActor(p,T.healAmount);clearPoison(p);return '醫療修復';}
- if(buy==='med'){p.meds=(p.meds||0)+1;return '醫療包 +1';}
- if(item?.resource){p[item.resource]=(p[item.resource]||0)+1;return `${itemName(buy)} +1`;}
+ // 3.136.0: items stop at the carry cap; one bought past it waits at your feet.
+ if(buy==='med'){g.receiveItem('medkit',1);return '醫療包 +1';}
+ if(item?.resource){g.receiveItem(buy,1);return `${itemName(buy)} +1`;}
  if(item?.wear){p.wearables.push(item.wear);return itemName(buy);}
  if(buy==='ammo'){g.supplyPack(TERMINAL_PACK);return '彈藥補給包';}
  if(TERMINAL_AMMO[buy]){g.receiveAmmo(buy,TERMINAL_AMMO[buy].amount);return `${AMMUNITION[buy].name} +${TERMINAL_AMMO[buy].amount}`;}

@@ -28,14 +28,15 @@ test('every field item is a real catalogue consumable that a case is allowed to 
  }
 });
 
-test('field kit is picked up without any carry cap, unlike ammunition and plates',()=>{
+// 3.136.0 (user decision): field kit stops at the carry cap of five, like the medkit; the rest of a pile stays put.
+test('field kit is picked up up to the carry cap; the rest stays on the ground',()=>{
  const g=arena(),p=g.player;
- for(const id of FIELD_ITEMS)p[PREPARED_CATALOG.item[id].resource]=99;
- g.items=FIELD_ITEMS.map(type=>({x:p.x,y:p.y,type}));
+ for(const id of FIELD_ITEMS)p[PREPARED_CATALOG.item[id].resource]=4;
+ g.items=FIELD_ITEMS.map(type=>({x:p.x,y:p.y,type,amount:2}));
  g.pickup();
- assert.deepEqual(g.items,[],'nothing is left on the ground because nothing was full');
- for(const id of FIELD_ITEMS)assert.equal(p[PREPARED_CATALOG.item[id].resource],100,id);
- // Plates still spill, which is the contrast the change was made for.
+ assert.deepEqual(g.items.map(i=>[i.type,i.amount]),FIELD_ITEMS.map(type=>[type,1]),'one of each left on the ground');
+ for(const id of FIELD_ITEMS)assert.equal(p[PREPARED_CATALOG.item[id].resource],5,id);
+ // Plates spill the same way.
  p.plates=g.plateCapacity;
  g.items=[{x:p.x,y:p.y,type:'armor',amount:20}];
  g.pickup();

@@ -5,7 +5,7 @@ export const LEARNING_SCRAP=15;
 // retired IDs are kept so older saves can turn what they still hold into scrap instead of failing to load.
 export const RETIRED_LEARNING=['skill_drones','skill_pet_command','skill_raise_dead','skill_early_warning','skill_anchor','skill_signal_break','skill_grapple','skill_camouflage'];
 const skills={suppressive_fire:['壓制射擊',['suppressive_fire']]};
-const traits={braced:'架槍',correction:'著彈修正',sidestep:'側身',quick_reload:'快速裝填',night_vision:'夜視',infrared:'紅外線',extended_burst:'延伸點射',tactical_supply:'戰術配給',bloodlust:'嗜血',battle_spirit:'戰意',blade_stash:'刃藏',heavy_armor:'重裝防護',ambush:'伏擊',duelist:'單挑',rapid_fire:'連射',suppression_resistance:'壓制抗性'};
+const traits={braced:'架槍',correction:'著彈修正',sidestep:'側身',quick_reload:'快速裝填',night_vision:'夜視',infrared:'紅外線',extended_burst:'延伸點射',tactical_supply:'戰術配給',bloodlust:'嗜血',battle_spirit:'戰意',blade_stash:'刃藏',heavy_armor:'重裝防護',ambush:'伏擊',duelist:'單挑',rapid_fire:'連射',suppression_resistance:'壓制抗性',extended_carry:'攜行擴充'};
 export const LEARNING_ITEMS=Object.fromEntries([
  ...Object.entries(skills).map(([id,[name,skills]])=>[`skill_${id}`,{name:`${name}學習資料`,skills,unlockId:null}]),
  ...Object.entries(traits).map(([trait,name])=>[`trait_${trait}`,{name:`${name}學習資料`,trait,unlockId:null}]),
@@ -14,7 +14,8 @@ export const validLearningId=id=>typeof id==='string'&&Object.hasOwn(LEARNING_IT
 // 3.135.0 (user decision, docs/ITEMS.md): night vision and infrared, passives with no cost and nothing to do, are no
 // longer found; night-vision goggles take their place in the pool. The items stay defined for saves that hold them.
 export const UNFOUND_LEARNING=Object.freeze(['trait_night_vision','trait_infrared']);
-export const UNKNOWN_LOOT=[...[6,11,12].map(weapon=>({type:'weapon',weapon,unlockId:null})),...Object.keys(LEARNING_ITEMS).filter(id=>!UNFOUND_LEARNING.includes(id)).map(learningId=>({type:'learning',learningId,unlockId:null})),{type:'nvg',unlockId:null}];
+// 3.136.0 (user decision): the five new melee weapons join the crate axe and katana (docs/MELEE_WEAPONS.md).
+export const UNKNOWN_LOOT=[...[6,11,12,13,14,15,16,17].map(weapon=>({type:'weapon',weapon,unlockId:null})),...Object.keys(LEARNING_ITEMS).filter(id=>!UNFOUND_LEARNING.includes(id)).map(learningId=>({type:'learning',learningId,unlockId:null})),{type:'nvg',unlockId:null}];
 export function fillUnknownContainers(map,seed,floor){
  if(!map.generation)return map;
  for(const c of map.props.filter(p=>p.type==='container'&&p.kind==='unknown'&&!p.opened)){

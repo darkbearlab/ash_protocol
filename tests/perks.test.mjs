@@ -30,7 +30,7 @@ test('seed samples exceed the old eight combinations and repeat bias favors unfi
 });
 test('all permanent ranks capped; only supply remains and repeated resource rewards cannot softlock',()=>{
  const g=ready();for(const o of PERKS)if(o.cap!==null)g.player.perks[o.id]=o.cap;
- assert.deepEqual(g.perkChoices.map(o=>o.id),['med']);const meds=g.player.meds;assert.ok(g.choosePerk('med'));assert.ok(g.choosePerk('med'));assert.equal(g.player.meds,meds+4);
+ assert.deepEqual(g.perkChoices.map(o=>o.id),['med']);const meds=g.player.meds;assert.ok(g.choosePerk('med'));assert.ok(g.choosePerk('med'));assert.equal(g.player.meds,Math.min(g.itemCapacity(),meds+4));   // 3.136.0: carry cap
  g.pendingPerks=1;g.perkDraft={index:g.perkPicks,ids:['damage']};assert.equal(g.choosePerk('damage'),false);
 });
 test('new damage bonus is shared by burst while old per-bullet bonuses remain intact',()=>{

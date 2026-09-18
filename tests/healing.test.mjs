@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {activeTrait,healingAmount,grantTrait} from '../src/traits.js';
 const arena=character=>{const g=new Game(3460,[],0,character);g.enemies=[];g.allies=[];g.hazards=[];g.marks=[];g.props=[];return g;};
-test('only bulwark and necromancer start difficult healing; upgrade bonus is included before halving',()=>{
+// 3.136.0 (user decision): the medkit's own 45 is halved; the medic perk's bonus is added in full.
+test('only bulwark and necromancer start difficult healing; the medic bonus is added after halving',()=>{
  for(const id of ['bulwark','necromancer','soldier','recon','engineer','druid']){
   const g=arena(id),p=g.player,affected=['bulwark','necromancer'].includes(id);assert.equal(activeTrait(p,'difficult_healing'),affected);
-  p.hp=10;p.healBonus=20;p.poison=2;const meds=p.meds;assert.ok(g.action('heal'));assert.equal(p.hp,affected?42:75);assert.equal(p.poison,0);assert.equal(p.meds,meds-1);
+  p.hp=10;p.healBonus=20;p.poison=2;const meds=p.meds;assert.ok(g.action('heal'));assert.equal(p.hp,affected?52:75);assert.equal(p.poison,0);assert.equal(p.meds,meds-1);
  }
 });
 test('health perk increases full capacity but halves healing; terminal and descending also obey passive',()=>{

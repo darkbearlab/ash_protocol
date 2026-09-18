@@ -40,7 +40,8 @@ test('no eligible melee falls back to unarmed, closed door opens first, partitio
   const g=arena(),e=add(g);const door=makeBarrier('door',g.player,e,'door');g.barriers=[door];g.reveal();assert.ok(g.action('move',[1,0]));assert.equal(door.open,true);assert.equal(e.hp,500);assert.equal(g.player.x,10);
   Object.assign(e,{x:g.player.x+1,y:g.player.y}); // The enemy may reposition during the door-opening turn.
   g.barriers=[makeBarrier('partition',g.player,e,'partition')];g.reveal();const before=g.turn;assert.equal(g.action('move',[1,0]),false);assert.equal(g.action('move',[1,1]),false);assert.equal(g.turn,before);
-  const base=g.weaponAt.bind(g);g.barriers=[];g.weaponAt=slot=>({...base(slot),integrated:false});assert.equal(g.weaponAt(g.bumpMeleeSlot()).unarmed,true);
+  // 3.136.0 (user decision): a bump no longer asks whether the blade is free to switch to; any melee weapon carried counts.
+  const base=g.weaponAt.bind(g);g.barriers=[];g.weaponAt=slot=>({...base(slot),integrated:false});assert.equal(g.weaponAt(g.bumpMeleeSlot()).unarmed,undefined);assert.ok(g.weaponAt(g.bumpMeleeSlot()).melee);
 });
 test('death or disability before bump prevents the strike; fast player can strike first and death presentation precedes upgrade',()=>{
   const g=arena();add(g);g.player.hp=1;assert.ok(g.action('move',[1,0]));assert.equal(g.status,'dead');assert.ok(!g.effects.some(f=>f.weaponId==='powerfist'));

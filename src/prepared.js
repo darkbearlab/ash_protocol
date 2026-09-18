@@ -1,5 +1,5 @@
 import {SKILLS} from './skills.js';
-import {TRAITS,grantTrait,removeTraitSource} from './traits.js';
+import {TRAITS,grantTrait,removeTraitSource,activeTrait} from './traits.js';
 import {GRENADES} from './throwables.js';
 // Separate prepared slots. Stable catalog IDs are saved; quantities retain existing keys.
 export const PREPARED_CATEGORIES={grenade:'手榴彈',item:'道具',skill:'技能'};
@@ -24,6 +24,14 @@ export const PREPARED_CATALOG={
    nvg:{name:'夜視鏡',short:'夜視',icon:'◉',wear:true,traits:['night_vision'],text:'佩戴期間忽略目標暗區的射擊命中懲罰（不穿煙）。戴上與脫下各消耗 1 回合，佩戴期間道具鍵停用。'}},
   skill:SKILLS,
 };
+// 3.136.0 (user decision): every carried item stops at five. The carry learning data (攜行擴充) widens every pouch:
+// ammunition by half again, the shared throwable pouch by two, each item by two. Grapple lines are rare enough to go
+// uncapped, and goggles are worn, not stocked.
+export const CARRY_TUNING=Object.freeze({items:5,itemBonus:2,ammoBonus:1.5,throwBonus:2});
+export const CAPPED_ITEMS=Object.freeze(['medkit','spray','adrenaline','barricade','flare']);
+export const itemGroundType=id=>id==='medkit'?'med':id;
+export const groundItemId=type=>type==='med'?'medkit':type;
+export const itemCapacity=player=>CARRY_TUNING.items+(activeTrait(player,'extended_carry')?CARRY_TUNING.itemBonus:0);
 export const defaultPrepared=()=>({grenade:'frag',item:'medkit',skill:null});
 // Wearables live in the prepared item slot and are owned rather than stocked, exactly like learned skills.
 export const WEAR_SOURCE='item:wear';

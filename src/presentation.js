@@ -33,6 +33,8 @@ export const WEAPON_VISUALS={
   thunder:{count:1,flight:100,stagger:0,spread:0,style:'grenade',flash:'launcher'},
   lmg:{count:2,flight:60,stagger:15,spread:.07,style:'bullet',flash:'smg'},
   powerfist:{count:1,flight:100,stagger:0,spread:0,style:'slash'},
+  // 3.136.0: ten quick cuts, one step each, run together like a burst.
+  chainsaw:{count:1,flight:45,stagger:0,spread:0,style:'slash'},
   rifle:{count:3,flight:85,stagger:20,spread:.04,style:'bullet',flash:'rifle'},
   shotgun:{count:6,flight:95,stagger:0,spread:.5,style:'pellet',flash:'shotgun'},
   smg:{count:3,flight:60,stagger:15,spread:.07,style:'bullet',flash:'smg'},
@@ -48,7 +50,9 @@ export const FLIGHT_MS=125,IMPACT_MS=130,DEATH_MS=220;
 // get no beat and a swarm fight does not slow down. KILL_HOLD_REACH is where cameraFrame starts zooming out.
 export const KILL_HOLD_MS=400,KILL_HOLD_REACH=4;
 export function projectileVisuals(effect,reduceMotion=false){
-  const id=effect.style==='grenade'?'grenade':effect.weaponId==='unarmed'?'melee':effect.weaponId||enemyProjectile(effect.attackerType)||'rifle';
+  // 3.136.0: a melee weapon with no visuals of its own swings like the power fist. Before, the axe and katana fell
+  // through to the rifle and were drawn as three bullets with a muzzle flash.
+  const id=effect.style==='grenade'?'grenade':effect.weaponId==='unarmed'?'melee':effect.style==='slash'&&!WEAPON_VISUALS[effect.weaponId]?'powerfist':effect.weaponId||enemyProjectile(effect.attackerType)||'rifle';
   const base=WEAPON_VISUALS[id]||WEAPON_VISUALS.rifle,spec=effect.singleShot?{...base,count:1,spread:0}:base;
   // A launched grenade flies like a thrown one but still leaves the launcher's flash. A spread shot (the shotgun's pellets)
   // flashes once; a staggered burst flashes with every round.
@@ -106,7 +110,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const prior=rewards[0]?.beforeSupply;
     const impactState=prior?Object.assign(Object.create(Object.getPrototypeOf(step.after)),step.after,{player:{...step.after.player,...prior.resources},items:prior.items,logs:prior.logs}):step.after;
     events.push({time,state:impactState,effects:[...impacts.map(e=>({...e,quiet:reduceMotion})),...announcements]});
-    const burstContinues=flights.some(e=>['smg','lmg','thunder'].includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&['smg','lmg','thunder'].includes(e.weaponId));
+    const burstContinues=flights.some(e=>['smg','lmg','thunder','chainsaw'].includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&['smg','lmg','thunder','chainsaw'].includes(e.weaponId));
     time+=!flights.length&&!impacts.length&&!rewards.length?0:reduceMotion?120:impacts.some(e=>e.type==='nestCollapse'||e.type==='nestSpawn')?NEST_EFFECT_MS:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
     if(far.length)time+=KILL_HOLD_MS;
     if(rewards.length){events.push({time,state:step.after,effects:rewards.map(({beforeSupply,...e})=>e)});time+=reduceMotion?60:IMPACT_MS;}

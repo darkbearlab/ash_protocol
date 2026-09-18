@@ -46,6 +46,8 @@ import {healActor} from './traits.js';
 import {DETOUR_TRAIT,DETOUR_TUNING,exposedFrom,watchPoint} from './detour.js';
 import {orderHit,validOrders} from './orders.js';
 import {LINE_ITEMS,lineReason,lineDrop,goggleDrop,isLineItem} from './lines.js';
+import {attackSpeed,thrustTargets,MELEE_WEAPON_TUNING} from './melee-weapons.js';
+import {CARRY_TUNING,CAPPED_ITEMS,itemGroundType,groundItemId,itemCapacity} from './prepared.js';
 import {tickPounces,validPounce} from './pounce.js';
 import {toxicShot,toxicPlayerTurn,toxicAllyTurn,inToxic,tickFields,validFields} from './swarm-fields.js';
 import {sweptGrid,sweptClear} from './line-move.js';
@@ -121,7 +123,7 @@ export function itemUseReason(g,id){
  if(entry.action==='surge')return p.control.disabled?'失能中無法使用':g.shadowSteps?'免費移動還沒用完':p.hp>SURGE_COST?'':'生命不足以承受';
  return '';
 }
-const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -249,7 +251,20 @@ export class Game {
   reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType]?.key??null;}
   get weaponCapacity(){return CHARACTERS[this.player.character].weaponCapacity;}
   get plateCapacity(){return CHARACTERS[this.player.character].plateCapacity;}
-  ammoCapacity(type){return capacity(type,0)+classCarryBonus(this.player.character,type);}
+  ammoCapacity(type){const base=capacity(type,0)+classCarryBonus(this.player.character,type);return !activeTrait(this.player,'extended_carry')?base:type==='grenade'?base+CARRY_TUNING.throwBonus:Math.round(base*CARRY_TUNING.ammoBonus);}
+  // 3.136.0 (user decision): carried items stop at five; what does not fit stays at your feet, like ammunition.
+  itemCapacity(){return itemCapacity(this.player);}
+  dropItem(id,amount,pos=this.player){
+    if(amount<=0)return;
+    const type=itemGroundType(id),existing=this.items.find(o=>o.type===type&&o.x===pos.x&&o.y===pos.y);
+    if(existing)existing.amount=(existing.amount||1)+amount;else this.items.push({x:pos.x,y:pos.y,type,amount});
+  }
+  receiveItem(id,amount,{spill=true}={}){
+    const entry=PREPARED_CATALOG.item[id],key=entry.resource,accepted=Math.min(amount,Math.max(0,this.itemCapacity()-(this.player[key]||0)));
+    this.player[key]=(this.player[key]||0)+accepted;
+    if(spill&&amount>accepted){this.dropItem(id,amount-accepted);this.log(`${entry.name}超出攜帶上限，${amount-accepted} 留在腳下。`);}
+    return accepted;
+  }
   dropAmmo(type,amount,pos=this.player){
     if(amount<=0)return;
     const item=AMMUNITION[type].item,existing=this.items.find(o=>o.type===item&&o.x===pos.x&&o.y===pos.y);
@@ -265,6 +280,7 @@ export class Game {
     this.carryLevel=carryLevels(0);
     for(const [type,info]of Object.entries(AMMUNITION)){if(type==='grenade')continue;const excess=this.player[info.key]-this.ammoCapacity(type);if(excess>0){this.player[info.key]-=excess;this.dropAmmo(type,excess);}}
     this.trimGrenades();
+    for(const id of CAPPED_ITEMS){const key=PREPARED_CATALOG.item[id].resource,excess=(this.player[key]||0)-this.itemCapacity();if(excess>0){this.player[key]-=excess;this.dropItem(id,excess);}}
   }
   receiveGrenade(id,amount,{spill=true}={}){
     const def=GRENADES[id],accepted=Math.min(amount,Math.max(0,this.ammoCapacity('grenade')-grenadeTotal(this.player)));
@@ -274,20 +290,23 @@ export class Game {
   dropGrenade(id,amount){const def=GRENADES[id],p=this.player,item=this.items.find(o=>o.type===def.item&&distance(o,p)===0);if(item)item.amount=(item.amount??1)+amount;else this.items.push({x:p.x,y:p.y,type:def.item,amount});}
   trimGrenades(){let excess=grenadeTotal(this.player)-this.ammoCapacity('grenade');for(const [id,def]of Object.entries(GRENADES)){const n=Math.min(Math.max(0,excess),this.player[def.resource]);if(n){this.player[def.resource]-=n;this.dropGrenade(id,n);excess-=n;}}}
   supplyPack(amounts){for(const [type,amount]of Object.entries(amounts))this.receiveAmmo(type,amount);}
-  weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index);if(w.unarmed)return {min:w.min,max:w.max};const band=target?shotgunBand(w,distance(this.player,target)):{min:w.min,max:w.max},bonus=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5;return {min:band.min+bonus,max:band.max+bonus};}
+  weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index);if(w.unarmed)return {min:w.min,max:w.max};const band=target?shotgunBand(w,distance(this.player,target)):{min:w.min,max:w.max},raw=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5,bonus=w.hits?Math.ceil(raw/w.hits):raw;return {min:band.min+bonus,max:band.max+bonus};}
   fail(text){this.log(text);return false;}
   // The only place the prepared slot is written. Wearables hang their passives off it, so the two can never drift.
   setPrepared(category,id){this.player.prepared[category]=id;syncWearableTraits(this.player);return true;}
   recoverOperator(){return recoverOperator(this);}
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
-  bumpMeleeSlot(){return this.player.owned.find(slot=>{const w=this.weaponAt(slot);return w.melee&&weaponSwitchTurns(w,this.weapon)===0&&weaponSwitchTurns(this.weapon,w)===0;})??UNARMED_SLOT;}
-  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning','surge'].includes(type))return 0;if(type==='rope'&&LINE_ITEMS[arg?.item]?.free)return 0;
+  // 3.136.0 (user decision): the melee weapon picked in the pack, else the first one in the pack, else bare hands. Before
+  // 3.136.0 only weapons free to switch both ways counted, and every melee weapon was, so the fallback is the old rule.
+  bumpMeleeSlot(){const p=this.player,picked=p.meleeSlot;if(Number.isInteger(picked)&&p.owned.includes(picked)&&this.weaponAt(picked).melee)return picked;return p.owned.find(slot=>this.weaponAt(slot).melee)??UNARMED_SLOT;}
+  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning','surge','meleeChoice'].includes(type))return 0;if(type==='rope'&&LINE_ITEMS[arg?.item]?.free)return 0;
     if(type==='prepare')return prepareCost(this.player,arg);return type==='skill'?(SKILLS[arg]?.cost??1):type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
   // Validate the intent before any actor acts: rejected input cannot scout fast enemies.
   validateAction(type,arg){
     const p=this.player,w=this.weapon;
     if(type==='learn'||type==='dismantleLearning'){const reason=learningReason(this,arg,type==='dismantleLearning');return !reason||this.fail(reason);}
+    if(type==='meleeChoice')return arg===null||Number.isInteger(arg)&&p.owned.includes(arg)&&this.weaponAt(arg).melee||this.fail('只能選背包裡的近戰武器。');
     if(type==='suppressiveFire'){const reason=suppressiveReason(this,arg);return !reason||this.fail(reason);}
     if(type==='feedPet'){const q=petFeedQuote(this,arg);return q.allowed||this.fail(q.reason);}
     if(type==='setPetOutput')return !outputChoiceReason(this,arg)||this.fail(outputChoiceReason(this,arg));
@@ -321,7 +340,7 @@ export class Game {
     if(type==='recoverObjective')return this.nearbyObjectives.some(t=>t.id===arg)||this.fail('附近沒有可回收的機密資料。');
     if(type==='openContainer')return this.nearbyContainers.some(c=>c.id===arg)||this.fail('附近沒有可開啟的補給箱。');
     if(type==='door')return Boolean(arg&&typeof arg.open==='boolean'&&this.nearbyDoors.some(b=>b.id===arg.id&&b.open!==arg.open));
-    if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');if(!this.shotClear(p,e)||(w.melee&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?'目標藏在轉角後，換個射擊位置。':'射線或近戰路徑被障礙物擋住。');return w.melee||p.ammo[p.weapon]>0||this.fail('彈匣已空，請裝填。');}
+    if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');if(!this.shotClear(p,e)||(w.melee&&!w.thrust&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?'目標藏在轉角後，換個射擊位置。':'射線或近戰路徑被障礙物擋住。');return w.melee||p.ammo[p.weapon]>0||this.fail('彈匣已空，請裝填。');}
     if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail('彈匣已滿或沒有對應備彈。');
     // Consumables (3.106.0). Adrenaline is free to use but may never be the thing that kills you; the reasons
     // live in itemUseReason so the pack can grey the same buttons this would refuse.
@@ -360,7 +379,7 @@ export class Game {
     if(type==='surge'&&this.shadowSteps>0)return this.fail('免費移動還沒用完。');
     if(this.shadowSteps>0){this.shadowSteps=0;this.pursuit=0;}
     if(!this.validateAction(type,arg))return false;
-    if(p.control.disabled&&type!=='prepare'&&this.actionCost(type,arg)===0)return this.fail('失能中，按中央等待恢復。');
+    if((p.control.disabled||p.recovery)&&type!=='prepare'&&type!=='meleeChoice'&&this.actionCost(type,arg)===0)return this.fail(p.recovery?'鏈鋸收勢中，按中央等待。':'失能中，按中央等待恢復。');
     if(type==='move'){
       const point={x:p.x+arg[0],y:p.y+arg[1]},edge=barrierBetween(this.barriers,p,point);
       if(edgeBlocks(edge)&&edge.type==='door'){type='door';arg={id:edge.id,open:true};}
@@ -380,9 +399,10 @@ export class Game {
       else if(type==='surge')return this.surge();
       else if(type==='rope')return presentStep(this,()=>this.fireLine(arg));
       else if(type==='setPetOutput'){p.petBond.outputChoice=arg.kind;return true;}
+      else if(type==='meleeChoice'){p.meleeSlot=arg;this.log(arg===null?'撞擊時改用背包裡第一把近戰武器。':`撞擊時使用${this.weaponAt(arg).name}。`);return true;}
       return true;
     }
-    if(this.pursuit&&['fire','launch','bumpMelee','grenade','grapple','suppressiveFire'].includes(type)){
+    if(this.pursuit&&!p.recovery&&['fire','launch','bumpMelee','grenade','grapple','suppressiveFire'].includes(type)){
       this.pursuit=0;const intent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:arg;
       const success=this.executePlayer(type,intent);p.guard=false;p.focus=false;p.evasive=false;p.moved=success&&type==='grapple'&&p.moved;
       this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';}this.finishPursuit();return success;
@@ -394,6 +414,11 @@ export class Game {
       queue.find(q=>q.actor===p).speed=1;
       queue.push({actor:p,index:0,speed:0,anchorExtra:true});queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);
     }
+    // 3.136.0: claws strike in the fast phase and the chainsaw in the slow one (src/melee-weapons.js). A chainsaw that bit
+    // last turn costs this one, read once so an anchored double attack cannot spend it in the turn it was earned.
+    const phase=doubleAttack?null:attackSpeed(type==='bumpMelee'?this.weaponAt(arg.slot):type==='fire'&&this.weapon.melee?this.weapon:null);
+    if(phase!==null){queue.find(q=>q.actor===p).speed=phase;queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);}
+    const recovering=p.recovery>0;if(recovering)p.recovery=0;
     let playerStunned=false;
     this.turn++;tickTongues(this);tickPounces(this);tickFields(this);
     for(const {actor,speed,anchorExtra=false}of queue){
@@ -401,6 +426,7 @@ export class Game {
       if(actor.hp<=0||actor.kind&&(actor.status!=='active'||actor.floor!==this.floor))continue;
       if(actor===p&&playerStunned)continue;
       actor.vaultExposed=false;
+      if(actor===p&&recovering){playerStunned=true;p.fireChain=null;this.log('鏈鋸收勢：本次行動跳過。',true);continue;}
       if(skipDisabled(actor)){if(actor===p){playerStunned=true;this.log('失能：本次行動跳過，未消耗彈藥或道具。',true);}continue;}
       const immunityBefore=actor.control?.immune||0;
       if(actor===p){
@@ -411,7 +437,7 @@ export class Game {
         p.guard=success&&type==='wait';p.moved=success&&(type==='move'||type==='grapple'&&p.moved);p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
         petReactions(this);this.reveal();
       }else if(actor.kind){const wasIn=inToxic(this,actor);presentStep(this,()=>{if(isMunition(actor))munitionAct(this,actor);else if(isBomber(actor))bomberAct(this,actor);else allyAct(this,actor);this.reveal();},actor);toxicAllyTurn(this,actor,wasIn);}
-      else if(actor.hp>0&&actor.alert)presentStep(this,()=>this.enemyAct(actor),speed!==0||playerSpeed!==0?actor:null);
+      else if(actor.hp>0&&actor.alert)presentStep(this,()=>this.enemyAct(actor),speed!==0||playerSpeed!==0||phase!==null?actor:null);
       if(immunityBefore&&!anchorExtra)actor.control.immune=Math.max(0,actor.control.immune-1);
     }
     if(this.floor===floor&&this.status==='playing'&&p.hp>0){
@@ -439,8 +465,8 @@ export class Game {
     this.finishPursuit();return true;
   }
   finishPursuit(){
-    if(this.pursuitPending&&!this.pursuitBlocked&&!this.shadowSteps&&!this.player.control.disabled&&this.player.hp>0&&this.status==='playing'){this.pursuit=1;this.log('追擊就緒：下一次攻擊不耗回合。');}
-    if(this.shadowSteps||this.player.control.disabled||this.player.hp<=0||this.status!=='playing')this.pursuit=0;
+    if(this.pursuitPending&&!this.pursuitBlocked&&!this.shadowSteps&&!this.player.control.disabled&&!this.player.recovery&&this.player.hp>0&&this.status==='playing'){this.pursuit=1;this.log('追擊就緒：下一次攻擊不耗回合。');}
+    if(this.shadowSteps||this.player.control.disabled||this.player.recovery||this.player.hp<=0||this.status!=='playing')this.pursuit=0;
     this.pursuitPending=false;this.pursuitBlocked=false;
   }
   activateSkill(id){
@@ -501,7 +527,7 @@ export class Game {
       case 'heal':
         if(p.meds<=0)return this.fail('醫療包已用盡。');
         if(p.hp===p.maxHp&&p.poison===0)return this.fail('生命值已滿。');
-        p.meds--;const recovered=healActor(p,45+p.healBonus);clearPoison(p);
+        p.meds--;const recovered=healActor(p,45,p.healBonus);clearPoison(p);
         this.log(`使用醫療包，回復 ${recovered} 生命並清除中毒。`);success=true;break;
       case 'plate': {
         if(p.sprays<=0)return this.fail('修復噴劑已用盡。');
@@ -604,7 +630,7 @@ export class Game {
   }
   fire(intent=null) {
     const p=this.player,e=this.targeted,w=this.weapon;
-    if(w.melee)return this.strike(intent);
+    if(w.melee)return w.thrust?this.thrust(intent):this.strike(intent);
     // A committed shot still fires at the last confirmed tile if its target is lost.
     if(intent&&w.cone&&(!e||distance(p,e)>w.range||!this.shotClear(p,e)))return this.fireCone(intent);
     if(intent&&(!e||distance(p,e)>w.range||!this.shotClear(p,e))){
@@ -652,13 +678,45 @@ export class Game {
     if(!intent&&(!target||distance(p,target)>1))return this.fail('近戰需要相鄰一格的目標。');
     const valid=target&&distance(p,target)<=1&&this.shotClear(p,target)&&(isBarrier(target)||this.canCross(p,target)),to=valid?target:intent;
     p.fireChain=null;p.facing=[Math.sign(to.x-p.x),Math.sign(to.y-p.y)];
+    let landed=false,ambush=false;
     presentStep(this,()=>{
-      const ambush=!w.unarmed&&Boolean(valid)&&ambushReady(this,target);if(ambush&&!this.shadowBonus)shortenCamo(p);
+      ambush=!w.unarmed&&Boolean(valid)&&ambushReady(this,target);if(ambush&&!this.shadowBonus)shortenCamo(p);
       const chance=this.meleeAccuracy(p,target,w.hitChance),hit=Boolean(valid)&&this.rng()*100<chance;
       this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:to.x,y:to.y},damage:0,miss:!hit});
       if(!hit){this.log(valid?`近戰揮擊未命中（${chance}%）。`:'原目標已離開近戰範圍，揮擊落空。',false,valid?'近戰揮擊未命中。':'原目標已離開近戰範圍，揮擊落空。');return;}
-      const d=this.weaponDamage(slot);this.hitTarget(target,Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)),p,w.pierce||0,w);
+      landed=true;
+      // 3.136.0 (src/melee-weapons.js): claws bite harder on an unarmoured enemy; the sabre's blow splashes onto the
+      // target's visible neighbours; the chainsaw costs your next action once it bites.
+      const foe=this.enemies.includes(target),bare=w.bareBonus&&foe&&!(ENEMY_TYPES[target.type]?.armor>0)?1+w.bareBonus:1;
+      const d=this.weaponDamage(slot),damage=Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)*bare);this.hitTarget(target,damage,p,w.pierce||0,w);
+      if(w.splash&&foe)for(const other of this.enemies.filter(o=>o.hp>0&&o!==target&&distance(o,target)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*w.splash),p,w.pierce||0,w);
+      if(w.recovery){p.recovery=1;this.log(`${w.name}咬進目標：你會跳過下一次行動。`);}
       const shadow=classPerkRank(p,'ninja_shadowstep');if(ambush&&shadow&&!this.shadowBonus){this.shadowSteps=shadow>=2?2:1;this.log(`影步就緒：可免費移動 ${this.shadowSteps} 格。`);}
+    });
+    // 3.136.0 chainsaw: the rest of its cuts, each in a presentation step of its own so every number shows.
+    if(landed&&w.hits>1&&this.enemies.includes(target))for(let i=1;i<w.hits&&target.hp>0&&p.hp>0;i++)presentStep(this,()=>{
+      const d=this.weaponDamage(slot);this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:target.x,y:target.y},damage:0,miss:false});
+      this.hitTarget(target,Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)),p,w.pierce||0,w);
+    });
+    return true;
+  }
+  // 3.136.0: the spear in hand (src/melee-weapons.js). One thrust along a straight line out to two tiles; every unit on
+  // it, friend or foe, rolls its own hit, like the shotgun's pellets. A locked door, cover or barrel is struck as well.
+  thrust(intent=null){
+    const p=this.player,w=this.weapon,e=this.targeted,aim=e&&distance(p,e)<=w.range&&this.shotClear(p,e)?e:intent;
+    if(!aim)return this.fail('射線內沒有目標。');
+    p.fireChain=null;p.facing=[Math.sign(aim.x-p.x),Math.sign(aim.y-p.y)];
+    const units=thrustTargets(this,p,aim),objects=aim===e&&!this.enemies.includes(e)&&!this.activeAllies.includes(e)?[e]:[];
+    presentStep(this,()=>{
+      if(!units.length&&!objects.length){this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:aim.x,y:aim.y},damage:0,miss:true});this.log(`${w.name}刺空了。`,false,`${w.name}刺空。`);return;}
+      for(const o of [...units,...objects]){
+        const foe=this.enemies.includes(o),ambush=foe&&ambushReady(this,o),chance=this.meleeAccuracy(p,o,w.hitChance),hit=this.rng()*100<chance;
+        if(ambush&&!this.shadowBonus)shortenCamo(p);
+        this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!hit});
+        if(!hit){this.log(`${w.name}刺擊未命中（${chance}%）。`,false,`${w.name}刺擊未命中。`);continue;}
+        const d=this.weaponDamage(p.weapon),damage=Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1));
+        if(this.activeAllies.includes(o))this.damageAlly(o,damage,p);else this.hitTarget(o,damage,p,w.pierce||0,w);
+      }
     });
     return true;
   }
@@ -935,14 +993,17 @@ export class Game {
       if(ammo){const amount=item.amount??AMMUNITION[ammo].pickup,accepted=this.receiveAmmo(ammo,amount,{spill:false});
         if(accepted){partial=true;this.log(`拾取${AMMUNITION[ammo].name} +${accepted}。`);}
         if(accepted<amount){item.amount=amount-accepted;this.log(`${AMMUNITION[ammo].name}容量已滿，剩餘 ${item.amount} 留在原地。`);return true;}
-      }      else if(item.type==='med'){p.meds++;this.log('拾取醫療包 +1。');}
+      }
+      // 3.136.0: medkits and field kit stop at the carry cap; the rest of a pile stays where it lies.
+      else if(item.type==='med'||FIELD_ITEMS.includes(item.type)){
+        const id=groundItemId(item.type),entry=PREPARED_CATALOG.item[id],amount=item.amount||1,accepted=this.receiveItem(id,amount,{spill:false});
+        if(accepted){partial=true;this.log(`拾取${entry.name} +${accepted}。`);}
+        if(accepted<amount){item.amount=amount-accepted;this.log(`${entry.name}已達攜帶上限，剩餘 ${item.amount} 留在原地。`);return true;}
+      }
       // 3.135.0: grapple lines, dropped only (src/lines.js).
       else if(isLineItem(item.type)){const entry=PREPARED_CATALOG.item[item.type],amount=item.amount||1;p[entry.resource]+=amount;this.log(`拾取${entry.name} +${amount}。`);}
       // 3.135.0: goggles are found, not bought; one pair is all anyone carries.
       else if(item.type==='nvg'){if(p.wearables.includes('nvg')){this.log('已經有一副夜視鏡，這副留在原地。');return true;}p.wearables.push('nvg');this.log('取得夜視鏡。在背包裡預備就能戴上。');}
-      // 3.110.0 (user request): field kit has no carry cap, exactly like the medkit, so a case holding it is never
-      // "already full, left on the ground". The ground type is the catalogue id, so the resource follows from it.
-      else if(FIELD_ITEMS.includes(item.type)){const entry=PREPARED_CATALOG.item[item.type],amount=item.amount||1;p[entry.resource]+=amount;this.log(`拾取${entry.name} +${amount}。`);}
       else if(item.type==='armor'){const amount=Math.min(item.amount||20,this.plateCapacity-(p.plates||0));if(amount<=0){this.log('護甲板已滿，補給留在原地。');return true;}p.plates=(p.plates||0)+amount;this.log(`修復護甲板 +${amount}（${p.plates}/${this.plateCapacity}）。`);}
       else if(item.type==='scrap'){const amount=Math.round((item.amount||15)*(1+p.scavenger*.5));p.scrap+=amount;this.log(`回收廢料 +${amount}。`);}
       else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;const story=collectStory(this,item);this.log(story?`資料已解密：${story.body}`:`資料已回收。`);}
@@ -1203,6 +1264,9 @@ export class Game {
       if(version<56){g.player.flares??=0;g.flares??=[];}
       // 3.135.0: grapple lines; older saves carry none.
       if(version<62){g.player.escapeLines??=0;g.player.redeployLines??=0;}
+      // 3.136.0: the picked bump weapon and the chainsaw's lost action; older saves have neither.
+      if(version<63){g.player.meleeSlot??=null;g.player.recovery??=0;}
+      if(![0,1].includes(g.player.recovery)||!(g.player.meleeSlot===null||Number.isInteger(g.player.meleeSlot)&&WEAPONS[g.player.weaponBases[g.player.meleeSlot]]?.melee))return null;
       if(!['escapeLines','redeployLines'].every(k=>Number.isSafeInteger(g.player[k])&&g.player[k]>=0&&g.player[k]<=10000000))return null;
       if(!Number.isSafeInteger(g.player.flares)||g.player.flares<0||g.player.flares>10000000||!validFlares(g.flares,g.grid,g.turn))return null;
       // 3.108.0: the worn item's passives are derived from the slot, never trusted from the file.

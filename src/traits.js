@@ -9,7 +9,9 @@ export const TRAITS={
   disruption_resistant:{name:'抗失能',text:'受到的失能次數減半，向上取整。'},
   tactical_supply:{name:'戰術配給',text:'每次升至 2～20 級時獲得 1 顆煙霧彈；共用投擲容量不足時留在腳下。滿級經驗補給不觸發。'},
   extended_burst:{name:'延伸點射',text:'僅衝鋒槍：原射程外再延伸 2 格，延伸區每次只射 1 發、消耗 1 發彈藥。射程詞條先計入原射程，兩發區與單發區一起順延。'},
- difficult_healing:{name:'難以治療',text:'生命恢復在計入升級加成後減半，向下取整；不影響生命上限與護甲板。'},
+ difficult_healing:{name:'難以治療',text:'生命回復的基礎量減半，向下取整（醫療包、終端、升級、下樓、嗜血等）；急救訓練給醫療包的加成不減。不影響生命上限與護甲板。'},
+  // 3.136.0 (user decision): learning data that widens every pouch.
+  extended_carry:{name:'攜行擴充',text:'每種彈藥上限 +50%（四捨五入）、投擲物共用上限 +2、每種道具上限 +2。'},
   night_vision:{name:'夜視',text:'忽略目標暗區的射擊命中懲罰；會受震撼彈失能，不穿煙。'},
   infrared:{name:'紅外線',text:'看穿煙霧，仍受牆與門阻擋；會受震撼彈失能，不抵銷暗區懲罰。'},
   biological:{name:'生物',text:'會受到震撼彈的失能效果；可與機械同時存在。'},
@@ -96,4 +98,5 @@ export function reduceDirectDamage(actor,damage){
 }
 
 export const healingAmount=(actor,amount)=>activeTrait(actor,'difficult_healing')?Math.floor(amount/2):amount;
-export function healActor(actor,amount){const before=actor.hp;actor.hp=Math.min(actor.maxHp,actor.hp+healingAmount(actor,amount));return actor.hp-before;}
+// 3.136.0 (user decision): difficult healing halves the base amount only; a bonus (the medic perk's) is added in full.
+export function healActor(actor,amount,bonus=0){const before=actor.hp;actor.hp=Math.min(actor.maxHp,actor.hp+healingAmount(actor,amount)+bonus);return actor.hp-before;}

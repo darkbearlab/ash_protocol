@@ -2,7 +2,7 @@ import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 62;
+export const SAVE_VERSION = 63;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -27,6 +27,15 @@ export const WEAPONS = [
 ];
 // Unbound loot variants append IDs; class-bound originals remain untouched.
 for(const [base,id] of [[9,'loot_axe'],[10,'loot_katana']]){const {locked,boundCharacter,...weapon}=WEAPONS[base];WEAPONS.push({...weapon,id,lootOnly:true,type:'MELEE WEAPON',desc:'拾獲近戰武器，雙向切換免費，可交換、拆解與改裝。'});}
+// 3.136.0 (user decisions 2026-09-19, docs/MELEE_WEAPONS.md): melee weapons anyone may carry, found in unidentified
+// crates. A bump attack uses the one picked in the pack. Switching to one to hold it costs a turn like any gun.
+WEAPONS.push(
+  {id:'knife',weaponClass:'melee',name:'求生小刀',type:'SURVIVAL KNIFE',code:'KN–02',min:16,max:20,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:97,desc:'比徒手準、也比徒手痛，換掉一格武器欄。撞上敵人時使用。'},
+  {id:'claws',weaponClass:'melee',name:'手爪',type:'CLAW GAUNTLET',code:'CL–03',min:14,max:18,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:95,phase:'fast',bareBonus:.5,desc:'快速段出手：在快速的敵人行動之前打到牠。目標沒有裝甲時傷害 ×1.5。'},
+  {id:'sabre',weaponClass:'melee',name:'軍刀',type:'SABRE',code:'SB–04',min:26,max:32,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:90,splash:.45,desc:'命中後，目標身旁看得見的其他敵人受到 45% 傷害。'},
+  {id:'spear',weaponClass:'melee',name:'長矛',type:'SPEAR',code:'SP–05',min:20,max:26,range:2,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:92,thrust:true,desc:'撞上敵人時照常近戰。拿在手上時可以開火：刺向 2 格內的目標，直線上每個單位各自判定命中，友軍也會被刺中；貼身時會刺穿到後面一格。'},
+  {id:'chainsaw',weaponClass:'melee',name:'鏈鋸',type:'CHAINSAW',code:'CS–06',min:3,max:10,hits:10,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:88,pierce:1,phase:'slow',recovery:true,desc:'緩速段出手：普通敵人先行動。命中後連鋸 10 下，每下 3–10、無視裝甲；命中後你會跳過下一次行動。'},
+);
 export const FLOORS = ['軌道轉運站','污染冷卻區','軍械封鎖區','生化培養艙','高壓熔爐','深淵反應核心'];
 export const FLOOR_INFO = [
   { color:'#a4b484', subtitle:'TRANSIT HUB', text:'轉運站。殘存補給未清點。', hazard:null },
