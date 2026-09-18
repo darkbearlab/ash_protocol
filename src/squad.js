@@ -26,7 +26,9 @@ import {enemyDef,isNoncombatant} from './enemy-data.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 import {enemyCallout} from './enemy-intents.js';
 import {grantTrait,activeTrait} from './traits.js';
-import {distance,key,DIRECTIONS} from './world.js';
+import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
+import {roomTiles} from './map-geometry.js';
+import {factionDef} from './faction-catalog.js';
 import {spentCase} from './traces.js';
 import {SIZE} from './data.js';
 
@@ -93,6 +95,37 @@ function pickSpot(g,member,player,answer,taken,pass){
  found.sort((a,b)=>a.score-b.score);
  if(pass!=='range')return found[0]?.spot||null;
  return found.find(f=>distance(member,f.spot)===0||g.nextStep(member,f.spot))?.spot||null;
+}
+// 3.128.0 (user design 2026-09-18): a squad is placed, not drawn. After the mission picks its targets, each faction
+// with a squad plan gets a leader and three guns in each of its largest rooms (not the start room; the lift's room is
+// fine), outside the threat budget, with no random roll. The leader stands at the back — the tile farthest from where
+// you arrive — and the members two to five tiles in front of it, next to cover where there is some, spaced apart.
+// A room too cramped for all four is skipped for the next largest.
+export function postSquads(g){
+ const plan=factionDef(g.facilityFaction)?.squads;if(g.simulation||!plan)return 0;
+ const types=g.floor<=2?plan.early:plan.late,exit=g.exitPoint,openings=(g.openings||[]).flatMap(o=>o.cells||[]);
+ const taken=new Set([key(g.player),...[g.enemies,g.props,g.items,g.hazards,g.slots||[]].flat().map(key)]);
+ const free=q=>g.grid[q.y]?.[q.x]===1&&g.passable(q.x,q.y)&&!taken.has(key(q))&&!openings.some(o=>distance(o,q)<=1)&&
+  distance(q,g.start)>2&&!(exit&&distance(q,exit)===0);
+ const byKey=(a,b)=>a.y-b.y||a.x-b.x,cover=q=>g.props.some(o=>o.type==='cover'&&distance(o,q)===1);
+ const rooms=(g.rooms||[]).map((r,i)=>({i,tiles:roomTiles(r).filter(free)})).filter(r=>r.i!==g.startRoom)
+  .sort((a,b)=>b.tiles.length-a.tiles.length||a.i-b.i);
+ let placed=0;
+ for(const room of rooms){
+  if(placed>=plan.perFloor)break;
+  const open=room.tiles.filter(free);if(open.length<types.length+1)continue;
+  const leaderAt=[...open].sort((a,b)=>distance(b,g.start)-distance(a,g.start)||byKey(a,b))[0];
+  const front=open.filter(q=>distance(q,leaderAt)>=2&&distance(q,leaderAt)<=5)
+   .sort((a,b)=>Number(cover(b))-Number(cover(a))||distance(a,g.start)-distance(b,g.start)||byKey(a,b));
+  let spots=[];
+  for(const spacing of [2,1]){spots=[];for(const q of front)if(spots.length<types.length&&spots.every(s=>distance(s,q)>=spacing))spots.push(q);if(spots.length===types.length)break;}
+  if(spots.length<types.length)continue;
+  const id=`squad-${g.floor}-${placed}`,f=g.facilityFaction;
+  const units=[makeEnemy('squad_leader',leaderAt.x,leaderAt.y,`${id}-L`,g.floor,g.difficultyOffset,f),...types.map((t,j)=>makeEnemy(t,spots[j].x,spots[j].y,`${id}-${j}`,g.floor,g.difficultyOffset,f))];
+  for(const u of units)taken.add(key(u));
+  g.enemies.push(...units);placed++;
+ }
+ return placed;
 }
 // The identification turn: orders go out, nobody shoots.
 export function deploySquad(g,leader,members,weaponId){

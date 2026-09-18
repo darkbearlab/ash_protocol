@@ -1,7 +1,7 @@
 import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,recoverOperator,validRunUnlocks} from './run-unlocks.js';
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
-import {validSquad} from './squad.js';
+import {validSquad,postSquads} from './squad.js';
 import {recruitConscripts,rebelMorale,witnessDeath,isEnforcer,validRebels,soundAlarm,tickAlarms} from './rebels.js';
 import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
 import {tickTongues,validSwarm,SWARM_TUNING} from './swarm.js';
@@ -140,7 +140,7 @@ export class Game {
     Object.assign(this,{swarmWaves:undefined,mapStyle:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
-    prepareMission(this);recruitConscripts(this);rigContainers(this);populateRunUnlocks(this);registerPurgeFloor(this);
+    prepareMission(this);recruitConscripts(this);postSquads(this);rigContainers(this);populateRunUnlocks(this);registerPurgeFloor(this);
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();
   }
   get petSensorContacts(){return petScanContacts(this);}

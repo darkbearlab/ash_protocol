@@ -20,15 +20,32 @@ function scene({weapon=0,members=2,leaderAt={x:10,y:10}}={}){
 }
 const turns=(g,n)=>{for(let i=0;i<n&&g.status==='playing';i++)g.action('wait');};
 
-test('the leader is one per floor, loyalist only, and legacy generation is untouched',()=>{
-  assert.equal(ENEMY_TYPES.squad_leader.maxPerFloor,1);
-  assert.ok(factionPool('loyalist',1).includes('squad_leader'));
-  assert.ok(!factionPool('legacy',1).includes('squad_leader')&&!factionPool('rebel',1).includes('squad_leader')&&!factionPool('swarm',1).includes('squad_leader'));
-  for(const seed of [7,11,23]){
-    const loyal=new Game(seed,[],0,'soldier','onyx','extraction',{facilityFaction:'loyalist'});
-    assert.equal(loyal.enemies.filter(e=>e.type==='squad_leader').length,1,`seed ${seed}`);
-    assert.equal(new Game(seed,[],0,'soldier','onyx','extraction').enemies.filter(e=>e.type==='squad_leader').length,0);
+// 3.128.0 (user design): squads are placed, not drawn — two per loyalist floor, a leader and three guns each, in the
+// largest rooms, outside the threat budget.
+test('squads are placed, not drawn: two per loyalist floor, a leader at the back and three guns in front',()=>{
+  for(const faction of ['legacy','loyalist','rebel','swarm'])for(const floor of [1,3,9])assert.ok(!factionPool(faction,floor).includes('squad_leader'),`${faction} ${floor}`);
+  assert.equal(ENEMY_TYPES.squad_leader.maxPerFloor,undefined,'no draw cap: it is never drawn');
+  for(const seed of [3,7,11,23,42]){
+    const g=new Game(seed,[],0,'soldier','onyx','extraction',{facilityFaction:'loyalist'});
+    const leaders=g.enemies.filter(e=>e.type==='squad_leader');
+    assert.equal(leaders.length,2,`seed ${seed}`);
+    for(const leader of leaders){
+      const id=leader.id.slice(0,-2),members=g.enemies.filter(e=>e.id.startsWith(`${id}-`)&&e!==leader);
+      assert.deepEqual(members.map(e=>e.type),['rifleman','rifleman','gunner'],`seed ${seed}`);
+      const room=g.rooms.findIndex(r=>leader.x>=r.x&&leader.x<r.x+r.w&&leader.y>=r.y&&leader.y<r.y+r.h);
+      assert.notEqual(room,g.startRoom,'never in the room you arrive in');
+      const d=q=>Math.abs(q.x-g.start.x)+Math.abs(q.y-g.start.y);
+      for(const m of members){
+        const gap=Math.abs(m.x-leader.x)+Math.abs(m.y-leader.y);assert.ok(gap>=2&&gap<=5,`seed ${seed}: ${gap}`);
+        assert.ok(d(m)<=d(leader),'the leader stands behind its squad');assert.ok(!m.elite&&!m.conscript);
+      }
+      assert.ok(!g.mission.targets?.some(t=>t.id===leader.id),'never a mission target');
+    }
+    for(const faction of ['legacy','rebel','swarm'])assert.equal(new Game(seed,[],0,'soldier','onyx','extraction',{facilityFaction:faction}).enemies.filter(e=>e.type==='squad_leader').length,0,faction);
   }
+  const deep=new Game(7,[],0,'soldier','onyx','extraction',{facilityFaction:'loyalist'});deep.floor=4;deep.loadFloor();
+  const late=deep.enemies.filter(e=>e.id.startsWith('squad-4-0-')&&e.type!=='squad_leader').map(e=>e.type);
+  assert.deepEqual(late,['rifleman_armored','gunner','sniper'],'from floor 3 the late roster');
 });
 
 test('the answer to a weapon is its shape: keep away from cone, blast and melee, close on a long gun',()=>{

@@ -20,6 +20,8 @@ test('faction catalog validates references and covers every current enemy card',
   for(const id of [d.scout,...d.retreatWave,d.fodder,d.nestChild].filter(id=>id!==null)){assert.ok(ENEMY_TYPES[id]);used.add(id);}
   for(const [id,n] of Object.entries(d.affixWeights||{}))assert.ok(ENEMY_AFFIXES.some(a=>a.id===id)&&Number.isFinite(n)&&n>0);
   for(const id of Object.keys(d.overrides||{}))assert.ok(ENEMY_TYPES[id]);
+  // 3.128.0: a placed squad's leader and members are reachable from data too.
+  if(d.squads){assert.ok(Number.isInteger(d.squads.perFloor)&&d.squads.perFloor>0);used.add('squad_leader');for(const id of [...d.squads.early,...d.squads.late]){assert.ok(ENEMY_TYPES[id]?.tags.includes('armed'),id);used.add(id);}}
  }
  for(const d of Object.values(ENEMY_TYPES))if(d.reinforcement)used.add(d.reinforcement);
  // An affix that puts a card on the board keeps that card reachable from data, same as a roster entry does.
