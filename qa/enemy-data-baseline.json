@@ -925,10 +925,10 @@
   "druid:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 280,
+   "turn": 277,
    "hp": 0,
-   "kills": 57,
-   "actions": 280,
+   "kills": 56,
+   "actions": 277,
    "invalid": 0
   },
   "druid:2": {
@@ -943,10 +943,10 @@
   "druid:3": {
    "status": "dead",
    "floor": 3,
-   "turn": 249,
+   "turn": 302,
    "hp": 0,
-   "kills": 50,
-   "actions": 250,
+   "kills": 60,
+   "actions": 303,
    "invalid": 0
   },
   "necromancer:1": {
@@ -997,10 +997,10 @@
   "soldier:3": {
    "status": "dead",
    "floor": 3,
-   "turn": 259,
+   "turn": 312,
    "hp": 0,
-   "kills": 52,
-   "actions": 259,
+   "kills": 61,
+   "actions": 313,
    "invalid": 0
   },
   "bulwark:1": {
@@ -1014,20 +1014,20 @@
   },
   "bulwark:2": {
    "status": "dead",
-   "floor": 5,
-   "turn": 1091,
+   "floor": 4,
+   "turn": 959,
    "hp": 0,
-   "kills": 144,
-   "actions": 1091,
+   "kills": 126,
+   "actions": 959,
    "invalid": 0
   },
   "bulwark:3": {
    "status": "dead",
    "floor": 4,
-   "turn": 342,
+   "turn": 543,
    "hp": 0,
-   "kills": 56,
-   "actions": 341,
+   "kills": 96,
+   "actions": 543,
    "invalid": 0
   },
   "recon:1": {

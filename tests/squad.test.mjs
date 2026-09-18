@@ -227,6 +227,7 @@ test('through smoke the leader calls out your tile: blind shots at −40 that re
 test('blind, the squad holds 已就緒 for six turns, then half of it bounds to your last tile and disbands if you are gone',()=>{
   const wall=[];for(let y=12;y<=21;y++)wall.push([7,y]);
   const {g,leader,squad}=walled({wall});
+  g.end=null;   // no lift to predict a route to, so nobody ambushes: this is the search alone (伏擊 has its own tests)
   ready(g);
   const last={x:g.player.x,y:g.player.y};
   Object.assign(g.player,{x:3,y:20});g.reveal();
@@ -236,11 +237,16 @@ test('blind, the squad holds 已就緒 for six turns, then half of it bounds to 
   let waited=1;while(leader.squad.state==='patience'&&waited<20){g.action('wait');waited++;}
   assert.equal(waited,SQUAD_TUNING.patience,'six turns of patience');
   assert.equal(leader.squad.state,'search');
-  assert.equal(squad.filter(e=>e.squad.role==='move').length,Math.floor(squad.length/2),'only half of them search at once');
+  // 3.130.0: the half farthest from your last tile goes to ambush the doorway on your way to the lift; the rest
+  // search, bounding half at a time as before.
+  const ambushers=squad.filter(e=>e.order?.kind==='ambush'),searchers=squad.filter(e=>!e.order);
+  assert.ok(ambushers.length<=squad.length-Math.floor(squad.length/2),'at most the other half ambushes');
+  assert.equal(searchers.filter(e=>e.squad.role==='move').length,Math.max(1,Math.floor(searchers.length/2)),'the searchers bound half at a time');
   assert.ok(squad.filter(e=>e.squad.role==='move').every(e=>activeTrait(e,'detour')),'searchers carry 迂迴 too');
   for(let i=0;i<20&&leader.squad;i++)g.action('wait');
   assert.equal(leader.squad,undefined,'nobody at the last tile: the squad disbands');
   assert.ok(squad.every(e=>!e.squad));
+  assert.ok(squad.every(e=>!e.order),'and every ambush has ended by now (six turns of patience at most)');
 });
 
 test('a squad standing on your only way to the lift never advances and never loses patience',()=>{

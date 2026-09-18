@@ -4,7 +4,7 @@ import {presentAnnouncement} from './presentation.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 export const CALLOUT_TUNING=Object.freeze({hearingRadius:8,injuryHalf:.5,injuryCritical:.25});
 // Stable, number-free semantic cues. Text variants and lifetime belong to presentation.
-const groups={danger:['scream','grenade','bombard','aim','attack','alarm','execute'],affix:['affix_fast','affix_infrared','affix_night_vision','affix_suppressor','affix_grenadier'],tactical:['flee','move','cover','hold','reload','flank','rally'],injury:['hit','wounded','critical','suppressed','pinned'],perception:['spotted','lost','search']};
+const groups={danger:['scream','grenade','bombard','aim','attack','alarm','execute'],affix:['affix_fast','affix_infrared','affix_night_vision','affix_suppressor','affix_grenadier'],tactical:['flee','move','cover','hold','reload','flank','rally','lurk'],injury:['hit','wounded','critical','suppressed','pinned'],perception:['spotted','lost','search']};
 // A rally (3.127.1) is tactical but shown as loudly as a danger line: it is the visible half of an execution.
 export const CALLOUT_CUES=Object.freeze(Object.fromEntries(Object.entries(groups).flatMap(([category,cues])=>cues.map(cue=>[cue,Object.freeze({category,priority:['danger','affix'].includes(category)||cue==='rally'?'high':category==='perception'?'low':'medium'})]))));
 const directions=['east','southeast','south','southwest','west','northwest','north','northeast'];

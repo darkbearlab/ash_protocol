@@ -27,6 +27,7 @@ import {enemyDisplayName} from './enemy-affixes.js';
 import {enemyCallout} from './enemy-intents.js';
 import {grantTrait,activeTrait,removeTraitSource} from './traits.js';
 import {DETOUR_TRAIT} from './detour.js';
+import {orderAmbush} from './ambush.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {roomTiles} from './map-geometry.js';
 import {factionDef} from './faction-catalog.js';
@@ -62,7 +63,7 @@ export function weaponAnswer(game){
  if((w.range||0)>=8)return {kind:'long',closeIn:SQUAD_TUNING.closeIn};
  return {kind:'standard'};
 }
-export const squadMembers=(g,leader)=>g.enemies.filter(e=>e!==leader&&e.hp>0&&e.alert&&!isNoncombatant(e)&&!isSquadLeader(e)&&(enemyDef(e)?.range||1)>1&&distance(e,leader)<=SQUAD_TUNING.radius).slice(0,SQUAD_TUNING.members);
+export const squadMembers=(g,leader)=>g.enemies.filter(e=>e!==leader&&e.hp>0&&e.alert&&!e.order&&!isNoncombatant(e)&&!isSquadLeader(e)&&(enemyDef(e)?.range||1)>1&&distance(e,leader)<=SQUAD_TUNING.radius).slice(0,SQUAD_TUNING.members);
 
 // A firing position for one member: it can shoot from there, it keeps the distance the player's weapon demands, and
 // cover beats no cover. Taken tiles are reserved so a squad never stacks up on one doorway.
@@ -296,9 +297,10 @@ export function squadLeaderAct(ctx){
  if(p!==g.player||!e.alert)return false;
  const weaponId=g.weapon?.id??'unarmed';
  const members=squadMembers(g,e);
- const mine=g.enemies.filter(o=>o.hp>0&&o.squad?.leader===e.id);
- if(!los&&!mine.length)return false;
- if(squadStale(g,e,weaponId)||!mine.length){
+ // A member away on an order (3.130.0 伏擊) keeps its place in the squad but is out of the rotation until it is back.
+ const all=g.enemies.filter(o=>o.hp>0&&o.squad?.leader===e.id),mine=all.filter(o=>!o.order);
+ if(!los&&!all.length)return false;
+ if(squadStale(g,e,weaponId)||!all.length){
   if(!los||!members.length)return false;
   deploySquad(g,e,members,weaponId);
   enemyCallout(g,e,'telegraph',{action:'flank'});
@@ -333,13 +335,19 @@ export function squadLeaderAct(ctx){
    e.squad.state='patience';makeReady(g,e,mine);return true;
   }
   e.squad.state='search';g.log(`${enemyDisplayName(e)}下令：交叉掩護，搜索最後位置。`,true);
+  // 3.130.0 (user decision): the other half goes to wait by the doorway on your way to the lift. The farthest from
+  // your last tile go, so the nearest still search.
+  const searchers=Math.max(1,Math.floor(mine.length/2)),last=e.squad.last||{x:e.x,y:e.y};
+  const ambushers=[...mine].sort((a,b)=>distance(b,last)-distance(a,last)||a.id.localeCompare(b.id)).slice(0,mine.length-searchers);
+  for(const m of ambushers){if(m.squad.role==='move'){m.squad.role='cover';syncDetour(m);}orderAmbush(g,m,{by:e.id,from:last});}
  }
- const last=e.squad.last||{x:e.x,y:e.y};
- if(mine.some(m=>distance(m,last)<=1)){
-  disbandSquad(e,mine);g.log(`${enemyDisplayName(e)}的小隊找不到你，解散搜索。`,true);return true;
+ // The searchers are whoever is not away on an ambush; among them the search bounds half at a time, as before.
+ const last=e.squad.last||{x:e.x,y:e.y},search=mine.filter(m=>!m.order);
+ if(search.some(m=>distance(m,last)<=1)||!search.length){
+  disbandSquad(e,all);g.log(`${enemyDisplayName(e)}的小隊找不到你，解散搜索。`,true);return true;
  }
- assignMovers(g,e,mine,last,true);
- makeReady(g,e,mine.filter(m=>m.squad.role!=='move'));
+ assignMovers(g,e,search,last,true);
+ makeReady(g,e,search.filter(m=>m.squad.role!=='move'));
  return true;
 }
 const point=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&q.x>=0&&q.y>=0&&q.x<SIZE&&q.y<SIZE;

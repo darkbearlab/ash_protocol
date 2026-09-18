@@ -18,6 +18,8 @@ import {barrierBetween,vaultable,edgeBlocks,firstBarrierOnRay} from './barriers.
 import {petCombat} from './pet-growth.js';
 import {squadLeaderAct,squadMemberAct,useSquadAttack} from './squad.js';
 import {enforcerAct,cowerAct,useRebelHooks} from './rebels.js';
+import {runOrder} from './orders.js';
+import {selfAmbush} from './ambush.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
 import {tacticalSight} from './throwables.js';
@@ -136,7 +138,9 @@ export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).deat
 export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
  if(tongueAction(ctx)||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
- if(runAffixBranches(ctx)||seekCover(ctx))return;
+ // 3.130.0 orders (docs/ORDERS.md): a committed order acts before the affix branches; 'fire' goes straight to the attack.
+ selfAmbush(ctx);const order=runOrder(ctx);if(order===true)return;
+ if(order!=='fire'&&(runAffixBranches(ctx)||seekCover(ctx)))return;
  let fired=false;
  if((los&&g.shotClear(e,p)&&d<=def.range&&(def.range>1||g.canCross(e,p)))||(tree.fixedTile&&e.charge&&e.aim)){
  e.tactics=null;if(tree.beforeAttack?.(ctx))return;

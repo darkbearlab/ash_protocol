@@ -7,6 +7,8 @@ import {factionDef} from './factions.js';
 export const CALLOUT_UI_TUNING=Object.freeze({generalMs:2500,dangerMs:4000,heardFactor:.7,cooldownMs:1500,maxOnScreen:4,fadeMs:400,edgeMargin:30});
 
 const HUMAN={
+ // 3.130.0 draft: in place for an ambush. Vague by the user's rule — never says what it is doing.
+ lurk:['安靜……','就這裡，等著。'],
  grenade:['手榴彈！','丟雷了！','投彈，找掩護！'],bombard:['標定座標！','轟炸就位！'],aim:['鎖定目標。','瞄準中……','別動……'],attack:['衝上去！','準備開火！','壓上去！'],
  affix_fast:['跟上速度！','動作快！'],affix_infrared:['熱源顯示……','紅外線啟動。'],affix_night_vision:['夜視開啟。','黑暗藏不住你。'],affix_suppressor:['火力壓制！','別讓他抬頭！'],affix_grenadier:['我帶了炸藥。','準備投擲。'],
  move:['推進！','往前壓。','移動！'],cover:['找掩護！','躲好！'],hold:['守住位置！','原地開火！'],reload:['換彈！','裝填中！'],flank:['繞過去！','從側面包抄！'],
@@ -14,6 +16,7 @@ const HUMAN={
  spotted:['發現目標！','在那裡！'],lost:['跟丟了。','人呢？'],search:['搜索這一區。','他跑不遠。'],
 };
 const MACHINE={
+ lurk:['〔靜默待命〕','〔等待〕'],
  grenade:['〔投擲程序〕'],bombard:['〔轟炸座標鎖定〕'],aim:['〔鎖定〕'],attack:['〔攻擊程序〕'],
  affix_fast:['〔加速模組〕'],affix_infrared:['〔紅外線模組〕'],affix_night_vision:['〔夜視模組〕'],affix_suppressor:['〔連射模組〕'],affix_grenadier:['〔投擲模組〕'],
  move:['〔移動〕'],cover:['〔規避〕'],hold:['〔固守〕'],reload:['〔裝填〕'],flank:['〔側翼路徑〕'],
@@ -25,6 +28,7 @@ const CREATURE={danger:['嘶嘶——！','咯咯咯！'],affix:['嘶——！']
 
 // Voice ids index these tables; creature noises follow the category instead (3.79.1). Factions add their own ids.
 const LOYALIST={
+ lurk:['都別出聲。','就位，保持安靜。'],
  grenade:['投擲破片，隱蔽！','手榴彈出手，注意！'],bombard:['請求火力覆蓋！','座標回報，轟炸開始！'],aim:['目標鎖定，待命射擊。','狙擊位就緒。'],attack:['接敵，開火！','前進接戰！'],
  affix_fast:['加速推進！','機動班跟上！'],affix_infrared:['熱源掃描啟動。','紅外線確認目標。'],affix_night_vision:['夜視裝備就位。','暗區無礙，持續搜索。'],affix_suppressor:['壓制火力，掩護推進！','持續壓制！'],affix_grenadier:['擲彈手就位。','準備投擲支援。'],
  move:['第一班，推進！','保持隊形，向前！'],cover:['尋找掩蔽！','就掩體，回報位置！'],hold:['守住陣地！','原地堅守，等待命令！'],reload:['換彈，掩護我！','裝填中！'],flank:['側翼包抄，執行！','從側面迂迴！'],
@@ -32,6 +36,7 @@ const LOYALIST={
  spotted:['發現敵人，回報位置！','接觸！目標確認！'],lost:['目標脫離視線。','失去接觸，回報最後位置。'],search:['分區搜索，保持聯絡。','搜索前進，注意死角。'],
 };
 const REBEL={
+ lurk:['噓……別出聲。','就等在這。'],
  grenade:['吃我一顆雷！','炸飛你這混蛋！'],bombard:['轟爛他們！','給我炸！'],aim:['別動，你這活靶……','瞄好了，等著吃子彈吧。'],attack:['衝啊，宰了他！','上！上！上！'],
  affix_fast:['跟不上就去死吧！','快點，別拖拖拉拉！'],affix_infrared:['躲煙裡也沒用！','看得一清二楚！'],affix_night_vision:['摸黑？我照樣看得見！','黑漆漆的正好。'],affix_suppressor:['給我狠狠地打！','子彈不要錢，掃！'],affix_grenadier:['來嚐嚐這個！','抱著炸藥去死吧！'],
  move:['往前壓，別當縮頭烏龜！','衝過去！'],cover:['找東西躲，笨蛋！','趴下，別送死！'],hold:['老子就站這！','有種過來啊！'],reload:['等我換彈，別催！','子彈沒了，該死！'],flank:['繞過去捅他後背！','從旁邊包抄，快！'],
@@ -43,6 +48,7 @@ const REBEL={
 // 3.127.1 drafts (user request: conscripts sounded as fierce as the rebels who dragged them in). Frightened, reluctant,
 // apologising while they shoot. The user rewrites the voice.
 const CONSCRIPT={
+ lurk:['我、我在這等……','拜託別往這邊來……'],
  grenade:['我、我丟了！','對不起，快躲開！'],bombard:['要炸了，快跑！','別怪我……'],aim:['我瞄準了……拜託別動……','別逼我開槍……'],attack:['對不起！','我不想這樣……'],
  affix_fast:['我只想快點離開這裡！','別追我！'],affix_infrared:['煙裡也看得到你……求你別過來。','我看得到你……'],affix_night_vision:['這副眼鏡是他們硬塞給我的……','黑暗裡也看得見……'],affix_suppressor:['手在抖，停不下來！','子彈一直出來……'],affix_grenadier:['這東西會炸……','拜託別炸到我自己……'],
  move:['我去就是了……','別推我，我在走……'],cover:['讓我躲一下……','這裡安全嗎？'],hold:['我不動，我不動……','我就待在這……'],reload:['子彈……子彈在哪……','手一直抖，裝不進去！'],flank:['要我繞過去？……好吧。','為什麼又是我……'],
@@ -69,6 +75,7 @@ const CIVILIAN={
 // Faction voices (3.80.0): loyalists report like a front line, rebels shout and curse. Machines keep MACHINE.
 // Infected soldiers (3.83.0): the parasite is winning, so they mutter broken fragments of their old orders.
 const INFECTED={
+ lurk:['……等……等著……','……安靜……'],
  grenade:['……丟……丟出去……','炸……炸開牠們……'],bombard:['……座標……座標……'],aim:['……看……看得見……','別動……別……'],attack:['殺……殺……！','開火……開火開火……！'],
  affix_fast:['快……好快……'],affix_infrared:['……熱的……好熱……'],affix_night_vision:['黑……黑暗裡……看得見……'],affix_suppressor:['打……一直打……！'],affix_grenadier:['……炸藥……給我……'],
  move:['……往前……往前……','走……走……'],cover:['躲……要躲……'],hold:['……不走……不走……'],reload:['……子彈……子彈呢……'],flank:['……繞……繞過去……'],
