@@ -159,9 +159,11 @@ test('whoever cannot shoot advances, never more than half, fast on the move and 
   assert.ok(squad.filter(e=>e.squad.role!=='move').every(e=>activeTrait(e,'ready')),'the rest hold 已就緒');
   // It keeps its aim, so the arrival shot needs no telegraph.
   assert.ok(movers.every(e=>e.charge));
+  assert.ok(movers.every(e=>activeTrait(e,'detour')),'an advancer carries 迂迴 (3.129.0)');
   for(let i=0;i<6&&squad.some(e=>e.squad.role==='move');i++)g.action('wait');
   const arrived=movers.filter(e=>e.squad.role==='cover');
   assert.ok(arrived.length&&arrived.every(e=>activeTrait(e,'fast')),'still fast on the turn it arrives');
+  assert.ok(arrived.every(e=>!activeTrait(e,'detour')),'and no longer detours once there');
 });
 
 // 3.128.1 (user decision): in contact, half rounds up — three members bound in a pair, not one at a time.
@@ -235,6 +237,7 @@ test('blind, the squad holds 已就緒 for six turns, then half of it bounds to 
   assert.equal(waited,SQUAD_TUNING.patience,'six turns of patience');
   assert.equal(leader.squad.state,'search');
   assert.equal(squad.filter(e=>e.squad.role==='move').length,Math.floor(squad.length/2),'only half of them search at once');
+  assert.ok(squad.filter(e=>e.squad.role==='move').every(e=>activeTrait(e,'detour')),'searchers carry 迂迴 too');
   for(let i=0;i<20&&leader.squad;i++)g.action('wait');
   assert.equal(leader.squad,undefined,'nobody at the last tile: the squad disbands');
   assert.ok(squad.every(e=>!e.squad));

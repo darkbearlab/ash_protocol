@@ -25,7 +25,8 @@ import {areaCells} from './throwables.js';
 import {enemyDef,isNoncombatant} from './enemy-data.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 import {enemyCallout} from './enemy-intents.js';
-import {grantTrait,activeTrait} from './traits.js';
+import {grantTrait,activeTrait,removeTraitSource} from './traits.js';
+import {DETOUR_TRAIT} from './detour.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {roomTiles} from './map-geometry.js';
 import {factionDef} from './faction-catalog.js';
@@ -185,7 +186,7 @@ export function holdsTheRoute(g,leader,members){
 // Who advances: never more than half the squad at once, so someone always covers. In contact the ones who cannot see
 // you go first; while searching, whoever moved least recently goes, so the two halves take turns.
 export function assignMovers(g,leader,mine,target,search){
- for(const m of mine)if(m.squad.role==='move'&&distance(m,m.squad.goal)===0)m.squad.role='cover';
+ for(const m of mine)if(m.squad.role==='move'&&distance(m,m.squad.goal)===0){m.squad.role='cover';syncDetour(m);}
  const moving=mine.filter(m=>m.squad.role==='move');
  // 3.128.1 (user decision): in contact half rounds up, so three members bound in a pair instead of one at a time; the
  // search stays at half rounded down, as the user decided for 3.126.0.
@@ -198,7 +199,7 @@ export function assignMovers(g,leader,mine,target,search){
   const goal=search?searchSpot(g,m,target,taken):firingSpot(g,m,g.player,answer,taken);
   if(!goal){taken.add(key(m));continue;}
   taken.add(key(goal));
-  Object.assign(m.squad,{goal,role:'move',set:false,lastMove:g.turn});
+  Object.assign(m.squad,{goal,role:'move',set:false,lastMove:g.turn});syncDetour(m);
   grantTrait(m,'fast','squad:advance',SQUAD_TUNING.fastTurns);
   m.charge=true;m.windup=1;
  }
@@ -208,7 +209,11 @@ function searchSpot(g,member,target,taken){
  return spots.filter(q=>g.passable(q.x,q.y,member)&&!taken.has(key(q))&&!g.enemies.some(e=>e.hp>0&&e!==member&&distance(e,q)===0))
   .sort((a,b)=>distance(member,a)-distance(member,b)||key(a).localeCompare(key(b)))[0]||null;
 }
-export function disbandSquad(leader,mine){for(const m of mine)delete m.squad;delete leader.squad;}
+// 3.129.0 迂迴: a member carries the trait exactly while it is bounding or searching (role 'move'), so its route to the
+// new spot is the one you cannot see; the trait shows on its target card for as long as that lasts.
+const SQUAD_DETOUR='squad:detour';
+export function syncDetour(e){if(e.squad?.role==='move')grantTrait(e,DETOUR_TRAIT,SQUAD_DETOUR);else removeTraitSource(e,SQUAD_DETOUR);}
+export function disbandSquad(leader,mine){for(const m of mine){delete m.squad;syncDetour(m);}delete leader.squad;}
 // The leader's callout turns a blinded soldier's shot into a shot at a tile: −40, and the darkness penalty is replaced.
 // The attack itself is the card's own, handed in by enemy-behavior.js so the two files do not import each other.
 let cardAttack=null;
@@ -251,7 +256,8 @@ export function squadMemberAct(ctx){
  const {g,e,p}=ctx,state=e.squad;
  if(!state)return false;
  const leader=g.enemies.find(o=>o.id===state.leader&&o.hp>0&&isSquadLeader(o));
- if(!leader){delete e.squad;return false;}
+ if(!leader){delete e.squad;syncDetour(e);return false;}
+ syncDetour(e);
  if(p!==g.player)return false;
  if(!state.set){
   if(distance(e,state.goal)===0)state.set=true;
@@ -276,7 +282,7 @@ export function squadMemberAct(ctx){
     enemyCallout(g,e,'state',{state:leader.squad.state==='search'?'search':'flank'});return true;
    }
   }
-  state.role='cover';state.set=true;grantTrait(e,'fast','squad:advance',SQUAD_TUNING.fastTurns);
+  state.role='cover';state.set=true;syncDetour(e);grantTrait(e,'fast','squad:advance',SQUAD_TUNING.fastTurns);
  }
  if(canShoot(g,e,p))return false;                     // a covering soldier with a line shoots, 已就緒 or not
  // Only a leader who senses you right now can call you out: a stunned or blinded one leaves no stale report behind.
@@ -311,7 +317,7 @@ export function squadLeaderAct(ctx){
   return true;
  }
  const hold=holdsTheRoute(g,e,mine);
- if(hold)for(const m of mine)if(m.squad.role==='move'){m.squad.role='cover';m.squad.goal={x:m.x,y:m.y};}
+ if(hold)for(const m of mine)if(m.squad.role==='move'){m.squad.role='cover';m.squad.goal={x:m.x,y:m.y};syncDetour(m);}
  if(sensed||reported){
   e.squad.state='ready';e.squad.blind=reported;
   if(!hold)assignMovers(g,e,mine,p,false);

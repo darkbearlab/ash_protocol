@@ -16,6 +16,7 @@ import {grantTrait,removeTraitSource,activeTrait} from './traits.js';
 import {pinned} from './suppression.js';
 import {unitTree} from './behavior-tree.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
+import {DETOUR_TRAIT} from './detour.js';
 import {SIZE} from './data.js';
 
 export const REBEL_TUNING=Object.freeze({witnessRadius:4,coverSearch:6,enforcerRange:7,alarmRadius:8,alarmCooldown:5});
@@ -49,6 +50,8 @@ export function coverSpot(g,e){
 export function cower(g,e){
  if(!canCower(e)||isCowering(e))return false;
  grantTrait(e,COWER_TRAIT,COWER_SOURCE);
+ // 3.129.0 迂迴: the run for cover takes the way you cannot see; a rally removes both with the source.
+ grantTrait(e,DETOUR_TRAIT,COWER_SOURCE);
  const spot=coverSpot(g,e);e.cowerAt=spot?{x:spot.x,y:spot.y}:{x:e.x,y:e.y};
  g.enemyCallout?.(e,'state',{state:'flee'});
  return true;

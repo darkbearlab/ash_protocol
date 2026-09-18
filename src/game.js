@@ -43,6 +43,7 @@ import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {MAX_LEVEL,perkLimit,floorLimit,isEndless,scaleEnemy,giveCapSupply,PROTOCOL_EVENT_LIMIT} from './endless.js';
 import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambushReady,ambushMultiplier,shortenCamo,meleeReward,defensiveEvasion,grapplePlan,useGrapple,MELEE_TUNING} from './melee-classes.js';
 import {healActor} from './traits.js';
+import {DETOUR_TRAIT,DETOUR_TUNING,exposedFrom,watchPoint} from './detour.js';
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop} from './perks.js';
 import {ALLY_SKILLS,currentAllies,localAllies,connected,allyName,allyWeapon,occupied,addAlly,initializeAllies,canAllySkill,useAllySkill,commandPet,allyAct,carryCandidates,departAllies,arriveAllies,validAllies,swapReason,swapWithPlayer,tickSummons,petSkillReason,fitDrone,DRONE_HP} from './allies.js';
 import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorkshop,validWorkshop,isMunition,munitionAct,isBomber,bomberAct,unitDestroyed,salvageBlueprint,repairReason,repairUnit} from './workshop.js';
@@ -828,6 +829,8 @@ export class Game {
   enemyOpportunity(e){return enemyOpportunity(this,e);}
   executeEnemy(e){return executeEnemyTree(this,e);}
   nextStep(e,target) {
+    // 3.129.0 迂迴: a unit with the trait walks the covered route to any destination but you (docs/DETOUR.md).
+    if(activeTrait(e,DETOUR_TRAIT)&&distance(target,this.player)>0){const step=this.coveredStep(e,target);if(step!==undefined)return step;}
     const queue=[{x:e.x,y:e.y,first:null}],visited=new Set([key(e)]);
     const occupied=new Set([...this.enemies.filter(o=>o!==e&&o.hp>0),...this.activeAllies].filter(a=>a!==target).map(key));
     for(let i=0;i<queue.length&&i<SIZE*SIZE;i++)for(const [dx,dy]of DIRECTIONS) {
@@ -839,6 +842,32 @@ export class Game {
       if(occupied.has(k))continue;
       visited.add(k);queue.push({x,y,first:q.first||{x,y}});
     }return null;
+  }
+  // Uniform-cost search under nextStep's walking rules. `exposed` tiles cost extra; undefined means "use nextStep".
+  routeSearch(e,target,exposed){
+    const occupied=new Set([...this.enemies.filter(o=>o!==e&&o.hp>0),...this.activeAllies].filter(a=>a!==target).map(key));
+    const extra=DETOUR_TUNING.exposedCost,buckets=[[{x:e.x,y:e.y,first:null,steps:0}]],best=new Map([[key(e),0]]);
+    for(let cost=0;cost<buckets.length;cost++)for(const q of buckets[cost]||[]){
+      if(best.get(key(q))<cost)continue;
+      if(q.x===target.x&&q.y===target.y)return {first:q.first,steps:q.steps};
+      for(const [dx,dy] of DIRECTIONS){
+        const x=q.x+dx,y=q.y+dy,k=`${x},${y}`,isTarget=x===target.x&&y===target.y;
+        if(!this.passable(x,y,e))continue;
+        const edge=barrierBetween(this.barriers,q,{x,y});if(edgeBlocks(edge)&&edge.type!=='door'&&!vaultable(edge))continue;
+        if(skillActive(this.player)&&x===this.player.x&&y===this.player.y)continue;
+        if(!isTarget&&occupied.has(k))continue;
+        const next=cost+1+(exposed?.has(k)?extra:0);if(best.has(k)&&best.get(k)<=next)continue;
+        best.set(k,next);(buckets[next]||=[]).push({x,y,first:q.first||{x,y},steps:q.steps+1});
+      }
+    }
+    return null;
+  }
+  coveredStep(e,target){
+    const from=watchPoint(e);if(!from)return undefined;
+    const plain=this.routeSearch(e,target,null);if(!plain)return undefined;
+    const covered=this.routeSearch(e,target,exposedFrom(this,from));
+    if(!covered||covered.steps>plain.steps+DETOUR_TUNING.extraSteps)return undefined;
+    return covered.first;
   }
   environmentTurn() {
     const p=this.player,hpBefore=p.hp,hazard=this.hazards.find(h=>h.x===p.x&&h.y===p.y);
