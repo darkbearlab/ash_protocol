@@ -32,7 +32,8 @@ export const bracingBonus=(game,attacker,target)=>activeTrait(attacker,'braced')
 export function shotChance(game,attacker,target) {
   if(attacker===game.player&&game.weapon.melee)return {chance:game.meleeAccuracy(attacker,target,game.weapon.hitChance),innateAccuracy:actorStat(attacker,'meleeAccuracy'),innateEvasion:actorStat(target,'meleeEvasion'),base:game.weapon.hitChance,bracedBonus:0,trackingBonus:0,sidePenalty:0,accuracyBonus:0,movePenalty:0,coverPenalty:0,coverEfficiency:0,coverReduction:0,darkPenalty:0,focusBonus:0,evasionPenalty:0,cover:null,moving:Boolean(target.moved),distance:distance(attacker,target)};
   const cover=game.protectingCover(target,attacker),protection=coverEffects(cover,target,attacker);
-  const light=lightingEffects(game,attacker,target),darkPenalty=light.penalty;
+  // 3.126.0: a squad soldier firing at the tile its leader called out takes blindShot instead of the darkness penalty.
+  const light=lightingEffects(game,attacker,target),blindPenalty=attacker.blindShot||0,darkPenalty=blindPenalty?0:light.penalty;
   const moving=Boolean(target.moved);
   const weapon=attacker===game.player?game.weapon:game.actorWeapon?.(attacker),accuracyBonus=weapon?.accuracyBonus||0;
   const innateAccuracy=actorStat(attacker,'rangedAccuracy'),innateEvasion=actorStat(target,'rangedEvasion');
@@ -47,6 +48,6 @@ export function shotChance(game,attacker,target) {
   const sidePenalty=sideBase?Math.max(sideBase,cover?0:42-movePenalty):0;
   const closeBonus=weapon?.closeRange&&distance(attacker,target)<=weapon.closeRange?weapon.closeAccuracy:0,vaultBonus=target.vaultExposed?20:0;
   const specialEvasion=(game.defensiveEvasion?.(attacker,target)||0)+(target===game.player&&activeTrait(attacker,'exposed')?classPerkRank(target,'soldier_marked')*CLASS_PERK_TUNING.markedAccuracy:0);
-  const chance=Math.max(10,Math.min(99,-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-aimPenalty));
+  const chance=Math.max(10,Math.min(99,-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty));
   return {chance,aimPenalty,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }

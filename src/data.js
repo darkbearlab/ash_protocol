@@ -2,7 +2,7 @@ import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 57;
+export const SAVE_VERSION = 58;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -70,7 +70,7 @@ for(const [base,rounds,ammo,tint,name] of [['rifleman',3,'ammo','#8fa06a','被�
  ENEMY_TYPES[`${base}_infected`]=variantCard(base,{name,rounds,combat:{rangedAccuracy:-35},loot:{ammo},voice:'infected',sprite:{key:base,tint},role:'被蟲族寄生的士兵：一次連發很多發，但幾乎打不準；只要命中仍會造成壓制。'});
 // Squad leader (3.125.0, user design): support first, rifle second. It identifies the player's weapon, sends the squad
 // to positions that answer it, and spends its own action keeping them 已就緒, so it is the unit to shoot first.
-ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],traits:['suppression_resistance'],rounds:1,attackStyle:'bullet',behavior:'squad_leader',maxPerFloor:1,loot:{weapon:0,chance:.2,ammo:'ammo'},name:'小隊長',hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:'指揮官：識別你手上的武器，把隊員派到能有效還擊的位置，並讓全隊保持「已就緒」。它活著時隊員會壓制你。'};
+ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],traits:['suppression_resistance','night_vision','infrared'],rounds:1,attackStyle:'bullet',behavior:'squad_leader',maxPerFloor:1,loot:{weapon:0,chance:.2,ammo:'ammo'},name:'小隊長',hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:'指揮官：識別你手上的武器，把隊員派到能有效還擊的位置，並讓全隊保持「已就緒」。它活著時隊員會壓制你。'};
 // Stable IDs; append content without changing saved offers. null cap means consumable reward.
 export const PERKS = [
   {id:'damage',name:'武器增幅',cap:3,effect:'weapon',amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'},

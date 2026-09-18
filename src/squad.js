@@ -10,6 +10,16 @@
 //   and at least one member suppresses every turn.
 // - 已就緒 is the player's wait, given to the whole squad: half damage, −15 to be hit, +15 on the next shot. It lasts one
 //   round, so the leader spends its own action re-applying it — which is why killing the leader is the answer.
+// 3.126.0, bounding overwatch (user design, docs/SQUAD.md). Deployment is a shape that keeps changing, not a phase:
+// - Whoever can shoot you covers; whoever cannot advances, members without a line of sight first, at most half at once.
+//   An advancer is fast on the move and on the turn it arrives, and keeps its aim, so a soldier you let into a doorway
+//   shoots before you do. Moving away no longer reopens the window — only a new weapon does.
+// - The leader sees through smoke (infrared) and in the dark (night vision) and calls out your tile: soldiers who cannot
+//   see you fire at it at −40, which replaces the darkness penalty. Smoke plus a stun on the leader, or a shut door,
+//   blinds the whole squad.
+// - Blind, they hold 已就緒 for six turns of patience, then half of them bound to where you were last seen; nobody
+//   there means the squad disbands and the next contact is a fresh identification.
+// - A squad standing on your only way to the lift never advances and never loses patience.
 import {SUPPRESSION_TUNING,finishSuppression} from './suppression.js';
 import {areaCells} from './throwables.js';
 import {enemyDef,isNoncombatant} from './enemy-data.js';
@@ -31,7 +41,9 @@ export const SQUAD_TUNING=Object.freeze({
  spacing:2,         // cone and blast want the squad spread out
  deployMin:2,       // the window is never skipped: identification, then at least one turn of suppression
  deployTurns:3,     // orders do not wait for a straggler: the squad sets itself after this many turns
- regroup:4,         // move this far and their positions no longer answer you, so the leader starts over
+ patience:6,        // turns a blinded squad holds before it goes looking: a smoke grenade lasts five
+ blindPenalty:40,   // a shot at the tile the leader called out; it replaces the darkness penalty, never adds to it
+ fastTurns:2,       // an advancer is fast while it moves and on the turn it arrives
 });
 export const READY_TRAIT='ready',SQUAD_SOURCE='squad';
 export const isSquadLeader=e=>enemyDef(e)?.behavior==='squad_leader';
@@ -90,8 +102,8 @@ export function squadSet(g,leader){
  if(waited<SQUAD_TUNING.deployMin)return false;
  return members.every(m=>m.squad.set)||waited>=SQUAD_TUNING.deployTurns;
 }
-export const squadStale=(g,leader,weaponId)=>!leader.squad||leader.squad.weapon!==weaponId||
- (leader.squad.at&&distance(leader.squad.at,g.player)>SQUAD_TUNING.regroup);
+// Only a new weapon reopens the identification window; moving away is answered by the formation moving with you.
+export const squadStale=(g,leader,weaponId)=>!leader.squad||leader.squad.weapon!==weaponId;
 // 已就緒: the player's wait, handed to the squad. Setting the aim as well is what makes it a volley instead of another
 // turn of telegraphing — they are already set, so the shot comes on their next action.
 export function makeReady(g,leader,members){
@@ -99,7 +111,65 @@ export function makeReady(g,leader,members){
   grantTrait(actor,READY_TRAIT,SQUAD_SOURCE,SQUAD_TUNING.readyTurns);
   if(actor!==leader&&(enemyDef(actor)?.range||1)>1){actor.charge=true;actor.windup=1;actor.aim={x:g.player.x,y:g.player.y};}
  }
- leader.squad.state='ready';
+}
+// Sensing is sight as each unit has it: the leader's infrared sees through smoke, nothing sees through a wall or a door.
+export const senses=(g,actor,player)=>actor.hp>0&&!actor.control?.disabled&&g.sight(actor,player);
+export const canShoot=(g,member,player)=>g.sight(member,player)&&g.shotClear(member,player)&&distance(member,player)<=(enemyDef(member)?.range||1);
+// Holding the route: with the squad's bodies and firing spots treated as walls, can the player still reach the lift?
+// Asked with and without the squad, so a lift that is out of reach for other reasons never counts as their doing.
+export function holdsTheRoute(g,leader,members){
+ const exit=g.exitPoint,p=g.player;if(!exit)return false;
+ const walls=new Set([leader,...members].flatMap(m=>[key(m),...(m.squad?.goal?[key(m.squad.goal)]:[])]));
+ const reach=blocked=>{
+  const queue=[{x:p.x,y:p.y}],seen=new Set([key(p)]);
+  for(let i=0;i<queue.length;i++){
+   const q=queue[i];if(distance(q,exit)<=1)return true;
+   for(const [dx,dy] of DIRECTIONS){
+    const n={x:q.x+dx,y:q.y+dy},k=key(n);
+    if(seen.has(k)||blocked.has(k)||g.grid[n.y]?.[n.x]!==1||g.solid(n.x,n.y)||!g.canRoute(q,n))continue;
+    seen.add(k);queue.push(n);
+   }
+  }
+  return false;
+ };
+ return reach(new Set())&&!reach(walls);
+}
+// Who advances: never more than half the squad at once, so someone always covers. In contact the ones who cannot see
+// you go first; while searching, whoever moved least recently goes, so the two halves take turns.
+export function assignMovers(g,leader,mine,target,search){
+ for(const m of mine)if(m.squad.role==='move'&&distance(m,m.squad.goal)===0)m.squad.role='cover';
+ const moving=mine.filter(m=>m.squad.role==='move');
+ const slots=Math.max(1,Math.floor(mine.length/2))-moving.length;if(slots<=0)return;
+ const answer=weaponAnswer(g),taken=new Set(mine.map(m=>key(m.squad.role==='move'?m.squad.goal:m)));
+ const candidates=mine.filter(m=>m.squad.role!=='move'&&(search||!canShoot(g,m,g.player)))
+  .sort((a,b)=>(search?0:Number(g.sight(a,g.player))-Number(g.sight(b,g.player)))||(a.squad.lastMove||0)-(b.squad.lastMove||0)||distance(a,target)-distance(b,target)||a.id.localeCompare(b.id));
+ for(const m of candidates.slice(0,slots)){
+  taken.delete(key(m));
+  const goal=search?searchSpot(g,m,target,taken):firingSpot(g,m,g.player,answer,taken);
+  if(!goal){taken.add(key(m));continue;}
+  taken.add(key(goal));
+  Object.assign(m.squad,{goal,role:'move',set:false,lastMove:g.turn});
+  grantTrait(m,'fast','squad:advance',SQUAD_TUNING.fastTurns);
+  m.charge=true;m.windup=1;
+ }
+}
+function searchSpot(g,member,target,taken){
+ const spots=[target,...DIRECTIONS.map(([dx,dy])=>({x:target.x+dx,y:target.y+dy}))];
+ return spots.filter(q=>g.passable(q.x,q.y,member)&&!taken.has(key(q))&&!g.enemies.some(e=>e.hp>0&&e!==member&&distance(e,q)===0))
+  .sort((a,b)=>distance(member,a)-distance(member,b)||key(a).localeCompare(key(b)))[0]||null;
+}
+export function disbandSquad(leader,mine){for(const m of mine)delete m.squad;delete leader.squad;}
+// The leader's callout turns a blinded soldier's shot into a shot at a tile: −40, and the darkness penalty is replaced.
+// The attack itself is the card's own, handed in by enemy-behavior.js so the two files do not import each other.
+let cardAttack=null;
+export const useSquadAttack=fn=>{cardAttack=fn;};
+function blindFire(ctx){
+ const {g,e,p}=ctx;if(!cardAttack||!g.shotClear(e,p)||distance(e,p)>(enemyDef(e)?.range||1))return false;
+ e.blindShot=SQUAD_TUNING.blindPenalty;
+ try{cardAttack(ctx);}finally{delete e.blindShot;}
+ e.charge=false;e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
+ g.log(`${enemyDisplayName(e)}依小隊長回報的位置朝你開火。`,true);
+ return true;
 }
 // The turn the orders go out is quiet even for a soldier who happens to be standing in a good spot already: the user's
 // rule is that identification costs the squad its fire, which is what makes it the player's window.
@@ -141,11 +211,28 @@ export function squadMemberAct(ctx){
    state.set=true;   // blocked: fight from here rather than shuffle for ever
   }
  }
- if(squadReady(e))return false;                       // ready: fall through to the volley
- if(leader.squad?.state==='ready')return false;
- if(canSuppress(g,e,leader)&&suppressFrom(g,e,p,leader))return true;
+ if(leader.squad?.state==='deploy'){
+  if(squadReady(e))return false;                      // ready: fall through to the volley
+  if(canSuppress(g,e,leader)&&suppressFrom(g,e,p,leader))return true;
+  enemyCallout(g,e,'state',{state:'hold'});
+  return true;
+ }
+ // Bounding: an advancer walks to its new spot, fast; the turn it arrives it is still fast and still aimed.
+ if(state.role==='move'){
+  if(distance(e,state.goal)>0){
+   const step=g.nextStep(e,state.goal);
+   if(step&&!g.enemies.some(o=>o.hp>0&&o!==e&&distance(o,step)===0)&&distance(step,g.player)!==0){
+    e.x=step.x;e.y=step.y;e.moved=true;grantTrait(e,'fast','squad:advance',SQUAD_TUNING.fastTurns);
+    enemyCallout(g,e,'state',{state:leader.squad.state==='search'?'search':'flank'});return true;
+   }
+  }
+  state.role='cover';state.set=true;grantTrait(e,'fast','squad:advance',SQUAD_TUNING.fastTurns);
+ }
+ if(canShoot(g,e,p))return false;                     // a covering soldier with a line shoots, 已就緒 or not
+ // Only a leader who senses you right now can call you out: a stunned or blinded one leaves no stale report behind.
+ if(leader.squad.blind&&senses(g,leader,p)&&blindFire(ctx))return true;
  enemyCallout(g,e,'state',{state:'hold'});
- return true;
+ return true;                                         // no line: hold the spot and wait for you to show
 }
 // The leader's own turn: identify and deploy, or hold the squad ready. It never fires while it has a squad.
 export function squadLeaderAct(ctx){
@@ -162,12 +249,41 @@ export function squadLeaderAct(ctx){
   g.log(`${enemyDisplayName(e)}識別了你的${g.weapon?.name||'武器'}，小隊開始展開。`,true);
   return true;                                        // the identification turn: orders only, no suppression
  }
- if(squadSet(g,e)){
-  makeReady(g,e,mine);
-  g.log(`${enemyDisplayName(e)}下令：小隊已就緒。`,true);
+ const sensed=mine.some(m=>senses(g,m,p)),reported=!sensed&&senses(g,e,p);
+ if(sensed||reported){e.squad.last={x:p.x,y:p.y};e.squad.patience=SQUAD_TUNING.patience;}
+ if(e.squad.state==='deploy'){
+  if(squadSet(g,e)){
+   makeReady(g,e,mine);e.squad.state='ready';
+   g.log(`${enemyDisplayName(e)}下令：小隊已就緒。`,true);
+   return true;
+  }
+  if(canSuppress(g,e,e)&&suppressFrom(g,e,p,e))return true;
   return true;
  }
- if(canSuppress(g,e,e)&&suppressFrom(g,e,p,e))return true;
+ const hold=holdsTheRoute(g,e,mine);
+ if(hold)for(const m of mine)if(m.squad.role==='move'){m.squad.role='cover';m.squad.goal={x:m.x,y:m.y};}
+ if(sensed||reported){
+  e.squad.state='ready';e.squad.blind=reported;
+  if(!hold)assignMovers(g,e,mine,p,false);
+  makeReady(g,e,mine.filter(m=>m.squad.role!=='move'));
+  if(reported)g.log(`${enemyDisplayName(e)}回報你的位置。`,true);
+  return true;
+ }
+ e.squad.blind=false;
+ if(hold||e.squad.state!=='search'){
+  if(!hold)e.squad.patience=Math.max(0,(e.squad.patience??SQUAD_TUNING.patience)-1);
+  if(hold||e.squad.patience>0){
+   if(e.squad.state!=='patience')g.log(`${enemyDisplayName(e)}：失去目標，原地待命。`,true);
+   e.squad.state='patience';makeReady(g,e,mine);return true;
+  }
+  e.squad.state='search';g.log(`${enemyDisplayName(e)}下令：交叉掩護，搜索最後位置。`,true);
+ }
+ const last=e.squad.last||{x:e.x,y:e.y};
+ if(mine.some(m=>distance(m,last)<=1)){
+  disbandSquad(e,mine);g.log(`${enemyDisplayName(e)}的小隊找不到你，解散搜索。`,true);return true;
+ }
+ assignMovers(g,e,mine,last,true);
+ makeReady(g,e,mine.filter(m=>m.squad.role!=='move'));
  return true;
 }
 const point=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&q.x>=0&&q.y>=0&&q.x<SIZE&&q.y<SIZE;
@@ -176,7 +292,9 @@ export function validSquad(g){
  return actors.every(e=>{
   const s=e.squad;if(s===undefined)return true;
   if(!s||typeof s!=='object'||Array.isArray(s))return false;
-  if(isSquadLeader(e))return typeof s.weapon==='string'&&['deploy','ready'].includes(s.state)&&Number.isSafeInteger(s.suppressTurn)&&s.suppressTurn>=0&&(s.answer===undefined||typeof s.answer==='string')&&(s.set===undefined||typeof s.set==='boolean')&&(s.since===undefined||Number.isSafeInteger(s.since))&&(s.at===undefined||point(s.at));
-  return typeof s.leader==='string'&&s.leader.length>0&&s.leader.length<=100&&point(s.goal)&&typeof s.set==='boolean'&&Number.isSafeInteger(s.suppressed)&&s.suppressed>=0;
+  if(isSquadLeader(e))return typeof s.weapon==='string'&&['deploy','ready','patience','search'].includes(s.state)&&Number.isSafeInteger(s.suppressTurn)&&s.suppressTurn>=0&&(s.answer===undefined||typeof s.answer==='string')&&(s.set===undefined||typeof s.set==='boolean')&&(s.since===undefined||Number.isSafeInteger(s.since))&&(s.at===undefined||point(s.at))&&
+   (s.patience===undefined||Number.isSafeInteger(s.patience)&&s.patience>=0&&s.patience<=SQUAD_TUNING.patience)&&(s.last===undefined||point(s.last))&&(s.blind===undefined||typeof s.blind==='boolean');
+  return typeof s.leader==='string'&&s.leader.length>0&&s.leader.length<=100&&point(s.goal)&&typeof s.set==='boolean'&&Number.isSafeInteger(s.suppressed)&&s.suppressed>=0&&
+   (s.role===undefined||['cover','move'].includes(s.role))&&(s.lastMove===undefined||Number.isSafeInteger(s.lastMove)&&s.lastMove>=0);
  });
 }
