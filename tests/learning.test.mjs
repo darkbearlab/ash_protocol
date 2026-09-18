@@ -77,4 +77,6 @@ test('a soldier who already knows grapple uses it with virtual unarmed fallback;
 });
 test('enemy drops prefer adjacent empty reachable floor, retain original when surrounded, including multiple drops',()=>{
  const g=game();g.grid=g.grid.map(r=>r.map(()=>1));g.props=[];g.barriers=[];g.items=[];g.enemies=[];Object.assign(g.player,{x:1,y:1});const e={x:10,y:10};assert.deepEqual(g.enemyDropPoint(e),e);g.items.push({...e,type:'med'});const next=g.enemyDropPoint(e);assert.notDeepEqual(next,e);g.items.push({...next,type:'med'});assert.notDeepEqual(g.enemyDropPoint(e),next);for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]])g.grid[10+dy][10+dx]=0;assert.deepEqual(g.enemyDropPoint(e),e);
+ g.grid=g.grid.map(r=>r.map(()=>1));g.items=[];g.props=[{id:'crate',x:10,y:10,type:'cover',hp:40,maxHp:40}];
+ const spot=g.enemyDropPoint(e);assert.notDeepEqual(spot,e,'a drone shot down over a crate drops its loot beside it');assert.ok(g.passable(spot.x,spot.y));
 });

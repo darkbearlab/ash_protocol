@@ -115,6 +115,7 @@ export function execute(g,enforcer,target){
 // 3.127.1 (user request): seeing you, the enforcer does what a researcher does — raises the alarm for everyone within
 // eight tiles (a free action, every five turns) — and then looks for cover. It never walks at you on its own: the
 // mechanism needs it alive and behind something.
+export function tickAlarms(g){for(const e of g.enemies)if(e.alarmCooldown>0)e.alarmCooldown--;}
 export function soundAlarm(g,e,target=g.player){
  if((e.alarmCooldown||0)>0)return false;
  e.alarmCooldown=REBEL_TUNING.alarmCooldown;
@@ -156,7 +157,6 @@ export function enforcerAct(ctx){
 export function rebelMorale(g){
  const rallied=rallies.get(g)||new Set();rallies.delete(g);
  const cowards=g.enemies.filter(e=>e.hp>0&&isCowering(e));
- for(const e of g.enemies)if(e.alarmCooldown>0)e.alarmCooldown--;
  let drawn=0;
  for(const e of g.enemies){
   if(e.hp<=0||!isRebel(e)||!biological(e)||isCowering(e)||isEnforcer(e)||isNoncombatant(e))continue;

@@ -154,6 +154,24 @@ test('seeing you, the enforcer warns everyone within eight tiles, takes cover, a
   assert.ok(validRebels(g.enemies));
 });
 
+// 3.127.2 (user decision): both warnings really wait five turns, however the turn they were raised in unfolded.
+test('the enforcer and a researcher in plain view warn exactly every five turns',()=>{
+  const g=arena();g.props=[];Object.assign(g.player,{x:5,y:5});
+  const enforcer=add(g,'enforcer',5,12,'E'),researcher=makeEnemy('civilian',0,0,'civ',1,0,'rebel');g.enemies.push(researcher);  // cornered: it cannot flee farther
+  const turns={alarm:[],scream:[]};
+  for(let i=0;i<16;i++){
+    const before=g.logs.length;g.action('wait');
+    const fresh=g.logs.slice(0,g.logs.length-before).map(l=>l.text);
+    if(fresh.some(t=>t.includes('發出警告')))turns.alarm.push(g.turn);
+    if(fresh.some(t=>t.includes('尖叫')))turns.scream.push(g.turn);
+  }
+  for(const [kind,list] of Object.entries(turns)){
+    assert.ok(list.length>=3,`${kind}: ${list}`);
+    for(let i=1;i<list.length;i++)assert.equal(list[i]-list[i-1],5,`${kind}: ${list}`);
+  }
+  assert.ok(enforcer.hp>0&&researcher.hp>0);
+});
+
 test('conscripts speak for themselves, and a rally is shouted by the coward it happens to',()=>{
   const g=arena(),heard=[];g.onEnemyCallout=ev=>heard.push(ev);
   const c=add(g,'rifleman',10,12,'c',{conscript:true}),r=add(g,'rifleman',12,12,'r');

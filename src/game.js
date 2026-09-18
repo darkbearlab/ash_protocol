@@ -2,7 +2,7 @@ import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,reco
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
 import {validSquad} from './squad.js';
-import {recruitConscripts,rebelMorale,witnessDeath,isEnforcer,validRebels,soundAlarm} from './rebels.js';
+import {recruitConscripts,rebelMorale,witnessDeath,isEnforcer,validRebels,soundAlarm,tickAlarms} from './rebels.js';
 import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
 import {tickTongues,validSwarm,SWARM_TUNING} from './swarm.js';
 import {scream,tickCivilianCooldowns,migrateCivilians,validCivilians} from './civilians.js';
@@ -226,14 +226,15 @@ export class Game {
   accuracy(attacker,target){return shotChance(this,attacker,target);}
   solid(x,y){return this.props.find(o=>o.x===x&&o.y===y&&o.hp>0&&(o.type==='cover'||o.type==='barrel'||o.type==='nest'));}
   passable(x,y,actor){return this.grid[y]?.[x]===1&&(!this.solid(x,y)||hasEnemyTag(actor,'flying'));}
-  reveal() {
+  // `warnings:false` (restore only): a loaded save redraws what is seen but raises no new alarm; the next look in play does.
+  reveal({warnings=true}={}) {
     syncPetSenses(this);
     clearMovedExposure(this);
     const radius=Math.max(10,this.weapon.range);
     this.visibleTiles=new Set();
     for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(distance(this.player,{x,y})<=radius&&this.sight(this.player,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
     for(const a of this.activeAllies.filter(a=>connected(this,a)))for(let y=Math.max(0,a.y-8);y<=Math.min(SIZE-1,a.y+8);y++)for(let x=Math.max(0,a.x-8);x<=Math.min(SIZE-1,a.x+8);x++)if(distance(a,{x,y})<=8&&this.sight(a,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
-    for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert&&!isNoncombatant(e))this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};if(isNoncombatant(e))scream(this,e);else if(isEnforcer(e))soundAlarm(this,e,target);}}
+    for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert&&!isNoncombatant(e))this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};if(warnings&&isNoncombatant(e))scream(this,e);else if(warnings&&isEnforcer(e))soundAlarm(this,e,target);}}
     this.autoTarget();
   }
   autoTarget(){if(!this.targeted)this.target=this.visibleEnemies.filter(e=>!isNoncombatant(e)).sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
@@ -385,7 +386,7 @@ export class Game {
       queue.push({actor:p,index:0,speed:0,anchorExtra:true});queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);
     }
     let playerStunned=false;
-    this.turn++;tickCivilianCooldowns(this);tickTongues(this);
+    this.turn++;tickTongues(this);
     for(const {actor,speed,anchorExtra=false}of queue){
       if(p.hp<=0||this.status!=='playing'||this.floor!==floor)break;
       if(actor.hp<=0||actor.kind&&(actor.status!=='active'||actor.floor!==this.floor))continue;
@@ -423,6 +424,9 @@ export class Game {
     // 3.127.0: rebels taunt their cowards before the player gets control, so the boosts show on the target cards.
     if(this.status==='playing'&&p.hp>0)rebelMorale(this);
     this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';this.log('生命訊號中斷。',true);}
+    // 3.127.2 (user decision): warnings count down after everything else in the turn, so one raised at any point of a
+    // turn — during your move, the enemy phase or the closing look — comes back exactly five turns later, not four.
+    tickCivilianCooldowns(this);tickAlarms(this);
     this.finishPursuit();return true;
   }
   finishPursuit(){
@@ -708,7 +712,8 @@ export class Game {
     if(plate.chance>0&&this.rng()<plate.chance)this.items.push({...this.enemyDropPoint(e),type:'armor',amount:plate.amount});
   }
   enemyDropPoint(e){
-    const here={x:e.x,y:e.y};if(!this.items.some(i=>distance(i,here)===0))return here;
+    // 3.127.2: a flyer killed above a cover prop must not leave its loot on a tile the player can never step on.
+    const here={x:e.x,y:e.y};if(this.passable(here.x,here.y)&&!this.items.some(i=>distance(i,here)===0))return here;
     return DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(q=>this.passable(q.x,q.y)&&this.canCross(here,q)&&!occupied(this,q)&&!this.items.some(i=>distance(i,q)===0))||here;
   }
   dropEnemyWeapon(e,weapon){const item=this.registerWeapon({...this.enemyDropPoint(e),type:'weapon',weapon},true);this.items.push(item);this.log(`戰利品：${this.weaponAt(item.slot).name}留在屍體旁，靠近後可拾取。`);}
@@ -1144,7 +1149,7 @@ export class Game {
         if(refund){g.receiveAmmo('pistol',refund);g.log(`存檔已升級：追隨無人機改用步槍彈，原彈匣 ${refund} 發手槍彈已退回。`);}
       }
       if(workshopRefund){const rounds=workshopRefund.pistol+workshopRefund.rifle;for(const type of ['pistol','rifle'])if(workshopRefund[type])g.receiveAmmo(type,workshopRefund[type]);g.log(`存檔已升級：工程師改用工坊${workshopRefund.lined?'，收納中的機體放進生產序列':''}${rounds?`，機體彈匣裡的 ${rounds} 發子彈已退回`:''}。`);}
-      lockRealMode(g,data.realMode);g.setCarryLevel(g.carryLevel);g.reveal();return g;
+      lockRealMode(g,data.realMode);g.setCarryLevel(g.carryLevel);g.reveal({warnings:false});return g;
     }catch{return null;}
   }
 }

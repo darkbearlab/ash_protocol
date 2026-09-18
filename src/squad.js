@@ -63,24 +63,36 @@ export const squadMembers=(g,leader)=>g.enemies.filter(e=>e!==leader&&e.hp>0&&e.
 
 // A firing position for one member: it can shoot from there, it keeps the distance the player's weapon demands, and
 // cover beats no cover. Taken tiles are reserved so a squad never stacks up on one doorway.
+// 3.127.2 (user decision): every member must end up with the player inside its own range. The weapon answer is tried
+// first; if the room leaves no such spot, the answer's spacing rules are dropped; if there is still no clear line, the
+// member at least closes to its own range, and the bounding advance finds it a line from there.
 export function firingSpot(g,member,player,answer,taken){
+ for(const pass of ['answer','clear','range']){const spot=pickSpot(g,member,player,answer,taken,pass);if(spot)return spot;}
+ return null;
+}
+function pickSpot(g,member,player,answer,taken,pass){
  const range=enemyDef(member)?.range||1,reach=Math.min(SQUAD_TUNING.search,Math.max(range,2));
- let best=null;
+ const found=[];
  for(let y=player.y-reach;y<=player.y+reach;y++)for(let x=player.x-reach;x<=player.x+reach;x++){
   if(x<0||y<0||x>=SIZE||y>=SIZE)continue;
   const spot={x,y},d=distance(spot,player);
   if(d>range||!g.passable(x,y,member)||g.hazards.some(h=>distance(h,spot)===0))continue;
   if(taken.has(key(spot))||[g.player,...g.enemies.filter(e=>e.hp>0&&e!==member),...g.activeAllies].some(a=>distance(a,spot)===0))continue;
-  const from={...member,x,y};
-  if(!g.sight(from,player)||!g.shotClear(from,player))continue;
-  if(answer.keepAway&&d<answer.keepAway)continue;
-  if(answer.closeIn&&d>answer.closeIn)continue;
-  if(answer.spacing&&[...taken].some(k=>{const [tx,ty]=k.split(',').map(Number);return distance({x:tx,y:ty},spot)<answer.spacing;}))continue;
+  const from={...member,x,y},clear=g.sight(from,player)&&g.shotClear(from,player);
+  if(pass!=='range'&&!clear)continue;
+  if(pass==='answer'){
+   if(answer.keepAway&&d<answer.keepAway)continue;
+   if(answer.closeIn&&d>answer.closeIn)continue;
+   if(answer.spacing&&[...taken].some(k=>{const [tx,ty]=k.split(',').map(Number);return distance({x:tx,y:ty},spot)<answer.spacing;}))continue;
+  }
   const cover=g.protectingCover(spot,player)?0:6;
-  const score=cover+distance(member,spot)+(answer.closeIn?d:0);
-  if(!best||score<best.score)best={spot,score};
+  const score=cover+distance(member,spot)+(pass==='answer'&&answer.closeIn?d:0);
+  found.push({spot,score});
  }
- return best?.spot||null;
+ // Same order as before (first lowest score wins); only the fallback pays for a path check, and only until one works.
+ found.sort((a,b)=>a.score-b.score);
+ if(pass!=='range')return found[0]?.spot||null;
+ return found.find(f=>distance(member,f.spot)===0||g.nextStep(member,f.spot))?.spot||null;
 }
 // The identification turn: orders go out, nobody shoots.
 export function deploySquad(g,leader,members,weaponId){

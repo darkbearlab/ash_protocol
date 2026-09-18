@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy,ENEMY_TYPES,SAVE_VERSION} from '../src/engine.js';
 import {activeTrait} from '../src/traits.js';
 import {suppressionState,pinned,SUPPRESSION_TUNING} from '../src/suppression.js';
-import {SQUAD_TUNING,weaponAnswer,squadMembers,isSquadLeader,validSquad,holdsTheRoute} from '../src/squad.js';
+import {SQUAD_TUNING,weaponAnswer,squadMembers,isSquadLeader,validSquad,holdsTheRoute,firingSpot} from '../src/squad.js';
 import {areaCells} from '../src/throwables.js';
 import {factionPool} from '../src/faction-catalog.js';
 
@@ -218,4 +218,18 @@ test('squad orders survive a save, and a tampered order is refused',()=>{
   assert.equal(Game.restore(JSON.stringify(member)),null);
   const role=JSON.parse(g.serialize());role.data.enemies.find(e=>e.type==='rifleman'&&e.squad).squad.role='charge';
   assert.equal(Game.restore(JSON.stringify(role)),null);
+});
+
+// 3.127.2 (user decision): every member ends up with the player inside its own range, whatever room it was dealt.
+test('a firing spot always keeps the player inside the members range, even when no spot has a clear line',()=>{
+  const {g,squad}=scene();const far=squad[0];Object.assign(far,{x:10,y:1});
+  const range=ENEMY_TYPES[far.type].range,answer=weaponAnswer(g);
+  const open=firingSpot(g,far,g.player,answer,new Set());
+  assert.ok(open&&Math.abs(open.x-g.player.x)+Math.abs(open.y-g.player.y)<=range&&g.sight({...far,...open},g.player),'open room: a clear spot in range');
+  // Box the player in: no tile has a line to it, so the member must still close to its range.
+  const grid=g.grid.map(r=>[...r]);for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)if(dx||dy)grid[16+dy][10+dx]=0;g.grid=grid;
+  const boxed=firingSpot(g,far,g.player,answer,new Set());
+  assert.ok(boxed,'a spot is still found');
+  assert.ok(Math.abs(boxed.x-g.player.x)+Math.abs(boxed.y-g.player.y)<=range,`within range: ${boxed.x},${boxed.y}`);
+  assert.ok(g.passable(boxed.x,boxed.y,far));
 });

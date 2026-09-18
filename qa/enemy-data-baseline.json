@@ -970,10 +970,10 @@
   "necromancer:3": {
    "status": "dead",
    "floor": 2,
-   "turn": 165,
+   "turn": 210,
    "hp": 0,
    "kills": 32,
-   "actions": 164,
+   "actions": 209,
    "invalid": 0
   },
   "soldier:1": {
