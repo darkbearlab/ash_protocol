@@ -127,11 +127,44 @@ test('an execution rallies cowards in range, fires every rebel already aiming, a
 });
 
 test('with nobody to execute, the enforcer shoots its long gun at you, badly',()=>{
-  const g=arena(),enforcer=add(g,'enforcer',10,8,'E');
-  const plain={...enforcer,traits:enforcer.traits.filter(t=>t.id!=='slow'),combat:undefined};
+  const g=arena(),enforcer=add(g,'enforcer',10,8,'E');g.props=[];   // nothing to hide behind
   assert.ok(g.accuracy(enforcer,g.player).chance<g.accuracy(makeEnemy('rifleman',10,8,'r',1,0,'rebel'),g.player).chance,'far worse than a rifleman');
   g.action('wait');g.action('wait');
   assert.ok(g.logs.some(l=>l.text.includes('督戰官攻擊')||l.text.includes('督戰官未命中')),'it takes its shot');
+  assert.deepEqual([enforcer.x,enforcer.y],[10,8],'and never walks at you');
+});
+
+// 3.127.1 (user request): like a researcher, it warns everyone when it sees you, then hides so it lives to use the rules.
+test('seeing you, the enforcer warns everyone within eight tiles, takes cover, and never advances',()=>{
+  const g=arena(),enforcer=add(g,'enforcer',10,10,'E');delete enforcer.lastKnown;enforcer.alert=false;
+  const near=add(g,'rifleman',4,8,'n'),far=add(g,'rifleman',1,1,'f');
+  for(const o of [near,far]){o.alert=false;delete o.lastKnown;}
+  const heard=[];g.onEnemyCallout=ev=>heard.push(ev);
+  g.reveal();
+  assert.ok(near.alert&&near.lastKnown,'eight tiles off: warned');assert.ok(!far.alert,'further: not');
+  assert.ok(g.logs.some(l=>l.text.includes('發出警告')));
+  assert.ok(heard.some(ev=>ev.cue==='alarm'&&ev.voice==='enforcer'),'in its own voice');
+  assert.equal(enforcer.alarmCooldown,REBEL_TUNING.alarmCooldown);
+  const logs=g.logs.length;g.reveal();
+  assert.equal(g.logs.slice(logs).filter(l=>l.text.includes('發出警告')).length,0,'once per cooldown');
+  for(let i=0;i<8;i++)g.action('wait');
+  assert.ok(g.protectingCover(enforcer,g.player),`behind cover at ${enforcer.x},${enforcer.y}`);
+  const at=[enforcer.x,enforcer.y];g.action('wait');g.action('wait');
+  assert.deepEqual([enforcer.x,enforcer.y],at,'and it stays there');
+  assert.ok(validRebels(g.enemies));
+});
+
+test('conscripts speak for themselves, and a rally is shouted by the coward it happens to',()=>{
+  const g=arena(),heard=[];g.onEnemyCallout=ev=>heard.push(ev);
+  const c=add(g,'rifleman',10,12,'c',{conscript:true}),r=add(g,'rifleman',12,12,'r');
+  g.enemyCallout(c,'telegraph',{action:'attack'});g.enemyCallout(r,'telegraph',{action:'attack'});
+  assert.equal(heard[0].voice,'conscript');assert.notEqual(heard[1].voice,'conscript');
+  heard.length=0;
+  const enforcer=add(g,'enforcer',10,9,'E');cower(g,c);cower(g,r);
+  enforcer.executeIntent={id:'c'};g.action('wait');
+  assert.ok(heard.some(ev=>ev.cue==='execute'&&ev.voice==='enforcer'),'the enforcer names the crime');
+  assert.ok(heard.some(ev=>ev.cue==='rally'&&ev.actorId===r.id&&ev.voice!=='conscript'),'the rallied one answers');
+  assert.ok(!isCowering(r));
 });
 
 test('floor caps: at most two enforcers a floor, three from floor 7',()=>{

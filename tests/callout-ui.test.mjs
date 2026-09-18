@@ -7,13 +7,26 @@ const seen=(cue,actorId='a1',enemyType='rifleman')=>({type:'callout',cue,...CALL
 const heard=(cue,direction='east')=>({type:'callout',cue,...CALLOUT_CUES[cue],visibility:'heard',direction});
 
 test('every cue has number-free lines in each voice, picked without randomness',()=>{
- for(const cue of Object.keys(CALLOUT_CUES).filter(c=>!['scream','flee'].includes(c)))for(const type of ['rifleman','drone','crawler']){
+ const own=['scream','flee','alarm','execute','rally'];   // spoken only by the voices that own them
+ for(const cue of Object.keys(CALLOUT_CUES).filter(c=>!own.includes(c)))for(const type of ['rifleman','drone','crawler']){
   const event=seen(cue,'a1',type),line=calloutLine(event);
   assert.ok(line.length>0,`${cue}/${type}`);assert.ok(!/[0-9%×]/.test(line),line);assert.equal(calloutLine(event),line,'same event, same line');
  }
- for(const cue of Object.keys(CALLOUT_CUES).filter(c=>!['scream','flee'].includes(c)))assert.ok(calloutLine(heard(cue)).length>0,cue);
+ for(const cue of Object.keys(CALLOUT_CUES).filter(c=>!own.includes(c)))assert.ok(calloutLine(heard(cue)).length>0,cue);
  assert.equal(calloutVoice(seen('move','d','drone')),'machine');assert.equal(calloutVoice(seen('move','c','crawler')),'creature');
  assert.equal(calloutVoice({...heard('move'),enemyType:'drone'}),'human','heard bubbles never reveal the unit type');
+});
+
+// 3.127.1: conscripts get their own frightened set, the enforcer its own; rebels and conscripts announce a rally.
+test('conscripts and the enforcer speak their own lines, seen or heard',()=>{
+ const combat=Object.keys(CALLOUT_CUES).filter(c=>!['scream','alarm','execute'].includes(c));
+ for(const cue of combat)for(const event of [seen(cue),heard(cue)]){
+  const line=calloutLine({...event,voice:'conscript'});assert.ok(line.length>0,`conscript/${cue}`);assert.ok(!/[0-9%×]/.test(line),line);
+  assert.equal(calloutVoice({...event,voice:'conscript'}),'conscript');
+ }
+ assert.notEqual(calloutLine({...seen('attack'),voice:'conscript'}),calloutLine({...seen('attack'),faction:'rebel'}));
+ for(const cue of ['alarm','execute'])assert.ok(calloutLine({...heard(cue),voice:'enforcer'}).length>0,cue);
+ assert.ok(calloutLine({...seen('rally'),faction:'rebel'}).length>0,'a rebel rallies out loud');
 });
 
 test('lifetimes are 2.5s general, 4s danger and shorter when only heard; timing starts when the board receives the event',()=>{

@@ -56,7 +56,7 @@ test('swarm callouts: infected soldiers mutter in their own voice, bugs and hear
  assert.equal(calloutVoice(seen('rifleman_infected')),'infected');assert.equal(calloutVoice(seen('giant_bug')),'creature');
  const heard={type:'callout',cue:'move',category:'tactical',priority:'medium',visibility:'heard',direction:'east',faction:'swarm'};
  assert.equal(calloutVoice(heard),'creature');assert.ok(calloutLine(heard).length>0);
- for(const cue of Object.keys(CALLOUT_CUES).filter(c=>!['scream','flee'].includes(c))){
+ for(const cue of Object.keys(CALLOUT_CUES).filter(c=>!['scream','flee','alarm','execute','rally'].includes(c))){
   const lines=VOICE_LINES.infected[cue];assert.ok(lines?.length,cue);
   for(const line of lines)assert.ok(!/[0-9%×]/.test(line),line);
  }

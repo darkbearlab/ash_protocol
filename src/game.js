@@ -2,7 +2,7 @@ import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,reco
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
 import {validSquad} from './squad.js';
-import {recruitConscripts,rebelMorale,witnessDeath,isEnforcer,validRebels} from './rebels.js';
+import {recruitConscripts,rebelMorale,witnessDeath,isEnforcer,validRebels,soundAlarm} from './rebels.js';
 import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
 import {tickTongues,validSwarm,SWARM_TUNING} from './swarm.js';
 import {scream,tickCivilianCooldowns,migrateCivilians,validCivilians} from './civilians.js';
@@ -233,7 +233,7 @@ export class Game {
     this.visibleTiles=new Set();
     for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(distance(this.player,{x,y})<=radius&&this.sight(this.player,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
     for(const a of this.activeAllies.filter(a=>connected(this,a)))for(let y=Math.max(0,a.y-8);y<=Math.min(SIZE-1,a.y+8);y++)for(let x=Math.max(0,a.x-8);x<=Math.min(SIZE-1,a.x+8);x++)if(distance(a,{x,y})<=8&&this.sight(a,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
-    for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert&&!isNoncombatant(e))this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};if(isNoncombatant(e))scream(this,e);}}
+    for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert&&!isNoncombatant(e))this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};if(isNoncombatant(e))scream(this,e);else if(isEnforcer(e))soundAlarm(this,e,target);}}
     this.autoTarget();
   }
   autoTarget(){if(!this.targeted)this.target=this.visibleEnemies.filter(e=>!isNoncombatant(e)).sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}

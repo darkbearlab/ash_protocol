@@ -38,7 +38,24 @@ const REBEL={
  hit:['該死，被打中了！','混蛋，我中彈了！'],wounded:['可惡……還沒完！','痛死了，你給我記住！'],critical:['救我……誰來救我！','我不想死在這！'],suppressed:['火力也太猛了吧！','頭都抬不起來！'],pinned:['動不了，該死！','被釘死在這了！'],
  spotted:['在那！宰了他！','找到你了，雜碎！'],lost:['人呢？跑哪去了！','讓他溜了，該死！'],search:['給我搜，挖地三尺！','出來啊，別躲了！'],
  // 3.127.0 draft lines for the rebel who breaks (docs/REBELS.md); the user rewrites the voice.
- flee:['我不幹了！','掩護我，我要撤！'],
+ flee:['我不幹了！','掩護我，我要撤！'],rally:['知道了，別開槍！','我回來了，別看我！'],
+};
+// 3.127.1 drafts (user request: conscripts sounded as fierce as the rebels who dragged them in). Frightened, reluctant,
+// apologising while they shoot. The user rewrites the voice.
+const CONSCRIPT={
+ grenade:['我、我丟了！','對不起，快躲開！'],bombard:['要炸了，快跑！','別怪我……'],aim:['我瞄準了……拜託別動……','別逼我開槍……'],attack:['對不起！','我不想這樣……'],
+ affix_fast:['我只想快點離開這裡！','別追我！'],affix_infrared:['煙裡也看得到你……求你別過來。','我看得到你……'],affix_night_vision:['這副眼鏡是他們硬塞給我的……','黑暗裡也看得見……'],affix_suppressor:['手在抖，停不下來！','子彈一直出來……'],affix_grenadier:['這東西會炸……','拜託別炸到我自己……'],
+ move:['我去就是了……','別推我，我在走……'],cover:['讓我躲一下……','這裡安全嗎？'],hold:['我不動，我不動……','我就待在這……'],reload:['子彈……子彈在哪……','手一直抖，裝不進去！'],flank:['要我繞過去？……好吧。','為什麼又是我……'],
+ hit:['啊！我中彈了！','好痛……'],wounded:['我要死了嗎……','誰來幫幫我……'],critical:['我不想死……','我只是被抓來的……'],suppressed:['頭抬不起來！','別打了！'],pinned:['我動不了……','別開槍，我投降……'],
+ spotted:['有、有人！','他在那……天啊……'],lost:['他走了……太好了……','沒看到最好……'],search:['一定要找嗎……','拜託別讓我找到……'],
+ flee:['我不幹了！','放我走！'],rally:['我去！我去就是了！','別殺我，我回去！'],
+};
+// 3.127.1 drafts: the enforcer. Cold, and loud only when it matters: the warning and the execution.
+const ENFORCER={
+ alarm:['敵人在此！全員就位！','發現敵人，誰敢後退就斃了誰！'],execute:['臨陣脫逃，殺無赦！','逃兵的下場，都給我看清楚！'],
+ aim:['瞄準了。','別動。'],attack:['倒下。','開火。'],hold:['守住。','誰都不准退。'],cover:['找掩護。','壓低。'],move:['跟上。','前進。'],reload:['換彈。','掩護我換彈。'],flank:['包抄。','繞過去。'],
+ hit:['擦傷而已。','……繼續打。'],wounded:['還撐得住。','別停火！'],critical:['給我……頂住……','誰都不准跑……'],suppressed:['壓不住我。','穩住！'],pinned:['……該死。','別停，繼續打！'],
+ spotted:['在那。','目標確認。'],lost:['跟丟了。','目標消失，原地待命。'],search:['搜。','一格一格給我找。'],
 };
 // Civilians (3.82.1, docs/CIVILIANS.md 5): staff left behind in an ember facility. They know the war is lost, still wait
 // for word from headquarters and recognise the numbered clones. No company names (docs/STORY.md 2). Only the cues the
@@ -58,7 +75,7 @@ const INFECTED={
  hit:['啊啊……！','痛……不痛……？'],wounded:['……裡面……在動……'],critical:['……讓牠們……出來……','好癢……好癢……'],suppressed:['……吵……好吵……'],pinned:['……動……動不了……'],
  spotted:['……人……活的人……','在那……在那……'],lost:['……不見了……'],search:['……找……聞得到……'],
 };
-export const VOICE_LINES={human:HUMAN,machine:MACHINE,loyalist:LOYALIST,rebel:REBEL,civilian:CIVILIAN,infected:INFECTED};
+export const VOICE_LINES={human:HUMAN,machine:MACHINE,loyalist:LOYALIST,rebel:REBEL,civilian:CIVILIAN,infected:INFECTED,conscript:CONSCRIPT,enforcer:ENFORCER};
 // A unit that speaks for itself sends its voice with the event, seen or heard (civilians, 3.82.0 rules). Otherwise
 // machines and creatures keep their card voice and the rest use the faction voice, falling back to the neutral human
 // voice. Heard callouts carry no unit type, so they can only use the faction voice (user decision, 2026-09-14).

@@ -18,7 +18,7 @@ import {unitTree} from './behavior-tree.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {SIZE} from './data.js';
 
-export const REBEL_TUNING=Object.freeze({witnessRadius:4,coverSearch:6,enforcerRange:7});
+export const REBEL_TUNING=Object.freeze({witnessRadius:4,coverSearch:6,enforcerRange:7,alarmRadius:8,alarmCooldown:5});
 export const TAUNT_TRAITS=Object.freeze(['fast','rapid_fire','heavy_armor']);
 export const CONSCRIPT_TYPES=Object.freeze(['rifleman','raider','gunner']);
 export const COWER_TRAIT='cowering',COWER_SOURCE='rebel:cower',TAUNT_SOURCE='rebel:taunt';
@@ -103,14 +103,29 @@ export function execute(g,enforcer,target){
  g.log(`${enemyDisplayName(enforcer)}處決了${enemyDisplayName(target)}。`,true);
  g.hurt(target,target.hp,enforcer);
  const inRange=g.enemies.filter(o=>o.hp>0&&isRebel(o)&&o!==enforcer&&distance(enforcer,o)<=range);
- for(const o of inRange)if(isCowering(o))rally(o);
+ g.enemyCallout?.(enforcer,'telegraph',{action:'execute'});
+ const rallied=inRange.filter(o=>isCowering(o));for(const o of rallied)rally(o);
  const fired=inRange.map(o=>advanceCharge(g,o)).filter(r=>r==='fire'||r==='grenade').length;
+ // 3.127.1 (user request): a rally is announced by the soldier it happens to, so the turnaround can be seen. It is
+ // shouted after the charge, so it stays over any shot the same soldier just fired instead of being replaced by it.
+ for(const o of rallied)g.enemyCallout?.(o,'state',{state:'rally'});
  const set=rallies.get(g)||new Set();for(const o of inRange)set.add(o.id);rallies.set(g,set);
  g.log(fired?`叛軍歸隊，${fired} 人立刻開火！`:'叛軍歸隊。',true);
 }
+// 3.127.1 (user request): seeing you, the enforcer does what a researcher does — raises the alarm for everyone within
+// eight tiles (a free action, every five turns) — and then looks for cover. It never walks at you on its own: the
+// mechanism needs it alive and behind something.
+export function soundAlarm(g,e,target=g.player){
+ if((e.alarmCooldown||0)>0)return false;
+ e.alarmCooldown=REBEL_TUNING.alarmCooldown;
+ for(const o of g.enemies)if(o!==e&&o.hp>0&&!isNoncombatant(o)&&distance(e,o)<=REBEL_TUNING.alarmRadius){o.alert=true;o.lastKnown={x:target.x,y:target.y};}
+ g.log(`${enemyDisplayName(e)}發出警告，附近的敵人全部警戒了。`,true);
+ g.enemyCallout?.(e,'telegraph',{action:'alarm'});
+ return true;
+}
 // The enforcer's own turn. It is slow, so the execution always lands last in the turn it was announced for.
 export function enforcerAct(ctx){
- const {g,e}=ctx,range=REBEL_TUNING.enforcerRange,intent=e.executeIntent;
+ const {g,e,p}=ctx,range=REBEL_TUNING.enforcerRange,intent=e.executeIntent,sees=p===g.player&&g.sight(e,p);
  if(intent){
   delete e.executeIntent;
   const target=g.enemies.find(o=>o.id===intent.id&&o.hp>0);
@@ -124,13 +139,24 @@ export function enforcerAct(ctx){
   g.log(`${enemyDisplayName(e)}盯上了躲著的${enemyDisplayName(victim)}！`,true);
   return true;
  }
- return false;                                        // nobody to execute: its long, hopeless gun at the player
+ // Cover first: exposed to you, it walks to the nearest spot that shields it and stays there.
+ if(p===g.player&&(sees||e.lastKnown)&&!g.protectingCover(e,p)&&!pinned(e)){
+  const spot=coverSpot(g,e);
+  if(spot&&distance(e,spot)>0){
+   const step=g.nextStep(e,spot);
+   if(step&&distance(step,g.player)!==0&&!g.enemies.some(o=>o.hp>0&&o!==e&&distance(o,step)===0)){e.x=step.x;e.y=step.y;e.moved=true;return true;}
+  }
+ }
+ // Nobody to execute: its long, hopeless gun, from where it stands. It never closes on you by itself.
+ if(sees&&g.shotClear(e,p)&&distance(e,p)<=(enemyDef(e)?.range||1))return false;
+ return true;
 }
 
 // End of the turn, before the player gets control: taunts, and the boosts an execution promised.
 export function rebelMorale(g){
  const rallied=rallies.get(g)||new Set();rallies.delete(g);
  const cowards=g.enemies.filter(e=>e.hp>0&&isCowering(e));
+ for(const e of g.enemies)if(e.alarmCooldown>0)e.alarmCooldown--;
  let drawn=0;
  for(const e of g.enemies){
   if(e.hp<=0||!isRebel(e)||!biological(e)||isCowering(e)||isEnforcer(e)||isNoncombatant(e))continue;
@@ -163,5 +189,6 @@ const point=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&q.x>=0&&q.y>=0&&
 export function validRebels(g){
  const actors=[...(g.enemies||[]),...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])];
  return actors.every(e=>(e.conscript===undefined||e.conscript===true)&&(e.cowerAt===undefined||point(e.cowerAt))&&
+  (e.alarmCooldown===undefined||Number.isSafeInteger(e.alarmCooldown)&&e.alarmCooldown>=0&&e.alarmCooldown<=REBEL_TUNING.alarmCooldown)&&
   (e.executeIntent===undefined||e.executeIntent&&typeof e.executeIntent.id==='string'&&e.executeIntent.id.length>0&&e.executeIntent.id.length<=100));
 }
