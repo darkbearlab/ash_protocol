@@ -13,7 +13,7 @@ test('arcade inherits campaign geometry, furnishings and combat positions across
   for(const field of ['grid','cells','barriers','openings','annexes','links','start','end'])assert.deepEqual(a[field],b[field]);
   assert.deepEqual(a.enemies.filter(e=>e.type!=='civilian').map(({id,x,y})=>({id,x,y})),b.enemies.map(({id,x,y})=>({id,x,y})));
   assert.deepEqual(a.props,b.props.filter(p=>!['container','terminal','nest'].includes(p.type)));
-  assert.ok(a.enemies.every(e=>['rifleman','raider','gunner','sniper','rifleman_armored','raider_armored','civilian'].includes(e.type)&&e.simulation));
+  assert.ok(a.enemies.every(e=>['rifleman','raider','gunner','sniper','rifleman_armored','raider_armored','squad_leader','civilian'].includes(e.type)&&e.simulation));
   assert.equal(a.items.length,0);assert.equal(a.mapStyle,'killhouse');
  }
 });

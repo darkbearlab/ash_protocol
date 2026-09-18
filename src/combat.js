@@ -37,7 +37,8 @@ export function shotChance(game,attacker,target) {
   const weapon=attacker===game.player?game.weapon:game.actorWeapon?.(attacker),accuracyBonus=weapon?.accuracyBonus||0;
   const innateAccuracy=actorStat(attacker,'rangedAccuracy'),innateEvasion=actorStat(target,'rangedEvasion');
   const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)-(weapon?.tracking||0)):0,coverPenalty=protection.penalty;
-  const focusBonus=attacker.focus?15:0,evasionPenalty=target.evasive?15:0;
+  // 3.125.0: 已就緒 is the squad's wait, so it reads the same two numbers the player's wait does.
+  const focusBonus=attacker.focus||activeTrait(attacker,'ready')?15:0,evasionPenalty=target.evasive||activeTrait(target,'ready')?15:0;
   // 3.111.0 (user request): a precision rifle that has not spent a turn aiming is far less accurate. Waiting already sets
   // focus for every weapon, so the aim is the existing wait. Player only: allies and enemies have no way to aim.
   const aimPenalty=attacker===game.player&&weapon?.aimPenalty&&!attacker.focus?weapon.aimPenalty:0;

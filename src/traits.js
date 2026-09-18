@@ -15,7 +15,8 @@ export const TRAITS={
   biological:{name:'生物',text:'會受到震撼彈的失能效果；可與機械同時存在。'},
   mechanical:{name:'機械',text:'會受到 EMP 的失能效果，電漿直擊增傷 20%；可與生物同時存在。'},
   heavy_armor:{name:'重裝防護',text:'直接傷害在固定裝甲後再減少 25%，向上取整；不抵擋環境或中毒。'},
-  braced:{name:'架槍',text:'自己相對射擊目標受到掩體保護時，命中 +12。'},
+  ready:{name:'已就緒',text:'小隊長下令後的一輪：受到的直接傷害減半、被射擊命中 −15、下一次射擊命中 +15。開火後由小隊長重新下令。'},
+ braced:{name:'架槍',text:'自己相對射擊目標受到掩體保護時，命中 +12。'},
   correction:{name:'著彈修正',short:'修正',text:'連續回合射擊同一敵人，後續命中每次 +8，最高 +24；未命中仍累積。'},
   sidestep:{name:'側身',text:'相對攻擊者主要橫向移動時，被射擊命中額外 −20；暴露時移動與側身合計至少 −42。'},
   quick_reload:{name:'快速裝填',short:'快填',text:'使用手槍彈的武器裝填不耗回合，仍消耗備彈。'},
@@ -81,9 +82,10 @@ export function validCombatMemory(actor,turn){
 }
 
 export function reduceDirectDamage(actor,damage){
+ const ready=activeTrait(actor,'ready')?.5:1;
  const heavy=activeTrait(actor,'heavy_armor'),plate=actor.plates>0?classPerkRank(actor,'bulwark_plating'):0,anchor=actor.skillState?.anchor?.remaining>0?classPerkRank(actor,'bulwark_anchor'):0;
- if(!heavy&&!plate&&!anchor)return damage;
- return Math.max(1,Math.ceil(damage*(heavy ? .75 : 1)*(1-plate*CLASS_PERK_TUNING.plating)*(1-anchor*CLASS_PERK_TUNING.anchor)));
+ if(!heavy&&!plate&&!anchor&&ready===1)return damage;
+ return Math.max(1,Math.ceil(damage*ready*(heavy ? .75 : 1)*(1-plate*CLASS_PERK_TUNING.plating)*(1-anchor*CLASS_PERK_TUNING.anchor)));
 }
 
 export const healingAmount=(actor,amount)=>activeTrait(actor,'difficult_healing')?Math.floor(amount/2):amount;

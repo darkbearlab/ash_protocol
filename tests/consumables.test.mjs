@@ -62,7 +62,7 @@ test('adrenaline can never be the thing that kills you, and does not stack',()=>
 // 3.110.0 (user request): consumables have no carry cap anywhere — the pack picks them up uncapped, so the terminal
 // must not cap them either, or the two would tell the player different things.
 test('the terminal sells both without a carry cap, and old saves migrate to none',()=>{
- assert.equal(SAVE_VERSION,56);   // 3.123.0: flares
+ assert.equal(SAVE_VERSION,57);   // 3.125.0: squad orders
  const g=run(),p=g.player;
  p.sprays=99;p.adrenaline=99;p.scrap=999;
  g.props.push({type:'terminal',x:p.x,y:p.y,used:false});

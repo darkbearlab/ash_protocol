@@ -16,6 +16,7 @@ import {pullLanding} from './melee-classes.js';
 import {combatStep} from './tactics.js';
 import {barrierBetween,vaultable,edgeBlocks,firstBarrierOnRay} from './barriers.js';
 import {petCombat} from './pet-growth.js';
+import {squadLeaderAct,squadMemberAct} from './squad.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
 import {tacticalSight} from './throwables.js';
@@ -117,6 +118,10 @@ registerUnitTree('civilian',{before:civilianAction});
 registerUnitTree('sniper',{windup:2,fixedTile:true});
 registerUnitTree('boss',{beforeAttack:({g,e,p})=>{if((e.attackCount||0)%2!==1||e.charge)return false;g.marks.push({x:p.x,y:p.y,due:g.turn+2});e.attackCount++;enemyCallout(g,e,'telegraph',{action:'bombard'});g.log('核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！',true);return true;},after:reinforce});
 registerUnitTree('warden',{after:reinforce});
+// 3.125.0: the squad leader spends its turn commanding; its soldiers answer on a branch that runs before they would
+// charge, so deployment and suppression replace the shot without touching any other card's behaviour.
+registerUnitTree('squad_leader',{before:squadLeaderAct});
+registerAffixBranch({id:'squad',applies:({e})=>Boolean(e.squad),trigger:()=>true,chance:1,pending:()=>true,run:squadMemberAct});
 // The bot is its own attacker when it blows itself up, so a self-destruct never gives the workshop a blueprint (3.94.0).
 registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultyOffset))});
 registerUnitTree('fodder',{before:({e})=>{if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return true;}e.actionDelay=1;return false;}});

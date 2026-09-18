@@ -1,6 +1,7 @@
 import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,recoverOperator,validRunUnlocks} from './run-unlocks.js';
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
+import {validSquad} from './squad.js';
 import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
 import {tickTongues,validSwarm,SWARM_TUNING} from './swarm.js';
 import {scream,tickCivilianCooldowns,migrateCivilians,validCivilians} from './civilians.js';
@@ -1113,7 +1114,7 @@ export class Game {
       g.player.wearables??=[];syncWearableTraits(g.player);
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
-      if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g))return null;
+      if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSquad(g))return null;
       if(version<32)g.shadowSteps=0;
       // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
       // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run
