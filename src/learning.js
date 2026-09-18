@@ -18,7 +18,9 @@ export function useLearning(g,id,dismantle=false){
  const reason=learningReason(g,id,dismantle);if(reason)return g.fail(reason);
  const p=g.player,d=LEARNING_ITEMS[id];
  if(dismantle)p.scrap+=LEARNING_SCRAP;
- else if(d.trait){if(!grantTrait(p,d.trait,`learned:${id}${d.trait==='suppression_resistance'?`:${suppressionResistance(p)+1}`:''}`))return false;}
+ else if(d.trait){if(!grantTrait(p,d.trait,`learned:${id}${d.trait==='suppression_resistance'?`:${suppressionResistance(p)+1}`:''}`))return false;
+  // 3.135.0 (user decision): heavy armour learned the way the bulwark wears it — it makes you slow as well.
+  if(d.trait==='heavy_armor')grantTrait(p,'slow',`learned:${id}`);}
  else {for(const skill of d.skills)if(!p.skills.includes(skill)){p.skills.push(skill);p.skillState[skill]={remaining:0,cooldown:0};}initializeAllies(g);}
  if(--p.learningItems[id]===0)delete p.learningItems[id];
  g.log(dismantle?`拆解${d.name}，廢料 +${LEARNING_SCRAP}。`:`已學會${d.name}。`);g.reveal();return true;

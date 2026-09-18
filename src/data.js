@@ -2,7 +2,7 @@ import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 61;
+export const SAVE_VERSION = 62;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -46,7 +46,7 @@ export const ENEMY_TYPES = {
   gunner:{sprite:{key:'rifleman'},projectile:'shotgun',casing:'shell',tags:['armed'],traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:1,chance:.14,ammo:'shell'}, name:'叛變哨兵', hp:42, damage:11, range:6, armor:0, color:'#92a480', xp:1, role:'中距離槍擊。牆壁阻擋射線，掩體可減傷。' },
   drone:{drawing:{shape:'drone'},projectile:'plasma',glyph:'◇',tags:['flying'],traits:['no_cover'],rounds:1,attackStyle:'plasma',loot:{ammo:'energy'}, name:'無人機', hp:28, damage:9, range:5, armor:0, color:'#85c4c0', xp:1, mechanical:true, role:'可飛越地形傷害與掩體，但無法穿牆。' },
   brute:{drawing:{heavy:true},projectile:'melee',tags:['breaker'],traits:['large','suppression_resistance'],rounds:1,attackStyle:'slash',loot:{rareWeapon:8,rareChance:.1}, name:'破壞者', hp:90, damage:20, range:1, armor:7, color:'#b99573', xp:2, role:'重裝近戰。用狙擊、電漿或爆炸穿透護甲。' },
-  sniper:{drawing:{longBarrel:true},projectile:'sniper',casing:'rifle',tags:['armed'],traits:['night_vision'],behavior:'sniper',accepts:['ambush'],rounds:1,attackStyle:'bullet',loot:{weapon:3,chance:.2,ammo:'ammo'}, name:'盲眼狙擊手', hp:45, damage:23, range:10, armor:1, color:'#b3adcb', xp:2, role:'具夜視，忽略暗區懲罰；射程 10 格，瞄準需要兩回合。' },
+  sniper:{drawing:{longBarrel:true},projectile:'sniper',casing:'rifle',tags:['armed'],traits:['night_vision'],behavior:'sniper',accepts:['ambush'],dropsGoggles:true,rounds:1,attackStyle:'bullet',loot:{weapon:3,chance:.2,ammo:'ammo'}, name:'盲眼狙擊手', hp:45, damage:23, range:10, armor:1, color:'#b3adcb', xp:2, role:'具夜視，忽略暗區懲罰；射程 10 格，瞄準需要兩回合。' },
   bomber:{drawing:{shape:'critter',color:'#aabb71',glow:'#e9d24c33'},voice:'creature',tags:['breaker'],traits:[],behavior:'bomber',sacs:true,rounds:1,attackStyle:'bullet', name:'孢子自爆體', hp:30, damage:30, range:1, armor:0, color:'#b8bc67', xp:1, role:'死亡或近身蓄勢後爆炸。保持至少 2 格距離。' },
   warden:{sprite:{scale:1.15},drawing:{heavy:true},projectile:'plasma',tags:['boss'],traits:['infrared','suppression_resistance'],behavior:'warden',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{weapon:4,chance:1,ammo:'energy',rareWeapon:8,rareChance:.15}, name:'封鎖官', hp:180, damage:19, range:6, armor:5, color:'#d9aa70', xp:4, mechanical:true, role:'具紅外線可穿煙，但也怕震撼彈。攻擊需蓄勢，掉落稀有軍械。' },
   boss:{sprite:{scale:1.15},drawing:{heavy:true},projectile:'plasma',glyph:'Ω',tags:['boss','breaker'],traits:['suppression_resistance'],behavior:'boss',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{ammo:'ordnance'}, name:'核心守衛', hp:280, damage:22, range:7, armor:7, color:'#df785f', xp:6, mechanical:true, role:'反應核心頭目。交替槍擊與延遲轟炸，離開紅色標記。' },
@@ -115,7 +115,7 @@ export const PERKS = [
   {id:'ninja_ambush',name:'伏擊精通',characters:['ninja'],cap:3,effect:'passive',text:'伏擊傷害倍率每階 +0.15。'},
   {id:'ninja_overload',name:'光學過載',characters:['ninja'],cap:3,effect:'passive',text:'迷彩持續 +1、冷卻 −2（最低 4）。'},
 ];
-export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段',spray:'修復噴劑',adrenaline:'腎上腺素',barricade:'摺疊掩體',flare:'照明彈'};
+export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段',spray:'修復噴劑',adrenaline:'腎上腺素',barricade:'摺疊掩體',flare:'照明彈',nvg:'夜視鏡',escape_line:'逃命繩索',redeploy_line:'重部署鉤索'};
 PERKS.push({id:'ammo_recovery',name:'彈藥回收',cap:3,effect:'passive',text:'一般敵人彈藥掉落率每階 +15 個百分點（35% → 50% → 65% → 80%）。'});
 export const LORE = STORIES.map(s=>s.body);
 

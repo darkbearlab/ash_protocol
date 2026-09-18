@@ -15,6 +15,8 @@ import {targetDetails} from '../src/target-card.js';
 function arena(){const g=new Game(318);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));Object.assign(g.player,{x:10,y:10});g.props=[];g.enemies=[];g.items=[];g.hazards=[];g.marks=[];g.smoke=[];g.rooms=[];clearGeneratedMap(g);g.end={x:20,y:20};g.reveal();return g;}
 function module(g,theme='checkpoint',rotation=0){const m={id:'module-test',type:'module',theme,x:11,y:10,rotation,indestructible:true};g.props.push(m,...MODULE_TYPES[theme].furniture.map((style,n)=>({...modulePoint(m,n,0),id:`${m.id}-${n}`,type:'cover',style,moduleId:m.id,hp:FURNITURE[style].hp,maxHp:FURNITURE[style].hp})));return m;}
 
+// The generation layer still keeps one main-route and one side-route station; 3.135.0 moves them to their kinds' supply
+// rooms only at the very end of generate() (tests/terminals-lines.test.mjs).
 test('600 floors retain one or two distinct modules and exactly one main-route and one side-route station',()=>{
   const themes=new Set(),rotations=new Set();
   for(let seed=1;seed<=100;seed++)for(let floor=1;floor<=6;floor++){
@@ -50,7 +52,7 @@ test('restroom perimeter uses shared doors and partitions and does not leak thro
 });
 // 3.120.0: stations keep their prices; a purchase spends that much of the station's credit instead of using it up.
 test('two stations retain original prices and spend their credit',()=>{
-  const g=new Game(7);g.enemies=[];g.player.scrap=100;g.player.reserve=0;const station=g.props.find(p=>p.type==='terminal');Object.assign(g.player,{x:station.x,y:station.y});g.reveal();
+  const g=new Game(7);g.enemies=[];g.player.scrap=100;g.player.reserve=0;const station=g.props.find(p=>p.type==='terminal'&&p.kind==='arms')||g.props.find(p=>p.type==='terminal');station.kind='arms';Object.assign(g.player,{x:station.x,y:station.y});g.reveal();
   const cost=TERMINAL_AMMO.rifle.cost;assert.ok(g.action('terminal','rifle'));assert.equal(g.player.scrap,100-cost);assert.equal(station.used,false);assert.equal(station.spent,cost);const turn=g.turn;assert.ok(g.action('terminal','rifle'));assert.equal(g.turn,turn+1,'one transaction, one turn');assert.equal(station.spent,cost*2);
 });
 test('module identity, destroyed furniture and station usage survive saves and complete backups',()=>{

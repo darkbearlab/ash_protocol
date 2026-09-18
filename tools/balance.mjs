@@ -5,6 +5,7 @@ import {AMMUNITION,itemAmmo,TERMINAL_AMMO} from '../src/ammunition.js';
 // Headless gameplay agent. Uses only legal public actions; no stat/map mutation.
 // It knows the floor plan for routing, so win rate is a regression signal, not player telemetry.
 import {Game,distance,WEAPONS,terminalReason} from '../src/engine.js';
+import {terminalRemaining,terminalSells,upgradeCost,TERMINAL_TUNING} from '../src/terminal.js';
 import {pathToFileURL} from 'node:url';
 
 export function route(game,goal,{ignoreEnemies=false}={}) {
@@ -35,7 +36,7 @@ function blastSpot(g,priority){
   return best;
 }
 export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
-  const g=new GameType(seed,[],0,character);let invalid=0,actions=0,huntingBossFloor=null,progress='',detourUntil=0,navigation=null;const visits=new Map();
+  const g=new GameType(seed,[],0,character),visited=new Set();let invalid=0,actions=0,huntingBossFloor=null,progress='',detourUntil=0,navigation=null;const visits=new Map();
   const act=(type,arg)=>{actions++;if(!g.action(type,arg))invalid++;};
   for(let i=0;i<maxActions&&g.status==='playing';i++) {
     const p=g.player;navigation={...p,tactics:navigation?.tactics||null};
@@ -69,11 +70,18 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     if(g.canTouch(g.end)&&!g.bossAlive){act('interact');continue;}
     // 3.120.0: terminals keep a credit instead of serving once, and weapon modifications are bought there (scrap only; the
     // bot never trades anything in).
-    if(g.nearbyTerminal){if(p.hp<p.maxHp-55&&!terminalReason(g,'heal')){act('terminal','heal');continue;}if(!g.visibleEnemies.length&&!terminalReason(g,`upgrade:${p.weapon}`)){act('terminal',`upgrade:${p.weapon}`);continue;}const offer=TERMINAL_AMMO[g.weapon.ammoType];if(offer&&!terminalReason(g,g.weapon.ammoType)&&p[g.reserveKey()]<Math.min(g.ammoCapacity(g.weapon.ammoType),g.weapon.mag*2)){act('terminal',g.weapon.ammoType);continue;}}
+    if(g.nearbyTerminal){if(p.hp<p.maxHp-55&&!terminalReason(g,'heal')){act('terminal','heal');continue;}if(!g.visibleEnemies.length&&!terminalReason(g,`upgrade:${p.weapon}`)){act('terminal',`upgrade:${p.weapon}`);continue;}const offer=TERMINAL_AMMO[g.weapon.ammoType];if(offer&&!terminalReason(g,g.weapon.ammoType)&&p[g.reserveKey()]<Math.min(g.ammoCapacity(g.weapon.ammoType),g.weapon.mag*2)){act('terminal',g.weapon.ammoType);continue;}
+      // 3.135.0: the next floor may have no medical terminal, so a medical one is where medkits are stocked up.
+      if(!g.visibleEnemies.length&&p.meds<3&&!terminalReason(g,'med')){act('terminal','med');continue;}
+      visited.add(`${g.floor}:${g.nearbyTerminal.id}`);}   // stood here and bought nothing: not worth another detour
     const needed=item=>{const type=itemAmmo(item.type),weapons=p.owned.map(i=>g.weaponAt(i)).filter(w=>w.ammoType===type);return (type&&weapons.length&&p[AMMUNITION[type].key]<Math.min(g.ammoCapacity(type),Math.max(...weapons.map(w=>w.mag))*2))||(item.type==='med'&&p.meds<1)||(item.type==='grenade'&&p.grenades<1&&grenadeTotal(p)<g.ammoCapacity('grenade'));};
     const crates=g.props.filter(c=>isContainer(c)&&!c.opened&&c.contents.some(needed));
     const nearby=crates.find(c=>g.canTouch(c));if(nearby){act('openContainer',nearby.id);continue;}
-    const needs=[...g.items.filter(needed),...crates].sort((a,b)=>distance(p,a)-distance(p,b));
+    // 3.135.0: terminals stand in supply rooms now, off the main route, so a terminal worth the detour is a need too: a
+    // medical one when hurt or short of medkits, an arms one while the weapon can still be modified.
+    const worth=t=>!visited.has(`${g.floor}:${t.id}`)&&terminalRemaining(t)>=10&&((terminalSells(t,'med')&&(p.hp<p.maxHp-55||p.meds<3)&&p.scrap>=TERMINAL_TUNING.medPrice)||(terminalSells(t,`upgrade:${p.weapon}`)&&(p.upgrades[p.weapon]||0)<TERMINAL_TUNING.upgradeMax&&p.scrap>=upgradeCost(p.upgrades[p.weapon]||0)));
+    const desks=g.props.filter(t=>t.type==='terminal'&&!t.used&&worth(t)).flatMap(t=>[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dy])=>({x:t.x+dx,y:t.y+dy})));
+    const needs=[...g.items.filter(needed),...crates,...desks].sort((a,b)=>distance(p,a)-distance(p,b));
     const boss=g.enemies.find(e=>(e.type==='boss'||e.type==='warden')&&e.hp>0);
     let goal=g.turn<detourUntil?g.end:needs.find(n=>route(g,n))||g.end;
     // A detour can leave the five-tile trigger radius. Keep pursuing that boss

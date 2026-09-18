@@ -21,7 +21,9 @@ const T=TERMINAL_TUNING;
 export const TERMINAL_ITEMS={
  spray:{cost:15,resource:'sprays'},
  adrenaline:{cost:20,resource:'adrenaline'},
- nvg:{cost:40,wear:'nvg'},
+ // 3.135.0 (user decision, docs/ITEMS.md): night-vision goggles are no longer sold — snipers drop them and they turn up
+ // in unidentified crates. The price stays only as the base of their trade-in value.
+ nvg:{cost:40,wear:'nvg',sold:false},
  barricade:{cost:25,resource:'barricades'},
  flare:{cost:15,resource:'flares'},
 };
@@ -44,13 +46,27 @@ export const TERMINAL_MIN_PRICE=Math.min(T.healPrice,T.packPrice,T.medPrice,T.up
 export const terminalRemaining=terminal=>!terminal||terminal.used?0:Math.max(0,T.credit-(terminal.spent||0));
 export const validTerminalSpent=spent=>spent===undefined||(Number.isSafeInteger(spent)&&spent>=0&&spent<=T.credit);
 
-const OPTIONS=['heal','med','ammo',...AMMO_IDS,'grenade','smoke','emp','stun',...Object.keys(TERMINAL_ITEMS)];
+const OPTIONS=['heal','med','ammo',...AMMO_IDS,'grenade','smoke','emp','stun',...Object.entries(TERMINAL_ITEMS).filter(([,o])=>o.sold!==false).map(([id])=>id)];
+// 3.135.0 (user decision, docs/ITEMS.md): three kinds of terminal, each in the supply room of its theme — arms and
+// ammunition in the ammo room (where the armory weapon lies), medical in the medical room, gear in the armour room.
+// Every floor has two of the three, so a floor may lack the one you want. A terminal from an older save has no kind
+// and still sells everything.
+export {TERMINAL_KINDS,KIND_ROOMS,floorTerminalKinds} from './terminal-kinds.js';
+import {TERMINAL_KINDS} from './terminal-kinds.js';
+export function offerKind(option){
+ if(upgradeSlot(option)!==null||option==='ammo'||AMMO_IDS.includes(option))return 'arms';
+ if(option==='heal'||option==='med'||option==='spray')return 'medical';
+ return 'gear';
+}
+export const terminalSells=(terminal,option)=>!terminal?.kind||offerKind(option)===terminal.kind;
+export const terminalName=terminal=>TERMINAL_KINDS[terminal?.kind]||'補給終端';
 // Whether an offer can be bought here at all, before looking at how it is paid.
 export function offerReason(g,option){
  const p=g.player,terminal=g.nearbyTerminal;
  if(!terminal)return '附近沒有可用補給終端。';
  const slot=upgradeSlot(option);
  if(slot===null&&!OPTIONS.includes(option))return '沒有這項補給。';
+ if(!terminalSells(terminal,option))return `${terminalName(terminal)}不賣這一類。`;
  if(slot!==null){
   if(!p.owned.includes(slot))return '背包裡沒有這把武器。';
   if((p.upgrades[slot]||0)>=T.upgradeMax)return '此武器已達最高改裝等級。';

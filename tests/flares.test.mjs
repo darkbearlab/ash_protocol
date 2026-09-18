@@ -93,8 +93,10 @@ test('found in the armour room case, sold at terminals for 15, traded in for 9',
 
 test('the aim shows the tiles it would light and the item button confirms or cancels it',async()=>{
   const source=await read('../src/controller.js'),renderer=await read('../src/renderer.js');
-  assert.ok(source.includes("if(entry.aim==='throw'){startFlareAim();return;}"));
-  assert.ok(source.includes("if(entry.aim==='throw'){close();startFlareAim();return;}"),'the pack’s use button aims too');
+  // 3.135.0: throw-aimed items go through startThrowAim, which sends a flare to startFlareAim (lines to startRopeAim).
+  assert.ok(source.includes("if(entry.aim==='throw'){startThrowAim(game.player.prepared.item);return;}"));
+  assert.ok(source.includes("if(entry.aim==='throw'){close();startThrowAim(id);return;}"),'the pack’s use button aims too');
+  assert.ok(source.includes("function startThrowAim(id){if(PREPARED_CATALOG.item[id]?.action==='rope')startRopeAim(id);else startFlareAim();}"));
   assert.ok(source.includes("if(renderer.mode==='flare'){act('flare',renderer.aim);return;}"),'confirmed as a flare whatever is prepared');
   assert.ok(renderer.includes("if(this.mode==='flare'&&this.aim){const t=this.tile;for(const {x,y} of flareCells(g,this.aim))"));
   assert.ok(renderer.includes('for(const flare of g.flares||[])if(g.seen?.[flare.y]?.[flare.x])'));

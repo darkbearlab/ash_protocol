@@ -11,7 +11,10 @@ export const LEARNING_ITEMS=Object.fromEntries([
  ...Object.entries(traits).map(([trait,name])=>[`trait_${trait}`,{name:`${name}學習資料`,trait,unlockId:null}]),
 ]);
 export const validLearningId=id=>typeof id==='string'&&Object.hasOwn(LEARNING_ITEMS,id);
-export const UNKNOWN_LOOT=[...[6,11,12].map(weapon=>({type:'weapon',weapon,unlockId:null})),...Object.keys(LEARNING_ITEMS).map(learningId=>({type:'learning',learningId,unlockId:null}))];
+// 3.135.0 (user decision, docs/ITEMS.md): night vision and infrared, passives with no cost and nothing to do, are no
+// longer found; night-vision goggles take their place in the pool. The items stay defined for saves that hold them.
+export const UNFOUND_LEARNING=Object.freeze(['trait_night_vision','trait_infrared']);
+export const UNKNOWN_LOOT=[...[6,11,12].map(weapon=>({type:'weapon',weapon,unlockId:null})),...Object.keys(LEARNING_ITEMS).filter(id=>!UNFOUND_LEARNING.includes(id)).map(learningId=>({type:'learning',learningId,unlockId:null})),{type:'nvg',unlockId:null}];
 export function fillUnknownContainers(map,seed,floor){
  if(!map.generation)return map;
  for(const c of map.props.filter(p=>p.type==='container'&&p.kind==='unknown'&&!p.opened)){

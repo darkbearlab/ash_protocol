@@ -74,6 +74,7 @@ node tools/text-play.mjs verify runs/rebel-1.json     # 從頭重播，逐步比
   - `r` 裝填；`wait` 防禦待機；`swap [槽]` 換武器。
   - `g <落點>` 投擲；`launch <落點>` 對地發射；`flare <落點>` 照明彈；`skill [落點]` 技能。
   - `cover <方向>` 架摺疊掩體；`use medkit|spray|adrenaline` 用道具。
+  - `rope escape <落點>` 逃命繩索（不耗回合）；`rope redeploy <落點>` 重部署鉤索（耗 1 回合）。3.135.0。
 - **背包**
   - `prep <grenade|item|skill> <id|none>` 預備。
   - `take <地上槽>` 拾取；`salvage <背包槽>` 拆解背包裡的武器；`scrapgun <地上槽>` 就地拆解。

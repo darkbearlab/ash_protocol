@@ -45,6 +45,7 @@ import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambu
 import {healActor} from './traits.js';
 import {DETOUR_TRAIT,DETOUR_TUNING,exposedFrom,watchPoint} from './detour.js';
 import {orderHit,validOrders} from './orders.js';
+import {LINE_ITEMS,lineReason,lineDrop,goggleDrop,isLineItem} from './lines.js';
 import {tickPounces,validPounce} from './pounce.js';
 import {toxicShot,toxicPlayerTurn,toxicAllyTurn,inToxic,tickFields,validFields} from './swarm-fields.js';
 import {sweptGrid,sweptClear} from './line-move.js';
@@ -120,7 +121,7 @@ export function itemUseReason(g,id){
  if(entry.action==='surge')return p.control.disabled?'失能中無法使用':g.shadowSteps?'免費移動還沒用完':p.hp>SURGE_COST?'':'生命不足以承受';
  return '';
 }
-const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -281,7 +282,7 @@ export class Game {
   awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
 
   bumpMeleeSlot(){return this.player.owned.find(slot=>{const w=this.weaponAt(slot);return w.melee&&weaponSwitchTurns(w,this.weapon)===0&&weaponSwitchTurns(this.weapon,w)===0;})??UNARMED_SLOT;}
-  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning','surge'].includes(type))return 0;
+  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning','surge'].includes(type))return 0;if(type==='rope'&&LINE_ITEMS[arg?.item]?.free)return 0;
     if(type==='prepare')return prepareCost(this.player,arg);return type==='skill'?(SKILLS[arg]?.cost??1):type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
   // Validate the intent before any actor acts: rejected input cannot scout fast enemies.
   validateAction(type,arg){
@@ -326,6 +327,7 @@ export class Game {
     // live in itemUseReason so the pack can grey the same buttons this would refuse.
     if(type==='deployCover'){const reason=deployCoverReason(this,arg);return !reason||this.fail(reason+'。');}
     if(type==='flare'){const reason=flareReason(this,arg);return !reason||this.fail(reason+'。');}
+    if(type==='rope'){const reason=lineReason(this,arg);return !reason||this.fail(reason+'。');}
     if(type==='launch'){const reason=launchReason(this,arg);return !reason||this.fail(reason+'。');}
     if(ITEM_BY_ACTION[type]){const reason=itemUseReason(this,ITEM_BY_ACTION[type]);return !reason||this.fail(reason+'。');}
     if(type==='grenade')return (p[preparedEntry(p,'grenade').resource]>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail('需要手榴彈與視線內 5 格的有效落點。');
@@ -376,6 +378,7 @@ export class Game {
       else if(type==='commandPet')return commandPet(this,arg);
       else if(type==='learn'||type==='dismantleLearning')return useLearning(this,arg,type==='dismantleLearning');
       else if(type==='surge')return this.surge();
+      else if(type==='rope')return presentStep(this,()=>this.fireLine(arg));
       else if(type==='setPetOutput'){p.petBond.outputChoice=arg.kind;return true;}
       return true;
     }
@@ -520,6 +523,7 @@ export class Game {
       }
       case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
       case 'flare': success=presentStep(this,()=>this.throwFlare(arg));break;
+      case 'rope': success=presentStep(this,()=>this.fireLine(arg));break;
       case 'weapon': {
         const index=arg===undefined?p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length]:Number(arg);
         if(!p.owned.includes(index))return this.fail('背包裡沒有這把武器。');
@@ -717,6 +721,9 @@ export class Game {
     if(this.rng()<.06)this.items.push({...this.enemyDropPoint(e),type:'med'});
     const plate=plateDrop(this.player,(ENEMY_TYPES[e.type]?.armor||0)>0);
     if(plate.chance>0&&this.rng()<plate.chance)this.items.push({...this.enemyDropPoint(e),type:'armor',amount:plate.amount});
+    // 3.135.0 (user decisions): lines from any armed enemy and goggles from snipers, on fixed rolls of their own.
+    const line=hasEnemyTag(e,'armed')?lineDrop(this.seed,this.floor,e.id):null;if(line)this.items.push({...this.enemyDropPoint(e),...line});
+    if(enemyDef(e)?.dropsGoggles&&goggleDrop(this.seed,this.floor,e.id))this.items.push({...this.enemyDropPoint(e),type:'nvg'});
   }
   enemyDropPoint(e){
     // 3.127.2: a flyer killed above a cover prop must not leave its loot on a tile the player can never step on.
@@ -757,6 +764,15 @@ export class Game {
     this.effects.push({type:'shot',style:'grenade',color:'#ffd27a',from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     this.flares=[...(this.flares||[]),{x:pos.x,y:pos.y,expires:this.turn+FLARE_TUNING.duration-1}].slice(-FLARE_TUNING.maxActive);
     this.log(`照明彈點亮，持續 ${FLARE_TUNING.duration} 輪：範圍內的暗處失去命中懲罰，敵我皆同。`);return true;
+  }
+  // 3.135.0 grapple lines (src/lines.js): one straight pull to the chosen tile, then whatever lies there is picked up.
+  fireLine(arg){
+    const reason=lineReason(this,arg);if(reason)return this.fail(reason+'。');
+    const p=this.player,item=LINE_ITEMS[arg.item],from={x:p.x,y:p.y},to={x:arg.x,y:arg.y};
+    p[item.resource]--;Object.assign(p,to);p.moved=true;p.moveDelta=[Math.sign(to.x-from.x),Math.sign(to.y-from.y)];p.facing=[...p.moveDelta];
+    p.cornerExposure=null;p.fireChain=null;p.guard=false;p.focus=false;p.evasive=false;
+    this.effects.push({type:'tonguePull',sourceId:'player',from,to:{...to},origin:{...to},damage:0});
+    this.log(`${PREPARED_CATALOG.item[arg.item].name}把你拉了過去。`);this.pickup();this.reveal();return true;
   }
   flareLit(point){return Boolean(this.flares?.length)&&this.flares.some(flare=>flareLights(this,flare,point));}
   throwGrenade(pos) {
@@ -920,6 +936,10 @@ export class Game {
         if(accepted){partial=true;this.log(`拾取${AMMUNITION[ammo].name} +${accepted}。`);}
         if(accepted<amount){item.amount=amount-accepted;this.log(`${AMMUNITION[ammo].name}容量已滿，剩餘 ${item.amount} 留在原地。`);return true;}
       }      else if(item.type==='med'){p.meds++;this.log('拾取醫療包 +1。');}
+      // 3.135.0: grapple lines, dropped only (src/lines.js).
+      else if(isLineItem(item.type)){const entry=PREPARED_CATALOG.item[item.type],amount=item.amount||1;p[entry.resource]+=amount;this.log(`拾取${entry.name} +${amount}。`);}
+      // 3.135.0: goggles are found, not bought; one pair is all anyone carries.
+      else if(item.type==='nvg'){if(p.wearables.includes('nvg')){this.log('已經有一副夜視鏡，這副留在原地。');return true;}p.wearables.push('nvg');this.log('取得夜視鏡。在背包裡預備就能戴上。');}
       // 3.110.0 (user request): field kit has no carry cap, exactly like the medkit, so a case holding it is never
       // "already full, left on the ground". The ground type is the catalogue id, so the resource follows from it.
       else if(FIELD_ITEMS.includes(item.type)){const entry=PREPARED_CATALOG.item[item.type],amount=item.amount||1;p[entry.resource]+=amount;this.log(`拾取${entry.name} +${amount}。`);}
@@ -1181,6 +1201,9 @@ export class Game {
       if(version<54)g.player.barricades??=0;
       // 3.123.0: flares; older saves carry none and have none burning.
       if(version<56){g.player.flares??=0;g.flares??=[];}
+      // 3.135.0: grapple lines; older saves carry none.
+      if(version<62){g.player.escapeLines??=0;g.player.redeployLines??=0;}
+      if(!['escapeLines','redeployLines'].every(k=>Number.isSafeInteger(g.player[k])&&g.player[k]>=0&&g.player[k]<=10000000))return null;
       if(!Number.isSafeInteger(g.player.flares)||g.player.flares<0||g.player.flares>10000000||!validFlares(g.flares,g.grid,g.turn))return null;
       // 3.108.0: the worn item's passives are derived from the slot, never trusted from the file.
       g.player.wearables??=[];syncWearableTraits(g.player);

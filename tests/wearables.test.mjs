@@ -66,7 +66,7 @@ test('the passives follow the slot, and the goggles really cancel the dark penal
 });
 
 test('saves carry ownership, re-derive the passives, and refuse a slot the run cannot fill',()=>{
- assert.equal(SAVE_VERSION,61);   // 3.131.0: hiding is a retreat order
+ assert.equal(SAVE_VERSION,62);   // 3.131.0: hiding is a retreat order
  const g=own(run()),p=g.player;
  assert.equal(g.action('prepare',{category:'item',id:'nvg'}),true);
  const back=Game.restore(g.serialize());
@@ -101,11 +101,9 @@ test('the terminal stocks exactly what the rules will sell, and only one of each
   if(offer.resource)assert.ok(Object.hasOwn(run().player,offer.resource));
  }
  const g=terminal(run()),p=g.player;
- assert.equal(g.useTerminal('nvg'),true);
- assert.deepEqual(p.wearables,['nvg']);
- g.props.push({type:'terminal',x:p.x,y:p.y,used:false});
- assert.equal(g.useTerminal('nvg'),false,'a second pair is refused');
- assert.equal(p.wearables.length,1);
+ // 3.135.0 (user decision): goggles are not sold any more — snipers and unidentified crates are where they come from.
+ assert.equal(TERMINAL_ITEMS.nvg.sold,false);assert.equal(g.useTerminal('nvg'),false,'goggles are not on sale');
+ assert.deepEqual(p.wearables,[]);
  assert.equal(g.useTerminal('spray'),true);
  assert.equal(p.sprays,1);
  p.sprays=99;

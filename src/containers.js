@@ -11,7 +11,7 @@ export const CONTAINER_KINDS={
   field:{name:'器材箱',color:'#d0b3d9',symbol:'▬'},
 };
 export const FIELD_ITEMS=['spray','adrenaline','barricade','flare'];
-const types=new Set(['ammo','pistol','shell','energy','ordnance','grenade','emp','stun','smoke','med','armor','scrap',...FIELD_ITEMS]);
+const types=new Set(['ammo','pistol','shell','energy','ordnance','grenade','emp','stun','smoke','med','armor','scrap','nvg',...FIELD_ITEMS]);   // nvg: 3.135.0, found in unidentified crates
 export const isContainer=o=>o?.type==='container';
 // Rigged cases (3.100.0, user request): rebel floors leave booby-trapped cases among the real ones. A normal case is
 // indestructible and carries no hp, so it can never be locked; a rigged one has hp, which is the only tell — tapping it

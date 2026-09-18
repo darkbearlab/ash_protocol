@@ -2,6 +2,7 @@ import {mapStyleAtlases,mapStyle} from './map-styles.js';
 import {FRAME_RATE_DEFAULT,frameDue,nextDue} from './frame-rate.js';
 import {terminalRemaining,TERMINAL_TUNING} from './terminal.js';
 import {flareCells} from './flares.js';
+import {lineReason} from './lines.js';
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
@@ -184,6 +185,8 @@ export class Renderer {
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
     // 3.123.0: a flare's aim shows exactly the tiles it would light now (shadows and full cover stay unmarked).
+    // 3.135.0: a grapple line's aim — the straight pull and its landing, green when it can go, red when it cannot.
+    if(this.mode==='rope'&&this.aim){const t=this.tile,ok=!lineReason(g,{...this.aim,item:this.ropeItem}),from=this.project(g.player.x,g.player.y),a=this.project(this.aim.x,this.aim.y);this.line(from.x,from.y,a.x,a.y,ok?'#9ee6a0aa':'#e8756aaa',2);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,ok?'#9ee6a033':'#e8756a33',ok?'#9ee6a0':'#e8756a');}
     if(this.mode==='flare'&&this.aim){const t=this.tile;for(const {x,y} of flareCells(g,this.aim)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,'#ffd27a26','#ffe0a066');}const a=this.project(this.aim.x,this.aim.y);this.text('✺',a.x,a.y+5,'#ffe3a8',15);}
     for(const flare of g.flares||[])if(g.seen?.[flare.y]?.[flare.x]){const a=this.project(flare.x,flare.y),t=this.tile;this.glow(a.x,a.y,t*1.6,'#ffd27a30');this.box(a.x-2,a.y-2,4,4,'#fff1c4');this.text(String(Math.max(1,flare.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#ffe3a8',8);}
     if(this.mode==='launch'&&this.aim)this.markArea(this.aim,1,'#e6a95b33','#eacb84aa','');

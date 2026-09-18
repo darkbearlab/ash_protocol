@@ -17,6 +17,10 @@ export const PREPARED_CATALOG={
    // quick-use slot — so wearing it is what does the work, and the item button greys while it is on.
    // 3.123.0 (user decisions, docs/ITEMS.md 照明彈): an item, but aimed like a throwable (`aim:'throw'`).
    flare:{name:'照明彈',short:'照明彈',icon:'✺',resource:'flares',action:'flare',aim:'throw',text:'射程 5 格、半徑 3 格，持續 8 輪。落點看得到、而且沒有對照明彈取得完整掩體的暗格會被照亮：站在上面的敵我都失去暗區的命中懲罰。'},
+   // 3.135.0 (user decision, docs/ITEMS.md): grapple lines, dropped only. One line, one use; the escape line is free,
+   // the redeploy line costs a turn. Aimed like a flare: pick the landing tile, confirm.
+   escape_line:{name:'逃命繩索',short:'逃命繩',icon:'↟',resource:'escapeLines',action:'rope',aim:'throw',text:'不消耗回合。朝 6 格內看得見的地板射出繩索，沿直線把你拉過去；牆、實心物件和其他單位會擋住，幼蟲不會。一條只能用一次。'},
+   redeploy_line:{name:'重部署鉤索',short:'鉤索',icon:'⇢',resource:'redeployLines',action:'rope',aim:'throw',text:'消耗 1 回合。朝 6 格內看得見的地板射出鉤索，沿直線把你拉過去；牆、實心物件和其他單位會擋住，幼蟲不會。一條只能用一次。'},
    nvg:{name:'夜視鏡',short:'夜視',icon:'◉',wear:true,traits:['night_vision'],text:'佩戴期間忽略目標暗區的射擊命中懲罰（不穿煙）。戴上與脫下各消耗 1 回合，佩戴期間道具鍵停用。'}},
   skill:SKILLS,
 };

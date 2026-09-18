@@ -50,7 +50,8 @@ test('enemy loot uses weapon and ammo type; the same corpse never grants loot tw
     assert.equal(g.items.find(i=>i.type==='weapon').weapon,index);assert.ok(g.items.some(i=>i.type===ammo));
     const count=g.items.length;g.hurt(e,999);assert.equal(g.items.length,count);assert.equal(g.player.kills,1);
   }
-  const g=arena();g.rng=()=>.99;g.hurt(makeEnemy('rifleman',14,10,'none'),999);assert.equal(g.items.length,0);
+  // Lines (3.135.0) come from a fixed roll of the kill, not the game's dice, so only the dice-gated loot is counted here.
+  const g=arena();g.rng=()=>.99;g.hurt(makeEnemy('rifleman',14,10,'none'),999);assert.equal(g.items.filter(i=>!['escape_line','redeploy_line'].includes(i.type)).length,0);
 });
 
 test('protocol milestones are earned once, including death-turn boss kills and extraction',()=>{

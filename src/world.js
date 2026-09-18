@@ -9,14 +9,15 @@ import {addRuntimePopulation} from './runtime-enemies.js';
 import {MAP_RECIPES} from './map-recipes-data.js';
 import {orderedRecipes,recipeGroups} from './map-recipes.js';
 import {SLOT_RECIPES,furnishMap} from './map-slots.js';
-import {latticeCells,cellNeighbors,collapseCellLinks,describeRooms} from './map-geometry.js';
+import {latticeCells,cellNeighbors,collapseCellLinks,describeRooms,roomTiles} from './map-geometry.js';
 import {MERGED_RECIPES,selectMergeRecipe,mergePlans,mergeMap} from './map-merging.js';
 import {OPENING_RECIPES,addOpenings} from './map-openings.js';
 import {ANNEX_RECIPES,addAnnexes,addRequestedAnnexes} from './map-annexes.js';
 import {placePopulation,reservationPosts} from './map-population.js';
 import {ENDLESS_TUNING,extraEnemies,scaleEnemy} from './endless.js';
 import {createLighting} from './lighting.js';
-import {selectSupplyStations,addLivingModules} from './modules.js';
+import {selectSupplyStations,addLivingModules,moduleCells} from './modules.js';
+import {floorTerminalKinds,KIND_ROOMS} from './terminal-kinds.js';
 import {packSupplies} from './containers.js';
 import {vaultable,blockedBetween,barrierBetween,makeBarrier,edgeCells,edgeKey} from './barriers.js';
 import {startingTraits,grantTrait} from './traits.js';
@@ -60,7 +61,25 @@ export function makeEnemy(type,x,y,id,floor=1,offset=0,faction=DEFAULT_FACTION) 
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return addSwarmWaves(addNoncombatants(map,seed,floor,faction),seed,floor,faction);}
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return themeTerminals(addSwarmWaves(addNoncombatants(map,seed,floor,faction),seed,floor,faction),seed,floor);}
+// 3.135.0 (user decision, docs/ITEMS.md): once everything else stands, each of the floor's two terminals takes its kind
+// and moves to the supply room of that kind. Done last, so nothing else on the floor shifts; the room's reserved console
+// corner is tried first, and a terminal that finds no free tile there that keeps the floor safe stays put, still typed.
+function themeTerminals(map,seed,floor){
+  const terms=map.props.filter(p=>p.type==='terminal');if(!terms.length||!map.rooms)return map;
+  const kinds=floorTerminalKinds(seed,floor);
+  terms.forEach((t,i)=>{
+    const kind=kinds[i%kinds.length];t.kind=kind;
+    const room=map.rooms.findIndex(r=>r.supply===KIND_ROOMS[kind]);if(room<0)return;
+    const r=map.rooms[room],inRoom=q=>q.x>=r.x&&q.x<r.x+r.w&&q.y>=r.y&&q.y<r.y+r.h;if(inRoom(t))return;
+    const blocked=new Set([...map.props.filter(p=>p!==t),...map.props.filter(p=>p.type==='module').flatMap(moduleCells),...map.items,...map.enemies,...map.hazards,map.start,map.end,...(map.slots||[]).filter(s=>s.refId!==t.id),...map.barriers.flatMap(edgeCells),...(map.openings||[]).flatMap(o=>o.cells||[])].map(key));
+    const tiles=[{x:r.x+r.w-1,y:r.y},...roomTiles(r)].filter(q=>map.grid[q.y]?.[q.x]===1&&!blocked.has(key(q)));
+    const home={x:t.x,y:t.y};
+    for(const q of tiles){Object.assign(t,q);if(generationSafe(map)){const slot=(map.slots||[]).find(s=>s.refId===t.id);if(slot)Object.assign(slot,{x:q.x,y:q.y,roomId:room});return;}}
+    Object.assign(t,home);
+  });
+  return map;
+}
 export function generateWithRecipes(seed,floor=1,unlocks=[],recipes=MAP_RECIPES,faction=DEFAULT_FACTION){
   if(!recipes.length)return generateLegacy(seed,floor,unlocks,faction);
   if(recipes.some(r=>r.layout)){
