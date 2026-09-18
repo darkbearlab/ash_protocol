@@ -22,6 +22,7 @@ import {runOrder} from './orders.js';
 import {selfAmbush,selfHold} from './ambush.js';
 import {selfFlank} from './flank.js';
 import {pounceAction,usePounceHooks} from './pounce.js';
+import {lobAction,releasePayload} from './swarm-fields.js';
 import {personalityOf} from './personality.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
@@ -143,13 +144,14 @@ function selfOrders(ctx){
 }
 // 3.132.0: a member's part is the post or bound order its leader gives it (src/squad.js), run with the other orders.
 // The bot is its own attacker when it blows itself up, so a self-destruct never gives the workshop a blueprint (3.94.0).
-registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultyOffset))});
+// 3.134.0: a swarm bomber leaves what its sac held (mist, acid or spore smoke) where it bursts; others just burst.
+registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>{g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultyOffset));releasePayload(g,e);}});
 registerUnitTree('fodder',{before:({e})=>{if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return true;}e.actionDelay=1;return false;}});
 registerUnitTree('brood',{});
 export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);}
 export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
- if(tongueAction(ctx)||pounceAction(ctx)||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
+ if(tongueAction(ctx)||pounceAction(ctx)||lobAction(ctx)||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
  // 3.130.0 orders (docs/ORDERS.md): a committed order acts before the affix branches; 'fire' goes straight to the attack.
  selfOrders(ctx);const order=runOrder(ctx);if(order===true)return;
  if(order!=='fire'&&(runAffixBranches(ctx)||seekCover(ctx)))return;

@@ -35,5 +35,8 @@ export const VENOM_VISUAL=Object.freeze({blob:'#a8c93f',rim:'#e4f59a',drop:'#8fb
 export const TONGUE_VISUAL=Object.freeze({line:'#e27aa6d0',fill:'#d97aa033',edge:'#f0a3c4',landing:'#f0a3c4aa',flesh:'#c95c86',tip:'#f2b3cf',label:'鉤舌蓄勢'});
 // Kill house humanoids draw as holograms (docs/KILLHOUSE.md section 10); campaign enemies keep their colours.
 export const SIMULATION_VISUAL={tint:'#5fd6ea'};
-export const enemyTint=e=>e?.simulation?SIMULATION_VISUAL.tint:factionOverride(e).tint??enemyDef(e)?.sprite?.tint??null;
+// 3.134.0: a swarm bomber's sac shows in its colour — green mist, yellow acid, brown spore (docs/SWARM_FIELDS.md).
+const SAC_TINTS={payload_toxic:'#8fcf45',payload_acid:'#d8d24a',payload_spore:'#b8905c'};
+const sacTint=e=>SAC_TINTS[e?.traits?.find(t=>SAC_TINTS[t.id])?.id]??null;
+export const enemyTint=e=>e?.simulation?SIMULATION_VISUAL.tint:sacTint(e)??factionOverride(e).tint??enemyDef(e)?.sprite?.tint??null;
 export const factionTag=e=>{const d=factionDef(enemyFaction(e));return d?.tag?d.name:'';};

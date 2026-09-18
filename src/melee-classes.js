@@ -18,7 +18,7 @@ export function meleeDefense(p,damage){const spirit=activeTrait(p,'battle_spirit
 export function tickSpirit(g){const p=g.player,s=p.battleSpirit;if(!s?.stacks||s.lastKill===null)return;const rank=classPerkRank(p,'berserker_endure'),delay=MELEE_TUNING.spiritDelay+rank*CLASS_PERK_TUNING.endureDelay,interval=MELEE_TUNING.spiritInterval+rank*CLASS_PERK_TUNING.endureInterval,elapsed=g.turn-s.lastKill;if(elapsed>=delay&&(elapsed-delay)%interval===0)s.stacks--;}
 // Ambush (3.48.2, user call): target disabled, target or ninja standing in smoke, target not yet alert, or the ninja in the dark.
 // Smoke is checked by position: adjacent units always see each other, so the old "target cannot see you" test never fired in melee reach.
-export const inSmoke=(g,pos)=>Boolean(g.smoke?.some(s=>s.cells.some(q=>q.x===pos.x&&q.y===pos.y)));
+export const inSmoke=(g,pos)=>Boolean(g.smoke?.some(s=>s.kind!=='toxic'&&s.cells.some(q=>q.x===pos.x&&q.y===pos.y)));   // mist is not smoke (3.134.0)
 export function ambushReady(g,target){const p=g.player;return Boolean(target&&g.enemies.includes(target)&&activeTrait(p,'ambush')&&(target.control?.disabled>0||inSmoke(g,target)||inSmoke(g,p)||!target.alert||isDark(g,p)));}
 export const ambushMultiplier=p=>MELEE_TUNING.ambush+classPerkRank(p,'ninja_ambush')*CLASS_PERK_TUNING.ambush;
 export function shortenCamo(p){const s=p.skillState?.camouflage;if(s&&!s.remaining)s.cooldown=Math.max(0,s.cooldown-MELEE_TUNING.ambushCooldown);}

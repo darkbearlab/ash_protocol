@@ -5,6 +5,7 @@ import {blockedBetween,edgeAdjacent,edgeBlocks} from './barriers.js';
 import {sizeModifier,movementModifier,activeTrait,correctionBonus,sidestepPenalty} from './traits.js';
 // Symmetric, bounded corner leaning. The player and AI use the same geometry.
 import {DIRECTIONS,distance,lineOfSight} from './world.js';
+import {toxicShot} from './swarm-fields.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 
 export function adjacentWalls(grid,actor) {
@@ -49,5 +50,7 @@ export function shotChance(game,attacker,target) {
   const closeBonus=weapon?.closeRange&&distance(attacker,target)<=weapon.closeRange?weapon.closeAccuracy:0,vaultBonus=target.vaultExposed?20:0;
   const specialEvasion=(game.defensiveEvasion?.(attacker,target)||0)+(target===game.player&&activeTrait(attacker,'exposed')?classPerkRank(target,'soldier_marked')*CLASS_PERK_TUNING.markedAccuracy:0);
   const chance=Math.max(10,Math.min(99,-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty));
-  return {chance,aimPenalty,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
+  // 3.134.0: gunfire or a beam through toxic mist, from anyone but the swarm, hits half as often.
+  const toxic=toxicShot(game,attacker,target,weapon);
+  return {chance:toxic?Math.max(1,Math.round(chance/2)):chance,toxic,aimPenalty,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }

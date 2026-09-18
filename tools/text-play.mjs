@@ -37,7 +37,7 @@ import {petFeedingState} from '../src/pet-growth.js';
 import {fuelLabel,lineProgress,petStatusLine} from '../src/pet-ui.js';
 
 const DIRS={n:[0,-1],s:[0,1],e:[1,0],w:[-1,0]};
-const RESERVED='ctoBCTNMWX@&?>*!%#.,:;',LETTERS=[...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'].filter(c=>!RESERVED.includes(c)).join('');
+const RESERVED='ctoBCTNMWX@&?>*!%~#.,:;',LETTERS=[...'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'].filter(c=>!RESERVED.includes(c)).join('');
 const out=[];const say=(...lines)=>out.push(...lines);
 const fail=message=>{throw new Error(message);};
 
@@ -111,6 +111,8 @@ function tileChar(g,x,y,marks){
  if(g.missionObjects?.().some?.(t=>!t.done&&t.x===x&&t.y===y))return 'M';
  const items=g.items.filter(i=>i.x===x&&i.y===y);if(items.length)return items.some(i=>i.type==='weapon')?'W':'*';
  if(g.hazards.some(h=>h.x===x&&h.y===y))return 'X';
+ // 3.134.0: toxic mist '~' (you can see through it), smoke and spore smoke '%'.
+ if((g.smoke||[]).some(s=>s.kind==='toxic'&&s.cells.some(c=>c.x===x&&c.y===y)))return '~';
  if((g.smoke||[]).some(s=>s.cells.some(c=>c.x===x&&c.y===y)))return '%';
  if(!g.passable(x,y))return 'o';
  const lit=g.visibleTiles?.has(`${x},${y}`);
@@ -137,7 +139,7 @@ function drawMap(g,radius){
  }
  return lines;
 }
-const LEGEND='圖例：@你 a-z敵人(見下表) &友軍 ?感測到的位置 >電梯 C補給箱(c已開) T終端(t額度用完) B油桶 o掩體/障礙 N巢穴 M任務目標 W地上武器 *地上物品 X危險地形 %煙霧 !即將爆炸｜地板 .視野內 ,記憶中 :暗處(視野內) ;暗處(記憶)｜邊線 +關閉的門 \'開著的門 |或-隔板(擋視線) !或_矮隔板(可翻越)';
+const LEGEND='圖例：@你 a-z敵人(見下表) &友軍 ?感測到的位置 >電梯 C補給箱(c已開) T終端(t額度用完) B油桶 o掩體/障礙 N巢穴 M任務目標 W地上武器 *地上物品 X危險地形 ~毒霧 %煙霧 !即將爆炸｜地板 .視野內 ,記憶中 :暗處(視野內) ;暗處(記憶)｜邊線 +關閉的門 \'開著的門 |或-隔板(擋視線) !或_矮隔板(可翻越)';
 
 // ---- views ---------------------------------------------------------------------------------------------------------
 function weaponLine(g,slot){
@@ -195,7 +197,7 @@ function surroundings(g){
   ...tongueTelegraphs(g).map(t=>`鉤舌：${t.sourceId} 會把 ${at(t.target)} 的人拉到 ${at(t.landing)}`),
   ...(g.reinforcements||[]).filter(s=>g.visible(s)).map(s=>`增援 ${at(s)} 剩 ${Math.max(1,s.due-g.turn)} 輪`)];
  if(threats.length)rows.push(`預告：${threats.join('；')}`);
- const clouds=[...(g.smoke||[]).map(s=>`煙霧 剩 ${Math.max(1,s.expires-g.turn)} 輪`),...(g.flares||[]).filter(f=>g.seen[f.y]?.[f.x]).map(f=>`照明彈${at(f)} 剩 ${Math.max(1,f.expires-g.turn)} 輪`)];
+ const clouds=[...(g.smoke||[]).map(s=>`${s.kind==='toxic'?'毒霧':s.kind==='spore'?'孢子煙':'煙霧'} 剩 ${Math.max(1,s.expires-g.turn)} 輪`),...(g.flares||[]).filter(f=>g.seen[f.y]?.[f.x]).map(f=>`照明彈${at(f)} 剩 ${Math.max(1,f.expires-g.turn)} 輪`)];
  if(clouds.length)rows.push(clouds.join('；'));
  const allies=(g.localAllies||[]).filter(a=>a.hp>0&&a.status==='active');if(allies.length)rows.push(`友軍：${allies.map(a=>`${a.id}${at(a)} HP ${hp(a)}`).join('、')}`);
  return rows;

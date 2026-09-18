@@ -172,7 +172,8 @@ export class Renderer {
       for(const prop of g.props)if(!isContainer(prop)&&prop.x===x&&prop.y===y)this.prop(a,prop,time);
       for(const weapon of [false,true])for(const item of g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.item(a,item,time);
       for(const objective of missionObjects(g))if(!objective.done&&objective.x===x&&objective.y===y){this.box(a.x-9,a.y-8,18,16,'#123d46','#82e6ec');this.text('D',a.x,a.y+4,'#b7fcff',12);}
-      for(const cloud of g.smoke)if(cloud.cells.some(q=>q.x===x&&q.y===y)){this.box(left+1,top+1,t-2,t-2,'#abc1cd66');for(let n=0;n<3;n++)this.box(left+5+n*7,top+8+(x+y+n)%3*6,11,5,'#d4dfe84a');this.text(String(Math.max(1,cloud.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#d3e2ed',8);}
+      // 3.134.0: toxic mist is green, spore smoke brown; plain smoke keeps its grey.
+      for(const cloud of g.smoke)if(cloud.cells.some(q=>q.x===x&&q.y===y)){const tone=cloud.kind==='toxic'?['#8fbf4a55','#c6e5864a']:cloud.kind==='spore'?['#9c7d5366','#c8ad874a']:['#abc1cd66','#d4dfe84a'];this.box(left+1,top+1,t-2,t-2,tone[0]);for(let n=0;n<3;n++)this.box(left+5+n*7,top+8+(x+y+n)%3*6,11,5,tone[1]);this.text(String(Math.max(1,cloud.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#d3e2ed',8);}
       c.globalAlpha=1;
     }
 

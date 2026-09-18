@@ -51,11 +51,16 @@ const sightCache=new WeakMap();
 export function tacticalSight(game,a,b){
   const grid=objectSightGrid(game,a,b);
   if(activeTrait(a,'infrared')||!game.smoke?.length||distance(a,b)<=1)return combatSight(grid,a,b,game.barriers);
+  // 3.134.0 (docs/SWARM_FIELDS.md): toxic mist never blocks sight; spore smoke blinds everyone but the swarm.
+  const swarmEyes=a.faction==='swarm'&&typeof a.type==='string'&&!a.kind,view=swarmEyes?'swarm':'all';
   let cache=sightCache.get(game);
-  if(!cache||cache.grid!==grid||cache.clouds!==game.smoke){
-    const cells=new Set(game.smoke.flatMap(s=>s.cells.map(key))),blocked=grid.map((row,y)=>row.map((v,x)=>cells.has(`${x},${y}`)?0:v));
-    cache={grid,clouds:game.smoke,cells,blocked};sightCache.set(game,cache);
+  if(!cache||cache.grid!==grid||cache.clouds!==game.smoke){cache={grid,clouds:game.smoke,views:{}};sightCache.set(game,cache);}
+  let v=cache.views[view];
+  if(!v){
+    const cells=new Set(game.smoke.filter(s=>s.kind!=='toxic'&&!(swarmEyes&&s.kind==='spore')).flatMap(s=>s.cells.map(key)));
+    v=cache.views[view]={cells,blocked:grid.map((row,y)=>row.map((val,x)=>cells.has(`${x},${y}`)?0:val))};
   }
-  if(cache.cells.has(key(a))||cache.cells.has(key(b)))return false;
-  return combatSight(cache.blocked,a,b,game.barriers);
+  if(!v.cells.size)return combatSight(grid,a,b,game.barriers);
+  if(v.cells.has(key(a))||v.cells.has(key(b)))return false;
+  return combatSight(v.blocked,a,b,game.barriers);
 }

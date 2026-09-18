@@ -1,6 +1,6 @@
 # ASH PROTOCOL / 灰燼協定
 
-直向手機瀏覽器的回合制戰術射擊 roguelike。目前版本見 `src/version.js`（3.133.0），遊玩：https://darkbearlab.github.io/ash_protocol/
+直向手機瀏覽器的回合制戰術射擊 roguelike。目前版本見 `src/version.js`（3.134.0），遊玩：https://darkbearlab.github.io/ash_protocol/
 
 文件導覽：現況手冊 [docs/HANDOFF.md](docs/HANDOFF.md)、規格索引 [docs/DESIGN.md](docs/DESIGN.md)、每版變更 [docs/CHANGELOG.md](docs/CHANGELOG.md)、驗收紙條 [給驗證者的紙條.md](給驗證者的紙條.md)。3.36 之後的版本摘要只記在 CHANGELOG；下方各版段落是 3.35 以前的歷史說明。
 
