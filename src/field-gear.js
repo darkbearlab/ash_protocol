@@ -11,7 +11,8 @@
 // - 外骨骼 (exoskeleton): a wearable. Ranged hit +10, melee damage +20%, and 50 armour plates of its own that take their
 //   share of each hit before your plates do. When they are gone the frame breaks, is lost and pins you: 5 suppression
 //   stacks. Nothing repairs it, and a large frame (the bulwark) cannot wear it.
-import {distance} from './world.js';
+import {distance,DIRECTIONS} from './world.js';
+import {isBarrier} from './barriers.js';
 import {enemyDef,hasEnemyTag,isBossClass,isNoncombatant} from './enemy-data.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {applySuppression} from './suppression.js';
@@ -80,6 +81,14 @@ export function tickDecoy(g){if(g.decoy&&g.turn>=g.decoy.expires){g.decoy=null;g
 export const validDecoy=g=>g.decoy===null||Boolean(g.decoy)&&floorTile(g,g.decoy)&&Number.isInteger(g.decoy.hp)&&g.decoy.hp>0&&g.decoy.maxHp===DECOY_TUNING.hp&&g.decoy.hp<=g.decoy.maxHp&&Number.isInteger(g.decoy.expires)&&g.decoy.expires>g.turn&&g.decoy.expires<=g.turn+DECOY_TUNING.duration&&Array.isArray(g.decoy.fooled)&&g.decoy.fooled.every(id=>typeof id==='string');
 
 // ---- 地雷 ------------------------------------------------------------------------------------------------------------
+// 3.148.1 (user report): where the aim starts when you pick the decoy or a mine. Your own tile is never a place for a
+// mine, so it starts on the first tile that would be accepted: the enemy you have locked, the tile in front of you, any
+// tile beside you; only when none is does it fall back to your own tile (the confirm then says why).
+export function placeStart(g,id){
+ const p=g.player,reason=id==='mine'?mineReason:decoyReason,t=g.targeted,f=p.facing||[0,0];
+ const options=[...(t&&!isBarrier(t)?[{x:t.x,y:t.y}]:[]),{x:p.x+f[0],y:p.y+f[1]},...DIRECTIONS.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy}))];
+ return options.find(q=>!reason(g,q))||{x:p.x,y:p.y};
+}
 export const mineAt=(g,x,y)=>(g.mines||[]).find(m=>m.x===x&&m.y===y)||null;
 // Pathing asks this with the walker: an enemy that watched the mine go down walks around it.
 export const knownMine=(g,actor,x,y)=>Boolean(actor?.id&&(g.mines||[]).some(m=>m.x===x&&m.y===y&&m.seen.includes(actor.id)));

@@ -54,7 +54,7 @@ import {AudioEngine,AUDIO_TUNING,volumePercent} from './audio.js';
 import {GRIT_LEVELS,gritLevel} from './audio-grit.js';
 import {frameRate,nextFrameRate} from './frame-rate.js';
 import {FLARE_TUNING,flareReason} from './flares.js';
-import {DECOY_TUNING,MINE_TUNING,EXO_TUNING,decoyReason,mineReason} from './field-gear.js';
+import {DECOY_TUNING,MINE_TUNING,EXO_TUNING,decoyReason,mineReason,placeStart} from './field-gear.js';
 import {LINE_TUNING} from './lines.js';
 import {HOTKEY_ACTIONS,HOTKEY_SLOTS,HOTKEY_BUTTONS,normalizeKey,validHotkey,keyLabel,parseBindings,defaultBindings,bindKey,clearKey,keyLookup,actionLabel,primaryKey} from './hotkeys.js';
 import {eventSounds,actionSound} from './sound-cues.js';
@@ -271,7 +271,7 @@ function act(type,arg) {
   if(!playback&&game.logs[0]!==oldLog){lastActionLogs=freshLogs(oldLog);notifyLatest();}
   if(success||(type!=='grenade'&&type!=='launch'&&type!=='deployCover'&&type!=='flare'&&type!=='rope'&&type!=='decoy'&&type!=='mine'&&!(type==='usePrepared'&&arg?.category==='grenade')))cancelAim();update();return success;
 }
-function move(dx,dy){if(renderer.mode==='deploy'){act('deployCover',[dx,dy]);return;}if(renderer.mode==='launch'||renderer.mode==='rope'){const from=renderer.aim||game.player;setAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='pet'){setPetAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='drone'){setDroneAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='grenade'||renderer.mode==='flare'){const pos={x:renderer.aim.x+dx,y:renderer.aim.y+dy};setAim(pos);}else if(renderer.mode==='suppress'){setSuppressAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});}else act('move',[dx,dy]);}
+function move(dx,dy){if(renderer.mode==='deploy'){act('deployCover',[dx,dy]);return;}if(renderer.mode==='launch'||renderer.mode==='rope'){const from=renderer.aim||game.player;setAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='pet'){setPetAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='drone'){setDroneAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='grenade'||renderer.mode==='flare'||renderer.mode==='place'){const pos={x:renderer.aim.x+dx,y:renderer.aim.y+dy};setAim(pos);}else if(renderer.mode==='suppress'){setSuppressAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});}else act('move',[dx,dy]);}
 function floorToast(){if(isSimulation(game))return;if(isEndless(game)){const growth=growthLabel(game.floor,game.difficultySpec);notify(`第 ${depthLabel(game.floor)} 層 · ${floorInfo(game.floor).name}：${growth?growth+'。':''}${endlessFloorText(game.floor)}${operatorSignal(game)}`);return;}notify(`第 ${game.floor} 層 · ${floorInfo(game.floor).name}：${returning(game)?game.missionSummary:game.floor===missionDepth(game)?missionDefinition(game).text:floorInfo(game.floor).text}`);}
 const slotLabel=(view,category)=>{const p=view.player,entry=preparedEntry(p,category),count=entry?.resource?p[entry.resource]:null;
   return entry?`${entry.short}${category==='skill'?' '+skillLabel(view,p.prepared.skill):count===null?'':` ${count}`}`:`${PREPARED_CATEGORIES[category]}未預備`;};
@@ -334,8 +334,8 @@ function startThrowAim(id){const action=PREPARED_CATALOG.item[id]?.action;if(act
 // 3.144.0 (src/field-gear.js): a decoy or a mine is placed like a flare — pick the tile, confirm with 互動, press 道具 to cancel.
 function startPlaceAim(id){
   const p=game.player,entry=PREPARED_CATALOG.item[id];if(!(p[entry.resource]>0)){notify(`${entry.name}已用盡。`);return;}
-  const locked=game.targeted,reason=id==='mine'?mineReason:decoyReason,start=locked&&!isBarrier(locked)&&!reason(game,{x:locked.x,y:locked.y})?{x:locked.x,y:locked.y}:{x:p.x,y:p.y};
-  renderer.mode='place';renderer.placeItem=id;renderer.aim=start;updateAim();
+  // 3.148.1 (user report): the pad and swipes move this aim like a flare's, and it starts on a tile that would be accepted.
+  renderer.mode='place';renderer.placeItem=id;renderer.aim=placeStart(game,id);updateAim();
   notify(id==='mine'?`點 ${MINE_TUNING.range} 格內看得見的空地埋地雷；按右下確認，再按道具鍵取消。`:`點 ${DECOY_TUNING.range} 格內看得見的地板丟誘餌，框起來的敵人會被引開；按右下確認，再按道具鍵取消。`);
 }
 function startRopeAim(id){

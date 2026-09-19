@@ -7,7 +7,8 @@ import {FIELD_ITEMS} from '../src/containers.js';
 import {actorStat} from '../src/actor-stats.js';
 import {suppressionStacks} from '../src/suppression.js';
 import {activeTrait} from '../src/traits.js';
-import {DECOY_TUNING,MINE_TUNING,EXO_TUNING,fooled,decoyAct,checkMines,knownMine,mineAt,mineAct} from '../src/field-gear.js';
+import {DECOY_TUNING,MINE_TUNING,EXO_TUNING,fooled,decoyAct,checkMines,knownMine,mineAt,mineAct,placeStart,mineReason,decoyReason} from '../src/field-gear.js';
+import {readFile} from 'node:fs/promises';
 import {scream} from '../src/civilians.js';
 import {soundAlarm} from '../src/rebels.js';
 
@@ -211,4 +212,19 @@ test('saves carry the decoy, the mines and the frame, and refuse forged ones',()
  legacy.data.player.wearables=[];delete legacy.data.decoy;delete legacy.data.mines;delete legacy.data.mineSerial;
  const old=Game.restore(JSON.stringify(legacy));assert.ok(old);
  assert.deepEqual([old.player.decoys,old.player.mines,old.player.exoPlates,old.decoy,old.mines.length,old.mineSerial],[0,0,0,null,0,0]);
+});
+
+// 3.148.1 (user report): the aim started on your own tile, where a mine is never allowed, and the pad moved you instead
+// of the aim.
+test('the placing aim starts on a tile that would be accepted, and the pad moves it',async()=>{
+ const g=still(arena()),p=g.player;p.facing=[1,0];
+ const m=placeStart(g,'mine');assert.deepEqual(m,{x:11,y:10},'the tile in front of you');assert.equal(mineReason(g,m),'');
+ g.props=[{id:'crate',type:'cover',x:11,y:10,hp:50,maxHp:50}];const side=placeStart(g,'mine');
+ assert.notDeepEqual(side,{x:p.x,y:p.y});assert.equal(mineReason(g,side),'','a tile beside you when the one in front is taken');
+ const e=foe(g,'rifleman',13,11,'e');g.target=e.id;
+ assert.deepEqual(placeStart(g,'decoy'),{x:13,y:11},'the decoy starts on the enemy you have locked');
+ assert.notDeepEqual(placeStart(g,'mine'),{x:13,y:11},'a mine cannot go under the enemy');
+ const source=(await readFile(new URL('../src/controller.js',import.meta.url),'utf8')).replace(/\r\n/g,'\n');
+ assert.ok(source.includes("if(renderer.mode==='grenade'||renderer.mode==='flare'||renderer.mode==='place'){const pos={x:renderer.aim.x+dx,y:renderer.aim.y+dy};setAim(pos);}"),'the pad and swipes move the aim');
+ assert.ok(source.includes("renderer.aim=placeStart(game,id)"));
 });
