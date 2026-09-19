@@ -20,8 +20,9 @@ test('投放 only lands on enemies that already fight at range',()=>{
  assert.ok(def.special,'must stay out of the ordinary affix pool');
  for(const type of ['rifleman','sniper','gunner'])assert.ok(def.applies({type,traits:[],tags:ENEMY_TYPES[type].tags}));
  for(const type of ['raider','raider_armored','civilian','bomber'])assert.equal(Boolean(def.applies({type,traits:[],tags:ENEMY_TYPES[type].tags})),false);
- assert.equal(deployerChance(7),0);
- assert.ok(deployerChance(8)>0&&deployerChance(20)<=AFFIX_TUNING.deployerCap);
+ // 3.137.0: from depth 8 on easy (as before), 7 on standard.
+ assert.equal(deployerChance(7,{curve:'easy',offset:0}),0);assert.ok(deployerChance(8,{curve:'easy',offset:0})>0);
+ assert.equal(deployerChance(6),0);assert.ok(deployerChance(7)>0&&deployerChance(20)<=AFFIX_TUNING.deployerCap);
 });
 
 test('the launch puts the munition at exactly strike range, in sight of the player',()=>{

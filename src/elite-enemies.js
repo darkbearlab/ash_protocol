@@ -1,13 +1,14 @@
 import {ENEMY_AFFIXES,birthRandom,giveEnemyAffix} from './enemy-affixes.js';
 import {enemyDef,isBossClass,isNoncombatant} from './enemy-data.js';
-import {effectiveDepth} from './endless.js';
+import {effectiveDepth,curveOf} from './endless.js';
 import {factionActors,factionDef,enemyFaction} from './factions.js';
 
-export const ELITE_TUNING={startDepth:9,chancePerDepth:.02,chanceCap:.15,minAffixes:3,xpMultiplier:2};
-export const eliteChance=(floor,offset=0)=>Math.min(ELITE_TUNING.chanceCap,Math.max(0,effectiveDepth(floor,offset)-ELITE_TUNING.startDepth+1)*ELITE_TUNING.chancePerDepth);
+export const ELITE_TUNING={chancePerDepth:.02,chanceCap:.15,minAffixes:3,xpMultiplier:2};
+// 3.137.0: where elites begin belongs to the difficulty curve (src/endless.js).
+export const eliteChance=(floor,d)=>Math.min(ELITE_TUNING.chanceCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).eliteStart+1)*ELITE_TUNING.chancePerDepth);
 export const eliteEligible=e=>!isNoncombatant(e)&&!e.expendable&&!enemyDef(e)?.expendable&&!isBossClass(e);
 // Run AFTER ordinary affixes. This salt never consumes map, combat or ordinary affix randomness.
-export function rollEnemyElite(e,seed,floor,offset=0){
+export function rollEnemyElite(e,seed,floor,offset){
  if(!eliteEligible(e))return e;
  const rng=birthRandom(seed,floor,e.id,'elite-v1');
  // Cards marked elite (rebel heroes, 3.80.0) are always elite; the draw is still taken so the stream stays aligned.

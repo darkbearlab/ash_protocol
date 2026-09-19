@@ -41,9 +41,13 @@ test('8: v37 elites migrate revealed, resistance preserves inventory and RNG; st
  const old=scenes.legacy,g=Game.restore(JSON.stringify(old));assert.equal(revealedAffixes(g.enemies[0])[0].id,'fast');assert.equal(g.rng.state(),old.rngState);assert.ok(!g.enemies[0].traits.some(t=>t.source==='endless:elite'));
  for(const change of [d=>d.difficultyOffset=1.5,d=>d.enemies[0].affixes[0].id='fake',d=>d.enemies[0].affixes[0].revealed='yes',d=>d.enemies[0].traits=d.enemies[0].traits.filter(t=>!t.source.startsWith('affix:')),d=>d.player.traits.push(...Array.from({length:4},(_,i)=>({id:'suppression_resistance',source:`x:${i}`})))]){const raw=JSON.parse(scenes.hidden.serialize());change(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);}
 });
-test('9: six ordinary floors have no affixes, depth offset controls both chance and growth',()=>{
- for(let f=1;f<=6;f++){assert.equal(affixChance(f),0);assert.ok(generate(19,f).enemies.every(e=>!e.affixes.length));}
- assert.equal(affixChance(1,6),affixChance(7));assert.equal(scaleEnemy(100,1,'hp',6),107);const low=generate(19,1),high=generate(19,1,[],6);for(let i=0;i<low.enemies.length;i++)if(!low.enemies[i].expendable)assert.equal(high.enemies[i].hp,scaleEnemy(low.enemies[i].hp,1,'hp',6));
+// 3.137.0 (user decision): on easy (and the classic curve) the six ordinary floors still have no affixes; standard starts
+// them on floor 3 at 5% a floor.
+test('9: six ordinary floors have no affixes on easy, standard starts on floor 3, depth offset controls both chance and growth',()=>{
+ const easy=o=>({curve:'easy',offset:o});
+ for(let f=1;f<=6;f++){assert.equal(affixChance(f,easy(0)),0);assert.ok(generate(19,f,[],easy(0)).enemies.every(e=>!e.affixes.length));}
+ assert.deepEqual([1,2,3,4,6].map(f=>affixChance(f)),[0,0,.05,.1,.2]);assert.ok(generate(19,6).enemies.some(e=>e.affixes.length),'standard: affixes by floor 6');
+ assert.equal(affixChance(1,easy(6)),affixChance(7,easy(0)));assert.equal(scaleEnemy(100,1,'hp',{curve:'classic',offset:6}),107);assert.equal(scaleEnemy(100,1,'hp',6),104);const low=generate(19,1),high=generate(19,1,[],6);for(let i=0;i<low.enemies.length;i++)if(!low.enemies[i].expendable)assert.equal(high.enemies[i].hp,scaleEnemy(low.enemies[i].hp,1,'hp',6));
 });
 test('enemy rapid fire matches +1 round/-10 accuracy and actual three-round volley suppresses player without blanket protection',()=>{
  const g=affixArena(),e=sceneEnemy(g,'raider',['suppressor']);assert.equal(enemyWeapon(e).rounds,3);assert.equal(enemyWeapon(e).accuracyBonus,-10);e.charge=true;e.windup=1;sure(g);g.enemyAct(e);assert.equal(g.effects.filter(f=>f.type==='enemyShot').length,3);assert.equal(g.player.suppression,1);

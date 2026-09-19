@@ -48,9 +48,12 @@ test('explicit legacy endless floors retain campaign geometry, excluding data ob
  for(let f=1;f<=6;f++){const a=run(f),b=new Game(349,[],0,'soldier','onyx');if(f!==1){b.floor=f;b.loadFloor();}for(const key of ['grid','enemies','items','hazards','props'])assert.deepEqual(a[key],key==='items'?b[key].filter(i=>i.type!=='lore'):b[key]);}
  assert.equal(floorInfo(60).cycleFloor,6);assert.equal(extraEnemies(6),0);assert.equal(extraEnemies(7),1);assert.equal(extraEnemies(13),2);assert.equal(extraEnemies(19),3);assert.equal(extraEnemies(60),3);
 });
+// 3.137.0: standard grows +2 / +1 a floor and ×1.04 / ×1.03 past floor 6; the classic curve keeps +4 / +2 and ×1.07 / ×1.04.
 test('growth rounds once after old scaling and includes bosses; generated elites are unique and deterministic',()=>{
- for(const floor of [6,7,18,60])for(const type of ['rifleman','brute','warden','boss']){const def=ENEMY_TYPES[type],base=def.hp+(['boss','warden'].includes(type)?0:Math.max(0,floor-2)*(def.fragile?2:4));assert.equal(makeEnemy(type,1,1,'x',floor).maxHp,Math.round(base*1.07**Math.max(0,floor-6)));assert.equal(scaleEnemy(def.damage+floor*2,floor,'damage'),Math.round((def.damage+floor*2)*1.04**Math.max(0,floor-6)));}
- for(let seed=0;seed<20;seed++){const a=generate(seed,60),b=generate(seed,60);assert.deepEqual(a.enemies,b.enemies);assert.ok(a.enemies.every(e=>!e.traits.some(t=>t.source==='endless:elite')));assert.ok(a.enemies.some(e=>e.affixes.length));}assert.equal(affixChance(7),.04);assert.equal(affixChance(60),.5);
+ for(const floor of [6,7,18,60])for(const type of ['rifleman','brute','warden','boss']){const def=ENEMY_TYPES[type],boss=['boss','warden'].includes(type),base=def.hp+(boss?0:Math.max(0,floor-2)*(def.fragile?1:2)),old=def.hp+(boss?0:Math.max(0,floor-2)*(def.fragile?2:4));
+  assert.equal(makeEnemy(type,1,1,'x',floor).maxHp,Math.round(base*1.04**Math.max(0,floor-6)));assert.equal(scaleEnemy(def.damage+floor,floor,'damage'),Math.round((def.damage+floor)*1.03**Math.max(0,floor-6)));
+  assert.equal(makeEnemy(type,1,1,'x',floor,{curve:'classic',offset:0}).maxHp,Math.round(old*1.07**Math.max(0,floor-6)));assert.equal(scaleEnemy(def.damage+floor*2,floor,'damage',{curve:'classic',offset:0}),Math.round((def.damage+floor*2)*1.04**Math.max(0,floor-6)));}
+ for(let seed=0;seed<20;seed++){const a=generate(seed,60),b=generate(seed,60);assert.deepEqual(a.enemies,b.enemies);assert.ok(a.enemies.every(e=>!e.traits.some(t=>t.source==='endless:elite')));assert.ok(a.enemies.some(e=>e.affixes.length));}assert.equal(affixChance(7,{curve:'classic',offset:0}),.04);assert.equal(affixChance(7),.25);assert.equal(affixChance(60),.5);
 });
 test('current save rejects excess picks, wrong floor mode, corrupt legacy allowance; old over-cap history is preserved once',()=>{
  const g=run(25);rank(g,25);const raw=JSON.parse(g.serialize());assert.ok(Game.restore(JSON.stringify(raw)));
@@ -83,7 +86,7 @@ test('daily and quick pools remain the original six missions',()=>{
 });
 test('actual ranged and melee enemy attacks use deep-floor growth before defenses',()=>{
  for(const type of ['rifleman','brute','boss']){
-  const g=run(18);g.grid=g.grid.map(r=>r.map(()=>1));g.lighting=g.grid.map(r=>r.map(()=>1));g.props=[];g.barriers=[];g.allies=[];g.hazards=[];Object.assign(g.player,{x:10,y:10});const e=makeEnemy(type,10,11,'attack',18);Object.assign(e,{alert:true,charge:true,windup:1,aim:{x:10,y:10}});g.enemies=[e];g.reveal();g.rng=()=>0;let raw;g.damagePlayer=n=>{raw=n;};g.executeEnemy(e);assert.equal(raw,Math.round((ENEMY_TYPES[type].damage+36)*1.04**12));
+  const g=run(18);g.grid=g.grid.map(r=>r.map(()=>1));g.lighting=g.grid.map(r=>r.map(()=>1));g.props=[];g.barriers=[];g.allies=[];g.hazards=[];Object.assign(g.player,{x:10,y:10});const e=makeEnemy(type,10,11,'attack',18);Object.assign(e,{alert:true,charge:true,windup:1,aim:{x:10,y:10}});g.enemies=[e];g.reveal();g.rng=()=>0;let raw;g.damagePlayer=n=>{raw=n;};g.executeEnemy(e);assert.equal(raw,Math.round((ENEMY_TYPES[type].damage+18)*1.03**12));   // 3.137.0 standard: +1 a floor, ×1.03
  }
 });
 test('all modes limit a full level progression to nineteen choices',()=>{

@@ -1,21 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Game,AFFIX_TUNING,DIFFICULTY_TUNING,REAL_MODE_TUNING,validDifficultyOffset} from '../src/engine.js';
+import {Game,DIFFICULTY_TUNING,REAL_MODE_TUNING,validDifficultyOffset} from '../src/engine.js';
+import {DIFFICULTY_CURVES} from '../src/endless.js';
 import {FACTIONS,rollFacilityFaction} from '../src/factions.js';
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,runOptions,FACILITY_OPTIONS,facilityOption} from '../src/deploy-ui.js';
 
 test('run options default to standard, no real mode and a seed-rolled facility',()=>{
- assert.deepEqual(runOptions(),{realMode:false,difficultyOffset:DIFFICULTY_TUNING.defaultOffset,facilityFaction:'random'});
- assert.deepEqual(runOptions({difficulty:'standard',realMode:true}),{realMode:true,difficultyOffset:DIFFICULTY_TUNING.defaultOffset,facilityFaction:'random'});
+ assert.deepEqual(runOptions(),{realMode:false,difficulty:'standard',difficultyOffset:DIFFICULTY_TUNING.defaultOffset,facilityFaction:'random'});
+ assert.deepEqual(runOptions({difficulty:'standard',realMode:true}),{realMode:true,difficulty:'standard',difficultyOffset:DIFFICULTY_TUNING.defaultOffset,facilityFaction:'random'});
+ assert.equal(runOptions({difficulty:'easy'}).difficulty,'easy');   // 3.137.0
  assert.equal(runOptions({realMode:'on'}).realMode,false);
- assert.equal(runOptions({difficulty:'nightmare'}).difficultyOffset,DIFFICULTY_TUNING.defaultOffset,'unknown ids fall back to standard');
+ assert.equal(runOptions({difficulty:'nightmare'}).difficultyOffset,DIFFICULTY_TUNING.defaultOffset,'unknown ids fall back to standard');assert.equal(runOptions({difficulty:'nightmare'}).difficulty,'standard');
  assert.equal(runOptions({facility:'rebel'}).facilityFaction,'rebel');assert.equal(runOptions({facility:'nowhere'}).facilityFaction,'random');
 });
 
-test('the reserved difficulty list and facility list are valid and read the tuning tables',()=>{
- assert.ok(DIFFICULTY_OPTIONS.length>=1&&DIFFICULTY_OPTIONS.every(d=>validDifficultyOffset(d.offset)));
+// 3.137.0 (user decision): 簡單 and 標準, standard by default; the old curve is not offered.
+test('the difficulty list and facility list are valid and read the tuning tables',()=>{
+ assert.deepEqual(DIFFICULTY_OPTIONS.map(d=>[d.id,d.name,d.curve]),[['easy','簡單','easy'],['standard','標準','standard']]);
+ assert.ok(DIFFICULTY_OPTIONS.every(d=>validDifficultyOffset(d.offset)&&DIFFICULTY_CURVES[d.curve]));
  assert.equal(difficultyOption().id,'standard');
- assert.equal(difficultyMeta(difficultyOption()),`詞條自第 ${AFFIX_TUNING.startDepth-DIFFICULTY_TUNING.defaultOffset} 層`);
+ assert.equal(difficultyMeta(difficultyOption()),`詞條自第 ${DIFFICULTY_CURVES.standard.affixStart} 層 · 第 2 層起出現特殊敵人`);
+ assert.equal(difficultyMeta(difficultyOption('easy')),`詞條自第 ${DIFFICULTY_CURVES.easy.affixStart} 層`);
  assert.ok(realModeMeta().includes(String(REAL_MODE_TUNING.protocolPercent)));
  assert.equal(FACILITY_OPTIONS[0].id,'random');assert.equal(facilityOption().id,'random');
  assert.deepEqual(FACILITY_OPTIONS.slice(1).map(o=>o.id).sort(),Object.keys(FACTIONS).sort());

@@ -91,9 +91,9 @@ test('ordinary enemy fire follows the new player position, while thrown grenades
   assert.deepEqual(grenade.effects.find(f=>f.style==='grenade').to,{x:14,y:10});assert.equal(flee.hp,500);assert.equal(grenade.player.grenades,1);
 });
 test('previous waiting protection lasts until player acts, and a new wait cannot protect against earlier fast fire',()=>{
-  const g=arena(),e=enemy(g,'fast');trait(e,'fast');e.charge=true;e.windup=1;g.action('wait');assert.equal(g.player.hp,81,'first fast shot happens before wait protection');
-  e.charge=true;g.action('reload');assert.equal(g.player.hp,81,'invalid reload cannot advance a fast enemy');
-  g.action('wait');assert.equal(g.player.hp,71,'previous wait still halves the next fast shot before player renewal');
+  const g=arena(),e=enemy(g,'fast');trait(e,'fast');e.charge=true;e.windup=1;g.action('wait');assert.equal(g.player.hp,82,'first fast shot happens before wait protection');/* 3.137.0: floor-1 damage +1 a floor */
+  e.charge=true;g.action('reload');assert.equal(g.player.hp,82,'invalid reload cannot advance a fast enemy');
+  g.action('wait');assert.equal(g.player.hp,73,'previous wait still halves the next fast shot before player renewal');/* 3.137.0: 18 halved is 9 */
 });
 test('temporary opposites expire after one whole committed round and survive saves',()=>{
   const g=arena(),e=enemy(g,'e');trait(e,'fast');trait(e,'slow',1);const restored=Game.restore(g.serialize());assert.ok(restored);assert.equal(initiative(restored.enemies[0]),0);

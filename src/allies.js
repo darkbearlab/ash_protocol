@@ -78,7 +78,8 @@ export function addAlly(g,kind,type,{sourceId=null,missionId=null,point=g.player
  // Drones are bounded by the workshop's deploy limit where they are deployed, not here.
  if(kind==='pet'&&g.allies.some(a=>a.kind==='pet')||kind==='summon'&&g.allies.filter(a=>a.kind==='summon'&&a.status==='active').length>=summonLimit(g.player))return null;
  if(status==='active'&&(!g.passable(point.x,point.y)||occupied(g,point)))return null;
- const a={...makeEnemy(type,point.x,point.y,`ally-${++g.allySerial}`,g.floor),kind,sourceId,missionId,floor:g.floor,status,order:null,ammo:0,bornTurn:g.turn};
+ // 3.137.0: allies are yours, so the enemy difficulty curve never touches them; they keep the classic growth.
+ const a={...makeEnemy(type,point.x,point.y,`ally-${++g.allySerial}`,g.floor,{curve:'classic',offset:0}),kind,sourceId,missionId,floor:g.floor,status,order:null,ammo:0,bornTurn:g.turn};
  if(kind==='pet')g.player.petBond=newPetBond(a.id);
  a.maxHp=a.hp=kind==='drone'?DRONE_HP:kind==='pet'?petMaxHp(g.player):Math.max(32,Math.min(150,a.hp));a.armor=kind==='pet'?1:0;
  if(kind==='pet')a.traits=[{id:'biological',source:'ally:pet'},{id:'no_cover',source:'ally:pet'}];

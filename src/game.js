@@ -16,7 +16,7 @@ import {enemyOpportunity,executeEnemyTree,enemyDeath,enemyWeapon} from './enemy-
 import {enemyCallout,validEnemyIntent,validEnemyMarks} from './enemy-intents.js';
 import {enemyDisplayName,rollEnemyAffixes,migrateEnemyAffixes,validEnemyAffixes} from './enemy-affixes.js';
 import {migrateResistance,grantNativeResistance} from './suppression.js';
-import {DIFFICULTY_TUNING,validDifficultyOffset} from './endless.js';
+import {DIFFICULTY_TUNING,validDifficultyOffset,DEFAULT_CURVE,validCurve} from './endless.js';
 import {shotDamageAllowed,pinned,tickSuppression,finishSuppression,migrateSuppression} from './suppression.js';
 import {suppressiveReason,suppressiveFire} from './suppressive-fire.js';
 import {learningReason,useLearning,validLearningInventory} from './learning.js';
@@ -133,6 +133,8 @@ export class Game {
     if(options.simulation)this.simulation=structuredClone(options.simulation);
     lockRealMode(this,options.realMode??false);
     this.difficultyOffset=options.difficultyOffset??DIFFICULTY_TUNING.defaultOffset;if(!validDifficultyOffset(this.difficultyOffset))throw new Error('Invalid difficulty offset');
+    // 3.137.0 (docs/DIFFICULTY.md): the difficulty curve, easy or standard; 'classic' only for runs started earlier.
+    this.difficulty=options.difficulty??DEFAULT_CURVE;if(!validCurve(this.difficulty))throw new Error('Invalid difficulty');
     this.facilityFaction=options.facilityFaction==='random'?rollFacilityFaction(seed):factionDef(options.facilityFaction)?options.facilityFaction:pickFacilityFaction(seed,mission);this.mission=newMission(mission);this.carryLevel=carryLevels(0);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
     this.player.skills=[...(CHARACTERS[character].skills||[])];this.player.skillState=initialSkillState(this.player.skills);
@@ -143,7 +145,9 @@ export class Game {
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   // Overridable by isolated simulation fixtures; live campaigns use the current recipe pool.
-  generateFloor(){this.facilityFaction=endlessFaction(this);return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultyOffset,this.facilityFaction);}
+  // The difficulty the rules read: the curve and the knob's offset together.
+  get difficultySpec(){return {curve:this.difficulty,offset:this.difficultyOffset};}
+  generateFloor(){this.facilityFaction=endlessFaction(this);return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultySpec,this.facilityFaction);}
   loadFloor() {
     endSkillEffects(this.player);this.sensorContacts=[];this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
     Object.assign(this,{swarmWaves:undefined,mapStyle:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
@@ -156,7 +160,7 @@ export class Game {
   get activeAllies(){return currentAllies(this);}
   get localAllies(){return localAllies(this);}
   enemyCallout(actor,kind,detail){enemyCallout(this,actor,kind,detail);}
-  spawnEnemy(type,x,y,id){return rollEnemyElite(rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,this.difficultyOffset,this.facilityFaction),this.seed,this.floor,this.difficultyOffset),this.seed,this.floor,this.difficultyOffset);}
+  spawnEnemy(type,x,y,id){const d=this.difficultySpec;return rollEnemyElite(rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,d,this.facilityFaction),this.seed,this.floor,d),this.seed,this.floor,d);}
   actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):enemyWeapon(actor);}
   meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b));}
   defensiveEvasion(a,b){return defensiveEvasion(this,a,b);}
@@ -442,7 +446,7 @@ export class Game {
     }
     if(this.floor===floor&&this.status==='playing'&&p.hp>0){
       const due=this.marks.filter(m=>m.due<=this.turn);this.marks=this.marks.filter(m=>m.due>this.turn);
-      for(const m of due){if(p.hp<=0)break;presentStep(this,()=>this.explode(m,m.radius??1,m.damage??scaleEnemy(38,this.floor,'damage',this.difficultyOffset)));}
+      for(const m of due){if(p.hp<=0)break;presentStep(this,()=>this.explode(m,m.radius??1,m.damage??scaleEnemy(38,this.floor,'damage',this.difficultySpec)));}
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>resolveRetreatWave(this));
       if(p.hp>0)presentStep(this,()=>this.environmentTurn());
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>tickNests(this));
@@ -1111,6 +1115,9 @@ export class Game {
       if(typeof data.realMode!=='boolean')return null;
       if(version<38){data.marks??=[];migrateEnemyAffixes(data);migrateResistance(data);}
       if(!validDifficultyOffset(data.difficultyOffset))return null;
+      // 3.137.0: a run started before the difficulty curves keeps the curve it began on.
+      if(version<64)data.difficulty='classic';
+      if(!validCurve(data.difficulty))return null;
       // 3.113.0: class skills are no longer learnable. Anything still holding one of the retired data items becomes
       // the scrap it would have dismantled for, wherever it is: in the pack, on the ground, or in an unopened case,
       // on this floor and on every archived one. Skills already learned from them are kept.

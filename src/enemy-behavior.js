@@ -6,7 +6,7 @@ import {ENEMY_TYPES} from './data.js';
 import {DIRECTIONS,distance,key} from './world.js';
 import {activeTrait,recordShot} from './traits.js';
 import {pinned,finishSuppression,rapidFireModifiers} from './suppression.js';
-import {scaleEnemy} from './endless.js';
+import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
 import {UNIT_TREES,unitTree,registerUnitTree,registerAffixBranch,runAffixBranches} from './behavior-tree.js';
@@ -41,7 +41,7 @@ return false;
 function move({g,e,p,def,los,d}){
         const destination=los?p:e.lastKnown;
         const plan=los&&!(def.range===1&&d<=1)?combatStep(g,e,p,{range:def.range,melee:def.range===1,peers:g.enemies.filter(b=>b.hp>0&&b.alert),hold:true}):null;
-        const step=pinned(e)||plan?.hold?null:plan?.step||(destination&&distance(e,destination)>0?g.nextStep(e,destination):null);if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultyOffset));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultyOffset));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}}
+        const step=pinned(e)||plan?.hold?null:plan?.step||(destination&&distance(e,destination)>0?g.nextStep(e,destination):null);if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}}
 
 }
 function reinforce({g,e,p}){
@@ -53,7 +53,7 @@ function reinforce({g,e,p}){
 
 }
 function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold'});const fired=def.range>1,rapid=fired&&activeTrait(e,'rapid_fire'),weapon=enemyWeapon(e),rounds=fired?weapon.rounds:1,hits=new Set();let firedRounds=0,poisonApplied=false;
- const totalDamage=def.expendable?def.damage:scaleEnemy(def.damage+g.floor*2,g.floor,'damage',g.difficultyOffset),baseRounds=fired?(enemyDef(e)?.rounds||1):1;
+ const totalDamage=def.expendable?def.damage:scaleEnemy(def.damage+floorDamageBonus(g.floor,g.difficultySpec),g.floor,'damage',g.difficultySpec),baseRounds=fired?(enemyDef(e)?.rounds||1):1;
  for(let n=0;n<rounds&&p.hp>0;n++){const before=p.hp,roundDamage=Math.max(1,Math.floor(totalDamage/baseRounds)+(n%baseRounds<totalDamage%baseRounds?1:0));firedRounds++;if(rapid&&n>=baseRounds)revealEnemyAffix(g,e,'suppressor');
         if(fired)g.recordExposure(e,unitTree(e).fixedTile&&e.aim?e.aim:p);if(fired)spentCase(g,e,enemyDef(e)?.casing);
         if(unitTree(e).fixedTile&&e.aim&&!g.shotClear(e,e.aim)){const edge=firstBarrierOnRay(g.barriers,e,e.aim);g.log('狙擊彈被門或隔板阻擋。');g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:edge?{x:edge.x,y:edge.y}:{...e.aim},damage:0});if(edge)g.damageProp(edge,roundDamage);}
@@ -70,7 +70,7 @@ if(p.hp<before)hits.add(p);
 }
 function grenade(ctx){const {g,e,p,los}=ctx,intent=e.grenadeIntent;
  if(intent){if((intent.targetId&&![g.player,...g.activeAllies].some(a=>(a.id||'player')===intent.targetId&&a.hp>0))||!los||distance(e,intent.origin)>0||distance(e,p)>AFFIX_TUNING.grenadeRange){interruptEnemyIntent(e,'target_lost');return true;}
- g.marks.push({kind:'grenade',phase:'flight',sourceId:e.id,x:intent.x,y:intent.y,origin:{...intent.origin},radius:AFFIX_TUNING.grenadeRadius,damage:scaleEnemy(AFFIX_TUNING.grenadeDamage,g.floor,'damage',g.difficultyOffset),due:g.turn+1});delete e.grenadeIntent;
+ g.marks.push({kind:'grenade',phase:'flight',sourceId:e.id,x:intent.x,y:intent.y,origin:{...intent.origin},radius:AFFIX_TUNING.grenadeRadius,damage:scaleEnemy(AFFIX_TUNING.grenadeDamage,g.floor,'damage',g.difficultySpec),due:g.turn+1});delete e.grenadeIntent;
  g.effects.push({type:'enemyTelegraph',phase:'flight',from:{...intent.origin},to:{x:intent.x,y:intent.y},damage:0});g.recordExposure(e,intent);g.log(`${enemyName(e)}已投出榴彈！`,true);return true;}
  e.grenadeIntent={stage:'prepare',targetId:p.id||'player',x:p.x,y:p.y,origin:{x:e.x,y:e.y}};revealEnemyAffix(g,e,'grenadier');g.effects.push({type:'enemyTelegraph',phase:'prepare',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});enemyCallout(g,e,'telegraph',{action:'grenade'});g.log(`${enemyName(e)}準備投彈！`,true);return true;
 }
@@ -120,7 +120,7 @@ function munitionAct(ctx){
 }
 // Shooting it down sets it off where it stands, exactly like a barrel or a rigged case; at its strike range the blast
 // cannot reach the player, which is what makes shooting it the safe answer.
-registerUnitTree('munition',{before:munitionAct,death:({g,e})=>g.explode(e,MUNITION_RADIUS,scaleEnemy(ENEMY_TYPES.munition.damage,g.floor,'damage',g.difficultyOffset))});
+registerUnitTree('munition',{before:munitionAct,death:({g,e})=>g.explode(e,MUNITION_RADIUS,scaleEnemy(ENEMY_TYPES.munition.damage,g.floor,'damage',g.difficultySpec))});
 registerUnitTree('civilian',{before:civilianAction});
 registerUnitTree('sniper',{windup:2,fixedTile:true});
 registerUnitTree('boss',{beforeAttack:({g,e,p})=>{if((e.attackCount||0)%2!==1||e.charge)return false;g.marks.push({x:p.x,y:p.y,due:g.turn+2});e.attackCount++;enemyCallout(g,e,'telegraph',{action:'bombard'});g.log('核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！',true);return true;},after:reinforce});
@@ -145,7 +145,7 @@ function selfOrders(ctx){
 // 3.132.0: a member's part is the post or bound order its leader gives it (src/squad.js), run with the other orders.
 // The bot is its own attacker when it blows itself up, so a self-destruct never gives the workshop a blueprint (3.94.0).
 // 3.134.0: a swarm bomber leaves what its sac held (mist, acid or spore smoke) where it bursts; others just burst.
-registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>{g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultyOffset));releasePayload(g,e);}});
+registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>{g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultySpec));releasePayload(g,e);}});
 registerUnitTree('fodder',{before:({e})=>{if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return true;}e.actionDelay=1;return false;}});
 registerUnitTree('brood',{});
 export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);}

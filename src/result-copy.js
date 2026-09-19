@@ -40,6 +40,6 @@ export function resultCopy(g){
 export function retryPlan(g){
   return {
     mission:g.mission.id,seed:g.seed,character:g.player.character,
-    options:{realMode:g.realMode===true,difficultyOffset:g.difficultyOffset,facilityFaction:g.facilityFaction===rollFacilityFaction(g.seed)?'random':g.facilityFaction},
+    options:{realMode:g.realMode===true,difficulty:g.difficulty,difficultyOffset:g.difficultyOffset,facilityFaction:g.facilityFaction===rollFacilityFaction(g.seed)?'random':g.facilityFaction},
   };
 }

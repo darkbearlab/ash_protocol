@@ -2,7 +2,7 @@
 // Text client (3.124.0, user request): plays a campaign through the real rules, one shell call at a time, and writes an
 // operation log (src/replay.js) that the browser replays with `?test=1` → 設定 → 播放操作紀錄. See docs/TEXT_PLAY.md.
 //
-//   node tools/text-play.mjs new <log.json> [--seed N] [--class soldier] [--faction rebel] [--mission extraction]
+//   node tools/text-play.mjs new <log.json> [--seed N] [--class soldier] [--faction rebel] [--mission extraction] [--difficulty easy|standard]
 //   node tools/text-play.mjs <log.json> "<command>; <command>; ..."     (no commands = look)
 //   node tools/text-play.mjs verify <log.json>
 //
@@ -428,8 +428,9 @@ function main(argv){
   if(!CHARACTERS[character])fail(`未知職業 ${character}。`);if(!MISSIONS[mission])fail(`未知任務 ${mission}。`);
   const faction=o.faction||'random',facilityFaction=faction==='random'?rollFacilityFaction(seed):faction;
   if(faction!=='random'&&!factionDef(facilityFaction))fail(`未知派系 ${faction}。`);
-  const fresh=new Game(seed,[],0,character,'onyx',mission,{facilityFaction,realMode:false});
-  const {log,game}=createReplay(fresh,{seed,character,mission,facilityFaction,tool:'text-play'});
+  const difficulty=o.difficulty||'standard';if(!['easy','standard'].includes(difficulty))fail(`未知難度 ${difficulty}（easy 或 standard）。`);
+  const fresh=new Game(seed,[],0,character,'onyx',mission,{facilityFaction,realMode:false,difficulty});
+  const {log,game}=createReplay(fresh,{seed,character,mission,facilityFaction,difficulty,tool:'text-play'});
   save(file,log,game);console.log([`已建立 ${file}（種子 ${seed}）。`,...look(game),LEGEND,'輸入 help 看指令。'].join('\n'));return;
  }
  if(first==='verify'){

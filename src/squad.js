@@ -124,7 +124,7 @@ export function postSquads(g){
   for(const spacing of [2,1]){spots=[];for(const q of front)if(spots.length<types.length&&spots.every(s=>distance(s,q)>=spacing))spots.push(q);if(spots.length===types.length)break;}
   if(spots.length<types.length)continue;
   const id=`squad-${g.floor}-${placed}`,f=g.facilityFaction;
-  const units=[makeEnemy('squad_leader',leaderAt.x,leaderAt.y,`${id}-L`,g.floor,g.difficultyOffset,f),...types.map((t,j)=>makeEnemy(t,spots[j].x,spots[j].y,`${id}-${j}`,g.floor,g.difficultyOffset,f))];
+  const units=[makeEnemy('squad_leader',leaderAt.x,leaderAt.y,`${id}-L`,g.floor,g.difficultySpec,f),...types.map((t,j)=>makeEnemy(t,spots[j].x,spots[j].y,`${id}-${j}`,g.floor,g.difficultySpec,f))];
   for(const u of units)taken.add(key(u));
   g.enemies.push(...units);placed++;
  }

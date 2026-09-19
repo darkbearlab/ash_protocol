@@ -71,7 +71,7 @@ test('sideways movement changes actual hit rolls independently for crossing enem
   const g=arena('recon');enemy(g,14,10,'east');enemy(g,10,14,'south');g.rng=()=>.6;
   const {steps}=captureAction(g,()=>g.action('move',[0,1]));
   const shots=steps.flatMap(s=>s.effects).filter(e=>e.type==='enemyShot');assert.equal(shots.length,2);
-  assert.equal(shots[0].miss,true);assert.equal(shots[1].miss,undefined);assert.equal(g.player.hp,81);
+  assert.equal(shots[0].miss,true);assert.equal(shots[1].miss,undefined);assert.equal(g.player.hp,82);   // 3.137.0: floor-1 enemy damage +1 a floor
 });
 test('quick reload transfers only missing pistol ammunition and preserves fast enemies, environment and all bonuses',()=>{
   const g=arena('recon'),e=enemy(g);grantTrait(e,'fast','test',2);grantTrait(g.player,'slow','test',2);Object.assign(g.player,{ammo:[0,4,16,0,0,0],pistol:1,guard:true,focus:true,evasive:true,moved:true,moveDelta:[0,1],poison:3});g.hazards=[{x:10,y:10,type:'fire'}];g.marks=[{x:10,y:10,due:1}];

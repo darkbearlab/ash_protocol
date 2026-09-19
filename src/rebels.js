@@ -188,7 +188,7 @@ export function recruitConscripts(g){
   if(e.hp<=0||!isRebel(e)||e.conscript||elite(e)||!CONSCRIPT_TYPES.includes(e.type))continue;
   const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(q=>g.passable(q.x,q.y)&&!taken.has(key(q))&&!g.props.some(o=>distance(o,q)===0)&&!g.hazards.some(h=>distance(h,q)===0)&&g.canCross(e,q));
   if(!spot)continue;taken.add(key(spot));
-  const c=makeEnemy(e.type,spot.x,spot.y,`${e.id}-c`,g.floor,g.difficultyOffset,e.faction);
+  const c=makeEnemy(e.type,spot.x,spot.y,`${e.id}-c`,g.floor,g.difficultySpec,e.faction);
   c.conscript=true;c.faction=e.faction;recruits.push(c);
  }
  g.enemies.push(...recruits);

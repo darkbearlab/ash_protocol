@@ -1,14 +1,18 @@
 // Deployment step 3 (3.76.2, Claude): the difficulty knob's reserved slot and the real-mode switch.
-// Only runOptions() reaches the rules layer; numbers come from DIFFICULTY_TUNING, AFFIX_TUNING and REAL_MODE_TUNING.
-import {DIFFICULTY_TUNING,validDifficultyOffset} from './endless.js';
-import {AFFIX_TUNING} from './enemy-affixes.js';
+// Only runOptions() reaches the rules layer; numbers come from DIFFICULTY_TUNING, DIFFICULTY_CURVES and REAL_MODE_TUNING.
+import {DIFFICULTY_TUNING,DIFFICULTY_CURVES,validDifficultyOffset} from './endless.js';
 import {REAL_MODE_TUNING} from './real-mode.js';
 import {FACTIONS,factionDef} from './factions.js';
 
-// The future knob adds rows here; the step renders whatever is listed. Today only standard exists.
-export const DIFFICULTY_OPTIONS=Object.freeze([Object.freeze({id:'standard',name:'標準',offset:DIFFICULTY_TUNING.defaultOffset})]);
-export const difficultyOption=id=>DIFFICULTY_OPTIONS.find(d=>d.id===id)||DIFFICULTY_OPTIONS[0];
-export const difficultyMeta=d=>`詞條自第 ${Math.max(1,AFFIX_TUNING.startDepth-d.offset)} 層`;
+// 3.137.0 (user decisions, docs/DIFFICULTY.md): easy and standard curves; standard is the default. The step renders
+// whatever is listed; an option is a curve plus the knob's offset.
+export const DIFFICULTY_OPTIONS=Object.freeze([
+ Object.freeze({id:'easy',name:'簡單',curve:'easy',offset:DIFFICULTY_TUNING.defaultOffset}),
+ Object.freeze({id:'standard',name:'標準',curve:'standard',offset:DIFFICULTY_TUNING.defaultOffset}),
+]);
+export const DEFAULT_DIFFICULTY='standard';
+export const difficultyOption=id=>DIFFICULTY_OPTIONS.find(d=>d.id===id)||DIFFICULTY_OPTIONS.find(d=>d.id===DEFAULT_DIFFICULTY);
+export const difficultyMeta=d=>{const c=DIFFICULTY_CURVES[d.curve];return `詞條自第 ${Math.max(1,c.affixStart-d.offset)} 層${c.preview?' · 第 2 層起出現特殊敵人':''}`;};
 export const realModeMeta=()=>`協定點數 +${REAL_MODE_TUNING.protocolPercent}%`;
 export const REAL_MODE_NOTE='瞄準只顯示名稱與距離，隱藏生命、耐久、命中率、壓制層數與傷害數字；預告與喊話照常。部署後整局不能切換。';
 
@@ -21,6 +25,6 @@ export const FACILITY_OPTIONS=Object.freeze([
 export const facilityOption=id=>FACILITY_OPTIONS.find(o=>o.id===id)||FACILITY_OPTIONS[0];
 
 export function runOptions({difficulty,realMode,facility}={}){
- const offset=difficultyOption(difficulty).offset;
- return {realMode:realMode===true,difficultyOffset:validDifficultyOffset(offset)?offset:DIFFICULTY_TUNING.defaultOffset,facilityFaction:factionDef(facility)?facility:'random'};
+ const chosen=difficultyOption(difficulty),offset=chosen.offset;
+ return {realMode:realMode===true,difficulty:chosen.curve,difficultyOffset:validDifficultyOffset(offset)?offset:DIFFICULTY_TUNING.defaultOffset,facilityFaction:factionDef(facility)?facility:'random'};
 }

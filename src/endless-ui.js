@@ -1,6 +1,6 @@
 import {AFFIX_TUNING} from './enemy-affixes.js';
 // Endless-mode and level-cap display helpers (3.49.1, Claude). Pure reads, so tests reach them without the DOM.
-import {MAX_LEVEL,ENDLESS_DISPLAY_FLOORS,ENDLESS_TUNING,capSupplyText} from './endless.js';
+import {MAX_LEVEL,ENDLESS_DISPLAY_FLOORS,ENDLESS_TUNING,capSupplyText,curveOf} from './endless.js';
 import {floorInfo} from './data.js';
 
 const pad=n=>String(n).padStart(2,'0');
@@ -25,8 +25,9 @@ export function endlessRecordRows(records,names){
   return {best:`第 ${depthLabel(e.best.floor)} 層 · LV.${pad(e.best.level)} · ${e.best.kills} 擊殺`,
     classes:Object.entries(e.byCharacter||{}).filter(([id])=>names[id]).sort((a,b)=>b[1].floor-a[1].floor).map(([id,r])=>`${names[id]} ${r.floor}`)};
 }
-// Deep-floor growth for the arrival toast, e.g. "敵人生命 ×1.50、攻擊 ×1.27"; empty on floors 1–6.
-export const growthLabel=floor=>floor<=6?'':`敵人生命 ×${((1+ENDLESS_TUNING.hpGrowth)**(floor-6)).toFixed(2)}、攻擊 ×${((1+ENDLESS_TUNING.damageGrowth)**(floor-6)).toFixed(2)}`;
+// Deep-floor growth for the arrival toast, e.g. "敵人生命 ×1.50、攻擊 ×1.27"; empty on floors 1–6. 3.137.0: the rates
+// belong to the run's difficulty curve.
+export const growthLabel=(floor,d)=>{const c=curveOf(d);return floor<=6?'':`敵人生命 ×${((1+c.hpGrowth)**(floor-6)).toFixed(2)}、攻擊 ×${((1+c.damageGrowth)**(floor-6)).toFixed(2)}`;};
 // Arrival text for an endless floor: the cycled floor note, except the tutorial line past floor 6 and the
 // extraction wording on core floors (endless never extracts).
 export function endlessFloorText(floor){

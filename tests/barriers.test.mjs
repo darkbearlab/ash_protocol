@@ -91,8 +91,8 @@ test('closed edges prevent terminal, weapon and elevator interactions across the
 });
 test('closing a door intercepts an already aimed sniper shot and preserves projectile-first feedback',()=>{
   const g=arena(true),b=gate(g),e=enemy(g,'sniper',13);b.open=true;e.charge=true;e.windup=1;e.aim={x:10,y:10};g.reveal();
-  const {steps}=captureAction(g,()=>g.action('door',{id:b.id,open:false}));assert.equal(g.player.hp,500);assert.equal(b.hp,35);
-  const shot=steps.find(s=>s.effects.some(e=>e.type==='enemyShot'));assert.ok(shot);assert.equal(shot.before.barriers[0].hp,60);assert.equal(shot.after.barriers[0].hp,35);assert.deepEqual(shot.effects.find(e=>e.type==='enemyShot').to,{x:10.5,y:10});assert.ok(planPresentation(steps).duration>0);
+  const {steps}=captureAction(g,()=>g.action('door',{id:b.id,open:false}));assert.equal(g.player.hp,500);assert.equal(b.hp,36);   // 3.137.0: floor-1 enemy damage +1 a floor, not +2
+  const shot=steps.find(s=>s.effects.some(e=>e.type==='enemyShot'));assert.ok(shot);assert.equal(shot.before.barriers[0].hp,60);assert.equal(shot.after.barriers[0].hp,36);assert.deepEqual(shot.effects.find(e=>e.type==='enemyShot').to,{x:10.5,y:10});assert.ok(planPresentation(steps).duration>0);
 });
 test('first-step path planning can approach doors but never path through a fixed partition',()=>{
   const g=arena(true),b=gate(g,'partition'),e=enemy(g,'rifleman',13);assert.equal(g.nextStep(e,g.player),null);assert.equal(g.canRoute(g.player,{x:11,y:10}),false);

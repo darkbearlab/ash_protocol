@@ -7,10 +7,14 @@ import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 import {addAlly} from '../src/allies.js';
 
-test('elite depth curve starts at 9, uses offset, and caps at 15 percent',()=>{
- for(let f=1;f<9;f++)assert.equal(eliteChance(f),0);
- assert.equal(eliteChance(9),.02);assert.equal(eliteChance(3,6),.02);
- assert.equal(eliteChance(15),.14);assert.equal(eliteChance(16),.15);assert.equal(eliteChance(999),.15);
+// 3.137.0: the start belongs to the curve — 9 on easy (as before), 7 on standard.
+test('elite depth curve starts at 9 on easy and 7 on standard, uses offset, and caps at 15 percent',()=>{
+ const easy={curve:'easy',offset:0},easyAt=(f,o=0)=>eliteChance(f,{curve:'easy',offset:o});
+ for(let f=1;f<9;f++)assert.equal(eliteChance(f,easy),0);
+ assert.equal(easyAt(9),.02);assert.equal(easyAt(3,6),.02);
+ assert.equal(easyAt(15),.14);assert.equal(easyAt(16),.15);assert.equal(easyAt(999),.15);
+ for(let f=1;f<7;f++)assert.equal(eliteChance(f),0);assert.equal(eliteChance(7),.02);assert.equal(eliteChance(14),.15);
+ assert.equal(eliteChance(9,{curve:'classic',offset:0}),.02);
 });
 test('independent elite stream preserves every nonelite and fills only applicable hidden affixes',()=>{
  let elites=0,normal=0;

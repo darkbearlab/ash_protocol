@@ -14,7 +14,7 @@ import {MERGED_RECIPES,selectMergeRecipe,mergePlans,mergeMap} from './map-mergin
 import {OPENING_RECIPES,addOpenings} from './map-openings.js';
 import {ANNEX_RECIPES,addAnnexes,addRequestedAnnexes} from './map-annexes.js';
 import {placePopulation,reservationPosts} from './map-population.js';
-import {ENDLESS_TUNING,extraEnemies,scaleEnemy} from './endless.js';
+import {ENDLESS_TUNING,extraEnemies,scaleEnemy,floorHpBonus,curveOf} from './endless.js';
 import {createLighting} from './lighting.js';
 import {selectSupplyStations,addLivingModules,moduleCells} from './modules.js';
 import {floorTerminalKinds,KIND_ROOMS} from './terminal-kinds.js';
@@ -53,15 +53,26 @@ export function lineOfSight(grid,a,b,barriers=[],channel='sight') {
 export const SWARM_PAYLOADS=Object.freeze(['toxic','acid','spore']);
 export function swarmPayload(id){let h=0;for(const ch of String(id))h=(h*31+ch.charCodeAt(0))>>>0;return SWARM_PAYLOADS[h%SWARM_PAYLOADS.length];}
 export function makeEnemy(type,x,y,id,floor=1,offset=0,faction=DEFAULT_FACTION) {
-  const def=ENEMY_TYPES[type],hp=def.expendable||isNoncombatant(type)?def.hp:scaleEnemy(def.hp+(isBossClass(type)?0:Math.max(0,floor-2)*(def.fragile?2:4)),floor,'hp',offset);
+  const def=ENEMY_TYPES[type],hp=def.expendable||isNoncombatant(type)?def.hp:scaleEnemy(def.hp+(isBossClass(type)?0:floorHpBonus(floor,offset,def.fragile)),floor,'hp',offset);
   const e={id,type,x,y,hp,maxHp:hp,faction,...(isNoncombatant(type)?{screamCooldown:0}:{}),...(def.combat?{combatModifiers:{...def.combat}}:{}),...(def.expendable?{expendable:true,reinforcement:true,actionDelay:0}:{}),vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
   // 3.134.0 (docs/SWARM_FIELDS.md): a swarm spore bomber carries one sac, fixed by its id — no dice.
   if(faction==='swarm'&&def.sacs)e.traits=[...e.traits,{id:`payload_${swarmPayload(id)}`,source:'payload'}];
   return e;
 }
+// 3.137.0 (user decision, docs/DIFFICULTY.md): on the standard curve, floor 2 previews one of the special enemies that
+// floor 3 brings in full. One ordinary enemy from the early roster, picked by a fixed hash, becomes the faction's
+// preview card in place; nothing else about the floor changes. Done before affixes are rolled, like any other enemy.
+export function previewSpecial(map,seed,floor,difficulty,faction){
+  const type=factionDef(faction)?.preview;if(floor!==2||!type||!curveOf(difficulty).preview)return map;
+  const early=new Set(factionDef(faction).roster.early.map(([id])=>id)),scout=`${floor}-scout`;
+  const eligible=map.enemies.filter(e=>e.id!==scout&&early.has(e.type)&&!isBossClass(e.type)&&!isNoncombatant(e.type));if(!eligible.length)return map;
+  let h=2166136261;for(const c of `${seed}:${floor}:preview-v1`){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}
+  const old=eligible[(h>>>0)%eligible.length];map.enemies[map.enemies.indexOf(old)]=makeEnemy(type,old.x,old.y,old.id,floor,difficulty,faction);
+  return map;
+}
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return themeTerminals(addSwarmWaves(addNoncombatants(map,seed,floor,faction),seed,floor,faction),seed,floor);}
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return themeTerminals(addSwarmWaves(addNoncombatants(map,seed,floor,faction),seed,floor,faction),seed,floor);}
 // 3.135.0 (user decision, docs/ITEMS.md): once everything else stands, each of the floor's two terminals takes its kind
 // and moves to the supply room of that kind. Done last, so nothing else on the floor shifts; the room's reserved console
 // corner is tried first, and a terminal that finds no free tile there that keeps the floor safe stays put, still typed.
@@ -154,7 +165,8 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
   const pool=factionPool(faction,floor);
 
   // Explicit v1 compatibility baseline retains its historical RNG draw positions and elite payload.
-  const spawnEnemy=(type,x,y,id)=>{const e=makeEnemy(type,x,y,id,floor,0,faction);if(floor>6&&!isBossClass(type)&&rng()<Math.min(.5,(floor-6)*.04)){const options=['fast','infrared','night_vision'].filter(id=>!e.traits.some(t=>t.id===id));if(options.length){const chosen=options[Math.floor(rng()*options.length)];if(!v2)grantTrait(e,chosen,'endless:elite');}}return e;};
+  // 3.137.0: the skeleton keeps its historical hit points (the classic curve); generate() sets each enemy's real ones.
+  const spawnEnemy=(type,x,y,id)=>{const e=makeEnemy(type,x,y,id,floor,{curve:'classic',offset:0},faction);if(floor>6&&!isBossClass(type)&&rng()<Math.min(.5,(floor-6)*.04)){const options=['fast','infrared','night_vision'].filter(id=>!e.traits.some(t=>t.id===id));if(options.length){const chosen=options[Math.floor(rng()*options.length)];if(!v2)grantTrait(e,chosen,'endless:elite');}}return e;};
   rooms.forEach((r,i)=>{
     const posts=reservationPosts(r,{legacy:!v2,deep:floor>6});
     if(i!==startRoom)for(let j=0;j<(3+extraEnemies(floor)+(floor>=3&&rng()<.45?1:0));j++) {

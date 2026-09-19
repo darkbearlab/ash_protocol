@@ -16,7 +16,7 @@ export const FACTIONS={
   early:[['rifleman',2],['raider',1],['gunner',1],['drone',1],['crawler',1]],
   late:[['rifleman',2],['raider',2],['gunner',1],['drone',1],['brute',1],['sniper',1],['bomber',1]],
   deepExtra:[['brute',1],['sniper',1],['bomber',1]],
- },bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:'fodder',nestChild:'brood'},
+ },bosses:{3:'warden',6:'boss'},scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:'fodder',nestChild:'brood'},
  loyalist:{noncombatants:{roster:[['civilian',1]],perFloor:{min:3,max:5}},name:'忠誠者',tag:true,pickable:true,voice:'loyalist',roster:{
   early:[['rifleman',1],['rifleman_armored',1],['raider',1],['gunner',1],['drone',1],['crawler',1]],
   late:[['rifleman',1],['rifleman_armored',1],['raider',1],['raider_armored',1],['gunner',1],['drone',1],['brute',1],['sniper',1],['crawler',1]],
@@ -27,14 +27,14 @@ export const FACTIONS={
   squads:{perFloor:2,early:['rifleman','rifleman','gunner'],late:['rifleman_armored','gunner','sniper']},
   // 3.133.0 personality table (user decision, docs/ORDERS.md §8.1); a card not listed takes no orders on its own.
   personality:{rifleman:'disciplined',rifleman_armored:'disciplined',raider:'disciplined',raider_armored:'disciplined',gunner:'disciplined',sniper:'cunning',squad_leader:'commander',drone:'mindless',civilian:'fleeing'},
-  bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
+  bosses:{3:'warden',6:'boss'},scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
  rebel:{name:'叛軍',tag:true,pickable:true,voice:'rebel',eliteAffixes:4,roster:{
   early:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',1],['crawler',1],['raider_elite',1],['enforcer',1]],
   late:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',2],['brute',1],['sniper',1],['crawler',1],['raider_elite',1],['gunner_elite',1],['enforcer',1]],
   deepExtra:[['bomber_bot',1],['gunner_elite',1]],
  },
  personality:{rifleman:'cowardly',raider:'cowardly',gunner:'cowardly',sniper:'cunning',raider_elite:'cunning',gunner_elite:'cunning',enforcer:'commander',drone:'mindless',bomber_bot:'mindless'},
- bosses:{3:'warden',6:'boss'},scout:'rifleman',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:REBEL_NAMES},
+ bosses:{3:'warden',6:'boss'},scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:REBEL_NAMES},
  // Swarm (3.83.0, user): creature cards and infected soldiers, a giant bug, oversized bug bosses and burrow nests only.
  // The venom shot, the tongue pull and the infected affixes come with the Codex rules (docs/SWARM.md).
  swarm:{hordeType:'brood',infectedAffixes:['venomous','brood_host'],name:'蟲族',tag:true,pickable:true,voice:'creature',nestStyle:'burrow',roster:{
@@ -43,7 +43,8 @@ export const FACTIONS={
   deepExtra:[['giant_bug',1],['bomber',1],['spitter',1]],
  },
  personality:{crawler:'feral',rifleman_infected:'mindless',raider_infected:'mindless',bomber:'mindless'},
- bosses:{3:'hive_beast',6:'hive_matriarch'},scout:'rifleman_infected',retreatWave:['crawler','crawler'],fodder:'fodder',nestChild:'brood',overrides:{fodder:{name:'被感染者'},brood:{name:'蟲群幼體'},crawler:{name:'獵殺蟲'}}},
+ // preview (3.137.0, docs/DIFFICULTY.md): the special enemy floor 2 shows on the standard curve.
+ bosses:{3:'hive_beast',6:'hive_matriarch'},scout:'rifleman_infected',preview:'spitter',retreatWave:['crawler','crawler'],fodder:'fodder',nestChild:'brood',overrides:{fodder:{name:'被感染者'},brood:{name:'蟲群幼體'},crawler:{name:'獵殺蟲'}}},
 };
 export const factionDef=id=>typeof id==='string'&&Object.hasOwn(FACTIONS,id)?FACTIONS[id]:undefined;
 export const expandRoster=entries=>entries.flatMap(([id,count])=>Array(count).fill(id));

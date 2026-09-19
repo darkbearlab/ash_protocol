@@ -77,7 +77,7 @@ test('a wreck is rebuilt in place, so the edge list never grows a duplicate',()=
 });
 
 test('it never writes a floor the loader would reject',()=>{
- assert.equal(SAVE_VERSION,63);   // 3.136.0: the bump pick and the chainsaw's lost action
+ assert.equal(SAVE_VERSION,64);   // 3.137.0: the difficulty curve
  const g=stocked(3),p=g.player,side=openSide(g);
  assert.equal(g.action('deployCover',side),true);
  const back=Game.restore(g.serialize());

@@ -34,7 +34,8 @@ test('endless arrival text: no tutorial line past floor 6 and no extraction word
 test('rules texts quote the tuning constants',()=>{
  assert.ok(endlessRules().includes(`最多 +${ENDLESS_TUNING.densityMax}`));assert.ok(endlessRules().includes(`${Math.round(AFFIX_TUNING.chanceCap*100)}%`));
  assert.ok(levelCapRules().includes(`整局最多 ${MAX_LEVEL-1} 次`));
- assert.equal(growthLabel(6),'');assert.equal(growthLabel(12),`敵人生命 ×${(1.07**6).toFixed(2)}、攻擊 ×${(1.04**6).toFixed(2)}`);
+ assert.equal(growthLabel(6),'');assert.equal(growthLabel(12),`敵人生命 ×${(1.04**6).toFixed(2)}、攻擊 ×${(1.03**6).toFixed(2)}`);   // 3.137.0 standard
+ assert.equal(growthLabel(12,{curve:'classic',offset:0}),`敵人生命 ×${(1.07**6).toFixed(2)}、攻擊 ×${(1.04**6).toFixed(2)}`);
 });
 
 test('record rows: overall best with 666 label, classes sorted by depth, unknown ids skipped; record-run check',()=>{

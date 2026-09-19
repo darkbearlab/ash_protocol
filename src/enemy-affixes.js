@@ -2,11 +2,11 @@ import {enemyFaction,factionDef,enemyBaseName} from './factions.js';
 import {hasEnemyTag,isNoncombatant} from './enemy-data.js';
 import {ENEMY_TYPES} from './data.js';
 import {grantTrait,activeTrait} from './traits.js';
-import {effectiveDepth} from './endless.js';
-export const AFFIX_TUNING={startDepth:7,chancePerDepth:.04,chanceCap:.5,additionalFactor:.5,grenadeChance:.2,grenadeRange:5,grenadeRadius:1,grenadeDamage:32,
+import {effectiveDepth,curveOf} from './endless.js';
+export const AFFIX_TUNING={chanceCap:.5,additionalFactor:.5,grenadeChance:.2,grenadeRange:5,grenadeRadius:1,grenadeDamage:32,
  // 投放 (3.103.0, user request) rolls on its own stream so the existing affix draws, and every map already
  // generated, stay bit-identical; only enemies that win this extra roll differ.
- deployerStart:8,deployerPerDepth:.03,deployerCap:.24,deployerRange:7,deployerFire:.35};
+ deployerPerDepth:.03,deployerCap:.24,deployerRange:7,deployerFire:.35};
 export const REVEAL_TYPES=Object.freeze({effect:'effect',scan:'scan',failed:'condition_failed'});
 const armed=e=>hasEnemyTag(e,'armed');
 const combatant=e=>!isNoncombatant(e)&&!ENEMY_TYPES[e.type]?.expendable;
@@ -23,8 +23,9 @@ export const ENEMY_AFFIXES=[
  // would put the player in two jaws at once.
  {id:'deployer',fragment:'投放',order:7,applies:e=>armed(e)&&(ENEMY_TYPES[e.type]?.range??0)>=6,special:true,spawns:'munition',reveal:REVEAL_TYPES.effect},
 ];
-export const deployerChance=(floor,offset=0)=>Math.min(AFFIX_TUNING.deployerCap,Math.max(0,effectiveDepth(floor,offset)-AFFIX_TUNING.deployerStart+1)*AFFIX_TUNING.deployerPerDepth);
-export const affixChance=(floor,offset=0)=>Math.min(AFFIX_TUNING.chanceCap,Math.max(0,effectiveDepth(floor,offset)-AFFIX_TUNING.startDepth+1)*AFFIX_TUNING.chancePerDepth);
+// 3.137.0: where affixes and deployers begin, and how fast they climb, belong to the difficulty curve (src/endless.js).
+export const deployerChance=(floor,d)=>Math.min(AFFIX_TUNING.deployerCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).deployerStart+1)*AFFIX_TUNING.deployerPerDepth);
+export const affixChance=(floor,d)=>Math.min(AFFIX_TUNING.chanceCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).affixStart+1)*curveOf(d).affixPerDepth);
 export function birthRandom(seed,floor,id,salt='enemy-v10'){let h=2166136261;for(const c of `${seed}:${floor}:${id}:${salt}`){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return ()=>{h=(h+0x6D2B79F5)>>>0;let t=Math.imul(h^h>>>15,h|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};}
 export function giveEnemyAffix(e,id,revealed=false){const d=ENEMY_AFFIXES.find(a=>a.id===id);if(!d||(e.affixes||[]).some(a=>a.id===id))return false;e.affixes=[...(e.affixes||[]),{id,revealed}];if(d.trait)grantTrait(e,d.trait,`affix:${id}`);return true;}
 export function affixPickIndex(pool,draw,weights){
@@ -32,7 +33,7 @@ export function affixPickIndex(pool,draw,weights){
  const total=pool.reduce((n,d)=>n+(weights[d.id]??1),0);let left=draw*total;
  for(let i=0;i<pool.length;i++){left-=weights[pool[i].id]??1;if(left<0)return i;}return pool.length-1;
 }
-export function rollEnemyAffixes(e,seed,floor,offset=0){e.affixes=[];if(isNoncombatant(e))return e;const rng=birthRandom(seed,floor,e.id),pool=ENEMY_AFFIXES.filter(d=>!d.infection&&!d.special),weights=factionDef(enemyFaction(e))?.affixWeights;let p=affixChance(floor,offset);while(pool.length&&rng()<p){const [d]=pool.splice(affixPickIndex(pool,rng(),weights),1);if(d.applies(e))giveEnemyAffix(e,d.id);p*=AFFIX_TUNING.additionalFactor;}if(infected(e))for(const id of factionDef(enemyFaction(e)).infectedAffixes)giveEnemyAffix(e,id);
+export function rollEnemyAffixes(e,seed,floor,offset){e.affixes=[];if(isNoncombatant(e))return e;const rng=birthRandom(seed,floor,e.id),pool=ENEMY_AFFIXES.filter(d=>!d.infection&&!d.special),weights=factionDef(enemyFaction(e))?.affixWeights;let p=affixChance(floor,offset);while(pool.length&&rng()<p){const [d]=pool.splice(affixPickIndex(pool,rng(),weights),1);if(d.applies(e))giveEnemyAffix(e,d.id);p*=AFFIX_TUNING.additionalFactor;}if(infected(e))for(const id of factionDef(enemyFaction(e)).infectedAffixes)giveEnemyAffix(e,id);
  const deployer=ENEMY_AFFIXES.find(d=>d.id==='deployer');
  if(deployer.applies(e)&&birthRandom(seed,floor,e.id,'deployer-v1')()<deployerChance(floor,offset))giveEnemyAffix(e,'deployer');
  return e;}

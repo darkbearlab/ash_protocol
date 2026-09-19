@@ -24,9 +24,9 @@ test('target cards use only three corners, stay inside viewport edges and keep t
 });
 test('waiting combines reduction, evasion and next-shot aim, without stacking or spending on invalid input',()=>{
   const g=arena(),e=makeEnemy('rifleman',14,10,'e');e.charge=true;e.windup=1;g.enemies=[e];g.reveal();g.rng=Object.assign(()=>0,{state:()=>0});
-  g.action('wait');assert.equal(g.player.hp,90);assert.equal(g.accuracy(e,g.player).chance,82);assert.equal(g.accuracy(g.player,e).chance,99);
+  g.action('wait');assert.equal(g.player.hp,91);/* 3.137.0: floor-1 enemy damage +1 a floor */assert.equal(g.accuracy(e,g.player).chance,82);assert.equal(g.accuracy(g.player,e).chance,99);
   const turn=g.turn;assert.equal(g.action('move',[1,1]),false);assert.equal(g.turn,turn);assert.equal(g.player.guard,true);
-  g.action('wait');assert.equal(g.player.hp,80);assert.equal(g.player.guard,true);
+  g.action('wait');assert.equal(g.player.hp,82);assert.equal(g.player.guard,true);/* 3.137.0: 18 halved is 9 */
   const restored=Game.restore(g.serialize());assert.equal(restored.player.guard,true);assert.equal(restored.player.evasive,true);assert.equal(restored.player.focus,true);
   restored.action('move',[0,1]);assert.equal(restored.player.guard,false);assert.equal(restored.player.focus,false);assert.equal(restored.player.evasive,false);
 });
