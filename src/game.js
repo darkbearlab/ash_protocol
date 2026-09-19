@@ -36,7 +36,7 @@ import {cornerRay,cornerStatus,recordExposure,clearMovedExposure,expireExposure,
 import {combatStep,validTactics} from './tactics.js';
 import {UNARMED_SLOT,UNARMED} from './unarmed.js';
 import {enemyRoom,tickNests,validRuntime,collapseNest} from './runtime-enemies.js';
-import {singleShotAt,volleyAt,salvageValue} from './weapons.js';
+import {singleShotAt,volleyAt,volleyShots,roundCost,salvageValue} from './weapons.js';
 import {objectSightGrid} from './scenery.js';
 import {MAP_FIELDS,validMapMetadata,validGenerationHistory} from './map-geometry.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
@@ -648,13 +648,13 @@ export class Game {
     if(intent&&w.cone&&(!e||distance(p,e)>w.range||!this.shotClear(p,e)))return this.fireCone(intent);
     if(intent&&(!e||distance(p,e)>w.range||!this.shotClear(p,e))){
       p.facing=[Math.sign(intent.x-p.x),Math.sign(intent.y-p.y)];
-      const cost=w.shotCost||1,singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),Math.floor(p.ammo[p.weapon]/cost));
+      const cost=w.shotCost||1,singleShot=singleShotAt(w,distance(p,e||intent)),shots=volleyShots(w,distance(p,e||intent),p.ammo[p.weapon]);
       for(let i=0;i<shots;i++)presentStep(this,()=>{
-        this.recordExposure(p,intent);p.ammo[p.weapon]-=cost;p.stats.shots++;spentCase(this,p,w.ammoType);
+        this.recordExposure(p,intent);p.ammo[p.weapon]-=roundCost(w,i);p.stats.shots++;spentCase(this,p,w.ammoType);
         this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:intent.x,y:intent.y},damage:0,miss:true,color:w.ammoType==='energy'?'#8ae9da':null});
       });
       if(this.enemies.some(e=>e.id===intent.id))recordShot(p,intent.id,this.turn);else p.fireChain=null;
-      this.log(`原目標已失去有效射線，向最後確認位置開火落空，消耗 ${shots*cost} 發。`);
+      this.log(`原目標已失去有效射線，向最後確認位置開火落空，消耗 ${w.volleyCost?w.volleyCost:shots*cost} 發。`);
       return true;
     }
     if(!e)return this.fail('射線內沒有目標。');
@@ -665,12 +665,12 @@ export class Game {
     if(w.cone&&this.enemies.includes(e))return this.fireCone(e);
     if(w.lance&&this.enemies.includes(e))return this.fireLance(e);
     p.facing=[Math.sign(e.x-p.x),Math.sign(e.y-p.y)];
-    const cost=w.shotCost||1,singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),Math.floor(p.ammo[p.weapon]/cost));
+    const singleShot=singleShotAt(w,distance(p,e||intent)),shots=volleyShots(w,distance(p,e||intent),p.ammo[p.weapon]);
     let rounds=0;const hits=new Set();
     for(let i=0;i<shots;i++) {
       if(e.hp<=0||p.hp<=0)break;
       presentStep(this,()=>{
-        this.recordExposure(p,e);p.ammo[p.weapon]-=cost;p.stats.shots++;rounds++;spentCase(this,p,w.ammoType);
+        const round=rounds;this.recordExposure(p,e);p.ammo[p.weapon]-=roundCost(w,round);p.stats.shots++;rounds++;spentCase(this,p,w.ammoType);
         const range=this.weaponDamage(p.weapon,e),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
         const chance=this.fireChance(e);
         const hit=this.rng()*100<chance;
@@ -699,14 +699,15 @@ export class Game {
       this.recordExposure(p,e);p.ammo[p.weapon]-=cost;p.stats.shots++;spentCase(this,p,w.ammoType);
       this.effects.push({type:'shot',weaponId:w.id,singleShot:true,style:'plasma',from:{x:p.x,y:p.y},to:{x:end.x,y:end.y},damage:0,miss:false,color:'#8ae9da'});
       const roll=o=>{const range=this.weaponDamage(p.weapon,o);return range.min+Math.floor(this.rng()*(range.max-range.min+1));};
-      for(const o of units){
+      let friends=0;
+      for(const [n,o] of units.entries()){
         const damage=roll(o),chance=o===e?this.fireChance(e):this.accuracy(p,o).chance,hit=this.rng()*100<chance;
-        if(!hit){this.log(`光束沒打中${this.enemies.includes(o)?enemyName(o):'友軍'}（命中率 ${chance}%）。`,false,'光束沒有打中。');continue;}
-        if(this.activeAllies.includes(o)){this.damageAlly(o,damage,p);continue;}
+        if(!hit){this.log(`光束沒打中第 ${n+1} 個：${this.enemies.includes(o)?enemyName(o):'友軍'}（命中率 ${chance}%）。`,false,'光束沒有打中。');continue;}
+        if(this.activeAllies.includes(o)){this.damageAlly(o,damage,p);friends++;continue;}
         const before=o.hp;this.hitTarget(o,damage,p,w.pierce||0);if(o.hp<before)hits.add(o);
       }
       if(stop)this.hitTarget(stop,roll(stop),p,w.pierce||0);
-      this.log(`貫穿光束打中直線上 ${hits.size} 名敵人。`,false,'貫穿光束射出。');
+      this.log(`貫穿光束打中直線上 ${hits.size} 名敵人${friends?`、${friends} 名友軍`:''}。`,false,'貫穿光束射出。');
     });
     finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),1,0,this);
     if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
@@ -784,7 +785,8 @@ export class Game {
     const cover=weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
     let parts=pellets?pellets.map(d=>blade?Math.round(d*bladeMultiplier(attacker)):d):[raw];const scale=f=>{parts=parts.map(d=>d*f);};
     if(attacker===this.player&&!weapon.melee&&!this.sight(target,attacker))scale(1+classPerkRank(attacker,'recon_unseen')*CLASS_PERK_TUNING.unseen);if(attacker===this.player&&activeTrait(target,'exposed'))scale(1+classPerkRank(attacker,'soldier_marked')*CLASS_PERK_TUNING.markedDamage);
-    if(cover){const effect=coverEffects(cover,target,attacker);scale(1-(pellets?weapon.pelletCover*effect.efficiency:effect.reduction)*(1-pierce));if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);this.log('敵方掩體吸收了部分傷害。');}
+    // 3.142.0: the absorption line only when cover took something off; a fully piercing plasma shot goes straight through.
+    if(cover){const effect=coverEffects(cover,target,attacker),cut=(pellets?weapon.pelletCover*effect.efficiency:effect.reduction)*(1-pierce);scale(1-cut);if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);if(cut>0)this.log('敵方掩體吸收了部分傷害。');}
     if(toxicShot(this,attacker,target,attacker===this.player||!attacker?.type?weapon:this.actorWeapon(attacker)))scale(.5);   // 3.134.0 mist
     let damage=parts.reduce((sum,d)=>sum+Math.max(1,Math.round(d-armor*(1-pierce))),0);
     if(weapon.ammoType==='energy'&&activeTrait(target,'mechanical'))damage=Math.round(damage*1.2);

@@ -150,7 +150,7 @@ function weaponLine(g,slot){
  const ammo=w.melee?'近戰':`${p.ammo[slot]}/${w.mag} 備彈 ${p[g.reserveKey(w)]??0}/${g.ammoCapacity(w.ammoType)}${AMMUNITION[w.ammoType]?` ${AMMUNITION[w.ammoType].name}`:''}`;
  // 3.141.0: the shotgun is read by its pellets (per pellet, how many at 1-6 tiles, the flat chance); two-round affixes say so.
  const damage=w.pellets?(()=>{const e=g.pelletDamage(slot,{x:p.x+1,y:p.y});return `每顆 ${e.min}-${e.max} × ${w.pellets.join('/')} 顆(1-${w.pellets.length} 格) 每顆命中 ${pelletChance(w)}%`;})():`${d.min}-${d.max}`;
- return `[${slot}]${slot===p.weapon?'*':' '}${w.name}${p.upgrades[slot]?` +${p.upgrades[slot]}`:''} 傷害 ${damage}${w.hits?` ×${w.hits}`:''}${w.shotCost>1?` 每發耗 ${w.shotCost}`:''} 射程 ${w.range} ${ammo}${w.melee&&g.bumpMeleeSlot()===slot?' 撞擊用':''}${w.affix?` 詞條:${w.affixText}`:''}`;
+ return `[${slot}]${slot===p.weapon?'*':' '}${w.name}${p.upgrades[slot]?` +${p.upgrades[slot]}`:''} 傷害 ${damage}${w.hits?` ×${w.hits}`:''}${w.burst?` ×${w.burst}`:''}${w.shotCost>1?` 每發耗 ${w.shotCost}`:''}${w.volleyCost?` 每次射擊耗 ${w.volleyCost}`:''} 射程 ${w.range} ${ammo}${w.melee&&g.bumpMeleeSlot()===slot?' 撞擊用':''}${w.affix?` 詞條:${w.affixText}`:''}`;
 }
 function status(g){
  const p=g.player,def=missionDefinition(g),progress=missionProgress(g),faction=factionDef(g.facilityFaction)?.name||g.facilityFaction;

@@ -65,12 +65,12 @@ test('貫穿 and 爆裂 come only on dropped plasma rifles, 15% each, and every 
  // The rolls before 3.141.0, for comparison.
  const fnv=seed=>{let h=2166136261;for(const c of String(seed)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
  const old=(base,seed)=>{const h=fnv(seed);if(h%100>=65)return null;const ids=['stable','piercing','extended','powerful','longbarrel','tracking'].filter(id=>id!=='piercing'||!WEAPONS[base].explosive);return ids[Math.floor(h/100)%ids.length];};
- const count={lance:0,burst:0};let same=0,plain=0;
+ const count={lance:0,burst:0,rapid:0};let same=0,plain=0;   // 3.142.0: 速射 joins them
  for(let seed=0;seed<4000;seed++){
   assert.equal(rollAffix(RIFLE,seed),old(RIFLE,seed));
   // 3.141.1: a shotgun that would have rolled 追獵 re-picks one of the other five; every other shotgun roll is the old one.
   if(old(SG,seed)==='tracking')assert.ok(['stable','piercing','extended','powerful','longbarrel'].includes(rollAffix(SG,seed)));else assert.equal(rollAffix(SG,seed),old(SG,seed));
-  const a=rollAffix(PL,seed);if(a==='lance'||a==='burst')count[a]++;else{plain++;same+=a===old(PL,seed);}
+  const a=rollAffix(PL,seed);if(a in count)count[a]++;else{plain++;same+=a===old(PL,seed);}
  }
  assert.equal(same,plain,'a plasma rifle that rolls neither keeps its old roll');
  for(const n of Object.values(count))assert.ok(Math.abs(n/4000-DROP_ONLY_CHANCE)<.02,String(n));
@@ -113,4 +113,44 @@ test('爆裂 bursts where it hits: neighbours take about half, the target only i
  assert.equal(hp[0]-e.hp,Math.max(1,hit-ENEMY_TYPES.raider.armor),'the target takes only its hit');
  assert.equal(hp[1]-next.hp,Math.round(hit*.5),'one tile away: half the hit');
  assert.ok(p.hp<me,'you stood next to it');
+});
+
+// 3.142.0 (playtest fixes, user proposal).
+test('full piercing goes through cover without claiming it absorbed anything; a normal shot still says so',()=>{
+ for(const [base,absorbed] of [[PL,false],[RIFLE,true]]){
+  const {g,p}=lane();hold(g,base);const e=foe(g,'raider',3,0,'e');g.props=[{id:'crate',type:'cover',x:e.x-1,y:e.y,hp:500,maxHp:500}];g.reveal();
+  g.hitTarget(e,40,p,weaponStats(base).pierce,weaponStats(base));assert.equal(g.logs.some(l=>l.text.includes('掩體吸收')),absorbed,WEAPONS[base].id);
+ }
+});
+
+test('the shotgun card shows what a pellet really does after armour and cover; 爆裂 warns about its blast; short magazines say so',()=>{
+ const {g}=lane();hold(g,SG);const e=foe(g,'brute',1,0,'e');g.target=e.id;const armor=ENEMY_TYPES.brute.armor;
+ assert.equal(targetDetails(g).chance,`6 顆 × ${Math.max(1,10-armor)}–${Math.max(1,12-armor)}（原 10–12） · 每顆 95%`);
+ const plain=lane();hold(plain.g,SG);const r=foe(plain.g,'raider',1,0,'r');plain.g.target=r.id;
+ if(!ENEMY_TYPES.raider.armor)assert.equal(targetDetails(plain.g).chance,'6 顆 × 10–12 · 每顆 95%','no note when nothing changes');
+ const second=lane();hold(second.g,PL,'burst');const t=foe(second.g,'raider',1,0,'t');second.g.target=t.id;
+ assert.ok(targetDetails(second.g).state.includes('⚠ 爆炸波及自己'));
+ second.p.ammo[second.p.weapon]=1;assert.equal(targetDetails(second.g).chance,'彈匣不足 2 發');
+});
+
+test('速射: one battery fires three ordinary rounds at half piercing, and a volley that lands suppresses',()=>{
+ const w=weaponStats(PL,'rapid');assert.deepEqual([w.name,w.min,w.max,w.pierce,w.burst,w.volleyCost,w.mag],['速射・極光電漿步槍',18,22,.5,3,1,6]);
+ assert.deepEqual(AFFIXES.rapid.dropOnly,['plasma']);assert.ok(!affixAllowed(RIFLE,'rapid'));
+ const {g,p}=lane(),slot=hold(g,PL,'rapid'),e=foe(g,'raider',3,0,'e');e.hp=e.maxHp=500;g.target=e.id;g.rng=()=>0;
+ const shots=p.stats.shots,hp=e.hp;assert.equal(g.action('fire'),true);
+ assert.equal(p.ammo[slot],5,'one battery for the volley');assert.equal(p.stats.shots-shots,3,'three rounds');
+ assert.equal(hp-e.hp,3*Math.max(1,Math.round(18-ENEMY_TYPES.raider.armor*.5)));
+ // Suppression lands with the volley and the enemy's own turn then halves it, so look before that turn (fire, not action).
+ for(const [affix,suppressed] of [['rapid',true],[null,false]]){
+  const s=lane();hold(s.g,PL,affix);const t=foe(s.g,'raider',3,0,'t');t.hp=t.maxHp=500;s.g.target=t.id;s.g.rng=()=>0;
+  s.g.fire();assert.equal((t.suppression||0)>=1,suppressed,affix?'the three-round volley suppresses':'a single plasma shot does not');
+ }
+ const b=lane();hold(b.g,PL,'rapid');const brute=foe(b.g,'brute',3,0,'b');brute.hp=brute.maxHp=500;b.g.target=brute.id;b.g.rng=()=>0;const bhp=brute.hp;
+ b.g.action('fire');assert.equal(bhp-brute.hp,3*Math.max(1,Math.round(18-ENEMY_TYPES.brute.armor*.5)),'armour 7 takes 3.5 off each round');
+ p.ammo[slot]=0;assert.equal(g.action('fire'),false,'empty is empty');
+});
+
+test('the lance names which unit on the beam it missed',()=>{
+ const {g}=lane();hold(g,PL,'lance');const a=foe(g,'raider',1,0,'a'),b=foe(g,'raider',2,0,'b');g.target=b.id;g.rng=()=>.999;
+ g.action('fire');assert.ok(g.logs.some(l=>l.text.startsWith('光束沒打中第 1 個：'))&&g.logs.some(l=>l.text.startsWith('光束沒打中第 2 個：')));
 });
