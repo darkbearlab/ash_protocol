@@ -1,11 +1,11 @@
 import {DEFAULT_FACTION,factionDef} from './factions.js';
-import {ENEMY_SPAWNS} from './enemy-data.js';
+import './enemy-data.js';   // kept for load order
 import {expireExposure} from './corner.js';
 import {enemyRoom} from './runtime-enemies.js';
 import {MAP_FIELDS,validMapMetadata} from './map-geometry.js';
 import {SIZE} from './data.js';
-import {distance,key,reachable,makeEnemy} from './world.js';
-import {missionDefinition,missionObjects,returning} from './missions.js';
+import {distance,key,reachable} from './world.js';
+import {missionDefinition,returning,missionObjects} from './missions.js';
 
 // Only floor-owned state is archived. Player, mission, rewards and RNG stay global.
 export const REQUIRED_FLOOR_FIELDS=['grid','lighting','rooms','start','end','startRoom','endRoom','links','mainRoute','rewardRooms','enemies','items','props','hazards','marks','barriers','seen','smoke','traces','reinforcements'];

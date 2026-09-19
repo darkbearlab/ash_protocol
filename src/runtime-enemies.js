@@ -1,5 +1,5 @@
 import {DEFAULT_FACTION,factionDef} from './factions.js';
-import {ENEMY_SPAWNS,isNoncombatant} from './enemy-data.js';
+import {isNoncombatant} from './enemy-data.js';
 import {registerUnitTree,unitTree} from './behavior-tree.js';
 import {makeEnemy,random,key,distance,DIRECTIONS,reachable} from './world.js';
 import {roomTiles} from './map-geometry.js';

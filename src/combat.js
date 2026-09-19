@@ -1,4 +1,4 @@
-import {actorStat,meleeChance} from './actor-stats.js';
+import {actorStat} from './actor-stats.js';
 import {PERK_D} from './data.js';
 import {lightingEffects} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';

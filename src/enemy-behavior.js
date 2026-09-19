@@ -9,7 +9,7 @@ import {pinned,finishSuppression,rapidFireModifiers} from './suppression.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
-import {UNIT_TREES,unitTree,registerUnitTree,registerAffixBranch,runAffixBranches} from './behavior-tree.js';
+import {unitTree,registerUnitTree,registerAffixBranch,runAffixBranches} from './behavior-tree.js';
 import {occupied} from './allies.js';
 import {enemyRoom} from './runtime-enemies.js';
 import {pullLanding} from './melee-classes.js';

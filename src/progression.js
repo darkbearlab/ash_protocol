@@ -1,4 +1,4 @@
-import {STARTING_CHARACTERS,CHARACTER_IDS,validStoryId} from './unlock-catalog.js';
+import {CHARACTER_IDS,validStoryId,STARTING_CHARACTERS} from './unlock-catalog.js';
 import {isSimulation} from './killhouse-policy.js';
 import {normalizeKillhouse} from './killhouse-profile.js';
 import {protocolSettlement,terminalRun} from './real-mode.js';

@@ -1,7 +1,7 @@
 import {AMMO_IDS,AMMUNITION,TERMINAL_AMMO} from './ammunition.js';
 import {GRENADES,SMOKE_DURATION,areaCells} from './throwables.js';
 import {distance,DIRECTIONS,key} from './world.js';
-import {healActor,grantTrait,removeTraitSource,activeTrait} from './traits.js';
+import {healActor,grantTrait,removeTraitSource} from './traits.js';
 import {classPerkRank} from './class-perks.js';
 import {salvageValue,canSalvageOwned} from './weapons.js';
 

@@ -9,7 +9,7 @@ import {missionTarget} from './missions.js';
 import {isContainer,containerName} from './containers.js';
 import {FURNITURE} from './modules.js';
 import {isBarrier,barrierName} from './barriers.js';
-import {traitLabels,initiative,activeTrait} from './traits.js';
+import {initiative,activeTrait,traitLabels} from './traits.js';
 import {ENEMY_TYPES,distance,bracingBonus} from './engine.js';
 import {coneTargets,pelletChance} from './shotgun.js';
 import {lancePath} from './lance.js';

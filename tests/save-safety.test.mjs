@@ -54,3 +54,15 @@ test('the offline cache lists every source module, so a new file cannot break of
   const listed=JSON.parse(sw.match(/const FILES=(\[[^\]]*\]);/)[1].replace(/'/g,'"'));
   assert.deepEqual(listed.filter(file=>file!=='./'&&!existsSync(new URL(`../${file}`,import.meta.url))),[],'every cached file exists');
 });
+
+// 3.150.0: every older save version loaded leaves a whole-save backup behind; only the newest two are kept, so years of
+// updates cannot fill the browser's storage. Other keys are never touched.
+test('old save-version backups are pruned to the newest two',async()=>{
+  const memory=new Map([['qa-ash-save-v60-backup','a'],['qa-ash-save-v61-backup','b'],['qa-ash-save-v64-backup','c'],['qa-ash-save-v9-backup','d'],['qa-ash-save','x'],['ash-save-v50-backup','live'],['qa-ash-profile-v6-backup','p']]);
+  globalThis.location={search:'?test=1'};
+  globalThis.localStorage={...memoryStorage(memory),get length(){return memory.size;},key:i=>[...memory.keys()][i]??null};
+  const storage=await import('../src/storage.js?prune3150');
+  storage.pruneSaveBackups();
+  assert.deepEqual([...memory.keys()].filter(k=>k.startsWith('qa-ash-save-v')).sort(),['qa-ash-save-v61-backup','qa-ash-save-v64-backup']);
+  assert.ok(memory.has('qa-ash-save')&&memory.has('ash-save-v50-backup')&&memory.has('qa-ash-profile-v6-backup'),'nothing else goes');
+});

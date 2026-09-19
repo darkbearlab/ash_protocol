@@ -32,32 +32,32 @@ import {resultCopy,retryPlan} from './result-copy.js';
 import {isBarrier,barrierFace} from './barriers.js';
 import {GRENADES,grenadeTotal,SMOKE_DURATION,DISRUPT_TURNS,BOSS_DISRUPT_TURNS,DISRUPT_IMMUNITY} from './throwables.js';
 import {MELEE_TUNING,GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN} from './melee-classes.js';
-import {grappleLabel,meleeStatus,meleeSummary} from './melee-ui.js';
+import {grappleLabel,meleeSummary,meleeStatus} from './melee-ui.js';
 import {DEFAULT_OPERATOR_COLOR,validOperatorColor,tintedSprite} from './operator-color.js';
 import {colorPickerMarkup,mountColorPicker} from './color-picker.js';
 import {classSpriteRect} from './class-art.js';
 import {ENDLESS_DISPLAY_FLOORS,isEndless} from './endless.js';
 import {depthLabel,levelLabel,levelTitle,endlessRules,levelCapRules,endlessRecordRows,isRecordRun,growthLabel,endlessFloorText} from './endless-ui.js';
 import {purgeReportMarkup} from './purge-review-ui.js';
-import {createKillhouse,isSimulation,tutorialGate} from './engine.js';
+import {isSimulation,tutorialGate} from './engine.js';
 import {saveTutorialOutcome,saveArcadeResult} from './storage.js';
 import {exitStep,nextPrompt,promptDue,roomPromptMarkup,tutorialGateMarkup,killhouseMenuMarkup,disposedMarkup,tutorialResultMarkup,arcadeResultMarkup,killhouseScore,bestRecord,KILLHOUSE_SCORE,simulationLabel,simulationBrief} from './killhouse-ui.js';
 import {PACK_LIMIT} from './data.js';
 import {dailySeed,dailyMission} from './daily.js';
 import {VERSION} from './version.js';
 import {TRAITS,traitLabels,startingTraits,initiative} from './traits.js';
-import {AMMUNITION,AMMO_IDS,MELEE_TINT,CARRY_COSTS,capacity,TERMINAL_AMMO,carryingSpent} from './ammunition.js';
+import {AMMUNITION,AMMO_IDS,MELEE_TINT,capacity,TERMINAL_AMMO} from './ammunition.js';
 import {captureAction,planPresentation,Playback} from './presentation.js';
-import {Game,WEAPONS,FLOORS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,protocolSettlement,itemUseReason,deployCoverReason,TERMINAL_ITEMS,terminalReason} from './engine.js';
+import {Game,WEAPONS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,protocolSettlement,itemUseReason,deployCoverReason,TERMINAL_ITEMS} from './engine.js';
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MODE_NOTE,runOptions,FACILITY_OPTIONS,facilityOption} from './deploy-ui.js';
 import {Renderer} from './render.js';
 import {AudioEngine,AUDIO_TUNING,volumePercent} from './audio.js';
 import {GRIT_LEVELS,gritLevel} from './audio-grit.js';
 import {frameRate,nextFrameRate} from './frame-rate.js';
 import {FLARE_TUNING,flareReason} from './flares.js';
-import {DECOY_TUNING,MINE_TUNING,EXO_TUNING,decoyReason,mineReason,placeStart} from './field-gear.js';
+import {DECOY_TUNING,MINE_TUNING,EXO_TUNING,placeStart} from './field-gear.js';
 import {LINE_TUNING} from './lines.js';
-import {HOTKEY_ACTIONS,HOTKEY_SLOTS,HOTKEY_BUTTONS,normalizeKey,validHotkey,keyLabel,parseBindings,defaultBindings,bindKey,clearKey,keyLookup,actionLabel,primaryKey} from './hotkeys.js';
+import {HOTKEY_ACTIONS,HOTKEY_SLOTS,HOTKEY_BUTTONS,normalizeKey,keyLabel,parseBindings,defaultBindings,bindKey,clearKey,keyLookup,actionLabel,primaryKey} from './hotkeys.js';
 import {eventSounds,actionSound} from './sound-cues.js';
 import {engagementHeard,freshCombat,stepCombat,musicTrack} from './music-state.js';
 import {landscapeTouch} from './layout.js';
@@ -65,9 +65,9 @@ import {BACKUP_LIMIT} from './backup.js';
 import {targetDetails} from './target-card.js';
 import {enemyGlyph,floorTraitNote} from './enemy-visuals.js';
 import {unitTree} from './behavior-tree.js';
-import {read,write,loadGame,saveGame,storage,profile,recordResult,TEST_MODE,exportBackup,previewBackup,restoreBackup,abandonRun,resetProgress} from './storage.js';
-import {DECK_GRID,DECK_COLUMNS,DECK_SLOTS,DECK_LABELS,DECK_GLYPHS,deckPlacement,mirrorDeck,swapSlots,parseDeckLayout} from './deck-layout.js';
-import {createReplay,recordReplay,replayLog,stateHash,validReplay} from './replay.js';
+import {read,write,loadGame,saveGame,storage,profile,recordResult,TEST_MODE,exportBackup,previewBackup,restoreBackup,abandonRun,resetProgress,TAB_ID,claimTab,tabKey} from './storage.js';
+import {DECK_COLUMNS,DECK_LABELS,DECK_GLYPHS,deckPlacement,mirrorDeck,swapSlots,parseDeckLayout,DECK_GRID} from './deck-layout.js';
+import {createReplay,replayLog,stateHash,validReplay,recordReplay} from './replay.js';
 
 const $=s=>document.querySelector(s),audio=new AudioEngine();
 const savedGame=loadGame();
@@ -154,7 +154,10 @@ let lastActionLogs=1;
 const freshLogs=old=>{const i=old?game.logs.indexOf(old):-1;return old&&i>=0?i:game.logs.length;};
 // Saving can fail quietly (storage full or blocked). Keep a header warning up until a save succeeds (3.44).
 let saveWarned=false,saveWarningDue=false;
-function persist(){const ok=saveGame(game);$('#save-warning').hidden=ok;if(!ok&&!saveWarned){saveWarned=true;saveWarningDue=true;}return ok;}
+// 3.150.0: the tab opened last owns the save; one that has been overtaken stops saving and says so.
+let tabLost=false;claimTab();
+addEventListener('storage',e=>{if(e.key!==tabKey()||!e.newValue||e.newValue===TAB_ID||tabLost)return;tabLost=true;modal(`<div class="eyebrow">SAVE / 另一個分頁</div><h2>遊戲在另一個分頁開啟了。</h2><p>為了不互相覆寫存檔，這個分頁已停止存檔。要在這裡繼續，請重新載入：會讀取最新的存檔，並由這個分頁接手。</p><button class="modal-button" data-modal="reclaimTab">在這個分頁繼續（重新載入）</button>`);});
+function persist(){if(tabLost)return false;const ok=saveGame(game);$('#save-warning').hidden=ok;if(!ok&&!saveWarned){saveWarned=true;saveWarningDue=true;}return ok;}
 function showSaveWarning(){saveWarningDue=false;modal(`<div class="eyebrow">SAVE / 無法存檔</div><h2>這一步沒有存到。</h2><p>瀏覽器拒絕寫入本機儲存，可能是空間已滿、封鎖了網站資料，或上次還原還沒復原。在恢復之前，關閉頁面會失去這局進度。</p><p>可以先到設定匯出存檔；釋出空間或允許網站資料後，下一次成功存檔時上方的「⚠ 未存檔」會自動消失。</p><div class="modal-row"><button class="modal-button secondary" data-modal="settings">開啟設定</button><button class="modal-button" data-modal="close">繼續 →</button></div>`);}
 // Every line of the run (latest 50), newest first; a new turn starts a new block.
 function showLog(){
@@ -769,7 +772,10 @@ function showLevelUp(){
   draw();document.fonts?.load?.(`${TINY_TEXT.weight} ${TINY_TEXT.px}px ${TINY_TEXT.font}`).then(draw,()=>{});
   audio.play('transmission');
   // 3.149.0: the transmission comes in through interference, on the battlefield and on the message itself.
-  if(renderer.glitchEnabled){renderer.glitchBurst(GLITCH_TUNING.transmission);const box=$('#modal-content');box?.classList.add('ui-glitch');setTimeout(()=>box?.classList.remove('ui-glitch'),GLITCH_TUNING.transmission.ms);}
+  if(renderer.glitchEnabled){
+    const T=GLITCH_TUNING.transmission,box=$('#modal-content'),flash=(burst,ms)=>{renderer.glitchBurst(burst);box?.classList.remove('ui-glitch');void box?.offsetWidth;box?.classList.add('ui-glitch');setTimeout(()=>box?.classList.remove('ui-glitch'),ms);};
+    flash(T,T.ms);setTimeout(()=>{if(renderer.glitchEnabled&&$('#modal-content .transmission'))flash(T.again,T.again.ms);},T.again.at);   // 3.150.0 (user): one more flash
+  }
 }
 function showPerks(){modal(`<div class="eyebrow">UPGRADE AVAILABLE / LV. ${game.player.level}</div><h2>臨時強化已授權。</h2><p>強化生效至本次任務結束。${game.pendingPerks>1?`還有 ${game.pendingPerks} 次選擇。`:''}</p>${game.perkChoices.map(p=>`<button class="perk" data-perk="${p.id}"><strong>＋ ${p.name} ${perkPips(game.player,p,true)}</strong><span>${p.text}${p.effect==='health'?`（本角色回血 ${healingAmount(game.player,p.heal)}）`:''}</span></button>`).join('')}${runPerks()}`);}
 // Journal and result: endless records (3.49.1), class names from the character labels.
@@ -780,7 +786,7 @@ function endlessResult(p,abandoned){if(abandoned)return '<p>放棄的無盡任�
   return rows.best?`<p>${isRecordRun(records,game.floor,p.level,p.kills)?'<strong>新紀錄！</strong> ':''}無盡最佳：${rows.best}</p>`:'';}
 // Operator stats, run upgrades and passive rules moved here from the compact backpack (3.97.0).
 function operatorStatus(){const p=game.player;return `<h3>幹員狀態</h3><p>${characterName(p.character)} · 裝甲 ${p.armor}<br>${combatStatSummary(p)}${meleeSummary(p).map(line=>'<br>'+line).join('')}</p>${runPerks()}<h3>被動規則</h3><p>${traitLabels(p).join(' · ')||'無'}。<br>${traitRuleLines(p).join('<br>')}<br>被動自動生效，不占主動技能預備欄。</p>`;}
-function showJournal(){const p=game.player,records=profile();modal(`<div class="eyebrow">ARCHIVE / FIELD INTELLIGENCE</div><h2>歷次部署紀錄。</h2><div class="journal-tabs"><button data-modal="journal">任務紀錄</button><button data-modal="bestiary">敵人圖鑑</button><button data-modal="help">操作指南</button></div><p>${game.missionSummary}</p>${runIsLive()?operatorStatus():''}<div class="result-stats"><div><b>${records.runs}</b>完成任務</div><div><b>${records.wins}</b>成功撤離</div><div><b>${records.bestFloor}/6</b>最深紀錄</div></div><h3>協定點數 ${records.protocol.balance}</h3><p>本次累積 ${game.protocol.earned} · 死亡仍保留。可用於職業與設施紀錄解鎖；目前已解鎖 ${availableCharacters(records).length} 個職業。</p>${endlessJournal(records)}<h3>待撤離確認 ${(game.pendingStories||[]).length}</h3>${(game.pendingStories||[]).map(id=>{const story=STORIES.find(s=>s.id===id);return `<p class="lore-entry"><strong>${escapeHTML(story?.title||'已封存')}</strong><br>${escapeHTML(story?.body||'')}</p>`;}).join('')}<h3>最近任務</h3>${records.history.length?records.history.slice(0,5).map(r=>`<p>${MISSIONS[r.mission]?.name||MISSIONS.extraction.name} · ${characterName(r.character)} · RUN ${r.seed} · ${r.outcome==='abandoned'?'放棄':r.won?'撤離':'陣亡'}${r.realMode?' · 真實模式':''} · ${r.floor} 層${Number.isInteger(r.level)?` · LV.${pad(r.level)}`:''} · ${r.kills} 擊殺 · ${r.turn} 回合</p>`).join(''):'<p>第一次任務紀錄尚未完成。</p>'}<button class="modal-button" data-modal="close">返回戰場 →</button>`,true);}
+function showJournal(){const p=game.player,records=profile();modal(`<div class="eyebrow">ARCHIVE / FIELD INTELLIGENCE</div><h2>歷次部署紀錄。</h2><div class="journal-tabs"><button data-modal="journal">任務紀錄</button><button data-modal="bestiary">敵人圖鑑</button><button data-modal="help">操作指南</button></div><p>${game.missionSummary}</p>${runIsLive()?operatorStatus():''}<div class="result-stats"><div><b>${records.runs}</b>完成任務</div><div><b>${records.wins}</b>成功撤離</div><div><b>${records.bestFloor}/6</b>最深紀錄</div></div><h3>協定點數 ${records.protocol.balance}</h3><p>本次累積 ${game.protocol.earned} · 死亡仍保留。可用於職業與設施紀錄解鎖；目前已解鎖 ${availableCharacters(records).length} 個職業。</p>${endlessJournal(records)}<h3>待撤離確認 ${(game.pendingStories||[]).length}</h3>${(game.pendingStories||[]).map(id=>{const story=STORIES.find(s=>s.id===id);return `<p class="lore-entry"><strong>${escapeHTML(story?.title||'已封存')}</strong><br>${escapeHTML(story?.body||'')}</p>`;}).join('')}<h3>最近任務</h3>${records.history.length?records.history.slice(0,5).map(r=>`<p>${MISSIONS[r.mission]?.name||MISSIONS.extraction.name} · ${characterName(r.character)} · RUN ${r.seed} · ${r.outcome==='abandoned'?'放棄':r.won?'撤離':'陣亡'}${r.realMode?' · 真實模式':''} · ${r.floor} 層${Number.isInteger(r.level)?` · LV.${pad(r.level)}`:''} · ${r.kills} 擊殺 · ${r.turn} 回合${Array.isArray(r.mapGenerations)&&r.mapGenerations.length?` · 地圖 v${r.mapGenerations.join('/')}`:''}</p>`).join(''):'<p>第一次任務紀錄尚未完成。</p>'}<button class="modal-button" data-modal="close">返回戰場 →</button>`,true);}
 // The codex names cards the way the current facility does (3.103.1, user request), so 步槍兵 in play is 步槍兵 here.
 // A variant still hides behind its parent when either the base or the facing name matches, which is what kept the
 // armoured and elite cards out of the list before the factions had their own names.
@@ -1018,6 +1024,7 @@ document.addEventListener('click',e=>{
     case 'audioGrit':{const order=Object.keys(GRIT_LEVELS),next=order[(order.indexOf(audio.grit)+1)%order.length];audio.setGrit(next);write('ash-audio-grit',next);settings();break;}
     case 'shake':renderer.shakeEnabled=!renderer.shakeEnabled;renderer.shakes=[];write('ash-shake',renderer.shakeEnabled?'on':'off');settings();break;
     case 'glitch':renderer.glitchEnabled=!renderer.glitchEnabled;renderer.glitches=[];renderer.objectGlitches.clear();write('ash-glitch',renderer.glitchEnabled?'on':'off');settings();break;
+    case 'reclaimTab':location.reload();return;
     case 'vhs':vhsFilter=!vhsFilter;write('ash-vhs',vhsFilter?'on':'off');document.documentElement.classList.toggle('vhs',vhsFilter);settings();break;
     case 'transmission':transmissionSeen=transmissionKey();showPerks();break;
     case 'hotkeyHints':hotkeyHints=!hotkeyHints;write('ash-hotkey-hints',hotkeyHints?'on':'off');applyHotkeyHints();settings();break;

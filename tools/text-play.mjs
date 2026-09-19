@@ -10,17 +10,17 @@
 // chances and cover as the target card gives them. Container contents stay hidden until opened.
 import {existsSync,readFileSync,writeFileSync} from 'node:fs';
 import {Game,SIZE,SUPPLY_NAMES,ENEMY_TYPES,PERKS,distance,floorInfo,enemyName,factionDef,TERMINAL_ITEMS,itemUseReason} from '../src/engine.js';
-import {createReplay,replayLog,applyOp,makeOp,stateHash,startReplay} from '../src/replay.js';
+import {createReplay,replayLog,applyOp,makeOp,stateHash} from '../src/replay.js';
 import {CHARACTERS} from '../src/characters.js';
 import {MISSIONS,missionDefinition,missionProgress} from '../src/missions.js';
 import {AMMUNITION,AMMO_IDS,TERMINAL_AMMO} from '../src/ammunition.js';
-import {GRENADES,grenadeTotal,tacticalSight} from '../src/throwables.js';
+import {GRENADES} from '../src/throwables.js';
 import {PREPARED_CATALOG,preparedOptions,preparedEntry,CAPPED_ITEMS} from '../src/prepared.js';
 import {UNARMED_SLOT} from '../src/unarmed.js';
 import {levelCost} from '../src/perks.js';
 import {SKILLS,skillStatus} from '../src/skills.js';
 import {isContainer,containerName} from '../src/containers.js';
-import {isBarrier,barrierName,barrierBetween,edgeBlocks} from '../src/barriers.js';
+import {isBarrier,barrierBetween} from '../src/barriers.js';
 import {isDark} from '../src/lighting.js';
 import {targetDetails} from '../src/target-card.js';
 import {pelletChance} from '../src/shotgun.js';
@@ -71,6 +71,8 @@ function findEnemy(g,token){
  const list=visibleEnemies(g);if(!token)return null;
  return list.find(e=>e.id===token)||(token.length===1?list[LETTERS.indexOf(token)]:null)||null;
 }
+// 3.150.0: the same line said again and again (a researcher screaming every turn) is shown once, with a count.
+function foldRepeats(lines){const out=[];for(const l of lines){const last=out.at(-1);if(last&&last.l.text===l.text){last.n++;last.l={...last.l,lastTurn:l.turn};}else out.push({l:{...l,lastTurn:l.turn},n:1});}return out;}
 function findTarget(g,token){
  const e=findEnemy(g,token);if(e)return e;
  return [...g.props,...g.barriers].find(o=>o.id===token&&(o.hp===undefined||o.hp>0)&&g.teamVisible(o))||null;
@@ -154,7 +156,7 @@ function weaponLine(g,slot){
 }
 function status(g){
  const p=g.player,def=missionDefinition(g),progress=missionProgress(g),faction=factionDef(g.facilityFaction)?.name||g.facilityFaction;
- const lines=[`== 第 ${g.floor} 層 ${floorInfo(g.floor).name} · 回合 ${g.turn} · ${CHARACTERS[p.character].label} · ${faction} · 任務：${def.name} ${progress.done}/${progress.total}${g.status!=='playing'?` · 狀態：${g.status}`:''}`];
+ const lines=[`== 第 ${g.floor} 層 ${floorInfo(g.floor).name} · 回合 ${g.turn} · ${CHARACTERS[p.character].label} · ${faction} · 任務：${g.missionSummary}${g.status!=='playing'?` · 狀態：${g.status}`:''}`];
  lines.push(`生命 ${p.hp}/${p.maxHp} 護甲板 ${p.plates||0}/${g.plateCapacity}${p.wearables?.includes('exo')?` 外骨骼 ${p.exoPlates}/50${p.prepared?.item==='exo'?'（穿著）':'（沒穿）'}`:''} 裝甲 ${p.armor||0} · ${levelLabel(p.level)}（${levelTitle(p.level,p.xp,levelCost(g,p.level))}）· 位置 ${at(p)} · 廢料 ${p.scrap||0}`);
  const flags=[g.pursuit?'追擊：下次攻擊不耗回合':'',g.shadowSteps?`免費移動 ${g.shadowSteps}`:'',suppressionStatus(p),isDark(g,p)?'你在暗處':'',p.focus?'穩定瞄準':'',p.guard?'防禦待機':'',p.poison?`中毒 ${p.poison}`:'',p.control?.disabled?`失能 ${p.control.disabled}`:'',p.recovery?'鏈鋸收勢：下次行動跳過':'',...traitLabels(p).filter(Boolean)].filter(Boolean);
  if(flags.length)lines.push(`狀態：${flags.join(' · ')}`);
@@ -217,7 +219,7 @@ function look(g,{radius=9}={}){
 // After an action the view is shorter, so a long run fits in an agent's context; look prints everything.
 function brief(g){
  const p=g.player,def=missionDefinition(g),progress=missionProgress(g),w=g.weapon;
- const head=`== 第 ${g.floor} 層 · 回合 ${g.turn} · 生命 ${p.hp}/${p.maxHp} 護甲板 ${p.plates||0}/${g.plateCapacity} · ${levelLabel(p.level)} · 位置 ${at(p)} · 任務 ${def.name} ${progress.done}/${progress.total}${g.status!=='playing'?` · ${g.status}`:''}`;
+ const head=`== 第 ${g.floor} 層 · 回合 ${g.turn} · 生命 ${p.hp}/${p.maxHp} 護甲板 ${p.plates||0}/${g.plateCapacity} · ${levelLabel(p.level)} · 位置 ${at(p)} · 任務 ${g.missionSummary}${g.status!=='playing'?` · ${g.status}`:''}`;
  const kit=`${w.name} ${w.melee?'近戰':`${p.ammo[p.weapon]}/${w.mag} 備 ${p[g.reserveKey()]??0}`} · 醫療包 ${p.meds||0} · ${preparedEntry(p,'grenade')?.name||'投擲'} ${p[preparedEntry(p,'grenade')?.resource]||0} · 技能 ${p.prepared.skill?`${SKILLS[p.prepared.skill]?.name} ${skillStatus(p,p.prepared.skill)}`:'無'} · 廢料 ${p.scrap||0}`;
  const flags=[g.pursuit?'追擊就緒':'',g.shadowSteps?`免費移動 ${g.shadowSteps}`:'',suppressionStatus(p),isDark(g,p)?'你在暗處':'',p.focus?'穩定瞄準':'',p.poison?`中毒 ${p.poison}`:'',p.control?.disabled?`失能 ${p.control.disabled}`:'',p.recovery?'鏈鋸收勢':''].filter(Boolean);
  return [head,kit+(flags.length?` · ${flags.join(' · ')}`:''),...perkRows(g),...drawMap(g,7),...enemyRows(g),...nearbyRows(g),...surroundings(g)];
@@ -311,7 +313,7 @@ function route(g,goal){
 }
 function snapshotThreat(g){
  const p=g.player;
- return {hp:p.hp,plates:p.plates||0,floor:g.floor,status:g.status,perks:g.pendingPerks,enemies:new Set(visibleEnemies(g).map(e=>e.id)),marks:dangerCells(g).size+tongueTelegraphs(g).length};
+ return {hp:p.hp,plates:p.plates||0,floor:g.floor,status:g.status,perks:g.pendingPerks,enemies:new Set(visibleEnemies(g).filter(e=>!isNoncombatant(e)).map(e=>e.id)),   /* 3.150.0: civilians coming and going do not stop a chain */marks:dangerCells(g).size+tongueTelegraphs(g).length};
 }
 function interruption(g,before){
  const now=snapshotThreat(g);
@@ -342,7 +344,7 @@ function command(file,log,g,text,report){
   return {text:`${label}：超過 ${limit} 步，先停下`};
  };
  const walked=result=>report(result.text,!result.ok);
- const target=token=>{const t=findTarget(g,token);if(!t)fail(`視野內沒有 ${token}。`);if(g.target!==t.id)perform(log,g,makeOp('target',t.id));return t;};
+ const target=token=>{const t=findTarget(g,token);if(!t)fail(`視野內沒有 ${token}。`);if(t.indestructible)fail(t.type==='container'?'一般補給箱打不壞，不能鎖定射擊；走到旁邊用 open 開啟。只有詭雷箱（有耐久）可以射。':'這個打不壞，不能鎖定射擊。');if(g.target!==t.id)perform(log,g,makeOp('target',t.id));return t;};
  const where=token=>need(point(g,token),`無法解讀座標或目標 ${token}（用 X,Y 或敵人字母/id）。`);
  if(/^[nsew]\d*$/.test(name)){
   const count=Number(name.slice(1)||1),before=snapshotThreat(g);let done=0;
@@ -461,7 +463,7 @@ function main(argv){
  const since=oldLog?g.logs.indexOf(oldLog):-1,fresh=since>=0?g.logs.slice(0,since):g.logs;
  const lines=[...results];
  if(stopped)lines.push(`未執行：${stopped}`);
- if(fresh.length)lines.push(`戰鬥紀錄（舊→新）${since<0&&oldLog?'，這批超過 50 行，只留得下最後 50 行':''}：`,...fresh.slice().reverse().map(l=>`  ${String(l.turn).padStart(3,'0')} ${l.danger?'⚠ ':''}${l.text}`));
+ if(fresh.length)lines.push(`戰鬥紀錄（舊→新）${since<0&&oldLog?'，這批超過 50 行，只留得下最後 50 行':''}：`,...foldRepeats(fresh.slice().reverse()).map(({l,n})=>`  ${String(l.turn).padStart(3,'0')} ${l.danger?'⚠ ':''}${l.text}${n>1?`（×${n}，到第 ${n>1?String(l.lastTurn).padStart(3,'0'):''} 回合）`:''}`));
  const calls=heard.map(e=>e.visibility==='visible'?`${e.name}${at(e.position)}：「${calloutLine(e)}」`:`${DIRECTION_ARROWS[e.direction]||''}聽到${COMPASS[e.direction]||e.direction}方：「${calloutLine(e)}」`).filter((v,i,a)=>a.indexOf(v)===i);
  if(calls.length)lines.push(`喊話：${calls.join(' ')}`);
  if(!commands.length)lines.push(...look(g));else if(!infoOnly)lines.push('',...brief(g));

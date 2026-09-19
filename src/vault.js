@@ -4,7 +4,7 @@
 // preferring an elite, and drops when it dies; it opens that floor's vault only.
 // Placed last in generate(), from hashes of its own, so nothing else on the floor moves. This module imports nothing
 // that imports world.js.
-import {barrierBetween,blockedBetween,vaultable,edgeCells} from './barriers.js';
+import {barrierBetween,blockedBetween,vaultable} from './barriers.js';
 import {isBossClass,isNoncombatant,enemyDef} from './enemy-data.js';
 import {WEAPONS} from './data.js';
 import {dropOnlyAffixes,affixAllowed} from './weapons.js';

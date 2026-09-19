@@ -22,7 +22,7 @@ test('trade-in values: ammunition in whole-scrap lots at 60%, dismantle values, 
   const value=id=>row(g,id)?.value;
   assert.equal(value('ammo:rifle'),1);assert.equal(row(g,'ammo:rifle').max,12,'50 rounds are twelve lots of four');
   assert.equal(row(g,'ammo:pistol').max,0);
-  assert.deepEqual(['throw:frag','throw:smoke','throw:emp','throw:stun'].map(value),[4,7,9,9]);
+  assert.deepEqual(['throw:frag','throw:smoke','throw:emp','throw:stun'].map(value),[7,7,9,9]);   // 3.150.0: the frag is priced like the smoke
   assert.equal(value('med'),10,'low on purpose: medkits pile up (user decision)');
   assert.deepEqual(['item:spray','item:adrenaline','item:barricade','wear:nvg'].map(value),[9,12,15,24]);
   assert.equal(value('learning:trait_braced'),LEARNING_SCRAP);assert.equal(row(g,'learning:trait_braced').max,2);

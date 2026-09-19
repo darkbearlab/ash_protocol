@@ -4,7 +4,7 @@ import {isContainer} from '../src/containers.js';
 import {AMMUNITION,itemAmmo,TERMINAL_AMMO} from '../src/ammunition.js';
 // Headless gameplay agent. Uses only legal public actions; no stat/map mutation.
 // It knows the floor plan for routing, so win rate is a regression signal, not player telemetry.
-import {Game,distance,WEAPONS,terminalReason} from '../src/engine.js';
+import {Game,distance,terminalReason} from '../src/engine.js';
 import {terminalRemaining,terminalSells,upgradeCost,TERMINAL_TUNING} from '../src/terminal.js';
 import {pathToFileURL} from 'node:url';
 
@@ -47,7 +47,7 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     const position=p.x+','+p.y;visits.set(position,(visits.get(position)||0)+1);
     // Do not oscillate forever between a quiet silhouette and a supply detour. Commit to advancing.
     if(visits.get(position)>4){detourUntil=g.turn+30;visits.clear();navigation.tactics=null;}
-    if(g.pendingPerks){const rank={damage:70,armor:60,health:p.hp<70?100:50,med:p.meds<2?85:35,hazmat:15,blast:10,medic:35,scavenger:20};g.choosePerk([...g.perkChoices].sort((a,b)=>rank[b.id]-rank[a.id])[0].id);continue;}
+    if(g.pendingPerks){const rank={damage:70,armor:60,health:p.hp<70?100:50,med:p.meds<2?85:35,hazmat:15,blast:10,medic:35,scavenger:20,plate_rack:60,mod_mastery:45,skirmish:40,steady:25,plating:30};/* 3.150.0: the 升級 D perks too */g.choosePerk([...g.perkChoices].sort((a,b)=>rank[b.id]-rank[a.id])[0].id);continue;}
     const marked=g.marks.find(m=>distance(p,m)<=1);
     if(marked){const step=safeMove(g,n=>distance(n,marked)>distance(p,marked));if(step){act('move',step);continue;}}
     const bomber=g.visibleEnemies.find(e=>e.type==='bomber'&&distance(e,p)<=1);

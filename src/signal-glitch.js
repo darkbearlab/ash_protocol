@@ -10,7 +10,7 @@ export const GLITCH_TUNING=Object.freeze({
  disabled:{amp:5,ms:420,pulse:{amp:3,ms:160,every:[1100,2000]}},   // stunned or EMP'd: a burst, then pulses while it lasts
  pinned:{amp:2,ms:130,every:[1800,3600]},       // pinned by suppression
  skill:{amp:3.5,ms:320,ids:['early_warning','signal_break']},
- transmission:{amp:4,ms:520},                    // the level-up INCOMING TRANSMISSION
+ transmission:{amp:4,ms:520,again:{at:700,amp:3,ms:300}},   // the level-up INCOMING TRANSMISSION, and one more flash (3.150.0, user)
  lowHp:{ratio:.3,amp:2.5,ms:110,every:[2600,5200]},
  playerMove:{chance:.12,amp:2,ms:150},
  affixMove:{chance:.25,amp:2.5,ms:150},affixAttack:{chance:.45,amp:3,ms:180},affixIdle:{amp:2,ms:140,every:[3500,8000]},

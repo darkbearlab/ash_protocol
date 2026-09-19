@@ -3,7 +3,7 @@ import {bindUnlocks} from './run-unlocks.js';
 import {isSimulation} from './killhouse-policy.js';
 import {recordTutorial,recordArcade} from './killhouse-profile.js';
 import {deepestFloor} from './missions.js';
-import {AMMUNITION,CARRY_COSTS,carryLevels,carryingSpent} from './ammunition.js';
+import './ammunition.js';   // kept for load order
 import {Game,createKillhouse} from './engine.js';
 import {normalizeProfile,creditProtocol,recordEndless,PROFILE_VERSION} from './progression.js';
 import {makeBackup,decodeBackup} from './backup.js';
@@ -16,9 +16,22 @@ export const backupNamespace=TEST_MODE?'qa':'live';
 export function read(key){try{return localStorage.getItem(storageKey(key));}catch{storage.available=false;return null;}}
 // A later successful write clears an earlier failure (e.g. space was freed), unless a restore is still pending.
 export function write(key,value){try{localStorage.setItem(storageKey(key),value);if(!storage.recoveryPending)storage.available=true;return true;}catch{storage.available=false;return false;}}
+// 3.150.0: a backup is written each time a save from an older version is loaded, and each is a whole save; kept
+// forever they would fill the browser's storage. Only the newest two stay.
+export function pruneSaveBackups(keep=2){
+  try{
+    const found=[];
+    for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i),m=k&&/-v(\d+)-backup$/.exec(k);if(m&&k===storageKey(`ash-save-v${m[1]}-backup`))found.push([Number(m[1]),k]);}
+    for(const [,k] of found.sort((a,b)=>b[0]-a[0]).slice(keep))localStorage.removeItem(k);
+  }catch{}
+}
+// 3.150.0: two tabs on the same run overwrite each other's save. The tab opened last owns it (see controller.js).
+export const TAB_ID=Math.random().toString(36).slice(2,10);
+export const claimTab=()=>write('ash-active-tab',TAB_ID);
+export const tabKey=()=>storageKey('ash-active-tab');
 export function loadGame(){
   if(!recoverRestore()){try{return decodeBackup(read('ash-restore-journal'),backupNamespace).game;}catch{return null;}}
-  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if(LEGACY_SAVE_VERSIONS.includes(version)&&!read(`ash-save-v${version}-backup`))write(`ash-save-v${version}-backup`,raw);}catch{}}const game=Game.restore(raw);if(game){game.setCarryLevel(0);connectUnlocks(game);}return game;
+  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if(LEGACY_SAVE_VERSIONS.includes(version)&&!read(`ash-save-v${version}-backup`)){write(`ash-save-v${version}-backup`,raw);pruneSaveBackups();}}catch{}}const game=Game.restore(raw);if(game){game.setCarryLevel(0);connectUnlocks(game);}return game;
 }
 // Returns whether everything was written, so the UI can warn when progress is not being kept (3.44).
 export function saveGame(game){

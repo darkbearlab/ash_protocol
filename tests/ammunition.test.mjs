@@ -39,7 +39,8 @@ test('terminal purchases reject full stock without spending and preserve paid ov
   for(const type of [...AMMO_IDS,'grenade']){
     const g=arena(),info=AMMUNITION[type];g.props=[{type:'terminal',x:11,y:10,used:false}];g.player.scrap=100;g.player[info.key]=g.ammoCapacity(type);
     const turn=g.turn;assert.equal(g.action('terminal',type),false);assert.equal(g.turn,turn);assert.equal(g.player.scrap,100);assert.equal(g.props[0].used,false);
-    g.player[info.key]--;assert.equal(g.action('terminal',type),true);assert.ok(g.items.some(i=>i.type===info.item));assert.equal(g.player[info.key],g.ammoCapacity(type));
+    // 3.150.0: a frag is bought one at a time now, so one short of full takes it without overflow.
+    g.player[info.key]--;assert.equal(g.action('terminal',type),true);if(type!=='grenade')assert.ok(g.items.some(i=>i.type===info.item));assert.equal(g.player[info.key],g.ammoCapacity(type));
     assert.equal(g.action('terminal',type),false);
   }
 });

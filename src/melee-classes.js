@@ -3,7 +3,7 @@ import {interruptEnemyIntent} from './enemy-intents.js';
 import {pinned} from './suppression.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {activeTrait,healActor} from './traits.js';
-import {DIRECTIONS,distance,lineOfSight} from './world.js';
+import {DIRECTIONS,distance} from './world.js';
 import {sweptGrid,sweptClear} from './line-move.js';
 import {WEAPONS,ENEMY_TYPES} from './data.js';
 import {isDark} from './lighting.js';

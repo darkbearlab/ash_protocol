@@ -924,11 +924,11 @@
   },
   "druid:1": {
    "status": "dead",
-   "floor": 3,
-   "turn": 473,
+   "floor": 2,
+   "turn": 179,
    "hp": 0,
-   "kills": 63,
-   "actions": 473,
+   "kills": 30,
+   "actions": 179,
    "invalid": 0
   },
   "druid:2": {
@@ -970,19 +970,19 @@
   "necromancer:3": {
    "status": "won",
    "floor": 6,
-   "turn": 878,
-   "hp": 138,
-   "kills": 192,
-   "actions": 882,
+   "turn": 883,
+   "hp": 160,
+   "kills": 189,
+   "actions": 888,
    "invalid": 6
   },
   "soldier:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 539,
+   "turn": 361,
    "hp": 0,
-   "kills": 74,
-   "actions": 541,
+   "kills": 52,
+   "actions": 361,
    "invalid": 0
   },
   "soldier:2": {
@@ -996,20 +996,20 @@
   },
   "soldier:3": {
    "status": "dead",
-   "floor": 5,
-   "turn": 763,
+   "floor": 3,
+   "turn": 394,
    "hp": 0,
-   "kills": 134,
-   "actions": 765,
+   "kills": 65,
+   "actions": 395,
    "invalid": 0
   },
   "bulwark:1": {
-   "status": "dead",
-   "floor": 3,
-   "turn": 555,
-   "hp": 0,
-   "kills": 73,
-   "actions": 554,
+   "status": "won",
+   "floor": 6,
+   "turn": 1076,
+   "hp": 168,
+   "kills": 178,
+   "actions": 1079,
    "invalid": 0
   },
   "bulwark:2": {
@@ -1022,21 +1022,21 @@
    "invalid": 0
   },
   "bulwark:3": {
-   "status": "won",
+   "status": "dead",
    "floor": 6,
-   "turn": 1477,
-   "hp": 69,
-   "kills": 202,
-   "actions": 1483,
+   "turn": 1359,
+   "hp": 0,
+   "kills": 197,
+   "actions": 1364,
    "invalid": 0
   },
   "recon:1": {
    "status": "dead",
-   "floor": 5,
-   "turn": 636,
+   "floor": 6,
+   "turn": 1001,
    "hp": 0,
-   "kills": 105,
-   "actions": 674,
+   "kills": 154,
+   "actions": 1049,
    "invalid": 0
   },
   "recon:2": {
@@ -1049,12 +1049,12 @@
    "invalid": 0
   },
   "recon:3": {
-   "status": "dead",
-   "floor": 3,
-   "turn": 431,
-   "hp": 0,
-   "kills": 73,
-   "actions": 479,
+   "status": "won",
+   "floor": 6,
+   "turn": 1163,
+   "hp": 145,
+   "kills": 177,
+   "actions": 1279,
    "invalid": 0
   },
   "berserker:1": {

@@ -1,4 +1,4 @@
-import {roomTiles,roomContains} from './map-geometry.js';
+import {roomContains,roomTiles} from './map-geometry.js';
 import {REQUIRED_TARGET_ROOMS,eligibleMissionEnemy} from './map-population.js';
 import {isEndless,ENDLESS_MAX_FLOOR,ENDLESS_DISPLAY_FLOORS,MAX_LEVEL} from './endless.js';
 import {FLOORS,SIZE} from './data.js';
