@@ -13,7 +13,8 @@ function loot(g,base=0,affix='stable'){
   const item=g.registerWeapon({type:'weapon',weapon:base,x:11,y:10});g.player.affixes[item.slot]=affix;g.player.ammo[item.slot]=g.weaponAt(item.slot).mag;g.items.push(item);return item.slot;
 }
 test('six tradeoffs change real stats; launchers never roll meaningless penetration',()=>{
-  assert.equal(Object.keys(AFFIXES).length,6);
+  // 3.141.0: plus the two drop-only plasma affixes (tests/pellets-plasma.test.mjs); the rifle still rolls only the six.
+  assert.equal(Object.keys(AFFIXES).length,8);assert.equal(Object.keys(AFFIXES).filter(id=>!AFFIXES[id].dropOnly).length,6);
   assert.equal(weaponStats(0,'stable').min,20);assert.equal(weaponStats(0,'stable').accuracyBonus,10);
   assert.equal(weaponStats(3,'piercing').pierce,.95);assert.equal(weaponStats(3,'piercing').mag,2);
   assert.equal(weaponStats(0,'extended').mag,12);assert.equal(weaponStats(0,'extended').accuracyBonus,-8);

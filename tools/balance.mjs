@@ -53,7 +53,9 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     const targets=g.visibleEnemies.filter(e=>distance(p,e)<=g.weapon.range&&g.shotClear(p,e)).sort((a,b)=>Number(b.charge)-Number(a.charge)||distance(a,p)-distance(b,p));
     const grenade=targets.find(e=>distance(p,e)>2&&distance(p,e)<=5&&(e.hp>=75||g.visibleEnemies.filter(o=>distance(o,e)<=2).length>=2));
     if(grenade&&p.grenades>0){if(p.prepared.grenade!=='frag')act('prepare',{category:'grenade',id:'frag'});act('grenade',grenade);continue;}
-    if(targets.length&&p.ammo[p.weapon]>0){g.target=targets[0].id;
+    // 3.141.0: a drop-only affix can spend two rounds a shot; with fewer loaded the gun counts as empty.
+    const loaded=p.ammo[p.weapon]>=(g.weapon.shotCost||1);
+    if(targets.length&&loaded){g.target=targets[0].id;
       // Darkness makes unaimed fire waste scarce ammo. Brace using the same public wait as a player.
       // 3.111.0: the precision rifle needs that wait too, but not with something close enough to punish it.
       const aim=g.accuracy(p,targets[0]);
@@ -61,12 +63,12 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
       // 3.111.0: a point-target launcher aims at the tile that catches the most enemies without catching the bot.
       if(g.weapon.pointTarget){const spot=blastSpot(g,targets[0]);if(spot){act('launch',spot);continue;}}
       act('fire');continue;}
-    if(p.ammo[p.weapon]<g.weapon.mag&&p[g.reserveKey()]>0&&(!targets.length||p.ammo[p.weapon]===0)){act('reload');continue;}
-    if(p.ammo[p.weapon]===0&&p[g.reserveKey()]===0){const other=p.owned.find(index=>index!==p.weapon&&(p.ammo[index]>0||p[g.reserveKey(g.weaponAt(index))]>0));if(other!==undefined){act('weapon',other);continue;}}
+    if(p.ammo[p.weapon]<g.weapon.mag&&p[g.reserveKey()]>0&&(!targets.length||!loaded)){act('reload');continue;}
+    if(!loaded&&p[g.reserveKey()]===0){const other=p.owned.find(index=>index!==p.weapon&&(p.ammo[index]>0||p[g.reserveKey(g.weaponAt(index))]>0));if(other!==undefined){act('weapon',other);continue;}}
     // A visible silhouette may now be protected by a quiet corner. Reposition instead of repeatedly firing.
     const memory=!g.visibleEnemies.length&&navigation.tactics?.until>=g.turn?navigation.tactics.target:null;
     const sheltered=g.visibleEnemies.find(e=>!g.shotClear(p,e))||memory;
-    if(sheltered&&p.ammo[p.weapon]>0&&g.turn>=detourUntil){const plan=combatStep(g,navigation,sheltered,{range:g.weapon.range,melee:g.weapon.melee,investigate:sheltered===memory});if(plan?.step){act('move',[plan.step.x-p.x,plan.step.y-p.y]);continue;}}
+    if(sheltered&&loaded&&g.turn>=detourUntil){const plan=combatStep(g,navigation,sheltered,{range:g.weapon.range,melee:g.weapon.melee,investigate:sheltered===memory});if(plan?.step){act('move',[plan.step.x-p.x,plan.step.y-p.y]);continue;}}
     if(g.canTouch(g.end)&&!g.bossAlive){act('interact');continue;}
     // 3.120.0: terminals keep a credit instead of serving once, and weapon modifications are bought there (scrap only; the
     // bot never trades anything in).

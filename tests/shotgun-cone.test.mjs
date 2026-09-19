@@ -28,15 +28,18 @@ test('the standard shotgun reaches six tiles with a sixty-degree cone and three 
  assert.deepEqual([shotgunBand(w,1).min,shotgunBand(w,3).min,shotgunBand(w,6).min],[60,42,21],'the far band is the weak one');
 });
 
+// 3.141.0: each target in the cone takes the pellets its distance allows, and every pellet rolls its own hit.
 test('one shell reaches every enemy in the cone, and each rolls its own hit',()=>{
  const {g,p}=lane(),a=foe(g,3,0,'a'),b=foe(g,4,1,'b'),c=foe(g,4,-1,'c');
  g.target=a.id;
  const hp=[a,b,c].map(e=>e.hp);
- let calls=0;g.rng=()=>{calls++;return (calls%2===0&&calls===4)?.9999:0;};  // the second target's hit roll misses
+ // a is 3 tiles off (5 pellets: 10 rolls when all land); the next target's 3 pellets all miss; the last one's land.
+ let calls=0;g.rng=()=>{calls++;return calls>10&&calls<=13?.9999:0;};
  assert.equal(g.action('fire'),true);
  assert.equal(p.ammo[SG],3,'one shell');
  const hurt=[a,b,c].map((e,i)=>e.hp<hp[i]);
  assert.deepEqual(hurt.filter(Boolean).length,2,'two of three hit, because each target rolled on its own');
+ assert.equal(calls,10+3+6);
 });
 
 test('a target standing directly behind another is shielded',()=>{

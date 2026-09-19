@@ -14,10 +14,17 @@ export const WEAPONS = [
   { id:'rifle', weaponClass:'rifle', name:'餘燼突擊步槍', type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'rifle', desc:'可靠的中距離主力，適合多數交戰。' },
   // 3.112.0 (user request): range 6 and a 60 degree cone. Close and middle bands keep their numbers; 5-6 tiles is new and weak.
   // splash stays for the paths that still fire it at one target: mounted drones and suppressive fire.
-  { id:'shotgun', weaponClass:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, closeRange:2, closeMin:60, closeMax:72, closeAccuracy:15, farFrom:5, farMin:21, farMax:27, cone:30, range:6, mag:4, file:'shotgun', ammoType:'shell', splash:1, desc:'錐形射擊：一發打中錐形內所有目標（包含友軍），每個目標各自判定命中與傷害，被前方單位擋住的打不到。1–2 格 60–72、命中 +15；3–4 格 42–54；5–6 格 21–27。對掩體與門只打單一目標。' },
+  // 3.141.0 (user decisions 2026-09-19, docs/WEAPONS.md): the player's cone fires pellets. pellets[d-1] land-rolls at d
+  // tiles, each pelletMin-pelletMax and a flat pelletHit%; armour counts against every pellet and cover cuts pelletCover.
+  // The bands above stay for doors, cover, barrels, mounted drones and suppressive fire.
+  { id:'shotgun', weaponClass:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, closeRange:2, closeMin:60, closeMax:72, closeAccuracy:15, farFrom:5, farMin:21, farMax:27, cone:30, range:6, mag:4, file:'shotgun', ammoType:'shell', splash:1,
+    pellets:[6,6,5,4,3,2], pelletMin:10, pelletMax:12, pelletHit:95, pelletCover:.6,
+    desc:'錐形射擊：一發打中錐形內所有目標（包含友軍），被前方單位擋住的打不到。每個目標依距離吃 6／6／5／4／3／2 顆彈丸（1～6 格），每顆 10–12、命中 95%，不受暗區與移動影響；裝甲每顆都扣，掩體減傷 60%。對掩體與門只打單一目標。' },
   { id:'smg', weaponClass:'smg', name:'蜂群衝鋒槍', type:'SUBMACHINE GUN', code:'SM–24', min:13, max:17, range:5, mag:18, file:'smg', ammoType:'pistol', burst:2, desc:'每回合射擊兩發。適合清理近距離輕裝敵人。' },
   { id:'sniper', weaponClass:'sniper', name:'寂靜精準步槍', type:'PRECISION RIFLE', code:'SR–07', min:52, max:66, range:10, mag:3, file:'sniper', ammoType:'rifle', pierce:0.7, aimPenalty:40, desc:'長距離單發重擊，穿透 70% 裝甲與掩體減傷。沒有先原地等待一回合瞄準時，命中 −40。' },
-  { id:'plasma', weaponClass:'plasma', name:'極光電漿步槍', type:'PLASMA CARBINE', code:'PL–08', min:35, max:44, range:7, mag:6, file:'plasma', ammoType:'energy', pierce:0.5, desc:'消耗能量電池，穿透 50% 防護並擅長對抗機械。' },
+  // 3.141.0 (user decisions 2026-09-19): a precision rifle's hit without the aiming, full piercing, the rifle's range. It is
+  // strong because batteries are short: a reserve for the big fights that still takes a weapon slot.
+  { id:'plasma', weaponClass:'plasma', name:'極光電漿步槍', type:'PLASMA CARBINE', code:'PL–08', min:52, max:66, range:7, mag:6, file:'plasma', ammoType:'energy', pierce:1, desc:'消耗能量電池。無視裝甲與掩體減傷（掩體仍會降低命中），對機械傷害 +20%。' },
   { id:'launcher', weaponClass:'launcher', name:'日蝕榴彈發射器', type:'GRENADE LAUNCHER', code:'GL–03', min:54, max:64, range:6, mag:2, file:'launcher', ammoType:'ordnance', explosive:true, pointTarget:true, desc:'瞄準視線內一格地板發射，必定在落點爆炸，半徑 1 格。沒有最短射程，無視掩體，會傷害自己與引爆油桶。' },
   {id:'lmg',weaponClass:'lmg',name:'堡壘輕機槍',type:'LIGHT MACHINE GUN',code:'LM–30',min:18,max:22,range:7,mag:30,file:'lmg',ammoType:'rifle',burst:3,desc:'使用步槍彈，每次三連發，適合持續壓制。'},
   {id:'powerfist',weaponClass:'melee',name:'震擊動力拳',type:'POWER GAUNTLET',code:'PF–01',min:70,max:90,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,hitChance:99,pierce:.5,desc:'相鄰一格近戰，命中 99%，無限使用、無須裝填。無視掩體，穿透 50% 裝甲。裝甲內建，雙向切換免費；不能拆解或交換，可改裝至 +3。'},

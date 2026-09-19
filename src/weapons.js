@@ -11,7 +11,15 @@ export const AFFIXES={
   powerful:{name:'強擊',text:'基礎傷害 +15%；彈匣 −25%（向下取整，至少 1 發）',damage:1.15,mag:.75},
   longbarrel:{name:'長管',text:'射程 +2；基礎傷害 −10%',range:2,damage:.9},
   tracking:{name:'追獵',text:'目標移動的命中懲罰減為 10；基礎傷害 −10%',tracking:12,damage:.9},
+  // 3.141.0 (user decisions 2026-09-19, docs/WEAPONS.md): drop-only affixes, plasma rifles for now. Never sold, never
+  // installed: they come only with a plasma rifle found on a floor, in a case or on a body (rollAffix below).
+  lance:{name:'貫穿',text:'光束穿過目標繼續前進，打中直線上每個看得見的單位（各自判定命中），在射程盡頭或碰到牆、門、掩體、油桶才停；每次射擊耗 2 發；基礎傷害 −15%',damage:.85,shotCost:2,lance:true,dropOnly:['plasma']},
+  burst:{name:'爆裂',text:'命中後在目標處爆炸，相鄰一格受到命中傷害的一半（會波及自己與友軍、引爆油桶）；每次射擊耗 2 發；基礎傷害 −15%',damage:.85,shotCost:2,blast:.5,dropOnly:['plasma']},
 };
+// How often a dropped weapon that can carry a drop-only affix gets each one. Its own hash, so every other roll is as before.
+export const DROP_ONLY_CHANCE=.15;
+export const dropOnlyAffixes=base=>Object.keys(AFFIXES).filter(id=>AFFIXES[id].dropOnly?.includes(WEAPONS[base]?.id));
+export const affixAllowed=(base,affix)=>affix===null||Object.hasOwn(AFFIXES,affix)&&(!AFFIXES[affix].dropOnly||AFFIXES[affix].dropOnly.includes(WEAPONS[base]?.id));
 export function weaponStats(base,affix=null,actor=null){
   const w=WEAPONS[base];if(w.melee)return {...w,affix:null,affixText:w.desc,accuracyBonus:0,tracking:0};
   const a=AFFIXES[affix]||{};
@@ -20,18 +28,22 @@ export function weaponStats(base,affix=null,actor=null){
     min:Math.round(w.min*(a.damage||1)),max:Math.round(w.max*(a.damage||1)),
     ...(w.closeRange?{closeMin:Math.round(w.closeMin*(a.damage||1)),closeMax:Math.round(w.closeMax*(a.damage||1))}:{}),
     ...(w.farFrom?{farMin:Math.round(w.farMin*(a.damage||1)),farMax:Math.round(w.farMax*(a.damage||1))}:{}),
+    ...(w.pellets?{pelletMin:Math.round(w.pelletMin*(a.damage||1)),pelletMax:Math.round(w.pelletMax*(a.damage||1))}:{}),
+    shotCost:a.shotCost||1,affixAccuracy:a.accuracy||0,...(a.lance?{lance:true}:{}),...(a.blast?{blast:a.blast}:{}),
     mag:Math.max(1,Math.floor(w.mag*(a.mag||1))),range:burstRange+(extended?2:0),...(extended?{burstRange}:{}),
-    pierce:Math.min(.95,(w.pierce||0)+(a.pierce||0)),extraRounds:rapidFireModifiers(actor).extraRounds,accuracyBonus:(a.accuracy||0)+rapidFireModifiers(actor).accuracyBonus,tracking:a.tracking||0};
+    pierce:Math.min(1,(w.pierce||0)+(a.pierce||0)),extraRounds:rapidFireModifiers(actor).extraRounds,accuracyBonus:(a.accuracy||0)+rapidFireModifiers(actor).accuracyBonus,tracking:a.tracking||0};
 }
 // Do not change weapon.burst: it also divides per-volley perk damage bonuses.
 export const singleShotAt=(weapon,range)=>weapon.burstRange!==undefined&&range>weapon.burstRange;
 export const volleyAt=(weapon,range)=>(singleShotAt(weapon,range)?1:(weapon.burst||1))+(weapon.extraRounds||0);
 // Separate from combat RNG: inspecting, collecting or restoring loot never rerolls it.
+const fnv=seed=>{let hash=2166136261;for(const c of String(seed)){hash^=c.charCodeAt(0);hash=Math.imul(hash,16777619);}return hash>>>0;};
 export function rollAffix(base,seed){
   if(WEAPONS[base]?.melee)return null;
-  let hash=2166136261;for(const c of String(seed)){hash^=c.charCodeAt(0);hash=Math.imul(hash,16777619);}
-  hash>>>=0;if(hash%100>=65)return null;
-  const ids=Object.keys(AFFIXES).filter(id=>id!=='piercing'||!WEAPONS[base].explosive);
+  const special=dropOnlyAffixes(base),pick=Math.floor(fnv(`${seed}:drop-only`)/4294967296/DROP_ONLY_CHANCE);
+  if(pick<special.length)return special[pick];
+  const hash=fnv(seed);if(hash%100>=65)return null;
+  const ids=Object.keys(AFFIXES).filter(id=>!AFFIXES[id].dropOnly&&(id!=='piercing'||!WEAPONS[base].explosive));
   return ids[Math.floor(hash/100)%ids.length];
 }
 

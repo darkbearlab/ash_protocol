@@ -49,3 +49,10 @@ export function shotgunBand(w,range){
   if(w.farFrom&&range>=w.farFrom)return {min:w.farMin,max:w.farMax,band:'far'};
   return {min:w.min,max:w.max,band:'mid'};
 }
+
+// Pellets (3.141.0, user decisions 2026-09-19; docs/WEAPONS.md). The player's cone lands a number of pellets fixed by
+// distance, each rolling a flat pelletHit%: darkness, a moving target, evasion, readiness and the shooter's own accuracy
+// do not change it; only the weapon's own affix does (穩定 +10, 擴容 −8), and toxic mist still halves it. Beyond the
+// table (a long barrel) one pellet reaches. Enemies' shotguns keep the old single roll.
+export const pelletsAt=(w,range)=>w.pellets?(w.pellets[Math.max(1,range)-1]??1):0;
+export const pelletChance=(w,toxic=false)=>{const chance=Math.max(10,Math.min(99,(w.pelletHit||0)+(w.affixAccuracy||0)));return toxic?Math.max(1,Math.round(chance/2)):chance;};

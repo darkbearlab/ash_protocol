@@ -68,10 +68,11 @@ import {BARRIER_TYPES,BARRIER_LIMIT,makeBarrier,vaultable,isBarrier,barrierName,
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
 import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
-import {coneTargets,shotgunBand} from './shotgun.js';
+import {coneTargets,shotgunBand,pelletsAt,pelletChance} from './shotgun.js';
+import {lancePath} from './lance.js';
 import {PREPARED_CATALOG,defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns,isWearable,wornEntry,prepareCost,syncWearableTraits} from './prepared.js';
 import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
-import {AFFIXES,weaponStats,rollAffix} from './weapons.js';
+import {AFFIXES,weaponStats,rollAffix,affixAllowed} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
 import {presentStep} from './presentation.js';
 import {registerPurgeFloor,notePurgeDeparture,validPurge} from './purge-review.js';
@@ -296,6 +297,9 @@ export class Game {
   dropGrenade(id,amount){const def=GRENADES[id],p=this.player,item=this.items.find(o=>o.type===def.item&&distance(o,p)===0);if(item)item.amount=(item.amount??1)+amount;else this.items.push({x:p.x,y:p.y,type:def.item,amount});}
   trimGrenades(){let excess=grenadeTotal(this.player)-this.ammoCapacity('grenade');for(const [id,def]of Object.entries(GRENADES)){const n=Math.min(Math.max(0,excess),this.player[def.resource]);if(n){this.player[def.resource]-=n;this.dropGrenade(id,n);excess-=n;}}}
   supplyPack(amounts){for(const [type,amount]of Object.entries(amounts))this.receiveAmmo(type,amount);}
+  // 3.141.0: the shotgun's pellets at this target's distance, each with an even share of the per-attack bonuses (upgrades,
+  // the damage perk), rounded up like a burst's.
+  pelletDamage(index,target){const w=this.weaponAt(index),count=pelletsAt(w,distance(this.player,target)),raw=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5,bonus=count?Math.ceil(raw/count):0;return {count,min:w.pelletMin+bonus,max:w.pelletMax+bonus};}
   weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index);if(w.unarmed)return {min:w.min,max:w.max};const band=target?shotgunBand(w,distance(this.player,target)):{min:w.min,max:w.max},raw=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5,bonus=w.hits?Math.ceil(raw/w.hits):raw;return {min:band.min+bonus,max:band.max+bonus};}
   fail(text){this.log(text);return false;}
   // The only place the prepared slot is written. Wearables hang their passives off it, so the two can never drift.
@@ -346,7 +350,7 @@ export class Game {
     if(type==='recoverObjective')return this.nearbyObjectives.some(t=>t.id===arg)||this.fail('附近沒有可回收的機密資料。');
     if(type==='openContainer')return this.nearbyContainers.some(c=>c.id===arg)||this.fail('附近沒有可開啟的補給箱。');
     if(type==='door')return Boolean(arg&&typeof arg.open==='boolean'&&this.nearbyDoors.some(b=>b.id===arg.id&&b.open!==arg.open));
-    if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');if(!this.shotClear(p,e)||(w.melee&&!w.thrust&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?'目標藏在轉角後，換個射擊位置。':'射線或近戰路徑被障礙物擋住。');return w.melee||p.ammo[p.weapon]>0||this.fail('彈匣已空，請裝填。');}
+    if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。');if(distance(p,e)>w.range)return this.fail('目標超出射程。');if(!this.shotClear(p,e)||(w.melee&&!w.thrust&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?'目標藏在轉角後，換個射擊位置。':'射線或近戰路徑被障礙物擋住。');return w.melee||p.ammo[p.weapon]>=(w.shotCost||1)||this.fail(p.ammo[p.weapon]>0?`彈匣不足 ${w.shotCost} 發，請裝填。`:'彈匣已空，請裝填。');}
     if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail('彈匣已滿或沒有對應備彈。');
     // Consumables (3.106.0). Adrenaline is free to use but may never be the thing that kills you; the reasons
     // live in itemUseReason so the pack can grey the same buttons this would refuse.
@@ -608,7 +612,8 @@ export class Game {
     this.log(hits.size?`榴彈落地爆炸，波及 ${hits.size} 名敵人。`:'榴彈落地爆炸。');
     return true;
   }
-  // 3.112.0 (user request): one shell, every enemy and ally the cone reaches, each rolling its own hit and damage band.
+  // 3.112.0 (user request): one shell, every enemy and ally the cone reaches. 3.141.0 (user decisions 2026-09-19): each
+  // takes the pellets its distance allows, every pellet rolling a flat chance and its own damage (src/shotgun.js).
   fireCone(aim){
     const p=this.player,w=this.weapon;
     if(p.ammo[p.weapon]<=0)return this.fail('彈匣已空，請裝填。');
@@ -621,12 +626,14 @@ export class Game {
         this.log('霰彈沒有打中任何目標。',false,'霰彈落空。');return;
       }
       for(const o of targets){
-        const band=this.weaponDamage(p.weapon,o),damage=band.min+Math.floor(this.rng()*(band.max-band.min+1));
-        const chance=this.accuracy(p,o).chance,hit=this.rng()*100<chance;
-        this.effects.push({type:'shot',weaponId:w.id,style:'bullet',from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!hit});
-        if(!hit)continue;
-        if(this.enemies.includes(o)){const before=o.hp;this.hitTarget(o,damage,p,w.pierce||0);if(o.hp<before)hits.add(o);}
-        else this.damageAlly(o,damage,p);
+        const {count,min,max}=this.pelletDamage(p.weapon,o),chance=pelletChance(w,toxicShot(this,p,o,w)),landed=[];
+        for(let i=0;i<count;i++)if(this.rng()*100<chance)landed.push(min+Math.floor(this.rng()*(max-min+1)));
+        this.effects.push({type:'shot',weaponId:w.id,style:'bullet',from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!landed.length});
+        const foe=this.enemies.includes(o),name=foe?enemyName(o):'友軍';
+        this.log(landed.length?`${landed.length}/${count} 顆彈丸打中${name}。`:`彈丸全數落空（${count} 顆）。`,false,landed.length?`彈丸打中${name}。`:'彈丸落空。');
+        if(!landed.length)continue;
+        if(foe){const before=o.hp;this.hitTarget(o,landed.reduce((a,b)=>a+b,0),p,w.pierce||0,w,landed);if(o.hp<before)hits.add(o);}
+        else this.damageAlly(o,landed.reduce((a,b)=>a+b,0),p);
       }
     });
     finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),1,0,this);
@@ -641,27 +648,29 @@ export class Game {
     if(intent&&w.cone&&(!e||distance(p,e)>w.range||!this.shotClear(p,e)))return this.fireCone(intent);
     if(intent&&(!e||distance(p,e)>w.range||!this.shotClear(p,e))){
       p.facing=[Math.sign(intent.x-p.x),Math.sign(intent.y-p.y)];
-      const singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),p.ammo[p.weapon]);
+      const cost=w.shotCost||1,singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),Math.floor(p.ammo[p.weapon]/cost));
       for(let i=0;i<shots;i++)presentStep(this,()=>{
-        this.recordExposure(p,intent);p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
+        this.recordExposure(p,intent);p.ammo[p.weapon]-=cost;p.stats.shots++;spentCase(this,p,w.ammoType);
         this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:intent.x,y:intent.y},damage:0,miss:true,color:w.ammoType==='energy'?'#8ae9da':null});
       });
       if(this.enemies.some(e=>e.id===intent.id))recordShot(p,intent.id,this.turn);else p.fireChain=null;
-      this.log(`原目標已失去有效射線，向最後確認位置開火落空，消耗 ${shots} 發。`);
+      this.log(`原目標已失去有效射線，向最後確認位置開火落空，消耗 ${shots*cost} 發。`);
       return true;
     }
     if(!e)return this.fail('射線內沒有目標。');
     if(distance(p,e)>w.range)return this.fail('目標超出射程，靠近再開火。');
     if(p.ammo[p.weapon]<=0)return this.fail('彈匣已空，請裝填。');
+    if(p.ammo[p.weapon]<(w.shotCost||1))return this.fail(`彈匣不足 ${w.shotCost} 發，請裝填。`);
     // Doors, cover and barrels are still breached one at a time; an enemy gets the cone.
     if(w.cone&&this.enemies.includes(e))return this.fireCone(e);
+    if(w.lance&&this.enemies.includes(e))return this.fireLance(e);
     p.facing=[Math.sign(e.x-p.x),Math.sign(e.y-p.y)];
-    const singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),p.ammo[p.weapon]);
+    const cost=w.shotCost||1,singleShot=singleShotAt(w,distance(p,e||intent)),shots=Math.min(volleyAt(w,distance(p,e||intent)),Math.floor(p.ammo[p.weapon]/cost));
     let rounds=0;const hits=new Set();
     for(let i=0;i<shots;i++) {
       if(e.hp<=0||p.hp<=0)break;
       presentStep(this,()=>{
-        this.recordExposure(p,e);p.ammo[p.weapon]--;p.stats.shots++;rounds++;spentCase(this,p,w.ammoType);
+        this.recordExposure(p,e);p.ammo[p.weapon]-=cost;p.stats.shots++;rounds++;spentCase(this,p,w.ammoType);
         const range=this.weaponDamage(p.weapon,e),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
         const chance=this.fireChance(e);
         const hit=this.rng()*100<chance;
@@ -671,10 +680,35 @@ export class Game {
         if(w.explosive)this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p);
         else this.hitTarget(e,damage,p,w.pierce||0);
         if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p,w.pierce||0);
+        // 3.141.0 爆裂 (drop-only plasma affix): the hit bursts where it lands. The target already took the hit; everything
+        // one tile away, you and your allies too, takes half of it (an explosion loses 10 a tile), plus 爆破專家.
+        if(w.blast){this.log('電漿在命中處爆裂。');this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round(damage*w.blast)+10+p.blastBonus,p,this.enemies.filter(o=>o!==e));}
         for(const [other,hp] of before)if(other.hp<hp)hits.add(other);
       });
     }
     finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),rounds,0,this);
+    if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
+    return true;
+  }
+  // 3.141.0 貫穿 (drop-only plasma affix, src/lance.js): one beam, and every visible unit on it rolls its own hit. The
+  // locked target uses the same chance a plain shot would; whatever stopped the beam past it takes the hit.
+  fireLance(e){
+    const p=this.player,w=this.weapon,cost=w.shotCost||1,{units,stop,end}=lancePath(this,p,e,w.range),hits=new Set();
+    p.facing=[Math.sign(e.x-p.x),Math.sign(e.y-p.y)];
+    presentStep(this,()=>{
+      this.recordExposure(p,e);p.ammo[p.weapon]-=cost;p.stats.shots++;spentCase(this,p,w.ammoType);
+      this.effects.push({type:'shot',weaponId:w.id,singleShot:true,style:'plasma',from:{x:p.x,y:p.y},to:{x:end.x,y:end.y},damage:0,miss:false,color:'#8ae9da'});
+      const roll=o=>{const range=this.weaponDamage(p.weapon,o);return range.min+Math.floor(this.rng()*(range.max-range.min+1));};
+      for(const o of units){
+        const damage=roll(o),chance=o===e?this.fireChance(e):this.accuracy(p,o).chance,hit=this.rng()*100<chance;
+        if(!hit){this.log(`光束沒打中${this.enemies.includes(o)?enemyName(o):'友軍'}（命中率 ${chance}%）。`,false,'光束沒有打中。');continue;}
+        if(this.activeAllies.includes(o)){this.damageAlly(o,damage,p);continue;}
+        const before=o.hp;this.hitTarget(o,damage,p,w.pierce||0);if(o.hp<before)hits.add(o);
+      }
+      if(stop)this.hitTarget(stop,roll(stop),p,w.pierce||0);
+      this.log(`貫穿光束打中直線上 ${hits.size} 名敵人。`,false,'貫穿光束射出。');
+    });
+    finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),1,0,this);
     if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
     return true;
   }
@@ -740,14 +774,19 @@ export class Game {
     const cover=bestCover([edgeCover(this.barriers,target,attacker),wallCover(this.grid,target,attacker),...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,target)===1)],target,attacker);
     return attacker?.kind==='pet'&&petRank(this.player,'turret')>=4&&coverEffects(cover,target,attacker).efficiency===.5?null:cover;
   }
-  hitTarget(target,raw,attacker,pierce=0,weapon=this.weapon) {
-    if(attacker===this.player&&!weapon.unarmed)raw=Math.round(raw*bladeMultiplier(attacker));
+  // pellets (3.141.0, the player's shotgun cone): the damage of each pellet that landed, raw their sum. Every factor
+  // applies to each pellet in the same order as to a single hit, armour is taken from each, and cover cuts the weapon's
+  // pelletCover instead of the usual reduction.
+  hitTarget(target,raw,attacker,pierce=0,weapon=this.weapon,pellets=null) {
+    const blade=attacker===this.player&&!weapon.unarmed;
+    if(blade)raw=Math.round(raw*bladeMultiplier(attacker));
     if(this.props.includes(target)||isBarrier(target)){if(weapon.ammoType==='energy')addTrace(this,target,'scorch');this.damageProp(target,raw,attacker);return;}
     const cover=weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
-    let damage=raw;if(attacker===this.player&&!weapon.melee&&!this.sight(target,attacker))damage*=1+classPerkRank(attacker,'recon_unseen')*CLASS_PERK_TUNING.unseen;if(attacker===this.player&&activeTrait(target,'exposed'))damage*=1+classPerkRank(attacker,'soldier_marked')*CLASS_PERK_TUNING.markedDamage;
-    if(cover){damage*=1-coverEffects(cover,target,attacker).reduction*(1-pierce);if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);this.log('敵方掩體吸收了部分傷害。');}
-    if(toxicShot(this,attacker,target,attacker===this.player||!attacker?.type?weapon:this.actorWeapon(attacker)))damage*=.5;   // 3.134.0 mist
-    damage=Math.max(1,Math.round(damage-armor*(1-pierce)));
+    let parts=pellets?pellets.map(d=>blade?Math.round(d*bladeMultiplier(attacker)):d):[raw];const scale=f=>{parts=parts.map(d=>d*f);};
+    if(attacker===this.player&&!weapon.melee&&!this.sight(target,attacker))scale(1+classPerkRank(attacker,'recon_unseen')*CLASS_PERK_TUNING.unseen);if(attacker===this.player&&activeTrait(target,'exposed'))scale(1+classPerkRank(attacker,'soldier_marked')*CLASS_PERK_TUNING.markedDamage);
+    if(cover){const effect=coverEffects(cover,target,attacker);scale(1-(pellets?weapon.pelletCover*effect.efficiency:effect.reduction)*(1-pierce));if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);this.log('敵方掩體吸收了部分傷害。');}
+    if(toxicShot(this,attacker,target,attacker===this.player||!attacker?.type?weapon:this.actorWeapon(attacker)))scale(.5);   // 3.134.0 mist
+    let damage=parts.reduce((sum,d)=>sum+Math.max(1,Math.round(d-armor*(1-pierce))),0);
     if(weapon.ammoType==='energy'&&activeTrait(target,'mechanical'))damage=Math.round(damage*1.2);
     if(weapon.ammoType==='energy')addTrace(this,target,'scorch');
     const before=target.hp;this.hurt(target,reduceDirectDamage(target,damage),attacker);
@@ -1223,7 +1262,7 @@ export class Game {
       if(version>=5&&!'weaponBases affixes ammo upgrades'.split(' ').every(k=>Array.isArray(data.player[k])))return null;
       p.stats={...defaults.stats,...p.stats};
       if(!Array.isArray(p.weaponBases)||p.weaponBases.length<1||p.weaponBases.length>10000||p.weaponBases.some(i=>!Number.isInteger(i)||!WEAPONS[i]))return null;
-      if(!Array.isArray(p.affixes)||p.affixes.length!==p.weaponBases.length||p.affixes.some((a,i)=>a!==null&&(!Object.hasOwn(AFFIXES,a)||(a==='piercing'&&WEAPONS[p.weaponBases[i]].explosive)||WEAPONS[p.weaponBases[i]].locked)))return null;
+      if(!Array.isArray(p.affixes)||p.affixes.length!==p.weaponBases.length||p.affixes.some((a,i)=>a!==null&&(!Object.hasOwn(AFFIXES,a)||!affixAllowed(p.weaponBases[i],a)||(a==='piercing'&&WEAPONS[p.weaponBases[i]].explosive)||WEAPONS[p.weaponBases[i]].locked)))return null;
       if(!Array.isArray(p.owned)||!p.owned.length||p.owned.length>CHARACTERS[p.character].weaponCapacity||new Set(p.owned).size!==p.owned.length||!p.owned.includes(p.weapon)||p.owned.some(i=>!Number.isInteger(i)||p.weaponBases[i]===undefined))return null;
       if(!Array.isArray(p.ammo)||!Array.isArray(p.upgrades)||p.ammo.length!==p.weaponBases.length||p.upgrades.length!==p.weaponBases.length)return null;
       if(p.ammo.some(n=>!Number.isSafeInteger(n)||n<0||n>10000000)||p.upgrades.some(n=>!Number.isInteger(n)||n<0||n>3))return null;
