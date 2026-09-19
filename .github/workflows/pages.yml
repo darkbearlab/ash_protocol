@@ -11,7 +11,22 @@ concurrency:
   group: pages
   cancel-in-progress: false
 jobs:
+  # 2026-09-19 (user decision): the suite runs as four parallel shards instead of one job; a single job took 8-9
+  # minutes on the 4-core runner. Node splits the test files between shards; together they run every test once.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test --test-shard=${{ matrix.shard }}/4 tests/*.test.mjs
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -21,7 +36,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - run: npm test
       - run: npm run build
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

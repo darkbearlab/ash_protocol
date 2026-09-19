@@ -354,6 +354,8 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 
 3.136.3：狂戰士的格子（圖集 index 6）已換成長柄斧版本，來源在 `art/sprites/adopted/berserker-longaxe-2026-09-19/`，只覆寫一格的腳本是 `install.lua`。**不要再照 docs/SPRITE_OUTLINE_HANDOFF.md（3.122.0）整張重裝圖集**，否則新狂戰士會被舊版蓋掉。`assets/pixel/classes-v1/` 裡的逐職業 PNG（例如 `berserker.png`）遊戲和 SW 都沒有載入，是 3.48.3 留下的舊檔，早已和圖集不同。
 
+2026-09-19 CI：`.github/workflows/pages.yml` 分成 `test`（4 份平行，`--test-shard`）與 `deploy`（`needs: test`，只建置與發布）。每份涵蓋的測試數加起來就是 `npm test` 的總數，本機驗證過（285＋275＋314＋245＝1119）。新增測試檔不用改工作流程。本機仍用 `npm test` 跑全套。查部署狀態時，未登入的 GitHub API 每小時只有 60 次，連續輪詢容易用完；改查線上 `src/version.js`，或用 RELEASE.md 裡的 `tools/github-release.py status`。
+
 3.113.0（Claude）：8 種職業主動技能移出學習資料池（`RETIRED_LEARNING` 保留 ID 供遷移），未識別貨櫃內容池 28 → 20。SAVE 55 的 `retireLearning` 把背包、地上、未開箱子與封存樓層中的舊資料換成 15 廢料，已學會的技能保留。`learning.js` 裡為伴生指揮與工坊預留的學習分支目前已無入口，但保留不動（已學會的舊存檔仍走 `initializeAllies`）。被動學習資料未動。使用者決定（2026-09-17）：**被動暫時保留**，等之後內容更多再刪，暫且當作等級滿了之後的成長來源之一。
 
 3.112.0（Claude）：霰彈槍錐形。規則在新模組 src/shotgun.js：`coneTargets`（錐形內、射程內、看得見、射線通、未被更近單位遮擋，由近到遠）、`inCone`、`rayCells`（與 lineOfSight 同步進）、`shotgunBand`（三段距離傷害，玩家、機體、壓制射擊共用）。`Game.fireCone(aim)` 一發一顆霰彈、每個目標各擲命中與傷害，友軍走 `damageAlly`；鎖定目標是門、掩體、油桶時仍走原本單發。卡片 `SG-12` 新增 `cone:30, farFrom:5, farMin:21, farMax:27`，射程 6，保留 `splash` 給機體與壓制射擊。identity 完全未動。

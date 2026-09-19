@@ -28,7 +28,7 @@
 
 ## 自動部署
 
-未標記跳過 CI 的 push main，GitHub Actions 執行 Node 22 測試與建置，將 **dist/** 作為 Pages artifact 發布。原始美術 `art/`、文件、測試、Git 資料與輔助工具不在網站產物中。
+未標記跳過 CI 的 push main，GitHub Actions 先把 Node 22 測試分成 4 份平行執行（`node --test --test-shard=N/4`，2026-09-19 起；單一工作要 8～9 分鐘），4 份都通過後才建置，並將 **dist/** 作為 Pages artifact 發布。原始美術 `art/`、文件、測試、Git 資料與輔助工具不在網站產物中。
 
 Pages 設定使用 **GitHub Actions** 作為來源。完成一次設定後，後續 main push 自動部署。首次尚未啟用時可使用 repo Settings → Pages → Source: GitHub Actions。
 
