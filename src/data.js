@@ -2,7 +2,7 @@ import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 64;
+export const SAVE_VERSION = 65;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -84,17 +84,19 @@ ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:
 // rebels who hide, which throws the whole unit back into the fight. Two a floor, three from floor 7.
 ENEMY_TYPES.enforcer={sprite:{key:'rifleman',tint:'#8a3a34'},drawing:{shape:'humanoid',color:'#8a3a34'},projectile:'rifle',casing:'pistol',tags:['armed'],traits:['slow'],rounds:1,attackStyle:'bullet',behavior:'enforcer',speaksAs:'enforcer',maxPerFloor:2,maxPerFloorDeep:3,combat:{rangedAccuracy:-40},loot:{weapon:2,chance:.18,ammo:'pistol'},name:'督戰官',hp:40,damage:10,range:10,armor:1,color:'#8a3a34',xp:2,role:'叛軍的督戰官：行動緩慢，一把射程很遠卻幾乎打不中的槍。看到你會警告附近所有敵人，然後躲到掩體後，不會自己衝上來。盯上躲起來的叛軍、下一回合處決，讓周圍所有人立刻歸隊開火。先殺它，或搶先殺掉被盯上的那個。'};
 // Stable IDs; append content without changing saved offers. null cap means consumable reward.
+// 3.138.0 (user decisions 2026-09-19, docs/PERK_GROWTH.md): the direct-number perks give less per rank. `classic` holds the
+// values a run started before 3.138.0 keeps (src/perks.js perkDef); the utility perks are unchanged.
 export const PERKS = [
-  {id:'damage',name:'武器增幅',cap:3,effect:'weapon',amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'},
-  {id:'health',name:'生存本能',cap:3,effect:'health',amount:25,heal:40,text:'最大生命 +25，立即回復 40 生命。'},
-  {id:'armor',name:'複合裝甲',cap:3,effect:'stat',stat:'armor',amount:3,text:'每次直接受傷減少 3 點。'},
+  {id:'damage',name:'武器增幅',cap:3,effect:'weapon',amount:4,text:'每次完整武器攻擊傷害合計 +4，連發分攤；每次近戰 +4。',classic:{amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'}},
+  {id:'health',name:'生存本能',cap:3,effect:'health',amount:20,heal:30,text:'最大生命 +20，立即回復 30 生命。',classic:{amount:25,heal:40,text:'最大生命 +25，立即回復 40 生命。'}},
+  {id:'armor',name:'複合裝甲',cap:3,effect:'stat',stat:'armor',amount:2,text:'每次直接受傷減少 2 點。',classic:{amount:3,text:'每次直接受傷減少 3 點。'}},
   {id:'med',name:'戰地補給',cap:null,effect:'supply',text:'獲得 2 醫療包、2 手榴彈與分類備彈；超量彈藥留在腳下。'},
-  {id:'blast',name:'爆破專家',cap:3,effect:'stat',stat:'blastBonus',amount:18,text:'破片手榴彈與爆炸武器傷害 +18。'},
+  {id:'blast',name:'爆破專家',cap:3,effect:'stat',stat:'blastBonus',amount:12,text:'破片手榴彈與爆炸武器傷害 +12。',classic:{amount:18,text:'破片手榴彈與爆炸武器傷害 +18。'}},
   {id:'scavenger',name:'資源回收',cap:3,effect:'scavenger',amount:1,text:'擊殺與撿到的廢料 +50%，立即獲得 15 廢料。'},
   {id:'medic',name:'急救訓練',cap:3,effect:'medic',amount:20,text:'醫療包回復量 +20；立即獲得 1 醫療包。'},
   {id:'hazmat',name:'密封防護',cap:3,effect:'hazmat',amount:5,text:'環境傷害 −5、中毒每回合傷害 −1，立即解除中毒；第 3 階免疫現有環境傷害。'},
-  {id:'accuracy',name:'精準射擊',cap:3,effect:'combat',stats:['rangedAccuracy'],amount:8,text:'射擊命中 +8 個百分點。'},
-  {id:'evasion',name:'戰術閃避',cap:3,effect:'combat',stats:['rangedEvasion'],amount:8,text:'被射擊命中 −8 個百分點。'},
+  {id:'accuracy',name:'精準射擊',cap:3,effect:'combat',stats:['rangedAccuracy'],amount:5,text:'射擊命中 +5 個百分點。',classic:{amount:8,text:'射擊命中 +8 個百分點。'}},
+  {id:'evasion',name:'戰術閃避',cap:3,effect:'combat',stats:['rangedEvasion'],amount:5,text:'被射擊命中 −5 個百分點。',classic:{amount:8,text:'被射擊命中 −8 個百分點。'}},
   {id:'melee',name:'格鬥訓練',cap:3,effect:'combat',stats:['meleeAccuracy','meleeEvasion'],amount:8,text:'近戰命中與近戰迴避各 +8 個百分點。'},
   {id:'plating',name:'裝甲回收',cap:3,effect:'plating',amount:10,text:'有裝甲的敵人掉落護甲板的機率 +15 個百分點（基礎 20%），一般敵人也有 6% 機率掉落 5 點；立即獲得 10 護甲板。'},
   {id:'bulwark_plating',name:'板甲護持',characters:['bulwark'],cap:3,effect:'passive',text:'護甲板還有剩時，直接傷害額外 −8%；每階累加。'},

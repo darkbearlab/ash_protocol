@@ -12,8 +12,8 @@ test('only bulwark and necromancer start difficult healing; the medic bonus is a
 });
 test('health perk increases full capacity but halves healing; terminal and descending also obey passive',()=>{
  for(const id of ['bulwark','necromancer']){
-  const g=arena(id),p=g.player,max=p.maxHp;p.hp=10;g.player.level=2;g.pendingPerks=1;g.perkDraft={index:0,ids:['health']};assert.ok(g.choosePerk('health'));assert.equal(p.maxHp,max+25);assert.equal(p.hp,30);
-  g.props=[{id:'qa-terminal',type:'terminal',x:p.x,y:p.y,used:false}];p.scrap=100;assert.ok(g.useTerminal('heal'));assert.equal(p.hp,60);assert.equal(p.scrap,85);
+  const g=arena(id),p=g.player,max=p.maxHp;p.hp=10;g.player.level=2;g.pendingPerks=1;g.perkDraft={index:0,ids:['health']};assert.ok(g.choosePerk('health'));assert.equal(p.maxHp,max+20);assert.equal(p.hp,25);   // 3.138.0: +20 and heal 30, halved
+  g.props=[{id:'qa-terminal',type:'terminal',x:p.x,y:p.y,used:false}];p.scrap=100;assert.ok(g.useTerminal('heal'));assert.equal(p.hp,55);assert.equal(p.scrap,85);
   p.hp=10;p.x=g.end.x;p.y=g.end.y;assert.ok(g.descend());assert.equal(p.hp,22);
  }
 });

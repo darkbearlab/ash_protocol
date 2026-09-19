@@ -25,6 +25,7 @@ import {TERMINAL_TUNING,TERMINAL_PACK,terminalCost,terminalDeal,terminalRemainin
 import {deploymentPortraits,portraitMarkup,validPortrait} from './portraits.js';
 import {CHARACTERS,validCharacter,characterName,startingSupplies,classCarryBonus} from './characters.js';
 import {PREPARED_CATEGORIES,PREPARED_CATALOG,preparedOptions,preparedEntry,CAPPED_ITEMS} from './prepared.js';
+import {levelCost} from './perks.js';
 import {resultCopy,retryPlan} from './result-copy.js';
 import {isBarrier,barrierFace} from './barriers.js';
 import {GRENADES,grenadeTotal,SMOKE_DURATION,DISRUPT_TURNS,BOSS_DISRUPT_TURNS,DISRUPT_IMMUNITY} from './throwables.js';
@@ -177,7 +178,7 @@ function update(view=renderer.game) {
   $('#turn').textContent=String(view.turn).padStart(3,'0');
   $('#mobile-hp-bar').style.width=`${Math.max(0,p.hp)/p.maxHp*100}%`;$('#mobile-hp').textContent=`${Math.max(0,p.hp)} / ${p.maxHp}`;
   $('#mobile-plates-bar').style.width=`${(p.plates||0)/view.plateCapacity*100}%`;$('#mobile-plates').textContent=`${p.plates||0} / ${view.plateCapacity}`;lowHealth(p);
-  $('#level').textContent=`${sectorLabel} · ${levelLabel(p.level)}`;$('#level').title=`${sectorLabel}；${levelTitle(p.level,p.xp)}`;
+  $('#level').textContent=`${sectorLabel} · ${levelLabel(p.level)}`;$('#level').title=`${sectorLabel}；${levelTitle(p.level,p.xp,levelCost(game,p.level))}`;
   // One spelling of a prepared slot's label, so a mode that borrows the button can put it back exactly (3.109.0).
   for(const category of Object.keys(PREPARED_CATEGORIES)){
     const entry=preparedEntry(p,category),button=$(`[data-action="${category}"]`),count=entry?.resource?p[entry.resource]:null;

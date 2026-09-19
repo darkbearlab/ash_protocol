@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,PERKS} from '../src/engine.js';
 import {drawPerks,eligiblePerks} from '../src/perks.js';
+// 3.138.0 (docs/PERK_GROWTH.md): the direct-number perks give less per rank; tests/perk-growth.test.mjs covers the rules.
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 const ready=(seed=12)=>{const g=new Game(seed);g.player.level=3;g.pendingPerks=2;return g;};
@@ -16,17 +17,19 @@ test('offers are distinct, reproducible, frozen across reads and reloads, and in
 test('each pending pick advances its own index, re-evaluates caps, and takes no world turn or RNG',()=>{
  const g=ready(),turn=g.turn,state=g.rng.state();g.player.perks.accuracy=2;g.player.combatModifiers={rangedAccuracy:16};
  assert.ok(offer(g,'accuracy'));assert.equal(g.pendingPerks,1);assert.equal(g.perkPicks,1);assert.equal(g.perkDraft.index,1);
- assert.ok(!g.perkChoices.some(o=>o.id==='accuracy'));assert.equal(g.player.combatModifiers.rangedAccuracy,24);
+ assert.ok(!g.perkChoices.some(o=>o.id==='accuracy'));assert.equal(g.player.combatModifiers.rangedAccuracy,21);
  assert.ok(g.choosePerk(g.perkChoices[0].id));assert.equal(g.pendingPerks,0);assert.equal(g.perkDraft,null);assert.equal(g.turn,turn);assert.equal(g.rng.state(),state);
  assert.equal(g.choosePerk('med'),false);
 });
 test('seed samples exceed the old eight combinations and repeat bias favors unfinished permanent perks only',()=>{
- const sets=new Set();let repeat=0,plain=0;
+ const sets=new Set();let repeat=0,plain=0,classic=0;
  for(let seed=0;seed<2500;seed++){
   const g={seed,perkPicks:0,player:{character:'soldier',perks:{accuracy:1}}};const ids=drawPerks(g).ids;
   sets.add([...ids].sort().join(','));repeat+=ids.includes('accuracy');g.player.perks={med:10};plain+=drawPerks(g).ids.includes('med');
+  classic+=drawPerks({seed,perkPicks:0,perkRules:1,player:{character:'soldier',perks:{accuracy:1}}}).ids.includes('accuracy');
  }
- assert.ok(sets.size>100);assert.ok(repeat/2500>.65&&repeat/2500<.8);assert.ok(plain/2500>.1&&plain/2500<.3);
+ // 3.138.0: the pull towards perks already owned is 30% (about 41% of offers carry one); the classic rules keep 60%.
+ assert.ok(sets.size>100);assert.ok(repeat/2500>.33&&repeat/2500<.5);assert.ok(classic/2500>.6&&classic/2500<.8);assert.ok(plain/2500>.1&&plain/2500<.3);
 });
 test('all permanent ranks capped; only supply remains and repeated resource rewards cannot softlock',()=>{
  const g=ready();for(const o of PERKS)if(o.cap!==null)g.player.perks[o.id]=o.cap;
@@ -35,11 +38,11 @@ test('all permanent ranks capped; only supply remains and repeated resource rewa
 });
 test('new damage bonus is shared by burst while old per-bullet bonuses remain intact',()=>{
  const g=ready();g.player.bonus=12;const before=[0,2,6,7,8].map(i=>g.weaponDamage(i).min);assert.ok(offer(g,'damage'));
- assert.deepEqual([0,2,6,7,8].map((i,n)=>g.weaponDamage(i).min-before[n]),[6,3,2,6,2]);assert.equal(g.player.bonus,12);
+ assert.deepEqual([0,2,6,7,8].map((i,n)=>g.weaponDamage(i).min-before[n]),[4,2,2,4,2]);assert.equal(g.player.bonus,12);   // 3.138.0: +4, shared by burst (rounded up)
 });
 test('health and armor are separate; melee changes only melee; max rank hazard protection reaches immunity',()=>{
- const g=ready(),p=g.player;const armor=p.armor,hp=p.maxHp;offer(g,'health');assert.equal(p.maxHp,hp+25);assert.equal(p.armor,armor);
- offer(g,'armor');assert.equal(p.armor,armor+3);offer(g,'melee');assert.deepEqual(p.combatModifiers,{meleeAccuracy:8,meleeEvasion:8});
+ const g=ready(),p=g.player;const armor=p.armor,hp=p.maxHp;offer(g,'health');assert.equal(p.maxHp,hp+20);assert.equal(p.armor,armor);
+ offer(g,'armor');assert.equal(p.armor,armor+2);offer(g,'melee');assert.deepEqual(p.combatModifiers,{meleeAccuracy:8,meleeEvasion:8},'utility perks keep their numbers');
  offer(g,'hazmat');offer(g,'hazmat');offer(g,'hazmat');assert.equal(p.hazmat,15);assert.ok(!eligiblePerks(g).some(o=>o.id==='hazmat'));
 });
 test('v27 migration infers exact historical ranks without replaying rewards, clamps neither stats nor over-cap history',()=>{
@@ -62,13 +65,13 @@ test('malformed current counters, rank IDs, duplicate/unknown offers and missing
 });
 test('full backup retains pending draft, ranks and new weapon bonus without reroll or duplicate effects',()=>{
  const g=ready();offer(g,'damage');const before=g.serialize(),b=makeBackup(g,normalizeProfile({}),'qa'),h=decodeBackup(JSON.stringify(b),'qa').game;
- assert.ok(h);assert.deepEqual(h.player.perks,g.player.perks);assert.equal(h.player.perkWeaponBonus,6);assert.deepEqual(h.perkChoices,g.perkChoices);assert.equal(g.serialize(),before);
+ assert.ok(h);assert.deepEqual(h.player.perks,g.player.perks);assert.equal(h.player.perkWeaponBonus,4);assert.deepEqual(h.perkChoices,g.perkChoices);assert.equal(g.serialize(),before);
 });
 
 test('accuracy and evasion ranks affect actual shared hit chances without changing melee channel',()=>{
  const g=ready(),p=g.player,e=g.enemies[0];p.x=5;p.y=5;e.x=6;e.y=5;
- p.combatModifiers={rangedAccuracy:-30};const before=g.accuracy(p,e).chance,melee=g.meleeAccuracy(p,e,70);offer(g,'accuracy');assert.equal(g.accuracy(p,e).chance,before+8);assert.equal(g.meleeAccuracy(p,e,70),melee);
- e.combatModifiers={rangedAccuracy:-30};const incoming=g.accuracy(e,p).chance;offer(g,'evasion');assert.equal(g.accuracy(e,p).chance,incoming-8);
+ p.combatModifiers={rangedAccuracy:-30};const before=g.accuracy(p,e).chance,melee=g.meleeAccuracy(p,e,70);offer(g,'accuracy');assert.equal(g.accuracy(p,e).chance,before+5);assert.equal(g.meleeAccuracy(p,e,70),melee);
+ e.combatModifiers={rangedAccuracy:-30};const incoming=g.accuracy(e,p).chance;offer(g,'evasion');assert.equal(g.accuracy(e,p).chance,incoming-5);
 });
 test('v27 first local load backs up exact bytes and preserves the prepared offer on the next load',async()=>{
  const g=ready();const value=JSON.parse(g.serialize());value.version=27;delete value.data.player.perks;delete value.data.player.perkWeaponBonus;delete value.data.perkPicks;delete value.data.perkDraft;

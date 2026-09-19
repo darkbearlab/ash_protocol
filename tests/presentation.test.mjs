@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {levelCost} from '../src/perks.js';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {captureAction,planPresentation,Playback,FLIGHT_MS,snapshot,projectileVisuals,DEATH_MS,KILL_HOLD_MS} from '../src/presentation.js';
 
@@ -12,7 +13,7 @@ function enemy(g,type='rifleman',hp=1,x=14,y=10){const e=makeEnemy(type,x,y,'e'+
 function advance(playback,ms){while(ms>0){const dt=Math.min(ms,50);playback.advance(dt);ms-=dt;}}
 
 test('lethal shot is saved immediately, but living target and HP remain until projectile arrival',()=>{
-  const g=arena(),e=enemy(g);g.player.xp=2;
+  const g=arena(),e=enemy(g);g.player.xp=levelCost(g,1)-1;/* 3.138.0: level costs come from levelCost */
   const {success,steps}=captureAction(g,()=>g.action('fire'));
   assert.ok(success);assert.ok(e.hp<=0);assert.equal(g.pendingPerks,1);
   const restored=Game.restore(g.serialize());assert.ok(restored.enemies[0].hp<=0);assert.equal(restored.pendingPerks,1);

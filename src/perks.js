@@ -8,7 +8,13 @@ import {PERKS} from './data.js';
 import {random} from './world.js';
 export const AMMO_DROP={base:.35,perTier:.15,maxTier:3};
 export const ammoDropChance=p=>AMMO_DROP.base+AMMO_DROP.perTier*Math.min(AMMO_DROP.maxTier,p.perks?.ammo_recovery||0);
-export const REPEAT_CHANCE=.6,CLASS_CHANCE=.5,CLASS_MISS_LIMIT=2;
+export const REPEAT_CHANCE=.3,CLASS_CHANCE=.5,CLASS_MISS_LIMIT=2;
+// 3.138.0 (user decisions 2026-09-19, docs/PERK_GROWTH.md): picks come more slowly (level L costs 2L+3 experience, not
+// L+2), the direct-number perks give less per rank (their `classic` values in data.js), and a draw leans on perks
+// already owned 30% of the time, not 60%. A run started before 3.138.0 (perkRules 1) keeps all three as they were.
+export const CLASSIC_REPEAT_CHANCE=.6;
+export const levelCost=(g,level)=>g?.perkRules===1?level+2:2*level+3;
+export const perkDef=(g,o)=>o&&g?.perkRules===1&&o.classic?{...o,...o.classic}:o;
 const isClass=o=>Boolean(o.characters?.length);
 const count=(p,id)=>p.perks[id]||0;
 // Future content may restrict characters or provide an eligibility predicate.
@@ -23,7 +29,7 @@ export function drawPerks(g){
  const rng=random((g.seed^Math.imul(g.perkPicks+1,0x9e3779b1)^0x5045524b)>>>0),pool=eligiblePerks(g),ids=[];
  const take=list=>{const o=list[Math.floor(rng()*list.length)];ids.push(o.id);pool.splice(pool.indexOf(o),1);};
  const repeat=pool.filter(o=>o.cap!==null&&count(g.player,o.id)>0);
- if(rng()<REPEAT_CHANCE&&repeat.length)take(repeat);
+ if(rng()<(g.perkRules===1?CLASSIC_REPEAT_CHANCE:REPEAT_CHANCE)&&repeat.length)take(repeat);
  const classPool=pool.filter(isClass);
  if(classPool.length){const prioritize=(g.classPerkMisses||0)>=CLASS_MISS_LIMIT||rng()<CLASS_CHANCE;
   if(prioritize&&!ids.some(id=>isClass(PERKS.find(o=>o.id===id))))take(classPool);
@@ -35,14 +41,14 @@ export function drawPerks(g){
 export function ensurePerks(g){
  if(!g.pendingPerks||g.perkPicks>=perkLimit(g.player.level)){g.perkDraft=null;return [];}
  if(!g.perkDraft)g.perkDraft=drawPerks(g);
- return g.perkDraft.ids.map(id=>PERKS.find(o=>o.id===id));
+ return g.perkDraft.ids.map(id=>perkDef(g,PERKS.find(o=>o.id===id)));
 }
 export function recordPerkOffer(g){
  const available=eligiblePerks(g).some(isClass),offered=g.perkDraft?.ids.some(id=>isClass(PERKS.find(o=>o.id===id)));
  g.classPerkMisses=!available||offered?0:Math.min(CLASS_MISS_LIMIT,(g.classPerkMisses||0)+1);
 }
 export function applyPerk(g,o){
- const p=g.player;
+ o=perkDef(g,o);const p=g.player;
  switch(o.effect){
  case 'passive':if(o.id==='engineer_salvage')p.scrap+=CLASS_PERK_TUNING.salvageGrant;if(o.id==='necro_haste'&&p.skillState?.raise_dead)p.skillState.raise_dead.cooldown=Math.max(0,p.skillState.raise_dead.cooldown-CLASS_PERK_TUNING.haste);break;
  case 'weapon':p.perkWeaponBonus+=o.amount;break;

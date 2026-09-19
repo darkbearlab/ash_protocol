@@ -17,6 +17,7 @@ import {AMMUNITION,AMMO_IDS,TERMINAL_AMMO} from '../src/ammunition.js';
 import {GRENADES,grenadeTotal,tacticalSight} from '../src/throwables.js';
 import {PREPARED_CATALOG,preparedOptions,preparedEntry,CAPPED_ITEMS} from '../src/prepared.js';
 import {UNARMED_SLOT} from '../src/unarmed.js';
+import {levelCost} from '../src/perks.js';
 import {SKILLS,skillStatus} from '../src/skills.js';
 import {isContainer,containerName} from '../src/containers.js';
 import {isBarrier,barrierName,barrierBetween,edgeBlocks} from '../src/barriers.js';
@@ -151,7 +152,7 @@ function weaponLine(g,slot){
 function status(g){
  const p=g.player,def=missionDefinition(g),progress=missionProgress(g),faction=factionDef(g.facilityFaction)?.name||g.facilityFaction;
  const lines=[`== 第 ${g.floor} 層 ${floorInfo(g.floor).name} · 回合 ${g.turn} · ${CHARACTERS[p.character].label} · ${faction} · 任務：${def.name} ${progress.done}/${progress.total}${g.status!=='playing'?` · 狀態：${g.status}`:''}`];
- lines.push(`生命 ${p.hp}/${p.maxHp} 護甲板 ${p.plates||0}/${g.plateCapacity} 裝甲 ${p.armor||0} · ${levelLabel(p.level)}（${levelTitle(p.level,p.xp)}）· 位置 ${at(p)} · 廢料 ${p.scrap||0}`);
+ lines.push(`生命 ${p.hp}/${p.maxHp} 護甲板 ${p.plates||0}/${g.plateCapacity} 裝甲 ${p.armor||0} · ${levelLabel(p.level)}（${levelTitle(p.level,p.xp,levelCost(g,p.level))}）· 位置 ${at(p)} · 廢料 ${p.scrap||0}`);
  const flags=[g.pursuit?'追擊：下次攻擊不耗回合':'',g.shadowSteps?`免費移動 ${g.shadowSteps}`:'',suppressionStatus(p),isDark(g,p)?'你在暗處':'',p.focus?'穩定瞄準':'',p.guard?'防禦待機':'',p.poison?`中毒 ${p.poison}`:'',p.control?.disabled?`失能 ${p.control.disabled}`:'',p.recovery?'鏈鋸收勢：下次行動跳過':'',...traitLabels(p).filter(Boolean)].filter(Boolean);
  if(flags.length)lines.push(`狀態：${flags.join(' · ')}`);
  lines.push('武器：',...p.owned.map(slot=>'  '+weaponLine(g,slot)));
