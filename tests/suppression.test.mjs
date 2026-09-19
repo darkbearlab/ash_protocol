@@ -18,7 +18,7 @@ const foe=(g,type='rifleman',x=14,y=10)=>{const e=makeEnemy(type,x,y,`test-${g.e
 const sure=g=>g.rng=Object.assign(()=>0,{state:()=>1});
 const arm=(g,slot)=>{g.player.owned=[slot];g.player.weapon=slot;g.player.ammo[slot]=g.weapon.mag;};
 const skill=g=>{g.player.skills.push('suppressive_fire');g.player.skillState.suppressive_fire={remaining:0,cooldown:0};g.player.prepared.skill='suppressive_fire';};
-test('suppression caps at five, penalizes both channels, halves only at world end; machines immune and bosses subtract once',()=>{
+test('suppression caps at five, penalizes both channels, halves when tickSuppression runs (after the unit’s own turn since 3.145.0); machines immune and bosses subtract once',()=>{
  const g=arena(),e=foe(g);applySuppression(e,9);assert.equal(e.suppression,5);assert.ok(pinned(e));assert.equal(actorStat(e,'rangedAccuracy'),-40);assert.equal(actorStat(e,'meleeAccuracy'),-40);tickSuppression(e);assert.equal(e.suppression,2);tickSuppression(e);assert.equal(e.suppression,1);tickSuppression(e);assert.equal(e.suppression,0);
  for(const type of ['boss','warden']){const b=foe(g,type);b.traits=b.traits.filter(t=>t.id!=='mechanical');finishSuppression([b],new Set([b]),3,1);assert.equal(b.suppression,1);applySuppression(b,1);assert.equal(b.suppression,1);}
  const m=foe(g,'drone');applySuppression(m,5);assert.equal(m.suppression,0);assert.ok(suppressionState(m).immune);
@@ -75,5 +75,5 @@ test('ammo recovery has three capped tiers and excluded enemies still drop nothi
 });
 test('learned anchor fires suppression skill at normal and slow phases; each volley pays separately',()=>{
  const g=arena(),e=foe(g);skill(g);g.player.skills.push('anchor');g.player.skillState.anchor={remaining:1,cooldown:0};grantTrait(g.player,'clumsy','skill:anchor');sure(g);g.enemyAct=()=>{};
- assert.ok(g.action('usePrepared',{category:'skill',target:{x:e.x,y:e.y}}));assert.equal(g.player.ammo[0],2);assert.equal(e.suppression,2,'four stacks followed by halving');
+ assert.ok(g.action('usePrepared',{category:'skill',target:{x:e.x,y:e.y}}));assert.equal(g.player.ammo[0],2);assert.equal(e.suppression,3,'two stacks, halved when its own turn between the volleys ends, then two more (3.145.0)');
 });

@@ -1013,12 +1013,12 @@
    "invalid": 0
   },
   "bulwark:2": {
-   "status": "dead",
-   "floor": 5,
-   "turn": 918,
-   "hp": 0,
-   "kills": 131,
-   "actions": 918,
+   "status": "won",
+   "floor": 6,
+   "turn": 1283,
+   "hp": 94,
+   "kills": 193,
+   "actions": 1287,
    "invalid": 0
   },
   "bulwark:3": {

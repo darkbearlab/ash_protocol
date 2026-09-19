@@ -7,7 +7,7 @@ import {FIELD_ITEMS} from '../src/containers.js';
 import {actorStat} from '../src/actor-stats.js';
 import {suppressionStacks} from '../src/suppression.js';
 import {activeTrait} from '../src/traits.js';
-import {DECOY_TUNING,MINE_TUNING,EXO_TUNING,fooled,decoyAct,checkMines,knownMine,mineAt} from '../src/field-gear.js';
+import {DECOY_TUNING,MINE_TUNING,EXO_TUNING,fooled,decoyAct,checkMines,knownMine,mineAt,mineAct} from '../src/field-gear.js';
 import {scream} from '../src/civilians.js';
 import {soundAlarm} from '../src/rebels.js';
 
@@ -133,6 +133,19 @@ test('enemies cannot see a mine, except one that watched it go down, which walks
  assert.ok(knownMine(g,watcher,12,10));assert.equal(g.passable(12,10,watcher),false);
  assert.ok(!knownMine(g,blind,12,10));assert.ok(g.passable(12,10,blind));
  const late=foe(g,'rifleman',16,12,'late');assert.ok(g.passable(12,10,late),'one that arrives later does not know');
+});
+
+test('an enemy that watched it go down shoots it from outside the blast; melee ones and ones too close do not',()=>{
+ const g=still(arena());
+ const gun=foe(g,'rifleman',16,10,'gun'),brute=foe(g,'brute',13,13,'brute'),close=foe(g,'rifleman',12,11,'close');
+ assert.ok(g.action('mine',{x:12,y:10}));
+ assert.deepEqual(g.mines[0].seen.sort(),['brute','close','gun']);
+ assert.equal(mineAct(g,brute),false,'a melee unit keeps walking around it');
+ assert.equal(mineAct(g,close),false,'standing inside the blast, it will not shoot');
+ g.rng=()=>.99;assert.equal(mineAct(g,gun),true,'it spends the turn on the mine');assert.ok(mineAt(g,12,10),'and misses');
+ const hp=close.hp;g.rng=()=>0;assert.equal(mineAct(g,gun),true);
+ assert.equal(mineAt(g,12,10),null,'hit: it goes off');assert.ok(close.hp<hp,'catching the one next to it');
+ assert.equal(mineAct(g,gun),false,'nothing left to shoot');
 });
 
 test('mines left behind are gone on the next floor',()=>{

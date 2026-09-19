@@ -5,7 +5,8 @@
 //   non-combatants are never fooled. It has 30 HP and lasts 4 turns; fooled enemies still fight your allies.
 // - 地雷 (mine): placed up to 3 tiles away, at most 3 on a floor. A walking enemy that steps on it sets it off: 60 at
 //   the centre, 50 a tile away, like every blast (−10 a tile), plus 爆破專家. You and your allies never set it off but
-//   are caught in its blast; other blasts set it off. Enemies cannot see mines; one that watched you lay it avoids it.
+//   are caught in its blast; other blasts set it off. Enemies cannot see mines; one that watched you lay it walks
+//   around it and, from outside the blast with a gun that reaches, shoots it (3.145.0, user decision).
 //   Mines left behind are gone when you change floors.
 // - 外骨骼 (exoskeleton): a wearable. Ranged hit +10, melee damage +20%, and 50 armour plates of its own that take their
 //   share of each hit before your plates do. When they are gone the frame breaks, is lost and pins you: 5 suppression
@@ -20,7 +21,7 @@ import {enemyDisplayName} from './enemy-affixes.js';
 import {EXO_ACCURACY} from './actor-stats.js';
 
 export const DECOY_TUNING=Object.freeze({range:5,radius:6,duration:4,hp:30,hit:85});
-export const MINE_TUNING=Object.freeze({range:3,radius:1,damage:60,max:3});
+export const MINE_TUNING=Object.freeze({range:3,radius:1,damage:60,max:3,hit:85});
 export const EXO_TUNING=Object.freeze({plates:50,accuracy:EXO_ACCURACY,melee:1.2,suppression:5});
 
 const floorTile=(g,pos)=>Boolean(pos)&&Number.isInteger(pos.x)&&Number.isInteger(pos.y)&&g.grid[pos.y]?.[pos.x]===1;
@@ -107,6 +108,19 @@ export function detonateMine(g,m){
 // After anything moves: a walking enemy standing on a mine sets it off. Flying ones pass over.
 export function checkMines(g){
  for(const m of [...(g.mines||[])]){const e=g.enemies.find(e=>e.hp>0&&e.x===m.x&&e.y===m.y&&!hasEnemyTag(e,'flying'));if(e)detonateMine(g,m);}
+}
+// 3.145.0 (user decision): an enemy that watched the mine go down shoots it. Only from outside the blast and with a
+// gun that reaches (melee units just keep walking around it), and not while a telegraphed attack is under way.
+const canShootMines=e=>!isNoncombatant(e)&&!enemyDef(e)?.expendable&&!['bomber','munition'].includes(enemyDef(e)?.behavior)&&!(e.charge||e.grenadeIntent||e.tongueIntent||e.pounceIntent||e.lobIntent);
+export function mineAct(g,e){
+ const range=enemyDef(e)?.range||1;
+ if(!(g.mines||[]).length||range<=MINE_TUNING.radius||!canShootMines(e))return false;
+ const m=g.mines.filter(m=>m.seen.includes(e.id)&&distance(e,m)>MINE_TUNING.radius&&distance(e,m)<=range&&g.shotClear(e,m)).sort((a,b)=>distance(e,a)-distance(e,b))[0];
+ if(!m)return false;
+ const hit=g.rng()*100<MINE_TUNING.hit;e.facing=[Math.sign(m.x-e.x),Math.sign(m.y-e.y)];
+ g.effects.push({type:'enemyShot',attackerType:e.type,style:enemyDef(e).attackStyle,from:{x:e.x,y:e.y},to:{x:m.x,y:m.y},damage:0,miss:!hit});
+ if(hit){g.log(`${enemyDisplayName(e)}開槍引爆了地雷！`,true);detonateMine(g,m);}else g.log(`${enemyDisplayName(e)}朝地雷開槍，沒打中。`);
+ return true;
 }
 export const validMines=g=>Array.isArray(g.mines)&&g.mines.length<=MINE_TUNING.max&&new Set(g.mines.map(m=>`${m.x},${m.y}`)).size===g.mines.length&&g.mines.every(m=>m&&typeof m.id==='string'&&floorTile(g,m)&&Array.isArray(m.seen)&&m.seen.every(id=>typeof id==='string'))&&Number.isInteger(g.mineSerial)&&g.mineSerial>=g.mines.length;
 

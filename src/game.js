@@ -70,7 +70,7 @@ import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlSt
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
 import {coneTargets,shotgunBand,pelletsAt,pelletChance} from './shotgun.js';
 import {lancePath} from './lance.js';
-import {EXO_TUNING,decoyReason,throwDecoy,decoyHides,fooled,noticeAttack,damageDecoy,decoyAct,tickDecoy,validDecoy,mineReason,placeMine,detonateMine,checkMines,knownMine,validMines,exoAbsorb,breakExo,wearingExo,validExo,exoReason} from './field-gear.js';
+import {EXO_TUNING,mineAct,decoyReason,throwDecoy,decoyHides,fooled,noticeAttack,damageDecoy,decoyAct,tickDecoy,validDecoy,mineReason,placeMine,detonateMine,checkMines,knownMine,validMines,exoAbsorb,breakExo,wearingExo,validExo,exoReason} from './field-gear.js';
 import {PREPARED_CATALOG,defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns,isWearable,wornEntry,prepareCost,syncWearableTraits} from './prepared.js';
 import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix,affixAllowed} from './weapons.js';
@@ -436,8 +436,13 @@ export class Game {
     const recovering=p.recovery>0;if(recovering)p.recovery=0;
     let playerStunned=false;
     this.turn++;tickTongues(this);tickPounces(this);tickFields(this);
-    for(const {actor,speed,anchorExtra=false}of queue){
+    // 3.145.0 (user decision): suppression halves when the unit's own turn is over, player and enemies alike, so the
+    // stacks it took since its last turn are all felt on this one. The `finally` runs on every skip (`continue`) too:
+    // a stunned unit's turn has still passed. A unit with two slots (an anchored double attack) halves after the last.
+    const lastSlot=new Map(queue.map(({actor},slot)=>[actor,slot]));
+    for(const [slot,{actor,speed,anchorExtra=false}] of queue.entries()){
       if(p.hp<=0||this.status!=='playing'||this.floor!==floor)break;
+      try{
       if(actor.hp<=0||actor.kind&&(actor.status!=='active'||actor.floor!==this.floor))continue;
       if(actor===p&&playerStunned)continue;
       actor.vaultExposed=false;
@@ -454,6 +459,7 @@ export class Game {
       }else if(actor.kind){const wasIn=inToxic(this,actor);presentStep(this,()=>{if(isMunition(actor))munitionAct(this,actor);else if(isBomber(actor))bomberAct(this,actor);else allyAct(this,actor);this.reveal();},actor);toxicAllyTurn(this,actor,wasIn);}
       else if(actor.hp>0&&actor.alert)presentStep(this,()=>{this.enemyAct(actor);checkMines(this);},speed!==0||playerSpeed!==0||phase!==null?actor:null);
       if(immunityBefore&&!anchorExtra)actor.control.immune=Math.max(0,actor.control.immune-1);
+      }finally{if(lastSlot.get(actor)===slot)tickSuppression(actor);}
     }
     if(this.floor===floor&&this.status==='playing'&&p.hp>0){
       const due=this.marks.filter(m=>m.due<=this.turn);this.marks=this.marks.filter(m=>m.due>this.turn);
@@ -471,7 +477,7 @@ export class Game {
     this.flares=(this.flares||[]).filter(f=>f.expires>this.turn);
     tickDecoy(this);
     expireExposure([p,...this.enemies,...this.allies],this.turn);
-    for(const actor of [p,...this.enemies,...this.activeAllies]){tickTraits(actor);tickSuppression(actor);}
+    for(const actor of [p,...this.enemies,...this.activeAllies])tickTraits(actor);
     // 3.127.0: rebels taunt their cowards before the player gets control, so the boosts show on the target cards.
     if(this.status==='playing'&&p.hp>0)rebelMorale(this);
     this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';this.log('生命訊號中斷。',true);}
@@ -980,6 +986,7 @@ export class Game {
   noticeAttack(e){noticeAttack(this,e);}
   enemyAct(e){
     if(decoyAct(this,e))return;   // 3.144.0
+    if(mineAct(this,e))return;    // 3.145.0: shoot a mine it watched go down
     return this.enemyOpportunity(e);
   }
   enemyOpportunity(e){return enemyOpportunity(this,e);}

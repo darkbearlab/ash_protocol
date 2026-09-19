@@ -25,7 +25,7 @@ export const PREPARED_CATALOG={
    // 3.144.0 (user decisions 2026-09-19, src/field-gear.js, docs/ITEMS.md): a decoy thrown like a flare, a mine laid
    // within three tiles, and the exoskeleton, a wearable with plates of its own.
    decoy:{name:'誘餌',short:'誘餌',icon:'◎',resource:'decoys',action:'decoy',aim:'throw',text:'射程 5 格。落點 6 格內的敵人（頭目、自爆單位除外）會把誘餌當成你：看不到你、改去攻擊誘餌，但照樣打你的友軍。你攻擊的敵人、以及看得到牠被攻擊的敵人會回過神來；走到你旁邊的也會看穿。誘餌 30 耐久，維持 4 回合。消耗 1 回合。'},
-   mine:{name:'地雷',short:'地雷',icon:'✱',resource:'mines',action:'mine',aim:'throw',text:'埋在 3 格內看得見的空地上，同一層最多 3 顆。走路的敵人踩到就爆炸：中心 60、相鄰 50（加上爆破專家）；你和友軍踩到不會爆，但會被炸到。其他爆炸也會引爆它。敵人看不到地雷，看著你埋的會繞開。換層後就沒了。消耗 1 回合。'},
+   mine:{name:'地雷',short:'地雷',icon:'✱',resource:'mines',action:'mine',aim:'throw',text:'埋在 3 格內看得見的空地上，同一層最多 3 顆。走路的敵人踩到就爆炸：中心 60、相鄰 50（加上爆破專家）；你和友軍踩到不會爆，但會被炸到。其他爆炸也會引爆它。敵人看不到地雷；看著你埋的會繞開，有槍的會在爆炸範圍外開槍引爆它。換層後就沒了。消耗 1 回合。'},
    exo:{name:'外骨骼',short:'外骨骼',icon:'⛨',wear:true,traits:['exoskeleton'],text:'射擊命中 +10、近戰傷害 +20%，自帶 50 點護甲板，受傷時先替你吸收（和護甲板一樣吸收一半）。護甲板打光時外骨骼損毀、消失，你直接被壓制 5 層。無法修復；重裝兵穿不下。戴上與脫下各消耗 1 回合。'}},
   skill:SKILLS,
 };
