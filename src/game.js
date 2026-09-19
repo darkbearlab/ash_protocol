@@ -690,8 +690,10 @@ export class Game {
     if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
     return true;
   }
-  // 3.141.0 貫穿 (drop-only plasma affix, src/lance.js): one beam, and every visible unit on it rolls its own hit. The
-  // locked target uses the same chance a plain shot would; whatever stopped the beam past it takes the hit.
+  // 3.141.0 貫穿 (drop-only plasma affix, src/lance.js): one beam, and every visible unit on it rolls its own hit;
+  // whatever stopped the beam past it takes the hit. 3.142.1 (user, after the playtest): every unit rolls against the
+  // chance of the shot the player aimed, the locked target's, so darkness or cover further down the beam cannot turn the
+  // line into misses.
   fireLance(e){
     const p=this.player,w=this.weapon,cost=w.shotCost||1,{units,stop,end}=lancePath(this,p,e,w.range),hits=new Set();
     p.facing=[Math.sign(e.x-p.x),Math.sign(e.y-p.y)];
@@ -699,9 +701,9 @@ export class Game {
       this.recordExposure(p,e);p.ammo[p.weapon]-=cost;p.stats.shots++;spentCase(this,p,w.ammoType);
       this.effects.push({type:'shot',weaponId:w.id,singleShot:true,style:'plasma',from:{x:p.x,y:p.y},to:{x:end.x,y:end.y},damage:0,miss:false,color:'#8ae9da'});
       const roll=o=>{const range=this.weaponDamage(p.weapon,o);return range.min+Math.floor(this.rng()*(range.max-range.min+1));};
-      let friends=0;
+      let friends=0;const chance=this.fireChance(e);
       for(const [n,o] of units.entries()){
-        const damage=roll(o),chance=o===e?this.fireChance(e):this.accuracy(p,o).chance,hit=this.rng()*100<chance;
+        const damage=roll(o),hit=this.rng()*100<chance;
         if(!hit){this.log(`光束沒打中第 ${n+1} 個：${this.enemies.includes(o)?enemyName(o):'友軍'}（命中率 ${chance}%）。`,false,'光束沒有打中。');continue;}
         if(this.activeAllies.includes(o)){this.damageAlly(o,damage,p);friends++;continue;}
         const before=o.hp;this.hitTarget(o,damage,p,w.pierce||0);if(o.hp<before)hits.add(o);
@@ -796,11 +798,12 @@ export class Game {
     petHit(this,attacker,target,Math.max(0,before-Math.max(0,target.hp)),weapon);
     if(attacker===this.player&&weapon.melee&&!weapon.unarmed)meleeReward(this,target,before);
   }
-  hurt(e,damage,attacker=null) {
+  // cause (3.142.1): damage nobody dealt (a hazard underfoot) says what it was instead of 命中, which reads as a shot.
+  hurt(e,damage,attacker=null,cause=null) {
     if(e.hp<=0||!shotDamageAllowed(this,e))return;
     const beforeHp=e.hp;e.hp-=damage;injuryCallout(this,e,beforeHp);if(damage>0)orderHit(this,e);this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
-    this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`,false,`命中${enemyName(e)}。`);
+    if(cause)this.log(`${enemyName(e)}${cause}，受到 ${damage} 傷害。`,false,`${enemyName(e)}${cause}。`);else this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`,false,`命中${enemyName(e)}。`);
     if(e.hp>0)return;
     if(isNoncombatant(e)){this.log(enemyName(e)+'已倒下。');enemyDeath(this,e);return;}
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
@@ -1020,7 +1023,7 @@ export class Game {
     if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp});
     for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying')))if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);
     petReactions(this);
-    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying')))if(this.hazards.some(h=>h.x===e.x&&h.y===e.y))this.hurt(e,6);
+    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying'))){const hazard=this.hazards.find(h=>h.x===e.x&&h.y===e.y);if(hazard)this.hurt(e,6,null,hazard.type==='acid'?'踩到污染液':'踩到高熱地板');}
   }
   pickup() {
     // 3.118.0: a presentation-only 'pickup' effect when anything was collected, including part of a pile left behind by a

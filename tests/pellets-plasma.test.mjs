@@ -154,3 +154,17 @@ test('the lance names which unit on the beam it missed',()=>{
  const {g}=lane();hold(g,PL,'lance');const a=foe(g,'raider',1,0,'a'),b=foe(g,'raider',2,0,'b');g.target=b.id;g.rng=()=>.999;
  g.action('fire');assert.ok(g.logs.some(l=>l.text.startsWith('光束沒打中第 1 個：'))&&g.logs.some(l=>l.text.startsWith('光束沒打中第 2 個：')));
 });
+
+// 3.142.1 (user, after the playtest).
+test('every unit on the lance beam rolls against the locked target\'s chance, however dark it stands',()=>{
+ const {g,p}=lane();hold(g,PL,'lance');const aim=foe(g,'raider',2,0,'aim'),dark=foe(g,'raider',4,0,'dark');g.lighting[dark.y][dark.x]=0;g.target=aim.id;
+ const own=g.accuracy(p,dark).chance,shared=g.fireChance(aim);assert.ok(own<shared,'the dark one would have been harder to hit on its own');
+ const roll=(own+1)/100;g.rng=()=>roll;const hp=dark.hp;g.action('fire');
+ assert.ok(dark.hp<hp,`a roll of ${Math.round(roll*100)} hits it at the target's ${shared}%`);
+});
+
+test('a hazard underfoot says what hurt the enemy instead of 命中',()=>{
+ const {g}=lane();const e=foe(g,'raider',3,0,'e');e.hp=e.maxHp=500;g.hazards=[{type:'acid',x:e.x,y:e.y}];g.environmentTurn();
+ assert.ok(g.logs.some(l=>l.text.includes('踩到污染液，受到 6 傷害')));assert.ok(!g.logs.some(l=>l.text.startsWith('命中')));
+});
+
