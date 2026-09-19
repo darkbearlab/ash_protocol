@@ -374,6 +374,10 @@ function pinFooter(title){
 }
 function close(){if(!entered){showIntro();return;}if(game.pendingPerks){showLevelUp();return;}if(game.status!=='playing'){showIntro();return;}$('#modal').close();$('#battle').focus({preventScroll:true});}
 function modalAction(type,arg){close();act(type,arg);}
+// 3.143.0 (user, 2026-09-19): feeding the pet takes a turn but keeps you in the pack, on the same tab and with the
+// result on top, unless that turn leaves an enemy in view. A level-up, a room prompt or the result screen still takes over.
+function feedAction(arg){const tab=inventoryTab;close();const done=act('feedPet',arg);if(done&&stayInMenu())showInventory(tab,game.logs[0]?.text||'');}
+const stayInMenu=()=>entered&&game.status==='playing'&&!game.pendingPerks&&!$('#modal').open&&!game.visibleEnemies.some(e=>!isNoncombatant(e));
 
 function showIntro(){
   titleFlow=true;
@@ -944,10 +948,10 @@ document.addEventListener('click',e=>{
     modal(`<div class="eyebrow">SALVAGE ON SITE</div><h2>就地拆解${game.weaponAt(slot).name}？</h2><p>不撿起來，直接在原地拆掉：回收彈匣內的 ${game.player.ammo[slot]} 發與 ${salvageValue(game.player,slot)} 廢料，武器消失，耗費 1 回合。</p><button class="modal-button" data-confirm-salvage-ground="${slot}">確認拆解</button><button class="modal-button secondary" data-modal="bag">返回背包</button>`);return;}
   if(b.dataset.confirmSalvageGround!==undefined){modalAction('salvageGround',Number(b.dataset.confirmSalvageGround));return;}
   if(b.dataset.confirmSalvage!==undefined){modalAction('salvage',Number(b.dataset.confirmSalvage));return;}
-  if(b.dataset.feedOption){modalAction('feedPet',{optionId:b.dataset.feedOption});return;}
+  if(b.dataset.feedOption){feedAction({optionId:b.dataset.feedOption});return;}
   if(b.dataset.feedWeapon!==undefined){const slot=Number(b.dataset.feedWeapon),w=game.weaponAt(slot),q=petFeedQuote(game,{optionId:'weapon',weaponSlot:slot});
     modal(`<div class="eyebrow">FEED WEAPON</div><h2>把${w.name}餵給獵獸？</h2><p>武器會從背包移除，彈匣內的 ${game.player.ammo[slot]} 發退回備彈（超過上限的留在地上），不給廢料。砲台成長 +${q.gain}${q.overflow?`（超出 ${q.overflow} 不計）`:''}，耗費 1 回合。</p><button class="modal-button" data-confirm-feed-weapon="${slot}">確認餵食</button><button class="modal-button secondary" data-inventory-tab="skill">返回背包</button>`);return;}
-  if(b.dataset.confirmFeedWeapon!==undefined){modalAction('feedPet',{optionId:'weapon',weaponSlot:Number(b.dataset.confirmFeedWeapon)});return;}
+  if(b.dataset.confirmFeedWeapon!==undefined){feedAction({optionId:'weapon',weaponSlot:Number(b.dataset.confirmFeedWeapon)});return;}
   if(b.dataset.petOutput){const kind=b.dataset.petOutput,reason=outputChoiceReason(game,{kind});if(reason){showInventory('skill',reason+'。');return;}
     if(game.action('setPetOutput',{kind})){update();showInventory('skill',`排出種類改為${GRENADES[kind].name}，不耗回合。`);}return;}
   if(b.dataset.learn){const id=b.dataset.learn,entry=LEARNING_ITEMS[id];if(game.action('learn',id)){persist();update();showInventory('item',`已學會${(entry?.name||'').replace('學習資料','')}，${entry?.trait?'立即生效':'到技能分頁預備後使用'}。不耗回合。`);}else showInventory('item');return;}

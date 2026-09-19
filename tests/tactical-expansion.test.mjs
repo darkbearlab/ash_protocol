@@ -35,7 +35,8 @@ test('shotgun close range changes previews, real damage and affixes without chan
 test('warning is free, through walls, radius eight, snapshot only, and does not reveal or allow fire',()=>{
  const g=arena();for(let y=0;y<SIZE;y++)g.grid[y][12]=0;g.seen=g.grid.map(r=>r.map(()=>false));const inside=enemy(g,14),outside=enemy(g,19);g.reveal();const seen=structuredClone(g.seen),rng=g.rng.state(),turn=g.turn;
  assert.equal(g.visible(inside),false);assert.equal(g.action('skill','early_warning'),true);assert.equal(g.turn,turn);assert.equal(g.rng.state(),rng);assert.deepEqual(g.seen,seen);
- assert.deepEqual(g.sensorContacts,[{x:14,y:10}]);assert.equal(inside.alert,true);assert.deepEqual(inside.lastKnown,{x:10,y:10});assert.equal(outside.alert,false);assert.equal(g.targeted,undefined);
+ // 3.143.0 (user, 2026-09-19): the scan no longer alerts what it finds or tells it where you are.
+ assert.deepEqual(g.sensorContacts,[{x:14,y:10}]);assert.equal(inside.alert,false);assert.ok(!inside.lastKnown);assert.equal(outside.alert,false);assert.equal(g.targeted,undefined);
  inside.x=15;assert.deepEqual(g.sensorContacts,[{x:14,y:10}]);assert.equal(g.action('fire'),false);assert.deepEqual(Game.restore(g.serialize()).sensorContacts,g.sensorContacts);
  g.action('prepare',{category:'item',id:null});assert.equal(g.sensorContacts.length,1);assert.equal(g.player.skillState.early_warning.cooldown,5);
  g.action('wait');assert.equal(g.sensorContacts.length,0);assert.equal(g.player.skillState.early_warning.cooldown,4);
