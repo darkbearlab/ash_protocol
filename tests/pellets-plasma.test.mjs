@@ -67,7 +67,9 @@ test('貫穿 and 爆裂 come only on dropped plasma rifles, 15% each, and every 
  const old=(base,seed)=>{const h=fnv(seed);if(h%100>=65)return null;const ids=['stable','piercing','extended','powerful','longbarrel','tracking'].filter(id=>id!=='piercing'||!WEAPONS[base].explosive);return ids[Math.floor(h/100)%ids.length];};
  const count={lance:0,burst:0};let same=0,plain=0;
  for(let seed=0;seed<4000;seed++){
-  assert.equal(rollAffix(RIFLE,seed),old(RIFLE,seed));assert.equal(rollAffix(SG,seed),old(SG,seed));
+  assert.equal(rollAffix(RIFLE,seed),old(RIFLE,seed));
+  // 3.141.1: a shotgun that would have rolled 追獵 re-picks one of the other five; every other shotgun roll is the old one.
+  if(old(SG,seed)==='tracking')assert.ok(['stable','piercing','extended','powerful','longbarrel'].includes(rollAffix(SG,seed)));else assert.equal(rollAffix(SG,seed),old(SG,seed));
   const a=rollAffix(PL,seed);if(a==='lance'||a==='burst')count[a]++;else{plain++;same+=a===old(PL,seed);}
  }
  assert.equal(same,plain,'a plasma rifle that rolls neither keeps its old roll');
@@ -75,6 +77,7 @@ test('貫穿 and 爆裂 come only on dropped plasma rifles, 15% each, and every 
  // A save cannot carry one on another weapon.
  const g=new Game(5),raw=JSON.parse(g.serialize());raw.data.player.affixes[RIFLE]='lance';assert.equal(Game.restore(JSON.stringify(raw)),null);
  raw.data.player.affixes[RIFLE]=null;raw.data.player.affixes[PL]='burst';assert.ok(Game.restore(JSON.stringify(raw)));
+ raw.data.player.affixes[SG]='tracking';assert.ok(Game.restore(JSON.stringify(raw)),'a 追獵 shotgun from before 3.141.1 still loads');
 });
 
 test('a two-round affix spends two a shot and will not fire on one',()=>{

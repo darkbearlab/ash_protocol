@@ -10,7 +10,8 @@ export const AFFIXES={
   extended:{name:'擴容',text:'彈匣 +50%（向下取整）；命中 −8',mag:1.5,accuracy:-8},
   powerful:{name:'強擊',text:'基礎傷害 +15%；彈匣 −25%（向下取整，至少 1 發）',damage:1.15,mag:.75},
   longbarrel:{name:'長管',text:'射程 +2；基礎傷害 −10%',range:2,damage:.9},
-  tracking:{name:'追獵',text:'目標移動的命中懲罰減為 10；基礎傷害 −10%',tracking:12,damage:.9},
+  // 3.141.1 (user, 2026-09-19): no longer rolled on the shotgun, whose pellets ignore movement anyway (rollAffix).
+  tracking:{name:'追獵',text:'目標移動的命中懲罰減為 10；基礎傷害 −10%',tracking:12,damage:.9,notOn:['shotgun']},
   // 3.141.0 (user decisions 2026-09-19, docs/WEAPONS.md): drop-only affixes, plasma rifles for now. Never sold, never
   // installed: they come only with a plasma rifle found on a floor, in a case or on a body (rollAffix below).
   lance:{name:'貫穿',text:'光束穿過目標繼續前進，打中直線上每個看得見的單位（各自判定命中），在射程盡頭或碰到牆、門、掩體、油桶才停；每次射擊耗 2 發；基礎傷害 −15%',damage:.85,shotCost:2,lance:true,dropOnly:['plasma']},
@@ -43,8 +44,12 @@ export function rollAffix(base,seed){
   const special=dropOnlyAffixes(base),pick=Math.floor(fnv(`${seed}:drop-only`)/4294967296/DROP_ONLY_CHANCE);
   if(pick<special.length)return special[pick];
   const hash=fnv(seed);if(hash%100>=65)return null;
-  const ids=Object.keys(AFFIXES).filter(id=>!AFFIXES[id].dropOnly&&(id!=='piercing'||!WEAPONS[base].explosive));
-  return ids[Math.floor(hash/100)%ids.length];
+  const ids=Object.keys(AFFIXES).filter(id=>!AFFIXES[id].dropOnly&&(id!=='piercing'||!WEAPONS[base].explosive)),id=ids[Math.floor(hash/100)%ids.length];
+  // An affix that means nothing on this weapon re-picks among the rest from its own hash, so every other roll, and how
+  // often the weapon carries an affix at all, stay as they were.
+  if(!AFFIXES[id].notOn?.includes(WEAPONS[base].id))return id;
+  const rest=ids.filter(other=>!AFFIXES[other].notOn?.includes(WEAPONS[base].id));
+  return rest[fnv(`${seed}:repick`)%rest.length];
 }
 
 export const ammoName=w=>w.melee?'無限使用':AMMUNITION[w.ammoType].name;
