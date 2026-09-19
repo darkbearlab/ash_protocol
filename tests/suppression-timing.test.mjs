@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,makeEnemy} from '../src/engine.js';
-import {applySuppression,pinned} from '../src/suppression.js';
+import {applySuppression,pinned,decayedStacks} from '../src/suppression.js';
 import {grantTrait} from '../src/traits.js';
 
 // 3.145.0 (user decision 2026-09-19, docs/SUPPRESSION.md): stacks halve when the unit's own turn is over, player and
@@ -14,6 +14,13 @@ function arena(character='soldier'){
  return g;
 }
 const foe=(g,x,y,id)=>{const e=makeEnemy('rifleman',x,y,id,1);Object.assign(e,{hp:500,maxHp:500,alert:true});g.enemies.push(e);g.target=e.id;g.reveal();return e;};
+
+test('they halve rounding up, and one goes to zero: five stacks are felt for four turns, pinned for two',()=>{
+ assert.deepEqual([5,4,3,2,1,0].map(decayedStacks),[3,2,2,1,0,0]);
+ const g=arena(),p=g.player;applySuppression(p,5);const seen=[];
+ for(let i=0;i<5;i++){seen.push([p.suppression,pinned(p)]);g.action('wait');}
+ assert.deepEqual(seen,[[5,true],[3,true],[2,false],[1,false],[0,false]]);
+});
 
 test('stacks an enemy puts on you are all there for your next action, and halve once it is done',()=>{
  const g=arena(),p=g.player;foe(g,16,10,'e');

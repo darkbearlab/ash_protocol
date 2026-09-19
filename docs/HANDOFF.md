@@ -359,7 +359,7 @@ PROFILE 7、SAVE 45、BACKUP 1。取消攜行，舊點數退款、超量彈藥�
 
 3.137.0：難度是「曲線＋偏移」。曲線在 `DIFFICULTY_CURVES`（`src/endless.js`）：`easy`、`standard`（預設）、`classic`（3.137.0 以前的規則，只給舊任務，不提供選擇）。遊戲存 `difficulty`，規則一律傳 `g.difficultySpec`；只傳數字的呼叫會被當成預設曲線上的偏移。**新的敵人生成、傷害或詞條計算都要把 `difficultySpec` 傳下去**，不要再傳 `difficultyOffset`。刻意固定用 classic 的有兩處：友軍（`allies.js`，友軍是玩家的單位）與地圖骨架（`world.js` 舊生成器的 `spawnEnemy`，`generate()` 之後會換成實際的值，所以 v1 地圖的固定雜湊不變）。第 2 層預告是 `previewSpecial`，派系卡上的 `preview` 決定換成哪一種。identity 證明方法：把副本的 `DEFAULT_CURVE` 改成 `classic`，地圖與機器人應該和舊基準線完全相同。`qa/endless-limit.mjs` 仍在改 `ENDLESS_TUNING` 的成長率，那兩個欄位已經移到曲線裡，這支舊腳本需要改寫才有作用。
 
-3.145.0：壓制在 `Game.action` 的行動迴圈裡，每個單位自己的最後一個行動位置結束時才呼叫 `tickSuppression`（`try…finally`，所以失能、跳過的 `continue` 也會減半）；回合末的迴圈只剩 `tickTraits`。新的「跳過行動」分支放在 `try` 裡就會自動減半，不要自己再呼叫。敵人開槍引爆地雷在 `mineAct`（`enemyAct` 裡排在 `decoyAct` 之後）。
+3.145.0：壓制在 `Game.action` 的行動迴圈裡，每個單位自己的最後一個行動位置結束時才呼叫 `tickSuppression`（衰減算法在 `decayedStacks`：減半進位、1 歸零）（`try…finally`，所以失能、跳過的 `continue` 也會減半）；回合末的迴圈只剩 `tickTraits`。新的「跳過行動」分支放在 `try` 裡就會自動減半，不要自己再呼叫。敵人開槍引爆地雷在 `mineAct`（`enemyAct` 裡排在 `decoyAct` 之後）。
 
 3.144.0：誘餌、地雷、外骨骼在 `src/field-gear.js`。被引開的敵人看不到玩家，是 `Game.sight` 透過 `decoyHides` 擋的，所以**「敵人看不看得到玩家」一律要走 `g.sight`**。新的玩家攻擊方式要呼叫 `noticeAttack`，或透過以玩家為攻擊者的 `hurt`，否則被攻擊的敵人不會回過神。`civilians.js`、`rebels.js`、`suppressive-fire.js` 不能匯入 field-gear（經由 prepared.js 會繞回 skills.js，讓 workshop 的 `REPAIR_TUNING` 尚未初始化），所以改用 `g.isFooled(e)`、`g.noticeAttack(e)`。地雷：`passable(x,y,actor)` 對看過埋設的敵人擋路；玩家行動後與每個敵人行動後跑 `checkMines`；刻意不放進 `retreat.js` 的 `FLOOR_FIELDS`，換層就清空。外骨骼的護甲板在 `damagePlayer` 裡比 `p.plates` 先吸收；只有 `wearables` 有 `exo` 時 `p.exoPlates` 才能大於 0。誘餌的期限是 `turn+duration−1`，因為回合數在所有人行動前就加 1（和照明彈、煙霧相同）。
 

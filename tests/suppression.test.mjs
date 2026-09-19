@@ -18,12 +18,12 @@ const foe=(g,type='rifleman',x=14,y=10)=>{const e=makeEnemy(type,x,y,`test-${g.e
 const sure=g=>g.rng=Object.assign(()=>0,{state:()=>1});
 const arm=(g,slot)=>{g.player.owned=[slot];g.player.weapon=slot;g.player.ammo[slot]=g.weapon.mag;};
 const skill=g=>{g.player.skills.push('suppressive_fire');g.player.skillState.suppressive_fire={remaining:0,cooldown:0};g.player.prepared.skill='suppressive_fire';};
-test('suppression caps at five, penalizes both channels, halves when tickSuppression runs (after the unit’s own turn since 3.145.0); machines immune and bosses subtract once',()=>{
- const g=arena(),e=foe(g);applySuppression(e,9);assert.equal(e.suppression,5);assert.ok(pinned(e));assert.equal(actorStat(e,'rangedAccuracy'),-40);assert.equal(actorStat(e,'meleeAccuracy'),-40);tickSuppression(e);assert.equal(e.suppression,2);tickSuppression(e);assert.equal(e.suppression,1);tickSuppression(e);assert.equal(e.suppression,0);
+test('suppression caps at five, penalizes both channels, wears off when tickSuppression runs (after the unit’s own turn since 3.145.0); machines immune and bosses subtract once',()=>{
+ const g=arena(),e=foe(g);applySuppression(e,9);assert.equal(e.suppression,5);assert.ok(pinned(e));assert.equal(actorStat(e,'rangedAccuracy'),-40);assert.equal(actorStat(e,'meleeAccuracy'),-40);for(const n of [3,2,1,0]){tickSuppression(e);assert.equal(e.suppression,n,'3.145.0: halve rounding up, one goes to zero');}
  for(const type of ['boss','warden']){const b=foe(g,type);b.traits=b.traits.filter(t=>t.id!=='mechanical');finishSuppression([b],new Set([b]),3,1);assert.equal(b.suppression,1);applySuppression(b,1);assert.equal(b.suppression,1);}
  const m=foe(g,'drone');applySuppression(m,5);assert.equal(m.suppression,0);assert.ok(suppressionState(m).immune);
 });
-test('two single-stack sources sustain immobilization after first turn',()=>{const e={hp:100,type:'rifleman'};const values=[];for(let i=0;i<5;i++){applySuppression(e,1);applySuppression(e,1);values.push(e.suppression);tickSuppression(e);}assert.deepEqual(values,[2,3,3,3,3]);});
+test('two single-stack sources sustain immobilization after first turn',()=>{const e={hp:100,type:'rifleman'};const values=[];for(let i=0;i<5;i++){applySuppression(e,1);applySuppression(e,1);values.push(e.suppression);tickSuppression(e);}assert.deepEqual(values,[2,3,4,4,4]);});
 test('weapon passive uses rounds actually fired, at least one hit, once per attack; no melee or grenade source',()=>{
  const g=arena(),e=foe(g);arm(g,6);sure(g);g.fire();assert.equal(e.suppression,1);assert.equal(g.player.ammo[6],27);delete e.suppression;g.player.ammo[6]=2;g.fire();assert.equal(e.suppression,undefined);
  g.player.ammo[6]=30;g.rng=Object.assign(()=>.999,{state:()=>1});g.fire();assert.equal(e.suppression,undefined);
@@ -32,7 +32,7 @@ test('rapid fire extends bursts and recon long-range single shots, lowers all fi
  const g=arena('recon');grantTrait(g.player,'rapid_fire','qa');assert.equal(volleyAt(g.weapon,5),3);assert.equal(volleyAt(g.weapon,6),2);assert.equal(g.weapon.accuracyBonus,-10);g.player.affixes[2]='longbarrel';assert.equal(volleyAt(g.weapon,7),3);assert.equal(volleyAt(g.weapon,8),2);arm(g,5);assert.equal(volleyAt(g.weapon,3),2);assert.equal(g.weapon.accuracyBonus,-10);arm(g,9);assert.equal(g.weapon.accuracyBonus,0);
 });
 test('suppressed player can shoot, reload, wait, bump melee and open doors, but cannot walk, swap or shadowstep',()=>{
- const g=arena(),e=foe(g,'rifleman',11);g.player.suppression=3;const turn=g.turn;assert.equal(g.action('move',[0,1]),false);assert.equal(g.turn,turn);sure(g);assert.ok(g.action('move',[1,0]));assert.equal(g.player.x,10);assert.ok(e.hp<500);assert.equal(g.player.suppression,1);
+ const g=arena(),e=foe(g,'rifleman',11);g.player.suppression=3;const turn=g.turn;assert.equal(g.action('move',[0,1]),false);assert.equal(g.turn,turn);sure(g);assert.ok(g.action('move',[1,0]));assert.equal(g.player.x,10);assert.ok(e.hp<500);assert.equal(g.player.suppression,2);
  g.player.suppression=3;g.shadowSteps=1;assert.equal(g.action('move',[0,1]),false);assert.equal(g.player.y,10);
 });
 test('suppressed enemies stay put rather than seek cover or approach, but still charge and attack',()=>{

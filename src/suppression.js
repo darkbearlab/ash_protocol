@@ -20,7 +20,10 @@ export function applySuppression(actor,stacks){
 export function finishSuppression(targets,hits,rounds,skillStacks=0,game=null){
  for(const actor of new Set([...targets,...hits])){const before=suppressionStacks(actor);applySuppression(actor,(targets.includes(actor)?skillStacks:0)+(rounds>=SUPPRESSION_TUNING.weaponRounds&&hits.has(actor)?SUPPRESSION_TUNING.weaponStacks:0));const after=suppressionStacks(actor);if(after>=SUPPRESSION_TUNING.pinned&&before<SUPPRESSION_TUNING.pinned)game?.enemyCallout(actor,'injury',{cue:'pinned'});else if(after>0&&!before)game?.enemyCallout(actor,'injury',{cue:'suppressed'});}
 }
-export function tickSuppression(actor){if(actor.suppression!==undefined)actor.suppression=Math.floor(suppressionStacks(actor)/2);}
+// 3.145.0 (user decision): after the unit's own turn the stacks halve rounding up, except that one goes to zero:
+// 5 -> 3 -> 2 -> 1 -> 0 (they used to halve rounding down, 5 -> 2 -> 1 -> 0).
+export const decayedStacks=n=>n<=1?0:Math.ceil(n/2);
+export function tickSuppression(actor){if(actor.suppression!==undefined)actor.suppression=decayedStacks(suppressionStacks(actor));}
 export const validSuppression=a=>a.petSuppressed===undefined&&(a.suppression===undefined||(Number.isInteger(a.suppression)&&a.suppression>=0&&a.suppression<=5&&(!mechanical(a)||a.suppression===0)));
 export const suppressionState=a=>({stacks:suppressionStacks(a),max:5,accuracyPenalty:suppressionPenalty(a),immobile:pinned(a),immune:Boolean(mechanical(a)),resistance:suppressionResistance(a)});
 export function migrateSuppression(data){

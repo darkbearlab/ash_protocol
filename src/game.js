@@ -436,9 +436,10 @@ export class Game {
     const recovering=p.recovery>0;if(recovering)p.recovery=0;
     let playerStunned=false;
     this.turn++;tickTongues(this);tickPounces(this);tickFields(this);
-    // 3.145.0 (user decision): suppression halves when the unit's own turn is over, player and enemies alike, so the
-    // stacks it took since its last turn are all felt on this one. The `finally` runs on every skip (`continue`) too:
-    // a stunned unit's turn has still passed. A unit with two slots (an anchored double attack) halves after the last.
+    // 3.145.0 (user decision): suppression wears off (src/suppression.js decayedStacks) when the unit's own turn is over, player and
+    // enemies alike, so the stacks it took since its last turn are all felt on this one. The `finally` runs on every skip
+    // (`continue`) too: a stunned unit's turn has still passed. A unit with two slots (an anchored double attack) ticks
+    // after the last.
     const lastSlot=new Map(queue.map(({actor},slot)=>[actor,slot]));
     for(const [slot,{actor,speed,anchorExtra=false}] of queue.entries()){
       if(p.hp<=0||this.status!=='playing'||this.floor!==floor)break;
