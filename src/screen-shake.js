@@ -56,7 +56,7 @@ export const liveImpulses=(impulses,time)=>impulses.filter(s=>time-s.start<s.dur
 // Aligned they rebuild the frame exactly; parted they leave coloured fringes on every edge. Only runs while shaking.
 const layers=new WeakMap();
 export function chromaSplit(canvas,shift,dpr=1){
- const T=SHAKE_TUNING,px=Math.min(T.chromaMax,shift.strength*T.chromaPerPx)*dpr;if(px<.75)return;
+ const T=SHAKE_TUNING,px=Math.min(T.chromaMax,shift.strength*T.chromaPerPx)*dpr;if(px<.75||!canvas.width||!canvas.height)return;   // a hidden board has no size
  let l=layers.get(canvas);
  if(!l||l.w!==canvas.width||l.h!==canvas.height){const make=()=>{const c=document.createElement('canvas');c.width=canvas.width;c.height=canvas.height;return c;};l={w:canvas.width,h:canvas.height,red:make(),cyan:make()};layers.set(canvas,l);}
  for(const [layer,color] of [[l.red,'#ff0000'],[l.cyan,'#00ffff']]){

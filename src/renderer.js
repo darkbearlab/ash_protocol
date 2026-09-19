@@ -1,5 +1,6 @@
 import {mapStyleAtlases,mapStyle} from './map-styles.js';
-import {shakeImpulses,shakeOffset,liveImpulses,chromaSplit} from './screen-shake.js';
+import {shakeImpulses,shakeOffset,liveImpulses} from './screen-shake.js';
+import {effectGlitches,stateGlitches,screenStrength,liveGlitches,drawGlitched,screenGlitch} from './signal-glitch.js';
 import {FRAME_RATE_DEFAULT,frameDue,nextDue} from './frame-rate.js';
 import {terminalRemaining,TERMINAL_TUNING} from './terminal.js';
 import {flareCells} from './flares.js';
@@ -50,11 +51,13 @@ export const ITEM_SYMBOLS=Object.freeze({smoke:'≋',emp:'E',stun:'✦',armor:'�
 // so the default view draws exactly as before.
 export const ITEM_SCALE=Object.freeze({full:38,hideBelow:25});
 export const itemScale=tile=>tile<ITEM_SCALE.hideBelow?0:Math.min(1,tile/ITEM_SCALE.full);
+const itemGlitchKey=i=>`item:${i.type}:${i.x},${i.y}`;
 export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.frameRate=FRAME_RATE_DEFAULT;this.time=0;
     this.shakes=[];this.shakeEnabled=true;this.shift=null;   // screen shake (3.147.0, src/screen-shake.js)
+    this.glitches=[];this.objectGlitches=new Map();this.glitchState={};this.glitchEnabled=true;   // signal interference (3.149.0, src/signal-glitch.js)
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.callouts=new CalloutBoard();this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
     for(const url of [SCENERY_ATLAS,DOOR_ATLAS,NEST_ATLAS,DECAL_ATLAS,...mapStyleAtlases()]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
@@ -121,7 +124,7 @@ export class Renderer {
     if(!frameDue(t,this.due??t,tick)){requestAnimationFrame(v=>this.frame(v));return;}
     this.due=nextDue(this.due??t,t,this.frameRate);
     const dt=Math.min((t-this.last)/1000,.1);this.last=t;
-    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);this.updateCamera(dt*1000);if(!this.isCovered?.()){this.shift=this.shakes.length?shakeOffset(this.shakes=liveImpulses(this.shakes,this.time),this.time):null;this.draw(this.time);if(this.shift?.strength)chromaSplit(this.canvas,this.shift,this.dpr);this.placeTargetCard();}}
+    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);this.updateCamera(dt*1000);if(!this.isCovered?.()){this.shift=this.shakes.length?shakeOffset(this.shakes=liveImpulses(this.shakes,this.time),this.time):null;this.draw(this.time);if(this.glitchEnabled)this.glitchFrame();this.placeTargetCard();}}
     requestAnimationFrame(v=>this.frame(v));
   }
   // The frame is recomputed every frame; only the zoom eases (src/camera.js). A new run, a new floor or a resized board
@@ -194,9 +197,9 @@ export class Renderer {
       if(g.exitPoint.x===x&&g.exitPoint.y===y)this.exit(a,time);
       for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y)this.corpse(a,dead.type,undefined,dead);
       if(g.operatorCorpse?.x===x&&g.operatorCorpse.y===y)this.operatorCorpse(a,g.operatorCorpse,time);
-      for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)this.prop(a,prop,time);
-      for(const prop of g.props)if(!isContainer(prop)&&prop.x===x&&prop.y===y)this.prop(a,prop,time);
-      for(const weapon of [false,true])for(const item of g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.item(a,item,time);
+      for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
+      for(const prop of g.props)if(!isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
+      for(const weapon of [false,true])for(const item of g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.glitchDraw(a,itemGlitchKey(item),()=>this.item(a,item,time));
       for(const objective of missionObjects(g))if(!objective.done&&objective.x===x&&objective.y===y){this.box(a.x-9,a.y-8,18,16,'#123d46','#82e6ec');this.text('D',a.x,a.y+4,'#b7fcff',12);}
       // 3.134.0: toxic mist is green, spore smoke brown; plain smoke keeps its grey.
       for(const cloud of g.smoke)if(cloud.cells.some(q=>q.x===x&&q.y===y)){const tone=cloud.kind==='toxic'?['#8fbf4a55','#c6e5864a']:cloud.kind==='spore'?['#9c7d5366','#c8ad874a']:['#abc1cd66','#d4dfe84a'];this.box(left+1,top+1,t-2,t-2,tone[0]);for(let n=0;n<3;n++)this.box(left+5+n*7,top+8+(x+y+n)%3*6,11,5,tone[1]);this.text(String(Math.max(1,cloud.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#d3e2ed',8);}
@@ -247,10 +250,10 @@ export class Renderer {
       c.setLineDash([4,3]);this.line(a.x,a.y,b.x,b.y,TONGUE_VISUAL.line,2);c.setLineDash([]);
       this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,TONGUE_VISUAL.fill,TONGUE_VISUAL.edge);this.box(l.x-t*.28,l.y-t*.28,t*.56,t*.56,'#00000000',TONGUE_VISUAL.landing);
     }
-    const pos=this.projectActor(p);if(p.hp<=0)this.corpse(pos,'player',p.character);else this.actor(pos,'player',time,p);
+    const pos=this.projectActor(p);if(p.hp<=0)this.corpse(pos,'player',p.character);else this.glitchDraw(pos,'player',()=>this.actor(pos,'player',time,p));
     for(const cover of g.cover){const dx=cover.x-p.x,dy=cover.y-p.y;const x=pos.x+dx*t*(isBarrier(cover)?1:.48),y=pos.y+dy*t*(isBarrier(cover)?1:.48);this.line(x+(dy? -t*.27:0),y+(dx?-t*.27:0),x+(dy?t*.27:0),y+(dx?t*.27:0),cover.type==='wall'?'#8bd2c9':'#c7d896',2);}
     const hiddenEnemies=new Set(g.visibleEnemies.filter(e=>cornerHidden(g,e)));
-    for(const e of g.visibleEnemies){const a=this.projectActor(e);this.actor(a,e.type,time,e,hiddenEnemies.has(e));if(e.keycard&&e.hp>0)this.keyBeam({x:a.x,y:a.y-this.tile*.55},time,.45);/* 3.146.0: carries the keycard */if(missionTarget(g,e))this.text('◇',a.x-this.tile*.35,a.y-8,'#88f3ff',12);}
+    for(const e of g.visibleEnemies){const a=this.projectActor(e);this.glitchDraw(a,e.id,()=>this.actor(a,e.type,time,e,hiddenEnemies.has(e)));if(e.keycard&&e.hp>0)this.keyBeam({x:a.x,y:a.y-this.tile*.55},time,.45);/* 3.146.0: carries the keycard */if(missionTarget(g,e))this.text('◇',a.x-this.tile*.35,a.y-8,'#88f3ff',12);}
     for(const ally of g.localAllies||[])if(g.seen[ally.y]?.[ally.x]){const a=this.projectActor(ally);if(ally.hp>0&&ally.status==='active'){this.actor(a,ally.type,time,ally);this.box(a.x-t*.36,a.y-t*.36,t*.72,t*.72,'#64e7cf18','#83efd1');this.text(ally.kind==='pet'?'PET':ally.kind==='summon'?'SUM':ally.sourceId==='drone_munition'?'MUN':ally.sourceId==='unit_bomber'?'BOT':ally.sourceId==='unit_drone'?'DRN':ally.sourceId==='unit_warden'?'WDN':ally.sourceId==='unit_boss'?'CORE':'ALLY',a.x,a.y+t*.55,connected(g,ally)?'#9df4d5':'#a5a5a5',8);if(ally.primed)this.text('!',a.x+t*.38,a.y-9,'#ffc789',14);}else {this.corpse(a,ally.type);this.text(ally.status==='down'?'回收 +':'×',a.x,a.y+12,'#e3cf86',10);}}
     for(const m of grenadeMarkers(g))this.grenadeLabel(m);
     if(this.mode==='pet'&&this.aim){const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b52a','#9cedca');this.text('指令',a.x,a.y+4,'#a9f3d5',10);}
@@ -552,5 +555,21 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     for(const cell of cells){c.fillStyle=cell.color;c.fillRect(Math.round(m.x+cell.x-u/2),Math.round(m.y+cell.y-u/2),u,u);}
     c.globalAlpha=alpha;
   }
-  addEffects(effects,elapsed=0){const start=this.time-Math.max(0,elapsed);for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);if(this.shakeEnabled)this.shakes=[...liveImpulses(this.shakes,this.time),...shakeImpulses(effects,this.game.player,start)].slice(-24);}
+  addEffects(effects,elapsed=0){const start=this.time-Math.max(0,elapsed);for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);const kicks=shakeImpulses(effects,this.game.player,start);if(this.shakeEnabled)this.shakes=[...liveImpulses(this.shakes,this.time),...kicks].slice(-24);
+    if(this.glitchEnabled){const r=effectGlitches(effects,this.game,start,kicks);this.glitches=[...liveGlitches(this.glitches,this.time),...r.screen].slice(-24);for(const o of r.objects)this.objectGlitches.set(o.key,o);if(r.hit)this.onPlayerHit?.();}}
+  // 3.149.0 signal interference: the state-driven glitches, then the whole-frame one.
+  glitchFrame(){
+    const g=this.game,visible=[...g.visibleEnemies.map(e=>e.id),...g.props.filter(o=>o.id&&o.hp!==0&&g.visible(o)).map(o=>o.id),...g.items.filter(i=>g.visible(i)).map(itemGlitchKey)];
+    const r=stateGlitches(this.glitchState,g,this.time,{enemies:g.visibleEnemies,keys:visible});
+    this.glitches=[...liveGlitches(this.glitches,this.time),...r.screen];for(const o of r.objects)this.objectGlitches.set(o.key,o);
+    screenGlitch(this.canvas,screenStrength(this.glitches,this.time),this.dpr,this.time);
+  }
+  glitchBurst({amp,ms}){if(this.glitchEnabled)this.glitches.push({start:this.time,duration:ms,amp});}
+  // Draws one object, through the glitch while it has one.
+  glitchDraw(a,key,draw){
+    const gl=this.glitchEnabled&&this.objectGlitches.get(key);
+    if(!gl||this.time<gl.start){draw();return;}
+    if(this.time-gl.start>=gl.duration){this.objectGlitches.delete(key);draw();return;}
+    drawGlitched(this,a,draw,gl,this.time);
+  }
 }

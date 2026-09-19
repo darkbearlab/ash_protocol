@@ -504,7 +504,7 @@ export class Game {
       const p=this.player,def=skillValues(p,id);p.skillState[id]={remaining:def.duration,cooldown:def.cooldownAfterEffect?0:def.cooldown};
       // 3.143.0 (user, 2026-09-19): the scan no longer alerts the enemies it finds or hands them your position.
       if(id==='early_warning'){this.sensorContacts=this.enemies.filter(e=>e.hp>0&&distance(p,e)<=def.radius).map(e=>{if(classPerkRank(p,'soldier_marked'))grantTrait(e,'exposed','skill:early_warning',2);return {x:e.x,y:e.y};});this.log(`預警取得 ${this.sensorContacts.length} 個位置。`,true);}
-      this.effects.push({type:'pulse',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},radius:.6,color:'#8ae9da',damage:0});
+      this.effects.push({type:'pulse',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},radius:.6,color:'#8ae9da',damage:0,skill:id});   // skill: the signal interference (3.149.0)
       this.log(`${def.name}啟動：持續 ${def.duration} 回合，冷卻 ${def.cooldown} 回合。`);this.reveal();return true;
     });
   }

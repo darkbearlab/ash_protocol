@@ -1,4 +1,5 @@
 import {STORIES} from './story-data.js';
+import {GLITCH_TUNING} from './signal-glitch.js';
 import {availableCharacters,unlockEntry,CHARACTER_IDS} from './unlock-catalog.js';
 import {connectUnlocks,startCampaign,startKillhouse,grantUnlock} from './storage.js';
 import {unlockPageMarkup,purchaseReason,purchaseConfirmMarkup,operatorRecoveredMarkup,resultStoriesMarkup,lockedOperatorRow,operatorSignal,UNLOCK_HELP} from './unlock-ui.js';
@@ -86,6 +87,11 @@ let skipPresentation=read('ash-skip-presentation')!=='off';
 let vhsFilter=read('ash-vhs')==='on';document.documentElement.classList.toggle('vhs',vhsFilter);
 // 3.147.0 (src/screen-shake.js): on unless turned off, or unless the system asks for reduced motion and it was never set.
 const shakeSetting=read('ash-shake');renderer.shakeEnabled=shakeSetting?shakeSetting==='on':!renderer.reduceMotion;
+// 3.149.0 (src/signal-glitch.js): the signal interference has its own switch, with the same default.
+const glitchSetting=read('ash-glitch');renderer.glitchEnabled=glitchSetting?glitchSetting==='on':!renderer.reduceMotion;
+// A hit on you makes the controls glitch for a moment, a beat after the shot, when the round lands.
+const glitchUI=(ms=280)=>{for(const el of document.querySelectorAll('.tactical-panel,.mobile-status,#mobile-hp,#mobile-plates')){el.classList.remove('ui-glitch');void el.offsetWidth;el.classList.add('ui-glitch');setTimeout(()=>el.classList.remove('ui-glitch'),ms);}};
+renderer.onPlayerHit=()=>setTimeout(()=>glitchUI(),90);
 // Keyboard bindings and the key hints on the buttons (3.121.0, src/hotkeys.js).
 let hotkeys=parseBindings(read('ash-hotkeys')),hotkeyMap=keyLookup(hotkeys),hotkeyHints=read('ash-hotkey-hints')==='on',hotkeyCapture=null;
 // 3.116.0 (user request): whole-screen brightness. A root filter would miss the dialog (it sits in the top layer), so two
@@ -762,6 +768,8 @@ function showLevelUp(){
   const draw=()=>{const heading=$('#modal .transmission-pixels');if(heading)drawTinyText(heading,'INCOMING TRANSMISSION',{color:'#f0c27a',shadow:'#3a2412'});};
   draw();document.fonts?.load?.(`${TINY_TEXT.weight} ${TINY_TEXT.px}px ${TINY_TEXT.font}`).then(draw,()=>{});
   audio.play('transmission');
+  // 3.149.0: the transmission comes in through interference, on the battlefield and on the message itself.
+  if(renderer.glitchEnabled){renderer.glitchBurst(GLITCH_TUNING.transmission);const box=$('#modal-content');box?.classList.add('ui-glitch');setTimeout(()=>box?.classList.remove('ui-glitch'),GLITCH_TUNING.transmission.ms);}
 }
 function showPerks(){modal(`<div class="eyebrow">UPGRADE AVAILABLE / LV. ${game.player.level}</div><h2>臨時強化已授權。</h2><p>強化生效至本次任務結束。${game.pendingPerks>1?`還有 ${game.pendingPerks} 次選擇。`:''}</p>${game.perkChoices.map(p=>`<button class="perk" data-perk="${p.id}"><strong>＋ ${p.name} ${perkPips(game.player,p,true)}</strong><span>${p.text}${p.effect==='health'?`（本角色回血 ${healingAmount(game.player,p.heal)}）`:''}</span></button>`).join('')}${runPerks()}`);}
 // Journal and result: endless records (3.49.1), class names from the character labels.
@@ -806,7 +814,9 @@ ${inRun?`<div class="modal-row"><button class="modal-button secondary" data-moda
 <button class="modal-button secondary" data-modal="vhs" aria-pressed="${vhsFilter}">VHS 濾鏡：${vhsFilter?'開啟':'關閉'}</button>
 <p>在整個畫面疊上掃描線、雜訊、暗角與緩慢捲動的訊號帶。系統設定減少動態效果時，雜訊與訊號帶不會動。</p>
 <button class="modal-button secondary" data-modal="shake" aria-pressed="${renderer.shakeEnabled}">畫面震動：${renderer.shakeEnabled?'開啟':'關閉'}</button>
-<p>開槍時畫面往反方向震一下，爆炸、中彈與鏈鋸會晃動畫面，晃動時顏色會錯開成殘影。系統設定減少動態效果時預設關閉。</p>
+<p>開槍時畫面往反方向震一下，爆炸、中彈與鏈鋸會晃動畫面。系統設定減少動態效果時預設關閉。</p>
+<button class="modal-button secondary" data-modal="glitch" aria-pressed="${renderer.glitchEnabled}">訊號干擾：${renderer.glitchEnabled?'開啟':'關閉'}</button>
+<p>畫面與物件偶爾出現紅青色錯開、橫向撕裂的雜訊：開槍、爆炸、中彈、失能、被壓制、技能掃描、升級訊號、生命過低時，還有帶詞條的敵人。中彈時操作介面也會閃一下。系統設定減少動態效果時預設關閉。</p>
 <div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">操作區排版：${DECK_LAYOUT_LABELS[padLayout]}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>方向鍵大小：${padLayout==='grid'?'格狀不適用':`${PAD_LABELS[padCell]}（${padCell}）`}</button></div>
 <p>九宫格把「裝填」、「互動」移到方向鍵的右上與左上，右側只剩四顆更大的按鈕。格狀則沒有左右之分：整條操作區是五欄三列的同尺寸方格，尺寸由寬度推出來，所以沒有方向鍵大小可調。關閉設定後即可看到效果。</p>
 <button class="modal-button secondary" data-modal="deckEditor" ${padLayout==='grid'?'':'disabled'}>編輯按鈕位置${padLayout==='grid'?'':'（格狀限定）'}</button>
@@ -1007,6 +1017,7 @@ document.addEventListener('click',e=>{
     case 'padCell':padCell=PAD_SIZES[(PAD_SIZES.indexOf(padCell)+1)%PAD_SIZES.length];write('ash-pad-cell',String(padCell));applyDeck();fitLayout();settings();break;
     case 'audioGrit':{const order=Object.keys(GRIT_LEVELS),next=order[(order.indexOf(audio.grit)+1)%order.length];audio.setGrit(next);write('ash-audio-grit',next);settings();break;}
     case 'shake':renderer.shakeEnabled=!renderer.shakeEnabled;renderer.shakes=[];write('ash-shake',renderer.shakeEnabled?'on':'off');settings();break;
+    case 'glitch':renderer.glitchEnabled=!renderer.glitchEnabled;renderer.glitches=[];renderer.objectGlitches.clear();write('ash-glitch',renderer.glitchEnabled?'on':'off');settings();break;
     case 'vhs':vhsFilter=!vhsFilter;write('ash-vhs',vhsFilter?'on':'off');document.documentElement.classList.toggle('vhs',vhsFilter);settings();break;
     case 'transmission':transmissionSeen=transmissionKey();showPerks();break;
     case 'hotkeyHints':hotkeyHints=!hotkeyHints;write('ash-hotkey-hints',hotkeyHints?'on':'off');applyHotkeyHints();settings();break;

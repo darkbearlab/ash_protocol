@@ -476,3 +476,15 @@ html.hotkey-hints [data-hotkey]:disabled::before{opacity:.55}
 .hotkey-slot{height:40px;border:1px solid #526143;background:#273420;color:#e6d3a6;font:600 13px var(--mono)}
 .hotkey-slot.waiting{border-color:#f4b17b;background:#3a3322;color:#ffd2a6}
 .hotkey-message{color:#e8ce98}
+
+/* 3.149.0 signal interference (src/signal-glitch.js): a hit on you, and the level-up transmission, make the interface
+   glitch for a moment: it jumps, its colours part into red and blue-green, and a band drops out for a frame. */
+.ui-glitch{animation:ui-glitch .28s steps(1,end) 1}
+@keyframes ui-glitch{
+  0%{transform:translate(3px,0);filter:drop-shadow(-3px 0 rgba(255,40,70,.75)) drop-shadow(3px 0 rgba(40,240,255,.75))}
+  25%{transform:translate(-2px,1px);filter:drop-shadow(2px 0 rgba(255,40,70,.7)) drop-shadow(-2px 0 rgba(40,240,255,.7))}
+  50%{transform:translate(1px,-1px);clip-path:inset(22% 0 48% 0)}
+  62%{clip-path:none;filter:drop-shadow(-1px 0 rgba(255,40,70,.6)) drop-shadow(1px 0 rgba(40,240,255,.6))}
+  100%{transform:none;filter:none}
+}
+@media (prefers-reduced-motion: reduce){.ui-glitch{animation:none}}
