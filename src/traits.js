@@ -13,6 +13,7 @@ export const TRAITS={
   // 3.136.0 (user decision): learning data that widens every pouch.
   extended_carry:{name:'攜行擴充',text:'每種彈藥上限 +50%（四捨五入）、投擲物共用上限 +2、每種道具上限 +2。'},
   night_vision:{name:'夜視',text:'忽略目標暗區的射擊命中懲罰；會受震撼彈失能，不穿煙。'},
+  exoskeleton:{name:'外骨骼',text:'射擊命中 +10、近戰傷害 +20%；自帶的護甲板打光時損毀，並被壓制 5 層。'},
   infrared:{name:'紅外線',text:'看穿煙霧，仍受牆與門阻擋；會受震撼彈失能，不抵銷暗區懲罰。'},
   biological:{name:'生物',text:'會受到震撼彈的失能效果；可與機械同時存在。'},
   mechanical:{name:'機械',text:'會受到 EMP 的失能效果，電漿直擊增傷 20%；可與生物同時存在。'},

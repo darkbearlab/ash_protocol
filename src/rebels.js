@@ -129,7 +129,8 @@ export function tickAlarms(g){for(const e of g.enemies)if(e.alarmCooldown>0)e.al
 export function soundAlarm(g,e,target=g.player){
  if((e.alarmCooldown||0)>0)return false;
  e.alarmCooldown=REBEL_TUNING.alarmCooldown;
- for(const o of g.enemies)if(o!==e&&o.hp>0&&!isNoncombatant(o)&&distance(e,o)<=REBEL_TUNING.alarmRadius){o.alert=true;o.lastKnown={x:target.x,y:target.y};}
+ // 3.144.0: an enemy drawn off by the decoy is not told where you are (src/field-gear.js).
+ for(const o of g.enemies)if(o!==e&&o.hp>0&&!isNoncombatant(o)&&!(target===g.player&&g.isFooled?.(o))&&distance(e,o)<=REBEL_TUNING.alarmRadius){o.alert=true;o.lastKnown={x:target.x,y:target.y};}
  g.log(`${enemyDisplayName(e)}發出警告，附近的敵人全部警戒了。`,true);
  g.enemyCallout?.(e,'telegraph',{action:'alarm'});
  return true;

@@ -72,7 +72,7 @@ node tools/text-play.mjs verify runs/rebel-1.json     # 從頭重播，逐步比
 - **戰鬥**
   - `t <敵人>` 鎖定；`f [敵人]` 開火。
   - `r` 裝填；`wait` 防禦待機；`swap [槽]` 換武器。
-  - `g <落點>` 投擲；`launch <落點>` 對地發射；`flare <落點>` 照明彈；`skill [落點]` 技能。
+  - `g <落點>` 投擲；`launch <落點>` 對地發射；`flare <落點>` 照明彈；`decoy <落點>` 誘餌；`mine <落點>` 地雷（3 格內）；`skill [落點]` 技能。
   - `cover <方向>` 架摺疊掩體；`use medkit|spray|adrenaline` 用道具。
   - `rope escape <落點>` 逃命繩索（不耗回合）；`rope redeploy <落點>` 重部署鉤索（耗 1 回合）。3.135.0。
   - `bump <背包槽|none>` 選撞擊時用哪一把近戰武器（不耗回合；none＝背包裡第一把）。`inv` 會列出目前的撞擊武器。3.136.0。

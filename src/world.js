@@ -196,6 +196,10 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
     if(r.supply==='medical')items.push({x:r.cx,y:r.cy,type:'med',amount:1,cache:true});
     // 3.123.0: one flare in the armour room's case, next to the smoke; placed on an existing supply tile, no RNG.
     if(r.supply==='armor')items.push({x:r.cx,y:r.cy,type:'armor',amount:20,cache:true},{x:r.cx,y:r.cy,type:'flare',amount:1,cache:true});
+    // 3.144.0: a decoy beside the armour room's flare and a mine in the ammunition room's case, on the spray's tile;
+    // placed, not rolled, so the rest of the floor draws the same numbers.
+    if(r.supply==='armor')items.push({x:r.cx,y:r.cy,type:'decoy',amount:1,cache:true});
+    if(r.supply==='ammo')items.push({x:r.cx,y:r.cy,type:'mine',amount:1,cache:true});
   });
   // Guaranteed weapon discoveries, placed off the critical path so full packs never block progress.
   const preferred=info.weapon;

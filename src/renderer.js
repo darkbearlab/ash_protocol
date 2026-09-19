@@ -10,6 +10,8 @@ import {SPRITE_NAMES,AFTERMATH_NAMES,enemySprite,enemyDrawing,enemyTint,ELITE_VI
 import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
 import {NEST_ATLAS,drawNest,drawNestEffect,drawNestSprite} from './nest-art.js';
 import {DECAL_ATLAS,FactionDecals} from './faction-decals.js';
+import {DECOY_TUNING,decoyReason,mineReason} from './field-gear.js';
+import {isNoncombatant} from './enemy-data.js';
 import {SCENERY_ATLAS} from './scenery.js';
 import {drawPartition,partitionGeometry,DOOR_ATLAS,drawDoor,doorGeometry,barrierJunctions,drawJunction} from './barrier-art.js';
 import {actorPosition,DarkActorCache,cornerHidden,muteCornerPixels} from './actor-visuals.js';
@@ -39,8 +41,8 @@ import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTele
 const BREATH_DROP=2,BREATH_PERIOD=2400;
 // Ground item colours and symbols. 3.136.1: the grapple lines and goggles (3.135.0) had none, so their tiles printed
 // "undefined"; tests/item-symbols.test.mjs now checks every ground item type, and a missing one shows '?'.
-export const ITEM_COLORS=Object.freeze({smoke:'#a9bbcb',emp:'#81dce9',stun:'#eee0a0',armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db',learning:'#b9a2e6',spray:'#b6a2d6',adrenaline:'#e0a7c4',barricade:'#c9b48c',flare:'#e7c46e',nvg:'#9fd0a8',escape_line:'#d7b27a',redeploy_line:'#a9c3d6'});
-export const ITEM_SYMBOLS=Object.freeze({smoke:'≋',emp:'E',stun:'✦',armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D',spray:'▣',adrenaline:'⚡',barricade:'▬',flare:'✺',nvg:'◉',escape_line:'↟',redeploy_line:'⇢'});
+export const ITEM_COLORS=Object.freeze({smoke:'#a9bbcb',emp:'#81dce9',stun:'#eee0a0',armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db',learning:'#b9a2e6',spray:'#b6a2d6',adrenaline:'#e0a7c4',barricade:'#c9b48c',flare:'#e7c46e',nvg:'#9fd0a8',escape_line:'#d7b27a',redeploy_line:'#a9c3d6',decoy:'#e0c46a',mine:'#d9785a',exo:'#9fb3c8'});
+export const ITEM_SYMBOLS=Object.freeze({smoke:'≋',emp:'E',stun:'✦',armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D',spray:'▣',adrenaline:'⚡',barricade:'▬',flare:'✺',nvg:'◉',escape_line:'↟',redeploy_line:'⇢',decoy:'◎',mine:'✱',exo:'⛨'});
 // 3.136.2 (user request): ground items shrink with the map the way units do — full size at the default tile, never
 // larger — and are hidden once the tile is so small they would only be clutter. With the zoom buttons that is the
 // smallest step (0.65 → 24.7 px); wide framing for a far target can hide them too. At full size nothing is transformed,
@@ -200,6 +202,15 @@ export class Renderer {
     // 3.135.0: a grapple line's aim — the straight pull and its landing, green when it can go, red when it cannot.
     if(this.mode==='rope'&&this.aim){const t=this.tile,ok=!lineReason(g,{...this.aim,item:this.ropeItem}),from=this.project(g.player.x,g.player.y),a=this.project(this.aim.x,this.aim.y);this.line(from.x,from.y,a.x,a.y,ok?'#9ee6a0aa':'#e8756aaa',2);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,ok?'#9ee6a033':'#e8756a33',ok?'#9ee6a0':'#e8756a');}
     if(this.mode==='flare'&&this.aim){const t=this.tile;for(const {x,y} of flareCells(g,this.aim)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,'#ffd27a26','#ffe0a066');}const a=this.project(this.aim.x,this.aim.y);this.text('✺',a.x,a.y+5,'#ffe3a8',15);}
+    // 3.144.0 (src/field-gear.js): placing a decoy or a mine shows the tile, and the decoy marks the enemies it would draw.
+    if(this.mode==='place'&&this.aim){const t=this.tile,ok=!(this.placeItem==='mine'?mineReason(g,this.aim):decoyReason(g,this.aim)),a=this.project(this.aim.x,this.aim.y);
+      if(this.placeItem==='decoy')for(const e of g.visibleEnemies.filter(e=>distance(e,this.aim)<=DECOY_TUNING.radius&&!isNoncombatant(e))){const q=this.project(e.x,e.y);this.box(q.x-t/2+3,q.y-t/2+3,t-6,t-6,'#e0c46a1f','#e0c46a99');}
+      this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,ok?'#e0c46a33':'#e8756a33',ok?'#e0c46a':'#e8756a');this.text(this.placeItem==='mine'?'✱':'◎',a.x,a.y+5,ok?'#ffe3a8':'#f3a79c',15);}
+    // Your mines (only you know where they are) and a live decoy with its hit points and turns left.
+    for(const m of g.mines||[])if(g.seen?.[m.y]?.[m.x]){const a=this.project(m.x,m.y),t=this.tile;this.box(a.x-t*.16,a.y-t*.12,t*.32,t*.24,'#2a2f2c','#8c7a5a');this.box(a.x-1.5,a.y-1.5,3,3,'#ff5a4a');}
+    if(g.decoy&&g.seen?.[g.decoy.y]?.[g.decoy.x]){const d=g.decoy,a=this.project(d.x,d.y),t=this.tile,pulse=this.reduceMotion?.5:.5+.5*Math.sin(time/180);
+      this.glow(a.x,a.y,t*(1+.4*pulse),'#e0c46a2a');this.box(a.x-t*.18,a.y-t*.18,t*.36,t*.36,'#3b3522','#e0c46a');this.text('◎',a.x,a.y+4,'#ffe7a0',11);
+      this.text(`${d.hp}·${Math.max(1,d.expires-g.turn)}`,a.x,a.y+t*.42,'#ffe7a0',8);}
     for(const flare of g.flares||[])if(g.seen?.[flare.y]?.[flare.x]){const a=this.project(flare.x,flare.y),t=this.tile;this.glow(a.x,a.y,t*1.6,'#ffd27a30');this.box(a.x-2,a.y-2,4,4,'#fff1c4');this.text(String(Math.max(1,flare.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#ffe3a8',8);}
     if(this.mode==='launch'&&this.aim)this.markArea(this.aim,1,'#e6a95b33','#eacb84aa','');
     // 3.112.0: the shotgun's cone, faint on the floor and firm on everyone one shell will reach; red for a friend.

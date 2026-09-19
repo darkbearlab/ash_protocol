@@ -1,3 +1,5 @@
+import {activeTrait} from './traits.js';
+import {EXO_TUNING} from './field-gear.js';
 import {AMMO_IDS,AMMUNITION,TERMINAL_AMMO} from './ammunition.js';
 import {GRENADES,grenadeByItem,grenadeTotal} from './throwables.js';
 import {salvageValue} from './weapons.js';
@@ -26,6 +28,11 @@ export const TERMINAL_ITEMS={
  nvg:{cost:40,wear:'nvg',sold:false},
  barricade:{cost:25,resource:'barricades'},
  flare:{cost:15,resource:'flares'},
+ // 3.144.0 (src/field-gear.js): the decoy and mine; the exoskeleton, which like armour plates cannot be traded back in
+ // (it cannot be repaired either, so a worn-down one would otherwise sell for new).
+ decoy:{cost:15,resource:'decoys'},
+ mine:{cost:15,resource:'mines'},
+ exo:{cost:45,wear:'exo',noTrade:true},
 };
 export const TERMINAL_PACK=Object.freeze({rifle:24,pistol:24,shell:12,energy:18,ordnance:3});
 export const upgradeCost=level=>T.upgradeBase+level*T.upgradeStep;
@@ -77,6 +84,7 @@ export function offerReason(g,option){
  const item=TERMINAL_ITEMS[option];
  if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return '生命值已滿。';
  if(item?.wear&&p.wearables.includes(item.wear))return '已經有一件了。';
+ if(item?.wear==='exo'&&activeTrait(p,'large'))return '體型太大，穿不下外骨骼。';
  const kind=grenadeByItem(option)?'grenade':TERMINAL_AMMO[option]?option:null;
  if(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=g.ammoCapacity(kind))return '此彈種已達攜帶上限。';
  if(option==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=g.ammoCapacity(id)))return '各類備彈皆已滿。';
@@ -106,7 +114,7 @@ export function tradeHoldings(g){
  rows.push({id:'med',group:'item',name:'醫療包',unit:'1 個',lot:1,value:T.medTradeIn,held:p.meds||0,max:p.meds||0,reason:''});
  for(const [id,offer] of Object.entries(TERMINAL_ITEMS)){
   if(offer.resource){const held=p[offer.resource]||0;rows.push({id:`item:${id}`,group:'item',name:itemName(id),unit:'1 個',lot:1,value:tradeValue(offer.cost),held,max:held,reason:''});}
-  else if(offer.wear){
+  else if(offer.wear&&!offer.noTrade){
    const held=p.wearables.includes(offer.wear)?1:0,worn=p.prepared?.item===offer.wear;
    rows.push({id:`wear:${id}`,group:'wear',name:itemName(id),unit:'1 件',lot:1,value:tradeValue(offer.cost),held,max:held&&!worn?1:0,reason:worn?'戴著的要先脫下':''});
   }
@@ -167,7 +175,7 @@ function deliver(g,buy){
  // 3.136.0: items stop at the carry cap; one bought past it waits at your feet.
  if(buy==='med'){g.receiveItem('medkit',1);return '醫療包 +1';}
  if(item?.resource){g.receiveItem(buy,1);return `${itemName(buy)} +1`;}
- if(item?.wear){p.wearables.push(item.wear);return itemName(buy);}
+ if(item?.wear){p.wearables.push(item.wear);if(item.wear==='exo')p.exoPlates=EXO_TUNING.plates;return itemName(buy);}
  if(buy==='ammo'){g.supplyPack(TERMINAL_PACK);return '彈藥補給包';}
  if(TERMINAL_AMMO[buy]){g.receiveAmmo(buy,TERMINAL_AMMO[buy].amount);return `${AMMUNITION[buy].name} +${TERMINAL_AMMO[buy].amount}`;}
  const grenade=grenadeByItem(buy);g.receiveGrenade(grenade,GRENADES[grenade].amount);return `${GRENADES[grenade].name} +${GRENADES[grenade].amount}`;

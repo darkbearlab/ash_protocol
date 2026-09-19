@@ -31,7 +31,8 @@ export function addNoncombatants(map,seed,floor,faction){
 export function scream(g,e){
  if(e.hp<=0||e.control?.disabled||e.screamCooldown>0||!g.sight(e,g.player))return false;
  e.screamCooldown=CIVILIAN_TUNING.screamCooldown;
- for(const guard of g.enemies)if(guard.hp>0&&!isNoncombatant(guard)&&distance(e,guard)<=CIVILIAN_TUNING.screamRadius){guard.alert=true;guard.lastKnown={x:g.player.x,y:g.player.y};}
+ // 3.144.0: a guard drawn off by the decoy only snaps out when you attack (src/field-gear.js).
+ for(const guard of g.enemies)if(guard.hp>0&&!isNoncombatant(guard)&&!g.isFooled?.(guard)&&distance(e,guard)<=CIVILIAN_TUNING.screamRadius){guard.alert=true;guard.lastKnown={x:g.player.x,y:g.player.y};}
  g.log(`${enemyBaseName(e)}尖叫，附近的守衛警戒了。`,true);g.enemyCallout(e,'telegraph',{action:'scream'});return true;
 }
 // 3.131.0: a civilian's flight is a flee order it gives itself on its first turn — no time limit, nothing ends it.

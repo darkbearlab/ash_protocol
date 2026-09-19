@@ -96,7 +96,8 @@ test('the aim shows the tiles it would light and the item button confirms or can
   // 3.135.0: throw-aimed items go through startThrowAim, which sends a flare to startFlareAim (lines to startRopeAim).
   assert.ok(source.includes("if(entry.aim==='throw'){startThrowAim(game.player.prepared.item);return;}"));
   assert.ok(source.includes("if(entry.aim==='throw'){close();startThrowAim(id);return;}"),'the pack’s use button aims too');
-  assert.ok(source.includes("function startThrowAim(id){if(PREPARED_CATALOG.item[id]?.action==='rope')startRopeAim(id);else startFlareAim();}"));
+  // 3.144.0: the decoy and the mine are placed through startPlaceAim.
+  assert.ok(source.includes("function startThrowAim(id){const action=PREPARED_CATALOG.item[id]?.action;if(action==='rope')startRopeAim(id);else if(action==='decoy'||action==='mine')startPlaceAim(action);else startFlareAim();}"));
   assert.ok(source.includes("if(renderer.mode==='flare'){act('flare',renderer.aim);return;}"),'confirmed as a flare whatever is prepared');
   assert.ok(renderer.includes("if(this.mode==='flare'&&this.aim){const t=this.tile;for(const {x,y} of flareCells(g,this.aim))"));
   assert.ok(renderer.includes('for(const flare of g.flares||[])if(g.seen?.[flare.y]?.[flare.x])'));

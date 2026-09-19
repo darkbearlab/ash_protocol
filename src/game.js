@@ -70,6 +70,7 @@ import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlSt
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
 import {coneTargets,shotgunBand,pelletsAt,pelletChance} from './shotgun.js';
 import {lancePath} from './lance.js';
+import {EXO_TUNING,decoyReason,throwDecoy,decoyHides,fooled,noticeAttack,damageDecoy,decoyAct,tickDecoy,validDecoy,mineReason,placeMine,detonateMine,checkMines,knownMine,validMines,exoAbsorb,breakExo,wearingExo,validExo,exoReason} from './field-gear.js';
 import {PREPARED_CATALOG,defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns,isWearable,wornEntry,prepareCost,syncWearableTraits} from './prepared.js';
 import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix,affixAllowed} from './weapons.js';
@@ -124,7 +125,7 @@ export function itemUseReason(g,id){
  if(entry.action==='surge')return p.control.disabled?'失能中無法使用':g.shadowSteps?'免費移動還沒用完':p.hp>SURGE_COST?'':'生命不足以承受';
  return '';
 }
-const freshPlayer=()=>({learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({decoys:0,mines:0,exoPlates:0,learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -144,7 +145,7 @@ export class Game {
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
     this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
-    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.purge={floors:{}};this.logs=[];this.status='playing';this.shadowSteps=0;this.pursuit=0;this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];initializeRunUnlocks(this,options);this.loadFloor();initializeAllies(this);this.reveal();
+    this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.purge={floors:{}};this.logs=[];this.status='playing';this.shadowSteps=0;this.pursuit=0;this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];this.mineSerial=0;initializeRunUnlocks(this,options);this.loadFloor();initializeAllies(this);this.reveal();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
   }
   // Overridable by isolated simulation fixtures; live campaigns use the current recipe pool.
@@ -153,7 +154,7 @@ export class Game {
   generateFloor(){this.facilityFaction=endlessFaction(this);return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultySpec,this.facilityFaction);}
   loadFloor() {
     endSkillEffects(this.player);this.sensorContacts=[];this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
-    Object.assign(this,{swarmWaves:undefined,mapStyle:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
+    Object.assign(this,{swarmWaves:undefined,mapStyle:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.decoy=null;this.mines=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
     prepareMission(this);recruitConscripts(this);postSquads(this);rigContainers(this);populateRunUnlocks(this);registerPurgeFloor(this);
@@ -199,7 +200,7 @@ export class Game {
   revealed(watcher,e){const reach=ENEMY_TYPES[e?.type]?.revealRange;return reach===undefined||distance(watcher,e)<=reach;}
   visible(e){return this.revealed(this.player,e)&&distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e));}
   teamVisible(e){return this.visible(e)||this.activeAllies.some(a=>connected(this,a)&&this.revealed(a,e)&&distance(a,e)<=8&&this.sight(a,e));}
-  sight(a,b){syncPetSenses(this);return !(b===this.player&&a!==this.player&&skillActive(this.player))&&tacticalSight(this,a,b);}
+  sight(a,b){syncPetSenses(this);return !(b===this.player&&a!==this.player&&(skillActive(this.player)||decoyHides(this,a)))&&tacticalSight(this,a,b);}
   shotClear(a,b){return cornerRay(this,a,b).clear;}
   attackStatus(a,b){return cornerStatus(this,a,b);}
   recordExposure(a,b){recordExposure(this,a,b);}
@@ -241,7 +242,7 @@ export class Game {
   }
   accuracy(attacker,target){return shotChance(this,attacker,target);}
   solid(x,y){return this.props.find(o=>o.x===x&&o.y===y&&o.hp>0&&(o.type==='cover'||o.type==='barrel'||o.type==='nest'));}
-  passable(x,y,actor){return this.grid[y]?.[x]===1&&(!this.solid(x,y)||hasEnemyTag(actor,'flying'));}
+  passable(x,y,actor){return this.grid[y]?.[x]===1&&(!this.solid(x,y)||hasEnemyTag(actor,'flying'))&&!knownMine(this,actor,x,y);}
   // `warnings:false` (restore only): a loaded save redraws what is seen but raises no new alarm; the next look in play does.
   reveal({warnings=true}={}) {
     syncPetSenses(this);
@@ -329,6 +330,7 @@ export class Game {
     if(type==='skill'&&arg==='suppressive_fire')return this.fail('壓制射擊需要區域落點。');
     if(type==='skill'&&arg==='grapple'&&canUseSkill(p,arg)){const plan=grapplePlan(this);return !plan.reason||this.fail(plan.reason);}
     if(type==='skill')return (ALLY_SKILLS.includes(arg)?canAllySkill(this,arg):canUseSkill(p,arg))||this.fail((arg==='pet_command'&&p.prepared.skill===arg&&petSkillReason(this))||(arg==='raise_dead'&&p.prepared.skill===arg&&!p.control.disabled&&'目前沒有召喚物可以集結。')||'技能無法啟動：請確認預備欄與冷卻狀態。');
+    if(type==='prepare'&&arg?.id==='exo'&&exoReason(p))return this.fail(exoReason(p)+'。');
     if(type==='prepare')return Boolean(arg&&canPrepare(p,arg.category,arg.id)&&p.prepared[arg.category]!==arg.id);
     // 3.107.0 (user request): consumables no longer need the prepared slot — the pack uses them in place. The
     // grenade slot stays, because there it also chooses which grenade is thrown.
@@ -356,6 +358,9 @@ export class Game {
     // live in itemUseReason so the pack can grey the same buttons this would refuse.
     if(type==='deployCover'){const reason=deployCoverReason(this,arg);return !reason||this.fail(reason+'。');}
     if(type==='flare'){const reason=flareReason(this,arg);return !reason||this.fail(reason+'。');}
+    // 3.144.0 (src/field-gear.js): the decoy is thrown like a flare, the mine laid within three tiles.
+    if(type==='decoy'){const reason=decoyReason(this,arg);return !reason||this.fail(reason+'。');}
+    if(type==='mine'){const reason=mineReason(this,arg);return !reason||this.fail(reason+'。');}
     if(type==='rope'){const reason=lineReason(this,arg);return !reason||this.fail(reason+'。');}
     if(type==='launch'){const reason=launchReason(this,arg);return !reason||this.fail(reason+'。');}
     if(ITEM_BY_ACTION[type]){const reason=itemUseReason(this,ITEM_BY_ACTION[type]);return !reason||this.fail(reason+'。');}
@@ -445,9 +450,9 @@ export class Game {
         const success=type==='move'?presentStep(this,()=>this.executePlayer(type,arg)):this.executePlayer(type,fireIntent||arg);
         if(!success)this.log('局勢已改變，行動未能完成；本回合已消耗。');
         p.guard=success&&type==='wait';p.moved=success&&(type==='move'||type==='grapple'&&p.moved);p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
-        petReactions(this);this.reveal();
+        petReactions(this);this.reveal();checkMines(this);
       }else if(actor.kind){const wasIn=inToxic(this,actor);presentStep(this,()=>{if(isMunition(actor))munitionAct(this,actor);else if(isBomber(actor))bomberAct(this,actor);else allyAct(this,actor);this.reveal();},actor);toxicAllyTurn(this,actor,wasIn);}
-      else if(actor.hp>0&&actor.alert)presentStep(this,()=>this.enemyAct(actor),speed!==0||playerSpeed!==0||phase!==null?actor:null);
+      else if(actor.hp>0&&actor.alert)presentStep(this,()=>{this.enemyAct(actor);checkMines(this);},speed!==0||playerSpeed!==0||phase!==null?actor:null);
       if(immunityBefore&&!anchorExtra)actor.control.immune=Math.max(0,actor.control.immune-1);
     }
     if(this.floor===floor&&this.status==='playing'&&p.hp>0){
@@ -464,6 +469,7 @@ export class Game {
     tickSpirit(this);tickSkills(p);if(!skillActive(p,'early_warning'))this.sensorContacts=[];
     this.smoke=this.smoke.filter(s=>s.expires>this.turn);
     this.flares=(this.flares||[]).filter(f=>f.expires>this.turn);
+    tickDecoy(this);
     expireExposure([p,...this.enemies,...this.allies],this.turn);
     for(const actor of [p,...this.enemies,...this.activeAllies]){tickTraits(actor);tickSuppression(actor);}
     // 3.127.0: rebels taunt their cowards before the player gets control, so the boosts show on the target cards.
@@ -560,6 +566,8 @@ export class Game {
       }
       case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
       case 'flare': success=presentStep(this,()=>this.throwFlare(arg));break;
+      case 'decoy': success=presentStep(this,()=>throwDecoy(this,arg));break;
+      case 'mine': success=presentStep(this,()=>placeMine(this,arg));break;
       case 'rope': success=presentStep(this,()=>this.fireLine(arg));break;
       case 'weapon': {
         const index=arg===undefined?p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length]:Number(arg);
@@ -627,6 +635,7 @@ export class Game {
         this.log('霰彈沒有打中任何目標。',false,'霰彈落空。');return;
       }
       for(const o of targets){
+        if(this.enemies.includes(o))noticeAttack(this,o);
         const {count,min,max}=this.pelletDamage(p.weapon,o),chance=pelletChance(w,toxicShot(this,p,o,w)),landed=[];
         for(let i=0;i<count;i++)if(this.rng()*100<chance)landed.push(min+Math.floor(this.rng()*(max-min+1)));
         this.effects.push({type:'shot',weaponId:w.id,style:'bullet',from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!landed.length});
@@ -662,6 +671,7 @@ export class Game {
     if(distance(p,e)>w.range)return this.fail('目標超出射程，靠近再開火。');
     if(p.ammo[p.weapon]<=0)return this.fail('彈匣已空，請裝填。');
     if(p.ammo[p.weapon]<(w.shotCost||1))return this.fail(`彈匣不足 ${w.shotCost} 發，請裝填。`);
+    if(this.enemies.includes(e))noticeAttack(this,e);
     // Doors, cover and barrels are still breached one at a time; an enemy gets the cone.
     if(w.cone&&this.enemies.includes(e))return this.fireCone(e);
     if(w.lance&&this.enemies.includes(e))return this.fireLance(e);
@@ -704,6 +714,7 @@ export class Game {
       const roll=o=>{const range=this.weaponDamage(p.weapon,o);return range.min+Math.floor(this.rng()*(range.max-range.min+1));};
       let friends=0;const chance=this.fireChance(e);
       for(const [n,o] of units.entries()){
+        if(this.enemies.includes(o))noticeAttack(this,o);
         const damage=roll(o),hit=this.rng()*100<chance;
         if(!hit){this.log(`光束沒打中第 ${n+1} 個：${this.enemies.includes(o)?enemyName(o):'友軍'}（命中率 ${chance}%）。`,false,'光束沒有打中。');continue;}
         if(this.activeAllies.includes(o)){this.damageAlly(o,damage,p);friends++;continue;}
@@ -721,7 +732,7 @@ export class Game {
     if(!w.melee)return false;
     if(!intent&&(!target||distance(p,target)>1))return this.fail('近戰需要相鄰一格的目標。');
     const valid=target&&distance(p,target)<=1&&this.shotClear(p,target)&&(isBarrier(target)||this.canCross(p,target)),to=valid?target:intent;
-    p.fireChain=null;p.facing=[Math.sign(to.x-p.x),Math.sign(to.y-p.y)];
+    p.fireChain=null;p.facing=[Math.sign(to.x-p.x),Math.sign(to.y-p.y)];if(valid&&this.enemies.includes(target))noticeAttack(this,target);
     let landed=false,ambush=false;
     presentStep(this,()=>{
       ambush=!w.unarmed&&Boolean(valid)&&ambushReady(this,target);if(ambush&&!this.shadowBonus)shortenCamo(p);
@@ -754,6 +765,7 @@ export class Game {
     presentStep(this,()=>{
       if(!units.length&&!objects.length){this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:aim.x,y:aim.y},damage:0,miss:true});this.log(`${w.name}刺空了。`,false,`${w.name}刺空。`);return;}
       for(const o of [...units,...objects]){
+        if(this.enemies.includes(o))noticeAttack(this,o);
         const foe=this.enemies.includes(o),ambush=foe&&ambushReady(this,o),chance=this.meleeAccuracy(p,o,w.hitChance),hit=this.rng()*100<chance;
         if(ambush&&!this.shadowBonus)shortenCamo(p);
         this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!hit});
@@ -784,6 +796,7 @@ export class Game {
   hitTarget(target,raw,attacker,pierce=0,weapon=this.weapon,pellets=null) {
     const blade=attacker===this.player&&!weapon.unarmed;
     if(blade)raw=Math.round(raw*bladeMultiplier(attacker));
+    if(attacker===this.player&&weapon.melee&&wearingExo(attacker))raw=Math.round(raw*EXO_TUNING.melee);   // 3.144.0 外骨骼
     if(this.props.includes(target)||isBarrier(target)){if(weapon.ammoType==='energy')addTrace(this,target,'scorch');this.damageProp(target,raw,attacker);return;}
     const cover=weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
     let parts=pellets?pellets.map(d=>blade?Math.round(d*bladeMultiplier(attacker)):d):[raw];const scale=f=>{parts=parts.map(d=>d*f);};
@@ -802,6 +815,7 @@ export class Game {
   // cause (3.142.1): damage nobody dealt (a hazard underfoot) says what it was instead of 命中, which reads as a shot.
   hurt(e,damage,attacker=null,cause=null) {
     if(e.hp<=0||!shotDamageAllowed(this,e))return;
+    if(attacker===this.player)noticeAttack(this,e);
     const beforeHp=e.hp;e.hp-=damage;injuryCallout(this,e,beforeHp);if(damage>0)orderHit(this,e);this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
     if(cause)this.log(`${enemyName(e)}${cause}，受到 ${damage} 傷害。`,false,`${enemyName(e)}${cause}。`);else this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`,false,`命中${enemyName(e)}。`);
@@ -923,6 +937,9 @@ export class Game {
     for(const e of hitEnemies)this.hurt(e,reduceDirectDamage(e,Math.max(1,damage-distance(origin,e)*10)),attacker);
     for(const a of hitAllies)this.damageAlly(a,Math.max(1,damage-distance(origin,a)*10),null,true);
     if(hitPlayer)this.damagePlayer(Math.max(1,damage-distance(origin,this.player)*10),'爆炸衝擊',null,true);
+    // 3.144.0: a blast damages the decoy and sets off every mine it reaches (each is removed before it goes off).
+    if(this.decoy&&affected(this.decoy))damageDecoy(this,Math.max(1,damage-distance(origin,this.decoy)*10));
+    for(const m of (this.mines||[]).filter(affected))detonateMine(this,m);
   }
   damagePlayer(raw,label,attacker=null,blast=false) {
     const p=this.player,cover=!blast&&attacker?this.protectingCover(p,attacker):null;
@@ -930,8 +947,10 @@ export class Game {
     if(cover){damage*=1-coverEffects(cover,p,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);}
     if(!blast&&attacker&&toxicShot(this,attacker,p,this.actorWeapon(attacker)))damage*=.5;   // 3.134.0 mist
     damage=reduceDirectDamage(p,meleeDefense(p,Math.max(1,Math.round(damage-p.armor))));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
-    const absorbed=Math.min(p.plates||0,Math.floor(damage/2));p.plates=(p.plates||0)-absorbed;damage-=absorbed;
-    p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');this.log(`${label}${cover?'（掩體減傷）':''}${absorbed?`（護甲板吸收 ${absorbed}）`:''}，生命 −${damage}。`,true,`${label}${cover?'（掩體減傷）':''}${absorbed?'（護甲板吸收）':''}，你受傷了。`);
+    // 3.144.0: a worn exoskeleton's plates take their share of the hit (half of it) before your own plates do.
+    const half=Math.floor(damage/2),frame=exoAbsorb(this,half),absorbed=Math.min(p.plates||0,half-frame);p.plates=(p.plates||0)-absorbed;damage-=frame+absorbed;
+    p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');this.log(`${label}${cover?'（掩體減傷）':''}${frame?`（外骨骼吸收 ${frame}）`:''}${absorbed?`（護甲板吸收 ${absorbed}）`:''}，生命 −${damage}。`,true,`${label}${cover?'（掩體減傷）':''}${frame||absorbed?'（護甲吸收）':''}，你受傷了。`);
+    if(frame&&p.exoPlates<=0)breakExo(this);
     if(attacker&&ENEMY_TYPES[attacker.type]?.mechanical&&ENEMY_TYPES[attacker.type].range>1)addTrace(this,p,'scorch');
     if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:enemyDef(attacker)?.attackStyle||(ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet'),from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
     else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage});
@@ -956,7 +975,11 @@ export class Game {
     const ready=a=>distance(e,a)<=ENEMY_TYPES[e.type].range&&this.shotClear(e,a);
     return options.sort((a,b)=>Number(ready(b))-Number(ready(a))||distance(e,a)-distance(e,b))[0]||this.player;
   }
+  // 3.144.0 (src/field-gear.js), as methods so modules the decoy module imports can ask without a cycle.
+  isFooled(e){return fooled(this,e);}
+  noticeAttack(e){noticeAttack(this,e);}
   enemyAct(e){
+    if(decoyAct(this,e))return;   // 3.144.0
     return this.enemyOpportunity(e);
   }
   enemyOpportunity(e){return enemyOpportunity(this,e);}
@@ -1120,7 +1143,7 @@ export class Game {
     if(returning(this)&&this.floor>1&&!arrival)return this.fail('上一層入口暫無安全落腳處。');
     this.awardProtocol('floor',this.floor);
     if((returning(this)&&this.floor===1)||(!isEndless(this)&&!missionDefinition(this).returnTrip&&this.floor===missionDepth(this))){this.awardProtocol('extraction','win');this.status='won';this.log(this.missionSummary+'。撤離成功。');return true;}
-    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
+    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;this.decoy=null;this.mines=[];for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
     if(returning(this)){
       if(advanceTurn)this.turn++;
       Object.assign(this,resumedFloor(frame,this.turn));delete this.floorStates[next];this.floor=next;
@@ -1323,11 +1346,14 @@ export class Game {
       if(version<62){g.player.escapeLines??=0;g.player.redeployLines??=0;}
       // 3.136.0: the picked bump weapon and the chainsaw's lost action; older saves have neither.
       if(version<63){g.player.meleeSlot??=null;g.player.recovery??=0;}
+      // 3.144.0: decoys, mines and the exoskeleton; older saves carry none and have none out.
+      if(version<66){g.player.decoys??=0;g.player.mines??=0;g.player.exoPlates??=0;g.decoy??=null;g.mines??=[];g.mineSerial??=0;}
       if(![0,1].includes(g.player.recovery)||!(g.player.meleeSlot===null||Number.isInteger(g.player.meleeSlot)&&WEAPONS[g.player.weaponBases[g.player.meleeSlot]]?.melee))return null;
       if(!['escapeLines','redeployLines'].every(k=>Number.isSafeInteger(g.player[k])&&g.player[k]>=0&&g.player[k]<=10000000))return null;
       if(!Number.isSafeInteger(g.player.flares)||g.player.flares<0||g.player.flares>10000000||!validFlares(g.flares,g.grid,g.turn))return null;
       // 3.108.0: the worn item's passives are derived from the slot, never trusted from the file.
       g.player.wearables??=[];syncWearableTraits(g.player);
+      if(!['decoys','mines'].every(k=>Number.isSafeInteger(g.player[k])&&g.player[k]>=0&&g.player[k]<=10000000)||!validExo(g.player)||!validDecoy(g)||!validMines(g))return null;
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
       if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;

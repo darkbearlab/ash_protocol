@@ -66,7 +66,7 @@ test('the passives follow the slot, and the goggles really cancel the dark penal
 });
 
 test('saves carry ownership, re-derive the passives, and refuse a slot the run cannot fill',()=>{
- assert.equal(SAVE_VERSION,65);   // 3.138.0: the perk rules
+ assert.equal(SAVE_VERSION,66);   // 3.144.0: field gear
  const g=own(run()),p=g.player;
  assert.equal(g.action('prepare',{category:'item',id:'nvg'}),true);
  const back=Game.restore(g.serialize());
