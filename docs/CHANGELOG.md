@@ -1,5 +1,14 @@
 # 更新紀錄
 
+## 3.136.3 — 狂戰士新站姿：雙手腰前橫持長柄斧（使用者核准，Codex 繪製，Claude 發布，2026-09-19）
+
+報告：qa/results/2026-09-19-claude-3.136.3-berserker-longaxe.md。交接：docs/BERSERKER_LONGAXE_HANDOFF.md。
+
+- 狂戰士的站姿換成雙手分握長柄、在腰前橫持的斧頭。
+- 只改了正式職業圖集 `assets/pixel/classes-v1/atlas.png` 裡狂戰士的那一格（x=64、y=32，32×32）。士兵、其他職業和所有倒地圖都沒有動。
+- 規則、存檔與程式沒有變。
+- 採用素材、提示詞、Aseprite 工程與替換腳本放在 `art/sprites/adopted/berserker-longaxe-2026-09-19/`。
+
 ## 3.136.2 — 掉落物跟著地圖縮小（使用者要求，Claude 實作，2026-09-19）
 
 報告：qa/results/2026-09-19-claude-3.136.2-item-scale.md。
