@@ -30,7 +30,8 @@ test('the controller, page and styles wire brightness, colour strength and the q
   // 3.139.1 (user, 2026-09-19): the strength slider left the settings while the colour picker is redesigned; the colour
   // is drawn at full strength and the saved strength is not read.
   assert.ok(source.includes('renderer.operatorTint=1;')&&!source.includes("read('ash-operator-tint')")&&!source.includes('id="operator-tint"'));
-  assert.ok(source.includes('tintedSprite(image,r,color,renderer.tintCache,renderer.operatorTint)'),'the deploy preview matches the battlefield');
+  // 3.140.0: the previews keep their own cache while the colour wheel is dragged, at the battlefield's strength.
+  assert.ok(source.includes('tintedSprite(image,r,color,previewTints.cache,renderer.operatorTint)'),'the deploy preview matches the battlefield');
   assert.ok(colour.includes('const key=`${rect.x},${rect.y},${id},${strength}`;'),'a new strength never reuses a cached tint');
   // 3.118.0: a filter on the app and on the dialog's content, not backdrop-filter layers, which froze still menus in a
   // phone home-screen app (user report).

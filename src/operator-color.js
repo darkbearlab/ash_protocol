@@ -11,9 +11,29 @@ export const OPERATOR_COLORS=[
   {id:'none',label:'原色',hex:null},
 ];
 export const DEFAULT_OPERATOR_COLOR='amber';
-export const validOperatorColor=id=>OPERATOR_COLORS.some(c=>c.id===id);
-export const operatorColor=id=>OPERATOR_COLORS.find(c=>c.id===id)||OPERATOR_COLORS.find(c=>c.id===DEFAULT_OPERATOR_COLOR);
+// 3.140.0 (user decisions 2026-09-19): besides a preset id, the choice can be any colour from the picker's wheel and
+// brightness slider (src/color-picker.js), kept as a lower-case '#rrggbb'.
+const CUSTOM=/^#[0-9a-f]{6}$/;
+export const validOperatorColor=id=>OPERATOR_COLORS.some(c=>c.id===id)||typeof id==='string'&&CUSTOM.test(id);
+export const operatorColor=id=>OPERATOR_COLORS.find(c=>c.id===id)||(typeof id==='string'&&CUSTOM.test(id)?{id,label:'自訂',hex:id,custom:true}:OPERATOR_COLORS.find(c=>c.id===DEFAULT_OPERATOR_COLOR));
 const rgb=hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
+
+// HSV with hue in degrees and saturation and brightness in percent, whole numbers, as the picker shows them.
+export function hsvToRgb(h,s,v){
+  const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c,k=Math.floor(((h%360)+360)%360/60);
+  const [r,g,b]=[[c,x,0],[x,c,0],[0,c,x],[0,x,c],[x,0,c],[c,0,x]][k];
+  return [r,g,b].map(n=>Math.round((n+m)*255));
+}
+export const hsvToHex=(h,s,v)=>'#'+hsvToRgb(h,s/100,v/100).map(n=>n.toString(16).padStart(2,'0')).join('');
+export function hexToHsv(hex){
+  const [r,g,b]=rgb(hex).map(n=>n/255),max=Math.max(r,g,b),d=max-Math.min(r,g,b);
+  const h=d?(max===r?((g-b)/d+6)%6:max===g?(b-r)/d+2:(r-g)/d+4)*60:0;
+  return {h:Math.round(h)%360,s:Math.round(max?d/max*100:0),v:Math.round(max*100)};
+}
+// Brightness below 40% leaves the operator almost black in a dark room, so the slider stops there once (user: "在 40%
+// 那邊加一個阻擋，但再拉一次還是拉得過去"): a gesture that started above the stop cannot go below it; the next one can.
+export const BRIGHTNESS_STOP=40;
+export const softStop=(start,value,stop=BRIGHTNESS_STOP)=>start>stop&&value<stop?stop:value;
 
 // The class art uses nine greys, mostly dark (16–181). Map that range onto a gradient: deep shade → full colour → light
 // tint, so outlines stay dark and the body reads as the chosen colour instead of a darkened multiply.

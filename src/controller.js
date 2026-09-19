@@ -31,7 +31,8 @@ import {isBarrier,barrierFace} from './barriers.js';
 import {GRENADES,grenadeTotal,SMOKE_DURATION,DISRUPT_TURNS,BOSS_DISRUPT_TURNS,DISRUPT_IMMUNITY} from './throwables.js';
 import {MELEE_TUNING,GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN} from './melee-classes.js';
 import {grappleLabel,meleeStatus,meleeSummary} from './melee-ui.js';
-import {OPERATOR_COLORS,DEFAULT_OPERATOR_COLOR,validOperatorColor,tintedSprite} from './operator-color.js';
+import {DEFAULT_OPERATOR_COLOR,validOperatorColor,tintedSprite} from './operator-color.js';
+import {colorPickerMarkup,mountColorPicker} from './color-picker.js';
 import {classSpriteRect} from './class-art.js';
 import {ENDLESS_DISPLAY_FLOORS,isEndless} from './endless.js';
 import {depthLabel,levelLabel,levelTitle,endlessRules,levelCapRules,endlessRecordRows,isRecordRun,growthLabel,endlessFloorText} from './endless-ui.js';
@@ -448,7 +449,7 @@ function showDeployOperator(){
 <fieldset class="term-list operator-list"><legend>SELECT OPERATOR</legend>${orderedCharacters().map(id=>{const c=CHARACTERS[id];return `<div class="term-row"><label class="term-pick"><input type="radio" name="character" value="${id}" ${id===(deployDraft.character||game.player.character)?'checked':''}><span class="term-caret" aria-hidden="true">&gt;</span><span class="term-face">${portraitMarkup(deploymentFaces[id])}</span><span class="term-sprite"><canvas data-class-sprite="${id}" width="32" height="32" aria-hidden="true"></canvas></span><span class="term-body"><span class="term-name">${c.label}</span><span class="term-meta">${c.name.toUpperCase()} · ${c.hp||100}/${c.armor||0}</span></span></label><p class="term-note">${c.text}</p><details class="term-detail"><summary>詳細資料</summary><div class="term-detail-body"><small>${c.weapons.map(slot=>WEAPONS[slot].name).join('／')}</small><small>護甲板 ${c.plates||0} · ${combatStatSummary({character:id})} · 基礎投擲容量 ${capacity('grenade')+classCarryBonus(id,'grenade')}</small><small>醫療包 ×${startingSupplies(id).meds} · ${Object.values(GRENADES).filter(g=>startingSupplies(id)[g.resource]>0).map(g=>g.short+' ×'+startingSupplies(id)[g.resource]).join('／')}</small>${(c.skills||[]).map(sid=>`<small><b>${SKILLS[sid].name}</b>：${SKILLS[sid].text}</small>`).join('')}${c.traits.map(t=>`<small><b>${TRAITS[t].name}</b>：${TRAITS[t].text}</small>`).join('')}</div></details></div>`;}).join('')}${lockedCharacters().map(id=>lockedOperatorRow(id)).join('')}</fieldset>
 ${operatorColorPicker()}
 <div class="modal-footer"><button class="modal-button secondary" data-modal="${retry?'result':mode==='normal'?'deployNormal':'deploy'}">← 返回</button><button class="modal-button" data-modal="${retry?'retryStart':'deployDifficulty'}">${retry?'投入 →':'下一步：難度 →'}</button></div>`,true);
-  drawOperatorSprites();
+  mountColorPicker($('#modal .color-list'),drawOperatorSprites);drawOperatorSprites();
 }
 // Step 3 (3.76.2): the difficulty knob's reserved slot and the real-mode switch, which locks when the run starts.
 function showDeployDifficulty(){
@@ -461,16 +462,21 @@ function showDeployDifficulty(){
 <fieldset class="term-list mode-list"><legend>MODE</legend><div class="term-row"><label class="term-pick term-toggle"><input type="checkbox" name="real-mode" ${deployDraft.realMode?'checked':''}><span class="term-caret" aria-hidden="true"></span><span class="term-body"><span class="term-name">真實模式</span><span class="term-meta">${realModeMeta()}</span></span></label><p class="term-note">${REAL_MODE_NOTE}</p></div></fieldset>
 <div class="modal-footer"><button class="modal-button secondary" data-modal="deployBackOperator">← 返回</button><button class="modal-button" data-modal="new">${runIsLive()?'確認放棄並部署':'開始新任務'} →</button></div>`,true);
 }
-// Operator colour (3.48.2): swatches plus a large preview of the picked class; saved only when the mission starts.
+// Operator colour (3.48.2; wheel, brightness and swatches since 3.140.0, src/color-picker.js): a large preview of the
+// picked class; saved only when the mission starts.
 function operatorColorPicker(){
   const selected=deployDraft.color||renderer.operatorColor,character=orderedCharacters().includes(game.player.character)?game.player.character:orderedCharacters()[0];
-  return `<fieldset class="term-list color-list"><legend>OPERATOR COLOR · 機體塗裝</legend><div class="color-row"><canvas class="color-preview" data-class-sprite="${character}" data-color-preview width="32" height="32" aria-hidden="true"></canvas><div class="color-swatches">${OPERATOR_COLORS.map(c=>`<label class="color-swatch"><input type="radio" name="operator-color" value="${c.id}" aria-label="${c.label}" ${c.id===selected?'checked':''}><span${c.hex?` style="--swatch:${c.hex}"`:' class="swatch-none"'}></span><small>${c.label}</small></label>`).join('')}</div></div><p class="color-note">只改地圖上的人物與倒地圖像，不影響規則；之後的任務沿用這個顏色。</p></fieldset>`;
+  return colorPickerMarkup(selected,character);
 }
 // Redraw every class-sprite canvas on the deploy screen in the colour currently checked.
+// While the wheel is dragged every step is a new colour, so the previews keep their own small cache for the colour on
+// screen instead of filling the battlefield's.
+let previewTints={color:null,cache:new Map()};
 function drawOperatorSprites(){
   const image=renderer.classSprites,color=$('input[name="operator-color"]:checked')?.value||renderer.operatorColor;
   if(!image.complete||!image.naturalWidth){image.addEventListener('load',drawOperatorSprites,{once:true});return;}
-  for(const canvas of document.querySelectorAll('#modal canvas[data-class-sprite]')){const r=classSpriteRect(canvas.dataset.classSprite),tinted=tintedSprite(image,r,color,renderer.tintCache,renderer.operatorTint),c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.clearRect(0,0,32,32);c.drawImage(tinted||image,tinted?0:r.x,tinted?0:r.y,32,32,0,0,32,32);}
+  if(previewTints.color!==color)previewTints={color,cache:new Map()};
+  for(const canvas of document.querySelectorAll('#modal canvas[data-class-sprite]')){const r=classSpriteRect(canvas.dataset.classSprite),tinted=tintedSprite(image,r,color,previewTints.cache,renderer.operatorTint),c=canvas.getContext('2d');c.imageSmoothingEnabled=false;c.clearRect(0,0,32,32);c.drawImage(tinted||image,tinted?0:r.x,tinted?0:r.y,32,32,0,0,32,32);}
 }
 function missionDetails(){
   if(isSimulation(game))return `<p><strong>${simulationLabel(game)}</strong><br>${simulationBrief(game)}</p>`;
