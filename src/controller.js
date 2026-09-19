@@ -84,6 +84,8 @@ let skipPresentation=read('ash-skip-presentation')!=='off';
 // 3.115.0 (user request): a VHS filter over the whole screen, a display preference that is off by default. It is CSS only
 // (expansion.css): the class on <html> shows the layer after the app and the one inside the dialog.
 let vhsFilter=read('ash-vhs')==='on';document.documentElement.classList.toggle('vhs',vhsFilter);
+// 3.147.0 (src/screen-shake.js): on unless turned off, or unless the system asks for reduced motion and it was never set.
+const shakeSetting=read('ash-shake');renderer.shakeEnabled=shakeSetting?shakeSetting==='on':!renderer.reduceMotion;
 // Keyboard bindings and the key hints on the buttons (3.121.0, src/hotkeys.js).
 let hotkeys=parseBindings(read('ash-hotkeys')),hotkeyMap=keyLookup(hotkeys),hotkeyHints=read('ash-hotkey-hints')==='on',hotkeyCapture=null;
 // 3.116.0 (user request): whole-screen brightness. A root filter would miss the dialog (it sits in the top layer), so two
@@ -803,6 +805,8 @@ ${inRun?`<div class="modal-row"><button class="modal-button secondary" data-moda
 <p id="screen-brightness-help">整個畫面一起調，包括選單與結算畫面；100% 為原始亮度。和 VHS 濾鏡可以一起用。</p>
 <button class="modal-button secondary" data-modal="vhs" aria-pressed="${vhsFilter}">VHS 濾鏡：${vhsFilter?'開啟':'關閉'}</button>
 <p>在整個畫面疊上掃描線、雜訊、暗角與緩慢捲動的訊號帶。系統設定減少動態效果時，雜訊與訊號帶不會動。</p>
+<button class="modal-button secondary" data-modal="shake" aria-pressed="${renderer.shakeEnabled}">畫面震動：${renderer.shakeEnabled?'開啟':'關閉'}</button>
+<p>開槍時畫面往反方向震一下，爆炸、中彈與鏈鋸會晃動畫面，晃動時顏色會錯開成殘影。系統設定減少動態效果時預設關閉。</p>
 <div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">操作區排版：${DECK_LAYOUT_LABELS[padLayout]}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>方向鍵大小：${padLayout==='grid'?'格狀不適用':`${PAD_LABELS[padCell]}（${padCell}）`}</button></div>
 <p>九宫格把「裝填」、「互動」移到方向鍵的右上與左上，右側只剩四顆更大的按鈕。格狀則沒有左右之分：整條操作區是五欄三列的同尺寸方格，尺寸由寬度推出來，所以沒有方向鍵大小可調。關閉設定後即可看到效果。</p>
 <button class="modal-button secondary" data-modal="deckEditor" ${padLayout==='grid'?'':'disabled'}>編輯按鈕位置${padLayout==='grid'?'':'（格狀限定）'}</button>
@@ -1002,6 +1006,7 @@ document.addEventListener('click',e=>{
     case 'padLayout':padLayout=DECK_LAYOUTS[(DECK_LAYOUTS.indexOf(padLayout)+1)%DECK_LAYOUTS.length];write('ash-pad-layout',padLayout);applyDeck();fitLayout();settings();break;
     case 'padCell':padCell=PAD_SIZES[(PAD_SIZES.indexOf(padCell)+1)%PAD_SIZES.length];write('ash-pad-cell',String(padCell));applyDeck();fitLayout();settings();break;
     case 'audioGrit':{const order=Object.keys(GRIT_LEVELS),next=order[(order.indexOf(audio.grit)+1)%order.length];audio.setGrit(next);write('ash-audio-grit',next);settings();break;}
+    case 'shake':renderer.shakeEnabled=!renderer.shakeEnabled;renderer.shakes=[];write('ash-shake',renderer.shakeEnabled?'on':'off');settings();break;
     case 'vhs':vhsFilter=!vhsFilter;write('ash-vhs',vhsFilter?'on':'off');document.documentElement.classList.toggle('vhs',vhsFilter);settings();break;
     case 'transmission':transmissionSeen=transmissionKey();showPerks();break;
     case 'hotkeyHints':hotkeyHints=!hotkeyHints;write('ash-hotkey-hints',hotkeyHints?'on':'off');applyHotkeyHints();settings();break;

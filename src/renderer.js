@@ -1,4 +1,5 @@
 import {mapStyleAtlases,mapStyle} from './map-styles.js';
+import {shakeImpulses,shakeOffset,liveImpulses,chromaSplit} from './screen-shake.js';
 import {FRAME_RATE_DEFAULT,frameDue,nextDue} from './frame-rate.js';
 import {terminalRemaining,TERMINAL_TUNING} from './terminal.js';
 import {flareCells} from './flares.js';
@@ -53,6 +54,7 @@ export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
     this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.frameRate=FRAME_RATE_DEFAULT;this.time=0;
+    this.shakes=[];this.shakeEnabled=true;this.shift=null;   // screen shake (3.147.0, src/screen-shake.js)
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.callouts=new CalloutBoard();this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
     for(const url of [SCENERY_ATLAS,DOOR_ATLAS,NEST_ATLAS,DECAL_ATLAS,...mapStyleAtlases()]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
@@ -119,7 +121,7 @@ export class Renderer {
     if(!frameDue(t,this.due??t,tick)){requestAnimationFrame(v=>this.frame(v));return;}
     this.due=nextDue(this.due??t,t,this.frameRate);
     const dt=Math.min((t-this.last)/1000,.1);this.last=t;
-    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);this.updateCamera(dt*1000);if(!this.isCovered?.()){this.draw(this.time);this.placeTargetCard();}}
+    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);this.updateCamera(dt*1000);if(!this.isCovered?.()){this.shift=this.shakes.length?shakeOffset(this.shakes=liveImpulses(this.shakes,this.time),this.time):null;this.draw(this.time);if(this.shift?.strength)chromaSplit(this.canvas,this.shift,this.dpr);this.placeTargetCard();}}
     requestAnimationFrame(v=>this.frame(v));
   }
   // The frame is recomputed every frame; only the zoom eases (src/camera.js). A new run, a new floor or a resized board
@@ -151,7 +153,8 @@ export class Renderer {
   draw(time) {
     const c=this.ctx,g=this.game,t=this.tile,half=t/2,p=g.player;
     const traceCells=new Map();for(const trace of g.traces){const k=trace.x+','+trace.y;if(!traceCells.has(k))traceCells.set(k,[]);traceCells.get(k).push(trace);}
-    c.setTransform(this.dpr,0,0,this.dpr,0,0);c.globalAlpha=1;c.imageSmoothingEnabled=false;
+    if(this.shift?.strength){c.setTransform(1,0,0,1,0,0);c.fillStyle='#10191a';c.fillRect(0,0,this.canvas.width,this.canvas.height);}
+    c.setTransform(this.dpr,0,0,this.dpr,this.dpr*(this.shift?.x||0),this.dpr*(this.shift?.y||0));c.globalAlpha=1;c.imageSmoothingEnabled=false;
     this.box(0,0,this.w,this.h,'#10191a');
     const palette=floorInfo(g.floor),radial=c.createRadialGradient(this.w/2,this.h/2,30,this.w/2,this.h/2,this.w*.65);
     radial.addColorStop(0,'#354337');radial.addColorStop(1,'#101819');c.fillStyle=radial;c.fillRect(0,0,this.w,this.h);
@@ -549,5 +552,5 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     for(const cell of cells){c.fillStyle=cell.color;c.fillRect(Math.round(m.x+cell.x-u/2),Math.round(m.y+cell.y-u/2),u,u);}
     c.globalAlpha=alpha;
   }
-  addEffects(effects,elapsed=0){const start=this.time-Math.max(0,elapsed);for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);}
+  addEffects(effects,elapsed=0){const start=this.time-Math.max(0,elapsed);for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);if(this.shakeEnabled)this.shakes=[...liveImpulses(this.shakes,this.time),...shakeImpulses(effects,this.game.player,start)].slice(-24);}
 }

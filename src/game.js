@@ -961,7 +961,7 @@ export class Game {
     if(frame&&p.exoPlates<=0)breakExo(this);
     if(attacker&&ENEMY_TYPES[attacker.type]?.mechanical&&ENEMY_TYPES[attacker.type].range>1)addTrace(this,p,'scorch');
     if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:enemyDef(attacker)?.attackStyle||(ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet'),from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
-    else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage});
+    else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage,player:true});   // player: the screen shake (3.147.0)
     petReactions(this);syncPetSenses(this);
   }
   damageAlly(a,raw,attacker=null,blast=false,environment=false){
@@ -1053,7 +1053,7 @@ export class Game {
     if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)addPoison(p,SWARM_TUNING.acidStacks);this.log(`${hazard.type==='acid'?'污染液':'高熱地板'}傷害 −${damage}。`,true,`${hazard.type==='acid'?'污染液':'高熱地板'}造成傷害。`);}
     toxicPlayerTurn(this,addPoison);   // 3.134.0 mist: poisoned for a turn ended in it
     tickPoison(this);
-    if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp});
+    if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp,player:true});
     for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying')))if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);
     petReactions(this);
     for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying'))){const hazard=this.hazards.find(h=>h.x===e.x&&h.y===e.y);if(hazard)this.hurt(e,6,null,hazard.type==='acid'?'踩到污染液':'踩到高熱地板');}

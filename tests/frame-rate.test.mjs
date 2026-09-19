@@ -42,7 +42,8 @@ test('the canvas draws at the chosen rate on 60, 90, 120 and 144 Hz screens, and
 test('the renderer skips frames between draws and draws nothing under a full-page menu; the setting is saved',async()=>{
   const renderer=await read('../src/renderer.js'),source=await read('../src/controller.js');
   assert.ok(renderer.includes('const tick=t-(this.lastTick??t);this.lastTick=t;\n    if(!frameDue(t,this.due??t,tick)){requestAnimationFrame(v=>this.frame(v));return;}\n    this.due=nextDue(this.due??t,t,this.frameRate);'));
-  assert.ok(renderer.includes('this.updateCamera(dt*1000);if(!this.isCovered?.()){this.draw(this.time);this.placeTargetCard();}'),'the clock and playback keep running while the battlefield is hidden');
+  // 3.147.0: the screen shake's offset is taken just before the draw, and its colour split right after.
+  assert.ok(renderer.includes('this.updateCamera(dt*1000);if(!this.isCovered?.()){this.shift=this.shakes.length?shakeOffset(this.shakes=liveImpulses(this.shakes,this.time),this.time):null;this.draw(this.time);if(this.shift?.strength)chromaSplit(this.canvas,this.shift,this.dpr);this.placeTargetCard();}'),'the clock and playback keep running while the battlefield is hidden');
   assert.ok(source.includes("renderer.frameRate=frameRate(read('ash-frame-rate'));"));
   assert.ok(source.includes("renderer.isCovered=()=>$('#modal').open&&$('#modal').matches('.title,.standalone');"));
   assert.ok(source.includes("case 'frameRate':renderer.frameRate=nextFrameRate(renderer.frameRate);write('ash-frame-rate',String(renderer.frameRate));settings();break;"));
