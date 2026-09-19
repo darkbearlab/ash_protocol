@@ -94,7 +94,7 @@ const COMPASS={east:'東',southeast:'東南',south:'南',southwest:'西南',west
 function edgeChar(g,a,b,vertical){
  const seen=g.seen[a.y]?.[a.x]||g.seen[b.y]?.[b.x];
  const edge=seen?barrierBetween(g.barriers,a,b):null;
- if(edge&&edge.hp>0){if(edge.type==='door')return edge.open?"'":'+';if(edge.type==='low_partition')return vertical?'!':'_';return vertical?'|':'-';}
+ if(edge&&edge.hp>0){if(edge.type==='door')return edge.open?"'":edge.locked?'=':'+';if(edge.type==='low_partition')return vertical?'!':'_';return vertical?'|':'-';}
  const wall=q=>g.grid[q.y]?.[q.x]!==1;return wall(a)&&wall(b)&&shown(g,a)&&shown(g,b)?'#':' ';
 }
 const shown=(g,q)=>g.grid[q.y]?.[q.x]===1?g.seen[q.y][q.x]:[[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.grid[q.y+dy]?.[q.x+dx]===1&&g.seen[q.y+dy]?.[q.x+dx]);
@@ -142,7 +142,7 @@ function drawMap(g,radius){
  }
  return lines;
 }
-const LEGEND='圖例：@你 a-z敵人(見下表) &友軍 ?感測到的位置 >電梯 C補給箱(c已開) T終端(t額度用完) B油桶 o掩體/障礙 N巢穴 M任務目標 W地上武器 *地上物品 X危險地形 ~毒霧 %煙霧 !即將爆炸｜地板 .視野內 ,記憶中 :暗處(視野內) ;暗處(記憶)｜邊線 +關閉的門 \'開著的門 |或-隔板(擋視線) !或_矮隔板(可翻越)';
+const LEGEND='圖例：@你 a-z敵人(見下表) &友軍 ?感測到的位置 >電梯 C補給箱(c已開) T終端(t額度用完) B油桶 o掩體/障礙 N巢穴 M任務目標 W地上武器 *地上物品 X危險地形 ~毒霧 %煙霧 !即將爆炸 =上鎖的保險室鐵門｜地板 .視野內 ,記憶中 :暗處(視野內) ;暗處(記憶)｜邊線 +關閉的門 \'開著的門 |或-隔板(擋視線) !或_矮隔板(可翻越)';
 
 // ---- views ---------------------------------------------------------------------------------------------------------
 function weaponLine(g,slot){
@@ -159,7 +159,7 @@ function status(g){
  const flags=[g.pursuit?'追擊：下次攻擊不耗回合':'',g.shadowSteps?`免費移動 ${g.shadowSteps}`:'',suppressionStatus(p),isDark(g,p)?'你在暗處':'',p.focus?'穩定瞄準':'',p.guard?'防禦待機':'',p.poison?`中毒 ${p.poison}`:'',p.control?.disabled?`失能 ${p.control.disabled}`:'',p.recovery?'鏈鋸收勢：下次行動跳過':'',...traitLabels(p).filter(Boolean)].filter(Boolean);
  if(flags.length)lines.push(`狀態：${flags.join(' · ')}`);
  lines.push('武器：',...p.owned.map(slot=>'  '+weaponLine(g,slot)));
- const supplies=[`醫療包 ${p.meds||0}`,...Object.entries(GRENADES).map(([,d])=>`${d.name} ${p[d.resource]||0}`),`照明彈 ${p.flares||0}`,`逃命繩索 ${p.escapeLines||0}`,`重部署鉤索 ${p.redeployLines||0}`,`修復噴劑 ${p.sprays||0}`,`腎上腺素 ${p.adrenaline||0}`,`摺疊掩體 ${p.barricades||0}`,`誘餌 ${p.decoys||0}`,`地雷 ${p.mines||0}`];
+ const supplies=[`醫療包 ${p.meds||0}`,...Object.entries(GRENADES).map(([,d])=>`${d.name} ${p[d.resource]||0}`),`照明彈 ${p.flares||0}`,`逃命繩索 ${p.escapeLines||0}`,`重部署鉤索 ${p.redeployLines||0}`,`修復噴劑 ${p.sprays||0}`,`腎上腺素 ${p.adrenaline||0}`,`摺疊掩體 ${p.barricades||0}`,`誘餌 ${p.decoys||0}`,`地雷 ${p.mines||0}`,...(p.keycards?.includes(g.floor)?['本層鑰匙卡']:[])];
  lines.push(`物資：${supplies.join(' · ')}（投擲物共用上限 ${g.ammoCapacity('grenade')}）${p.wearables?.length?` · 配件 ${p.wearables.join(',')}`:''}`);
  const skill=p.prepared.skill?`${SKILLS[p.prepared.skill]?.name||p.prepared.skill}（${skillStatus(p,p.prepared.skill)}）`:'未預備';
  lines.push(`預備：投擲 ${preparedEntry(p,'grenade')?.name||'未預備'} · 道具 ${preparedEntry(p,'item')?.name||'未預備'} · 技能 ${skill}`);
@@ -195,7 +195,7 @@ function surroundings(g){
  const barrels=g.props.filter(o=>o.type==='barrel'&&o.hp>0&&near(o));if(barrels.length)rows.push(`爆裂油桶（可鎖定射擊）：${barrels.map(b=>`${b.id}${at(b)} 耐久 ${hp(b)}`).join('、')}`);
  const terminals=g.props.filter(o=>o.type==='terminal'&&near(o));if(terminals.length)rows.push(`終端：${terminals.map(t=>`${t.id}${at(t)} 額度 ${terminalRemaining(t)}`).join('、')}`);
  const doors=g.barriers.filter(b=>b.type==='door'&&b.hp>0&&(g.seen[Math.floor(b.y)]?.[Math.floor(b.x)]||g.seen[Math.ceil(b.y)]?.[Math.ceil(b.x)])&&distance(b,p)<=8);
- if(doors.length)rows.push(`門：${doors.map(b=>`${b.id} ${edgeAt(b)}${b.open?'開':'關'}`).join('、')}`);
+ if(doors.length)rows.push(`門：${doors.map(b=>`${b.id} ${edgeAt(b)}${b.vault?'保險室鐵門':''}${b.open?'開':b.locked?'上鎖（要本層鑰匙卡）':'關'}`).join('、')}`);
  if(g.seen[g.exitPoint.y]?.[g.exitPoint.x])rows.push(`電梯 ${at(g.exitPoint)}${g.exitBlocked?`：${g.exitBlocked}`:''}`);
  const threats=[...g.marks.filter(m=>m.kind!=='grenade').map(m=>`${m.kind==='ally'?'友軍轟炸':'轟炸'}${at(m)} 半徑 ${m.radius??1} 剩 ${Math.max(1,m.due-g.turn)} 輪`),
   ...grenadeMarkers(g).map(m=>`手榴彈${m.label}${at(m)} 半徑 ${m.radius??1}`),

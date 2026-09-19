@@ -19,6 +19,7 @@ import {createLighting} from './lighting.js';
 import {selectSupplyStations,addLivingModules,moduleCells} from './modules.js';
 import {floorTerminalKinds,KIND_ROOMS} from './terminal-kinds.js';
 import {packSupplies} from './containers.js';
+import {placeVault} from './vault.js';
 import {vaultable,blockedBetween,barrierBetween,makeBarrier,edgeCells,edgeKey} from './barriers.js';
 import {startingTraits,grantTrait} from './traits.js';
 import {SIZE,ENEMY_TYPES,floorInfo,WEAPONS,RARE_ARMORY} from './data.js';
@@ -72,7 +73,7 @@ export function previewSpecial(map,seed,floor,difficulty,faction){
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return themeTerminals(addSwarmWaves(addNoncombatants(map,seed,floor,faction),seed,floor,faction),seed,floor);}
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeVault(themeTerminals(addSwarmWaves(addNoncombatants(map,seed,floor,faction),seed,floor,faction),seed,floor),seed,floor);}
 // 3.135.0 (user decision, docs/ITEMS.md): once everything else stands, each of the floor's two terminals takes its kind
 // and moves to the supply room of that kind. Done last, so nothing else on the floor shifts; the room's reserved console
 // corner is tried first, and a terminal that finds no free tile there that keeps the floor safe stays put, still typed.
@@ -274,13 +275,15 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
   }
   return map;
 }
-export function reachable(map,start,{openDoors=true}={}) {
+// 3.146.0: a locked vault door is a wall here, so nothing spawns or is placed in a vault, unless `keys` (the generator's
+// safety check: the keycard is on the floor).
+export function reachable(map,start,{openDoors=true,keys=false}={}) {
   const queue=[start],seen=new Set([key(start)]);
-  for(let i=0;i<queue.length;i++)for(const [dx,dy]of DIRECTIONS){const p={x:queue[i].x+dx,y:queue[i].y+dy},edge=barrierBetween(map.barriers,queue[i],p);if(blockedBetween(map.barriers,queue[i],p)&&!(openDoors&&edge.type==='door')&&!vaultable(edge))continue;if(map.grid[p.y]?.[p.x]===1&&!seen.has(key(p))&&!map.props.some(o=>o.hp>0&&(o.type==='cover'||o.type==='barrel'||o.type==='nest')&&o.x===p.x&&o.y===p.y)){seen.add(key(p));queue.push(p);}}
+  for(let i=0;i<queue.length;i++)for(const [dx,dy]of DIRECTIONS){const p={x:queue[i].x+dx,y:queue[i].y+dy},edge=barrierBetween(map.barriers,queue[i],p);if(blockedBetween(map.barriers,queue[i],p)&&!(openDoors&&edge.type==='door'&&(keys||!edge.locked))&&!vaultable(edge))continue;if(map.grid[p.y]?.[p.x]===1&&!seen.has(key(p))&&!map.props.some(o=>o.hp>0&&(o.type==='cover'||o.type==='barrel'||o.type==='nest')&&o.x===p.x&&o.y===p.y)){seen.add(key(p));queue.push(p);}}
   return seen;
 }
 export function generationSafe(map){
-  const seen=reachable(map,map.start),all=reachable({...map,props:[]},map.start);
+  const seen=reachable(map,map.start,{keys:true}),all=reachable({...map,props:[]},map.start,{keys:true});
   const destinations=[map.start,map.end,...map.enemies,...map.items,...map.props.filter(p=>p.type==='container'||p.type==='terminal')];
   const corridors=new Set((map.openings||[]).flatMap(o=>o.cells.map(key)));
   return destinations.every(p=>Number.isInteger(p.x)&&Number.isInteger(p.y)&&seen.has(key(p)))&&all.size===map.grid.flat().filter(n=>n===1).length&&

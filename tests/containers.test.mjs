@@ -69,7 +69,8 @@ test('packing conserves every supply entry while weapons, lore and random state 
 });
 test('all generated cases remain reachable and contain unchanged classified rewards across 144 floors',()=>{
   for(let seed=1;seed<=24;seed++)for(let floor=1;floor<=6;floor++){
-    const map=generate(seed,floor),seen=reachable(map,map.start),cases=map.props.filter(isContainer);assert.ok(cases.length>=6);assert.ok(validContainers(map.props,map.grid));
+    // 3.146.0: a vault's case, and any case locked in with it, is reached with the keycard.
+    const map=generate(seed,floor),seen=reachable(map,map.start,{keys:true}),cases=map.props.filter(isContainer);assert.ok(cases.length>=6);assert.ok(validContainers(map.props,map.grid));
     for(const c of cases)assert.ok(seen.has(`${c.x},${c.y}`));assert.ok(map.items.every(i=>i.type==='weapon'||i.type==='lore'));
     // 3.110.1: the classified caches keep the rounds a floor-1 weapon can use and carry field kit instead of the two
     // late weapons' ammunition, which now comes from the start room (docs/WEAPONS.md records why).

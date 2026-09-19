@@ -1,6 +1,7 @@
 import {validLearningId} from './learning-data.js';
 import {unlockRandom} from './run-unlocks.js';
 import {WEAPONS} from './data.js';
+import {validVaultCase} from './vault.js';
 // Low floor cases: walkable, no cover or destruction. Contents move to ground exactly once.
 export const CONTAINER_KINDS={
   unknown:{name:'未識別貨櫃',color:'#94bbc3',symbol:'?'},
@@ -9,6 +10,8 @@ export const CONTAINER_KINDS={
   salvage:{name:'廢料箱',color:'#c5a171',symbol:'◇'},supply:{name:'補給箱',color:'#c9c6ac',symbol:'·'},
   // 3.110.0 (user request): a case that is neither ammunition nor a refill — the things you have to decide how to spend.
   field:{name:'器材箱',color:'#d0b3d9',symbol:'▬'},
+  // 3.146.0 (src/vault.js): behind the locked door, one item from the high-rarity list.
+  vault:{name:'保險箱',color:'#e8c95a',symbol:'◆'},
 };
 export const FIELD_ITEMS=['spray','adrenaline','barricade','flare','decoy','mine'];   // decoy, mine: 3.144.0
 const types=new Set(['ammo','pistol','shell','energy','ordnance','grenade','emp','stun','smoke','med','armor','scrap','nvg',...FIELD_ITEMS]);   // nvg: 3.135.0, found in unidentified crates
@@ -25,7 +28,7 @@ export function rigContainers(g){
  let rigged=0;
  for(const c of g.props){
   if(rigged>=RIG_TUNING.perFloor)break;
-  if(!isContainer(c)||c.opened||c.rigged||!c.contents.length)continue;
+  if(!isContainer(c)||c.opened||c.rigged||!c.contents.length||c.kind==='vault')continue;
   if(unlockRandom(g.seed,g.floor,`rig-${c.id}`)>=RIG_TUNING.chance)continue;
   delete c.indestructible;c.hp=RIG_TUNING.hp;c.maxHp=RIG_TUNING.hp;c.rigged=true;rigged++;
  }
@@ -67,7 +70,8 @@ export function validContainers(props,grid,otherIds=[]){
     if(p.rigged===undefined){if(p.indestructible!==true||p.hp!==undefined||p.maxHp!==undefined)return false;}
     else if(p.rigged!==true||p.indestructible!==undefined||!Number.isInteger(p.maxHp)||p.maxHp<1||p.maxHp>100||!Number.isInteger(p.hp)||p.hp<0||p.hp>p.maxHp)return false;
     if(!Array.isArray(p.contents)||p.contents.length>32||(p.opened?p.contents.length!==0:p.contents.length===0&&p.kind!=='unknown'))return false;
-    if(p.contents.some(i=>!i||(i.type==='learning'?(!validLearningId(i.learningId)||Object.keys(i).some(k=>!['type','learningId'].includes(k))):i.type==='weapon'?(!Number.isInteger(i.weapon)||!WEAPONS[i.weapon]||WEAPONS[i.weapon].locked||Object.keys(i).some(k=>!['type','weapon'].includes(k))):(!types.has(i.type)||(i.amount!==undefined&&(!Number.isSafeInteger(i.amount)||i.amount<=0||i.amount>10000000))||(i.cache!==undefined&&i.cache!==true)||Object.keys(i).some(k=>!['type','amount','cache'].includes(k))))))return false;
+    if(p.kind==='vault'){if(!validVaultCase(p))return false;}
+    else if(p.contents.some(i=>!i||(i.type==='learning'?(!validLearningId(i.learningId)||Object.keys(i).some(k=>!['type','learningId'].includes(k))):i.type==='weapon'?(!Number.isInteger(i.weapon)||!WEAPONS[i.weapon]||WEAPONS[i.weapon].locked||Object.keys(i).some(k=>!['type','weapon'].includes(k))):(!types.has(i.type)||(i.amount!==undefined&&(!Number.isSafeInteger(i.amount)||i.amount<=0||i.amount>10000000))||(i.cache!==undefined&&i.cache!==true)||Object.keys(i).some(k=>!['type','amount','cache'].includes(k))))))return false;
     ids.add(p.id);positions.add(`${p.x},${p.y}`);
   }return true;
 }

@@ -109,7 +109,7 @@ test('generation preserves floor reachability and unique valid edges across seed
   for(let seed=1;seed<=24;seed++)for(let floor=1;floor<=6;floor++){
     const m=generate(seed,floor);assert.ok(validBarriers(m.barriers,m.grid));assert.equal(new Set(m.barriers.map(edgeKey)).size,m.barriers.length);
     const r=reachable(m,m.start);for(const p of [m.end,...m.items,...m.enemies])assert.ok(r.has(`${p.x},${p.y}`),`${seed}/${floor} ${p.x},${p.y}`);
-    assert.equal(reachable({...m,props:[]},m.start).size,m.grid.flat().filter(v=>v===1).length);
+    assert.equal(reachable({...m,props:[]},m.start,{keys:true}).size,m.grid.flat().filter(v=>v===1).length,'every tile, a locked vault included (3.146.0)');
     compartments+=Number(m.barriers.some(b=>b.type==='partition'));doors+=m.barriers.filter(b=>b.type==='door').length;
   }assert.ok(compartments>100);assert.ok(doors>144);
 });

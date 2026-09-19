@@ -77,7 +77,7 @@ test('a wreck is rebuilt in place, so the edge list never grows a duplicate',()=
 });
 
 test('it never writes a floor the loader would reject',()=>{
- assert.equal(SAVE_VERSION,66);   // 3.144.0: field gear
+ assert.equal(SAVE_VERSION,67);   // 3.146.0: keycards and vaults
  const g=stocked(3),p=g.player,side=openSide(g);
  assert.equal(g.action('deployCover',side),true);
  const back=Game.restore(g.serialize());

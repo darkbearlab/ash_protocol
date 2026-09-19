@@ -102,7 +102,7 @@ export function routeCells(g,start,{limit=SIZE*SIZE,actor=null,ignoreActors=fals
  for(let i=0;i<queue.length;i++){
   const q=queue[i];if(q.d>=limit)continue;
   for(const [dx,dy]of DIRECTIONS){const n={x:q.x+dx,y:q.y+dy},k=key(n),edge=barrierBetween(g.barriers,q,n);
-   if(distance(n,g.player)>maxPlayerDistance||seen.has(k)||!g.passable(n.x,n.y,actor)||(edgeBlocks(edge)&&!vaultable(edge)&&!(openDoors&&edge.type==='door'))||(!ignoreActors&&occupied(g,n,actor)))continue;
+   if(distance(n,g.player)>maxPlayerDistance||seen.has(k)||!g.passable(n.x,n.y,actor)||(edgeBlocks(edge)&&!vaultable(edge)&&!(openDoors&&edge.type==='door'&&!edge.locked))||(!ignoreActors&&occupied(g,n,actor)))continue;
    seen.add(k);queue.push({...n,d:q.d+1,first:q.first||n});
   }
  }return queue;

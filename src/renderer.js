@@ -41,8 +41,8 @@ import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTele
 const BREATH_DROP=2,BREATH_PERIOD=2400;
 // Ground item colours and symbols. 3.136.1: the grapple lines and goggles (3.135.0) had none, so their tiles printed
 // "undefined"; tests/item-symbols.test.mjs now checks every ground item type, and a missing one shows '?'.
-export const ITEM_COLORS=Object.freeze({smoke:'#a9bbcb',emp:'#81dce9',stun:'#eee0a0',armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db',learning:'#b9a2e6',spray:'#b6a2d6',adrenaline:'#e0a7c4',barricade:'#c9b48c',flare:'#e7c46e',nvg:'#9fd0a8',escape_line:'#d7b27a',redeploy_line:'#a9c3d6',decoy:'#e0c46a',mine:'#d9785a',exo:'#9fb3c8'});
-export const ITEM_SYMBOLS=Object.freeze({smoke:'≋',emp:'E',stun:'✦',armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D',spray:'▣',adrenaline:'⚡',barricade:'▬',flare:'✺',nvg:'◉',escape_line:'↟',redeploy_line:'⇢',decoy:'◎',mine:'✱',exo:'⛨'});
+export const ITEM_COLORS=Object.freeze({smoke:'#a9bbcb',emp:'#81dce9',stun:'#eee0a0',armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db',learning:'#b9a2e6',spray:'#b6a2d6',adrenaline:'#e0a7c4',barricade:'#c9b48c',flare:'#e7c46e',nvg:'#9fd0a8',escape_line:'#d7b27a',redeploy_line:'#a9c3d6',decoy:'#e0c46a',mine:'#d9785a',exo:'#9fb3c8',key:'#ffe9a0'});
+export const ITEM_SYMBOLS=Object.freeze({smoke:'≋',emp:'E',stun:'✦',armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D',spray:'▣',adrenaline:'⚡',barricade:'▬',flare:'✺',nvg:'◉',escape_line:'↟',redeploy_line:'⇢',decoy:'◎',mine:'✱',exo:'⛨',key:'✧'});
 // 3.136.2 (user request): ground items shrink with the map the way units do — full size at the default tile, never
 // larger — and are hidden once the tile is so small they would only be clutter. With the zoom buttons that is the
 // smallest step (0.65 → 24.7 px); wide framing for a far target can hide them too. At full size nothing is transformed,
@@ -81,13 +81,21 @@ export class Renderer {
       return {b,normal,hit:boxes.some(q=>x>=q.left-2&&x<=q.left+q.width+2&&y>=q.top-2&&y<=q.bottom+2)};
     }).filter(o=>o.hit).sort((a,b)=>a.normal-b.normal)[0]?.b;
   }
+  // 3.146.0: the vault's steel door, drawn over the ordinary door: grey steel, and a padlock while it is locked.
+  vaultDoor(b,boxes){
+    for(const q of boxes)this.box(q.left,q.top,q.width,Math.max(2,q.bottom-q.top),'#8fa4b85c','#c8d4de');
+    if(!b.locked)return;
+    const q=boxes[0],x=Math.round(q.left+q.width/2),y=Math.round((q.faceTop+q.bottom)/2);
+    this.line(x-3,y-3,x-3,y-6,'#e8c95a',2);this.line(x+3,y-3,x+3,y-6,'#e8c95a',2);this.line(x-3,y-7,x+3,y-7,'#e8c95a',2);
+    this.box(x-5,y-3,10,8,'#6b5420','#e8c95a');this.box(x-1,y,2,3,'#1a1408');
+  }
   drawBarrier(b,scale=this.tile){
     const p=this.project(b.x,b.y),vertical=b.axis==='x',half=scale*.5,color=b.hp<=0?'#65746b':b.open?'#8ad2bb':b.type==='door'?'#dec184':'#9da99d';
     const segment=(a,z,width)=>this.line(p.x+(vertical?0:a),p.y+(vertical?a:0),p.x+(vertical?0:z),p.y+(vertical?z:0),color,width);
     if(b.hp<=0&&b.type==='door'&&mapStyle(this.game)!=='facility'){drawDoor(this.ctx,b,p,scale,this.terrainImages,this.game);return;}
     if(b.hp<=0){segment(-half,-half*.72,3);segment(half*.72,half,3);return;}
     if(b.type==='low_partition'||b.type==='partition'){const q=drawPartition(this.ctx,b,p,scale,this.terrainImages,this.game);this.objectHealth(b,p.x-7,q.top-4,14);return;}
-    if(b.type==='door'){const boxes=drawDoor(this.ctx,b,p,scale,this.terrainImages,this.game);this.objectHealth(b,p.x-7,Math.min(...boxes.map(q=>q.top))-4,14,'#e6bd82');return;}
+    if(b.type==='door'){const boxes=drawDoor(this.ctx,b,p,scale,this.terrainImages,this.game);if(b.vault){this.vaultDoor(b,boxes);return;}this.objectHealth(b,p.x-7,Math.min(...boxes.map(q=>q.top))-4,14,'#e6bd82');return;}
     if(b.open){segment(-half,-half*.62,5);segment(half*.62,half,5);this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     if(this.terrain(b.type,p,b,Math.round(scale),vertical?0:1)){this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     segment(-half,half,7);segment(-half+2,half-2,3);
@@ -239,7 +247,7 @@ export class Renderer {
     const pos=this.projectActor(p);if(p.hp<=0)this.corpse(pos,'player',p.character);else this.actor(pos,'player',time,p);
     for(const cover of g.cover){const dx=cover.x-p.x,dy=cover.y-p.y;const x=pos.x+dx*t*(isBarrier(cover)?1:.48),y=pos.y+dy*t*(isBarrier(cover)?1:.48);this.line(x+(dy? -t*.27:0),y+(dx?-t*.27:0),x+(dy?t*.27:0),y+(dx?t*.27:0),cover.type==='wall'?'#8bd2c9':'#c7d896',2);}
     const hiddenEnemies=new Set(g.visibleEnemies.filter(e=>cornerHidden(g,e)));
-    for(const e of g.visibleEnemies){const a=this.projectActor(e);this.actor(a,e.type,time,e,hiddenEnemies.has(e));if(missionTarget(g,e))this.text('◇',a.x-this.tile*.35,a.y-8,'#88f3ff',12);}
+    for(const e of g.visibleEnemies){const a=this.projectActor(e);this.actor(a,e.type,time,e,hiddenEnemies.has(e));if(e.keycard&&e.hp>0)this.keyBeam({x:a.x,y:a.y-this.tile*.55},time,.45);/* 3.146.0: carries the keycard */if(missionTarget(g,e))this.text('◇',a.x-this.tile*.35,a.y-8,'#88f3ff',12);}
     for(const ally of g.localAllies||[])if(g.seen[ally.y]?.[ally.x]){const a=this.projectActor(ally);if(ally.hp>0&&ally.status==='active'){this.actor(a,ally.type,time,ally);this.box(a.x-t*.36,a.y-t*.36,t*.72,t*.72,'#64e7cf18','#83efd1');this.text(ally.kind==='pet'?'PET':ally.kind==='summon'?'SUM':ally.sourceId==='drone_munition'?'MUN':ally.sourceId==='unit_bomber'?'BOT':ally.sourceId==='unit_drone'?'DRN':ally.sourceId==='unit_warden'?'WDN':ally.sourceId==='unit_boss'?'CORE':'ALLY',a.x,a.y+t*.55,connected(g,ally)?'#9df4d5':'#a5a5a5',8);if(ally.primed)this.text('!',a.x+t*.38,a.y-9,'#ffc789',14);}else {this.corpse(a,ally.type);this.text(ally.status==='down'?'回收 +':'×',a.x,a.y+12,'#e3cf86',10);}}
     for(const m of grenadeMarkers(g))this.grenadeLabel(m);
     if(this.mode==='pet'&&this.aim){const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b52a','#9cedca');this.text('指令',a.x,a.y+4,'#a9f3d5',10);}
@@ -407,7 +415,15 @@ export class Renderer {
 
   hazard(a,h,time){const t=this.tile,l=a.x-t*.43,top=a.y-t*.43;this.box(l,top,t*.86,t*.86,h.type==='acid'?'#709a4855':'#cf672c55');for(let i=0;i<4;i++){const n=(i*13)%25;this.box(l+5+n,top+5+(i*7)%23,4,3,h.type==='acid'?'#b8d47388':'#efa65a99');}this.glow(a.x,a.y,t*.7,h.type==='acid'?'#b4cd5312':'#f99a381a');}
   exit(a,time){const t=this.tile;this.box(a.x-t*.44,a.y-t*.44,t*.88,t*.88,'#284b40','#8fca9b');this.box(a.x-t*.32,a.y-t*.32,t*.64,t*.64,'#2e5b4a','#a1d3a655');for(let i=-1;i<=1;i++)this.line(a.x+i*9,a.y-8,a.x+i*9,a.y+6,'#102e24',2);this.text(this.game.exitBlocked?'LOCK':this.game.exitLabel==='上樓'?'UP':this.game.exitLabel==='下樓'?'DOWN':'EXIT',a.x,a.y+16,'#ceebbb',8);this.glow(a.x,a.y,t*.8,'#9de0aa1c');}
-  item(a,item,time){const k=itemScale(this.tile);if(!k)return;const c=this.ctx;if(k<1){c.save();c.translate(a.x,a.y);c.scale(k,k);a={x:0,y:0};}const color=ITEM_COLORS[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol=item.type==='learning'?(String(item.learningId||'').startsWith('trait_')?'◆':'✦'):ITEM_SYMBOLS[item.type]||'?';this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache&&SUPPLY_NAMES[item.type])this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text(this.game.weaponAt(item.slot).code,a.x,a.y-15,'#ffe0a3',8);this.box(a.x-11,a.y-11,22,18,'#00000000','#f6cf82');}if(item.type==='learning')this.glow(a.x,a.y,22,'#b9a2e633');if(k<1)c.restore();}
+  // 3.146.0 (user idea): the keycard is a point of light with a beam standing up from it, no box. A trial of a new way
+  // to mark things worth walking to; `size` 1 on the ground, smaller over the enemy that carries it.
+  keyBeam(a,time,size=1){
+    const c=this.ctx,pulse=.78+.22*Math.sin(time/320),h=this.tile*2.3*size,w=Math.max(2,5*size);
+    const beam=c.createLinearGradient(a.x,a.y,a.x,a.y-h);beam.addColorStop(0,`rgba(255,238,170,${.62*pulse})`);beam.addColorStop(.55,`rgba(255,232,150,${.22*pulse})`);beam.addColorStop(1,'rgba(255,232,150,0)');
+    c.save();c.globalCompositeOperation='lighter';c.fillStyle=beam;c.fillRect(a.x-w*1.6,a.y-h,w*3.2,h);c.fillRect(a.x-w/2,a.y-h,w,h);c.restore();
+    this.glow(a.x,a.y,16*size*pulse+4,'#ffe7a080');c.beginPath();c.arc(a.x,a.y,Math.max(1.5,3.2*size),0,Math.PI*2);c.fillStyle='#fff8dc';c.fill();
+  }
+  item(a,item,time){const k=itemScale(this.tile);if(!k)return;const c=this.ctx;if(item.type==='key'){this.keyBeam(a,time,Math.max(.6,k));return;}if(k<1){c.save();c.translate(a.x,a.y);c.scale(k,k);a={x:0,y:0};}const color=ITEM_COLORS[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol=item.type==='learning'?(String(item.learningId||'').startsWith('trait_')?'◆':'✦'):ITEM_SYMBOLS[item.type]||'?';this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache&&SUPPLY_NAMES[item.type])this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text(this.game.weaponAt(item.slot).code,a.x,a.y-15,'#ffe0a3',8);this.box(a.x-11,a.y-11,22,18,'#00000000','#f6cf82');}if(item.type==='learning')this.glow(a.x,a.y,22,'#b9a2e633');if(k<1)c.restore();}
   moduleFloor(a,m){
     const t=this.tile,l=a.x-t/2,top=a.y-t/2,color=MODULE_TYPES[m.theme].color;
     this.box(l+2,top+2,t-4,t-4,m.theme==='restroom'?'#73939455':m.theme==='checkpoint'?'#8c784344':'#687b5744');

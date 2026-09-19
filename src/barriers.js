@@ -7,7 +7,7 @@ export const BARRIER_TYPES={
 };
 export const isBarrier=b=>Boolean(b&&Object.hasOwn(BARRIER_TYPES,b.type));
 export const vaultable=b=>Boolean(b&&b.hp>0&&BARRIER_TYPES[b.type]?.vaultable);
-export const barrierName=b=>BARRIER_TYPES[b.type]?.name||'障礙物';
+export const barrierName=b=>b.vault?'保險室鐵門':BARRIER_TYPES[b.type]?.name||'障礙物';   // vault: 3.146.0
 export const edgeKey=b=>`${b.axis}:${b.x},${b.y}`;
 export function edgeCells(b){return b.axis==='x'?[{x:b.x-.5,y:b.y},{x:b.x+.5,y:b.y}]:[{x:b.x,y:b.y-.5},{x:b.x,y:b.y+.5}];}
 export const edgeAdjacent=(b,p)=>edgeCells(b).some(q=>q.x===p.x&&q.y===p.y);
@@ -43,6 +43,8 @@ export function validBarriers(edges,grid,ids=[]){
     if(!b||!Object.hasOwn(BARRIER_TYPES,b.type)||!['x','y'].includes(b.axis)||typeof b.id!=='string'||!/^edge-[a-zA-Z0-9_-]{1,90}$/.test(b.id)||names.has(b.id))return false;
     if(!Number.isFinite(b.x)||!Number.isFinite(b.y)||!edgeCells(b).every(p=>Number.isInteger(p.x)&&Number.isInteger(p.y)&&grid[p.y]?.[p.x]===1)||keys.has(edgeKey(b)))return false;
     if(!Number.isInteger(b.maxHp)||b.maxHp!==BARRIER_TYPES[b.type].maxHp||!Number.isInteger(b.hp)||b.hp<0||b.hp>b.maxHp||typeof b.open!=='boolean'||(b.open&&!BARRIER_TYPES[b.type].openable))return false;
+    // 3.146.0 (src/vault.js): only a vault door carries these, all three; a locked one is shut.
+    if((b.vault!==undefined||b.locked!==undefined||b.indestructible!==undefined)&&(b.type!=='door'||b.vault!==true||b.indestructible!==true||typeof b.locked!=='boolean'||b.locked&&b.open))return false;
     keys.add(edgeKey(b));names.add(b.id);
   }return true;
 }

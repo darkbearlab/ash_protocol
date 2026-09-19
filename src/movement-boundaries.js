@@ -8,7 +8,7 @@ export function movementBoundaries(game){
     const [x,y]=cell.split(',').map(Number);if(!game.passable(x,y))continue;
     for(const [dx,dy]of directions){
       const next={x:x+dx,y:y+dy},barrier=barrierBetween(game.barriers,{x,y},next);
-      if(barrier?.type==='door'||vaultable(barrier))continue;
+      if(barrier?.type==='door'&&!barrier.locked||vaultable(barrier))continue;   // a locked vault door is a boundary (3.146.0)
       const blocked=edgeBlocks(barrier)&&game.visible(barrier)||
         game.grid[next.y]?.[next.x]!==1||visible.has(key(next.x,next.y))&&Boolean(game.solid(next.x,next.y));
       if(!blocked)continue;
