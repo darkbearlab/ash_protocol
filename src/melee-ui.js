@@ -18,7 +18,6 @@ export function spiritFadeIn(view){
 export function meleeStatus(view){
   const p=view.player,out=[];
   if(p.battleSpirit?.stacks)out.push(`戰意 ${p.battleSpirit.stacks}（${spiritFadeIn(view)} 回合後 −1）`);
-  if(p.skillState?.camouflage?.remaining)out.push(`迷彩 ${p.skillState.camouflage.remaining}`);
   if(view.targeted&&ambushReady(view,view.targeted))out.push(`伏擊 ×${MELEE_TUNING.ambush}`);
   if(duelActive(view))out.push(`單挑 +${MELEE_TUNING.duelist}`);
   return out;

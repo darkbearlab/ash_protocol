@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {normalizeProfile,PROFILE_VERSION} from '../src/progression.js';
 import {grantUnlock,availableCharacters,STARTING_CHARACTERS,UNLOCK_SETTINGS,UNLOCK_CATALOG} from '../src/unlock-catalog.js';
-import {collectStory,bindUnlocks,populateRunUnlocks} from '../src/run-unlocks.js';
+import {collectStory,bindUnlocks,populateRunUnlocks,corpseChance,corpseFloor,CORPSE_NOTE} from '../src/run-unlocks.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {carryLevels,carryingSpent} from '../src/ammunition.js';
 import {createKillhouse} from '../src/killhouse.js';
@@ -22,10 +22,21 @@ test('locked ongoing character survives migration; old carrying spills without l
 });
 test('endless factions and corpse positions are deterministic; encounters never repeat, no lore or demo corpses',()=>{
  const a=new Game(1,[],0,'soldier','onyx','endless'),b=new Game(1,[],0,'soldier','onyx','endless'),factions=new Set();
- for(let floor=1;floor<=35;floor++){for(const g of [a,b]){g.floor=floor;g.loadFloor();}factions.add(a.facilityFaction);assert.equal(a.facilityFaction,b.facilityFaction);assert.deepEqual(a.operatorCorpse,b.operatorCorpse);assert.ok(!a.items.some(i=>i.type==='lore'));if(floor<8)assert.equal(a.operatorCorpse,null);}
+ for(let floor=1;floor<=35;floor++){for(const g of [a,b]){g.floor=floor;g.loadFloor();}factions.add(a.facilityFaction);assert.equal(a.facilityFaction,b.facilityFaction);assert.deepEqual(a.operatorCorpse,b.operatorCorpse);assert.ok(!a.items.some(i=>i.type==='lore'));if(floor<5)assert.equal(a.operatorCorpse,null);}
  assert.ok(factions.size>1);assert.equal(new Set(a.encounteredCharacters).size,a.encounteredCharacters.length);assert.ok(a.encounteredCharacters.length>0);assert.ok(Game.restore(a.serialize()));
  const c=new Game(1,[],0,'soldier','onyx','endless',{facilityFaction:'rebel'});c.floor=20;c.loadFloor();assert.equal(c.facilityFaction,'rebel');
  UNLOCK_SETTINGS.demo=true;try{populateRunUnlocks(a);assert.equal(a.operatorCorpse,null);}finally{UNLOCK_SETTINGS.demo=false;}
+});
+// 3.151.0 (user 2026-09-20): corpses from endless floor 5 at 10% a floor up to 50%, never more than 4 dry floors in a row,
+// announced in the log and marked with a beam.
+test('corpse chance starts on floor 5 and a fifth floor after four dry ones always has one',()=>{
+ assert.deepEqual([4,5,6,8,9,20].map(corpseChance),[0,.1,.2,.4,.5,.5]);
+ let hits=0,floors=0;
+ for(let seed=1;seed<=400;seed++){let dry=0;for(let floor=1;floor<=16;floor++){const hit=corpseFloor(seed,floor);if(floor<5){assert.equal(hit,false);continue;}floors++;hits+=hit;dry=hit?0:dry+1;assert.ok(dry<=4,`seed ${seed} floor ${floor}`);}}
+ assert.ok(hits/floors>.4&&hits/floors<.6,`rate ${hits/floors}`);
+ const g=new Game(1,[],0,'soldier','onyx','endless');let floor=5;while(!corpseFloor(g.seed,floor))floor++;
+ g.floor=floor;g.logs=[];g.loadFloor();assert.ok(g.operatorCorpse);assert.ok(g.logs.some(l=>l.text===CORPSE_NOTE));
+ let dry=floor+1;while(corpseFloor(g.seed,dry))dry++;g.floor=dry;g.logs=[];g.loadFloor();assert.equal(g.operatorCorpse,null);assert.ok(!g.logs.some(l=>l.text===CORPSE_NOTE));
 });
 test('stories collect without combat RNG and remain pending; simulation never collects',()=>{
  const fixture={id:'qa-unlock-fixture',title:'QA',body:'QA',faction:'any',floors:[1,6],price:100};const original=STORIES.splice(0);STORIES.push(fixture);try{

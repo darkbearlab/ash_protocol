@@ -10,7 +10,7 @@ test('suppression tags show stacks, penalty and pinning, and stay silent at zero
  assert.equal(suppressionTag({suppression:2,traits:[]}),`壓制 2/5 · 命中 −${2*T.accuracy}`);
  assert.match(suppressionTag({suppression:T.pinned,traits:[]}),/釘住$/);
  assert.equal(suppressionTag({suppression:4,traits:[{id:'mechanical',source:'qa'}]}),'');
- assert.equal(suppressionStatus({suppression:T.pinned,traits:[]}),`壓制 ${T.pinned} · 命中 −${T.pinned*T.accuracy} · 無法移動`);
+ assert.equal(suppressionStatus({suppression:T.pinned,traits:[]}),`壓制 ${T.pinned} · 命中 −${T.pinned*T.accuracy} · 無法移動 · 3 回合`);
  assert.equal(suppressionStatus({traits:[]}),'');
 });
 

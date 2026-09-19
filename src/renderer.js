@@ -12,6 +12,7 @@ import {enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL,spriteToneRole,VENOM_VIS
 import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
 import {NEST_ATLAS,drawNest,drawNestEffect,drawNestSprite} from './nest-art.js';
 import {DECAL_ATLAS,FactionDecals} from './faction-decals.js';
+import {blindReason} from './blind-fire.js';
 import {DECOY_TUNING,decoyReason,mineReason} from './field-gear.js';
 import {isNoncombatant} from './enemy-data.js';
 import {SCENERY_ATLAS} from './scenery.js';
@@ -187,7 +188,9 @@ export class Renderer {
     }
     for(const {a,left,top,x,y}of floorCells){
       c.globalAlpha=g.visibleTiles?.has(x+','+y)?1:.36;
-      for(const trace of traceCells.get(x+','+y)||[])drawTrace(c,trace,a.x,a.y,t);
+      // 3.151.0 blind fire: until the tile is seen again it keeps what it showed before the shot (src/blind-fire.js).
+      const memo=g.visibleTiles?.has(x+','+y)?null:g.blindAftermath?.get(x+','+y);
+      for(const trace of memo?memo.traces:traceCells.get(x+','+y)||[])drawTrace(c,trace,a.x,a.y,t);
       const hazard=g.hazards.find(h=>h.x===x&&h.y===y);if(hazard)this.hazard(a,hazard,time);
       // Swarm invasion point (3.85.1): a burrow appears once the surge wakes up and turns to rubble when it is spent.
       // It is not a prop, so it never blocks, takes damage or shows a health bar (docs/SWARM.md 9.1).
@@ -195,11 +198,11 @@ export class Renderer {
       if(distance(p,{x,y})===1&&g.passable(x,y)&&!g.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))this.box(left+3,top+3,t-6,t-6,'#b0ba8010','#b1c48a3b');
       const room=g.rooms?.find(r=>r.supply&&r.cx===x&&r.cy===y);if(room){const sign=SUPPLY_ROOMS[room.supply];if(sign)this.text(sign.name,a.x,a.y-this.tile*.4,sign.color,9);}
       if(g.exitPoint.x===x&&g.exitPoint.y===y)this.exit(a,time);
-      for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y)this.corpse(a,dead.type,undefined,dead);
+      for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y&&(!memo||memo.dead.includes(dead.id)))this.corpse(a,dead.type,undefined,dead);
       if(g.operatorCorpse?.x===x&&g.operatorCorpse.y===y)this.operatorCorpse(a,g.operatorCorpse,time);
       for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
       for(const prop of g.props)if(!isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
-      for(const weapon of [false,true])for(const item of g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.glitchDraw(a,itemGlitchKey(item),()=>this.item(a,item,time));
+      for(const weapon of [false,true])for(const item of memo?memo.items:g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.glitchDraw(a,itemGlitchKey(item),()=>this.item(a,item,time));
       for(const objective of missionObjects(g))if(!objective.done&&objective.x===x&&objective.y===y){this.box(a.x-9,a.y-8,18,16,'#123d46','#82e6ec');this.text('D',a.x,a.y+4,'#b7fcff',12);}
       // 3.134.0: toxic mist is green, spore smoke brown; plain smoke keeps its grey.
       for(const cloud of g.smoke)if(cloud.cells.some(q=>q.x===x&&q.y===y)){const tone=cloud.kind==='toxic'?['#8fbf4a55','#c6e5864a']:cloud.kind==='spore'?['#9c7d5366','#c8ad874a']:['#abc1cd66','#d4dfe84a'];this.box(left+1,top+1,t-2,t-2,tone[0]);for(let n=0;n<3;n++)this.box(left+5+n*7,top+8+(x+y+n)%3*6,11,5,tone[1]);this.text(String(Math.max(1,cloud.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#d3e2ed',8);}
@@ -217,6 +220,9 @@ export class Renderer {
     if(this.mode==='rope'&&this.aim){const t=this.tile,ok=!lineReason(g,{...this.aim,item:this.ropeItem}),from=this.project(g.player.x,g.player.y),a=this.project(this.aim.x,this.aim.y);this.line(from.x,from.y,a.x,a.y,ok?'#9ee6a0aa':'#e8756aaa',2);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,ok?'#9ee6a033':'#e8756a33',ok?'#9ee6a0':'#e8756a');}
     if(this.mode==='flare'&&this.aim){const t=this.tile;for(const {x,y} of flareCells(g,this.aim)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,'#ffd27a26','#ffe0a066');}const a=this.project(this.aim.x,this.aim.y);this.text('✺',a.x,a.y+5,'#ffe3a8',15);}
     // 3.144.0 (src/field-gear.js): placing a decoy or a mine shows the tile, and the decoy marks the enemies it would draw.
+    if(this.mode==='blind'&&this.aim){const t=this.tile,ok=!blindReason(g,this.aim),from=this.project(g.player.x,g.player.y),a=this.project(this.aim.x,this.aim.y),tone=ok?'#e8c46acc':'#e8756aaa';
+      c.save();c.setLineDash([4,4]);this.line(from.x,from.y,a.x,a.y,ok?'#e8c46a66':'#e8756a66',1.5);c.restore();this.box(a.x-t/2+3,a.y-t/2+3,t-6,t-6,ok?'#e8c46a1a':'#e8756a1a',tone);
+      this.line(a.x-t*.32,a.y,a.x-t*.12,a.y,tone,2);this.line(a.x+t*.12,a.y,a.x+t*.32,a.y,tone,2);this.line(a.x,a.y-t*.32,a.x,a.y-t*.12,tone,2);this.line(a.x,a.y+t*.12,a.x,a.y+t*.32,tone,2);this.text('?',a.x,a.y+4,tone,11);}
     if(this.mode==='place'&&this.aim){const t=this.tile,ok=!(this.placeItem==='mine'?mineReason(g,this.aim):decoyReason(g,this.aim)),a=this.project(this.aim.x,this.aim.y);
       if(this.placeItem==='decoy')for(const e of g.visibleEnemies.filter(e=>distance(e,this.aim)<=DECOY_TUNING.radius&&!isNoncombatant(e))){const q=this.project(e.x,e.y);this.box(q.x-t/2+3,q.y-t/2+3,t-6,t-6,'#e0c46a1f','#e0c46a99');}
       this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,ok?'#e0c46a33':'#e8756a33',ok?'#e0c46a':'#e8756a');this.text(this.placeItem==='mine'?'✱':'◎',a.x,a.y+5,ok?'#ffe3a8':'#f3a79c',15);}
@@ -410,7 +416,7 @@ export class Renderer {
   // The operator colour (3.48.2) tints the grey class art from a cached canvas; without one the grey cell is drawn as is.
   classSprite(a,size,character,dead=false,dark=false){const image=this.classSprites;if(!image?.complete||!image.naturalWidth)return false;const r=classSpriteRect(character,dead),tinted=tintedSprite(image,r,this.operatorColor,this.tintCache,this.operatorTint),c=this.ctx;c.drawImage(dark?this.darkActors.get(tinted||image):tinted||image,tinted?0:r.x,tinted?0:r.y,r.w,r.h,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
   // Endless class corpse (docs/UNLOCKS.md section 4, Claude 3.90.1): the operator's fallen sprite with a pulsing ID tag, dimmed once recovered.
-  operatorCorpse(a,corpse,time){const size=spriteSize(this.tile),c=this.ctx;c.save();if(corpse.recovered)c.globalAlpha*=.45;if(!this.classSprite(a,size,corpse.character,true,isDark(this.game,corpse)))this.box(a.x-9,a.y-5,18,10,'#4e302780');c.restore();if(corpse.recovered)return;c.save();c.globalAlpha*=this.reduceMotion?1:.7+.3*Math.sin(time/260);const top=Math.round(a.y-this.tile*.46);this.box(a.x-9,top,18,11,'#123d46','#82e6ec');this.text('ID',a.x,top+9,'#b7fcff',8);c.restore();}
+  operatorCorpse(a,corpse,time){const size=spriteSize(this.tile),c=this.ctx;c.save();if(corpse.recovered)c.globalAlpha*=.45;if(!this.classSprite(a,size,corpse.character,true,isDark(this.game,corpse)))this.box(a.x-9,a.y-5,18,10,'#4e302780');c.restore();if(corpse.recovered)return;this.keyBeam(a,time,.8);/* 3.151.0: a beam marks the corpse like the keycard */c.save();c.globalAlpha*=this.reduceMotion?1:.7+.3*Math.sin(time/260);const top=Math.round(a.y-this.tile*.46);this.box(a.x-9,top,18,11,'#123d46','#82e6ec');this.text('ID',a.x,top+9,'#b7fcff',8);c.restore();}
   corpse(a,type,character,actor){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=spriteSize(this.tile),dark=isDark(this.game,this.unproject(a.x,a.y));const c=this.ctx;c.save();const drawn=(type==='player'&&this.classSprite(a,size,character,true,dark))||(this.effectSprite('dead-'+enemySprite(type).corpse,a,size,0,dark)&&(actor?.elite&&this.deadOutline('dead-'+enemySprite(type).corpse,a,size,ELITE_VISUAL.corpseOutline),true));c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
   wall(a,x,y){
     const g=this.game,adjacent=[[0,1],[0,-1],[1,0],[-1,0]].map(([dx,dy])=>({x:x+dx,y:y+dy})).find(p=>g.grid[p.y]?.[p.x]===1);

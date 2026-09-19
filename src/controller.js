@@ -13,7 +13,9 @@ import {learningInventory} from './learning.js';
 import {LEARNING_ITEMS,LEARNING_SCRAP} from './learning-data.js';
 import {suppressivePreview} from './suppressive-fire.js';
 import {suppressionStatus,learningEntries,suppressionHelp,traitRuleLines} from './suppression-ui.js';
-import {SKILLS,skillActive,skillStatus,canUseSkill} from './skills.js';
+import {SKILLS,skillActive,skillStatus,canUseSkill,skillText} from './skills.js';
+import {timedStatuses} from './status-timers.js';
+import {blindReason,BLIND_TUNING} from './blind-fire.js';
 import {boundaryOpacityPercent} from './movement-boundaries.js';
 import {SCREEN_BRIGHTNESS,screenBrightnessPercent} from './screen-tone.js';
 import {drawTinyText,TINY_TEXT} from './pixel-text.js';
@@ -199,7 +201,7 @@ function update(view=renderer.game) {
     const entry=preparedEntry(p,category),button=$(`[data-action="${category}"]`),count=entry?.resource?p[entry.resource]:null;
     button.querySelector('.action-icon').textContent=entry?.icon||'◇';
     if(category!=='grenade')button.querySelector('strong').textContent=slotLabel(view,category);
-    button.title=entry?`${entry.name}：${entry.text}${category==='skill'?(ALLY_SKILLS.includes(p.prepared.skill)?' 目前'+allySkillState(view,p.prepared.skill)+'。':' 目前'+skillStatus(p,p.prepared.skill)+'；冷卻剩餘 '+(p.skillState[p.prepared.skill]?.cooldown||0)+'。'):''}`:`到背包預備${PREPARED_CATEGORIES[category]}`;
+    button.title=entry?`${entry.name}：${category==='skill'?skillText(p,p.prepared.skill):entry.text}${category==='skill'?(ALLY_SKILLS.includes(p.prepared.skill)?' 目前'+allySkillState(view,p.prepared.skill)+'。':' 目前'+skillStatus(p,p.prepared.skill)+'；冷卻剩餘 '+(p.skillState[p.prepared.skill]?.cooldown||0)+'。'):''}`:`到背包預備${PREPARED_CATEGORIES[category]}`;
     if(category==='skill'){if(entry?.toggle)button.setAttribute('aria-pressed',String(skillActive(p,p.prepared.skill)));else button.removeAttribute('aria-pressed');}
     button.setAttribute('aria-label',entry?`使用預備${PREPARED_CATEGORIES[category]}：${entry.name}${category==='skill'?'，'+skillLabel(view,p.prepared.skill):''}${count===null?'':`，剩餘 ${count}`}`:`${PREPARED_CATEGORIES[category]}未預備`);
   }
@@ -208,7 +210,7 @@ function update(view=renderer.game) {
   $('#quick-weapon').textContent=w.melee?`${w.code} · ∞`:`${w.code} · ${p.ammo[p.weapon]} / ${reserve}`;$('#quick-weapon').title=w.melee?w.desc:`${ammoName(w)}：備彈 ${reserve}/${view.ammoCapacity(w.ammoType)}`;
   const threats=view.visibleEnemies.filter(e=>!isNoncombatant(e)&&ENEMY_TYPES[e.type].range>1&&distance(e,p)<=ENEMY_TYPES[e.type].range&&(view.sight(e,p)||(unitTree(e).fixedTile&&e.charge&&e.aim&&distance(e.aim,p)===0)));
   const exposed=threats.filter(e=>!view.protectingCover(p,e)).length;
-  $('#status-effects').textContent=[view.pursuit?'追擊 · 下次攻擊免費':'',p.wearables?.includes('exo')?`外骨骼 ${p.exoPlates}/${EXO_TUNING.plates}`:'',view.decoy?`誘餌 ${view.decoy.hp} · ${Math.max(1,view.decoy.expires-view.turn)} 回合`:'',view.weapon?.aimPenalty&&!p.focus?`未瞄準 · 命中 −${view.weapon.aimPenalty}`:'',suppressionStatus(p),...meleeStatus(view),p.recovery?'鏈鋸收勢 · 下次行動跳過':'',skillActive(p,'anchor')?'下錨 · 攻擊×2 · 無法移動':'',p.vaultExposed?'翻越破綻 +20':'',skillActive(p,'early_warning')?'預警快照':'',skillActive(p)?`斷層 ${p.skillState.signal_break.remaining}`:'',isDark(view,p)?'暗區':'',exposed?`暴露 ${exposed}`:threats.length?(threats.some(e=>view.accuracy(e,p).coverEfficiency===.5)?'半效掩護':'掩護'):view.cover.length?'牆 / 箱旁':'',p.moved?'移動':'',threats.some(e=>view.accuracy(e,p).sidePenalty)?`側身 ${threats.filter(e=>view.accuracy(e,p).sidePenalty).length}`:'',p.guard?'減傷 50%':'',p.plates?`護甲板 ${p.plates}`:'',p.focus?'瞄準 +15':'',p.evasive?'閃避 +15':'',p.poison?`中毒 ${p.poison} 層`:'',p.control.disabled?`失能 ${p.control.disabled} · 按等待`:'',p.control.immune?`失能免疫 ${p.control.immune}`:'',view.smoke.some(s=>s.cells.some(c=>c.x===p.x&&c.y===p.y))?'煙霧中':'',initiative(p)<0?'快速':initiative(p)>0?'緩速':''].filter(Boolean).join(' · ');
+  $('#status-effects').textContent=[view.pursuit?'追擊 · 下次攻擊免費':'',p.wearables?.includes('exo')?`外骨骼 ${p.exoPlates}/${EXO_TUNING.plates}`:'',view.decoy?`誘餌 ${view.decoy.hp} · ${Math.max(1,view.decoy.expires-view.turn)} 回合`:'',...timedStatuses(view),view.weapon?.aimPenalty&&!p.focus?`未瞄準 · 命中 −${view.weapon.aimPenalty}`:'',suppressionStatus(p),...meleeStatus(view),p.recovery?'鏈鋸收勢 · 下次行動跳過':'',skillActive(p,'anchor')?'下錨 · 攻擊×2 · 無法移動':'',p.vaultExposed?'翻越破綻 +20':'',skillActive(p,'early_warning')?'預警快照':'',isDark(view,p)?'暗區':'',exposed?`暴露 ${exposed}`:threats.length?(threats.some(e=>view.accuracy(e,p).coverEfficiency===.5)?'半效掩護':'掩護'):view.cover.length?'牆 / 箱旁':'',p.moved?'移動':'',threats.some(e=>view.accuracy(e,p).sidePenalty)?`側身 ${threats.filter(e=>view.accuracy(e,p).sidePenalty).length}`:'',p.guard?'減傷 50%':'',p.plates?`護甲板 ${p.plates}`:'',p.focus?'瞄準 +15':'',p.evasive?'閃避 +15':'',initiative(p)<0?'快速':initiative(p)>0?'緩速':''].filter(Boolean).join(' · ');
   $('#status-effects').style.color=exposed?'#f3a182':'#b6d5b0';$('#status-effects').title=exposed?`${exposed} 名射手對你有無掩護射線；應立即尋找牆角或箱體。`:'掩體有方向性，注意側翼。';
   // Grapple preview: only while the hook is ready and the locked target is a legal pull or dash.
   renderer.grapplePreview=null;
@@ -278,13 +280,18 @@ function act(type,arg) {
     }
   }
   if(!playback&&game.logs[0]!==oldLog){lastActionLogs=freshLogs(oldLog);notifyLatest();}
-  if(success||(type!=='grenade'&&type!=='launch'&&type!=='deployCover'&&type!=='flare'&&type!=='rope'&&type!=='decoy'&&type!=='mine'&&!(type==='usePrepared'&&arg?.category==='grenade')))cancelAim();update();return success;
+  if(success||(type!=='grenade'&&type!=='launch'&&type!=='blindFire'&&type!=='deployCover'&&type!=='flare'&&type!=='rope'&&type!=='decoy'&&type!=='mine'&&!(type==='usePrepared'&&arg?.category==='grenade')))cancelAim();update();return success;
 }
-function move(dx,dy){if(renderer.mode==='deploy'){act('deployCover',[dx,dy]);return;}if(renderer.mode==='launch'||renderer.mode==='rope'){const from=renderer.aim||game.player;setAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='pet'){setPetAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='drone'){setDroneAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='grenade'||renderer.mode==='flare'||renderer.mode==='place'){const pos={x:renderer.aim.x+dx,y:renderer.aim.y+dy};setAim(pos);}else if(renderer.mode==='suppress'){setSuppressAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});}else act('move',[dx,dy]);}
+function move(dx,dy){if(renderer.mode==='deploy'){act('deployCover',[dx,dy]);return;}if(renderer.mode==='launch'||renderer.mode==='rope'){const from=renderer.aim||game.player;setAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='blind'){const from=renderer.aim||game.player;setBlindAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='pet'){setPetAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='drone'){setDroneAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='grenade'||renderer.mode==='flare'||renderer.mode==='place'){const pos={x:renderer.aim.x+dx,y:renderer.aim.y+dy};setAim(pos);}else if(renderer.mode==='suppress'){setSuppressAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});}else act('move',[dx,dy]);}
 function floorToast(){if(isSimulation(game))return;if(isEndless(game)){const growth=growthLabel(game.floor,game.difficultySpec);notify(`第 ${depthLabel(game.floor)} 層 · ${floorInfo(game.floor).name}：${growth?growth+'。':''}${endlessFloorText(game.floor)}${operatorSignal(game)}`);return;}notify(`第 ${game.floor} 層 · ${floorInfo(game.floor).name}：${returning(game)?game.missionSummary:game.floor===missionDepth(game)?missionDefinition(game).text:floorInfo(game.floor).text}`);}
 const slotLabel=(view,category)=>{const p=view.player,entry=preparedEntry(p,category),count=entry?.resource?p[entry.resource]:null;
   return entry?`${entry.short}${category==='skill'?' '+skillLabel(view,p.prepared.skill):count===null?'':` ${count}`}`:`${PREPARED_CATEGORIES[category]}未預備`;};
 function cancelAim(){renderer.mode=null;renderer.aim=null;updateAim();}
+// 3.151.0 blind fire (src/blind-fire.js): tapping a tile you cannot see into, in range with a clear shot, aims a blind
+// shot like the launcher — 互動 fires, 開火 cancels, the pad moves the aim.
+const BLIND_HINT=`盲射：按右下確認射擊，命中 −${BLIND_TUNING.penalty}（霰彈槍不受影響），看不到結果；按開火取消。`;
+function startBlindAim(pos){renderer.mode='blind';renderer.aim={x:pos.x,y:pos.y};updateAim();notify(BLIND_HINT);}
+function setBlindAim(pos){const reason=blindReason(game,pos);if(reason){notify(reason+'。');return;}renderer.aim={x:pos.x,y:pos.y};updateAim();}
 // Suppressive fire aims an area like a grenade, but range comes from the weapon and validity from suppressivePreview (3.74.1).
 function startSuppressAim(){const p=game.player,reason=suppressivePreview(game,{x:p.x,y:p.y}).reason;if(reason){notify(reason);return;}const pick=[game.targeted,...game.visibleEnemies].find(e=>e&&game.enemies.includes(e)&&!suppressivePreview(game,{x:e.x,y:e.y}).reason);renderer.mode='suppress';renderer.aim=pick?{x:pick.x,y:pick.y}:{x:p.x,y:p.y};notify(`點武器射程 ${game.weapon.range} 格內看得見的地板，按右下確認壓制射擊；再按技能取消。`);updateAim();}
 function setSuppressAim(pos){const reason=suppressivePreview(game,pos).reason;if(reason){notify(reason);return;}renderer.aim=pos;updateAim();}
@@ -293,7 +300,7 @@ const placeRange=()=>renderer.placeItem==='mine'?MINE_TUNING.range:DECOY_TUNING.
 // 3.111.0 (user request): a point-target launcher is aimed like a thrown grenade — pick a tile, confirm with 互動 —
 // so the fire key opens that mode instead of shooting the locked enemy. Pressing fire again cancels.
 function fireWeapon(){
-  if(renderer.mode==='launch'){cancelAim();return;}
+  if(renderer.mode==='launch'||renderer.mode==='blind'){cancelAim();return;}
   if(!game.weapon.pointTarget){act('fire');return;}
   if(game.player.ammo[game.player.weapon]<=0){notify('彈匣已空，請裝填。');return;}
   const p=game.player,locked=game.targeted,face=isBarrier(locked)?barrierFace(locked,p):locked;
@@ -303,20 +310,20 @@ function fireWeapon(){
 }
 const operatorReady=view=>!isSimulation(view)&&view.status==='playing'&&!!view.operatorCorpse&&!view.operatorCorpse.recovered&&view.canTouch(view.operatorCorpse);
 function interactions(view=renderer.game){return [...view.nearbyObjectives.map(t=>({label:'回收機密',action:`objective:${t.id}`})),...view.nearbyContainers.map(c=>({label:`開${view.containerLabel(c)}`,action:`case:${c.id}`})),...view.nearbyDoors.map(b=>({label:view.doorLabel(b),action:`door:${b.id}`})),...(view.groundWeapon?[{label:'拾取',action:'bag'}]:[]),...(view.nearbyTerminal?[{label:`終端 ${terminalRemaining(view.nearbyTerminal)}`,action:'terminal'}]:[]),...(operatorReady(view)?[{label:'回收識別資料',action:'operator'}]:[]),...(view.canTouch(view.exitPoint)&&(!isSimulation(view)||exitStep(view))?[{label:view.exitBlocked?'電梯鎖定':view.exitLabel+(view.allyTravelSummary?' · '+view.allyTravelSummary:''),action:isSimulation(view)?'exitStep':'descend'}]:[])];}
-function updateAim(view=renderer.game){const launching=renderer.mode==='launch',deploying=renderer.mode==='deploy',commanding=renderer.mode==='pet'||renderer.mode==='drone',aiming=renderer.mode==='grenade',roping=renderer.mode==='rope',placing=renderer.mode==='place',flaring=renderer.mode==='flare'||roping||placing,suppressing=renderer.mode==='suppress',preview=suppressing&&renderer.aim?suppressivePreview(view,renderer.aim):null,b=$('#interact'),options=interactions(view);
+function updateAim(view=renderer.game){const blinding=renderer.mode==='blind',launching=renderer.mode==='launch'||blinding,deploying=renderer.mode==='deploy',commanding=renderer.mode==='pet'||renderer.mode==='drone',aiming=renderer.mode==='grenade',roping=renderer.mode==='rope',placing=renderer.mode==='place',flaring=renderer.mode==='flare'||roping||placing,suppressing=renderer.mode==='suppress',preview=suppressing&&renderer.aim?suppressivePreview(view,renderer.aim):null,b=$('#interact'),options=interactions(view);
   const entry=preparedEntry(view.player,'grenade');
   $('#grenade-label').textContent=aiming?'取消投擲':entry?`${entry.short} ${view.player[entry.resource]}`:'手榴彈未預備';
   $('[data-action="grenade"]').classList.toggle('aiming',aiming);
   b.disabled=(Boolean(playback)&&!skipEnabled())||(view.status==='playing'&&!aiming&&!flaring&&!launching&&!commanding&&!suppressing&&!deploying&&!options.length)||Boolean(preview?.reason);
-  b.querySelector('strong').textContent=view.status!=='playing'?'結果':launching?'確認發射':deploying?'取消設置':commanding?(renderer.mode==='drone'?'確認部署':'確認指揮'):aiming?'確認投擲':roping?'確認拉繩':placing?(renderer.placeItem==='mine'?'確認埋設':'確認投擲'):flaring?'確認照明':suppressing?`確認壓制 · ${preview?.rounds??0} 發`:options.length>1?'互動':options[0]?.label||'互動';
+  b.querySelector('strong').textContent=view.status!=='playing'?'結果':blinding?'確認盲射':launching?'確認發射':deploying?'取消設置':commanding?(renderer.mode==='drone'?'確認部署':'確認指揮'):aiming?'確認投擲':roping?'確認拉繩':placing?(renderer.placeItem==='mine'?'確認埋設':'確認投擲'):flaring?'確認照明':suppressing?`確認壓制 · ${preview?.rounds??0} 發`:options.length>1?'互動':options[0]?.label||'互動';
   b.classList.toggle('aiming',aiming||flaring||launching||commanding||suppressing||deploying);
   const fire=$('[data-action="fire"]');
-  if(fire){fire.classList.toggle('aiming',launching);fire.querySelector('strong').textContent=launching?'取消發射':view.weapon?.melee?'揮拳':'開火';}$('[data-action="skill"]')?.classList.toggle('aiming',suppressing);b.title=view.allyTravelSummary||'';
+  if(fire){fire.classList.toggle('aiming',launching);fire.querySelector('strong').textContent=blinding?'取消盲射':launching?'取消發射':view.weapon?.melee?'揮拳':'開火';}$('[data-action="skill"]')?.classList.toggle('aiming',suppressing);b.title=view.allyTravelSummary||'';
   const item=$('[data-action="item"]');
   if(item){item.classList.toggle('aiming',deploying||flaring);item.querySelector('strong').textContent=deploying?'取消設置':roping?'取消拉繩':placing?'取消':flaring?'取消照明':slotLabel(view,'item');}
   for(const key of ['0,-1','0,1','-1,0','1,0'])$(`[data-move="${key}"]`)?.classList.toggle('aiming',deploying);
 }
-function interact(){if(renderer.mode==='deploy'){cancelAim();return;}if(renderer.mode==='launch'){if(renderer.aim)act('launch',renderer.aim);else notify('先點地圖選落點。');return;}if(renderer.mode==='pet'){act('commandPet',renderer.aim);return;}if(renderer.mode==='drone'){act('deployUnit',{line:deployLine,x:renderer.aim.x,y:renderer.aim.y});return;}if(game.status!=='playing'){showResult();return;}if(renderer.mode==='grenade'){act('usePrepared',{category:'grenade',target:renderer.aim});return;}if(renderer.mode==='flare'){act('flare',renderer.aim);return;}if(renderer.mode==='place'){act(renderer.placeItem,renderer.aim);return;}if(renderer.mode==='rope'){act('rope',{...renderer.aim,item:renderer.ropeItem});return;}if(renderer.mode==='suppress'){const turn=game.turn;act('usePrepared',{category:'skill',target:renderer.aim});if(game.turn!==turn)cancelAim();return;}
+function interact(){if(renderer.mode==='deploy'){cancelAim();return;}if(renderer.mode==='blind'){const reason=blindReason(game,renderer.aim);if(reason){notify(reason+'。');return;}act('blindFire',renderer.aim);return;}if(renderer.mode==='launch'){if(renderer.aim)act('launch',renderer.aim);else notify('先點地圖選落點。');return;}if(renderer.mode==='pet'){act('commandPet',renderer.aim);return;}if(renderer.mode==='drone'){act('deployUnit',{line:deployLine,x:renderer.aim.x,y:renderer.aim.y});return;}if(game.status!=='playing'){showResult();return;}if(renderer.mode==='grenade'){act('usePrepared',{category:'grenade',target:renderer.aim});return;}if(renderer.mode==='flare'){act('flare',renderer.aim);return;}if(renderer.mode==='place'){act(renderer.placeItem,renderer.aim);return;}if(renderer.mode==='rope'){act('rope',{...renderer.aim,item:renderer.ropeItem});return;}if(renderer.mode==='suppress'){const turn=game.turn;act('usePrepared',{category:'skill',target:renderer.aim});if(game.turn!==turn)cancelAim();return;}
   const options=interactions();if(options.length>1){modal('<h2>附近互動</h2>'+options.map(o=>`<button class="modal-button secondary" data-context="${o.action}">${o.label}</button>`).join('')+'<button class="modal-button" data-modal="close">返回戰場</button>');return;}
   if(options[0]?.action.startsWith('objective:'))act('recoverObjective',options[0].action.slice(10));
   else if(options[0]?.action.startsWith('case:'))act('openContainer',options[0].action.slice(5));
@@ -669,7 +676,7 @@ function showInventory(tab=inventoryTab,message='') {
       return `<button class="pack-use" data-use-item="${id}"${reason?' disabled':''} title="${reason||`使用${entry.name}，${cost?'消耗 1 回合':'不耗回合'}`}">使用</button>`;
     };
     const useReason=(id,entry)=>category==='item'&&entry.action&&p[entry.resource]?itemUseReason(game,id):'';
-    const row=([id,entry])=>{const on=p.prepared[category]===id,reason=useReason(id,entry);return `<div class="pack-row${on?' equipped':''}${category==='item'&&entry.action?' pack-row-usable':''}"><button class="pack-pick" data-prepare-category="${category}" data-prepare-id="${on?'':id}" aria-pressed="${on}"><span class="pack-icon" aria-hidden="true">${entry.icon}</span><span class="pack-name">${entry.name}</span><small>${on?entry.wear?'佩戴中 · ':'已預備 · ':''}${status(id,entry)}</small></button>${useCell(id,entry)}${packInfo(`${category}-${id}`,entry.text+(id==='medkit'?` 目前回復 ${healingAmount(p,45)+p.healBonus} 生命。`:''))}${reason?`<p class="pack-reason">${reason}。</p>`:''}</div>`;};
+    const row=([id,entry])=>{const on=p.prepared[category]===id,reason=useReason(id,entry);return `<div class="pack-row${on?' equipped':''}${category==='item'&&entry.action?' pack-row-usable':''}"><button class="pack-pick" data-prepare-category="${category}" data-prepare-id="${on?'':id}" aria-pressed="${on}"><span class="pack-icon" aria-hidden="true">${entry.icon}</span><span class="pack-name">${entry.name}</span><small>${on?entry.wear?'佩戴中 · ':'已預備 · ':''}${status(id,entry)}</small></button>${useCell(id,entry)}${packInfo(`${category}-${id}`,(category==='skill'?skillText(p,id):entry.text)+(id==='medkit'?` 目前回復 ${healingAmount(p,45)+p.healBonus} 生命。`:''))}${reason?`<p class="pack-reason">${reason}。</p>`:''}</div>`;};
     const allies=category==='skill'&&(game.allies.length||p.skills.includes('workshop'))?`<h3 class="pack-subhead">同行與留置友軍</h3>${game.allies.length?`<ul class="pack-allies">${game.allies.map(a=>`<li><span>${allyName(a)}</span><small>${allyStatus(a)}</small></li>`).join('')}</ul>`:'<p class="pack-hint">無。</p>'}${p.skills.includes('workshop')?`<p class="pack-hint">工坊 · ${allySkillState(game,'workshop')} · 預備後按技能鈕打開</p>`:''}`:'';
     content=`<p class="pack-hint">${category==='grenade'?`共用容量 ${grenadeTotal(p)} / ${game.ammoCapacity('grenade')} · `:''}${category==='item'?'消耗品直接按「使用」，不必先預備；佩戴型點一下戴上、再點一下脫下，各消耗 1 回合。預備與取消預備不耗回合。':'點一下預備，再點一下取消，不耗回合。'}</p>${options.length?`<div class="pack-rows">${options.map(row).join('')}</div>`:`<p class="pack-empty">${category==='skill'?'尚未學會主動技能。':'目前沒有可預備的項目。'}</p>`}${category==='item'?learningSection():''}${category==='skill'?petFeedingSection():''}${allies}`;
   }
@@ -1094,6 +1101,7 @@ $('#battle').addEventListener('pointerup',e=>{
   if(renderer.mode==='drone'){setDroneAim(pos);return;}
   if(renderer.mode==='grenade'||renderer.mode==='launch'||renderer.mode==='flare'||renderer.mode==='rope'||renderer.mode==='place'){setAim(pos);return;}
   if(renderer.mode==='suppress'){setSuppressAim(pos);return;}
+  if(renderer.mode==='blind'){setBlindAim(pos);return;}
   const ally=game.localAllies.find(a=>distance(a,pos)===0);if(ally){notify(`${allyName(ally)} · ${ally.status==='reforming'?'消散，重生倒數中':ally.status==='arriving'?'等候落點':ally.status==='destroyed'?'已毀':`HP ${ally.hp}/${ally.maxHp}${repairTargets(game).includes(ally)?' · 在你旁邊，可以打開工坊修理':''}${ally.kind==='drone'?(ally.payload?` · 裝填${GRENADES[ally.payload].name}`:['unit_bomber','unit_warden','unit_boss'].includes(ally.sourceId)?(ally.primed?(ally.sourceId==='unit_bomber'?' · 蓄勢中，下次行動自爆':' · 蓄力中，下次行動射擊'):ally.bombard?' · 下次攻擊改為轟炸':''):` · ${Number.isInteger(ally.weapon)?game.weaponAt(ally.weapon).name+' · ':''}彈藥 ${ally.ammo}/${allyWeapon(ally,game.player).mag}`):''}`}。`);return;}
   const edge=renderer.hitBarrier(e.clientX-r.left,e.clientY-r.top);
   if(edge){game.target=edge.id;if(!renderer.targetingEnabled)toggleTargeting();else update();return;}
@@ -1105,6 +1113,7 @@ $('#battle').addEventListener('pointerup',e=>{
   if(distance(pos,game.exitPoint)===0&&game.canTouch(pos)&&(!isSimulation(game)||exitStep(game))){if(isSimulation(game))act('move',exitStep(game));else act('interact');return;}
   if(game.props.some(o=>o.type==='terminal'&&!o.used&&distance(o,pos)===0&&game.canTouch(o))){showTerminal();return;}
   if(distance(pos,game.player)===1)move(pos.x-game.player.x,pos.y-game.player.y);
+  else if(!game.visibleTiles.has(`${pos.x},${pos.y}`)&&!blindReason(game,pos))startBlindAim(pos);
   else notify('點相鄰格移動，或在戰場滑動一步。');
 });
 $('#battle').addEventListener('pointercancel',()=>{pointerStart=null;});

@@ -1,5 +1,5 @@
 import {STORIES,RETIRED_STORY_IDS} from './story-data.js';
-export const UNLOCK_SETTINGS={demo:false,consecutiveFactions:true,fixedFactionOverride:true,corpseStart:8,corpseStep:.04,corpseMax:.5};
+export const UNLOCK_SETTINGS={demo:false,consecutiveFactions:true,fixedFactionOverride:true,corpseStart:5,corpseStep:.1,corpseMax:.5,corpsePity:4};
 export const STARTING_CHARACTERS=['soldier','recon','engineer'];
 export const CHARACTER_IDS=[...STARTING_CHARACTERS,'necromancer','druid','bulwark','berserker','ninja'];
 export const UNLOCK_CATALOG=[...CHARACTER_IDS.map(id=>({id,kind:'character',price:STARTING_CHARACTERS.includes(id)?0:1000,starting:STARTING_CHARACTERS.includes(id),sources:['corpse']})),...STORIES.map(s=>({...s,kind:'story',sources:['extraction']}))];

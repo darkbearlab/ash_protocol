@@ -8,6 +8,8 @@
 //
 // It shows only what the game screen shows: enemies in sight (or on the team's sensors), tiles already seen, hit
 // chances and cover as the target card gives them. Container contents stay hidden until opened.
+import {timedStatuses} from '../src/status-timers.js';
+import {shownItems} from '../src/blind-fire.js';
 import {existsSync,readFileSync,writeFileSync} from 'node:fs';
 import {Game,SIZE,SUPPLY_NAMES,ENEMY_TYPES,PERKS,distance,floorInfo,enemyName,factionDef,TERMINAL_ITEMS,itemUseReason} from '../src/engine.js';
 import {createReplay,replayLog,applyOp,makeOp,stateHash} from '../src/replay.js';
@@ -114,7 +116,7 @@ function tileChar(g,x,y,marks){
  const prop=g.props.find(o=>o.x===x&&o.y===y&&o.type!=='module'&&(o.hp===undefined||o.hp>0||isContainer(o)));
  if(prop){if(isContainer(prop))return prop.opened?'c':'C';if(prop.type==='terminal')return terminalRemaining(prop)?'T':'t';if(prop.type==='barrel')return 'B';if(prop.type==='nest')return 'N';if(prop.type==='cover')return 'o';}
  if(g.missionObjects?.().some?.(t=>!t.done&&t.x===x&&t.y===y))return 'M';
- const items=g.items.filter(i=>i.x===x&&i.y===y);if(items.length)return items.some(i=>i.type==='weapon')?'W':'*';
+ const items=shownItems(g).filter(i=>i.x===x&&i.y===y);if(items.length)return items.some(i=>i.type==='weapon')?'W':'*';
  if(g.hazards.some(h=>h.x===x&&h.y===y))return 'X';
  // 3.134.0: toxic mist '~' (you can see through it), smoke and spore smoke '%'.
  if((g.smoke||[]).some(s=>s.kind==='toxic'&&s.cells.some(c=>c.x===x&&c.y===y)))return '~';
@@ -158,7 +160,7 @@ function status(g){
  const p=g.player,def=missionDefinition(g),progress=missionProgress(g),faction=factionDef(g.facilityFaction)?.name||g.facilityFaction;
  const lines=[`== 第 ${g.floor} 層 ${floorInfo(g.floor).name} · 回合 ${g.turn} · ${CHARACTERS[p.character].label} · ${faction} · 任務：${g.missionSummary}${g.status!=='playing'?` · 狀態：${g.status}`:''}`];
  lines.push(`生命 ${p.hp}/${p.maxHp} 護甲板 ${p.plates||0}/${g.plateCapacity}${p.wearables?.includes('exo')?` 外骨骼 ${p.exoPlates}/50${p.prepared?.item==='exo'?'（穿著）':'（沒穿）'}`:''} 裝甲 ${p.armor||0} · ${levelLabel(p.level)}（${levelTitle(p.level,p.xp,levelCost(g,p.level))}）· 位置 ${at(p)} · 廢料 ${p.scrap||0}`);
- const flags=[g.pursuit?'追擊：下次攻擊不耗回合':'',g.shadowSteps?`免費移動 ${g.shadowSteps}`:'',suppressionStatus(p),isDark(g,p)?'你在暗處':'',p.focus?'穩定瞄準':'',p.guard?'防禦待機':'',p.poison?`中毒 ${p.poison}`:'',p.control?.disabled?`失能 ${p.control.disabled}`:'',p.recovery?'鏈鋸收勢：下次行動跳過':'',...traitLabels(p).filter(Boolean)].filter(Boolean);
+ const flags=[g.pursuit?'追擊：下次攻擊不耗回合':'',...timedStatuses(g),suppressionStatus(p),isDark(g,p)?'你在暗處':'',p.focus?'穩定瞄準':'',p.guard?'防禦待機':'',p.recovery?'鏈鋸收勢：下次行動跳過':'',...traitLabels(p).filter(Boolean)].filter(Boolean);
  if(flags.length)lines.push(`狀態：${flags.join(' · ')}`);
  lines.push('武器：',...p.owned.map(slot=>'  '+weaponLine(g,slot)));
  const supplies=[`醫療包 ${p.meds||0}`,...Object.entries(GRENADES).map(([,d])=>`${d.name} ${p[d.resource]||0}`),`照明彈 ${p.flares||0}`,`逃命繩索 ${p.escapeLines||0}`,`重部署鉤索 ${p.redeployLines||0}`,`修復噴劑 ${p.sprays||0}`,`腎上腺素 ${p.adrenaline||0}`,`摺疊掩體 ${p.barricades||0}`,`誘餌 ${p.decoys||0}`,`地雷 ${p.mines||0}`,...(p.keycards?.includes(g.floor)?['本層鑰匙卡']:[])];
@@ -191,8 +193,8 @@ function nearbyRows(g){
 }
 function surroundings(g){
  const p=g.player,rows=[],near=o=>g.seen[o.y]?.[o.x]&&distance(o,p)<=10;
- const items=g.items.filter(i=>near(i)&&i.type!=='weapon');if(items.length)rows.push(`地上物品：${items.map(i=>`${itemName(i)}${amount(i)}${at(i)}`).join('、')}`);
- const weapons=g.items.filter(i=>near(i)&&i.type==='weapon');if(weapons.length)rows.push(`地上武器：${weapons.map(i=>`${g.weaponAt(i.slot).name}[${i.slot}]${at(i)}`).join('、')}`);
+ const items=shownItems(g).filter(i=>near(i)&&i.type!=='weapon');if(items.length)rows.push(`地上物品：${items.map(i=>`${itemName(i)}${amount(i)}${at(i)}`).join('、')}`);
+ const weapons=shownItems(g).filter(i=>near(i)&&i.type==='weapon');if(weapons.length)rows.push(`地上武器：${weapons.map(i=>`${g.weaponAt(i.slot).name}[${i.slot}]${at(i)}`).join('、')}`);
  const cases=g.props.filter(o=>isContainer(o)&&!o.opened&&near(o));if(cases.length)rows.push(`未開的箱子：${cases.map(c=>`${c.id} ${containerName(c)}${at(c)}`).join('、')}`);
  const barrels=g.props.filter(o=>o.type==='barrel'&&o.hp>0&&near(o));if(barrels.length)rows.push(`爆裂油桶（可鎖定射擊）：${barrels.map(b=>`${b.id}${at(b)} 耐久 ${hp(b)}`).join('、')}`);
  const terminals=g.props.filter(o=>o.type==='terminal'&&near(o));if(terminals.length)rows.push(`終端：${terminals.map(t=>`${t.id}${at(t)} 額度 ${terminalRemaining(t)}`).join('、')}`);
@@ -221,7 +223,7 @@ function brief(g){
  const p=g.player,def=missionDefinition(g),progress=missionProgress(g),w=g.weapon;
  const head=`== 第 ${g.floor} 層 · 回合 ${g.turn} · 生命 ${p.hp}/${p.maxHp} 護甲板 ${p.plates||0}/${g.plateCapacity} · ${levelLabel(p.level)} · 位置 ${at(p)} · 任務 ${g.missionSummary}${g.status!=='playing'?` · ${g.status}`:''}`;
  const kit=`${w.name} ${w.melee?'近戰':`${p.ammo[p.weapon]}/${w.mag} 備 ${p[g.reserveKey()]??0}`} · 醫療包 ${p.meds||0} · ${preparedEntry(p,'grenade')?.name||'投擲'} ${p[preparedEntry(p,'grenade')?.resource]||0} · 技能 ${p.prepared.skill?`${SKILLS[p.prepared.skill]?.name} ${skillStatus(p,p.prepared.skill)}`:'無'} · 廢料 ${p.scrap||0}`;
- const flags=[g.pursuit?'追擊就緒':'',g.shadowSteps?`免費移動 ${g.shadowSteps}`:'',suppressionStatus(p),isDark(g,p)?'你在暗處':'',p.focus?'穩定瞄準':'',p.poison?`中毒 ${p.poison}`:'',p.control?.disabled?`失能 ${p.control.disabled}`:'',p.recovery?'鏈鋸收勢':''].filter(Boolean);
+ const flags=[g.pursuit?'追擊就緒':'',...timedStatuses(g),suppressionStatus(p),isDark(g,p)?'你在暗處':'',p.focus?'穩定瞄準':'',p.recovery?'鏈鋸收勢':''].filter(Boolean);
  return [head,kit+(flags.length?` · ${flags.join(' · ')}`:''),...perkRows(g),...drawMap(g,7),...enemyRows(g),...nearbyRows(g),...surroundings(g)];
 }
 function inventory(g){
@@ -250,7 +252,7 @@ const HELP=`指令（用 ; 分隔可一次下多個；遇到新敵人、受傷�
 移動  n s e w（可加步數 n3）· go X,Y · go <箱子/終端/門/敵人 id> · go exit（只走已探索的格子，走進關著的門會開門）
 戰鬥  t <敵人>（鎖定）· f [敵人]（開火，可順便鎖定）· r（裝填）· wait（防禦待機：受傷減半、被射擊 −15，下次射擊 +15）
      swap [槽]（換武器，不給槽就換下一把）· g <X,Y|敵人>（投擲預備的投擲物）· launch <X,Y|敵人>（榴彈類武器對地）
-     flare <X,Y|敵人> · decoy <X,Y|敵人>（誘餌）· mine <X,Y>（地雷，3 格內）· skill [X,Y] · cover <n|s|e|w>（架摺疊掩體）· use <medkit|spray|adrenaline>（使用道具）
+     flare <X,Y|敵人> · decoy <X,Y|敵人>（誘餌）· mine <X,Y>（地雷，3 格內）· blind <X,Y>（盲射看不到的格子，命中 −40，霰彈槍不受影響，看不到結果）· skill [X,Y] · cover <n|s|e|w>（架摺疊掩體）· use <medkit|spray|adrenaline>（使用道具）
      rope <escape|redeploy> <X,Y>（繩索：直線拉到 6 格內看得見的地板；escape 不耗回合，redeploy 耗 1 回合）
      bump <背包槽|none>（撞上敵人時用哪一把近戰武器，不耗回合；none＝背包裡第一把）
 背包  prep <grenade|item|skill> <id|none>（預備，換配件耗 1 回合）· swap/take/salvage/scrapgun/replace（見下）
@@ -294,7 +296,7 @@ function classRows(g){
  if(!rows.length)rows.push('這個職業沒有額外的面板；技能看 inv。');
  return rows;
 }
-const ACTION_TYPES=['move','fire','launch','reload','wait','weapon','grenade','flare','decoy','mine','rope','meleeChoice','usePrepared','prepare','heal','plate','surge','skill','grapple','suppressiveFire','deployCover','openContainer','door','recoverObjective','takeWeapon','salvage','salvageGround','replaceWeapon','terminal','learn','dismantleLearning','commandPet','setPetOutput','feedPet','buildUnit','deployUnit','repairUnit','interact'];
+const ACTION_TYPES=['move','fire','blindFire','launch','reload','wait','weapon','grenade','flare','decoy','mine','rope','meleeChoice','usePrepared','prepare','heal','plate','surge','skill','grapple','suppressiveFire','deployCover','openContainer','door','recoverObjective','takeWeapon','salvage','salvageGround','replaceWeapon','terminal','learn','dismantleLearning','commandPet','setPetOutput','feedPet','buildUnit','deployUnit','repairUnit','interact'];
 
 // ---- commands ------------------------------------------------------------------------------------------------------
 function route(g,goal){
@@ -370,6 +372,7 @@ function command(file,log,g,text,report){
   case 'flare':{const ok=act('flare',where(need(arg,'flare 需要落點。')));return report(`照明彈：${ok?'完成':'被拒絕'}`,!ok);}
   case 'decoy':{const ok=act('decoy',where(need(arg,'decoy 需要落點。')));return report(`誘餌：${ok?'完成':'被拒絕'}`,!ok);}
   case 'mine':{const ok=act('mine',where(need(arg,'mine 需要落點。')));return report(`地雷：${ok?'完成':'被拒絕'}`,!ok);}
+  case 'blind':case 'bf':{const ok=act('blindFire',where(need(arg,'blind 需要落點，例如 blind 14,10。')));return report(`盲射：${ok?'完成':'被拒絕'}`,!ok);}
   case 'bump':{const slot=arg==='none'?null:Number(need(arg,'bump 需要背包槽或 none。'));const ok=act('meleeChoice',slot);return report(`撞擊武器：${ok?(slot===null?'背包裡第一把':g.weaponAt(slot).name):'被拒絕'}`,!ok);}
   case 'rope':{const item={escape:'escape_line',redeploy:'redeploy_line'}[arg];if(!item)fail('rope 需要 escape 或 redeploy。');const to=where(need(rest[1],'rope 需要落點。'));const ok=act('rope',{x:to.x,y:to.y,item});return report(`${PREPARED_CATALOG.item[item].name}：${ok?'完成':'被拒絕'}`,!ok);}
   case 'skill':{const ok=act('usePrepared',arg?{category:'skill',target:where(arg)}:{category:'skill'});return report(`技能：${ok?'完成':'被拒絕'}`,!ok);}

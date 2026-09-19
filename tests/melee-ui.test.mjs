@@ -34,7 +34,7 @@ test('status line lists spirit, camouflage, ambush and duel only when they hold'
  const b=arena();b.player.battleSpirit={stacks:2,lastKill:b.turn};assert.deepEqual(meleeStatus(b),[`戰意 2（${MELEE_TUNING.spiritDelay} 回合後 −1）`]);
  const n=arena('ninja');const e=enemy(n,'rifleman',11,10);assert.deepEqual(meleeStatus(n),[`單挑 +${MELEE_TUNING.duelist}`]);
  n.player.skillState.camouflage={remaining:3,cooldown:0};n.lighting[10][10]=0;n.reveal();
- assert.deepEqual(meleeStatus(n),['迷彩 3',`伏擊 ×${MELEE_TUNING.ambush}`,`單挑 +${MELEE_TUNING.duelist}`]);
+ assert.deepEqual(meleeStatus(n),[`伏擊 ×${MELEE_TUNING.ambush}`,`單挑 +${MELEE_TUNING.duelist}`]);
  enemy(n,'rifleman',10,13);n.target=e.id;assert.ok(!meleeStatus(n).some(s=>s.startsWith('單挑')),'two viewers break the duel');
 });
 

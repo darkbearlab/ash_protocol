@@ -14,10 +14,10 @@ const factionName=id=>id==='any'?'任何設施':FACTIONS[id]?.name||id;
 const floorsLabel=([from,to])=>from===to?`第 ${from} 層`:`第 ${from}–${to} 層`;
 
 export const UNLOCK_TABS={characters:'職業',stories:'設施紀錄'};
-export const CORPSE_HINT='無盡第 8 層起可能發現遺體，回收即解鎖。';
-export const UNLOCK_HELP='主選單 UNLOCKS 用協定點數解鎖職業與設施紀錄。無盡模式第 8 層起，樓層可能有失聯幹員的遺體，進入樓層時會提示識別訊號；靠近後按右下互動回收，不耗回合，立即解鎖，這局陣亡也會保留。沒回收就換層，這一局不會再出現同一個職業。戰役的資料物件會帶回一份設施紀錄，成功撤離才解鎖，陣亡或放棄就遺失。';
+export const CORPSE_HINT='無盡第 5 層起可能發現遺體，回收即解鎖。';
+export const UNLOCK_HELP='主選單 UNLOCKS 用協定點數解鎖職業與設施紀錄。無盡模式第 5 層起，樓層可能有失聯幹員的遺體（連續 4 層沒有時，下一層必定有），進入樓層時會提示生命訊號，遺體上方有光柱；靠近後按右下互動回收，不耗回合，立即解鎖，這局陣亡也會保留。沒回收就換層，這一局不會再出現同一個職業。戰役的資料物件會帶回一份設施紀錄，成功撤離才解鎖，陣亡或放棄就遺失。';
 export const storyHint=s=>`戰役 · ${factionName(s.faction)} · ${floorsLabel(s.floors)}的資料物件，撤離後解鎖。`;
-export const operatorSignal=g=>g.operatorCorpse&&!g.operatorCorpse.recovered?' 偵測到失聯幹員的識別訊號。':'';
+export const operatorSignal=g=>g.operatorCorpse&&!g.operatorCorpse.recovered?' 偵測到失聯幹員的生命訊號。':'';
 
 // Mirrors the refusals in unlock-catalog.grantUnlock so a disabled button can say why; the write still decides.
 export function purchaseReason(profile,entry,{settings=UNLOCK_SETTINGS,available=true}={}){

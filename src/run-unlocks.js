@@ -15,10 +15,16 @@ export function endlessFaction(g){
  return f;
 }
 export function initializeRunUnlocks(g,options={}){g.unlockedCharacters=availableCharacters(options.profile);g.unlockedStories=[...(options.profile?.unlocks?.stories||[])];g.pendingStories=[];g.encounteredCharacters=[];g.operatorCorpse=null;g.factionOverride=options.facilityFaction&&options.facilityFaction!=='random'?options.facilityFaction:null;}
+// Corpses (3.151.0, user 2026-09-20): endless floor 5 onward, chance min(50%, 10% × (floor − 4)); after corpsePity floors
+// in a row without one, the next floor has one. Every roll comes from the seed, so the pity needs no save field.
+export const corpseChance=floor=>floor<UNLOCK_SETTINGS.corpseStart?0:Math.min(UNLOCK_SETTINGS.corpseMax,UNLOCK_SETTINGS.corpseStep*(floor-UNLOCK_SETTINGS.corpseStart+1));
+export function corpseFloor(seed,floor){let dry=0,hit=false;for(let f=UNLOCK_SETTINGS.corpseStart;f<=floor;f++){hit=dry>=UNLOCK_SETTINGS.corpsePity||unlockRandom(seed,f,'corpse-chance')<corpseChance(f);dry=hit?0:dry+1;}return hit;}
+export const CORPSE_NOTE='偵測到失聯幹員的生命訊號：遺體上方有光柱，靠近後按互動回收識別資料。';
+export function floorCorpseNote(g){if(g.operatorCorpse&&!g.operatorCorpse.recovered)g.log(CORPSE_NOTE);}
 export function populateRunUnlocks(g){
  g.operatorCorpse=null;if(g.simulation||g.mission.id!=='endless')return;
  g.items=g.items.filter(i=>i.type!=='lore');
- if(UNLOCK_SETTINGS.demo||g.floor<UNLOCK_SETTINGS.corpseStart||unlockRandom(g.seed,g.floor,'corpse-chance')>=Math.min(UNLOCK_SETTINGS.corpseMax,UNLOCK_SETTINGS.corpseStep*(g.floor-7)))return;
+ if(UNLOCK_SETTINGS.demo||!corpseFloor(g.seed,g.floor))return;
  const seen=reachable(g,g.start),occupied=new Set([...g.props,...g.items,...g.enemies,...g.hazards,g.end].map(key));
  const points=g.rooms.flatMap((r,i)=>i===g.startRoom?[]:roomTiles(r)).filter(p=>seen.has(key(p))&&!occupied.has(key(p))&&distance(p,g.end)>1);
  if(!points.length)return;const point=points[Math.floor(unlockRandom(g.seed,g.floor,'corpse-position')*points.length)];
@@ -39,5 +45,5 @@ export function collectStory(g,item){
 export function validRunUnlocks(g){
  const list=(v,valid)=>Array.isArray(v)&&new Set(v).size===v.length&&v.every(valid);
  const character=id=>CHARACTER_IDS.includes(id),c=g.operatorCorpse;
- return list(g.unlockedCharacters,character)&&list(g.unlockedStories,validStoryId)&&list(g.pendingStories,validStoryId)&&list(g.encounteredCharacters,character)&&(g.factionOverride===null||Object.hasOwn(FACTIONS,g.factionOverride))&&(c===null||g.mission?.id==='endless'&&g.floor>=8&&c&&character(c.character)&&g.encounteredCharacters.includes(c.character)&&Number.isInteger(c.x)&&Number.isInteger(c.y)&&g.grid[c.y]?.[c.x]===1&&typeof c.recovered==='boolean');
+ return list(g.unlockedCharacters,character)&&list(g.unlockedStories,validStoryId)&&list(g.pendingStories,validStoryId)&&list(g.encounteredCharacters,character)&&(g.factionOverride===null||Object.hasOwn(FACTIONS,g.factionOverride))&&(c===null||g.mission?.id==='endless'&&g.floor>=UNLOCK_SETTINGS.corpseStart&&c&&character(c.character)&&g.encounteredCharacters.includes(c.character)&&Number.isInteger(c.x)&&Number.isInteger(c.y)&&g.grid[c.y]?.[c.x]===1&&typeof c.recovered==='boolean');
 }

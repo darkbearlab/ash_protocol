@@ -30,9 +30,10 @@ export function inCone(from,aim,point,halfAngle){
 }
 
 // Nearest first, so a nearer target shields the ones behind it.
-export function coneTargets(g,from,aim,w){
+// blind (3.151.0): a blind shot's pellets reach whoever is in the cone, seen or not.
+export function coneTargets(g,from,aim,w,blind=false){
   const candidates=[...g.enemies.filter(e=>e.hp>0),...g.activeAllies.filter(a=>a.hp>0)]
-    .filter(o=>distance(from,o)<=w.range&&inCone(from,aim,o,w.cone)&&g.visible(o)&&g.shotClear(from,o))
+    .filter(o=>distance(from,o)<=w.range&&inCone(from,aim,o,w.cone)&&(blind||g.visible(o))&&g.shotClear(from,o))
     .sort((a,b)=>Math.hypot(a.x-from.x,a.y-from.y)-Math.hypot(b.x-from.x,b.y-from.y));
   const reached=[];
   for(const o of candidates){

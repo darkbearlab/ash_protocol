@@ -1,5 +1,6 @@
 // Display helpers for unified suppression and learning data (3.74.1, Claude). Rules stay in suppression.js and
 // learning.js; these only restate their state, and text reads SUPPRESSION_TUNING so numbers cannot drift.
+import {suppressionTurns} from './status-timers.js';
 import {suppressionState,SUPPRESSION_TUNING as T} from './suppression.js';
 import {SKILLS} from './skills.js';
 import {TRAITS} from './traits.js';
@@ -11,7 +12,7 @@ export function suppressionTag(actor){
 }
 export function suppressionStatus(actor){
  const s=suppressionState(actor);
- return s.immune||!s.stacks?'':`壓制 ${s.stacks} · 命中 −${s.accuracyPenalty}${s.immobile?' · 無法移動':''}`;
+ return s.immune||!s.stacks?'':`壓制 ${s.stacks} · 命中 −${s.accuracyPenalty}${s.immobile?' · 無法移動':''} · ${suppressionTurns(actor)} 回合`;
 }
 
 // Active skills first, then passives; reasons come straight from learningInventory.

@@ -1,4 +1,5 @@
-import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,recoverOperator,validRunUnlocks} from './run-unlocks.js';
+import {blindFire,blindReason,blindAim,silenced,forgetSeenAftermath} from './blind-fire.js';
+import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,recoverOperator,validRunUnlocks,floorCorpseNote} from './run-unlocks.js';
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
 import {validSquad,postSquads} from './squad.js';
@@ -154,12 +155,12 @@ export class Game {
   get difficultySpec(){return {curve:this.difficulty,offset:this.difficultyOffset};}
   generateFloor(){this.facilityFaction=endlessFaction(this);return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultySpec,this.facilityFaction);}
   loadFloor() {
-    endSkillEffects(this.player);this.sensorContacts=[];this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
+    endSkillEffects(this.player);this.sensorContacts=[];delete this.blindAftermath;this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
     Object.assign(this,{swarmWaves:undefined,mapStyle:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.decoy=null;this.mines=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
     prepareMission(this);recruitConscripts(this);postSquads(this);rigContainers(this);populateRunUnlocks(this);registerPurgeFloor(this);
-    this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();floorVaultNote(this);
+    this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();floorVaultNote(this);floorCorpseNote(this);
   }
   get petSensorContacts(){return petScanContacts(this);}
   get activeAllies(){return currentAllies(this);}
@@ -175,7 +176,8 @@ export class Game {
   weaponAt(slot){if(slot===UNARMED_SLOT)return {...UNARMED};return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot],this.player);}
   fireChance(target){if(this.weapon.melee)return this.meleeAccuracy(this.player,target,this.weapon.hitChance);return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.weapon.closeRange&&distance(this.player,target)<=this.weapon.closeRange?this.weapon.closeAccuracy:0)+actorStat(this.player,'rangedAccuracy')+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)-lightingEffects(this,this.player,target).penalty));}
   get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.teamVisible(e));}
-  get targeted(){return [...this.enemies,...this.props,...this.barriers].find(e=>e.id===this.target&&e.hp>0&&this.teamVisible(e));}
+  // A blind shot (src/blind-fire.js) aims at what stands on its tile, seen or not, only while it resolves.
+  get targeted(){const blind=blindAim(this);if(blind)return blind.target||undefined;return [...this.enemies,...this.props,...this.barriers].find(e=>e.id===this.target&&e.hp>0&&this.teamVisible(e));}
   get perkChoices(){return ensurePerks(this);}
   get exitPoint(){return exitPoint(this);}
   get exitLabel(){return exitLabel(this);}
@@ -253,10 +255,11 @@ export class Game {
     for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(distance(this.player,{x,y})<=radius&&this.sight(this.player,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
     for(const a of this.activeAllies.filter(a=>connected(this,a)))for(let y=Math.max(0,a.y-8);y<=Math.min(SIZE-1,a.y+8);y++)for(let x=Math.max(0,a.x-8);x<=Math.min(SIZE-1,a.x+8);x++)if(distance(a,{x,y})<=8&&this.sight(a,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
     for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert&&!isNoncombatant(e))this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};if(warnings&&isNoncombatant(e))scream(this,e);else if(warnings&&isEnforcer(e))soundAlarm(this,e,target);}}
+    forgetSeenAftermath(this);
     this.autoTarget();
   }
-  autoTarget(){if(!this.targeted)this.target=this.visibleEnemies.filter(e=>!isNoncombatant(e)).sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
-  log(text,danger=false,realText=null){this.logs.unshift({turn:this.turn,text:this.realMode&&realText!==null?realText:text,danger});this.logs=this.logs.slice(0,50);}
+  autoTarget(){if(blindAim(this))return;if(!this.targeted)this.target=this.visibleEnemies.filter(e=>!isNoncombatant(e)).sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
+  log(text,danger=false,realText=null){if(silenced(this))return;this.logs.unshift({turn:this.turn,text:this.realMode&&realText!==null?realText:text,danger});this.logs=this.logs.slice(0,50);}
   reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType]?.key??null;}
   get weaponCapacity(){return CHARACTERS[this.player.character].weaponCapacity;}
   get plateCapacity(){return CHARACTERS[this.player.character].plateCapacity+PERK_D.rack*(this.player.perks?.plate_rack||0);}   // 加掛板架: 3.148.0
@@ -320,6 +323,7 @@ export class Game {
     if(type==='learn'||type==='dismantleLearning'){const reason=learningReason(this,arg,type==='dismantleLearning');return !reason||this.fail(reason);}
     if(type==='meleeChoice')return arg===null||Number.isInteger(arg)&&p.owned.includes(arg)&&this.weaponAt(arg).melee||this.fail('只能選背包裡的近戰武器。');
     if(type==='suppressiveFire'){const reason=suppressiveReason(this,arg);return !reason||this.fail(reason);}
+    if(type==='blindFire'){const reason=blindReason(this,arg);return !reason||this.fail(reason+'。');}
     if(type==='feedPet'){const q=petFeedQuote(this,arg);return q.allowed||this.fail(q.reason);}
     if(type==='setPetOutput')return !outputChoiceReason(this,arg)||this.fail(outputChoiceReason(this,arg));
     if(type==='buildUnit'){const reason=buildReason(this,arg?.blueprint,arg?.payload,arg?.weapon);return !reason||this.fail(reason);}
@@ -418,13 +422,13 @@ export class Game {
       else if(type==='meleeChoice'){p.meleeSlot=arg;this.log(arg===null?'撞擊時改用背包裡第一把近戰武器。':`撞擊時使用${this.weaponAt(arg).name}。`);return true;}
       return true;
     }
-    if(this.pursuit&&!p.recovery&&['fire','launch','bumpMelee','grenade','grapple','suppressiveFire'].includes(type)){
+    if(this.pursuit&&!p.recovery&&['fire','blindFire','launch','bumpMelee','grenade','grapple','suppressiveFire'].includes(type)){
       this.pursuit=0;const intent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:arg;
       const success=this.executePlayer(type,intent);p.guard=false;p.focus=false;p.evasive=false;p.moved=success&&type==='grapple'&&p.moved;
       this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';}this.finishPursuit();return success;
     }
     this.pursuit=0;
-    const doubleAttack=skillActive(p,'anchor')&&['fire','bumpMelee','suppressiveFire'].includes(type),previousChain=p.fireChain?{...p.fireChain}:null;
+    const doubleAttack=skillActive(p,'anchor')&&['fire','blindFire','bumpMelee','suppressiveFire'].includes(type),previousChain=p.fireChain?{...p.fireChain}:null;
     const fireIntent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:null,floor=this.floor,queue=initiativeQueue(p,this.enemies,this.activeAllies),playerSpeed=queue.find(q=>q.actor===p).speed;
     if(doubleAttack){
       queue.find(q=>q.actor===p).speed=1;
@@ -547,6 +551,7 @@ export class Game {
       case 'door':success=presentStep(this,()=>{const b=this.nearbyDoors.find(b=>b.id===arg.id);if(b?.locked&&arg.open)unlockVault(this,b);return this.setDoor(b,arg.open);});break;
       case 'bumpMelee': this.target=arg.id;success=this.strike(arg,arg.slot);break;
       case 'fire': success=this.fire(arg);break;
+      case 'blindFire': success=blindFire(this,arg);break;
       case 'suppressiveFire':success=suppressiveFire(this,arg);break;
       case 'reload': success=this.reload();break;
       case 'heal':
@@ -631,11 +636,11 @@ export class Game {
   }
   // 3.112.0 (user request): one shell, every enemy and ally the cone reaches. 3.141.0 (user decisions 2026-09-19): each
   // takes the pellets its distance allows, every pellet rolling a flat chance and its own damage (src/shotgun.js).
-  fireCone(aim){
+  fireCone(aim,blind=false){
     const p=this.player,w=this.weapon;
     if(p.ammo[p.weapon]<=0)return this.fail('彈匣已空，請裝填。');
     p.facing=[Math.sign(aim.x-p.x),Math.sign(aim.y-p.y)];
-    const targets=coneTargets(this,p,aim,w),hits=new Set();
+    const targets=coneTargets(this,p,aim,w,blind),hits=new Set();
     presentStep(this,()=>{
       this.recordExposure(p,aim);p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
       if(!targets.length){
@@ -1164,7 +1169,7 @@ export class Game {
       if(advanceTurn)this.turn++;
       Object.assign(this,resumedFloor(frame,this.turn));delete this.floorStates[next];this.floor=next;
       Object.assign(p,arrival,{guard:false,focus:false,evasive:false,moved:false,moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null});
-      endSkillEffects(p);this.sensorContacts=[];p.vaultExposed=false;this.target=null;arriveAllies(this,companions);scheduleRetreatWave(this);this.reveal();
+      endSkillEffects(p);this.sensorContacts=[];delete this.blindAftermath;p.vaultExposed=false;this.target=null;arriveAllies(this,companions);scheduleRetreatWave(this);this.reveal();
       this.log(`返回${floorInfo(this.floor).name}：物資與戰場保持原狀，沒有換層補給。`);return true;
     }
     if(missionDefinition(this).returnTrip)this.floorStates[this.floor]=archiveFloor(this);
@@ -1178,7 +1183,7 @@ export class Game {
     recordPerkOffer(this);applyPerk(this,offer);this.pendingPerks--;this.perkPicks++;this.perkDraft=null;ensurePerks(this);
     this.log(`模組已安裝：${offer.name}。`);return true;
   }
-  serialize(){ensurePerks(this);const {rng,effects,visibleTiles,onEnemyCallout,pursuitPending,pursuitBlocked,shadowBonus,...data}=this;return JSON.stringify({version:SAVE_VERSION,data,rngState:rng.state()});}
+  serialize(){ensurePerks(this);const {rng,effects,visibleTiles,onEnemyCallout,pursuitPending,pursuitBlocked,shadowBonus,blindAftermath,...data}=this;return JSON.stringify({version:SAVE_VERSION,data,rngState:rng.state()});}
   static restore(raw) {
     try {
       const {version,data,rngState}=JSON.parse(raw);
