@@ -52,10 +52,11 @@ test('learning validates ownership, counters and IDs and never consumes rejected
 });
 // 3.113.0: the eight class skills left the pool; suppressive fire belongs to no class and is the one active manual left.
 // 3.135.0 (user decision): night vision and infrared are no longer found; night-vision goggles are.
-test('container pool has exactly 8 weapons + 1 active + 15 passive manuals + goggles; deterministic seed-derived contents ignore combat RNG',()=>{
- assert.equal(UNKNOWN_LOOT.length,25);assert.ok(UNKNOWN_LOOT.some(x=>x.type==='nvg'));assert.ok(!UNKNOWN_LOOT.some(x=>['trait_night_vision','trait_infrared'].includes(x.learningId)));const found=new Set();
+// 3.148.0 (user decision): disruption resistance and agile join as manuals, 25 -> 27.
+test('container pool has exactly 8 weapons + 1 active + 17 passive manuals + goggles; deterministic seed-derived contents ignore combat RNG',()=>{
+ assert.equal(UNKNOWN_LOOT.length,27);assert.ok(['trait_disruption_resistant','trait_agile'].every(id=>UNKNOWN_LOOT.some(x=>x.learningId===id)));assert.ok(UNKNOWN_LOOT.some(x=>x.type==='nvg'));assert.ok(!UNKNOWN_LOOT.some(x=>['trait_night_vision','trait_infrared'].includes(x.learningId)));const found=new Set();
  for(let seed=0;seed<1000;seed++){const base={generation:{version:2},props:[{id:'case-1-unknown-0',type:'container',kind:'unknown',opened:false}]};const a=fillUnknownContainers(structuredClone(base),seed,1),b=fillUnknownContainers(structuredClone(base),seed,1);assert.deepEqual(a,b);assert.equal(a.props[0].contents.length,1);found.add(JSON.stringify(a.props[0].contents[0]));}
- assert.equal(found.size,25);assert.ok(UNKNOWN_LOOT.every(x=>Object.hasOwn(x,'unlockId')));
+ assert.equal(found.size,27);assert.ok(UNKNOWN_LOOT.every(x=>Object.hasOwn(x,'unlockId')));
 });
 test('container contents persist, weapon opening registers a stable slot, duplicate manuals are collected unchanged',()=>{
  const g=game(),c=g.props.find(c=>c.type==='container');assert.ok(c);c.kind='unknown';c.contents=[{type:'weapon',weapon:11}];assert.ok(validContainers(g.props,g.grid));Object.assign(g.player,{x:c.x,y:c.y});assert.ok(g.openContainer(c.id));const item=g.items.find(i=>i.weapon===11);assert.ok(Number.isInteger(item.slot));assert.equal(g.player.weaponBases[item.slot],11);assert.ok(Game.restore(g.serialize()));

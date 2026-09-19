@@ -26,6 +26,7 @@ export const TERMINAL_ITEMS={
  // 3.135.0 (user decision, docs/ITEMS.md): night-vision goggles are no longer sold — snipers drop them and they turn up
  // in unidentified crates. The price stays only as the base of their trade-in value.
  nvg:{cost:40,wear:'nvg',sold:false},
+ irg:{cost:40,wear:'irg',sold:false},   // 3.148.0: found on squad leaders, never sold; traded in like the goggles
  barricade:{cost:25,resource:'barricades'},
  flare:{cost:15,resource:'flares'},
  // 3.144.0 (src/field-gear.js): the decoy and mine; the exoskeleton, which like armour plates cannot be traded back in

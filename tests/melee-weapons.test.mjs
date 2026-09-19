@@ -92,6 +92,6 @@ test('difficult healing halves the medkit alone; the medic bonus is added in ful
 
 test('unidentified crates hold the five new blades and the carry learning data; a blade swing is drawn as a slash',()=>{
  for(const id of ['knife','claws','sabre','spear','chainsaw'])assert.ok(UNKNOWN_LOOT.some(x=>x.type==='weapon'&&x.weapon===W[id]),id);
- assert.ok(UNKNOWN_LOOT.some(x=>x.learningId==='trait_extended_carry'));assert.ok(LEARNING_ITEMS.trait_extended_carry);assert.equal(UNKNOWN_LOOT.length,25);
+ assert.ok(UNKNOWN_LOOT.some(x=>x.learningId==='trait_extended_carry'));assert.ok(LEARNING_ITEMS.trait_extended_carry);assert.equal(UNKNOWN_LOOT.length,27);   // 3.148.0: +2 manuals
  for(const id of ['axe','katana','loot_axe','sabre','chainsaw'])assert.deepEqual(projectileVisuals({type:'shot',weaponId:id,style:'slash',from:{x:0,y:0},to:{x:1,y:0}}).map(v=>[v.style,v.flash]),[['slash',null]],id);
 });

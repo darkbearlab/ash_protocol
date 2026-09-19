@@ -1,4 +1,5 @@
 import {actorStat,meleeChance} from './actor-stats.js';
+import {PERK_D} from './data.js';
 import {lightingEffects} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
 import {blockedBetween,edgeAdjacent,edgeBlocks} from './barriers.js';
@@ -38,9 +39,10 @@ export function shotChance(game,attacker,target) {
   const moving=Boolean(target.moved);
   const weapon=attacker===game.player?game.weapon:game.actorWeapon?.(attacker),accuracyBonus=weapon?.accuracyBonus||0;
   const innateAccuracy=actorStat(attacker,'rangedAccuracy'),innateEvasion=actorStat(target,'rangedEvasion');
-  const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)-(weapon?.tracking||0)):0,coverPenalty=protection.penalty;
+  // 3.148.0 升級 D: 游擊 raises the penalty for shooting you after you moved; 沉著 raises what your wait adds to your aim.
+  const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)+PERK_D.skirmish*(target.perks?.skirmish||0)-(weapon?.tracking||0)):0,coverPenalty=protection.penalty;
   // 3.125.0: 已就緒 is the squad's wait, so it reads the same two numbers the player's wait does.
-  const focusBonus=attacker.focus||activeTrait(attacker,'ready')?15:0,evasionPenalty=target.evasive||activeTrait(target,'ready')?15:0;
+  const focusBonus=attacker.focus||activeTrait(attacker,'ready')?15+(attacker.focus?PERK_D.steady*(attacker.perks?.steady||0):0):0,evasionPenalty=target.evasive||activeTrait(target,'ready')?15:0;
   // 3.111.0 (user request): a precision rifle that has not spent a turn aiming is far less accurate. Waiting already sets
   // focus for every weapon, so the aim is the existing wait. Player only: allies and enemies have no way to aim.
   const aimPenalty=attacker===game.player&&weapon?.aimPenalty&&!attacker.focus?weapon.aimPenalty:0;

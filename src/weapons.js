@@ -1,6 +1,6 @@
 import {rapidFireModifiers} from './suppression.js';
 import {AMMUNITION} from './ammunition.js';
-import {WEAPONS} from './data.js';
+import {WEAPONS,PERK_D} from './data.js';
 import {activeTrait} from './traits.js';
 
 // Stable IDs are stored in saves. Affixes affect the base gun; +1 tuning stays +5 damage.
@@ -24,11 +24,24 @@ export const AFFIXES={
 export const DROP_ONLY_CHANCE=.15;
 export const dropOnlyAffixes=base=>Object.keys(AFFIXES).filter(id=>AFFIXES[id].dropOnly?.includes(WEAPONS[base]?.id));
 export const affixAllowed=(base,affix)=>affix===null||Object.hasOwn(AFFIXES,affix)&&(!AFFIXES[affix].dropOnly||AFFIXES[affix].dropOnly.includes(WEAPONS[base]?.id));
+// 3.148.0 改裝精通 (升級 D, docs/PERK_GROWTH.md): each rank adds a quarter of a regular affix's upside again; its downside
+// stays, and the drop-only affixes are untouched. Accuracy, range and tracking round down.
+export const masteryRank=actor=>actor?.perks?.mod_mastery||0;
+export function masteredAffix(a,rank){
+  if(!rank||a.dropOnly)return a;const k=1+PERK_D.mastery*rank,up={...a};
+  if(a.accuracy>0)up.accuracy=Math.floor(a.accuracy*k);
+  if(a.damage>1)up.damage=1+(a.damage-1)*k;
+  if(a.mag>1)up.mag=1+(a.mag-1)*k;
+  if(a.pierce>0)up.pierce=a.pierce*k;
+  if(a.range>0)up.range=Math.floor(a.range*k);
+  if(a.tracking>0)up.tracking=Math.floor(a.tracking*k);
+  return up;
+}
 export function weaponStats(base,affix=null,actor=null){
   const w=WEAPONS[base];if(w.melee)return {...w,affix:null,affixText:w.desc,accuracyBonus:0,tracking:0};
-  const a=AFFIXES[affix]||{};
+  const rank=AFFIXES[affix]&&!AFFIXES[affix].dropOnly?masteryRank(actor):0,a=masteredAffix(AFFIXES[affix]||{},rank);
   const burstRange=w.range+(a.range||0),extended=w.weaponClass==='smg'&&activeTrait(actor,'extended_burst');
-  return {...w,name:a.name?`${a.name}・${w.name}`:w.name,affix,affixText:(a.text||'標準型，沒有詞條')+(w.lootOnly?` · ${w.desc}`:'')+(extended?` · 延伸點射：${burstRange} 格內兩發，${burstRange+1}–${burstRange+2} 格單發`:''),
+  return {...w,name:a.name?`${a.name}・${w.name}`:w.name,affix,affixText:(a.text||'標準型，沒有詞條')+(rank?` · 改裝精通：好處 +${Math.round(PERK_D.mastery*rank*100)}%`:'')+(w.lootOnly?` · ${w.desc}`:'')+(extended?` · 延伸點射：${burstRange} 格內兩發，${burstRange+1}–${burstRange+2} 格單發`:''),
     min:Math.round(w.min*(a.damage||1)),max:Math.round(w.max*(a.damage||1)),
     ...(w.closeRange?{closeMin:Math.round(w.closeMin*(a.damage||1)),closeMax:Math.round(w.closeMax*(a.damage||1))}:{}),
     ...(w.farFrom?{farMin:Math.round(w.farMin*(a.damage||1)),farMax:Math.round(w.farMax*(a.damage||1))}:{}),

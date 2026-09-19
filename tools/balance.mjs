@@ -37,7 +37,10 @@ function blastSpot(g,priority){
 }
 export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
   const g=new GameType(seed,[],0,character),visited=new Set();let invalid=0,actions=0,huntingBossFloor=null,progress='',detourUntil=0,navigation=null;const visits=new Map();
-  const act=(type,arg)=>{actions++;if(!g.action(type,arg))invalid++;};
+  // A refused action changes nothing, so the bot would ask for it again forever (3.148.0: swapping with a summon across a
+  // low partition). After three refusals in a row it waits a turn instead.
+  let refused=0;
+  const act=(type,arg)=>{actions++;if(g.action(type,arg)){refused=0;return;}invalid++;if(++refused>=3){refused=0;g.action('wait');}};
   for(let i=0;i<maxActions&&g.status==='playing';i++) {
     const p=g.player;navigation={...p,tactics:navigation?.tactics||null};
     const milestone=g.floor+':'+p.kills;if(milestone!==progress){progress=milestone;visits.clear();detourUntil=0;navigation.tactics=null;}

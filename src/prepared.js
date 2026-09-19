@@ -21,6 +21,8 @@ export const PREPARED_CATALOG={
    // the redeploy line costs a turn. Aimed like a flare: pick the landing tile, confirm.
    escape_line:{name:'逃命繩索',short:'逃命繩',icon:'↟',resource:'escapeLines',action:'rope',aim:'throw',text:'不消耗回合。朝 6 格內看得見的地板射出繩索，沿直線把你拉過去；牆、實心物件和其他單位會擋住，幼蟲不會。一條只能用一次。'},
    redeploy_line:{name:'重部署鉤索',short:'鉤索',icon:'⇢',resource:'redeployLines',action:'rope',aim:'throw',text:'消耗 1 回合。朝 6 格內看得見的地板射出鉤索，沿直線把你拉過去；牆、實心物件和其他單位會擋住，幼蟲不會。一條只能用一次。'},
+   // 3.148.0 (user decision 2026-09-19): infrared goggles, the night-vision goggles' counterpart; squad leaders drop them.
+   irg:{name:'紅外線護目鏡',short:'紅外',icon:'◍',wear:true,traits:['infrared'],text:'佩戴期間看得穿煙霧（牆與關著的門照樣擋），不抵銷暗區懲罰；會受震撼彈失能。戴上與脫下各消耗 1 回合，佩戴期間道具鍵停用。'},
    nvg:{name:'夜視鏡',short:'夜視',icon:'◉',wear:true,traits:['night_vision'],text:'佩戴期間忽略目標暗區的射擊命中懲罰（不穿煙）。戴上與脫下各消耗 1 回合，佩戴期間道具鍵停用。'},
    // 3.144.0 (user decisions 2026-09-19, src/field-gear.js, docs/ITEMS.md): a decoy thrown like a flare, a mine laid
    // within three tiles, and the exoskeleton, a wearable with plates of its own.

@@ -4,7 +4,8 @@ import {skillValues} from './skills.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {perkLimit} from './endless.js';
 import {healActor} from './traits.js';
-import {PERKS} from './data.js';
+import {PERKS,PERK_D} from './data.js';
+import {AFFIXES} from './weapons.js';
 import {random} from './world.js';
 export const AMMO_DROP={base:.35,perTier:.15,maxTier:3};
 export const ammoDropChance=p=>AMMO_DROP.base+AMMO_DROP.perTier*Math.min(AMMO_DROP.maxTier,p.perks?.ammo_recovery||0);
@@ -18,7 +19,10 @@ export const perkDef=(g,o)=>o&&g?.perkRules===1&&o.classic?{...o,...o.classic}:o
 const isClass=o=>Boolean(o.characters?.length);
 const count=(p,id)=>p.perks[id]||0;
 // Future content may restrict characters or provide an eligibility predicate.
-export const eligiblePerks=g=>PERKS.filter(o=>(o.cap===null||count(g.player,o.id)<o.cap)&&(!o.characters||o.characters.includes(g.player.character))&&(!o.eligible||o.eligible(g)));
+// 3.148.0: `rules` ties a perk to the runs it belongs to (perkRules 3 from 3.148.0); 改裝精通 needs a weapon with a regular affix.
+export const hasRegularAffix=p=>(p.owned||[]).some(slot=>{const a=AFFIXES[p.affixes?.[slot]];return a&&!a.dropOnly;});
+const ELIGIBLE={mod_mastery:g=>hasRegularAffix(g.player)};
+export const eligiblePerks=g=>PERKS.filter(o=>(o.cap===null||count(g.player,o.id)<o.cap)&&(!o.characters||o.characters.includes(g.player.character))&&(!o.rules||o.rules.includes(g.perkRules??2))&&(!o.eligible||o.eligible(g))&&(!ELIGIBLE[o.id]||ELIGIBLE[o.id](g)));
 // Armour-plate salvage (3.51.0): armoured enemies drop far more often, ordinary ones start dropping at all.
 // The chance is derived from the stored perk count, so no new save field is needed. A zero chance must not
 // roll at all, or an unmodified run would consume a different random stream than before.
@@ -59,6 +63,7 @@ export function applyPerk(g,o){
  case 'medic':p.healBonus+=o.amount;g.receiveItem('medkit',1);break;
  case 'hazmat':p.hazmat+=o.amount;clearPoison(p);break;
  case 'plating':p.plates=Math.min(g.plateCapacity,(p.plates||0)+o.amount);break;
+ case 'rack':p.plates=Math.min(g.plateCapacity+PERK_D.rack,(p.plates||0)+o.amount);break;   // the rank is counted just below
  case 'combat':p.combatModifiers={...p.combatModifiers};for(const key of o.stats)p.combatModifiers[key]=Math.min(100,(p.combatModifiers[key]||0)+o.amount);break;
  default:throw new Error('Unknown perk effect');
  }
@@ -89,4 +94,7 @@ export function validPerks(g){
  if(d===null)return true;
  return g.pendingPerks>0&&d&&d.index===g.perkPicks&&Array.isArray(d.ids)&&d.ids.length>0&&d.ids.length<=3&&new Set(d.ids).size===d.ids.length&&d.ids.every(id=>eligiblePerks(g).some(o=>o.id===id));
 }
+// 3.148.0 升級 D.
+export const steadyBonus=p=>PERK_D.steady*(p?.perks?.steady||0);
+export const skirmishBonus=p=>PERK_D.skirmish*(p?.perks?.skirmish||0);
 export const perkRank=(p,o)=>o.cap===null?`已取得 ${count(p,o.id)} 次 · 可重複`:`${count(p,o.id)}/${o.cap} → ${count(p,o.id)+1}/${o.cap}`;

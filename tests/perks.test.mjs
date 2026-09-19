@@ -5,7 +5,9 @@ import {drawPerks,eligiblePerks} from '../src/perks.js';
 // 3.138.0 (docs/PERK_GROWTH.md): the direct-number perks give less per rank; tests/perk-growth.test.mjs covers the rules.
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
-const ready=(seed=12)=>{const g=new Game(seed);g.player.level=3;g.pendingPerks=2;return g;};
+// 3.148.0: these cover the perks of 3.138.0-3.147.0 runs (perkRules 2), which keep 武器增幅, 複合裝甲, 精準射擊 and 戰術閃避;
+// tests/perk-d.test.mjs covers the perks that replace them in newer runs.
+const ready=(seed=12)=>{const g=new Game(seed);g.perkRules=2;g.player.level=3;g.pendingPerks=2;return g;};
 const offer=(g,id)=>{g.pendingPerks=Math.max(1,g.pendingPerks);g.player.level=Math.max(g.player.level,g.perkPicks+g.pendingPerks+1);g.perkDraft={index:g.perkPicks,ids:[id]};return g.choosePerk(id);};
 test('offers are distinct, reproducible, frozen across reads and reloads, and independent from battle RNG',()=>{
  const g=ready(),state=g.rng.state(),ids=g.perkChoices.map(o=>o.id);assert.equal(new Set(ids).size,3);

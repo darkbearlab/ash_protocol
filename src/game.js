@@ -45,7 +45,7 @@ import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambu
 import {healActor} from './traits.js';
 import {DETOUR_TRAIT,DETOUR_TUNING,exposedFrom,watchPoint} from './detour.js';
 import {orderHit,validOrders} from './orders.js';
-import {LINE_ITEMS,lineReason,lineDrop,goggleDrop,isLineItem} from './lines.js';
+import {LINE_ITEMS,lineReason,lineDrop,goggleDrop,infraredDrop,isLineItem} from './lines.js';
 import {attackSpeed,thrustTargets,MELEE_WEAPON_TUNING} from './melee-weapons.js';
 import {CARRY_TUNING,CAPPED_ITEMS,itemGroundType,groundItemId,itemCapacity} from './prepared.js';
 import {tickPounces,validPounce} from './pounce.js';
@@ -78,7 +78,7 @@ import {AFFIXES,weaponStats,rollAffix,affixAllowed} from './weapons.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,TERMINAL_AMMO} from './ammunition.js';
 import {presentStep} from './presentation.js';
 import {registerPurgeFloor,notePurgeDeparture,validPurge} from './purge-review.js';
-import {SIZE,SAVE_VERSION,LEGACY_SAVE_VERSIONS,RARE_ARMORY,WEAPONS,FLOORS,floorInfo,ENEMY_TYPES,PERKS} from './data.js';
+import {SIZE,SAVE_VERSION,LEGACY_SAVE_VERSIONS,RARE_ARMORY,WEAPONS,FLOORS,floorInfo,ENEMY_TYPES,PERKS,PERK_D} from './data.js';
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {combatSight,wallCover,adjacentWalls,shotChance,bracingBonus} from './combat.js';
@@ -139,7 +139,7 @@ export class Game {
     // 3.137.0 (docs/DIFFICULTY.md): the difficulty curve, easy or standard; 'classic' only for runs started earlier.
     this.difficulty=options.difficulty??DEFAULT_CURVE;if(!validCurve(this.difficulty))throw new Error('Invalid difficulty');
     // 3.138.0 (docs/PERK_GROWTH.md): the perk rules this run uses; runs started earlier restore as 1.
-    this.perkRules=2;
+    this.perkRules=3;   // 3.148.0 升級 D (docs/PERK_GROWTH.md); 2 = 3.138.0-3.147.0, 1 = before 3.138.0
     this.facilityFaction=options.facilityFaction==='random'?rollFacilityFaction(seed):factionDef(options.facilityFaction)?options.facilityFaction:pickFacilityFaction(seed,mission);this.mission=newMission(mission);this.carryLevel=carryLevels(0);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
     this.player.skills=[...(CHARACTERS[character].skills||[])];this.player.skillState=initialSkillState(this.player.skills);
@@ -259,7 +259,7 @@ export class Game {
   log(text,danger=false,realText=null){this.logs.unshift({turn:this.turn,text:this.realMode&&realText!==null?realText:text,danger});this.logs=this.logs.slice(0,50);}
   reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType]?.key??null;}
   get weaponCapacity(){return CHARACTERS[this.player.character].weaponCapacity;}
-  get plateCapacity(){return CHARACTERS[this.player.character].plateCapacity;}
+  get plateCapacity(){return CHARACTERS[this.player.character].plateCapacity+PERK_D.rack*(this.player.perks?.plate_rack||0);}   // 加掛板架: 3.148.0
   ammoCapacity(type){const base=capacity(type,0)+classCarryBonus(this.player.character,type);return !activeTrait(this.player,'extended_carry')?base:type==='grenade'?base+CARRY_TUNING.throwBonus:Math.round(base*CARRY_TUNING.ammoBonus);}
   // 3.136.0 (user decision): carried items stop at five; what does not fit stays at your feet, like ammunition.
   itemCapacity(){return itemCapacity(this.player);}
@@ -855,6 +855,8 @@ export class Game {
     // 3.135.0 (user decisions): lines from any armed enemy and goggles from snipers, on fixed rolls of their own.
     const line=hasEnemyTag(e,'armed')?lineDrop(this.seed,this.floor,e.id):null;if(line)this.items.push({...this.enemyDropPoint(e),...line});
     if(enemyDef(e)?.dropsGoggles&&goggleDrop(this.seed,this.floor,e.id))this.items.push({...this.enemyDropPoint(e),type:'nvg'});
+    // 3.148.0: infrared goggles from squad leaders, the same kind of fixed roll.
+    if(enemyDef(e)?.dropsInfrared&&infraredDrop(this.seed,this.floor,e.id))this.items.push({...this.enemyDropPoint(e),type:'irg'});
   }
   enemyDropPoint(e){
     // 3.127.2: a flyer killed above a cover prop must not leave its loot on a tile the player can never step on.
@@ -1089,6 +1091,7 @@ export class Game {
       // 3.146.0: the keycard opens this floor's vault; a vault's exoskeleton comes with its full plates.
       else if(item.type==='key')pickKeycard(this);
       else if(item.type==='exo'){if(p.wearables.includes('exo')||activeTrait(p,'large')){this.log('這副外骨骼你用不上，留在原地。');return true;}p.wearables.push('exo');p.exoPlates=EXO_TUNING.plates;this.log('取得外骨骼。在背包裡預備就能穿上。');}
+      else if(item.type==='irg'){if(p.wearables.includes('irg')){this.log('已經有一副紅外線護目鏡，這副留在原地。');return true;}p.wearables.push('irg');this.log('取得紅外線護目鏡。在背包裡預備就能戴上。');}
       else if(item.type==='nvg'){if(p.wearables.includes('nvg')){this.log('已經有一副夜視鏡，這副留在原地。');return true;}p.wearables.push('nvg');this.log('取得夜視鏡。在背包裡預備就能戴上。');}
       else if(item.type==='armor'){const amount=Math.min(item.amount||20,this.plateCapacity-(p.plates||0));if(amount<=0){this.log('護甲板已滿，補給留在原地。');return true;}p.plates=(p.plates||0)+amount;this.log(`修復護甲板 +${amount}（${p.plates}/${this.plateCapacity}）。`);}
       else if(item.type==='scrap'){const amount=Math.round((item.amount||15)*(1+p.scavenger*.5));p.scrap+=amount;this.log(`回收廢料 +${amount}。`);}
@@ -1203,7 +1206,7 @@ export class Game {
       if(!validCurve(data.difficulty))return null;
       // 3.138.0: a run started before the slower perks keeps the classic perk rules.
       if(version<65)data.perkRules=1;
-      if(![1,2].includes(data.perkRules))return null;
+      if(![1,2,3].includes(data.perkRules))return null;
       // 3.113.0: class skills are no longer learnable. Anything still holding one of the retired data items becomes
       // the scrap it would have dismantled for, wherever it is: in the pack, on the ground, or in an unopened case,
       // on this floor and on every archived one. Skills already learned from them are kept.

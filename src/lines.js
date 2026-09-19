@@ -31,6 +31,12 @@ export function lineDrop(seed,floor,id){
 }
 // Night-vision goggles from a sniper (3.135.0): the same kind of fixed roll.
 export const NVG_DROP=.25;
+// Infrared goggles from a squad leader (3.148.0), on a roll of their own.
+export const IRG_DROP=.25;
+export function infraredDrop(seed,floor,id){
+ let h=2166136261;for(const ch of `${seed}:${floor}:${id}:irg-v1`){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
+ return (h>>>0)/4294967296<IRG_DROP;
+}
 export function goggleDrop(seed,floor,id){
  let h=2166136261;for(const ch of `${seed}:${floor}:${id}:nvg-v1`){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
  return (h>>>0)/4294967296<NVG_DROP;

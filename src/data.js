@@ -2,7 +2,7 @@ import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 67;
+export const SAVE_VERSION = 68;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -86,26 +86,35 @@ for(const [base,rounds,ammo,tint,name] of [['rifleman',3,'ammo','#8fa06a','被�
  ENEMY_TYPES[`${base}_infected`]=variantCard(base,{name,rounds,combat:{rangedAccuracy:-35},loot:{ammo},voice:'infected',sprite:{key:base,tint},role:'被蟲族寄生的士兵：一次連發很多發，但幾乎打不準；只要命中仍會造成壓制。'});
 // Squad leader (3.125.0, user design): support first, rifle second. It identifies the player's weapon, sends the squad
 // to positions that answer it, and spends its own action keeping them 已就緒, so it is the unit to shoot first.
-ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],traits:['suppression_resistance','night_vision','infrared'],rounds:1,attackStyle:'bullet',behavior:'squad_leader',loot:{weapon:0,chance:.2,ammo:'ammo'},name:'小隊長',hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:'指揮官：識別你手上的武器，把隊員派到能有效還擊的位置，並讓全隊保持「已就緒」。它活著時隊員會壓制你。'};
+ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],traits:['suppression_resistance','night_vision','infrared'],dropsInfrared:true,rounds:1,attackStyle:'bullet',behavior:'squad_leader',loot:{weapon:0,chance:.2,ammo:'ammo'},name:'小隊長',hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:'指揮官：識別你手上的武器，把隊員派到能有效還擊的位置，並讓全隊保持「已就緒」。它活著時隊員會壓制你。'};
 // Enforcer (3.127.0, user design, docs/REBELS.md): slow, with a long and hopeless gun; its real work is executing the
 // rebels who hide, which throws the whole unit back into the fight. Two a floor, three from floor 7.
 ENEMY_TYPES.enforcer={sprite:{key:'rifleman',tint:'#8a3a34'},drawing:{shape:'humanoid',color:'#8a3a34'},projectile:'rifle',casing:'pistol',tags:['armed'],traits:['slow'],rounds:1,attackStyle:'bullet',behavior:'enforcer',speaksAs:'enforcer',maxPerFloor:2,maxPerFloorDeep:3,combat:{rangedAccuracy:-40},loot:{weapon:2,chance:.18,ammo:'pistol'},name:'督戰官',hp:40,damage:10,range:10,armor:1,color:'#8a3a34',xp:2,role:'叛軍的督戰官：行動緩慢，一把射程很遠卻幾乎打不中的槍。看到你會警告附近所有敵人，然後躲到掩體後，不會自己衝上來。盯上躲起來的叛軍、下一回合處決，讓周圍所有人立刻歸隊開火。先殺它，或搶先殺掉被盯上的那個。'};
 // Stable IDs; append content without changing saved offers. null cap means consumable reward.
 // 3.138.0 (user decisions 2026-09-19, docs/PERK_GROWTH.md): the direct-number perks give less per rank. `classic` holds the
 // values a run started before 3.138.0 keeps (src/perks.js perkDef); the utility perks are unchanged.
+// 3.148.0 升級 D (docs/PERK_GROWTH.md): per rank, the wait's aim bonus, the moving penalty you give enemies, how much of
+// a regular affix's upside is added again, and the plate capacity.
+export const PERK_D=Object.freeze({steady:8,skirmish:6,mastery:.25,rack:10});
 export const PERKS = [
-  {id:'damage',name:'武器增幅',cap:3,effect:'weapon',amount:4,text:'每次完整武器攻擊傷害合計 +4，連發分攤；每次近戰 +4。',classic:{amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'}},
+  {id:'damage',rules:[1,2],name:'武器增幅',cap:3,effect:'weapon',amount:4,text:'每次完整武器攻擊傷害合計 +4，連發分攤；每次近戰 +4。',classic:{amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'}},
   {id:'health',name:'生存本能',cap:3,effect:'health',amount:20,heal:30,text:'最大生命 +20，立即回復 30 生命。',classic:{amount:25,heal:40,text:'最大生命 +25，立即回復 40 生命。'}},
-  {id:'armor',name:'複合裝甲',cap:3,effect:'stat',stat:'armor',amount:2,text:'每次直接受傷減少 2 點。',classic:{amount:3,text:'每次直接受傷減少 3 點。'}},
+  {id:'armor',rules:[1,2],name:'複合裝甲',cap:3,effect:'stat',stat:'armor',amount:2,text:'每次直接受傷減少 2 點。',classic:{amount:3,text:'每次直接受傷減少 3 點。'}},
   {id:'med',name:'戰地補給',cap:null,effect:'supply',text:'獲得 2 醫療包、2 手榴彈與分類備彈；超量彈藥留在腳下。'},
   {id:'blast',name:'爆破專家',cap:3,effect:'stat',stat:'blastBonus',amount:12,text:'破片手榴彈與爆炸武器傷害 +12。',classic:{amount:18,text:'破片手榴彈與爆炸武器傷害 +18。'}},
   {id:'scavenger',name:'資源回收',cap:3,effect:'scavenger',amount:1,text:'擊殺與撿到的廢料 +50%，立即獲得 15 廢料。'},
   {id:'medic',name:'急救訓練',cap:3,effect:'medic',amount:20,text:'醫療包回復量 +20；立即獲得 1 醫療包。'},
   {id:'hazmat',name:'密封防護',cap:3,effect:'hazmat',amount:5,text:'環境傷害 −5、中毒每回合傷害 −1，立即解除中毒；第 3 階免疫現有環境傷害。'},
-  {id:'accuracy',name:'精準射擊',cap:3,effect:'combat',stats:['rangedAccuracy'],amount:5,text:'射擊命中 +5 個百分點。',classic:{amount:8,text:'射擊命中 +8 個百分點。'}},
-  {id:'evasion',name:'戰術閃避',cap:3,effect:'combat',stats:['rangedEvasion'],amount:5,text:'被射擊命中 −5 個百分點。',classic:{amount:8,text:'被射擊命中 −8 個百分點。'}},
+  {id:'accuracy',rules:[1,2],name:'精準射擊',cap:3,effect:'combat',stats:['rangedAccuracy'],amount:5,text:'射擊命中 +5 個百分點。',classic:{amount:8,text:'射擊命中 +8 個百分點。'}},
+  {id:'evasion',rules:[1,2],name:'戰術閃避',cap:3,effect:'combat',stats:['rangedEvasion'],amount:5,text:'被射擊命中 −5 個百分點。',classic:{amount:8,text:'被射擊命中 −8 個百分點。'}},
   {id:'melee',name:'格鬥訓練',cap:3,effect:'combat',stats:['meleeAccuracy','meleeEvasion'],amount:8,text:'近戰命中與近戰迴避各 +8 個百分點。'},
   {id:'plating',name:'裝甲回收',cap:3,effect:'plating',amount:10,text:'有裝甲的敵人掉落護甲板的機率 +15 個百分點（基礎 20%），一般敵人也有 6% 機率掉落 5 點；立即獲得 10 護甲板。'},
+  // 3.148.0 (user decisions 2026-09-19, docs/PERK_GROWTH.md 升級 D): runs started from 3.148.0 (perkRules 3) get these four
+  // in place of 武器增幅, 複合裝甲, 精準射擊 and 戰術閃避, which stay with older runs. Numbers in PERK_D.
+  {id:'steady',rules:[3],name:'沉著',cap:3,effect:'passive',text:'等待後下一次射擊的命中加成 +8（基礎 15）。'},
+  {id:'skirmish',rules:[3],name:'游擊',cap:3,effect:'passive',text:'你移動之後，敵人射擊你時的移動懲罰 +6（基礎 22）。'},
+  {id:'mod_mastery',rules:[3],name:'改裝精通',cap:3,effect:'passive',text:'身上武器的一般詞條，好處放大 25%，壞處不變（射程無條件捨去）；貫穿、爆裂、速射不受影響。身上有帶一般詞條的武器才會出現。'},
+  {id:'plate_rack',rules:[3],name:'加掛板架',cap:3,effect:'rack',amount:10,text:'護甲板上限 +10，立即獲得 10 護甲板。'},
   {id:'bulwark_plating',name:'板甲護持',characters:['bulwark'],cap:3,effect:'passive',text:'護甲板還有剩時，直接傷害額外 −8%；每階累加。'},
   {id:'bulwark_recovery',name:'板材回收',characters:['bulwark'],cap:3,effect:'passive',text:'敵人掉落護甲板機率 +15 個百分點、每份 +5 點；可與裝甲回收疊加。'},
   {id:'bulwark_anchor',name:'下錨強化',characters:['bulwark'],cap:3,effect:'passive',text:'下錨中受到的直接傷害 −10%；第 3 階解除下錨不耗回合。'},
@@ -133,7 +142,7 @@ export const PERKS = [
   {id:'ninja_ambush',name:'伏擊精通',characters:['ninja'],cap:3,effect:'passive',text:'伏擊傷害倍率每階 +0.15。'},
   {id:'ninja_overload',name:'光學過載',characters:['ninja'],cap:3,effect:'passive',text:'迷彩持續 +1、冷卻 −2（最低 4）。'},
 ];
-export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段',spray:'修復噴劑',adrenaline:'腎上腺素',barricade:'摺疊掩體',flare:'照明彈',nvg:'夜視鏡',escape_line:'逃命繩索',redeploy_line:'重部署鉤索',decoy:'誘餌',mine:'地雷',exo:'外骨骼',key:'鑰匙卡'};
+export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段',spray:'修復噴劑',adrenaline:'腎上腺素',barricade:'摺疊掩體',flare:'照明彈',nvg:'夜視鏡',escape_line:'逃命繩索',redeploy_line:'重部署鉤索',decoy:'誘餌',mine:'地雷',exo:'外骨骼',key:'鑰匙卡',irg:'紅外線護目鏡'};
 PERKS.push({id:'ammo_recovery',name:'彈藥回收',cap:3,effect:'passive',text:'一般敵人彈藥掉落率每階 +15 個百分點（35% → 50% → 65% → 80%）。'});
 export const LORE = STORIES.map(s=>s.body);
 
