@@ -8,11 +8,15 @@ export function tonePixel(rgb,role,gain=1){
   const luma=values[0]*.2126+values[1]*.7152+values[2]*.0722;
   return values.map(v=>Math.round(clamp(luma+(v-luma)*t.saturation)));
 }
-export function tonePixels(data,role){
+// Equalize each floor swatch before reducing contrast: no bright restroom island. Faction decals (src/faction-decals.js)
+// take the same gain as the floor they lie on.
+export function floorGain(data){
   let sum=0,count=0;
-  if(role==='floor')for(let i=0;i<data.length;i+=4)if(data[i+3]){sum+=data[i]*.2126+data[i+1]*.7152+data[i+2]*.0722;count++;}
-  // Equalize each floor swatch before reducing contrast: no bright restroom island.
-  const gain=role==='floor'&&sum>0?52.4/(sum/count):1;
+  for(let i=0;i<data.length;i+=4)if(data[i+3]){sum+=data[i]*.2126+data[i+1]*.7152+data[i+2]*.0722;count++;}
+  return sum>0?52.4/(sum/count):1;
+}
+export function tonePixels(data,role){
+  const gain=role==='floor'?floorGain(data):1;
   for(let i=0;i<data.length;i+=4){if(!data[i+3])continue;const rgb=tonePixel([data[i],data[i+1],data[i+2]],role,gain);data[i]=rgb[0];data[i+1]=rgb[1];data[i+2]=rgb[2];}
   return data;
 }
