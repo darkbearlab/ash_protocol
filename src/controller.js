@@ -14,7 +14,7 @@ import {suppressivePreview} from './suppressive-fire.js';
 import {suppressionStatus,learningEntries,suppressionHelp,traitRuleLines} from './suppression-ui.js';
 import {SKILLS,skillActive,skillStatus,canUseSkill} from './skills.js';
 import {boundaryOpacityPercent} from './movement-boundaries.js';
-import {SCREEN_BRIGHTNESS,OPERATOR_TINT,screenBrightnessPercent,operatorTintPercent} from './screen-tone.js';
+import {SCREEN_BRIGHTNESS,screenBrightnessPercent} from './screen-tone.js';
 import {drawTinyText,TINY_TEXT} from './pixel-text.js';
 import {actorStat,clampHit,combatStatSummary} from './actor-stats.js';
 import {isDark} from './lighting.js';
@@ -102,8 +102,9 @@ let deckPick=null;
 let padCell=PAD_SIZES.includes(Number(read('ash-pad-cell')))?Number(read('ash-pad-cell')):PAD_SIZES[0];
 renderer.boundaryOpacity=boundaryOpacityPercent(read('ash-boundary-opacity'));
 {const color=read('ash-operator-color');renderer.operatorColor=validOperatorColor(color)?color:DEFAULT_OPERATOR_COLOR;}
-// 3.116.0 (user request): how strongly the operator colour covers the grey class art, so a colour can sit back in the scene.
-renderer.operatorTint=operatorTintPercent(read('ash-operator-tint'))/100;
+// 3.116.0 added a strength slider for the operator colour; 3.139.1 took it out of the settings (user, 2026-09-19) while
+// the colour picker is redesigned, so the colour is drawn at full strength. The saved 'ash-operator-tint' is left alone.
+renderer.operatorTint=1;
 renderer.targetUI={card:$('#target-card'),link:$('#target-link'),path:$('#target-link path'),dirty:true};
 document.fonts?.ready.then(()=>{renderer.targetUI.dirty=true;});
 audio.enabled=read('ash-sound')!=='off';
@@ -775,8 +776,6 @@ ${inRun?`<div class="modal-row"><button class="modal-button secondary" data-moda
 <p>戰場每秒重畫的次數，全遊戲共用，按一下切換 60／30／15。越低越省電、手機越不會熱，動畫越不順，但動作的快慢不變；15 適合舊手機，槍口火光這類很短的效果可能看不到。整頁選單蓋住戰場時一律不重畫。</p>
 <label class="boundary-opacity" for="screen-brightness">畫面明度 <output id="screen-brightness-value" for="screen-brightness">${screenBrightness}%</output><input id="screen-brightness" type="range" min="${SCREEN_BRIGHTNESS.min}" max="${SCREEN_BRIGHTNESS.max}" step="${SCREEN_BRIGHTNESS.step}" value="${screenBrightness}" aria-describedby="screen-brightness-help"></label>
 <p id="screen-brightness-help">整個畫面一起調，包括選單與結算畫面；100% 為原始亮度。和 VHS 濾鏡可以一起用。</p>
-<label class="boundary-opacity" for="operator-tint">幹員塗裝濃度 <output id="operator-tint-value" for="operator-tint">${Math.round(renderer.operatorTint*100)}%</output><input id="operator-tint" type="range" min="${OPERATOR_TINT.min}" max="${OPERATOR_TINT.max}" step="${OPERATOR_TINT.step}" value="${Math.round(renderer.operatorTint*100)}" aria-describedby="operator-tint-help"></label>
-<p id="operator-tint-help">部署時選的塗裝顏色蓋在灰色角色圖上的程度；0% 是原本的灰色，100% 是完整顏色。</p>
 <button class="modal-button secondary" data-modal="vhs" aria-pressed="${vhsFilter}">VHS 濾鏡：${vhsFilter?'開啟':'關閉'}</button>
 <p>在整個畫面疊上掃描線、雜訊、暗角與緩慢捲動的訊號帶。系統設定減少動態效果時，雜訊與訊號帶不會動。</p>
 <div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">操作區排版：${DECK_LAYOUT_LABELS[padLayout]}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>方向鍵大小：${padLayout==='grid'?'格狀不適用':`${PAD_LABELS[padCell]}（${padCell}）`}</button></div>
@@ -893,7 +892,6 @@ document.addEventListener('input',e=>{
   if(e.target.id==='music-volume'||e.target.id==='sfx-volume'){const music=e.target.id==='music-volume',percent=volumePercent(e.target.value,music?AUDIO_TUNING.musicDefault:AUDIO_TUNING.sfxDefault);
     audio.setVolumes(music?{music:percent/100}:{sfx:percent/100});write(music?'ash-music-volume':'ash-sfx-volume',String(percent));const out=$(`#${e.target.id}-value`);if(out)out.textContent=percent+'%';return;}
   if(e.target.id==='screen-brightness'){screenBrightness=screenBrightnessPercent(e.target.value);write('ash-brightness',String(screenBrightness));applyBrightness();const out=$('#screen-brightness-value');if(out)out.textContent=screenBrightness+'%';return;}
-  if(e.target.id==='operator-tint'){const percent=operatorTintPercent(e.target.value);renderer.operatorTint=percent/100;write('ash-operator-tint',String(percent));const out=$('#operator-tint-value');if(out)out.textContent=percent+'%';return;}
   if(e.target.id!=='boundary-opacity')return;
   renderer.boundaryOpacity=boundaryOpacityPercent(e.target.value);write('ash-boundary-opacity',String(renderer.boundaryOpacity));
   const output=$('#boundary-opacity-value');if(output)output.textContent=renderer.boundaryOpacity+'%';

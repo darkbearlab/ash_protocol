@@ -27,7 +27,9 @@ test('the controller, page and styles wire brightness, colour strength and the q
   const source=await read('../src/controller.js'),html=await read('../index.html'),css=await read('../expansion.css'),colour=await read('../src/operator-color.js');
   assert.ok(source.includes("let screenBrightness=screenBrightnessPercent(read('ash-brightness'));"));
   assert.ok(source.includes("document.documentElement.classList.toggle('toned',screenBrightness!==SCREEN_BRIGHTNESS.initial)"),'nothing is drawn at 100%');
-  assert.ok(source.includes("renderer.operatorTint=operatorTintPercent(read('ash-operator-tint'))/100;"));
+  // 3.139.1 (user, 2026-09-19): the strength slider left the settings while the colour picker is redesigned; the colour
+  // is drawn at full strength and the saved strength is not read.
+  assert.ok(source.includes('renderer.operatorTint=1;')&&!source.includes("read('ash-operator-tint')")&&!source.includes('id="operator-tint"'));
   assert.ok(source.includes('tintedSprite(image,r,color,renderer.tintCache,renderer.operatorTint)'),'the deploy preview matches the battlefield');
   assert.ok(colour.includes('const key=`${rect.x},${rect.y},${id},${strength}`;'),'a new strength never reuses a cached tint');
   // 3.118.0: a filter on the app and on the dialog's content, not backdrop-filter layers, which froze still menus in a
