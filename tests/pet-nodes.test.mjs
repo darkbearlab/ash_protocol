@@ -41,7 +41,7 @@ test('vitality node 5 changes only future rebirths: six full paid turns and fort
 });
 test('pet turret suppression is guaranteed per shooting action, decays at world end, and survives archive',()=>{
  const g=arena(),a=g.allies[0],e=foe(g);unlock(g,'turret',2);g.player.petBond.fuel=1000;g.turn=2;e.hp=200;g.rng=Object.assign(()=>.999,{state:()=>1});allyAct(g,a);assert.equal(e.suppression,1);assert.equal(actorStat(e,'rangedAccuracy'),-8);assert.equal(actorStat(e,'meleeAccuracy'),-8);e.alert=true;g.enemyAct(e);assert.equal(e.suppression,1);assert.ok(Game.restore(g.serialize()));const frame=archiveFloor(g),returned=resumedFloor(frame,g.turn+20);assert.equal(returned.enemies[0].suppression,1);const raw=JSON.parse(g.serialize());raw.data.enemies[0].suppression=-1;assert.equal(Game.restore(JSON.stringify(raw)),null);
- e.x=12;delete e.suppression;allyAct(g,a);assert.equal(e.suppression,undefined,'bite never suppresses');
+ e.x=12;e.y=10;delete e.suppression;allyAct(g,a);   // 3.152.0: the enemy's own turn moved it into its bandassert.equal(e.suppression,undefined,'bite never suppresses');
 });
 test('precision ignores half cover accuracy and damage, but full cover, darkness and blocked rays stay intact',()=>{
  const g=arena(),a=g.allies[0],e=foe(g,13,12);Object.assign(a,{x:11,y:10});g.props=[{id:'test-cover',type:'cover',x:12,y:12,hp:100,maxHp:100}];g.player.petBond.fuel=500;unlock(g,'turret',3);const before=g.accuracy(a,e);assert.equal(before.coverEfficiency,.5);unlock(g,'turret',4);assert.equal(g.accuracy(a,e).coverPenalty,0);e.hp=100;g.hitTarget(e,20,a,0,{melee:false});assert.equal(e.hp,80);a.y=12;assert.equal(g.accuracy(a,e).coverEfficiency,1);g.lighting[e.y][e.x]=0;assert.equal(g.accuracy(a,e).darkPenalty,40);

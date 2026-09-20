@@ -37,7 +37,7 @@ test('darkness checks the target cell, combines with half cover and movement, an
   e.moved=true;assert.equal(g.accuracy(g.player,e).chance,35);e.moved=false;
   g.props=[{id:'cover',type:'cover',x:13,y:10,hp:65,maxHp:65}];g.player.y=9; // (4,1): full crate
   assert.equal(g.accuracy(g.player,e).chance,22);g.player.x=13; // (1,1): half crate
-  assert.equal(g.accuracy(g.player,e).chance,39);
+  assert.equal(g.accuracy(g.player,e).chance,35);   // 3.152.0 有效距離: two tiles is one short of the rifle's band, −4
   g.props=[];g.hitTarget(e,40,g.player);assert.equal(e.hp,460);
   g.lighting[10][10]=0;g.player.x=10;g.player.y=10;g.damagePlayer(40,'QA',e);assert.equal(g.player.hp,460);
 });

@@ -29,8 +29,8 @@ test('shotgun close range changes previews, real damage and affixes without chan
  const g=arena(),p=g.player,e=enemy(g,12);p.weapon=1;p.traits=[];p.combatModifiers={rangedAccuracy:-8};e.moved=true;g.reveal();zero(g);
  assert.equal(g.accuracy(p,e).chance,90);assert.equal(g.accuracy(p,e).closeBonus,15);assert.deepEqual(g.weaponDamage(1,e),{min:60,max:72});
  g.target=e.id;assert.equal(g.action('fire'),true);assert.equal(e.hp,440);assert.equal(p.ammo[1],3);
- e.x=13;assert.equal(g.accuracy(p,e).closeBonus,0);assert.deepEqual(g.weaponDamage(1,e),{min:42,max:54});
- p.affixes[1]='powerful';p.upgrades[1]=2;p.bonus=3;e.x=12;assert.deepEqual(g.weaponDamage(1,e),{min:82,max:96});e.x=13;assert.deepEqual(g.weaponDamage(1,e),{min:61,max:75});
+ e.x=13;e.y=10;assert.equal(g.accuracy(p,e).closeBonus,0);   // 3.152.0: the rifleman backed out of its band, so put it back on the rowassert.deepEqual(g.weaponDamage(1,e),{min:42,max:54});
+ p.affixes[1]='powerful';p.upgrades[1]=2;p.bonus=3;e.x=12;e.y=10;assert.deepEqual(g.weaponDamage(1,e),{min:82,max:96});e.x=13;assert.deepEqual(g.weaponDamage(1,e),{min:61,max:75});
 });
 test('warning is free, through walls, radius eight, snapshot only, and does not reveal or allow fire',()=>{
  const g=arena();for(let y=0;y<SIZE;y++)g.grid[y][12]=0;g.seen=g.grid.map(r=>r.map(()=>false));const inside=enemy(g,14),outside=enemy(g,19);g.reveal();const seen=structuredClone(g.seen),rng=g.rng.state(),turn=g.turn;

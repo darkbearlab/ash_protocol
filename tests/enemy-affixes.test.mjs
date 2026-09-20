@@ -19,7 +19,7 @@ test('2: first and later affix frequency follow independent birth stream and fal
 });
 test('3/4: hidden names and traits reveal only on effect, catalog order and one question mark',()=>{
  const g=affixArena(),e=sceneEnemy(g,'raider',['grenadier','suppressor','fast']);assert.equal(enemyDisplayName(e),ENEMY_TYPES.raider.name+'？');assert.deepEqual(revealedAffixes(e),[]);assert.ok(!traitLabels(e).includes('快速'));
- e.charge=true;e.windup=1;sure(g);g.enemyAct(e);assert.match(enemyDisplayName(e),/快速・壓制者？$/);assert.ok(!g.logs.some(l=>l.text.includes('擲彈')));assert.equal(revealedAffixes(e).length,2);const copy=Game.restore(g.serialize());assert.ok(copy);assert.equal(enemyDisplayName(copy.enemies[0]),enemyDisplayName(e));
+ e.charge=true;e.windup=1;e.aim={x:g.player.x,y:g.player.y};sure(g);g.enemyAct(e);assert.match(enemyDisplayName(e),/快速・壓制者？$/);assert.ok(!g.logs.some(l=>l.text.includes('擲彈')));assert.equal(revealedAffixes(e).length,2);const copy=Game.restore(g.serialize());assert.ok(copy);assert.equal(enemyDisplayName(copy.enemies[0]),enemyDisplayName(e));
 });
 test('5: generic/type trees preserve sniper fixed tile, boss alternating marks, bomber death and fodder cadence',()=>{
  const g=affixArena(),e=sceneEnemy(g,'sniper');sure(g);g.enemyAct(e);assert.equal(e.windup,2);g.enemyAct(e);assert.equal(e.windup,1);g.player.y++;const hp=g.player.hp;g.enemyAct(e);assert.equal(g.player.hp,hp);assert.ok(g.effects.some(f=>f.miss&&f.to.y===10));
@@ -50,7 +50,7 @@ test('9: six ordinary floors have no affixes on easy, standard starts on floor 3
  assert.equal(affixChance(1,easy(6)),affixChance(7,easy(0)));assert.equal(scaleEnemy(100,1,'hp',{curve:'classic',offset:6}),107);assert.equal(scaleEnemy(100,1,'hp',6),104);const low=generate(19,1),high=generate(19,1,[],6);for(let i=0;i<low.enemies.length;i++)if(!low.enemies[i].expendable)assert.equal(high.enemies[i].hp,scaleEnemy(low.enemies[i].hp,1,'hp',6));
 });
 test('enemy rapid fire matches +1 round/-10 accuracy and actual three-round volley suppresses player without blanket protection',()=>{
- const g=affixArena(),e=sceneEnemy(g,'raider',['suppressor']);assert.equal(enemyWeapon(e).rounds,3);assert.equal(enemyWeapon(e).accuracyBonus,-10);e.charge=true;e.windup=1;sure(g);g.enemyAct(e);assert.equal(g.effects.filter(f=>f.type==='enemyShot').length,3);assert.equal(g.player.suppression,1);
+ const g=affixArena(),e=sceneEnemy(g,'raider',['suppressor']);assert.equal(enemyWeapon(e).rounds,3);assert.equal(enemyWeapon(e).accuracyBonus,-10);e.charge=true;e.windup=1;e.aim={x:g.player.x,y:g.player.y};sure(g);g.enemyAct(e);assert.equal(g.effects.filter(f=>f.type==='enemyShot').length,3);assert.equal(g.player.suppression,1);
 });
 test('archived affixes and grenade commitment survive elapsed return; hooks consume neither RNG nor saves',()=>{
  const {flight:g}=affixScenes(),state=g.rng.state(),events=[];g.onEnemyCallout=e=>events.push(e);g.enemyCallout(g.enemies[0],'telegraph',{action:'grenade'});assert.equal(g.rng.state(),state);assert.equal(events.length,1);assert.ok(!g.serialize().includes('onEnemyCallout'));assert.doesNotThrow(()=>captureAction(g,()=>g.action('wait')));

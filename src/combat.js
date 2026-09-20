@@ -6,6 +6,7 @@ import {blockedBetween,edgeAdjacent,edgeBlocks} from './barriers.js';
 import {sizeModifier,movementModifier,activeTrait,correctionBonus,sidestepPenalty} from './traits.js';
 // Symmetric, bounded corner leaning. The player and AI use the same geometry.
 import {DIRECTIONS,distance,lineOfSight} from './world.js';
+import {weaponBand,bandPenalty} from './range-band.js';
 import {toxicShot} from './swarm-fields.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 
@@ -32,7 +33,7 @@ export function wallCover(grid,target,attacker) {
 }
 export const bracingBonus=(game,attacker,target)=>activeTrait(attacker,'braced')&&game.protectingCover(attacker,target)?12+classPerkRank(attacker,'soldier_braced')*CLASS_PERK_TUNING.braced:0;
 export function shotChance(game,attacker,target) {
-  if(attacker===game.player&&game.weapon.melee)return {chance:game.meleeAccuracy(attacker,target,game.weapon.hitChance),innateAccuracy:actorStat(attacker,'meleeAccuracy'),innateEvasion:actorStat(target,'meleeEvasion'),base:game.weapon.hitChance,bracedBonus:0,trackingBonus:0,sidePenalty:0,accuracyBonus:0,movePenalty:0,coverPenalty:0,coverEfficiency:0,coverReduction:0,darkPenalty:0,focusBonus:0,evasionPenalty:0,cover:null,moving:Boolean(target.moved),distance:distance(attacker,target)};
+  if(attacker===game.player&&game.weapon.melee)return {chance:game.meleeAccuracy(attacker,target,game.weapon.hitChance),innateAccuracy:actorStat(attacker,'meleeAccuracy'),innateEvasion:actorStat(target,'meleeEvasion'),base:game.weapon.hitChance,bracedBonus:0,trackingBonus:0,sidePenalty:0,accuracyBonus:0,movePenalty:0,coverPenalty:0,coverEfficiency:0,coverReduction:0,darkPenalty:0,rangePenalty:0,band:null,focusBonus:0,evasionPenalty:0,cover:null,moving:Boolean(target.moved),distance:distance(attacker,target)};
   const cover=game.protectingCover(target,attacker),protection=coverEffects(cover,target,attacker);
   // 3.126.0: a squad soldier firing at the tile its leader called out takes blindShot instead of the darkness penalty.
   const light=lightingEffects(game,attacker,target),blindPenalty=attacker.blindShot||0,darkPenalty=blindPenalty?0:light.penalty;
@@ -50,9 +51,11 @@ export function shotChance(game,attacker,target) {
   // In the open, lateral evasion must match wall cover even against tracking.
   const sidePenalty=sideBase?Math.max(sideBase,cover?0:42-movePenalty):0;
   const closeBonus=weapon?.closeRange&&distance(attacker,target)<=weapon.closeRange?weapon.closeAccuracy:0,vaultBonus=target.vaultExposed?20:0;
+  // 3.152.0 有效距離 (src/range-band.js): outside the band each tile costs accuracy, too close as much as too far.
+  const band=weaponBand(weapon),rangePenalty=bandPenalty(band,distance(attacker,target));
   const specialEvasion=(game.defensiveEvasion?.(attacker,target)||0)+(target===game.player&&activeTrait(attacker,'exposed')?classPerkRank(target,'soldier_marked')*CLASS_PERK_TUNING.markedAccuracy:0);
-  const chance=Math.max(10,Math.min(99,-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty));
+  const chance=Math.max(10,Math.min(99,-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty-rangePenalty));
   // 3.134.0: gunfire or a beam through toxic mist, from anyone but the swarm, hits half as often.
   const toxic=toxicShot(game,attacker,target,weapon);
-  return {chance:toxic?Math.max(1,Math.round(chance/2)):chance,toxic,aimPenalty,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
+  return {chance:toxic?Math.max(1,Math.round(chance/2)):chance,toxic,aimPenalty,rangePenalty,band,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }

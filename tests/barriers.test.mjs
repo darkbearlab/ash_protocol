@@ -17,6 +17,8 @@ function arena(corridor=false,character='soldier'){
   g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();return g;
 }
 function gate(g,type='door',a={x:10,y:10},b={x:11,y:10}){const e=makeBarrier(type,a,b,`edge-test-${g.barriers.length}`);g.barriers.push(e);g.reveal();return e;}
+// 3.152.0 有效距離: enemies reposition on their turn, so the door tests freeze them where they are placed.
+function still(g){Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});return g;}
 function enemy(g,type='rifleman',x=11,y=10){const e=makeEnemy(type,x,y,'enemy');Object.assign(e,{hp:300,maxHp:300,alert:true,charge:false,lastKnown:{x:g.player.x,y:g.player.y}});g.enemies.push(e);g.reveal();return e;}
 
 test('one canonical boundary shares open/destruction state from either side and leaves both floors usable',()=>{
@@ -30,7 +32,7 @@ test('walking into a closed door opens it for one turn without movement or waiti
   assert.equal(g.action('door',{id:b.id,open:false}),false);assert.equal(g.turn,4);
 });
 test('closed doors open before checking hidden occupancy; partitions reject movement without consuming time',()=>{
-  const g=arena(true),b=gate(g);enemy(g);assert.ok(g.action('move',[1,0]));assert.equal(b.open,true);assert.equal(g.player.x,10);
+  const g=still(arena(true)),b=gate(g);enemy(g);assert.ok(g.action('move',[1,0]));assert.equal(b.open,true);assert.equal(g.player.x,10);
   assert.equal(g.action('move',[1,0]),true);assert.equal(g.turn,3);assert.equal(g.player.x,10);assert.ok(g.effects.some(e=>e.weaponId==='unarmed'));
   const wall=arena(),p=gate(wall,'partition');assert.equal(wall.action('move',[1,0]),false);assert.equal(wall.turn,1);assert.equal(wall.target,p.id);assert.equal(wall.action('door',{id:p.id,open:true}),false);
 });

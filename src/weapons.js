@@ -1,6 +1,7 @@
 import {rapidFireModifiers} from './suppression.js';
 import {AMMUNITION} from './ammunition.js';
 import {WEAPONS,PERK_D} from './data.js';
+import {WEAPON_BANDS,shiftedBand} from './range-band.js';
 import {activeTrait} from './traits.js';
 
 // Stable IDs are stored in saves. Affixes affect the base gun; +1 tuning stays +5 damage.
@@ -48,6 +49,8 @@ export function weaponStats(base,affix=null,actor=null){
     ...(w.pellets?{pelletMin:Math.round(w.pelletMin*(a.damage||1)),pelletMax:Math.round(w.pelletMax*(a.damage||1))}:{}),
     shotCost:a.shotCost||1,affixAccuracy:a.accuracy||0,...(a.burst?{burst:a.burst}:{}),...(a.volleyCost?{volleyCost:a.volleyCost}:{}),...(a.lance?{lance:true}:{}),...(a.blast?{blast:a.blast}:{}),
     mag:Math.max(1,Math.floor(w.mag*(a.mag||1))),range:burstRange+(extended?2:0),...(extended?{burstRange}:{}),
+    // 3.152.0 有效距離: the long barrel and the extended burst push the far edge out; the near edge never moves.
+    band:shiftedBand(WEAPON_BANDS[w.id],(a.range||0)+(extended?2:0)),
     pierce:Math.max(0,Math.min(1,(w.pierce||0)+(a.pierce||0))),extraRounds:rapidFireModifiers(actor).extraRounds,accuracyBonus:(a.accuracy||0)+rapidFireModifiers(actor).accuracyBonus,tracking:a.tracking||0};
 }
 // Do not change weapon.burst: it also divides per-volley perk damage bonuses.

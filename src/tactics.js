@@ -7,13 +7,14 @@ const point=p=>p&&[p.x,p.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE);
 const same=(a,b)=>a&&b&&key(a)===key(b);
 // Shared by hostile shooters and mobile allies. Occupied firing positions are never pushed aside.
 // All target knowledge is supplied by the caller; this function never discovers a hidden target.
-export function combatStep(g,a,target,{range,melee=false,leash=Infinity,peers=[],hold=false,investigate=false}={}){
+export function combatStep(g,a,target,{range,min=0,melee=false,leash=Infinity,peers=[],hold=false,investigate=false}={}){
  const actors=[g.player,...g.enemies.filter(e=>e.hp>0),...g.activeAllies],taken=new Set(actors.filter(b=>b!==a).map(key));
  const reservations=new Set(peers.filter(b=>b!==a&&b.tactics?.goal&&b.tactics.until>=g.turn).map(b=>key(b.tactics.goal)));
  if(investigate&&distance(a,target)<=1&&g.canCross(a,target)){a.tactics=null;return {done:true};}
  const old=a.tactics;
  if(old&&(!same(old.target,target)||old.until<g.turn))a.tactics=null;
- const at=q=>({...a,x:q.x,y:q.y}),canFire=q=>investigate?distance(q,target)<=1&&g.canCross(q,target):distance(q,target)<=range&&g.sight(at(q),target)&&g.shotClear(at(q),target)&&(!melee||g.canCross(q,target));
+ // 3.152.0 有效距離: `min` is the band's near edge, so a shooter standing too close looks for a tile further back.
+ const at=q=>({...a,x:q.x,y:q.y}),canFire=q=>investigate?distance(q,target)<=1&&g.canCross(q,target):distance(q,target)<=range&&distance(q,target)>=min&&g.sight(at(q),target)&&g.shotClear(at(q),target)&&(!melee||g.canCross(q,target));
  const flank=peers.some(b=>b!==a&&!b.control?.disabled&&b.tactics?.goal&&!same(b,b.tactics.goal)&&b.tactics.until>=g.turn&&same(b.tactics.target,target)&&distance(a,b)<=5);
  if(hold&&!melee&&flank&&(!old||g.turn>=(old.retryAfter||0))){
   a.tactics={target:{x:target.x,y:target.y},goal:null,until:g.turn+TACTICS.holdRetry,holdUntil:g.turn+TACTICS.holdTurns-1,retryAfter:g.turn+TACTICS.holdRetry};

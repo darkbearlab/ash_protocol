@@ -26,22 +26,26 @@ import {lobAction,releasePayload} from './swarm-fields.js';
 import {personalityOf} from './personality.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
+import {enemyBand,inBand,BAND_TUNING} from './range-band.js';
 import {tacticalSight} from './throwables.js';
 export const ENEMY_WEAPONS=Object.freeze(Object.fromEntries(Object.entries(ENEMY_TYPES).filter(([id])=>hasEnemyTag(id,'armed')).map(([id,def])=>[id,Object.freeze({rounds:def.rounds||1})])));
-export function enemyWeapon(e){const rapid=rapidFireModifiers(e);return {range:ENEMY_TYPES[e.type]?.range||1,...rapid,rounds:(enemyDef(e)?.rounds||1)+rapid.extraRounds};}
+export function enemyWeapon(e){const rapid=rapidFireModifiers(e);return {range:ENEMY_TYPES[e.type]?.range||1,band:enemyBand(e.type),...rapid,rounds:(enemyDef(e)?.rounds||1)+rapid.extraRounds};}
 function revealSenses(g,e,p){if(!g.sight(e,p))return;if(e.affixes?.some(a=>a.id==='infrared'&&!a.revealed)&&!tacticalSight(g,{...e,traits:e.traits.filter(t=>t.id!=='infrared')},p))revealEnemyAffix(g,e,'infrared');}
 function seekCover({g,e,p,def,los}){
       if(!pinned(e)&&def.seekCover&&los&&!e.charge&&!g.protectingCover(e,p)){
-        const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>g.passable(n.x,n.y,e)&&g.canCross(e,n)&&distance(n,p)>1&&!occupied(g,n,e)&&!g.hazards.some(h=>distance(h,n)===0)&&distance(n,p)<=def.range&&g.sight({...e,...n},p)&&g.shotClear({...e,...n},p)&&g.protectingCover({...e,...n},p));
+        const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>g.passable(n.x,n.y,e)&&g.canCross(e,n)&&distance(n,p)>1&&!occupied(g,n,e)&&!g.hazards.some(h=>distance(h,n)===0)&&distance(n,p)<=def.range&&inBand(enemyBand(e.type),distance(n,p))&&g.sight({...e,...n},p)&&g.shotClear({...e,...n},p)&&g.protectingCover({...e,...n},p));
         if(spot){e.x=spot.x;e.y=spot.y;e.moved=true;enemyCallout(g,e,'state',{state:'cover'});return true;}
       }
 
 return false;
 }
 function move({g,e,p,def,los,d}){
-        const destination=los?p:e.lastKnown;
-        const plan=los&&!(def.range===1&&d<=1)?combatStep(g,e,p,{range:def.range,melee:def.range===1,peers:g.enemies.filter(b=>b.hp>0&&b.alert),hold:true}):null;
-        const step=pinned(e)||plan?.hold?null:plan?.step||(destination&&distance(e,destination)>0?g.nextStep(e,destination):null);if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}}
+        const destination=los?p:e.lastKnown,band=def.range>1?enemyBand(e.type):null;
+        // 3.152.0 有效距離: a shooter looks for a tile inside its band, so it also backs off when it stands too close.
+        const plan=los&&!(def.range===1&&d<=1)?combatStep(g,e,p,{range:band?Math.min(def.range,band[1]):def.range,min:band?band[0]:0,melee:def.range===1,peers:g.enemies.filter(b=>b.hp>0&&b.alert),hold:true}):null;
+        // Walking closer would only make a too-close shot worse, so it stays where it is and fires from there.
+        const tooClose=Boolean(band&&los&&d<band[0]);
+        const step=pinned(e)||plan?.hold?null:plan?.step||(tooClose?null:destination&&distance(e,destination)>0?g.nextStep(e,destination):null);if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}}
 
 }
 function reinforce({g,e,p}){
@@ -156,12 +160,31 @@ export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(
  selfOrders(ctx);const order=runOrder(ctx);if(order===true)return;
  if(order!=='fire'&&(runAffixBranches(ctx)||seekCover(ctx)))return;
  let fired=false;
- if((los&&g.shotClear(e,p)&&d<=def.range&&(def.range>1||g.canCross(e,p)))||(tree.fixedTile&&e.charge&&e.aim)){
+ // 3.152.0 有效距離 (src/range-band.js): a shooter outside its band moves into it first and only fires from a bad
+ // distance when that move found nothing better. A telegraphed shot (charge) still lands, as before.
+ const band=def.range>1?enemyBand(e.type):null;
+ const shootable=Boolean((los&&g.shotClear(e,p)&&d<=def.range&&(def.range>1||g.canCross(e,p)))||(tree.fixedTile&&e.charge&&e.aim));
+ // A shot already telegraphed (charge with an aim) lands wherever the target stands; a unit that keeps firing (rapid)
+ // clears its aim after each one, so the band decides again on its next turn.
+ // A unit that just fixed its distance stays and shoots for BAND_TUNING.settle turns, so walking into it cannot keep it
+ // backing away for ever.
+ const settled=Number.isSafeInteger(e.bandStep)&&g.turn-e.bandStep<BAND_TUNING.settle;
+ // Nobody steps out of contact: with the target next to it a shooter fires from where it stands, penalty and all, so a
+ // melee attacker cannot be walked away from for ever.
+ let engage=shootable&&(e.charge&&e.aim||settled||d<=1||inBand(band,d));
+ if(!engage){
+  interruptEnemyIntent(e,'target_lost');move(ctx);
+  if(e.moved){if(band&&shootable)e.bandStep=g.turn;   // only a step taken to fix the distance starts the settle window
+   enemyCallout(g,e,'state',{state:e.tactics?.mode==='flank'?'flank':'move'});}
+  else if(shootable)engage=true;
+  else if(e.tactics)enemyCallout(g,e,'state',{state:'hold'});
+ }
+ if(engage){
  e.tactics=null;if(tree.beforeAttack?.(ctx))return;
  if(!e.charge){e.charge=true;e.focusTarget=p.id||'player';e.windup=tree.windup||1;e.aim={x:p.x,y:p.y};enemyCallout(g,e,'telegraph',{action:tree.fixedTile?'aim':'attack'});return;}
  e.windup=(e.windup||1)-1;if(e.windup>0)return;
  if(tree.attack)return tree.attack(ctx);fired=attack(ctx);e.charge=Boolean(def.rapid);e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
- }else{interruptEnemyIntent(e,'target_lost');move(ctx);if(e.moved)enemyCallout(g,e,'state',{state:e.tactics?.mode==='flank'?'flank':'move'});else if(e.tactics)enemyCallout(g,e,'state',{state:'hold'});}
+ }
  // An allied suicide bot's blast can kill the attacker mid-attack (3.94.0); a dead enemy takes no follow-up step.
  if(e.hp>0)tree.after?.(ctx);return fired;
 }

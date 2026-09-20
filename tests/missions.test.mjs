@@ -56,7 +56,7 @@ test('closed doors block recovery, explosion leaves data intact, and opening the
   const before=structuredClone(g.mission);g.explode(g.mission.targets[0],1,20);assert.deepEqual(g.mission,before);g.pendingPerks=0;g.setDoor(g.barriers[0],true);assert.equal(g.action('recoverObjective','objective-1'),true);
 });
 test('fast lethal attacks cancel recovery; disabled player spends an action without taking the objective',()=>{
-  const g=arena(),e=makeEnemy('rifleman',12,10,'fast',6);grantTrait(e,'fast','qa');Object.assign(e,{alert:true,charge:true,lastKnown:{x:10,y:10}});g.enemies=[e];g.player.hp=1;g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();assert.ok(g.action('recoverObjective','objective-1'));assert.equal(g.status,'dead');assert.equal(g.mission.targets[0].done,false);
+  const g=arena(),e=makeEnemy('rifleman',12,10,'fast',6);grantTrait(e,'fast','qa');Object.assign(e,{alert:true,charge:true,aim:{x:10,y:10},lastKnown:{x:10,y:10}});g.enemies=[e];g.player.hp=1;g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();assert.ok(g.action('recoverObjective','objective-1'));assert.equal(g.status,'dead');assert.equal(g.mission.targets[0].done,false);
   const h=arena();h.player.control.disabled=1;assert.ok(h.action('recoverObjective','objective-1'));assert.equal(h.turn,2);assert.equal(h.mission.targets[0].done,false);
 });
 test('recovered data and tracked deaths survive reload and complete backups without rerolling targets',()=>{

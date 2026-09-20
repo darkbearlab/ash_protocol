@@ -97,7 +97,10 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     // Still never issue a move into an enemy; a closed door may be opened from here.
     const approach=route(g,goal,{ignoreEnemies:true});
     const next=approach?{x:p.x+approach[0],y:p.y+approach[1]}:null;
-    const step=route(g,goal)||(next&&(!g.canCross(p,next)||!g.enemies.some(e=>e.hp>0&&distance(e,next)===0))?approach:null);
+    // 3.152.0: while committed to a goal, route around walls only. An enemy pacing in a corridor (a sniper looking for a
+    // shot) flips an enemy-avoiding route every turn, and the bot walks back and forth with it until the run runs out.
+    const committed=g.turn<detourUntil;
+    const step=(committed?null:route(g,goal))||(next&&(!g.canCross(p,next)||!g.enemies.some(e=>e.hp>0&&distance(e,next)===0))?approach:null);
     if(step)act('move',step);
     else if(g.visibleEnemies.length){const e=g.visibleEnemies[0],near=[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>route(g,n));if(near)act('move',route(g,near));else act('wait');}
     else act('wait');
