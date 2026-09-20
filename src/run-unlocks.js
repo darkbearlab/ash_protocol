@@ -1,5 +1,5 @@
 import {STORIES} from './story-data.js';
-import {UNLOCK_SETTINGS,CHARACTER_IDS,STARTING_CHARACTERS,availableCharacters,validStoryId} from './unlock-catalog.js';
+import {UNLOCK_SETTINGS,CHARACTER_IDS,STARTING_CHARACTERS,availableCharacters,validStoryId,shelvedCharacter} from './unlock-catalog.js';
 import {rollFacilityFaction,FACTIONS} from './faction-catalog.js';
 import {reachable,key,distance} from './world.js';
 import {roomTiles} from './map-geometry.js';
@@ -28,7 +28,7 @@ export function populateRunUnlocks(g){
  const seen=reachable(g,g.start),occupied=new Set([...g.props,...g.items,...g.enemies,...g.hazards,g.end].map(key));
  const points=g.rooms.flatMap((r,i)=>i===g.startRoom?[]:roomTiles(r)).filter(p=>seen.has(key(p))&&!occupied.has(key(p))&&distance(p,g.end)>1);
  if(!points.length)return;const point=points[Math.floor(unlockRandom(g.seed,g.floor,'corpse-position')*points.length)];
- const owned=availableCharacters(profileFor(g)),pool=CHARACTER_IDS.filter(id=>!owned.includes(id)&&!g.encounteredCharacters.includes(id));if(!pool.length)return;
+ const owned=availableCharacters(profileFor(g)),pool=CHARACTER_IDS.filter(id=>!shelvedCharacter(id)&&!owned.includes(id)&&!g.encounteredCharacters.includes(id));if(!pool.length)return;
  const character=pool[Math.floor(unlockRandom(g.seed,g.floor,'corpse-character')*pool.length)];g.encounteredCharacters.push(character);g.operatorCorpse={...point,character,recovered:false};
 }
 export function recoverOperator(g){

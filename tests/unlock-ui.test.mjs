@@ -16,14 +16,17 @@ test('unlock page shows prices, refusal reasons and hints; story text is escaped
   withStory({id:'qa-ui-story',title:'<b>QA</b>',body:'first line\n\nsecond <i>',faction:'rebel',floors:[2,4],price:100,order:0,kind:'story',sources:['extraction']},()=>{
     const p=normalizeProfile();p.protocol={balance:500,earned:500};
     const classes=unlockPageMarkup(p,{tab:'characters'});
-    assert.match(classes,/data-unlock-buy="ninja" disabled>還差 500 點<\/button>/);
+    assert.match(classes,/data-unlock-buy="ninja">解鎖<\/button>/,'3.156.0: an operator costs the same 100 a record does');
+    assert.doesNotMatch(classes,/data-unlock-buy="druid"|data-unlock-buy="necromancer"/,'3.156.0: the shelved two are not for sale');
+    const poor=normalizeProfile();poor.protocol={balance:40,earned:40};
+    assert.match(unlockPageMarkup(poor,{tab:'characters'}),/data-unlock-buy="ninja" disabled>還差 60 點<\/button>/);
     assert.doesNotMatch(classes,/data-unlock-buy="soldier"/);assert.match(classes,/起始職業/);assert.match(classes,/無盡第 5 層起/);
     const stories=unlockPageMarkup(p,{tab:'stories'});
     assert.match(stories,/&lt;b&gt;QA&lt;\/b&gt;/);assert.doesNotMatch(stories,/<b>QA/);assert.match(stories,/叛軍 · 第 2–4 層/);
     assert.match(stories,/data-unlock-buy="qa-ui-story">100 點解鎖<\/button>/);assert.doesNotMatch(stories,/first line/);
     p.unlocks.stories.push('qa-ui-story');
     const owned=unlockPageMarkup(p,{tab:'stories'});assert.match(owned,/<p>first line<\/p><p>second &lt;i&gt;<\/p>/);assert.doesNotMatch(owned,/data-unlock-buy="qa-ui-story"/);
-    assert.match(purchaseConfirmMarkup(p,'ninja'),/花費 1000 協定點數，剩餘 -500/);
+    assert.match(purchaseConfirmMarkup(p,'ninja'),/花費 100 協定點數，剩餘 400/);
   });
   const rich=normalizeProfile();rich.protocol={balance:5000,earned:5000};const ninja=UNLOCK_CATALOG.find(e=>e.id==='ninja');
   assert.equal(purchaseReason(rich,ninja),'');
@@ -38,7 +41,7 @@ test('results list only stories the profile saved, death lists lost data, and lo
   assert.match(resultStoriesMarkup({status:'won',pendingStories:['qa-unsaved']},p),/沒有寫入/);
   assert.match(resultStoriesMarkup({status:'dead',pendingStories:['qa-unsaved']},p),/資料遺失 1/);
   assert.equal(resultStoriesMarkup({status:'won',pendingStories:[]},p),'');
-  assert.match(lockedOperatorRow('ninja'),/LOCKED · 1000 點/);assert.match(lockedOperatorRow('ninja',{demo:true}),/試玩版未開放/);
+  assert.match(lockedOperatorRow('ninja'),/LOCKED · 100 點/);assert.match(lockedOperatorRow('ninja',{demo:true}),/試玩版未開放/);
   const menu=killhouseMenuMarkup({killhouse:null},['soldier'],['ninja']);
   assert.match(menu,/data-character="soldier"/);assert.doesNotMatch(menu,/data-character="ninja"/);
   assert.match(menu,/<button class="title-entry" data-modal="khArcade" disabled>.*?ARCADE · [^<]+<\/span><span class="title-note">未解鎖/);

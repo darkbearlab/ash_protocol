@@ -1,6 +1,6 @@
 import {STORIES} from './story-data.js';
 import {GLITCH_TUNING} from './signal-glitch.js';
-import {availableCharacters,unlockEntry,CHARACTER_IDS} from './unlock-catalog.js';
+import {availableCharacters,unlockEntry,CHARACTER_IDS,shelvedCharacter} from './unlock-catalog.js';
 import {connectUnlocks,startCampaign,startKillhouse,grantUnlock} from './storage.js';
 import {unlockPageMarkup,purchaseReason,purchaseConfirmMarkup,operatorRecoveredMarkup,resultStoriesMarkup,lockedOperatorRow,operatorSignal,UNLOCK_HELP} from './unlock-ui.js';
 import {isNoncombatant} from './enemy-data.js';
@@ -431,7 +431,7 @@ function showIntro(){
 let deployDraft={mode:null,mission:null,seed:undefined};
 const MISSION_IDS=RANDOM_MISSION_IDS;
 const orderedCharacters=()=>[...OPERATOR_ORDER.filter(id=>CHARACTERS[id]),...Object.keys(CHARACTERS).filter(id=>!OPERATOR_ORDER.includes(id))].filter(id=>availableCharacters(profile()).includes(id));
-const lockedCharacters=()=>CHARACTER_IDS.filter(id=>CHARACTERS[id]&&!orderedCharacters().includes(id));
+const lockedCharacters=()=>CHARACTER_IDS.filter(id=>CHARACTERS[id]&&!shelvedCharacter(id)&&!orderedCharacters().includes(id));
 const randomSeed=()=>Math.floor(Math.random()*1000000000);
 const pick=list=>list[Math.floor(Math.random()*list.length)];
 const runIsLive=()=>game.status==='playing'&&(entered||resumable);

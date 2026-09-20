@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
 import {normalizeProfile,PROFILE_VERSION} from '../src/progression.js';
-import {grantUnlock,availableCharacters,STARTING_CHARACTERS,UNLOCK_SETTINGS,UNLOCK_CATALOG} from '../src/unlock-catalog.js';
+import {grantUnlock,availableCharacters,STARTING_CHARACTERS,UNLOCK_SETTINGS,UNLOCK_CATALOG,SHELVED_CHARACTERS,CHARACTER_IDS,unlockEntry} from '../src/unlock-catalog.js';
 import {collectStory,bindUnlocks,populateRunUnlocks,corpseChance,corpseFloor,CORPSE_NOTE} from '../src/run-unlocks.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {carryLevels,carryingSpent} from '../src/ammunition.js';
@@ -13,8 +13,32 @@ test('profile v7 refunds every carrying investment once and resets legacy unlock
  const p=normalizeProfile(old);assert.equal(PROFILE_VERSION,7);assert.equal(p.protocol.balance,20+6*carryingSpent(3));assert.deepEqual(p.unlocks.characters,STARTING_CHARACTERS);assert.deepEqual(p.unlocks.stories,[]);assert.deepEqual(normalizeProfile(p),p);
  assert.deepEqual(decodeBackup(JSON.stringify(makeBackup(null,old,'qa')),'qa').snapshot.profile,p);
 });
+// 3.156.0 (user decision 2026-09-20): the druid and the necromancer are shelved until their redesigns land. They cannot
+// be chosen, bought or found on a corpse, but a profile or a save that already holds one still loads.
+test('shelved operators leave the board without breaking the profiles that already hold them',()=>{
+ assert.deepEqual(SHELVED_CHARACTERS,['druid','necromancer']);
+ for(const id of SHELVED_CHARACTERS){
+  assert.ok(CHARACTER_IDS.includes(id),`${id} stays a known id`);
+  assert.equal(unlockEntry(id),null,`${id} is not in the catalogue`);
+  assert.equal(grantUnlock(normalizeProfile(),id,'purchase'),false);
+  assert.equal(grantUnlock(normalizeProfile(),id,'corpse'),false);
+ }
+ const held=normalizeProfile();held.unlocks.characters=[...STARTING_CHARACTERS,'druid','ninja'];
+ const kept=normalizeProfile(held);
+ assert.ok(kept.unlocks.characters.includes('druid'),'the profile keeps what it bought before');
+ assert.ok(!availableCharacters(kept).includes('druid'),'but it is not offered');
+ assert.deepEqual(availableCharacters(kept),[...STARTING_CHARACTERS,'ninja']);
+ // Endless corpses never draw one either.
+ const g=new Game(1,[],0,'soldier','onyx','endless');let floor=5;while(!corpseFloor(g.seed,floor))floor++;
+ g.floor=floor;g.loadFloor();
+ if(g.operatorCorpse)assert.ok(!SHELVED_CHARACTERS.includes(g.operatorCorpse.character));
+ assert.ok(!g.encounteredCharacters.some(id=>SHELVED_CHARACTERS.includes(id)));
+ // A run already under way as one of them still loads.
+ const run=new Game(5,[],0,'druid');assert.ok(Game.restore(run.serialize()));
+});
+
 test('purchase transaction is copy-on-success and demo gates all purchases',()=>{
- const p=normalizeProfile();p.protocol={balance:1100,earned:1100};const next=grantUnlock(p,'ninja','purchase');assert.equal(next.protocol.balance,100);assert.equal(p.protocol.balance,1100);assert.equal(grantUnlock(next,'ninja','purchase'),false);assert.equal(grantUnlock(next,'druid','purchase'),false);assert.equal(grantUnlock(p,'ninja','purchase',{simulation:true}),false);assert.equal(grantUnlock(p,'ninja','purchase',{settings:{demo:true}}),false);assert.deepEqual(availableCharacters(next,{demo:true}),STARTING_CHARACTERS);
+ const p=normalizeProfile();p.protocol={balance:150,earned:150};const next=grantUnlock(p,'ninja','purchase');assert.equal(next.protocol.balance,50);assert.equal(p.protocol.balance,150);   // 3.156.0: every operator costs 100assert.equal(grantUnlock(next,'ninja','purchase'),false);assert.equal(grantUnlock(next,'druid','purchase'),false);assert.equal(grantUnlock(p,'ninja','purchase',{simulation:true}),false);assert.equal(grantUnlock(p,'ninja','purchase',{settings:{demo:true}}),false);assert.deepEqual(availableCharacters(next,{demo:true}),STARTING_CHARACTERS);
 });
 test('locked ongoing character survives migration; old carrying spills without losing rounds',()=>{
  const g=new Game(33,[],0,'ninja'),raw=JSON.parse(g.serialize());raw.version=44;raw.data.carryLevel=carryLevels(3);raw.data.player.reserve=120;
@@ -49,9 +73,9 @@ test('storage atomically purchases, retries corpse writes and grants stories onl
  const s=await import('../src/storage.js?unlock-qa');const p=normalizeProfile();p.protocol={balance:2000,earned:2000};memory.set('ash-profile',JSON.stringify(p));const g=s.connectUnlocks(new Game(3));
  assert.throws(()=>s.startCampaign({character:'ninja'}),/未解鎖/);assert.throws(()=>s.startKillhouse({mode:'arcade',character:'ninja'}),/未解鎖/);
  fail=true;assert.equal(s.grantUnlock(g,'ninja','purchase'),false);assert.equal(JSON.parse(memory.get('ash-profile')).protocol.balance,2000);
- fail=false;s.storage.available=true;writes=0;assert.ok(s.grantUnlock(g,'ninja','purchase'));assert.equal(writes,1);assert.equal(s.startCampaign({character:'ninja',seed:4}).player.character,'ninja');assert.equal(s.startKillhouse({mode:'arcade',character:'ninja'}).player.character,'ninja');assert.equal(s.profile().protocol.balance,1000);assert.equal(s.grantUnlock(g,'ninja','purchase'),false);
- g.encounteredCharacters.push('druid');g.operatorCorpse={...g.player,character:'druid',recovered:false};fail=true;assert.equal(g.recoverOperator(),false);assert.equal(g.operatorCorpse.recovered,false);fail=false;s.storage.available=true;assert.ok(g.recoverOperator());assert.ok(s.profile().unlocks.characters.includes('druid'));
- const item=g.items.find(i=>i.type==='lore');const story=collectStory(g,item);g.status='dead';s.recordResult(g);assert.ok(!s.profile().unlocks.stories.includes(story.id));assert.ok(s.profile().unlocks.characters.includes('druid'));
+ fail=false;s.storage.available=true;writes=0;assert.ok(s.grantUnlock(g,'ninja','purchase'));assert.equal(writes,1);assert.equal(s.startCampaign({character:'ninja',seed:4}).player.character,'ninja');assert.equal(s.startKillhouse({mode:'arcade',character:'ninja'}).player.character,'ninja');assert.equal(s.profile().protocol.balance,1900);assert.equal(s.grantUnlock(g,'ninja','purchase'),false);
+ g.encounteredCharacters.push('bulwark');g.operatorCorpse={...g.player,character:'bulwark',recovered:false};fail=true;assert.equal(g.recoverOperator(),false);assert.equal(g.operatorCorpse.recovered,false);fail=false;s.storage.available=true;assert.ok(g.recoverOperator());assert.ok(s.profile().unlocks.characters.includes('bulwark'));
+ const item=g.items.find(i=>i.type==='lore');const story=collectStory(g,item);g.status='dead';s.recordResult(g);assert.ok(!s.profile().unlocks.stories.includes(story.id));assert.ok(s.profile().unlocks.characters.includes('bulwark'));
  const winner=s.connectUnlocks(new Game(4));collectStory(winner,winner.items.find(i=>i.type==='lore'));winner.status='won';fail=true;s.recordResult(winner);assert.equal(s.profile().unlocks.stories.length,0);fail=false;s.storage.available=true;s.recordResult(winner);assert.equal(s.profile().unlocks.stories.length,1);s.recordResult(winner);assert.equal(s.profile().unlocks.stories.length,1);
  const before=memory.get('ash-profile');assert.equal(s.grantUnlock(createKillhouse(),'bulwark','corpse'),false);assert.equal(memory.get('ash-profile'),before);
  }finally{delete globalThis.localStorage;STORIES.splice(0,STORIES.length,...original);UNLOCK_CATALOG.splice(UNLOCK_CATALOG.indexOf(fixture),1);}
@@ -65,7 +89,7 @@ test('a v7 profile rewritten by a 3.89 tab keeps its unlocks; refunds never exce
  // The 3.89 normalizeProfile writes version 6 and rebuilds unlocks without stories, but keeps unknown top-level fields.
  const downgraded={...JSON.parse(JSON.stringify(bought)),version:6,unlocks:{weapons:[],characters:['operator',...bought.unlocks.characters]}};
  const restored=normalizeProfile(downgraded);
- assert.deepEqual(restored.unlocks.characters,[...STARTING_CHARACTERS,'ninja']);assert.deepEqual(restored.unlocks.stories,['qa-ledger-story']);assert.equal(restored.protocol.balance,100);
+ assert.deepEqual(restored.unlocks.characters,[...STARTING_CHARACTERS,'ninja']);assert.deepEqual(restored.unlocks.stories,['qa-ledger-story']);assert.equal(restored.protocol.balance,1000);   // 3.156.0: 100 for the operator, 100 for the record
  assert.deepEqual(decodeBackup(JSON.stringify(makeBackup(null,restored,'qa')),'qa').snapshot.profile,restored);
  const legacy=normalizeProfile();delete legacy.unlockLedger;legacy.version=6;legacy.unlocks.characters=['ninja','druid'];assert.deepEqual(normalizeProfile(legacy).unlocks.characters,STARTING_CHARACTERS);
  const damaged=normalizeProfile();delete damaged.unlockLedger;damaged.version=6;damaged.upgrades.carrying=carryLevels(3);damaged.protocol={balance:20,earned:100};

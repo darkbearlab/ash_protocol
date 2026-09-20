@@ -1,6 +1,6 @@
 import {CHARACTERS} from './characters.js';
 import {STORIES,RETIRED_STORY_IDS} from './story-data.js';
-import {UNLOCK_SETTINGS,CHARACTER_IDS,unlocked,unlockEntry} from './unlock-catalog.js';
+import {UNLOCK_SETTINGS,CHARACTER_IDS,unlocked,unlockEntry,shelvedCharacter} from './unlock-catalog.js';
 import {FACTIONS} from './faction-catalog.js';
 
 // Unlock page, locked rows and unlock presentation (docs/UNLOCKS.md section 8, Claude, 3.90.1).
@@ -41,7 +41,7 @@ function storyEntry(profile,s,options){
 }
 
 export function unlockPageMarkup(profile,{tab='characters',message='',settings=UNLOCK_SETTINGS,available=true}={}){
-  const options={settings,available},classes=CHARACTER_IDS.filter(id=>CHARACTERS[id]);
+  const options={settings,available},classes=CHARACTER_IDS.filter(id=>CHARACTERS[id]&&!shelvedCharacter(id));
   const stories=STORIES; // Already sorted by order, then id, by npm run stories.
   const archived=RETIRED_STORY_IDS.filter(id=>profile.unlocks.stories?.includes(id));
   const tabs=`<div class="inventory-tabs unlock-tabs" role="tablist" aria-label="解鎖分類">${Object.entries(UNLOCK_TABS).map(([id,label])=>`<button role="tab" aria-selected="${id===tab}" data-unlock-tab="${id}">${label}</button>`).join('')}</div>`;
