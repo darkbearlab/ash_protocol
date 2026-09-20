@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>掉落物圖示調色 · LOOT ICON LAB</title>
+<link rel="stylesheet" href="/style.css"><link rel="stylesheet" href="/expansion.css">
+<style>
+/* Dev-only lab (3.154.0, user request): tune the loot atlas' brightness and saturation against the real map, then export
+   the adjusted 128x32 PNG. The values are baked into the file, never applied at runtime. */
+body{margin:0;padding:0 0 40px;background:#0d1211;color:#dfe8d6;font-family:system-ui,sans-serif}
+h1{margin:14px 12px 2px;font:13px var(--mono,monospace);color:var(--orange,#e08a4a);letter-spacing:2px}
+p.note{margin:0 12px 10px;font-size:11px;line-height:1.6;color:#9fae95}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start;margin:0 12px}
+.panel{border:1px solid #3b4238;background:#151e19;padding:8px}
+.panel h2{margin:0 0 6px;font-size:12px;color:#b8c9ab;letter-spacing:1px}
+canvas{display:block;image-rendering:pixelated;background:#0b100e}
+label{display:flex;align-items:center;gap:8px;font-size:12px;margin:6px 0}
+label span{width:84px;color:#b8c9ab}
+label input[type=range]{flex:1;min-width:150px}
+label output{width:52px;text-align:right;font:12px var(--mono,monospace);color:#e5eccb}
+button{margin:6px 6px 0 0;padding:6px 10px;background:#24312a;color:#dfe8d6;border:1px solid #4a5a4c;border-radius:3px;font-size:12px;cursor:pointer}
+button:hover{background:#2f4036}
+#values{margin:8px 0 0;padding:8px;background:#0b100e;border:1px solid #33403a;font:12px var(--mono,monospace);color:#cfe0d4;white-space:pre;user-select:all}
+</style>
+</head>
+<body>
+<h1>LOOT ICON LAB</h1>
+<p class="note">拉明度與彩度，右邊是遊戲的真實地圖與真實渲染器。滿意之後按「下載調整後圖集」，把 PNG 貼回給 Claude；數值會烘進檔案，遊戲執行時不會再套濾鏡。「圖示大小」只是預覽，實際大小由程式常數決定，一併記在下面的設定文字裡。</p>
+<div class="row">
+  <div class="panel" style="min-width:300px">
+    <h2>調整</h2>
+    <label><span>明度</span><input id="brightness" type="range" min="0.5" max="1.8" step="0.01" value="1"><output id="brightnessOut">1.00</output></label>
+    <label><span>彩度</span><input id="saturate" type="range" min="0" max="2" step="0.01" value="1"><output id="saturateOut">1.00</output></label>
+    <label><span>對比</span><input id="contrast" type="range" min="0.5" max="1.8" step="0.01" value="1"><output id="contrastOut">1.00</output></label>
+    <label><span>圖示大小</span><input id="size" type="range" min="14" max="40" step="1" value="21"><output id="sizeOut">21</output></label>
+    <label><span>地圖縮放</span><input id="zoom" type="range" min="0.65" max="1.3" step="0.05" value="1"><output id="zoomOut">1.00</output></label>
+    <div>
+      <button id="reset">重設</button>
+      <button id="download">下載調整後圖集</button>
+      <button id="copy">複製設定文字</button>
+    </div>
+    <div id="values"></div>
+    <h2 style="margin-top:12px">圖集（4 倍）</h2>
+    <canvas id="atlas" width="512" height="128"></canvas>
+  </div>
+  <div class="panel">
+    <h2>遊戲畫面</h2>
+    <canvas id="scene" width="560" height="420" style="width:560px;height:420px"></canvas>
+  </div>
+</div>
+<script type="module">
+import {Game} from '/src/game.js';
+import {Renderer,itemScale} from '/src/renderer.js';
+import {LOOT_ATLAS,lootCell,drawLootIcon} from '/src/loot-icons.js';
+
+const $=id=>document.getElementById(id);
+const filters=()=>`brightness(${$('brightness').value}) saturate(${$('saturate').value}) contrast(${$('contrast').value})`;
+
+// One 128x32 copy with the filter baked in; the renderer and the atlas strip both draw from it.
+const source=new Image();source.src=LOOT_ATLAS;
+const baked=document.createElement('canvas');baked.width=128;baked.height=32;
+const bakedCtx=baked.getContext('2d');
+function bake(){
+  bakedCtx.setTransform(1,0,0,1,0,0);bakedCtx.clearRect(0,0,128,32);
+  bakedCtx.imageSmoothingEnabled=false;bakedCtx.filter=filters();bakedCtx.drawImage(source,0,0);bakedCtx.filter='none';
+}
+
+// The scene: a real floor, every loot class scattered around the player, nothing else in the way.
+const game=new Game(11,[],0,'soldier','onyx');
+{
+  const p=game.player;
+  game.lighting=game.grid.map(r=>r.map(()=>1));game.seen=game.grid.map(r=>r.map(()=>true));
+  game.enemies=[];game.hazards=[];game.smoke=[];
+  const spots=[];
+  for(let y=p.y-4;y<=p.y+4;y++)for(let x=p.x-5;x<=p.x+5;x++)
+    if(game.grid[y]?.[x]===1&&!(x===p.x&&y===p.y)&&!game.props.some(o=>o.x===x&&o.y===y))spots.push({x,y});
+  const types=['ammo','pistol','shell','energy','ordnance','grenade','smoke','emp','med','armor','scrap','flare','decoy','mine','exo','nvg'];
+  game.items=[];
+  types.forEach((type,i)=>{const s=spots[(i*2)%spots.length];if(s)game.items.push({type,x:s.x,y:s.y,amount:5});});
+  [[0,7],[3,13],[9,17],[17,21]].forEach(([slot,at])=>{const s=spots[at];if(s)game.items.push({type:'weapon',slot,x:s.x,y:s.y});});
+  p.affixes[3]='longbarrel';
+  game.reveal();game.visibleTiles=new Set();
+  for(let y=0;y<game.grid.length;y++)for(let x=0;x<game.grid.length;x++)game.visibleTiles.add(`${x},${y}`);
+}
+const renderer=new Renderer($('scene'),game);
+renderer.glitchEnabled=false;renderer.shakeEnabled=false;renderer.reduceMotion=true;
+renderer.item=function(a,item,time){
+  const k=itemScale(this.tile);if(!k)return;
+  const cell=lootCell(item,item.type==='weapon'?this.game.weaponAt(item.slot):null);
+  if(cell&&drawLootIcon(this.ctx,baked,cell,a,Number($('size').value)*k))return;
+  return Renderer.prototype.item.call(this,a,item,time);
+};
+
+function strip(){
+  const c=$('atlas').getContext('2d');c.imageSmoothingEnabled=false;
+  c.clearRect(0,0,512,128);c.drawImage(baked,0,0,128,32,0,0,512,128);
+}
+function values(){
+  $('values').textContent=`明度 ${$('brightness').value} · 彩度 ${$('saturate').value} · 對比 ${$('contrast').value}\n圖示大小 ${$('size').value}px · 地圖縮放 ${$('zoom').value}`;
+}
+function draw(){
+  bake();strip();values();
+  for(const id of ['brightness','saturate','contrast','size','zoom'])$(id+'Out').textContent=$(id).value;
+  renderer.zoom=Number($('zoom').value);renderer.resize();renderer.draw(performance.now());
+}
+for(const id of ['brightness','saturate','contrast','size','zoom'])$(id).addEventListener('input',draw);
+$('reset').addEventListener('click',()=>{$('brightness').value=1;$('saturate').value=1;$('contrast').value=1;$('size').value=21;$('zoom').value=1;draw();});
+$('download').addEventListener('click',()=>{bake();const a=document.createElement('a');a.download='loot-atlas-tuned.png';a.href=baked.toDataURL('image/png');a.click();});
+$('copy').addEventListener('click',()=>navigator.clipboard?.writeText($('values').textContent));
+
+source.addEventListener('load',()=>{renderer.resize();draw();setTimeout(draw,400);setTimeout(draw,1200);});
+if(source.complete)source.dispatchEvent(new Event('load'));
+</script>
+</body>
+</html>

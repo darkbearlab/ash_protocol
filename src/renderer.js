@@ -1,3 +1,4 @@
+import {LOOT_ATLAS,LOOT_ICON,lootCell,drawLootIcon} from './loot-icons.js';
 import {mapStyle,mapStyleAtlases} from './map-styles.js';
 import {shakeImpulses,shakeOffset,liveImpulses} from './screen-shake.js';
 import {effectGlitches,stateGlitches,screenStrength,drawGlitched,screenGlitch,liveGlitches} from './signal-glitch.js';
@@ -50,7 +51,9 @@ export const ITEM_SYMBOLS=Object.freeze({smoke:'≋',emp:'E',stun:'✦',armor:'�
 // larger — and are hidden once the tile is so small they would only be clutter. With the zoom buttons that is the
 // smallest step (0.65 → 24.7 px); wide framing for a far target can hide them too. At full size nothing is transformed,
 // so the default view draws exactly as before.
-export const ITEM_SCALE=Object.freeze({full:38,hideBelow:25});
+// 3.154.0: the pixel icons read at a glance where the letters did not, so loot stays drawn across the whole zoom
+// range the player can reach — the narrow layout's furthest zoom out is a 24.7px tile, which 25 used to cut off.
+export const ITEM_SCALE=Object.freeze({full:38,hideBelow:20});
 export const itemScale=tile=>tile<ITEM_SCALE.hideBelow?0:Math.min(1,tile/ITEM_SCALE.full);
 const itemGlitchKey=i=>`item:${i.type}:${i.x},${i.y}`;
 export class Renderer {
@@ -61,7 +64,7 @@ export class Renderer {
     this.glitches=[];this.objectGlitches=new Map();this.glitchState={};this.glitchEnabled=true;   // signal interference (3.149.0, src/signal-glitch.js)
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.callouts=new CalloutBoard();this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.terrainImages=new Map();for(const def of Object.values(THEMES))if(!this.terrainImages.has(def.atlas)){const image=new Image();image.src=def.atlas;this.terrainImages.set(def.atlas,image);}
-    for(const url of [SCENERY_ATLAS,DOOR_ATLAS,NEST_ATLAS,DECAL_ATLAS,...mapStyleAtlases()]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
+    for(const url of [SCENERY_ATLAS,DOOR_ATLAS,NEST_ATLAS,DECAL_ATLAS,LOOT_ATLAS,...mapStyleAtlases()]){const image=new Image();image.src=url;this.terrainImages.set(url,image);}
     this.decals=new FactionDecals();   // faction traces on floors and wall faces (3.139.0, docs/FACTION_DECALS.md)
     this.wallImage=new Image();this.wallImage.src=WALL_ATLAS;this.terrainImages.set(WALL_ATLAS,this.wallImage);this.artTones=new ArtToneCache();
     this.sprites=new Image();this.sprites.src=new URL('../assets/pixel/atlas.png',import.meta.url).href;
@@ -435,7 +438,12 @@ export class Renderer {
     c.save();c.globalCompositeOperation='lighter';c.fillStyle=beam;c.fillRect(a.x-w*1.6,a.y-h,w*3.2,h);c.fillRect(a.x-w/2,a.y-h,w,h);c.restore();
     this.glow(a.x,a.y,16*size*pulse+4,'#ffe7a080');c.beginPath();c.arc(a.x,a.y,Math.max(1.5,3.2*size),0,Math.PI*2);c.fillStyle='#fff8dc';c.fill();
   }
-  item(a,item,time){const k=itemScale(this.tile);if(!k)return;const c=this.ctx;if(item.type==='key'){this.keyBeam(a,time,Math.max(.6,k));return;}if(k<1){c.save();c.translate(a.x,a.y);c.scale(k,k);a={x:0,y:0};}const color=ITEM_COLORS[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol=item.type==='learning'?(String(item.learningId||'').startsWith('trait_')?'◆':'✦'):ITEM_SYMBOLS[item.type]||'?';this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache&&SUPPLY_NAMES[item.type])this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text(this.game.weaponAt(item.slot).code,a.x,a.y-15,'#ffe0a3',8);this.box(a.x-11,a.y-11,22,18,'#00000000','#f6cf82');}if(item.type==='learning')this.glow(a.x,a.y,22,'#b9a2e633');if(k<1)c.restore();}
+  item(a,item,time){const k=itemScale(this.tile);if(!k)return;const c=this.ctx;if(item.type==='key'){this.keyBeam(a,time,Math.max(.6,k));return;}
+    // 3.154.0 (docs/LOOT_ICONS_HANDOFF.md): five classes of ground loot are one pixel icon each, nothing layered on top —
+    // no frame, no glow, no weapon code. The keycard, the data and the learning chips keep their own marks below.
+    const cell=lootCell(item,item.type==='weapon'?this.game.weaponAt(item.slot):null);
+    if(cell&&drawLootIcon(c,this.terrainImages?.get(LOOT_ATLAS),cell,a,LOOT_ICON.size*k))return;
+if(k<1){c.save();c.translate(a.x,a.y);c.scale(k,k);a={x:0,y:0};}const color=ITEM_COLORS[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol=item.type==='learning'?(String(item.learningId||'').startsWith('trait_')?'◆':'✦'):ITEM_SYMBOLS[item.type]||'?';this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache&&SUPPLY_NAMES[item.type])this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text(this.game.weaponAt(item.slot).code,a.x,a.y-15,'#ffe0a3',8);this.box(a.x-11,a.y-11,22,18,'#00000000','#f6cf82');}if(item.type==='learning')this.glow(a.x,a.y,22,'#b9a2e633');if(k<1)c.restore();}
   moduleFloor(a,m){
     const t=this.tile,l=a.x-t/2,top=a.y-t/2,color=MODULE_TYPES[m.theme].color;
     this.box(l+2,top+2,t-4,t-4,m.theme==='restroom'?'#73939455':m.theme==='checkpoint'?'#8c784344':'#687b5744');
