@@ -37,7 +37,7 @@ import {SIZE} from './data.js';
 
 export const SQUAD_TUNING=Object.freeze({
  radius:7,          // how far from the leader a soldier still takes orders
- members:4,         // how many it directs, the leader aside
+ members:6,         // how many it directs, the leader aside (3.153.0: 4 left the skirmishers beside the post outside the squad)
  suppressCooldown:1,
  readyTurns:2,      // granted during this turn, spent on the next one: one full round of readiness
  search:8,          // how far from the player a firing position may be looked for

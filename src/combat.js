@@ -52,7 +52,10 @@ export function shotChance(game,attacker,target) {
   const sidePenalty=sideBase?Math.max(sideBase,cover?0:42-movePenalty):0;
   const closeBonus=weapon?.closeRange&&distance(attacker,target)<=weapon.closeRange?weapon.closeAccuracy:0,vaultBonus=target.vaultExposed?20:0;
   // 3.152.0 有效距離 (src/range-band.js): outside the band each tile costs accuracy, too close as much as too far.
-  const band=weaponBand(weapon),rangePenalty=bandPenalty(band,distance(attacker,target));
+  // 3.153.0: a blind shot (the player's, or a squad soldier's called shot) already pays a flat penalty for not knowing
+  // where the target stands, so the distance penalty does not stack on top of it — as with darkness. Cover, movement and
+  // evasion still count: without them a blind shot would beat an aimed one whenever a target's defences passed 40.
+  const band=weaponBand(weapon),rangePenalty=blindPenalty?0:bandPenalty(band,distance(attacker,target));
   const specialEvasion=(game.defensiveEvasion?.(attacker,target)||0)+(target===game.player&&activeTrait(attacker,'exposed')?classPerkRank(target,'soldier_marked')*CLASS_PERK_TUNING.markedAccuracy:0);
   const chance=Math.max(10,Math.min(99,-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty-rangePenalty));
   // 3.134.0: gunfire or a beam through toxic mist, from anyone but the swarm, hits half as often.

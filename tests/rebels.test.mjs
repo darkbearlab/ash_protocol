@@ -18,6 +18,12 @@ function arena({walls=[]}={}){
 }
 const add=(g,type,x,y,id,extra={})=>{const e=makeEnemy(type,x,y,id,1,0,'rebel');Object.assign(e,extra);e.alert=true;e.lastKnown={x:g.player.x,y:g.player.y};g.enemies.push(e);return e;};
 
+// 3.153.0 (faction review): the enforcer rallies as far as its own gun reaches. At 7 the cowering rebels it exists to
+// drive back were routinely out of reach, and 91% of them died behind cover instead of being executed or rallied.
+test('the enforcer executes and rallies as far as its own gun reaches',()=>{
+ assert.equal(REBEL_TUNING.enforcerRange,ENEMY_TYPES.enforcer.range);
+});
+
 test('conscripts: rebel floors only, beside an ordinary gunman, named 強徵兵, and they pay nothing',()=>{
   const g=new Game(7,[],0,'soldier','onyx','extraction',{facilityFaction:'rebel'});
   const conscripts=g.enemies.filter(e=>e.conscript);

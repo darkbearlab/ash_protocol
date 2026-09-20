@@ -21,7 +21,9 @@ import {registerOrder,giveOrder,endOrder} from './orders.js';
 import {accepts} from './personality.js';
 import {SIZE} from './data.js';
 
-export const REBEL_TUNING=Object.freeze({witnessRadius:4,coverSearch:6,enforcerRange:7,alarmRadius:8,alarmCooldown:5});
+// 3.153.0 (faction review): enforcerRange matches the enforcer's own gun range (10); at 7 the cowering rebels it was
+// meant to rally were routinely out of reach, so 91% of them died behind cover instead.
+export const REBEL_TUNING=Object.freeze({witnessRadius:4,coverSearch:6,enforcerRange:10,alarmRadius:8,alarmCooldown:5});
 export const TAUNT_TRAITS=Object.freeze(['fast','rapid_fire','heavy_armor']);
 export const CONSCRIPT_TYPES=Object.freeze(['rifleman','raider','gunner']);
 export const COWER_TRAIT='cowering',COWER_SOURCE='rebel:cower',TAUNT_SOURCE='rebel:taunt';

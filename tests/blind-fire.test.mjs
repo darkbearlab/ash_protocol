@@ -28,11 +28,21 @@ test('blind fire needs a gun, range, a clear shot and a tile you cannot see a ta
  assert.equal(g.action('blindFire',{x:10,y:10}),false);
 });
 
-test('the blind shot rolls at −40 in place of darkness',()=>{
- const g=arena(),p=g.player;cloud(g,16,10);const e=hidden(g,16,10);e.moved=true;
- const plain=g.accuracy(p,e).chance;assert.ok(plain<99&&plain-BLIND_TUNING.penalty>10,`an unclamped shot: ${plain}`);p.blindShot=BLIND_TUNING.penalty;const blind=g.accuracy(p,e).chance;delete p.blindShot;
- assert.equal(plain-blind,BLIND_TUNING.penalty);
- g.lighting[10][16]=0;const dark=g.accuracy(p,e).chance;p.blindShot=BLIND_TUNING.penalty;assert.equal(g.accuracy(p,e).chance,blind,'darkness is replaced, not added');delete p.blindShot;assert.ok(dark<plain);
+test('the blind shot rolls at −40 in place of darkness and of the distance penalty',()=>{
+ const g=arena(),p=g.player;cloud(g,13,10);const e=hidden(g,13,10);e.moved=true;
+ const plain=g.accuracy(p,e);assert.equal(plain.rangePenalty,0,'three tiles is inside the rifle band');
+ assert.ok(plain.chance<99&&plain.chance-BLIND_TUNING.penalty>10,`an unclamped shot: ${plain.chance}`);
+ p.blindShot=BLIND_TUNING.penalty;const blind=g.accuracy(p,e).chance;delete p.blindShot;
+ assert.equal(plain.chance-blind,BLIND_TUNING.penalty);
+ g.lighting[10][13]=0;const dark=g.accuracy(p,e).chance;p.blindShot=BLIND_TUNING.penalty;
+ assert.equal(g.accuracy(p,e).chance,blind,'darkness is replaced, not added');delete p.blindShot;assert.ok(dark<plain.chance);
+ // 3.153.0: the flat penalty already pays for not knowing where the target is, so distance does not stack on top.
+ const far=arena(),q=far.player;cloud(far,17,10);const o=hidden(far,17,10);o.moved=true;
+ const open=far.accuracy(q,o);assert.ok(open.rangePenalty>0,'seven tiles is outside the rifle band');
+ q.blindShot=BLIND_TUNING.penalty;const blindFar=far.accuracy(q,o);delete q.blindShot;
+ assert.equal(blindFar.rangePenalty,0);assert.equal(open.chance-blindFar.chance,BLIND_TUNING.penalty-open.rangePenalty);
+ // Cover and movement still count: a blind shot must never beat one you can see.
+ assert.ok(blindFar.chance<open.chance&&blind<plain.chance);
 });
 
 test('you learn nothing you cannot see: no hit line, no impact, every tracer a miss',()=>{

@@ -1,3 +1,4 @@
+import {ENEMY_TYPES} from '../src/data.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,makeEnemy} from '../src/engine.js';
@@ -24,6 +25,17 @@ test('the penalty grows a tile at a time on both sides and stops at the cap',()=
  assert.deepEqual([1,2,3,4,5,6,7,8,9].map(d=>bandPenalty(band,d)),[8,4,0,0,0,4,8,12,12]);
  assert.equal(bandPenalty(null,99),0);assert.ok(inBand(null,99));
  assert.equal(BAND_TUNING.perTile*3,BAND_TUNING.cap,'the cap is three tiles out');
+});
+
+// 3.153.0 (faction review): a far edge two tiles short of the card's range left a dead zone — the unit had a clean shot
+// and walked away from a −4 instead of taking it. Both faction reviews measured the same loss, so the rule is pinned.
+test('no enemy band leaves a dead zone: every far edge is within one tile of the card range',()=>{
+ for(const [type,band] of Object.entries(ENEMY_BANDS)){
+  const range=ENEMY_TYPES[type]?.range;
+  assert.ok(Number.isInteger(range),`${type} is a real enemy type`);
+  assert.ok(band[1]>=range-1&&band[1]<=range,`${type} band ${band} against range ${range}`);
+  assert.ok(band[0]>=1&&band[0]<band[1],`${type} band ${band} runs near to far`);
+ }
 });
 
 test('the player loses accuracy outside the band and nothing inside it',()=>{
