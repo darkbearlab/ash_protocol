@@ -6,7 +6,7 @@ import {FRAG_DAMAGE} from '../src/throwables.js';
 import {containerName} from '../src/containers.js';
 import {targetDetails} from '../src/target-card.js';
 
-const floorOf=(faction,seed=4242)=>new Game(seed,[],0,'soldier',undefined,'extraction',{facilityFaction:faction});
+const floorOf=(faction,seed=4242)=>{const g=new Game(seed,[],0,'soldier',undefined,'extraction',{facilityFaction:faction});g.player.plates=0;return g;};   // 3.155.0: the blast is the subject, not the soldier's plates
 const cases=g=>g.props.filter(isContainer);
 
 test('only rebel floors rig cases, at most two, and a rigged case looks like any other',()=>{

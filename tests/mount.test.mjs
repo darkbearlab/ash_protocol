@@ -34,8 +34,8 @@ test('building with a mounted weapon takes it out of the pack, keeps one weapon,
 test('a deployed unit fires its mounted weapon with the weapon stats, upgrades and fire control, and reloads that ammunition from the player',()=>{
  const g=arena(),p=g.player;mounted(g,SHOTGUN);p.upgrades[SHOTGUN]=2;
  assert.ok(g.action('deployUnit',{line:0}));const a=g.allies[0];assert.equal(a.weapon,SHOTGUN);assert.equal(p.ammo[SHOTGUN],0);assert.equal(a.ammo,WEAPONS[SHOTGUN].mag);assert.ok(Game.restore(g.serialize()));
- const w=allyWeapon(a,p);assert.equal(w.min,WEAPONS[SHOTGUN].min+10);assert.equal(w.closeMin,WEAPONS[SHOTGUN].closeMin+10);assert.equal(w.range,WEAPONS[SHOTGUN].range);assert.equal(w.accuracyBonus,-30);assert.equal(w.ammoType,'shell');assert.equal(w.mag,WEAPONS[SHOTGUN].mag);
- p.perks.engineer_firecontrol=1;const f=allyWeapon(a,p);assert.equal(f.min,WEAPONS[SHOTGUN].min+13);assert.equal(f.accuracyBonus,-22);assert.equal(allyWeapon({...a,sourceId:'drone_sentry'},p).accuracyBonus,-37+8);
+ const w=allyWeapon(a,p);assert.equal(w.min,WEAPONS[SHOTGUN].min+10);assert.equal(w.closeMin,WEAPONS[SHOTGUN].closeMin+10);assert.equal(w.range,WEAPONS[SHOTGUN].range);assert.equal(w.accuracyBonus,0,'3.155.0: no machine penalty any more');assert.equal(w.ammoType,'shell');assert.equal(w.mag,WEAPONS[SHOTGUN].mag);   // a mounted player weapon still drains the player
+ p.perks.engineer_firecontrol=1;const f=allyWeapon(a,p);assert.equal(f.min,WEAPONS[SHOTGUN].min+13);assert.equal(f.accuracyBonus,8,'fire control is now a plain bonus');
  a.ammo=0;a.bornTurn=1;const shells=p.shell,pistol=p.pistol;allyAct(g,a);assert.equal(a.ammo,WEAPONS[SHOTGUN].mag);assert.equal(p.shell,shells-WEAPONS[SHOTGUN].mag);assert.equal(p.pistol,pistol);
 });
 

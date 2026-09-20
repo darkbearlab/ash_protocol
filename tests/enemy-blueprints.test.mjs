@@ -60,13 +60,14 @@ test('enemy blueprints can be built only once acquired, carry no weapon or paylo
  const old=JSON.parse(arena().serialize());delete old.data.player.blueprints;old.version=48;const restored=Game.restore(JSON.stringify(old));assert.ok(restored);assert.deepEqual(restored.player.blueprints,[]);
 });
 
-test('the modified drone flies without cover, loads energy cells, fires its plasma gun and chases enemies inside the tether',()=>{
+// 3.155.0: the modified drone carries its own cells; energy no longer leaves the player's pouch for it.
+test('the modified drone flies without cover, carries its own cells, fires its plasma gun and chases enemies inside the tether',()=>{
  const g=arena(),p=g.player,energy=p.energy,a=unit(g,'unit_drone'),t=ENEMY_UNIT_TUNING.drone;
  assert.equal(a.type,'drone');assert.equal(a.maxHp,t.hp);assert.equal(a.hp,t.hp);assert.ok(a.traits.some(x=>x.id==='no_cover'));
- const w=allyWeapon(a,p);assert.equal(w.ammoType,'energy');assert.equal(w.range,t.range);assert.equal(w.min,t.damage);assert.equal(a.ammo,t.mag);assert.equal(p.energy,energy-t.mag);
+ const w=allyWeapon(a,p);assert.equal(w.ammoType,null);assert.ok(w.builtIn);assert.equal(w.range,t.range);assert.equal(w.min,t.damage);assert.equal(p.energy,energy,'its cells are its own');
  assert.equal(deployedUnits(g).length,1);assert.ok(validAllies(g));assert.ok(Game.restore(g.serialize()));
  const e=enemy(g,11,14);zero(g);g.reveal();
- allyAct(g,a);assert.ok(e.hp<500);assert.equal(a.ammo,t.mag-1);assert.ok(g.effects.some(x=>x.type==='shot'&&x.style==='plasma'));
+ allyAct(g,a);assert.ok(e.hp<500);assert.ok(g.effects.some(x=>x.type==='shot'&&x.style==='plasma'));assert.equal(p.energy,energy,'and its shots still cost you nothing');
  // Out of range 5 from the drone (7 tiles) but inside the tether from the player (6 tiles, Manhattan distance).
  const h=arena(),b=unit(h,'unit_drone'),far=enemy(h,9,15);h.reveal();const before=distance(b,far);
  allyAct(h,b);assert.ok(b.moved);assert.ok(distance(b,far)<before);assert.equal(far.hp,500);

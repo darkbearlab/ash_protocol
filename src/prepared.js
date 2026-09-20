@@ -75,4 +75,5 @@ export function validPrepared(player){
 }
 // Switching TO a handgun can be free. Ammo type never determines equip cost (SMG stays 1).
 // No handgun is available yet; future definitions opt in with weaponClass:'pistol'.
-export function weaponSwitchTurns(weapon,current){return weapon?.integrated||current?.integrated||weapon?.weaponClass==='pistol'?0:1;}
+// 3.155.0 短管: a stubby gun comes up like a sidearm, so switching to it is free — the same rule pistols already had.
+export function weaponSwitchTurns(weapon,current){return weapon?.integrated||current?.integrated||weapon?.weaponClass==='pistol'||weapon?.quickSwap?0:1;}

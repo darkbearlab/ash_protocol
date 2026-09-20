@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,WEAPONS,makeEnemy} from '../src/engine.js';
 import {AFFIXES,weaponStats,rollAffix} from '../src/weapons.js';
+import {weaponSwitchTurns} from '../src/prepared.js';
 import {targetDetails} from '../src/target-card.js';
 import {captureAction} from '../src/presentation.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
@@ -12,17 +13,25 @@ function arena(){const g=new Game(42);g.barriers=[];g.grid=Array.from({length:SI
 function loot(g,base=0,affix='stable'){
   const item=g.registerWeapon({type:'weapon',weapon:base,x:11,y:10});g.player.affixes[item.slot]=affix;g.player.ammo[item.slot]=g.weaponAt(item.slot).mag;g.items.push(item);return item.slot;
 }
-test('six tradeoffs change real stats; launchers never roll meaningless penetration',()=>{
-  // 3.141.0: plus the drop-only plasma affixes (tests/pellets-plasma.test.mjs; 速射 since 3.142.0); the rifle still rolls only the six.
-  assert.equal(Object.keys(AFFIXES).length,9);assert.equal(Object.keys(AFFIXES).filter(id=>!AFFIXES[id].dropOnly).length,6);
+test('seven tradeoffs change real stats; launchers never roll meaningless penetration',()=>{
+  // 3.141.0: plus the drop-only plasma affixes (tests/pellets-plasma.test.mjs; 速射 since 3.142.0). 3.155.0 adds 短管,
+  // the seventh ordinary tradeoff, so a dropped gun now picks from seven.
+  assert.equal(Object.keys(AFFIXES).length,10);assert.equal(Object.keys(AFFIXES).filter(id=>!AFFIXES[id].dropOnly).length,7);
   assert.equal(weaponStats(0,'stable').min,20);assert.equal(weaponStats(0,'stable').accuracyBonus,10);
   assert.equal(weaponStats(3,'piercing').pierce,.95);assert.equal(weaponStats(3,'piercing').mag,2);
   assert.equal(weaponStats(0,'extended').mag,12);assert.equal(weaponStats(0,'extended').accuracyBonus,-8);
   assert.equal(weaponStats(0,'powerful').min,25);assert.equal(weaponStats(0,'powerful').mag,6);
   assert.equal(weaponStats(1,'longbarrel').range,8,'3.112.0: the shotgun is range 6, and longbarrel still adds 2');assert.equal(weaponStats(1,'longbarrel').min,38);
   assert.equal(weaponStats(0,'tracking').tracking,12);
+  // 3.155.0 短管: reach and both band edges come in by two, the damage drops a tenth, and it comes up like a sidearm.
+  const stubby=weaponStats(0,'shortbarrel'),plain=weaponStats(0);
+  assert.equal(stubby.range,plain.range-2);assert.deepEqual(stubby.band,[plain.band[0]-2,plain.band[1]-2]);
+  assert.equal(stubby.min,Math.round(plain.min*.9));assert.equal(stubby.quickSwap,true);
+  assert.equal(weaponSwitchTurns(stubby,plain),0,'switching to it is free');assert.equal(weaponSwitchTurns(plain,stubby),1);
+  const smg=weaponStats(2,'shortbarrel');assert.deepEqual(smg.band,[1,2],'a near edge never drops below one tile');
+  assert.equal(weaponStats(0,'shortbarrel',{perks:{mod_mastery:3}}).range,plain.range-2,'mastery never moves distances');
   const seen=new Set();for(let seed=0;seed<1000;seed++){seen.add(rollAffix(0,seed));assert.notEqual(rollAffix(5,seed),'piercing');}
-  assert.equal(seen.size,7);
+  assert.equal(seen.size,8,'seven tradeoffs and the plain gun');
 });
 test('ground rolls persist across inspection, collecting and reloading without combat RNG consumption',()=>{
   const a=new Game(65),b=new Game(65);assert.deepEqual(a.player.affixes,b.player.affixes);

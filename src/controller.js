@@ -655,7 +655,7 @@ function petFeedingSection(){
 // description behind "?", and the main button in the pinned footer. Operator stats and passive rules live in the journal,
 // reached from the settings menu (3.97.1, user report: a journal button in the pack was noise).
 const packInfo=(id,text)=>text?`<button class="pack-info" data-pack-info="${id}" aria-expanded="false" aria-controls="pack-desc-${id}" aria-label="說明">?</button><p class="pack-desc" id="pack-desc-${id}" hidden>${text}</p>`:'';
-const allyStatus=a=>`${a.status==='reforming'?'消散，重生倒數中':a.status==='arriving'?'等候落點':a.status==='destroyed'?'已毀':'活動'} · 第 ${a.floor} 層 · HP ${a.hp}/${a.maxHp}${a.kind==='drone'?(a.payload?` · 裝填${GRENADES[a.payload].short}`:['unit_bomber','unit_warden','unit_boss'].includes(a.sourceId)?(a.primed?(a.sourceId==='unit_warden'?' · 蓄力中':' · 蓄勢中'):a.bombard?' · 下次轟炸':''):` · ${Number.isInteger(a.weapon)?game.weaponAt(a.weapon).name+' ':''}${a.ammo}/${allyWeapon(a,game.player).mag} 發`):''}`;
+const allyStatus=a=>`${a.status==='reforming'?'消散，重生倒數中':a.status==='arriving'?'等候落點':a.status==='destroyed'?'已毀':'活動'} · 第 ${a.floor} 層 · HP ${a.hp}/${a.maxHp}${a.kind==='drone'?(a.payload?` · 裝填${GRENADES[a.payload].short}`:['unit_bomber','unit_warden','unit_boss'].includes(a.sourceId)?(a.primed?(a.sourceId==='unit_warden'?' · 蓄力中':' · 蓄勢中'):a.bombard?' · 下次轟炸':''):(allyWeapon(a,game.player).builtIn?' · 自帶彈藥':` · ${Number.isInteger(a.weapon)?game.weaponAt(a.weapon).name+' ':''}${a.ammo}/${allyWeapon(a,game.player).mag} 發`)):''}`;
 function showInventory(tab=inventoryTab,message='') {
   inventoryTab=Object.hasOwn(INVENTORY_TABS,tab)?tab:'weapon';
   const p=game.player,ground=game.items.filter(o=>o.type==='weapon'&&distance(o,p)<=1),category=inventoryTab;

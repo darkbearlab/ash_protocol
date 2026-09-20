@@ -27,10 +27,10 @@ const zero=g=>g.rng=Object.assign(()=>0,{state:()=>1});
 test('six free classes restore with their actual starting allies and skills without changing old classes',()=>{
  for(const id of Object.keys(CHARACTERS)){const g=new Game(330,[],0,id,'onyx');assert.ok(Game.restore(g.serialize()),id);assert.equal(g.allies.length,id==='druid'?1:0);assert.deepEqual(g.player.productionLines,id==='engineer'?[{blueprint:'drone_follow'}]:[]);assert.equal(g.player.hp,CHARACTERS[id].hp);}
 });
-test('deploying a built unit spends a turn and real pistol rounds, new deployment cannot shoot immediately',()=>{
+test('deploying a built unit spends a turn and no rounds of yours, new deployment cannot shoot immediately',()=>{
  const g=arena(),e=enemy(g);g.reveal();zero(g);const pistol=g.player.pistol,rifle=g.player.reserve;
- assert.ok(deploy(g));const a=g.allies[0];assert.equal(g.turn,2);assert.deepEqual(g.player.productionLines,[]);assert.equal(g.player.pistol,pistol-12);assert.equal(g.player.reserve,rifle);assert.equal(a.ammo,12);assert.equal(e.hp,22);assert.equal(a.status,'active');
- g.action('wait');assert.equal(a.ammo,11);assert.ok(e.hp<22);
+ assert.ok(deploy(g));const a=g.allies[0];assert.equal(g.turn,2);assert.deepEqual(g.player.productionLines,[]);assert.equal(g.player.pistol,pistol,'3.155.0: a machine with its own gun costs you no rounds');assert.equal(g.player.reserve,rifle);assert.equal(e.hp,22);assert.equal(a.status,'active');
+ g.action('wait');assert.ok(e.hp<22);assert.equal(g.player.pistol,pistol,'and firing spends none either');
 });
 test('deployed units never return: the workshop skill itself is refused without spending time',()=>{
  const g=arena();assert.equal(canAllySkill(g,'workshop'),true);const turn=g.turn;assert.equal(use(g),false);assert.equal(g.turn,turn);
@@ -44,8 +44,8 @@ test('building needs a known blueprint, scrap and a free production line; refusa
  const s=arena('soldier');s.player.scrap=100;assert.equal(s.action('buildUnit',{blueprint:'drone_follow'}),false);assert.deepEqual(s.player.productionLines,[]);
 });
 test('stationary drone never moves and disconnected drones stop firing and granting sight',()=>{
- const g=arena(),a=drone(g,{x:18,y:10},'active','drone_sentry'),e=enemy(g,20);a.ammo=8;a.bornTurn=1;g.turn=2;zero(g);g.reveal();const before=e.hp;allyAct(g,a);assert.equal(a.x,18);assert.equal(a.ammo,8);assert.equal(e.hp,before);
- g.player.x=15;g.reveal();allyAct(g,a);assert.equal(a.x,18);assert.equal(a.ammo,7);
+ const g=arena(),a=drone(g,{x:18,y:10},'active','drone_sentry'),e=enemy(g,20);a.ammo=8;a.bornTurn=1;g.turn=2;zero(g);g.reveal();const before=e.hp;allyAct(g,a);assert.equal(a.x,18);assert.equal(e.hp,before,'out of touch: no shot');
+ g.player.x=15;g.reveal();const hp=e.hp;allyAct(g,a);assert.equal(a.x,18);assert.ok(e.hp<hp,'back in touch: it fires, and its own gun needs no rounds');
 });
 test('follow drone shoots only at its own position and follows its tether rather than chasing',()=>{
  const g=arena(),a=drone(g,{x:11,y:10});a.ammo=12;a.bornTurn=1;g.turn=2;enemy(g,19);zero(g);allyAct(g,a);assert.equal(a.x,11);assert.equal(a.ammo,12);
@@ -163,7 +163,7 @@ test('a destroyed unit is replaced by building and deploying another of either b
   const g=arena();assert.ok(deploy(g));const a=g.allies[0];g.damageAlly(a,999);assert.equal(a.status,'destroyed');
   g.player.scrap=UNIT_BLUEPRINTS[blueprint].cost+5;assert.ok(g.action('buildUnit',{blueprint}));assert.equal(g.player.scrap,5);
   const pistol=g.player.pistol;assert.ok(deploy(g));const b=g.allies.find(x=>x.kind==='drone'&&x.status==='active');
-  assert.notEqual(b.id,a.id);assert.equal(b.sourceId,blueprint);assert.equal(b.hp,DRONE_HP);assert.equal(b.bornTurn,g.turn);assert.equal(b.ammo,allyWeapon(b).mag);assert.equal(g.player.pistol,pistol-b.ammo);assert.ok(Math.abs(b.x-g.player.x)+Math.abs(b.y-g.player.y)<=2);
+  assert.notEqual(b.id,a.id);assert.equal(b.sourceId,blueprint);assert.equal(b.hp,DRONE_HP);assert.equal(b.bornTurn,g.turn);assert.equal(g.player.pistol,pistol,'3.155.0: its own gun, its own rounds');assert.ok(Math.abs(b.x-g.player.x)+Math.abs(b.y-g.player.y)<=2);
   assert.equal(b.armor,blueprint==='drone_sentry'?SENTRY_ARMOR:0);assert.equal(b.traits.some(t=>t.id==='no_cover'),blueprint!=='drone_sentry');
   g.player.scrap=100;assert.ok(g.action('buildUnit',{blueprint}));assert.equal(deploy(g),false);assert.match(g.logs[0].text,/部署上限 1 台/);assert.ok(Game.restore(g.serialize()));
  }
@@ -193,7 +193,7 @@ test('a unit is deployed on a chosen free tile within two steps; other tiles and
  const g=arena();enemy(g,11,10).hp=500;g.enemyAct=()=>{};
  for(const bad of [{x:10,y:13},{x:11,y:10}])assert.equal(deploy(g,bad),false);assert.equal(g.turn,1);assert.equal(g.player.productionLines.length,1);
  assert.equal(g.action('deployUnit',{line:1,x:10,y:8}),false);assert.equal(g.action('deployUnit',{line:'0',x:10,y:8}),false);assert.equal(g.turn,1);
- assert.ok(deploy(g,{x:10,y:8}));const a=g.allies[0];assert.deepEqual([a.status,a.x,a.y,g.turn,a.ammo],['active',10,8,2,12]);assert.ok(Game.restore(g.serialize()));
+ assert.ok(deploy(g,{x:10,y:8}));const a=g.allies[0];assert.deepEqual([a.status,a.x,a.y,g.turn],['active',10,8,2]);assert.ok(Game.restore(g.serialize()));
 });
 test('without a chosen tile the unit lands beside the player; in a corridor in front, never behind',()=>{
  const f=arena();f.player.facing=[0,1];assert.equal(defaultDroneCell(f).d,1);assert.ok(deploy(f));assert.deepEqual([f.allies[0].x,f.allies[0].y],[11,10]);
@@ -218,11 +218,13 @@ test('rally is free, brings hunting summons back for three turns, then they hunt
  const n=arena('necromancer');assert.equal(use(n),false);assert.equal(n.turn,1);assert.match(n.logs[0].text,/集結/);
 });
 // 3.39 engineer drone, reworked by the workshop in 3.91.0: pistol rounds, 90 HP, self-reload near the player.
-test('drones reload themselves from pistol rounds within carry range when empty or idle at half, never beyond it',()=>{
- const g=arena(),a=drone(g,{x:11,y:10});a.ammo=0;a.bornTurn=1;g.turn=2;const rifle=g.player.reserve,pistol=g.player.pistol;allyAct(g,a);assert.equal(a.ammo,12);assert.equal(g.player.pistol,pistol-12);assert.equal(g.player.reserve,rifle);
- a.ammo=7;g.turn=3;allyAct(g,a);assert.equal(a.ammo,7);a.ammo=6;g.turn=4;allyAct(g,a);assert.equal(a.ammo,12);
- const e=enemy(g,13,10);e.hp=500;zero(g);g.reveal();a.ammo=6;g.turn=5;allyAct(g,a);assert.equal(a.ammo,5);a.ammo=0;g.turn=6;allyAct(g,a);assert.equal(a.ammo,12);
- g.enemies=[];a.ammo=0;a.x=15;g.turn=7;allyAct(g,a);assert.equal(a.ammo,0);assert.equal(a.x,14);
+// 3.155.0 (user decision): a machine built with its own gun never reloads from the player, empty magazine or not. The
+// reload errand is now only for a mounted player weapon (tests/mount.test.mjs).
+test('a machine with its own gun never spends the player rounds, and still walks its leash',()=>{
+ const g=arena(),a=drone(g,{x:11,y:10});a.ammo=0;a.bornTurn=1;g.turn=2;const rifle=g.player.reserve,pistol=g.player.pistol;
+ const e=enemy(g,13,10);e.hp=500;zero(g);g.reveal();allyAct(g,a);
+ assert.ok(e.hp<500,'an empty magazine no longer stops it');assert.equal(g.player.pistol,pistol);assert.equal(g.player.reserve,rifle);
+ g.enemies=[];a.x=15;g.turn=7;allyAct(g,a);assert.equal(a.x,14,'and it still closes the leash');assert.equal(g.player.pistol,pistol);
 });
 test('the placed sentry takes cover and plating while the hovering follow drone does not',()=>{
  const g=arena(),s=drone(g,{x:12,y:10},'active','drone_sentry');g.props=[{id:'cover-c',type:'cover',x:13,y:10,hp:60,maxHp:60}];const e=enemy(g,17,10);
@@ -293,7 +295,7 @@ test('melee pets hold a fight inside the tether instead of pacing back to the id
   for(let i=0;i<8;i++){g.action('wait');assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=PET_TETHER);}assert.ok(e.hp<500,`enemy ${k} tiles out`);}
 });
 test('follow drones fire from their tile before closing the idle leash, and still never chase',()=>{
- const g=arena(),a=drone(g,{x:7,y:10});a.ammo=12;a.bornTurn=1;g.turn=2;enemy(g,11,11);zero(g);g.reveal();allyAct(g,a);assert.equal(a.x,7);assert.equal(a.ammo,11);
+ const g=arena(),a=drone(g,{x:7,y:10});a.ammo=12;a.bornTurn=1;g.turn=2;const e=enemy(g,11,11);e.hp=500;zero(g);g.reveal();allyAct(g,a);assert.equal(a.x,7);assert.ok(e.hp<500,'it fires from where it stands');
 });
 test('a pet whose hold tile is taken fights from where it stands instead of idling',()=>{
  const g=arena('druid'),a=pet(g,{x:12,y:10}),e=enemy(g,13,10);e.hp=500;a.order={x:13,y:10};g.enemyAct=()=>{};zero(g);g.reveal();g.action('wait');assert.ok(e.hp<500);assert.deepEqual([a.x,a.y],[12,10]);

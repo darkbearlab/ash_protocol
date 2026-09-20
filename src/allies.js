@@ -59,15 +59,19 @@ export function allyWeapon(a,player=null){
  if(a.kind==='pet')return petWeapon(player);
  if(a.kind==='drone'&&a.sourceId==='drone_munition')return {id:'munition',range:0,min:0,max:0,mag:0,ammoType:null,accuracyBonus:0};
  if(a.kind==='drone'&&a.sourceId==='unit_bomber')return {id:'bomber',range:0,min:0,max:0,mag:0,ammoType:null,accuracyBonus:0};
- if(a.kind==='drone'&&a.sourceId==='unit_drone'){const rank=classPerkRank(player,'engineer_firecontrol'),t=ENEMY_UNIT_TUNING.drone,damage=t.damage+rank*CLASS_PERK_TUNING.fireDamage;return {id:'plasma',range:t.range,min:damage,max:damage,mag:t.mag,ammoType:'energy',accuracyBonus:-30+rank*CLASS_PERK_TUNING.fireAccuracy};}
+ // 3.155.0 (user decision 2026-09-20): a machine built with its own weapon feeds itself like an enemy drone does, and no
+ // machine aims worse just for being a machine. Only a mounted player weapon still drains the player's rounds.
+ if(a.kind==='drone'&&a.sourceId==='unit_drone'){const rank=classPerkRank(player,'engineer_firecontrol'),t=ENEMY_UNIT_TUNING.drone,damage=t.damage+rank*CLASS_PERK_TUNING.fireDamage;return {id:'plasma',range:t.range,min:damage,max:damage,mag:t.mag,ammoType:null,builtIn:true,accuracyBonus:rank*CLASS_PERK_TUNING.fireAccuracy};}
  if(a.kind==='drone'&&(a.sourceId==='unit_warden'||a.sourceId==='unit_boss')){const rank=classPerkRank(player,'engineer_firecontrol'),t=ENEMY_UNIT_TUNING[a.sourceId==='unit_warden'?'warden':'boss'],damage=t.damage+rank*CLASS_PERK_TUNING.fireDamage;return {id:'plasma',range:t.range,min:damage,max:damage,mag:0,ammoType:null,accuracyBonus:t.accuracy+rank*CLASS_PERK_TUNING.fireAccuracy,builtIn:true};}
  // Mounted weapon (docs/ENGINEER.md section 5, 3.93.0): the weapon's own stats, affix and upgrades, the chassis accuracy
  // modifier and fire control. The player's own perks and traits stay with the player.
  if(a.kind==='drone'&&Number.isInteger(a.weapon)&&player){
   const rank=classPerkRank(player,'engineer_firecontrol'),sentry=a.sourceId==='drone_sentry',w=weaponStats(player.weaponBases[a.weapon],player.affixes[a.weapon]),bonus=(player.upgrades[a.weapon]||0)*5+rank*CLASS_PERK_TUNING.fireDamage;
-  return {...w,min:w.min+bonus,max:w.max+bonus,...(w.closeRange?{closeMin:w.closeMin+bonus,closeMax:w.closeMax+bonus}:{}),accuracyBonus:w.accuracyBonus+(sentry?-37:-30)+rank*CLASS_PERK_TUNING.fireAccuracy,mounted:true};
+  return {...w,min:w.min+bonus,max:w.max+bonus,...(w.closeRange?{closeMin:w.closeMin+bonus,closeMax:w.closeMax+bonus}:{}),accuracyBonus:w.accuracyBonus+rank*CLASS_PERK_TUNING.fireAccuracy,mounted:true};
  }
- if(a.kind==='drone'){const rank=classPerkRank(player,'engineer_firecontrol'),sentry=a.sourceId==='drone_sentry',damage=(sentry?14:12)+rank*CLASS_PERK_TUNING.fireDamage;return {id:'rifle',range:7,min:damage,max:damage,mag:sentry?8:12,ammoType:'pistol',accuracyBonus:(sentry?-37:-30)+rank*CLASS_PERK_TUNING.fireAccuracy};}
+ if(a.kind==='drone'){const rank=classPerkRank(player,'engineer_firecontrol'),sentry=a.sourceId==='drone_sentry',damage=(sentry?14:12)+rank*CLASS_PERK_TUNING.fireDamage;
+  // The magazine stays in the shape so older saves still validate; with builtIn nothing is spent or reloaded.
+  return {id:'rifle',range:7,min:damage,max:damage,mag:sentry?8:12,ammoType:null,builtIn:true,accuracyBonus:rank*CLASS_PERK_TUNING.fireAccuracy};}
  const summonBonus=a.kind==='summon'?classPerkRank(player,'necro_blades')*CLASS_PERK_TUNING.blades:0,def=ENEMY_TYPES[a.type],melee=def.range===1,damage=Math.max(8,def.damage)+summonBonus;
  return {id:melee?'melee':a.type===ALLY_BASE_TYPES.drone?'plasma':'rifle',range:def.range,min:damage,max:damage,melee,hitChance:90,accuracyBonus:-22,ammoType:null,mag:0};
 }

@@ -48,7 +48,7 @@ test('new Recon receives smoke and stun, prepares smoke and can immediately thro
   const g=arena('recon');assert.equal(g.player.grenades,0);assert.equal(g.player.smoke,2);assert.equal(g.player.emp,0);assert.equal(g.player.stun,2);assert.equal(g.player.meds,2);
   assert.equal(g.player.prepared.grenade,'smoke');const turn=g.turn;
   assert.equal(g.action('grenade',{x:12,y:10}),true);assert.equal(g.player.smoke,1);assert.equal(g.player.emp,0);assert.equal(g.player.stun,2);assert.equal(g.turn,turn+1);assert.ok(g.smoke.length);
-  for(const [id,hp,armor,plates]of [['soldier',100,0,0],['recon',100,0,0],['bulwark',200,6,30]]){
+  for(const [id,hp,armor,plates]of [['soldier',100,0,10],['recon',100,0,0],['bulwark',200,6,30]]){
     const a=arena(id);assert.equal(a.player.hp,hp);assert.equal(a.player.maxHp,hp);assert.equal(a.player.armor,armor);assert.equal(a.player.plates,plates);assert.equal(a.weaponCapacity,3);assert.equal(a.plateCapacity,30);
     if(id!=='recon'){assert.equal(a.player.grenades,2);assert.equal(a.player.smoke,0);assert.equal(a.player.emp,0);}
   }

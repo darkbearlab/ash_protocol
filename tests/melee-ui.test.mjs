@@ -6,6 +6,7 @@ import {TRAITS} from '../src/traits.js';
 import {SKILLS} from '../src/skills.js';
 import {MELEE_TUNING,GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN} from '../src/melee-classes.js';
 import {grappleLabel,spiritFadeIn,meleeStatus,meleeSummary} from '../src/melee-ui.js';
+import {POINT_BLANK} from '../src/traits.js';
 import {targetDetails} from '../src/target-card.js';
 
 function arena(character='berserker'){
@@ -66,8 +67,16 @@ test('melee passive and skill texts quote the live tuning numbers',()=>{
 });
 
 // 3.47.2, user call: the SMG kit was too weak, so katana + precision rifle and four smoke; stun stays, capacity +2 like Recon.
-test('ninja kit: katana and precision rifle, four smoke and one stun inside a +2 throw capacity, smoke prepared',()=>{
- const n=arena('ninja');assert.deepEqual(n.player.owned.map(i=>WEAPONS[i].id),['katana','sniper']);assert.equal(n.player.ammo[n.player.owned[1]],WEAPONS[n.player.owned[1]].mag);
+// 3.155.0 (user decision 2026-09-20): the ninja stops being a sniper with a melee answer — a submachine gun that
+// barely misses inside three tiles replaces the precision rifle, and the rest of the kit is unchanged.
+test('ninja kit: katana and submachine gun, point blank inside three tiles, four smoke and one stun, smoke prepared',()=>{
+ const n=arena('ninja');assert.deepEqual(n.player.owned.map(i=>WEAPONS[i].id),['katana','smg']);assert.equal(n.player.ammo[n.player.owned[1]],WEAPONS[n.player.owned[1]].mag);
  assert.equal(n.player.smoke,4);assert.equal(n.player.stun,1);assert.equal(n.ammoCapacity('grenade'),6);n.trimGrenades();assert.equal(n.player.smoke+n.player.stun,5,'nothing trimmed');
  assert.equal(n.player.prepared.grenade,'smoke');assert.equal(arena('berserker').player.prepared.grenade,'frag');
+ // Point blank: cover and the target's movement stop counting, and the aim steadies, but only with a gun and only close.
+ const e=enemy(n,'rifleman',11,10);n.player.weapon=n.player.owned[1];e.moved=true;n.props=[{id:'c',type:'cover',x:12,y:10,hp:65,maxHp:65}];n.reveal();
+ const near=n.accuracy(n.player,e);assert.ok(near.pointBlank&&near.movePenalty===0&&near.coverPenalty===0&&near.pointBlankBonus===POINT_BLANK.accuracy);
+ e.x=11+POINT_BLANK.range;n.props=[{id:'c',type:'cover',x:e.x+1,y:10,hp:65,maxHp:65}];n.reveal();
+ const far=n.accuracy(n.player,e);assert.ok(!far.pointBlank&&far.movePenalty>0,'beyond the range it is an ordinary shot');
+ n.player.weapon=n.player.owned[0];e.x=11;n.reveal();assert.equal(n.accuracy(n.player,e).pointBlank,false,'melee is not a shot');
 });

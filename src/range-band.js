@@ -17,8 +17,9 @@ export const ENEMY_BANDS=Object.freeze({rifleman:[3,6],raider:[1,4],gunner:[2,5]
 
 export const weaponBand=weapon=>weapon?.band??(weapon?.melee?null:WEAPON_BANDS[weapon?.id]??null);
 export const enemyBand=type=>ENEMY_BANDS[type]??ENEMY_BANDS[String(type).split('_')[0]]??null;
-// The long barrel and the recon's extended burst push the far edge out; nothing moves the near edge (3.152.0 proposal).
-export const shiftedBand=(band,reach)=>band?[band[0],band[1]+(reach||0)]:null;
+// The long barrel and the recon's extended burst push the far edge out; the short barrel (3.155.0) pulls both edges in,
+// which is the only thing that moves the near edge. A near edge never drops below one tile.
+export const shiftedBand=(band,reach,near=0)=>band?[Math.max(1,band[0]+near),band[1]+(reach||0)]:null;
 export const inBand=(band,distance)=>!band||distance>=band[0]&&distance<=band[1];
 export const bandPenalty=(band,distance)=>band?Math.min(BAND_TUNING.cap,BAND_TUNING.perTile*Math.max(0,band[0]-distance,distance-band[1])):0;
 export const bandLabel=band=>band?`${band[0]}–${band[1]}`:'不限';

@@ -11,6 +11,9 @@ export const AFFIXES={
   extended:{name:'擴容',text:'彈匣 +50%（向下取整）；命中 −8',mag:1.5,accuracy:-8},
   powerful:{name:'強擊',text:'基礎傷害 +15%；彈匣 −25%（向下取整，至少 1 發）',damage:1.15,mag:.75},
   longbarrel:{name:'長管',text:'射程 +2；基礎傷害 −10%',range:2,damage:.9},
+  // 3.155.0 (user proposal 2026-09-20): the mirror of the long barrel. A stubby gun trades reach for a band that starts
+  // at your feet, and it comes up as fast as a sidearm — switching to it costs no turn, like a pistol.
+  shortbarrel:{name:'短管',text:'射程 −2、有效距離前後各 −2；切換到這把不耗回合；基礎傷害 −10%',range:-2,nearEdge:-2,quickSwap:true,damage:.9},
   // 3.141.1 (user, 2026-09-19): no longer rolled on the shotgun, whose pellets ignore movement anyway (rollAffix).
   tracking:{name:'追獵',text:'目標移動的命中懲罰減為 10；基礎傷害 −10%',tracking:12,damage:.9,notOn:['shotgun']},
   // 3.141.0 (user decisions 2026-09-19, docs/WEAPONS.md): drop-only affixes, plasma rifles for now. Never sold, never
@@ -48,9 +51,9 @@ export function weaponStats(base,affix=null,actor=null){
     ...(w.farFrom?{farMin:Math.round(w.farMin*(a.damage||1)),farMax:Math.round(w.farMax*(a.damage||1))}:{}),
     ...(w.pellets?{pelletMin:Math.round(w.pelletMin*(a.damage||1)),pelletMax:Math.round(w.pelletMax*(a.damage||1))}:{}),
     shotCost:a.shotCost||1,affixAccuracy:a.accuracy||0,...(a.burst?{burst:a.burst}:{}),...(a.volleyCost?{volleyCost:a.volleyCost}:{}),...(a.lance?{lance:true}:{}),...(a.blast?{blast:a.blast}:{}),
-    mag:Math.max(1,Math.floor(w.mag*(a.mag||1))),range:burstRange+(extended?2:0),...(extended?{burstRange}:{}),
+    mag:Math.max(1,Math.floor(w.mag*(a.mag||1))),range:Math.max(1,burstRange+(extended?2:0)),...(extended?{burstRange}:{}),
     // 3.152.0 有效距離: the long barrel and the extended burst push the far edge out; the near edge never moves.
-    band:shiftedBand(WEAPON_BANDS[w.id],(a.range||0)+(extended?2:0)),
+    band:shiftedBand(WEAPON_BANDS[w.id],(a.range||0)+(extended?2:0),a.nearEdge||0),...(a.quickSwap?{quickSwap:true}:{}),
     pierce:Math.max(0,Math.min(1,(w.pierce||0)+(a.pierce||0))),extraRounds:rapidFireModifiers(actor).extraRounds,accuracyBonus:(a.accuracy||0)+rapidFireModifiers(actor).accuracyBonus,tracking:a.tracking||0};
 }
 // Do not change weapon.burst: it also divides per-volley perk damage bonuses.

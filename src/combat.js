@@ -3,7 +3,7 @@ import {PERK_D} from './data.js';
 import {lightingEffects} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
 import {blockedBetween,edgeAdjacent,edgeBlocks} from './barriers.js';
-import {sizeModifier,movementModifier,activeTrait,correctionBonus,sidestepPenalty} from './traits.js';
+import {sizeModifier,movementModifier,activeTrait,correctionBonus,sidestepPenalty,POINT_BLANK} from './traits.js';
 // Symmetric, bounded corner leaning. The player and AI use the same geometry.
 import {DIRECTIONS,distance,lineOfSight} from './world.js';
 import {weaponBand,bandPenalty} from './range-band.js';
@@ -33,7 +33,9 @@ export function wallCover(grid,target,attacker) {
 }
 export const bracingBonus=(game,attacker,target)=>activeTrait(attacker,'braced')&&game.protectingCover(attacker,target)?12+classPerkRank(attacker,'soldier_braced')*CLASS_PERK_TUNING.braced:0;
 export function shotChance(game,attacker,target) {
-  if(attacker===game.player&&game.weapon.melee)return {chance:game.meleeAccuracy(attacker,target,game.weapon.hitChance),innateAccuracy:actorStat(attacker,'meleeAccuracy'),innateEvasion:actorStat(target,'meleeEvasion'),base:game.weapon.hitChance,bracedBonus:0,trackingBonus:0,sidePenalty:0,accuracyBonus:0,movePenalty:0,coverPenalty:0,coverEfficiency:0,coverReduction:0,darkPenalty:0,rangePenalty:0,band:null,focusBonus:0,evasionPenalty:0,cover:null,moving:Boolean(target.moved),distance:distance(attacker,target)};
+  if(attacker===game.player&&game.weapon.melee)return {chance:game.meleeAccuracy(attacker,target,game.weapon.hitChance),innateAccuracy:actorStat(attacker,'meleeAccuracy'),innateEvasion:actorStat(target,'meleeEvasion'),base:game.weapon.hitChance,bracedBonus:0,trackingBonus:0,sidePenalty:0,accuracyBonus:0,movePenalty:0,coverPenalty:0,coverEfficiency:0,coverReduction:0,darkPenalty:0,rangePenalty:0,band:null,pointBlank:false,pointBlankBonus:0,focusBonus:0,evasionPenalty:0,cover:null,moving:Boolean(target.moved),distance:distance(attacker,target)};
+  // 3.155.0 貼身射擊 (the ninja): inside POINT_BLANK.range a gun ignores cover and the target's movement, and steadies.
+  const pointBlank=!game.weapon?.melee&&activeTrait(attacker,'point_blank')&&distance(attacker,target)<=POINT_BLANK.range;
   const cover=game.protectingCover(target,attacker),protection=coverEffects(cover,target,attacker);
   // 3.126.0: a squad soldier firing at the tile its leader called out takes blindShot instead of the darkness penalty.
   const light=lightingEffects(game,attacker,target),blindPenalty=attacker.blindShot||0,darkPenalty=blindPenalty?0:light.penalty;
@@ -41,7 +43,7 @@ export function shotChance(game,attacker,target) {
   const weapon=attacker===game.player?game.weapon:game.actorWeapon?.(attacker),accuracyBonus=weapon?.accuracyBonus||0;
   const innateAccuracy=actorStat(attacker,'rangedAccuracy'),innateEvasion=actorStat(target,'rangedEvasion');
   // 3.148.0 升級 D: 游擊 raises the penalty for shooting you after you moved; 沉著 raises what your wait adds to your aim.
-  const base=97,movePenalty=moving?Math.max(0,22+movementModifier(target)+PERK_D.skirmish*(target.perks?.skirmish||0)-(weapon?.tracking||0)):0,coverPenalty=protection.penalty;
+  const base=97,movePenalty=moving&&!pointBlank?Math.max(0,22+movementModifier(target)+PERK_D.skirmish*(target.perks?.skirmish||0)-(weapon?.tracking||0)):0,coverPenalty=pointBlank?0:protection.penalty;
   // 3.125.0: 已就緒 is the squad's wait, so it reads the same two numbers the player's wait does.
   const focusBonus=attacker.focus||activeTrait(attacker,'ready')?15+(attacker.focus?PERK_D.steady*(attacker.perks?.steady||0):0):0,evasionPenalty=target.evasive||activeTrait(target,'ready')?15:0;
   // 3.111.0 (user request): a precision rifle that has not spent a turn aiming is far less accurate. Waiting already sets
@@ -57,8 +59,9 @@ export function shotChance(game,attacker,target) {
   // evasion still count: without them a blind shot would beat an aimed one whenever a target's defences passed 40.
   const band=weaponBand(weapon),rangePenalty=blindPenalty?0:bandPenalty(band,distance(attacker,target));
   const specialEvasion=(game.defensiveEvasion?.(attacker,target)||0)+(target===game.player&&activeTrait(attacker,'exposed')?classPerkRank(target,'soldier_marked')*CLASS_PERK_TUNING.markedAccuracy:0);
-  const chance=Math.max(10,Math.min(99,-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty-rangePenalty));
+  const pointBlankBonus=pointBlank?POINT_BLANK.accuracy:0;
+  const chance=Math.max(10,Math.min(99,pointBlankBonus-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty-rangePenalty));
   // 3.134.0: gunfire or a beam through toxic mist, from anyone but the swarm, hits half as often.
   const toxic=toxicShot(game,attacker,target,weapon);
-  return {chance:toxic?Math.max(1,Math.round(chance/2)):chance,toxic,aimPenalty,rangePenalty,band,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
+  return {chance:toxic?Math.max(1,Math.round(chance/2)):chance,toxic,aimPenalty,rangePenalty,band,pointBlank,pointBlankBonus,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }
