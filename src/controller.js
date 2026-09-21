@@ -199,13 +199,17 @@ function update(view=renderer.game) {
   $('#mobile-plates-bar').style.width=`${(p.plates||0)/view.plateCapacity*100}%`;$('#mobile-plates').textContent=`${p.plates||0} / ${view.plateCapacity}`;lowHealth(p);
   $('#level').textContent=`${sectorLabel} · ${levelLabel(p.level)}`;$('#level').title=`${sectorLabel}；${levelTitle(p.level,p.xp,levelCost(game,p.level))}`;
   // One spelling of a prepared slot's label, so a mode that borrows the button can put it back exactly (3.109.0).
+  // 3.161.0 (user report): the three prepared-slot buttons act on the live game — a tap skips the presentation first —
+  // so their readiness, labels and counts come from it, not from the snapshot being animated. Skill cooldowns tick
+  // after the enemy phase, so during the animation the snapshots still read 冷卻 1 (dim) while the live game read 就緒.
+  const lp=game?.player||p,lv=game||view;
   for(const category of Object.keys(PREPARED_CATEGORIES)){
-    const entry=preparedEntry(p,category),button=$(`[data-action="${category}"]`),count=entry?.resource?p[entry.resource]:null;
+    const entry=preparedEntry(lp,category),button=$(`[data-action="${category}"]`),count=entry?.resource?lp[entry.resource]:null;
     button.querySelector('.action-icon').textContent=entry?.icon||'◇';
-    if(category!=='grenade')button.querySelector('strong').textContent=slotLabel(view,category);
-    button.title=entry?`${entry.name}：${category==='skill'?skillText(p,p.prepared.skill):entry.text}${category==='skill'?(ALLY_SKILLS.includes(p.prepared.skill)?' 目前'+allySkillState(view,p.prepared.skill)+'。':' 目前'+skillStatus(p,p.prepared.skill)+'；冷卻剩餘 '+(p.skillState[p.prepared.skill]?.cooldown||0)+'。'):''}`:`到背包預備${PREPARED_CATEGORIES[category]}`;
-    if(category==='skill'){if(entry?.toggle)button.setAttribute('aria-pressed',String(skillActive(p,p.prepared.skill)));else button.removeAttribute('aria-pressed');}
-    button.setAttribute('aria-label',entry?`使用預備${PREPARED_CATEGORIES[category]}：${entry.name}${category==='skill'?'，'+skillLabel(view,p.prepared.skill):''}${count===null?'':`，剩餘 ${count}`}`:`${PREPARED_CATEGORIES[category]}未預備`);
+    if(category!=='grenade')button.querySelector('strong').textContent=slotLabel(lv,category);
+    button.title=entry?`${entry.name}：${category==='skill'?skillText(lp,lp.prepared.skill):entry.text}${category==='skill'?(ALLY_SKILLS.includes(lp.prepared.skill)?' 目前'+allySkillState(lv,lp.prepared.skill)+'。':' 目前'+skillStatus(lp,lp.prepared.skill)+'；冷卻剩餘 '+(lp.skillState[lp.prepared.skill]?.cooldown||0)+'。'):''}`:`到背包預備${PREPARED_CATEGORIES[category]}`;
+    if(category==='skill'){if(entry?.toggle)button.setAttribute('aria-pressed',String(skillActive(lp,lp.prepared.skill)));else button.removeAttribute('aria-pressed');}
+    button.setAttribute('aria-label',entry?`使用預備${PREPARED_CATEGORIES[category]}：${entry.name}${category==='skill'?'，'+skillLabel(lv,lp.prepared.skill):''}${count===null?'':`，剩餘 ${count}`}`:`${PREPARED_CATEGORIES[category]}未預備`);
   }
   $('[data-action="reload"] strong').textContent=w.melee?'近戰 ∞':`${view.actionCost('reload')===0?'快填':'裝填'} ${p.ammo[p.weapon]}/${w.mag}`;
   $('[data-action="reload"]').title=w.melee?`${w.name}無須裝填`:`裝填：${view.actionCost('reload')} 回合`;
@@ -229,9 +233,11 @@ function update(view=renderer.game) {
   // backpack tab, and a long press always does. They only look unavailable.
   for(const b of document.querySelectorAll('.control-deck button')){
     const slot=Object.hasOwn(PREPARED_CATEGORIES,b.dataset.action);
-    const unusable=(b.dataset.action==='skill'&&(!(ALLY_SKILLS.includes(p.prepared.skill)?canAllySkill(view,p.prepared.skill):canUseSkill(p,p.prepared.skill))||p.control.disabled))||(b.dataset.action==='reload'&&w.melee)||(slot&&(!preparedEntry(p,b.dataset.action)||!preparedEntry(p,b.dataset.action).action||(preparedEntry(p,b.dataset.action).resource&&p[preparedEntry(p,b.dataset.action).resource]<=0)));
+    const unusable=(b.dataset.action==='skill'&&(!(ALLY_SKILLS.includes(lp.prepared.skill)?canAllySkill(lv,lp.prepared.skill):canUseSkill(lp,lp.prepared.skill))||lp.control.disabled))||(b.dataset.action==='reload'&&w.melee)||(slot&&(!preparedEntry(lp,b.dataset.action)||!preparedEntry(lp,b.dataset.action).action||(preparedEntry(lp,b.dataset.action).resource&&lp[preparedEntry(lp,b.dataset.action).resource]<=0)));
     b.disabled=(Boolean(playback)&&!skipEnabled())||view.status!=='playing'||(!slot&&unusable);
-    b.classList.toggle('unavailable',slot&&unusable);
+    // 3.161.0: a skill has no `resource`, so for it `unusable` came out undefined rather than false — and toggle() with
+    // no second argument flips the class on every redraw. That was the dim-but-working skill button.
+    b.classList.toggle('unavailable',Boolean(slot&&unusable));
   }
   $('[data-action="fire"] strong').textContent=w.melee?'揮拳':'開火';
   updateAim(view);
@@ -314,7 +320,7 @@ const operatorReady=view=>!isSimulation(view)&&view.status==='playing'&&!!view.o
 function interactions(view=renderer.game){return [...view.nearbyObjectives.map(t=>({label:'回收機密',action:`objective:${t.id}`})),...view.nearbyContainers.map(c=>({label:`開${view.containerLabel(c)}`,action:`case:${c.id}`})),...view.nearbyDoors.map(b=>({label:view.doorLabel(b),action:`door:${b.id}`})),...(view.groundWeapon?[{label:'拾取',action:'bag'}]:[]),...(view.nearbyTerminal?[{label:`終端 ${terminalRemaining(view.nearbyTerminal)}`,action:'terminal'}]:[]),...(operatorReady(view)?[{label:'回收識別資料',action:'operator'}]:[]),...(view.canTouch(view.exitPoint)&&(!isSimulation(view)||exitStep(view))?[{label:view.exitBlocked?'電梯鎖定':view.exitLabel+(view.allyTravelSummary?' · '+view.allyTravelSummary:''),action:isSimulation(view)?'exitStep':'descend'}]:[])];}
 function updateAim(view=renderer.game){const blinding=renderer.mode==='blind',launching=renderer.mode==='launch'||blinding,deploying=renderer.mode==='deploy',commanding=renderer.mode==='pet'||renderer.mode==='drone',aiming=renderer.mode==='grenade',roping=renderer.mode==='rope',placing=renderer.mode==='place',flaring=renderer.mode==='flare'||roping||placing,suppressing=renderer.mode==='suppress',preview=suppressing&&renderer.aim?suppressivePreview(view,renderer.aim):null,b=$('#interact'),options=interactions(view);
   const entry=preparedEntry(view.player,'grenade');
-  $('#grenade-label').textContent=aiming?'取消投擲':entry?`${entry.short} ${view.player[entry.resource]}`:'手榴彈未預備';
+  $('#grenade-label').textContent=aiming?'取消投擲':entry?`${entry.short} ${(game?.player||view.player)[entry.resource]}`:'手榴彈未預備';
   $('[data-action="grenade"]').classList.toggle('aiming',aiming);
   b.disabled=(Boolean(playback)&&!skipEnabled())||(view.status==='playing'&&!aiming&&!flaring&&!launching&&!commanding&&!suppressing&&!deploying&&!options.length)||Boolean(preview?.reason);
   b.querySelector('strong').textContent=view.status!=='playing'?'結果':blinding?'確認盲射':launching?'確認發射':deploying?'取消設置':commanding?(renderer.mode==='drone'?'確認部署':'確認指揮'):aiming?'確認投擲':roping?'確認拉繩':placing?(renderer.placeItem==='mine'?'確認埋設':'確認投擲'):flaring?'確認照明':suppressing?`確認壓制 · ${preview?.rounds??0} 發`:options.length>1?'互動':options[0]?.label||'互動';
