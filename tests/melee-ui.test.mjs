@@ -69,9 +69,12 @@ test('melee passive and skill texts quote the live tuning numbers',()=>{
 // 3.47.2, user call: the SMG kit was too weak, so katana + precision rifle and four smoke; stun stays, capacity +2 like Recon.
 // 3.155.0 (user decision 2026-09-20): the ninja stops being a sniper with a melee answer — a submachine gun that
 // barely misses inside three tiles replaces the precision rifle, and the rest of the kit is unchanged.
-test('ninja kit: katana and submachine gun, point blank inside three tiles, four smoke and one stun, smoke prepared',()=>{
+test('ninja kit: katana and submachine gun, point blank inside three tiles, four smoke and one stun, smoke prepared, field gear at the cap',()=>{
  const n=arena('ninja');assert.deepEqual(n.player.owned.map(i=>WEAPONS[i].id),['katana','smg']);assert.equal(n.player.ammo[n.player.owned[1]],WEAPONS[n.player.owned[1]].mag);
- assert.equal(n.player.smoke,4);assert.equal(n.player.stun,1);assert.equal(n.ammoCapacity('grenade'),6);n.trimGrenades();assert.equal(n.player.smoke+n.player.stun,5,'nothing trimmed');
+ assert.equal(n.player.smoke,4);assert.equal(n.player.stun,1);
+ // 3.157.0 (user experiment): decoys, mines and both grapple lines, five each — the item cap for the capped two.
+ assert.deepEqual([n.player.decoys,n.player.mines,n.player.escapeLines,n.player.redeployLines],[5,5,5,5]);assert.equal(n.itemCapacity(),5);
+ const b=arena('berserker');assert.deepEqual([b.player.decoys,b.player.mines,b.player.escapeLines,b.player.redeployLines],[0,0,0,0],'only the ninja');assert.equal(n.ammoCapacity('grenade'),6);n.trimGrenades();assert.equal(n.player.smoke+n.player.stun,5,'nothing trimmed');
  assert.equal(n.player.prepared.grenade,'smoke');assert.equal(arena('berserker').player.prepared.grenade,'frag');
  // Point blank: cover and the target's movement stop counting, and the aim steadies, but only with a gun and only close.
  const e=enemy(n,'rifleman',11,10);n.player.weapon=n.player.owned[1];e.moved=true;n.props=[{id:'c',type:'cover',x:12,y:10,hp:65,maxHp:65}];n.reveal();
@@ -79,4 +82,17 @@ test('ninja kit: katana and submachine gun, point blank inside three tiles, four
  e.x=11+POINT_BLANK.range;n.props=[{id:'c',type:'cover',x:e.x+1,y:10,hp:65,maxHp:65}];n.reveal();
  const far=n.accuracy(n.player,e);assert.ok(!far.pointBlank&&far.movePenalty>0,'beyond the range it is an ordinary shot');
  n.player.weapon=n.player.owned[0];e.x=11;n.reveal();assert.equal(n.accuracy(n.player,e).pointBlank,false,'melee is not a shot');
+});
+// 3.157.0 (user report): during 影步 a bump into an enemy used to be refused as a step onto an occupied tile, so the ninja
+// could not strike again until the free moves were spent or thrown away. Now the bump forfeits them and pays the
+// ordinary melee turn (CLASS_PERKS.md: any other action forfeits); a refused step keeps the credit; a free step stays free.
+test('shadow step: a bump forfeits the free moves and pays a turn, a refused step keeps them, a free step stays free',()=>{
+ const n=arena('ninja');noEnemyActions(n);n.player.perks.ninja_shadowstep=2;const a=enemy(n,'rifleman',11,10);a.control.disabled=2;
+ const turn=n.turn;assert.ok(n.action('move',[1,0]));assert.equal(n.turn,turn+1);assert.equal(n.shadowSteps,2,'the ambush grants two free steps');
+ const b=enemy(n,'rifleman',10,11),hp=b.hp;
+ assert.ok(n.action('move',[0,1]),'the bump goes through');assert.equal(n.turn,turn+2,'and pays a turn');assert.equal(n.shadowSteps,0,'forfeiting the free moves');assert.ok(b.hp<hp,'the strike lands');assert.deepEqual([n.player.x,n.player.y],[10,10]);
+ const m=arena('ninja');noEnemyActions(m);m.shadowSteps=1;enemy(m,'rifleman',11,10);m.player.suppression=3;
+ assert.equal(m.action('move',[0,1]),false,'pinned: no free step');assert.equal(m.shadowSteps,1,'a refused step keeps the credit');
+ const t=m.turn;assert.ok(m.action('move',[1,0]),'pinned: the bump melee stays open');assert.equal(m.turn,t+1);assert.equal(m.shadowSteps,0);
+ const f=arena('ninja');noEnemyActions(f);f.shadowSteps=1;const t2=f.turn;assert.ok(f.action('move',[0,-1]));assert.equal(f.turn,t2,'a free step costs nothing');assert.equal(f.shadowSteps,0);assert.deepEqual([f.player.x,f.player.y],[10,9]);
 });

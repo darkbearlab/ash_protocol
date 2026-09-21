@@ -393,7 +393,15 @@ export class Game {
     if(type==='weapon'&&arg===undefined)arg=p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length];
     if(type==='grenade'){const pos=arg||this.targeted;arg=pos?{x:pos.x,y:pos.y,grenade:p.prepared.grenade}:null;}
     if(type==='fire'&&this.weapon.pointTarget){const t=this.targeted,pos=arg||(isBarrier(t)?barrierFace(t,p):t);type='launch';arg=pos?{x:pos.x,y:pos.y}:null;}
-    if(type==='move'&&this.shadowSteps>0)return p.control.disabled?this.fail('失能中無法使用影步。'):this.shadowMove(arg);
+    // 3.157.0 (user report): a bump into an enemy is an attack, not a free step. It falls through to the forfeit rule
+    // below and pays the ordinary melee turn, as CLASS_PERKS.md 影步 says of any other action; an impossible bump keeps
+    // the credit, like an invalid direction. Before this every bump was refused as「落點有單位」, so the ninja could not
+    // strike again until the free moves were spent or thrown away.
+    if(type==='move'&&this.shadowSteps>0){
+      const foe=Array.isArray(arg)&&this.enemies.find(e=>e.hp>0&&e.x===p.x+arg[0]&&e.y===p.y+arg[1]);
+      if(!foe)return p.control.disabled?this.fail('失能中無法使用影步。'):this.shadowMove(arg);
+      if(!this.validateAction(type,arg))return false;
+    }
     // Tapping adrenaline while free moves are still running would silently charge the health twice, so refuse before
     // the forfeit rule below takes them away (3.106.0).
     if(type==='surge'&&this.shadowSteps>0)return this.fail('免費移動還沒用完。');
