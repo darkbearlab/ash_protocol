@@ -2,7 +2,7 @@ import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 68;
+export const SAVE_VERSION = 69;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -133,8 +133,9 @@ export const PERKS = [
   {id:'druid_claws',name:'飢餓',characters:['druid'],cap:3,effect:'passive',text:'胃空時獵獸近戰傷害 +25%。'},
   {id:'druid_symbiosis',name:'共生',characters:['druid'],cap:3,effect:'passive',text:'寵物每次擊殺敵人，你回復 4 生命；每階累加。'},
   {id:'soldier_overwatch',name:'廣域預警',characters:['soldier'],cap:3,effect:'passive',text:'預警半徑 +2、冷卻 −1（最低 2）。'},
-  {id:'soldier_marked',name:'標定弱化',characters:['soldier'],cap:3,effect:'passive',text:'預警標定 2 回合；每階使其受到你的傷害 +10%、對你的命中 −6。'},
-  {id:'soldier_braced',name:'架槍精通',characters:['soldier'],cap:3,effect:'passive',text:'架槍命中 +5、著彈修正上限 +8。'},
+  {id:'soldier_marked',name:'標定弱化',characters:['soldier'],cap:3,effect:'passive',text:'預警的標定持續 +1 回合；標定者對你的命中 −6。'},
+  // 3.159.0 (user decision): 架槍精通 gave way to the second mark line; saves carry its ranks over.
+  {id:'soldier_hunter',name:'標定壓制',characters:['soldier'],cap:3,effect:'passive',text:'預警的標定持續 +1 回合；你對標定者的傷害 +10%。'},
   {id:'recon_unseen',name:'隱蔽射手',characters:['recon'],cap:3,effect:'passive',text:'射擊目標看不到你時，每階傷害 +12%。'},
   {id:'recon_blackout',name:'斷層延長',characters:['recon'],cap:3,effect:'passive',text:'訊號斷層持續 +1、冷卻 −1（最低 3）。'},
   {id:'recon_sidestep',name:'側身精通',characters:['recon'],cap:3,effect:'passive',text:'側身使敵人命中每階再 −6，暴露下限同步放寬。'},

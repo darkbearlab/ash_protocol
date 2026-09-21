@@ -77,9 +77,9 @@ export function removeTraitSource(actor,source){actor.traits=(actor.traits||[]).
 
 export function correctionBonus(actor,targetId,turn){
   const c=actor.fireChain;
-  return activeTrait(actor,'correction')&&c&&c.targetId===targetId&&(c.turn===turn||c.turn===turn-1)?Math.min(c.count*8,24+classPerkRank(actor,'soldier_braced')*CLASS_PERK_TUNING.correctionCap):0;
+  return activeTrait(actor,'correction')&&c&&c.targetId===targetId&&(c.turn===turn||c.turn===turn-1)?Math.min(c.count*8,24):0;
 }
-export const correctionLimit=actor=>3+classPerkRank(actor,'soldier_braced');
+export const correctionLimit=()=>3;   // 3.159.0: 架槍精通 is gone, the chain caps at three again
 export function recordShot(actor,targetId,turn){
   if(!activeTrait(actor,'correction')){actor.fireChain=null;return;}
   const c=actor.fireChain;

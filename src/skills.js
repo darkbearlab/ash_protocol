@@ -1,12 +1,12 @@
 import {GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN,MELEE_TUNING} from './melee-classes.js';
 import {grantTrait,removeTraitSource} from './traits.js';
 import {TETHER,CARRY_DISTANCE,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,PET_TETHER,DRONE_HP,SENTRY_ARMOR,WORKSHOP_TUNING,MUNITION_TUNING,ENEMY_UNIT_TUNING,REPAIR_TUNING,allyWeapon,summonInterval,summonLimit} from './allies.js';
-import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
+import {classPerkRank,CLASS_PERK_TUNING,markValues} from './class-perks.js';
 // Ally skill texts read the tuning constants, so a balance change cannot leave them stale (3.44).
 const FOLLOW=allyWeapon({kind:'drone',sourceId:'drone_follow'}),SENTRY=allyWeapon({kind:'drone',sourceId:'drone_sentry'});
 // Texts whose numbers class perks change are templates: the pack and the skill button show the player's actual values (3.151).
 const SKILL_TEXTS={
- early_warning:v=>`免費掃描 ${v.radius} 格內敵人，穿牆顯示當下位置光點，維持至下一次耗回合行動結束；不追蹤移動、不提供射線，也不會讓敵人發現你。冷卻 ${v.cooldown} 次耗回合行動。`,
+ early_warning:v=>`免費掃描 ${v.radius} 格內敵人，穿牆顯示當下位置光點，維持至下一次耗回合行動結束，並標定它們 ${v.mark.duration} 回合：標定中你對它們命中 +${v.mark.accuracy}、傷害 +${Math.round(v.mark.damage*100)}%${v.mark.evasion?`、它們對你的命中 −${v.mark.evasion}`:''}。不追蹤移動、不提供射線，也不會讓敵人發現你。冷卻 ${v.cooldown} 次耗回合行動。`,
  signal_break:v=>`免費啟動，${v.duration} 次耗回合行動內敵人無法更新你的位置；仍會搜索最後目擊處。冷卻從啟動起算 ${v.cooldown} 次耗回合行動。已鎖定的狙擊與轟炸仍會落下，下樓結束效果但不重置冷卻。`,
  camouflage:v=>`免費啟動。接下來 ${v.duration} 次付費行動內，敵人對你的射擊與近戰命中 −${MELEE_TUNING.camoEvasion}，攻擊不會解除。效果結束後才開始冷卻 ${v.cooldown} 回合，伏擊可縮短。迷彩不會讓敵人看不到你。`,
  raise_dead:v=>`被動：每 ${v.interval} 回合自動從本層倒下過的非頭目、非機械敵人中抽一隻起身（倒下越多的種類越常出現，屍體不消耗），最多 ${v.limit} 隻，出現在你身邊、下回合才行動；生命同該物種（32～150），傷害取物種基礎值（不含深層加成），沒有裝甲；主動追擊離你 ${SUMMON_TETHER} 格內看得到的敵人。按技能免費集結：${RALLY_TURNS} 回合內召喚物停止追擊、回到你身邊，換層前使用。未同行者換層消失。`,
@@ -19,13 +19,13 @@ export const SKILLS={
  pet_command:{name:'伴生指揮',short:'指揮',icon:'♧',action:'skill',cost:0,duration:0,cooldown:0,card:'指令免費 · 相鄰餵食 1 回合',text:`指揮已探索 ${TETHER} 格內位置，或召回。獵獸追擊 ${PET_TETHER} 格內敵人；相鄰餵食累積成長與燃料，死亡後自動重生，換層必定同行。`},
  // The cooldown field is the rising timer, so it must be able to hold SUMMON_INTERVAL; saves are validated against it.
  raise_dead:{name:'亡者集結',short:'集結',icon:'♧',action:'skill',cost:0,duration:0,cooldown:SUMMON_INTERVAL,card:SKILL_CARDS.raise_dead({interval:SUMMON_INTERVAL}),text:SKILL_TEXTS.raise_dead({interval:SUMMON_INTERVAL,limit:SUMMON_LIMIT})},
- early_warning:{name:'預警',short:'預警',icon:'⌖',action:'skill',cost:0,duration:1,cooldown:5,radius:8,text:SKILL_TEXTS.early_warning({radius:8,cooldown:5})},signal_break:{name:'訊號斷層',short:'斷層',icon:'⌁',action:'skill',cost:0,duration:3,cooldown:6,text:SKILL_TEXTS.signal_break({duration:3,cooldown:6})},
+ early_warning:{name:'預警',short:'預警',icon:'⌖',action:'skill',cost:0,duration:1,cooldown:5,radius:8,text:SKILL_TEXTS.early_warning({radius:8,cooldown:5,mark:markValues(null)})},signal_break:{name:'訊號斷層',short:'斷層',icon:'⌁',action:'skill',cost:0,duration:3,cooldown:6,text:SKILL_TEXTS.signal_break({duration:3,cooldown:6})},
  grapple:{name:'鉤鎖',short:'鉤鎖',icon:'◇',action:'skill',cost:1,duration:0,cooldown:GRAPPLE_COOLDOWN,text:`鉤住目前鎖定、${GRAPPLE_RANGE} 格內看得到的敵人（可斜向）：一般敵人拉到你身邊，大型與頭目改由你衝過去，到位後用斧頭砍一刀。花 1 回合，冷卻 ${GRAPPLE_COOLDOWN}（含施放回合）。沒有落點時不能使用、不花回合。`},
  camouflage:{name:'光學迷彩',short:'迷彩',icon:'◇',action:'skill',cost:0,duration:CAMO_DURATION,cooldown:CAMO_COOLDOWN,cooldownAfterEffect:true,text:SKILL_TEXTS.camouflage({duration:CAMO_DURATION,cooldown:CAMO_COOLDOWN})},
 };
 export const initialSkillState=ids=>Object.fromEntries(ids.map(id=>[id,{remaining:0,cooldown:0}]));
 export const skillActive=(player,id='signal_break')=>(player.skillState?.[id]?.remaining||0)>0;
-export function skillValues(player,id){const d=SKILLS[id],rank=classPerkRank(player,id==='early_warning'?'soldier_overwatch':id==='signal_break'?'recon_blackout':id==='camouflage'?'ninja_overload':'');if(id==='early_warning')return {...d,radius:d.radius+rank*CLASS_PERK_TUNING.overwatchRadius,cooldown:Math.max(2,d.cooldown-rank*CLASS_PERK_TUNING.overwatchCooldown)};if(id==='signal_break')return {...d,duration:d.duration+rank*CLASS_PERK_TUNING.blackoutDuration,cooldown:Math.max(3,d.cooldown-rank*CLASS_PERK_TUNING.blackoutCooldown)};if(id==='camouflage')return {...d,duration:d.duration+rank*CLASS_PERK_TUNING.overloadDuration,cooldown:Math.max(4,d.cooldown-rank*CLASS_PERK_TUNING.overloadCooldown)};return d;}
+export function skillValues(player,id){const d=SKILLS[id],rank=classPerkRank(player,id==='early_warning'?'soldier_overwatch':id==='signal_break'?'recon_blackout':id==='camouflage'?'ninja_overload':'');if(id==='early_warning')return {...d,radius:d.radius+rank*CLASS_PERK_TUNING.overwatchRadius,cooldown:Math.max(2,d.cooldown-rank*CLASS_PERK_TUNING.overwatchCooldown),mark:markValues(player)};if(id==='signal_break')return {...d,duration:d.duration+rank*CLASS_PERK_TUNING.blackoutDuration,cooldown:Math.max(3,d.cooldown-rank*CLASS_PERK_TUNING.blackoutCooldown)};if(id==='camouflage')return {...d,duration:d.duration+rank*CLASS_PERK_TUNING.overloadDuration,cooldown:Math.max(4,d.cooldown-rank*CLASS_PERK_TUNING.overloadCooldown)};return d;}
 export function skillText(player,id){const d=SKILLS[id];if(!d||!SKILL_TEXTS[id])return d?.text||'';if(id==='raise_dead')return SKILL_TEXTS.raise_dead({interval:summonInterval(player),limit:summonLimit(player)});return SKILL_TEXTS[id](skillValues(player,id));}
 export const canUseSkill=(player,id)=>Object.hasOwn(SKILLS,id)&&player.skills.includes(id)&&player.prepared.skill===id&&(SKILLS[id].toggle||!player.skillState?.[id]?.remaining)&&!player.skillState?.[id]?.cooldown;
 export function skillStatus(player,id){const state=player.skillState?.[id];if(SKILLS[id]?.toggle)return state?.remaining?'解除':'啟動';return state?.remaining?`生效 ${state.remaining}`:state?.cooldown?`冷卻 ${state.cooldown}`:'就緒';}

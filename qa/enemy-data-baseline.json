@@ -979,10 +979,10 @@
   "soldier:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 382,
+   "turn": 499,
    "hp": 0,
-   "kills": 59,
-   "actions": 383,
+   "kills": 73,
+   "actions": 501,
    "invalid": 0
   },
   "soldier:2": {
@@ -997,10 +997,10 @@
   "soldier:3": {
    "status": "dead",
    "floor": 3,
-   "turn": 557,
+   "turn": 554,
    "hp": 0,
-   "kills": 89,
-   "actions": 556,
+   "kills": 87,
+   "actions": 553,
    "invalid": 0
   },
   "bulwark:1": {

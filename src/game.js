@@ -41,7 +41,7 @@ import {tickNests,validRuntime,collapseNest} from './runtime-enemies.js';
 import {singleShotAt,volleyShots,roundCost,salvageValue} from './weapons.js';
 import {objectSightGrid} from './scenery.js';
 import {MAP_FIELDS,validMapMetadata,validGenerationHistory} from './map-geometry.js';
-import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
+import {classPerkRank,CLASS_PERK_TUNING,markValues} from './class-perks.js';
 import {MAX_LEVEL,perkLimit,floorLimit,isEndless,scaleEnemy,giveCapSupply,PROTOCOL_EVENT_LIMIT} from './endless.js';
 import {freshSpirit,validMeleeState,tickSpirit,bladeMultiplier,meleeDefense,ambushReady,ambushMultiplier,shortenCamo,meleeReward,defensiveEvasion,grapplePlan,useGrapple} from './melee-classes.js';
 import {healActor} from './traits.js';
@@ -518,7 +518,7 @@ export class Game {
       }
       const p=this.player,def=skillValues(p,id);p.skillState[id]={remaining:def.duration,cooldown:def.cooldownAfterEffect?0:def.cooldown};
       // 3.143.0 (user, 2026-09-19): the scan no longer alerts the enemies it finds or hands them your position.
-      if(id==='early_warning'){this.sensorContacts=this.enemies.filter(e=>e.hp>0&&distance(p,e)<=def.radius).map(e=>{if(classPerkRank(p,'soldier_marked'))grantTrait(e,'exposed','skill:early_warning',2);return {x:e.x,y:e.y};});this.log(`預警取得 ${this.sensorContacts.length} 個位置。`,true);}
+      if(id==='early_warning'){this.sensorContacts=this.enemies.filter(e=>e.hp>0&&distance(p,e)<=def.radius).map(e=>{grantTrait(e,'exposed','skill:early_warning',markValues(p).duration);return {x:e.x,y:e.y};});this.log(`預警取得 ${this.sensorContacts.length} 個位置。`,true);}
       this.effects.push({type:'pulse',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},radius:.6,color:'#8ae9da',damage:0,skill:id});   // skill: the signal interference (3.149.0)
       this.log(`${def.name}啟動：持續 ${def.duration} 回合，冷卻 ${def.cooldown} 回合。`);this.reveal();return true;
     });
@@ -824,7 +824,7 @@ export class Game {
     if(this.props.includes(target)||isBarrier(target)){if(weapon.ammoType==='energy')addTrace(this,target,'scorch');this.damageProp(target,raw,attacker);return;}
     const cover=weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
     let parts=pellets?pellets.map(d=>blade?Math.round(d*bladeMultiplier(attacker)):d):[raw];const scale=f=>{parts=parts.map(d=>d*f);};
-    if(attacker===this.player&&!weapon.melee&&!this.sight(target,attacker))scale(1+classPerkRank(attacker,'recon_unseen')*CLASS_PERK_TUNING.unseen);if(attacker===this.player&&activeTrait(target,'exposed'))scale(1+classPerkRank(attacker,'soldier_marked')*CLASS_PERK_TUNING.markedDamage);
+    if(attacker===this.player&&!weapon.melee&&!this.sight(target,attacker))scale(1+classPerkRank(attacker,'recon_unseen')*CLASS_PERK_TUNING.unseen);if(attacker===this.player&&activeTrait(target,'exposed'))scale(1+markValues(attacker).damage);
     // 3.142.0: the absorption line only when cover took something off; a fully piercing plasma shot goes straight through.
     if(cover){const effect=coverEffects(cover,target,attacker),cut=(pellets?weapon.pelletCover*effect.efficiency:effect.reduction)*(1-pierce);scale(1-cut);if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);if(cut>0)this.log('敵方掩體吸收了部分傷害。');}
     if(toxicShot(this,attacker,target,attacker===this.player||!attacker?.type?weapon:this.actorWeapon(attacker)))scale(.5);   // 3.134.0 mist
@@ -1270,6 +1270,10 @@ export class Game {
       if(data.player)data.player.wearables??=[];
       if(!validPrepared(version>=8?data.player:p))return null;
       if(version<7){p.traits=[];for(const e of data.enemies)e.traits=startingTraits(e.type,data.floor);}
+      // 3.159.0: 架槍精通 became 標定壓制 in the same slot, so its ranks carry over (and a pending draft offering it); a
+      // fire chain longer than the flat limit is clamped.
+      if(version<69){for(const q of new Set([p,data.player])){if(q?.perks&&Object.hasOwn(q.perks,'soldier_braced')){q.perks.soldier_hunter=(q.perks.soldier_hunter||0)+q.perks.soldier_braced;delete q.perks.soldier_braced;}if(q?.fireChain&&Number.isInteger(q.fireChain.count)&&q.fireChain.count>3)q.fireChain.count=3;}
+       if(Array.isArray(data.perkDraft?.ids))data.perkDraft.ids=data.perkDraft.ids.map(id=>id==='soldier_braced'?'soldier_hunter':id);}
       if((version>=7&&!validTraits(data.player.traits))||!validTraits(p.traits)||data.enemies.some(e=>!validTraits(e.traits)))return null;
       const tacticalActors=[p,...data.enemies,...(data.allies||[])];
       if(version<34){for(const a of tacticalActors){if(a===p){a.cornerExposure=null;a.tactics=null;}else{delete a.cornerExposure;delete a.tactics;}}for(const frame of Object.values(data.floorStates||{}))for(const a of frame.enemies||[]){delete a.cornerExposure;delete a.tactics;}}
