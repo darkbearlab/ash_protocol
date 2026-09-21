@@ -10,7 +10,7 @@ test('the defaults keep every key the game already had, and add skill, map, came
   const lookup=keyLookup(defaultBindings());
   const old={ArrowUp:'moveUp',w:'moveUp',ArrowDown:'moveDown',s:'moveDown',ArrowLeft:'moveLeft',a:'moveLeft',ArrowRight:'moveRight',d:'moveRight',' ':'fire',r:'reload',h:'item',e:'interact',f:'wait','.':'wait',q:'toggleTargeting',Tab:'cycleTarget',g:'grenade',b:'bag'};
   for(const [key,id] of Object.entries(old))assert.equal(lookup.get(key),id,key);
-  assert.deepEqual(['v','m','c','=','-'].map(key=>lookup.get(key)),['skill','map','center','zoomIn','zoomOut']);
+  assert.deepEqual(['v','m','c','=','-','i'].map(key=>lookup.get(key)),['skill','map','center','zoomIn','zoomOut','weapons']);   // 3.162.0: I opens the weapon tab
   assert.equal(new Set(HOTKEY_ACTIONS.flatMap(a=>a.defaults)).size,HOTKEY_ACTIONS.flatMap(a=>a.defaults).length,'no default key is shared');
   assert.ok(HOTKEY_ACTIONS.every(a=>a.defaults.length<=HOTKEY_SLOTS));
 });

@@ -17,6 +17,7 @@ export const HOTKEY_ACTIONS=Object.freeze([
  {id:'cycleTarget',group:'目標與畫面',label:'切換目標',defaults:['Tab']},
  {id:'toggleTargeting',group:'目標與畫面',label:'瞄準資訊開關',defaults:['q']},
  {id:'bag',group:'目標與畫面',label:'背包',defaults:['b']},
+ {id:'weapons',group:'目標與畫面',label:'武器分頁',defaults:['i']},
  {id:'map',group:'目標與畫面',label:'樓層地圖',defaults:['m']},
  {id:'center',group:'目標與畫面',label:'鏡頭復位',defaults:['c']},
  {id:'zoomIn',group:'目標與畫面',label:'放大',defaults:['=']},
@@ -28,7 +29,7 @@ export const HOTKEY_BUTTONS=Object.freeze({
  '[data-move="0,-1"]':'moveUp','[data-move="-1,0"]':'moveLeft','[data-move="0,1"]':'moveDown','[data-move="1,0"]':'moveRight',
  '[data-action="wait"]':'wait','[data-action="fire"]':'fire','[data-action="reload"]':'reload','[data-action="grenade"]':'grenade',
  '[data-action="item"]':'item','[data-action="skill"]':'skill','[data-action="interact"]':'interact',
- '[data-action="cycleTarget"]':'cycleTarget','[data-action="toggleTargeting"]':'toggleTargeting','[data-action="bag"]':'bag',
+ '[data-action="cycleTarget"]':'cycleTarget','[data-action="toggleTargeting"]':'toggleTargeting','[data-action="bag"]':'bag','[data-action="weapons"]':'weapons',
  '[data-action="map"]':'map','[data-action="center"]':'center','[data-action="zoomIn"]':'zoomIn','[data-action="zoomOut"]':'zoomOut',
  '[data-action="settings"]':'menu',
 });
