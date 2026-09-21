@@ -122,15 +122,19 @@ test('bound weapons cannot be exchanged or imported on a different class; normal
 test('a bomber killed in melee cannot revive its killer through lifesteal after lethal explosion',()=>{
  const g=arena();noEnemyActions(g);g.player.hp=1;enemy(g,'bomber',11,10,1);g.action('fire');assert.equal(g.player.hp,0);assert.equal(g.status,'dead');
 });
-// 3.158.0 (user decision, NetHack's barbarian): the berserker shrugs off suppression like the bulwark and never poisons.
-test('berserker: native suppression resistance and poison immunity; others unchanged; an older save gains them on load',()=>{
- const g=arena('berserker'),p=g.player;assert.equal(suppressionResistance(p),1);assert.ok(activeTrait(p,'poison_immunity'));
- assert.equal(addPoison(p),false);assert.equal(p.poison,0);
- p.poison=2;p.poisonClock=1;const hp=p.hp;tickPoison(g);assert.equal(p.poison,0);assert.equal(p.poisonClock,undefined);assert.equal(p.hp,hp,'poisoned before the passive: cleared on the first tick, no damage');
- const s=arena('soldier');assert.equal(addPoison(s.player),true);assert.ok(s.player.poison>0);assert.equal(suppressionResistance(s.player),0);assert.equal(s.player.weapon,0);
- const b=arena('bulwark');assert.equal(suppressionResistance(b.player),1);assert.equal(activeTrait(b.player,'poison_immunity'),false);assert.equal(b.player.weapon,6);
- assert.equal(activeTrait(arena('ninja').player,'poison_immunity'),false);
- const raw=JSON.parse(g.serialize());raw.data.player.traits=raw.data.player.traits.filter(t=>!['poison_immunity','suppression_resistance'].includes(t.id));
- const back=Game.restore(JSON.stringify(raw));assert.ok(back);assert.equal(suppressionResistance(back.player),1);assert.ok(activeTrait(back.player,'poison_immunity'));
+// 3.158.0 (user decision, NetHack's barbarian): the berserker shrugs off suppression like the bulwark. 3.160.0: the swarm
+// turned out too easy for it, so the immunity became one rank of resistance — stacks land, each tick loses one point.
+test('berserker: native suppression resistance and one rank of poison resistance; others unchanged; an older save syncs on load',()=>{
+ const g=arena('berserker'),p=g.player;assert.equal(suppressionResistance(p),1);assert.ok(activeTrait(p,'poison_resistance'));assert.ok(!activeTrait(p,'poison_immunity'));
+ assert.equal(addPoison(p),true);assert.equal(p.poison,1,'stacks land; the tick is what resists');
+ let hp=p.hp;tickPoison(g);assert.equal(p.hp,hp,'one stack: 1 − 1, no damage');
+ p.poison=4;delete p.poisonClock;hp=p.hp;tickPoison(g);assert.equal(hp-p.hp,3,'at the cap: 4 − 1');
+ p.hazmat=5;p.poison=4;delete p.poisonClock;hp=p.hp;tickPoison(g);assert.equal(hp-p.hp,2,'stacks with a rank of 密封防護');
+ const s=arena('soldier');s.player.poison=4;tickPoison(s);assert.equal(s.player.maxHp-s.player.hp,4,'no resistance elsewhere');assert.equal(suppressionResistance(s.player),0);assert.equal(s.player.weapon,0);
+ const b=arena('bulwark');assert.equal(suppressionResistance(b.player),1);assert.equal(activeTrait(b.player,'poison_resistance'),false);assert.equal(b.player.weapon,6);
+ assert.equal(activeTrait(arena('ninja').player,'poison_resistance'),false);
+ // A 3.158.0 save still carries 毒無效 under the class source: it leaves on load and 抗毒 arrives; nothing duplicates.
+ const raw=JSON.parse(g.serialize());raw.data.player.traits=[...raw.data.player.traits.filter(t=>!['poison_resistance','suppression_resistance'].includes(t.id)),{id:'poison_immunity',source:'character:berserker'}];
+ const back=Game.restore(JSON.stringify(raw));assert.ok(back);assert.equal(suppressionResistance(back.player),1);assert.ok(activeTrait(back.player,'poison_resistance'));assert.ok(!activeTrait(back.player,'poison_immunity'));
  assert.equal(JSON.parse(back.serialize()).data.player.traits.filter(t=>t.id==='suppression_resistance').length,1,'re-deriving never duplicates');
 });

@@ -10,6 +10,9 @@ export const TRAITS={
   disruption_resistant:{name:'抗失能',text:'受到的失能次數減半，向上取整。'},
   // 3.158.0 (user decision, NetHack's barbarian): the berserker never poisons. Direct acid and heat damage still land.
   poison_immunity:{name:'毒無效',text:'毒液噴吐、毒霧與污染液都不會讓你中毒，已有的中毒立即清除。污染液與高熱的直接傷害照常。'},
+  // 3.160.0 (user decision): the berserker keeps one rank of resistance instead of immunity; 毒無效 stays defined so a
+  // 3.158.0 save still loads (the class sync then drops it).
+  poison_resistance:{name:'抗毒',text:'中毒每回合傷害 −1；和密封防護的階數疊加。'},
   tactical_supply:{name:'戰術配給',text:'每次升至 2～20 級時獲得 1 顆煙霧彈；共用投擲容量不足時留在腳下。滿級經驗補給不觸發。'},
   extended_burst:{name:'延伸點射',text:'僅衝鋒槍：原射程外再延伸 2 格，延伸區每次只射 1 發、消耗 1 發彈藥。射程詞條先計入原射程，兩發區與單發區一起順延。'},
  difficult_healing:{name:'難以治療',text:'生命回復的基礎量減半，向下取整（醫療包、終端、升級、下樓、嗜血等）；急救訓練給醫療包的加成不減。不影響生命上限與護甲板。'},

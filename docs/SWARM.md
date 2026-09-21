@@ -283,3 +283,7 @@
 ## 10. 毒無效（3.158.0，使用者決定 2026-09-21）
 
 狂戰士天生 `poison_immunity`：`addPoison` 對免疫者不加層並回傳 false，毒液噴吐與毒霧改記「對你無效」；污染液的直接傷害照常，只擋中毒。舊存檔已中毒的在下一次 `tickPoison` 清除。友軍與敵人沒有這個被動。
+
+### 10.1 3.160.0：狂戰士改成抗毒一階
+
+使用者：「狂戰士打蟲族太容易了。」毒無效改成 `poison_resistance`：`addPoison` 照常加層，`tickPoison` 的傷害減 `poisonResistance(p)`（密封防護階數 + 天生一階）。`poison_immunity` 仍留在 `TRAITS`，目前沒有職業擁有。
