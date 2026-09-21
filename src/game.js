@@ -5,6 +5,7 @@ import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
 import {validSquad,postSquads} from './squad.js';
 import {recruitConscripts,rebelMorale,witnessDeath,isEnforcer,validRebels,soundAlarm,tickAlarms} from './rebels.js';
 import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
+import {TRAIT_CAP} from './traits.js';
 import {tickTongues,validSwarm,SWARM_TUNING} from './swarm.js';
 import {scream,tickCivilianCooldowns,migrateCivilians,validCivilians} from './civilians.js';
 import {rollEnemyElite,enemyKillXp,migrateElites,validElites} from './elite-enemies.js';
@@ -145,7 +146,9 @@ export class Game {
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
     this.player.skills=[...(CHARACTERS[character].skills||[])];this.player.skillState=initialSkillState(this.player.skills);
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
-    this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
+    // 3.158.0 (user decision): the first ranged weapon is in hand at the start, so the berserker and the ninja need no
+    // switch before their first shot; the bound blade stays first in the pack and is what a bump swings.
+    this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned.find(i=>!WEAPONS[i].melee)??this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
     this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.purge={floors:{}};this.logs=[];this.status='playing';this.shadowSteps=0;this.pursuit=0;this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];this.mineSerial=0;initializeRunUnlocks(this,options);this.loadFloor();initializeAllies(this);this.reveal();
     this.log('已抵達轉運站。上下左右移動，尋找綠色電梯。');
@@ -1410,6 +1413,9 @@ export class Game {
         if(refund){g.receiveAmmo('pistol',refund);g.log(`存檔已升級：追隨無人機改用步槍彈，原彈匣 ${refund} 發手槍彈已退回。`);}
       }
       if(workshopRefund){const rounds=workshopRefund.pistol+workshopRefund.rifle;for(const type of ['pistol','rifle'])if(workshopRefund[type])g.receiveAmmo(type,workshopRefund[type]);g.log(`存檔已升級：工程師改用工坊${workshopRefund.lined?'，收納中的機體放進生產序列':''}${rounds?`，機體彈匣裡的 ${rounds} 發子彈已退回`:''}。`);}
+      // 3.158.0: a class can gain a native passive after a run began (the berserker's), so the class list is re-derived
+      // after every migration; grantTrait skips what the save already carries and the cap is never exceeded.
+      grantCharacterTraits(g.player,TRAIT_CAP);
       lockRealMode(g,data.realMode);g.setCarryLevel(g.carryLevel);g.reveal({warnings:false});return g;
     }catch{return null;}
   }

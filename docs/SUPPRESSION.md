@@ -301,3 +301,6 @@ game.action('usePrepared',{category:'skill',target:{x,y}});
 - 3.74.0 寫死在 `applySuppression` 的頭目與封鎖官 −1，將改由可升級的被動「壓制抗性」表示：每次施加的層數最終 −等級。頭目、封鎖官、玩家重裝兵、敵人鐵殼破壞者原生持有第 1 階；玩家可從學習資料取得並升級。見 [ENEMY_AFFIXES.md](ENEMY_AFFIXES.md) 第 5 節。
 - 玩家沒有預設壓制保護（使用者決定）。
 
+## 3.158.0：狂戰士原生壓制抗性一階（使用者決定 2026-09-21）
+
+和重裝兵一樣，來源 `character:berserker`；學習資料的階數照舊另算來源，上限 3 階。讀檔時由 `grantCharacterTraits` 重新推導，舊存檔不用重開。

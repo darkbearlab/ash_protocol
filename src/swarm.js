@@ -18,7 +18,7 @@ export function poisonHit(g,e,target){
  if(target!==g.player||target.hp<=0||activeTrait(target,'mechanical'))return false;
  if(!enemyDef(e)?.venom&&!affix(e,'venomous'))return false;
  if(affix(e,'venomous'))revealEnemyAffix(g,e,'venomous');
- addPoison(target);
+ if(!addPoison(target)){g.log('毒液打在你身上，但對你無效。');return true;}
  g.log('毒液侵入防護服，你中毒了。',true);return true;
 }
 export function tonguePlan(g,e){

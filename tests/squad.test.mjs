@@ -54,7 +54,7 @@ test('the answer to a weapon is its shape: keep away from cone, blast and melee,
   assert.equal(kinds(0).kind,'standard');
   assert.equal(kinds(1).kind,'cone');assert.ok(kinds(1).keepAway>=SQUAD_TUNING.keepAway&&kinds(1).spacing>SQUAD_TUNING.spacing);
   assert.equal(kinds(3).kind,'long');assert.equal(kinds(3).closeIn,SQUAD_TUNING.closeIn);
-  const melee=new Game(4242,[],0,'berserker','onyx','extraction');assert.equal(weaponAnswer(melee).kind,'melee');
+  const melee=new Game(4242,[],0,'berserker','onyx','extraction');melee.player.weapon=melee.player.owned[0];assert.equal(weaponAnswer(melee).kind,'melee');
 });
 
 test('the identification turn only gives orders: nobody suppresses and nobody is hurt',()=>{

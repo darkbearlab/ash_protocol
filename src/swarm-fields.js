@@ -57,7 +57,7 @@ export function releasePayload(g,e){
 // it or walk into it (user decision). The swarm never.
 export function toxicPlayerTurn(g,addPoison){
  const p=g.player;if(p.hp<=0||!inToxic(g,p))return;
- addPoison(p,SWARM_TUNING.poisonHitStacks);g.log('你吸進了毒霧，中毒了。',true);
+ if(addPoison(p,SWARM_TUNING.poisonHitStacks))g.log('你吸進了毒霧，中毒了。',true);else g.log('毒霧對你無效。');
 }
 export function toxicAllyTurn(g,a,wasIn){if(a.hp>0&&a.status==='active'&&(wasIn||inToxic(g,a)))g.damageAlly(a,1,null,false,true);}
 

@@ -7,16 +7,22 @@ import {captureAction,snapshot} from '../src/presentation.js';
 import {bladeCount,ambushReady,freshSpirit} from '../src/melee-classes.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
-function arena(character='berserker'){
- const g=new Game(3470,[],0,character,'onyx');g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.map(()=>1));g.barriers=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.enemies=[];g.allies=[];g.smoke=[];g.end={x:20,y:20};Object.assign(g.player,{x:10,y:10});g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();return g;
+import {suppressionResistance} from '../src/suppression.js';
+import {addPoison,tickPoison} from '../src/poison.js';
+// 3.158.0: runs now start with the gun in hand; these scenarios were written around the blade, so the arena puts it
+// back unless a test asks for the real start state ({blade:false}).
+function arena(character='berserker',{blade=true}={}){
+ const g=new Game(3470,[],0,character,'onyx');if(blade)g.player.weapon=g.player.owned[0];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.map(()=>1));g.barriers=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.enemies=[];g.allies=[];g.smoke=[];g.end={x:20,y:20};Object.assign(g.player,{x:10,y:10});g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();return g;
 }
 function enemy(g,type='rifleman',x=11,y=10,hp=1000){const e=makeEnemy(type,x,y,'qa-'+g.enemies.length);Object.assign(e,{hp,maxHp:hp,alert:true});g.enemies.push(e);g.target=e.id;g.reveal();return e;}
 const skill=g=>g.action('usePrepared',{category:'skill'});
 const noEnemyActions=g=>{Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});};
-test('new classes start with bound integrated melee, correct stats/supplies and prepared skill',()=>{
+// 3.158.0 (user decision): the gun is in hand at the start so nobody switches before the first shot; the bound blade
+// stays first in the pack and is what a bump swings, and switching either way is still free.
+test('new classes own a bound integrated melee but start with the gun in hand, correct stats/supplies and prepared skill',()=>{
  for(const [id,slot,skillId] of [['berserker',9,'grapple'],['ninja',10,'camouflage']]){
-  const g=arena(id);assert.equal(g.player.weapon,slot);assert.equal(g.weapon.melee,true);assert.equal(g.weapon.locked,true);assert.equal(g.player.ammo[slot],0);assert.equal(g.player.prepared.skill,skillId);assert.equal(initiative(g.player),0);
-  const turn=g.turn;assert.ok(g.action('weapon',g.player.owned[1]));assert.ok(g.action('weapon',slot));assert.equal(g.turn,turn);assert.equal(g.action('salvage',slot),false);
+  const g=arena(id,{blade:false});assert.equal(g.player.owned[0],slot);assert.equal(g.player.weapon,g.player.owned[1]);assert.ok(!g.weapon.melee);assert.equal(g.weaponAt(slot).melee,true);assert.equal(g.weaponAt(slot).locked,true);assert.equal(g.player.ammo[slot],0);assert.equal(g.bumpMeleeSlot(),slot);assert.equal(g.player.prepared.skill,skillId);assert.equal(initiative(g.player),0);
+  const turn=g.turn;assert.ok(g.action('weapon',slot));assert.ok(g.action('weapon',g.player.owned[1]));assert.equal(g.turn,turn);assert.equal(g.action('salvage',slot),false);
   assert.ok(Game.restore(g.serialize()));
  }
  const b=arena(),n=arena('ninja');assert.equal(b.player.maxHp,160);assert.equal(b.player.armor,3);assert.equal(n.player.grenades,0);assert.equal(n.player.smoke,4);assert.equal(n.player.stun,1);
@@ -108,11 +114,23 @@ test('grapple dash may land on hazards, spends cooldown, and does not alter boss
  assert.equal(skill(g),false);const turn=g.turn;for(let i=0;i<3;i++)g.action('wait');assert.equal(g.turn,turn+3);assert.equal(g.player.skillState.grapple.cooldown,0);
 });
 test('bound weapons cannot be exchanged or imported on a different class; normal slot upgrades remain available',()=>{
- for(const id of ['berserker','ninja']){const g=arena(id),slot=g.player.weapon;g.player.scrap=100;const min=g.weaponDamage().min;g.props.push({id:'term',x:g.player.x+1,y:g.player.y,type:'terminal',used:false});assert.ok(g.action('terminal',`upgrade:${slot}`));assert.equal(g.weaponDamage().min,min+5);
+ for(const id of ['berserker','ninja']){const g=arena(id),slot=g.player.owned[0];g.player.weapon=slot;g.player.scrap=100;const min=g.weaponDamage().min;g.props.push({id:'term',x:g.player.x+1,y:g.player.y,type:'terminal',used:false});assert.ok(g.action('terminal',`upgrade:${slot}`));assert.equal(g.weaponDamage().min,min+5);
  const item=g.registerWeapon({type:'weapon',weapon:0,x:10,y:10});g.items.push(item);assert.equal(g.action('replaceWeapon',{take:item.slot,leave:slot}),false);
  const raw=JSON.parse(g.serialize());raw.data.player.character='soldier';assert.equal(Game.restore(JSON.stringify(raw)),null);
  }
 });
 test('a bomber killed in melee cannot revive its killer through lifesteal after lethal explosion',()=>{
  const g=arena();noEnemyActions(g);g.player.hp=1;enemy(g,'bomber',11,10,1);g.action('fire');assert.equal(g.player.hp,0);assert.equal(g.status,'dead');
+});
+// 3.158.0 (user decision, NetHack's barbarian): the berserker shrugs off suppression like the bulwark and never poisons.
+test('berserker: native suppression resistance and poison immunity; others unchanged; an older save gains them on load',()=>{
+ const g=arena('berserker'),p=g.player;assert.equal(suppressionResistance(p),1);assert.ok(activeTrait(p,'poison_immunity'));
+ assert.equal(addPoison(p),false);assert.equal(p.poison,0);
+ p.poison=2;p.poisonClock=1;const hp=p.hp;tickPoison(g);assert.equal(p.poison,0);assert.equal(p.poisonClock,undefined);assert.equal(p.hp,hp,'poisoned before the passive: cleared on the first tick, no damage');
+ const s=arena('soldier');assert.equal(addPoison(s.player),true);assert.ok(s.player.poison>0);assert.equal(suppressionResistance(s.player),0);assert.equal(s.player.weapon,0);
+ const b=arena('bulwark');assert.equal(suppressionResistance(b.player),1);assert.equal(activeTrait(b.player,'poison_immunity'),false);assert.equal(b.player.weapon,6);
+ assert.equal(activeTrait(arena('ninja').player,'poison_immunity'),false);
+ const raw=JSON.parse(g.serialize());raw.data.player.traits=raw.data.player.traits.filter(t=>!['poison_immunity','suppression_resistance'].includes(t.id));
+ const back=Game.restore(JSON.stringify(raw));assert.ok(back);assert.equal(suppressionResistance(back.player),1);assert.ok(activeTrait(back.player,'poison_immunity'));
+ assert.equal(JSON.parse(back.serialize()).data.player.traits.filter(t=>t.id==='suppression_resistance').length,1,'re-deriving never duplicates');
 });
