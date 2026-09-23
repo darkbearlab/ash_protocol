@@ -1,6 +1,9 @@
 import {styleSprite} from './map-styles.js';
 import {SCENERY_ATLAS} from './scenery.js';
 export const PARTITION_HEIGHT=.5;
+// 3.165.0 (user request): the railings on a pit's edge (src/pits.js) are lower than a low partition — the same art, squashed.
+export const PIT_RAIL_HEIGHT=.6;
+export const pitRail=b=>typeof b?.id==='string'&&b.id.startsWith('edge-pit-');
 export const DOOR_ATLAS=new URL('../assets/pixel/doors-v1/atlas.png',import.meta.url).href;
 export function barrierEndpoints(b){return b.axis==='x'?[{x:b.x,y:b.y-.5},{x:b.x,y:b.y+.5}]:[{x:b.x-.5,y:b.y},{x:b.x+.5,y:b.y}];}
 // Shared steel connector posts close the physical cap/face gap at L/T/cross
@@ -20,7 +23,7 @@ function texturedBox(ctx,q,images,url,columns,face,cap){
   }
 }
 export function drawJunction(ctx,j,center,tile,images,game=null){
-  const t=Math.max(2,Math.round(tile*.16)),bottom=Math.round(center.y+t/2),faceTop=bottom-Math.round(tile*.5);
+  const t=Math.max(2,Math.round(tile*.16)),bottom=Math.round(center.y+t/2),faceTop=bottom-Math.round(tile*.5*(j.edges.every(pitRail)?PIT_RAIL_HEIGHT:1));
   const q={left:Math.round(center.x-t/2),width:t,bottom,faceTop,top:faceTop-t,depth:t,height:bottom-faceTop};
   ctx.save();ctx.imageSmoothingEnabled=false;texturedBox(ctx,q,images,styleSprite(game,'partitionFace')?.url||SCENERY_ATLAS,4,styleSprite(game,'partitionFace')?0:14,styleSprite(game,'partitionCap')?1:15);
   ctx.fillStyle=j.edges.every(b=>b.type==='low_partition')?'#c2b276':'#93b4c2';ctx.fillRect(q.left,q.top,q.width,1);ctx.restore();return q;
@@ -41,7 +44,7 @@ export function drawDoor(ctx,b,center,tile,images,game=null){
   ctx.restore();return boxes;
 }
 export function partitionGeometry(b,center,tile){
-  const thickness=tile*.16,height=tile*PARTITION_HEIGHT;
+  const thickness=tile*.16,height=tile*PARTITION_HEIGHT*(pitRail(b)?PIT_RAIL_HEIGHT:1);
   const width=b.axis==='x'?thickness:tile,depth=b.axis==='x'?tile:thickness;
   const left=Math.round(center.x-width/2),bottom=Math.round(center.y+depth/2),top=Math.round(center.y-depth/2-height),faceTop=Math.round(bottom-height);
   return {left,top,bottom,faceTop,width:Math.round(width),depth:faceTop-top,height:bottom-faceTop};

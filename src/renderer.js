@@ -1,7 +1,7 @@
 import {LOOT_ATLAS,LOOT_ICON,lootCell,drawLootIcon} from './loot-icons.js';
 import {mapStyle,mapStyleAtlases} from './map-styles.js';
 import {shakeImpulses,shakeOffset,liveImpulses} from './screen-shake.js';
-import {effectGlitches,stateGlitches,screenStrength,drawGlitched,screenGlitch,liveGlitches} from './signal-glitch.js';
+import {effectGlitches,stateGlitches,screenStrength,drawGlitched,screenGlitch,liveGlitches,drawGlitchedBox,bubbleGlitch} from './signal-glitch.js';
 import {FRAME_RATE_DEFAULT,frameDue,nextDue} from './frame-rate.js';
 import {terminalRemaining,TERMINAL_TUNING} from './terminal.js';
 import {flareCells} from './flares.js';
@@ -39,6 +39,8 @@ import {targetCardPlacement,actorObstacle,spriteSize} from './target-card.js';
 import {inCone,coneTargets} from './shotgun.js';
 import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTelegraphs} from './engine.js';
 import {VOID} from './data.js';
+// 3.165.0: the range flash is two quick flashes of this length with this gap between them.
+const RANGE_FLASH=Object.freeze({ms:170,gap:110});
 
 // Orthographic board: world +x = screen right, world +y = screen down.
 // Pixel atlases use nearest-neighbor drawing, with procedural missing-image fallbacks.
@@ -340,6 +342,7 @@ export class Renderer {
     for(const e of hiddenEnemies)this.cornerBadge(this.projectActor(e));
     // Snapshot sensor UI may cross walls; it never reveals terrain or supplies.
     for(const contact of [...(g.sensorContacts||[]),...(g.petSensorContacts||[])]){const a=this.project(contact.x,contact.y);this.box(a.x-3,a.y-3,6,6,'#ffe6a5');this.box(a.x-6,a.y-6,12,12,'#00000000','#e9c27d99');}
+    this.drawRangeFlash();
     this.drawCallouts(time);
   }
   // Callout bubbles (3.76.4): drawn last so they sit above walls. A visible line follows its speaker while it stays
@@ -358,11 +361,31 @@ export class Renderer {
       else ({x,y}=edgePoint(e.direction,this.w,this.h));
       const w=Math.ceil(c.measureText(text).width)+10,h=15,left=Math.max(2,Math.min(this.w-w-2,x-w/2)),top=Math.max(2,Math.min(this.h-h-2,y-h));
       const border=e.speaker==='player'?this.operatorColor:e.priority==='high'?'#f2a85c':e.priority==='medium'?'#9fd9c8':'#9aa59a';
+      const ink=e.speaker==='player'?'#f4f7ef':e.priority==='high'?'#ffd7a8':'#e3eee6',tail=visible?Math.round(x)-2:null;
+      // this.ctx, not c: under a glitch the drawing goes to a scratch canvas first (src/signal-glitch.js drawGlitchedBox).
+      const draw=()=>{const k=this.ctx;k.font='10px monospace';k.textAlign='center';this.box(left,top,w,h,'#101a17e6',border);if(tail!==null)this.box(tail,top+h,4,3,border);k.fillStyle=ink;k.fillText(text,left+w/2,top+11);};
       c.globalAlpha=bubbleAlpha(item,time);
-      this.box(left,top,w,h,'#101a17e6',border);if(visible)this.box(Math.round(x)-2,top+h,4,3,border);
-      c.fillStyle=e.speaker==='player'?'#f4f7ef':e.priority==='high'?'#ffd7a8':'#e3eee6';c.fillText(text,left+w/2,top+11);
+      const gl=this.glitchEnabled&&bubbleGlitch(item,time);if(gl)drawGlitchedBox(this,{left,top,w,h:h+3},draw,gl,time);else draw();
     }
     c.restore();
+  }
+  // 3.165.0 (user request): a shot refused for range outlines, in yellow, every tile the player could shoot from here —
+  // within the weapon's range with a clear line of fire — and flashes it twice, quickly.
+  flashRange(){
+    const g=this.game,p=g.player,range=g.weapon?.range||0,cells=new Set();
+    for(let y=Math.max(0,p.y-range);y<=Math.min(SIZE-1,p.y+range);y++)for(let x=Math.max(0,p.x-range);x<=Math.min(SIZE-1,p.x+range);x++){
+      const q={x,y};if((x===p.x&&y===p.y)||distance(p,q)<=range&&(g.grid[y][x]===1||g.grid[y][x]===VOID)&&g.shotClear(p,q))cells.add(`${x},${y}`);
+    }   // your own tile is inside, so no ring is drawn around you
+    this.rangeFlash={start:this.time,cells};
+  }
+  drawRangeFlash(){
+    const f=this.rangeFlash;if(!f)return;const age=this.time-f.start;if(age>=RANGE_FLASH.ms*2+RANGE_FLASH.gap){this.rangeFlash=null;return;}
+    if(age%(RANGE_FLASH.ms+RANGE_FLASH.gap)>=RANGE_FLASH.ms)return;
+    const c=this.ctx,t=this.tile,has=(x,y)=>f.cells.has(`${x},${y}`);c.save();c.strokeStyle='#ffd84a';c.lineWidth=2;c.lineCap='square';c.beginPath();
+    for(const k of f.cells){const [x,y]=k.split(',').map(Number),a=this.project(x,y),l=a.x-t/2,tp=a.y-t/2;
+      if(!has(x,y-1)){c.moveTo(l,tp);c.lineTo(l+t,tp);}if(!has(x,y+1)){c.moveTo(l,tp+t);c.lineTo(l+t,tp+t);}
+      if(!has(x-1,y)){c.moveTo(l,tp);c.lineTo(l,tp+t);}if(!has(x+1,y)){c.moveTo(l+t,tp);c.lineTo(l+t,tp+t);}}
+    c.stroke();c.restore();
   }
   // 3.164.0 pits (src/pits.js): a red-black warning band along every floor edge that drops into a pit, closing at the
   // outer corners. Pixel stripes from a 16x3 art strip scaled like the tiles; the phase repeats every tile so the bands join.

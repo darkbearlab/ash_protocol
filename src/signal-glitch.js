@@ -15,6 +15,8 @@ export const GLITCH_TUNING=Object.freeze({
  playerMove:{chance:.12,amp:2,ms:150},
  affixMove:{chance:.25,amp:2.5,ms:150},affixAttack:{chance:.45,amp:3,ms:180},affixIdle:{amp:2,ms:140,every:[3500,8000]},
  ambient:{every:[5500,11000],count:[1,3],amp:[1.5,2.5],ms:[90,170]},
+ // 3.165.0 (user request): speech bubbles crackle too — a short burst as one pops up, and now and then while it stays.
+ bubble:{appear:{chance:.6,amp:2.2,ms:170},every:[1300,3200],amp:[1.4,2.4],ms:[90,160]},
  uiMs:280,maxScreen:6,
 });
 const between=([a,b])=>a+Math.random()*(b-a);
@@ -93,6 +95,26 @@ export function drawGlitched(r,a,draw,g,time){
  const [red,cyan]=channels(off),d=amp*1.2;
  main.globalCompositeOperation='screen';main.globalAlpha=.7;main.drawImage(red,left+d,top,size,size);main.drawImage(cyan,left-d,top,size,size);
  main.restore();
+}
+// 3.165.0: the same slices and ghosts for a rectangle on screen (a speech bubble) instead of a square around an object.
+export function drawGlitchedBox(r,box,draw,g,time){
+ const pad=8,dpr=r.dpr||1,w=Math.ceil(box.w+pad*2),h=Math.ceil(box.h+pad*2),off=scratch('glitch-box',Math.ceil(w*dpr),Math.ceil(h*dpr)),oc=off.getContext('2d');
+ oc.setTransform(1,0,0,1,0,0);oc.clearRect(0,0,off.width,off.height);oc.setTransform(dpr,0,0,dpr,dpr*(pad-box.left),dpr*(pad-box.top));oc.imageSmoothingEnabled=false;
+ const main=r.ctx;r.ctx=oc;try{draw();}finally{r.ctx=main;}
+ const p=(time-g.start)/g.duration,amp=g.amp*(p<.5?1:2*(1-p)),step=Math.floor(time/45),slices=3,sh=h/slices,left=box.left-pad,top=box.top-pad;
+ main.save();main.imageSmoothingEnabled=false;
+ for(let i=0;i<slices;i++){const dx=(hash(g.seed,i,step)-.5)*6*amp;main.drawImage(off,0,Math.round(i*sh*dpr),off.width,Math.round(sh*dpr),left+dx,top+i*sh,w,sh);}
+ const [red,cyan]=channels(off),d=amp*1.2;
+ main.globalCompositeOperation='screen';main.globalAlpha*=.7;main.drawImage(red,left+d,top,w,h);main.drawImage(cyan,left-d,top,w,h);
+ main.restore();
+}
+// A bubble's own interference: set when it first shows and rolled again at random while it stays (Math.random is fine:
+// presentation only). Returns the glitch to draw now, or null.
+export function bubbleGlitch(item,time){
+ const T=GLITCH_TUNING.bubble;
+ if(item.glitchNext===undefined){item.glitchNext=time+between(T.every);if(Math.random()<T.appear.chance)item.glitch={start:time,duration:T.appear.ms,amp:T.appear.amp,seed:Math.random()*1000};}
+ else if(time>=item.glitchNext){item.glitch={start:time,duration:between(T.ms),amp:between(T.amp),seed:Math.random()*1000};item.glitchNext=time+between(T.every);}
+ return item.glitch&&time-item.glitch.start<item.glitch.duration?item.glitch:null;
 }
 // The whole frame: the colour split, then a few bands torn sideways.
 export function screenGlitch(canvas,strength,dpr=1,time=0){
