@@ -13,6 +13,7 @@ const DYNAMIC={
  'dir.':['none','e','w','s','n','es','en','ws','wn'],
  'game.stepped.':['acid','acidReal','heat','heatReal'],
  'missions.exit.':['down','up','extract','enter'],
+ 'manual.class.':['soldier','recon','engineer','bulwark','berserker','ninja'],
 };
 
 test('slots print like a template literal, pick a word by count, and stay visible when missing',()=>{
