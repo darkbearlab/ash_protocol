@@ -16,4 +16,4 @@ export const EXO_ACCURACY=10;
 export const meleeChance=(attacker,target,base=97)=>clampHit(base+actorStat(attacker,'meleeAccuracy')-actorStat(target,'meleeEvasion'));
 
 const labels={rangedAccuracy:t('labels.rangedAccuracy'),rangedEvasion:t('labels.rangedEvasion'),meleeAccuracy:t('labels.meleeAccuracy'),meleeEvasion:t('labels.meleeEvasion')};
-export const combatStatSummary=actor=>COMBAT_STATS.filter(key=>actorStat(actor,key)!==0).map(key=>labels[key]+' '+(actorStat(actor,key)>0?'+':'')+actorStat(actor,key)).join(' · ')||'無額外命中／迴避修正';
+export const combatStatSummary=actor=>COMBAT_STATS.filter(key=>actorStat(actor,key)!==0).map(key=>labels[key]+' '+(actorStat(actor,key)>0?'+':'')+actorStat(actor,key)).join(' · ')||t('actor-stats.none');

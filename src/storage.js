@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {grantUnlock as prepareUnlock,availableCharacters} from './unlock-catalog.js';
 import {bindUnlocks} from './run-unlocks.js';
 import {isSimulation} from './killhouse-policy.js';
@@ -80,8 +81,8 @@ function commitUnlock(game,id,source){
 export const grantUnlock=(game,id)=>commitUnlock(game,id,'purchase');
 export function connectUnlocks(game){return bindUnlocks(game,{profile,grant:(id,source)=>commitUnlock(game,id,source)});}
 // Removed public operations remain inert for older tools; no purchase/reset path exists.
-export function purchaseCarrying(){throw Error('攜行升級已取消。');}
-export function resetCarrying(){throw Error('攜行升級已取消。');}
+export function purchaseCarrying(){throw Error(t('storage.carryCancelled'));}
+export function resetCarrying(){throw Error(t('storage.carryCancelled'));}
 
 export function exportBackup(game){return JSON.stringify(makeBackup(isSimulation(game)?loadGame():game,profile(),backupNamespace),null,2);}
 export function previewBackup(raw){return decodeBackup(raw,backupNamespace);}
@@ -96,28 +97,28 @@ export function recoverRestore(){
   catch{storage.available=false;storage.recoveryPending=true;return false;}
 }
 export function restoreBackup(raw,currentGame){
-  if(isSimulation(currentGame))throw Error('請先離開模擬再還原戰役備份。');
+  if(isSimulation(currentGame))throw Error(t('storage.leaveSimFirst'));
   const next=previewBackup(raw); // Validate everything before touching local data.
-  if(!recoverRestore())throw new Error('上次還原尚未復原，請先匯出目前資料再重試。');
+  if(!recoverRestore())throw new Error(t('storage.restorePending'));
   const previous=exportBackup(currentGame);
   // A recovery snapshot and journal must both persist before either live key changes.
-  if(!write('ash-backup-before-restore',previous)||!write('ash-restore-journal',previous))throw new Error('無法保存還原前備份，原資料尚未變更。');
+  if(!write('ash-backup-before-restore',previous)||!write('ash-restore-journal',previous))throw new Error(t('storage.cannotKeepBackup'));
   try{storeSnapshot(next.snapshot);localStorage.removeItem(storageKey('ash-restore-journal'));storage.available=true;return next;}
-  catch{storage.available=false;const recovered=recoverRestore();throw new Error(recovered?'還原寫入失敗，已復原原資料。':'還原中斷；復原紀錄已保留，請重新開啟頁面後重試。');}
+  catch{storage.available=false;const recovered=recoverRestore();throw new Error(recovered?t('storage.restoreFailed'):t('storage.restoreInterrupted'));}
 }
 
 // Use the same rollback journal as full restore; no localStorage.clear(), no other apps' keys.
 export function resetProgress(game){
-  if(isSimulation(game))throw Error('模擬中不變更永久進度。');
+  if(isSimulation(game))throw Error(t('storage.simNoProgress'));
   return restoreBackup(JSON.stringify(makeBackup(null,normalizeProfile(),backupNamespace)),game);
 }
 export function abandonRun(game){
   if(isSimulation(game)){if(game.status!=='playing')return false;game.status='abandoned';game.pendingPerks=0;return true;}
   if(game.status!=='playing')return false;
-  if(storage.recoveryPending||!storage.available)throw new Error('本機儲存尚未就緒，尚未放棄任務。');
+  if(storage.recoveryPending||!storage.available)throw new Error(t('storage.storageNotReady'));
   const next=resultProfile({...game,status:'abandoned'});
   restoreBackup(JSON.stringify(makeBackup(null,next,backupNamespace)),game);
-  game.status='abandoned';game.pendingPerks=0;game.log('任務已放棄，已賺點數與解鎖保留。');return true;
+  game.status='abandoned';game.pendingPerks=0;game.log(t('storage.abandoned'));return true;
 }
 
 // UI calls these explicitly after the tutorial choice / arcade score calculation.
@@ -126,10 +127,10 @@ export function saveArcadeResult(game,score,formula='v1'){if(!isSimulation(game)
 
 // User-facing creation gates. Bare Game/createKillhouse remain fixture/engine constructors.
 export function startCampaign({seed,character='soldier',portrait='onyx',mission='extraction',options={}}={}){
- const p=profile();if(!availableCharacters(p).includes(character))throw Error('職業尚未解鎖。');
+ const p=profile();if(!availableCharacters(p).includes(character))throw Error(t('storage.classLocked'));
  return connectUnlocks(new Game(seed,p.unlocks.weapons,0,character,portrait,mission,{...options,profile:p}));
 }
 export function startKillhouse(options={}){
- if(options.mode==='arcade'&&!availableCharacters(profile()).includes(options.character||'soldier'))throw Error('職業尚未解鎖。');
+ if(options.mode==='arcade'&&!availableCharacters(profile()).includes(options.character||'soldier'))throw Error(t('storage.classLocked'));
  return createKillhouse(options);
 }

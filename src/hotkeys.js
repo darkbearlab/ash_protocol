@@ -59,7 +59,7 @@ export function parseBindings(raw){
 // Binding a key takes it away from whichever command had it. Returns the new bindings and the commands that lost it.
 export function bindKey(bindings,id,slot,key){
  const k=normalizeKey(key);
- if(!IDS.includes(id)||!Number.isInteger(slot)||slot<0||slot>=HOTKEY_SLOTS||!validHotkey(k))return {bindings,displaced:[],error:'這個按鍵不能用。'};
+ if(!IDS.includes(id)||!Number.isInteger(slot)||slot<0||slot>=HOTKEY_SLOTS||!validHotkey(k))return {bindings,displaced:[],error:t('hotkeys.unusable')};
  const next=Object.fromEntries(Object.entries(bindings).map(([action,slots])=>[action,[...slots]])),displaced=[];
  for(const [action,slots] of Object.entries(next))slots.forEach((existing,i)=>{if(existing===k&&!(action===id&&i===slot)){slots[i]=null;if(action!==id)displaced.push(action);}});
  next[id][slot]=k;

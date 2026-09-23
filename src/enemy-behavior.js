@@ -61,8 +61,8 @@ function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold
  const totalDamage=def.expendable?def.damage:scaleEnemy(def.damage+floorDamageBonus(g.floor,g.difficultySpec),g.floor,'damage',g.difficultySpec),baseRounds=fired?(enemyDef(e)?.rounds||1):1;
  for(let n=0;n<rounds&&p.hp>0;n++){const before=p.hp,roundDamage=Math.max(1,Math.floor(totalDamage/baseRounds)+(n%baseRounds<totalDamage%baseRounds?1:0));firedRounds++;if(rapid&&n>=baseRounds)revealEnemyAffix(g,e,'suppressor');
         if(fired)g.recordExposure(e,unitTree(e).fixedTile&&e.aim?e.aim:p);if(fired)spentCase(g,e,enemyDef(e)?.casing);
-        if(unitTree(e).fixedTile&&e.aim&&!g.shotClear(e,e.aim)){const edge=firstBarrierOnRay(g.barriers,e,e.aim);g.log('狙擊彈被門或隔板阻擋。');g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:edge?{x:edge.x,y:edge.y}:{...e.aim},damage:0});if(edge)g.damageProp(edge,roundDamage);}
-        else if(unitTree(e).fixedTile&&distance(p,e.aim||p)>0){g.log('狙擊彈擊中你原本的位置。');g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
+        if(unitTree(e).fixedTile&&e.aim&&!g.shotClear(e,e.aim)){const edge=firstBarrierOnRay(g.barriers,e,e.aim);g.log(t('enemy-behavior.sniperBlocked'));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:edge?{x:edge.x,y:edge.y}:{...e.aim},damage:0});if(edge)g.damageProp(edge,roundDamage);}
+        else if(unitTree(e).fixedTile&&distance(p,e.aim||p)>0){g.log(t('enemy-behavior.sniperHitsSpot'));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         else {
           petCombat(g,p);if(fired&&lightingEffects(g,{...e,traits:(e.traits||[]).filter(t=>t.id!=='night_vision')},p).penalty>0)revealEnemyAffix(g,e,'night_vision');const chance=def.range>1?g.accuracy(e,p).chance:g.meleeAccuracy(e,p);
           if(g.rng()*100<chance){if(def.venom){g.effects.push({type:'enemyShot',attackerType:e.type,style:'venom',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});poisonHit(g,e,p);}else{if(!poisonApplied)poisonApplied=poisonHit(g,e,p);if(p===g.player)g.damagePlayer(roundDamage,t('enemy-behavior.attackSource',{enemy:enemyName(e)}),e);else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}}
@@ -128,7 +128,7 @@ function munitionAct(ctx){
 registerUnitTree('munition',{before:munitionAct,death:({g,e})=>g.explode(e,MUNITION_RADIUS,scaleEnemy(ENEMY_TYPES.munition.damage,g.floor,'damage',g.difficultySpec))});
 registerUnitTree('civilian',{before:civilianAction});
 registerUnitTree('sniper',{windup:2,fixedTile:true});
-registerUnitTree('boss',{beforeAttack:({g,e,p})=>{if((e.attackCount||0)%2!==1||e.charge)return false;g.marks.push({x:p.x,y:p.y,due:g.turn+2});e.attackCount++;enemyCallout(g,e,'telegraph',{action:'bombard'});g.log('核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！',true);return true;},after:reinforce});
+registerUnitTree('boss',{beforeAttack:({g,e,p})=>{if((e.attackCount||0)%2!==1||e.charge)return false;g.marks.push({x:p.x,y:p.y,due:g.turn+2});e.attackCount++;enemyCallout(g,e,'telegraph',{action:'bombard'});g.log(t('enemy-behavior.bossBombard'),true);return true;},after:reinforce});
 registerUnitTree('warden',{after:reinforce});
 // 3.125.0: the squad leader spends its turn commanding; its soldiers answer on a branch that runs before they would
 // charge, so deployment and suppression replace the shot without touching any other card's behaviour.

@@ -55,7 +55,7 @@ export const DRONE_HP=90,SENTRY_ARMOR=5;
 export const currentAllies=g=>(g.allies||[]).filter(a=>a.floor===g.floor&&a.status==='active'&&a.hp>0);
 export const localAllies=g=>(g.allies||[]).filter(a=>a.floor===g.floor&&['active','down','destroyed'].includes(a.status));
 export const connected=(g,a)=>a.status==='active'&&a.hp>0&&a.floor===g.floor&&distance(a,g.player)<=leash(a);
-export const allyName=a=>a.kind==='pet'?'伴生獵獸':a.kind==='drone'?(a.sourceId==='drone_sentry'?'定點砲台':a.sourceId==='drone_munition'?'浮游彈藥':a.sourceId==='unit_drone'?'改造無人機':a.sourceId==='unit_bomber'?'改造自爆機器人':a.sourceId==='unit_warden'?'改造封鎖官':a.sourceId==='unit_boss'?'改造核心守衛':'追隨無人機'):a.kind==='survivor'?'倖存友軍':`復生${ENEMY_TYPES[a.type].name}`;
+export const allyName=a=>a.kind==='pet'?'伴生獵獸':a.kind==='drone'?(a.sourceId==='drone_sentry'?t('workshop.unit.drone_sentry.name'):a.sourceId==='drone_munition'?t('workshop.unit.drone_munition.name'):a.sourceId==='unit_drone'?t('workshop.unit.unit_drone.name'):a.sourceId==='unit_bomber'?t('workshop.unit.unit_bomber.name'):a.sourceId==='unit_warden'?t('workshop.unit.unit_warden.name'):a.sourceId==='unit_boss'?t('workshop.unit.unit_boss.name'):t('workshop.unit.drone_follow.name')):a.kind==='survivor'?t('allies.survivor'):`復生${ENEMY_TYPES[a.type].name}`;
 export function allyWeapon(a,player=null){
  if(a.kind==='pet')return petWeapon(player);
  if(a.kind==='drone'&&a.sourceId==='drone_munition')return {id:'munition',range:0,min:0,max:0,mag:0,ammoType:null,accuracyBonus:0};
@@ -149,7 +149,7 @@ export function defaultDroneCell(g){
 export function allySkillState(g,id){
  const a=g.allies.find(a=>id==='pet_command'?a.kind==='pet':a.kind==='drone');
  if(id==='raise_dead'){const n=summonCount(g),cd=g.player.skillState.raise_dead?.cooldown||0;return `召喚 ${n}/${summonLimit(g.player)}${n>=summonLimit(g.player)?'':!summonPool(g).length?' · 本層尚無可起身的屍體':cd?` · ${cd} 回合後再起`:' · 回合結束再起'}`;}
- if(id==='workshop'){const p=g.player;return `序列 ${p.productionLines.length}/${lineLimit(p)} · 部署 ${currentAllies(g).filter(a=>a.kind==='drone'&&!oneShot(a)).length}/${deployLimit(p)}`;}
+ if(id==='workshop'){const p=g.player;return `${t('allies.workshopStatus',{productionLinesLength:p.productionLines.length,v:lineLimit(p),v2:currentAllies(g).filter(a=>a.kind==='drone'&&!oneShot(a)).length,v3:deployLimit(p)})}`;}
  if(!a)return '沒有夥伴';if(a.kind==='pet')return a.status==='reforming'?`重生 ${g.player.petBond.reviveRemaining}`:a.status==='arriving'?'等候落點':'指揮／召回';
  return '沒有夥伴';
 }
@@ -210,10 +210,10 @@ function actAlly(g,a){
   a.tactics=null;petCombat(g,a);
   // Boss chassis (docs/ENGINEER.md 4.2, 3.95.0): the warden spends one action charging before each shot; the core guard
   // alternates a shot with a bombardment mark on a target at least two tiles away, which explodes two actions later.
-  if(a.sourceId==='unit_warden'&&!a.primed){a.primed=true;g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.6,color:'#ffc789',damage:0});g.log('改造封鎖官蓄力瞄準，下次行動射擊。');return;}
+  if(a.sourceId==='unit_warden'&&!a.primed){a.primed=true;g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.6,color:'#ffc789',damage:0});g.log(t('allies.wardenCharging'));return;}
   if(a.sourceId==='unit_boss'&&a.bombard&&distance(a,e)>=2){
    delete a.bombard;g.marks.push({kind:'ally',sourceId:a.id,x:e.x,y:e.y,radius:1,damage:bombardDamage(g.player),due:g.turn+2});
-   g.effects.push({type:'pulse',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},radius:1,color:'#e96949',damage:0});g.log('改造核心守衛標記轟炸區：兩次行動後爆炸，範圍內的你也會受傷。');return;
+   g.effects.push({type:'pulse',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},radius:1,color:'#e96949',damage:0});g.log(t('allies.guardianBombard'));return;
   }
   delete a.primed;if(a.sourceId==='unit_boss')a.bombard=true;
   let rounds=0;const hits=new Set();
@@ -307,11 +307,11 @@ function swapPast(g,a,far,here,linked){
 // which is always free, so allies can never box the player in. Refused for fixed sentries, disabled allies and
 // across rails; the ally gives up one action.
 export function swapReason(g,a){
- if(pinned(a)||pinned(g.player))return '壓制中無法換位。';
- if(a.kind==='drone'&&a.sourceId==='drone_sentry')return '定點砲台固定原地，請繞行。';
+ if(pinned(a)||pinned(g.player))return t('allies.pinnedNoSwap');
+ if(a.kind==='drone'&&a.sourceId==='drone_sentry')return t('allies.sentryFixed');
  if(oneShot(a))return t('allies.noSwap',{ally:allyName(a)});
  if(a.control?.disabled)return t('allies.swapDisabled',{ally:allyName(a)});
- if(!g.canCross(g.player,a))return '隔著矮隔板無法與友軍換位。';
+ if(!g.canCross(g.player,a))return t('allies.partitionNoSwap');
  if(!g.passable(g.player.x,g.player.y,a))return t('allies.swapBlocked',{ally:allyName(a)});
  return '';
 }

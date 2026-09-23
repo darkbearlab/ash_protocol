@@ -4,6 +4,7 @@
 // preferring an elite, and drops when it dies; it opens that floor's vault only.
 // Placed last in generate(), from hashes of its own, so nothing else on the floor moves. This module imports nothing
 // that imports world.js.
+import {t} from './i18n.js';
 import {barrierBetween,blockedBetween,vaultable} from './barriers.js';
 import {isBossClass,isNoncombatant,enemyDef} from './enemy-data.js';
 import {WEAPONS} from './data.js';
@@ -20,9 +21,9 @@ const PLASMA=WEAPONS.findIndex(w=>w.id==='plasma');
 // The high-rarity list (user: 「高稀有物品，看是要另外維護一個清單」). One entry per vault, equally likely; edit freely.
 // Each entry is a ground item, or a function of the vault's hash that returns one.
 export const VAULT_LOOT=Object.freeze([
- Object.freeze({id:'exo',name:'外骨骼',item:()=>({type:'exo'})}),
- Object.freeze({id:'plasma',name:'電漿步槍（貫穿、爆裂或速射）',item:h=>{const affixes=dropOnlyAffixes(PLASMA);return {type:'weapon',weapon:PLASMA,affix:affixes[h%affixes.length]};}}),
- Object.freeze({id:'extended_carry',name:'攜行擴充學習資料',item:()=>({type:'learning',learningId:'trait_extended_carry'})}),
+ Object.freeze({id:'exo',name:t('prize.exo'),item:()=>({type:'exo'})}),
+ Object.freeze({id:'plasma',name:t('prize.plasma'),item:h=>{const affixes=dropOnlyAffixes(PLASMA);return {type:'weapon',weapon:PLASMA,affix:affixes[h%affixes.length]};}}),
+ Object.freeze({id:'extended_carry',name:t('prize.carry'),item:()=>({type:'learning',learningId:'trait_extended_carry'})}),
 ]);
 
 const fnv=text=>{let h=2166136261;for(const s of text){h^=s.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
@@ -71,18 +72,18 @@ export function placeVault(map,seed,floor){
 // ---- in play --------------------------------------------------------------------------------------------------------
 export const isVaultDoor=b=>b?.type==='door'&&b.vault===true;
 export const hasKeycard=g=>(g.player.keycards||[]).includes(g.floor);
-export const lockedReason=(g,b)=>b?.locked&&!hasKeycard(g)?'保險室的鐵門鎖著，需要這一層的鑰匙卡':'';
+export const lockedReason=(g,b)=>b?.locked&&!hasKeycard(g)?t('vault.locked'):'';
 export function unlockVault(g,b){
  const p=g.player;p.keycards=p.keycards.filter(f=>f!==g.floor);b.locked=false;
- g.log('用鑰匙卡打開了保險室的鐵門。',true);
+ g.log(t('vault.opened'),true);
 }
 export function dropKeycard(g,e){
  if(!e.keycard)return;delete e.keycard;
- g.items.push({...g.enemyDropPoint(e),type:'key'});g.log('鑰匙卡掉在地上了！',true);
+ g.items.push({...g.enemyDropPoint(e),type:'key'});g.log(t('vault.keyDropped'),true);
 }
 export function pickKeycard(g){
  const p=g.player;if(!p.keycards.includes(g.floor))p.keycards.push(g.floor);
- g.log('取得鑰匙卡。這一層的保險室打得開了。',true);
+ g.log(t('vault.keyTaken'),true);
 }
 export const carriesKeycard=e=>e?.keycard===true&&e.hp>0;
 // What the vault holds, for the player who opens it: the exoskeleton for a frame too large or one who already has one,
@@ -90,11 +91,11 @@ export const carriesKeycard=e=>e?.keycard===true&&e.hp>0;
 export function vaultContents(g,item){
  const p=g.player,unusable=item.type==='exo'&&(activeTrait(p,'large')||p.wearables.includes('exo'))||item.type==='weapon'&&!weaponUnlocked(WEAPONS[item.weapon],g.unlockedWeapons);
  if(!unusable)return item;
- g.log(`保險箱裡的東西你用不上，換成 ${VAULT_TUNING.fallbackScrap} 廢料。`);return {type:'scrap',amount:VAULT_TUNING.fallbackScrap};
+ g.log(`${t('vault.prizeUseless',{fallbackScrap:VAULT_TUNING.fallbackScrap})}`);return {type:'scrap',amount:VAULT_TUNING.fallbackScrap};
 }
 export function floorVaultNote(g){
  if(!g.barriers.some(b=>isVaultDoor(b)&&b.locked))return;
- g.log('這一層有一間上鎖的保險室。鑰匙卡在一名敵人身上：頭上有光點的那一個。');
+ g.log(t('vault.announce'));
 }
 
 // ---- saves ----------------------------------------------------------------------------------------------------------

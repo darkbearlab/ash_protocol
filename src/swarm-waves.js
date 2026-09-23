@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {SWARM_TUNING as T} from './swarm-tuning.js';
 import {factionDef} from './factions.js';
 import {birthRandom} from './enemy-affixes.js';
@@ -19,7 +20,7 @@ const free=(g,p)=>g.passable(p.x,p.y)&&!occupied(g,p)&&!g.props.some(q=>key(q)==
 const spawnTiles=(g,s)=>[...reachable(g,s.origin)].map(k=>{const [x,y]=k.split(',').map(Number);return {x,y};}).filter(p=>distance(p,s.origin)<=T.hordeSpawnRadius&&free(g,p)&&!g.reinforcements.some(q=>key(q)===key(p)));
 export function tickSwarmWaves(g){
  const s=g.swarmWaves;if(!s)return;
- if(!s.active){if(distance(g.player,s.origin)>T.hordeTriggerRadius)return;s.active=true;g.log('地底傳來密集震動：蟲潮正在接近！',true);}
+ if(!s.active){if(distance(g.player,s.origin)>T.hordeTriggerRadius)return;s.active=true;g.log(t('swarm-waves.incoming'),true);}
  if(s.cooldown>0)s.cooldown--;
  const pending=[],reserved=new Set(s.pending.filter(p=>p.due>g.turn).map(key));
  for(const p of s.pending){

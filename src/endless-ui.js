@@ -11,7 +11,7 @@ export const levelCapped=level=>level>=MAX_LEVEL;
 // The rules stop counting at MAX_LEVEL; older saves may still carry a higher number, so the label clamps it too.
 export const levelLabel=level=>`LV.${pad(Math.min(level,MAX_LEVEL))}${levelCapped(level)?' MAX':''}`;
 // 3.138.0: `need` is what the next level costs in this run (levelCost in src/perks.js); past the cap it is the cap-supply step.
-export const levelTitle=(level,xp,need=Math.min(level,MAX_LEVEL)+2)=>`經驗 ${xp} / ${level>=MAX_LEVEL?MAX_LEVEL+2:need}${levelCapped(level)?`；已達等級上限，之後每 ${MAX_LEVEL+2} 點經驗自動發一份補給`:''}`;
+export const levelTitle=(level,xp,need=Math.min(level,MAX_LEVEL)+2)=>`${t('endless-ui.xpTitle',{xp,v:level>=MAX_LEVEL?MAX_LEVEL+2:need,v2:levelCapped(level)?`${t('endless-ui.capNote',{v:MAX_LEVEL+2})}`:''})}`;
 // Mission modal and field manual text; every number comes from the tuning constants. The modal already shows the
 // mission line, so it asks for the rules without the opening sentence.
 export function endlessRules({intro=true}={}){
@@ -34,8 +34,8 @@ export const growthLabel=(floor,d)=>{const c=curveOf(d);return floor<=6?'':t('en
 // extraction wording on core floors (endless never extracts).
 export function endlessFloorText(floor){
   const info=floorInfo(floor);
-  if(info.cycleFloor===6)return '電梯由頭目鎖定。留意預告標記。';
-  if(info.cycleFloor===1&&floor>6)return '深層重新循環：敵人更多、更強，精英可能帶快速、紅外線或夜視。';
+  if(info.cycleFloor===6)return t('endless-ui.bossFloor');
+  if(info.cycleFloor===1&&floor>6)return t('endless-ui.deepCycle');
   return info.text;
 }
 export const isRecordRun=(records,floor,level,kills)=>{const b=records?.endless?.best;return Boolean(b&&b.floor===floor&&b.level===level&&b.kills===kills);};

@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {addPoison,validPoison} from './poison.js';
 import {enemyDef,hasEnemyTag} from './enemy-data.js';
 import {factionDef,enemyFaction} from './factions.js';
@@ -18,8 +19,8 @@ export function poisonHit(g,e,target){
  if(target!==g.player||target.hp<=0||activeTrait(target,'mechanical'))return false;
  if(!enemyDef(e)?.venom&&!affix(e,'venomous'))return false;
  if(affix(e,'venomous'))revealEnemyAffix(g,e,'venomous');
- if(!addPoison(target)){g.log('毒液打在你身上，但對你無效。');return true;}
- g.log('毒液侵入防護服，你中毒了。',true);return true;
+ if(!addPoison(target)){g.log(t('swarm.venomImmune'));return true;}
+ g.log(t('swarm.venomPoisoned'),true);return true;
 }
 export function tonguePlan(g,e){
  const p=g.player;
@@ -36,13 +37,13 @@ export function tongueAction({g,e}){
   // Track the announced tile: moving away is a reliable way to evade the tongue.
   const valid=plan&&key(pending.origin)===key(e)&&key(pending.target)===key(g.player)&&key(pending.point)===key(plan.point);
   delete e.tongueIntent;e.tongueCooldown=SWARM_TUNING.tongueCooldown;
-  if(!valid){g.log('鉤舌撲空，未能拉住目標。');return true;}
+  if(!valid){g.log(t('swarm.tongueMissed'));return true;}
   const p=g.player,from={x:p.x,y:p.y};Object.assign(p,plan.point);p.moved=true;p.moveDelta=[p.x-from.x,p.y-from.y];p.cornerExposure=null;p.fireChain=null;p.guard=false;p.focus=false;p.evasive=false;
-  g.effects.push({type:'tonguePull',sourceId:e.id,from,to:{...plan.point},origin:{...plan.origin},damage:0});g.log('鉤舌將你拖向巨蟲！',true);g.reveal();return true;
+  g.effects.push({type:'tonguePull',sourceId:e.id,from,to:{...plan.point},origin:{...plan.origin},damage:0});g.log(t('swarm.tonguePulled'),true);g.reveal();return true;
  }
  if(!plan)return false;
  interruptEnemyIntent(e,'target_lost');e.tongueIntent=plan;
- g.effects.push({type:'tongueTelegraph',sourceId:e.id,from:{...plan.origin},to:{...plan.target},landing:{...plan.point},damage:0});g.log('巨蟲繃緊鉤舌：離開拉扯路線！',true);return true;
+ g.effects.push({type:'tongueTelegraph',sourceId:e.id,from:{...plan.origin},to:{...plan.target},landing:{...plan.point},damage:0});g.log(t('swarm.tongueTaut'),true);return true;
 }
 export const tongueTelegraphs=g=>g.enemies.filter(e=>e.hp>0&&e.tongueIntent).map(e=>({kind:'tongue',sourceId:e.id,origin:{...e.tongueIntent.origin},target:{...e.tongueIntent.target},landing:{...e.tongueIntent.point},interruptible:true}));
 export function tickTongues(g){for(const e of g.enemies){if(e.tongueCooldown>0)e.tongueCooldown--;if(e.tongueIntent&&(e.hp<=0||e.control?.disabled||pinned(e)))interruptEnemyIntent(e,e.hp<=0?'death':e.control?.disabled?'disabled':'suppressed');}}
@@ -56,7 +57,7 @@ export function infectedDeath(g,e){
   const child=g.spawnEnemy(factionDef(enemyFaction(e)).nestChild,q.x,q.y,`${e.id}-burst-${count++}`);child.broodParent=e.id;child.alert=true;child.lastKnown={x:g.player.x,y:g.player.y};g.enemies.push(child);
   g.effects.push({type:'nestSpawn',nestStyle:'burrow',from:{x:e.x,y:e.y},to:q,damage:0});
  }
- if(count)g.log('感染者的軀殼裂開，幼蟲竄了出來。',true);
+ if(count)g.log(t('swarm.hostBurst'),true);
 }
 export function validSwarm(g){
  const frames=[g,...Object.values(g.floorStates||{})];

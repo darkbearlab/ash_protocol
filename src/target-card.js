@@ -21,8 +21,8 @@ import {fooled} from './field-gear.js';
 import {grapplePlan,ambushReady,MELEE_TUNING} from './melee-classes.js';
 // Melee-class hints on the card (3.47.1): the hook's pull or dash, and whether an ambush would land.
 const meleeHints=(game,target)=>{const p=game.player,hints=[];
-  if(p.prepared.skill==='grapple'&&!p.skillState.grapple?.cooldown){const plan=grapplePlan(game,target.id);if(!plan.reason)hints.push(plan.dash?'鉤鎖 · 衝刺':'鉤鎖 · 拉近');}
-  if(ambushReady(game,target))hints.push(`伏擊 ×${MELEE_TUNING.ambush}`);return hints;};
+  if(p.prepared.skill==='grapple'&&!p.skillState.grapple?.cooldown){const plan=grapplePlan(game,target.id);if(!plan.reason)hints.push(plan.dash?t('target-card.grappleCharge'):t('target-card.grapplePull'));}
+  if(ambushReady(game,target))hints.push(`${t('melee-ui.ambush',{ambush:MELEE_TUNING.ambush})}`);return hints;};
 
 // 3.112.0: a cone weapon says how many targets one shell reaches, which damage band the locked one is in, and warns
 // when a friend stands in the cone.
@@ -32,7 +32,7 @@ function coneNotes(game,target,withinRange){
   const w=game.weapon;
   if(!(w.cone||w.lance)||!withinRange||!game.enemies.includes(target))return [];
   const reached=w.cone?coneTargets(game,game.player,target,w):lancePath(game,game.player,target,w.range).units,friends=reached.filter(o=>!game.enemies.includes(o)).length;
-  return [`${w.cone?'錐形':'貫穿'} ${reached.length} 目標`,friends?`⚠ 含友軍 ${friends}`:''];
+  return [`${t('target-card.reached',{v:w.cone?t('target-card.cone'):t('target-card.lance'),reachedLength:reached.length})}`,friends?`${t('target-card.friendsInCone',{friends})}`:''];
 }
 // 3.141.0 (docs/WEAPONS.md): a shotgun aimed at an enemy shows its pellets instead of one chance: how many reach at this
 // distance, each pellet's damage and its flat chance. 3.142.0 (playtest): the damage is what a pellet really does to
@@ -48,7 +48,7 @@ function pelletLine(game,target){
 function blastNotes(game,target){
   const w=game.weapon;if(!w.blast||!game.enemies.includes(target))return [];
   const friends=game.activeAllies.filter(a=>a.hp>0&&distance(a,target)<=1).length;
-  return [distance(game.player,target)<=1?'⚠ 爆炸波及自己':'',friends?`⚠ 爆炸波及友軍 ${friends}`:''];
+  return [distance(game.player,target)<=1?t('target-card.blastSelf'):'',friends?`${t('target-card.blastFriends',{friends})}`:''];
 }
 export function targetDetails(game){
   const target=game.targeted;if(!target)return null;
@@ -58,13 +58,13 @@ export function targetDetails(game){
   // 3.142.0: a gun that spends more than one round a shot says so while the magazine cannot pay for it.
   const short=!melee&&(game.weapon.shotCost||1)>1&&game.player.ammo[game.player.weapon]<game.weapon.shotCost;
   const pellets=pelletLine(game,target),range=distance(game.player,target),withinDistance=range<=game.weapon.range,withinRange=withinDistance&&game.shotClear(game.player,target)&&(!melee||isBarrier(target)||game.canCross(game.player,target));
-  const details={name:(enemy?(missionTarget(game,target)?'◇ ':'')+cardEnemyName(target):null)||(isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target,game.facilityFaction)].name:isContainer(target)?containerName(target):target.type==='barrel'?'爆裂油桶':FURNITURE[target.style]?.name||'可破壞掩體'),fullName:enemy?enemyDisplayName(target):'',hp:`${isBarrier(target)?'耐久':'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}${enemy?.armor>0?`\n護甲 ${enemy.armor}`:''}`,
-    chance:withinRange?(short?t('target-card.magShort',{n:game.weapon.shotCost}):game.weapon.pointTarget?'落點必定爆炸':pellets||t('target-card.hit',{chance:aim.chance})):melee?'無法近戰':'無法射擊',distance:t('target-card.distance',{range,weaponRange:game.weapon.range,band:aim.band?t('target-card.band',{band:bandLabel(aim.band)}):'',burst:game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?t('target-card.single'):t('target-card.double')):''}),
+  const details={name:(enemy?(missionTarget(game,target)?'◇ ':'')+cardEnemyName(target):null)||(isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target,game.facilityFaction)].name:isContainer(target)?containerName(target):target.type==='barrel'?t('target-card.barrel'):FURNITURE[target.style]?.name||t('target-card.breakableCover')),fullName:enemy?enemyDisplayName(target):'',hp:`${isBarrier(target)?t('target-card.durability'):'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}${enemy?.armor>0?`${t('target-card.armor',{armor:enemy.armor})}`:''}`,
+    chance:withinRange?(short?t('target-card.magShort',{n:game.weapon.shotCost}):game.weapon.pointTarget?t('target-card.launcherSure'):pellets||t('target-card.hit',{chance:aim.chance})):melee?t('target-card.noMelee'):t('target-card.noShot'),distance:t('target-card.distance',{range,weaponRange:game.weapon.range,band:aim.band?t('target-card.band',{band:bandLabel(aim.band)}):'',burst:game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?t('target-card.single'):t('target-card.double')):''}),
     traits:enemy?[factionTag(target),target.elite?ELITE_VISUAL.label:'',isNoncombatant(target)?NONCOMBATANT_LABEL:'',...traitLabels(target)].filter(Boolean).join(' · '):'',
-    order:enemy&&(initiative(displayTarget)!==0||initiative(game.player)!==0)?(initiative(displayTarget)<initiative(game.player)?'行動在你之前':initiative(displayTarget)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',
-    cover:melee?'近戰無視掩體':enemy?(activeTrait(target,'no_cover')?'無法利用掩體':aim.cover?(aim.coverEfficiency===.5?'半效 ':'')+(aim.cover.type==='low_partition'?'矮隔板掩護':isBarrier(aim.cover)?'隔間掩護':aim.cover.type==='wall'?'牆角掩護':aim.cover.style?'家具掩護':'箱體掩護'):'無掩護'):'可破壞物',
+    order:enemy&&(initiative(displayTarget)!==0||initiative(game.player)!==0)?(initiative(displayTarget)<initiative(game.player)?t('target-card.actsBefore'):initiative(displayTarget)>initiative(game.player)?t('target-card.actsAfter'):t('target-card.actsSame')):'',
+    cover:melee?t('target-card.meleeIgnoresCover'):enemy?(activeTrait(target,'no_cover')?t('target-card.noCoverUse'):aim.cover?(aim.coverEfficiency===.5?t('target-card.half'):'')+(aim.cover.type==='low_partition'?t('target-card.coverLowPartition'):isBarrier(aim.cover)?t('target-card.coverPartition'):aim.cover.type==='wall'?t('target-card.coverCorner'):aim.cover.style?t('target-card.coverFurniture'):t('target-card.coverCrate')):t('target-card.coverNone')):t('target-card.breakable'),
     attack,
-    state:[attack?.targetExposed?'轉角暴露':'',enemy&&fooled(game,target)?'被誘餌引開':'',enemy&&target.keycard?'攜帶鑰匙卡':'',enemy?suppressionTag(target):'',...(enemy?meleeHints(game,target):[]),aim.closeBonus&&!pellets?`近射 +${aim.closeBonus}`:'',aim.aimPenalty?`未瞄準 −${aim.aimPenalty}`:'',aim.rangePenalty?`${range>aim.band[1]?'太遠':'太近'} −${aim.rangePenalty}`:'',...coneNotes(game,target,withinRange),...(withinRange?blastNotes(game,target):[]),aim.vaultBonus?`翻越破綻 +${aim.vaultBonus}`:'',!melee&&light.dark?(light.nightVision?'夜視抵銷暗區':pellets?'暗區（彈丸不受影響）':'暗區 −40'):'',isBarrier(target)?target.type==='door'?(target.open?'門已開啟':'門已關閉'):target.type==='low_partition'?'可翻越 · 破綻 +20':'固定隔板':'',withinRange?'':withinDistance?(attack?.reason==='target_corner_hidden'?'轉角未暴露':'障礙阻擋'):'超出射程',aim.bracedBonus?`架槍 +${aim.bracedBonus}`:'',aim.trackingBonus?`修正 +${aim.trackingBonus}`:'',aim.sidePenalty?`側身 −${aim.sidePenalty}`:'',target.control?.disabled?`失能 ${target.control.disabled}`:'',target.control?.immune?`失能免疫 ${target.control.immune}`:'',target.moved?'移動中':'',target.charge?'即將攻擊':'',target.tongueIntent?TONGUE_VISUAL.label:''].filter(Boolean).join(' · '),withinRange};
+    state:[attack?.targetExposed?t('target-card.cornerExposed'):'',enemy&&fooled(game,target)?t('target-card.decoyed'):'',enemy&&target.keycard?t('target-card.keycard'):'',enemy?suppressionTag(target):'',...(enemy?meleeHints(game,target):[]),aim.closeBonus&&!pellets?`${t('target-card.closeBonus',{closeBonus:aim.closeBonus})}`:'',aim.aimPenalty?`${t('target-card.aimPenalty',{aimPenalty:aim.aimPenalty})}`:'',aim.rangePenalty?`${range>aim.band[1]?t('target-card.tooFar'):t('target-card.tooClose')} −${aim.rangePenalty}`:'',...coneNotes(game,target,withinRange),...(withinRange?blastNotes(game,target):[]),aim.vaultBonus?`${t('target-card.vaultBonus',{vaultBonus:aim.vaultBonus})}`:'',!melee&&light.dark?(light.nightVision?t('target-card.nightVision'):pellets?t('target-card.darkPellets'):t('target-card.dark')):'',isBarrier(target)?target.type==='door'?(target.open?t('target-card.doorOpen'):t('target-card.doorClosed')):target.type==='low_partition'?t('target-card.climbable'):t('target-card.fixedPartition'):'',withinRange?'':withinDistance?(attack?.reason==='target_corner_hidden'?t('target-card.cornerHidden'):t('target-card.obstacle')):t('target-card.outOfRange'),aim.bracedBonus?`${t('target-card.braced',{bracedBonus:aim.bracedBonus})}`:'',aim.trackingBonus?`${t('target-card.tracking',{trackingBonus:aim.trackingBonus})}`:'',aim.sidePenalty?`${t('target-card.sidestep',{sidePenalty:aim.sidePenalty})}`:'',target.control?.disabled?`${t('target-card.disabled',{disabled:target.control.disabled})}`:'',target.control?.immune?`${t('target-card.immune',{immune:target.control.immune})}`:'',target.moved?t('target-card.moving'):'',target.charge?t('target-card.aboutToAttack'):'',target.tongueIntent?TONGUE_VISUAL.label:''].filter(Boolean).join(' · '),withinRange};
   return game.realMode?realModeCard(details):details;
 }
 // Real mode (3.76.3): aiming shows only the name and distance. "Cannot fire" stays because it carries no number.

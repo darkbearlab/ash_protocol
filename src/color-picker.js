@@ -2,6 +2,7 @@
 // circle, saturation growing outwards) and a brightness slider with a soft stop at 40%, above the preset swatches. A
 // swatch moves the cursors to its colour so it can be fine-tuned from there. Display only: the choice is a local
 // preference like the rest of the operator colour (src/operator-color.js), never part of a save or the rules.
+import {t} from './i18n.js';
 import {OPERATOR_COLORS,DEFAULT_OPERATOR_COLOR,operatorColor,hsvToRgb,hsvToHex,hexToHsv,softStop,BRIGHTNESS_STOP} from './operator-color.js';
 
 // The rounded form of a preset, so a wheel position that lands on a preset selects its swatch again.
@@ -12,14 +13,14 @@ export const presetFor=(h,s,v)=>PRESET_HEX.get(hsvToHex(h,s,v))||null;
 // hidden one carrying a custom colour), note. `selected` is a preset id, 'none' or '#rrggbb'.
 export function colorPickerMarkup(selected,character){
   const current=operatorColor(selected),start=hexToHsv(current.hex||operatorColor(DEFAULT_OPERATOR_COLOR).hex),custom=current.custom?current.hex:'';
-  return `<fieldset class="term-list color-list" data-h="${start.h}" data-s="${start.s}" data-v="${start.v}" data-off="${current.hex?'0':'1'}"><legend>OPERATOR COLOR · 機體塗裝</legend>`+
+  return `<fieldset class="term-list color-list" data-h="${start.h}" data-s="${start.s}" data-v="${start.v}" data-off="${current.hex?'0':'1'}"><legend>${t('color-picker.legend')}</legend>`+
    `<div class="color-row"><canvas class="color-preview" data-class-sprite="${character}" data-color-preview width="32" height="32" aria-hidden="true"></canvas>`+
-   `<div class="color-wheel-wrap"><canvas class="color-wheel" tabindex="0" aria-label="色輪：左右鍵換色相，上下鍵調彩度" aria-describedby="color-readout"></canvas><i class="color-cursor" aria-hidden="true"></i></div></div>`+
-   `<label class="color-value" for="operator-value">明度<span class="color-value-track"><input id="operator-value" type="range" min="0" max="100" step="1" value="${start.v}" aria-describedby="color-readout"><i class="color-stop" aria-hidden="true"></i></span></label>`+
+   t('color-picker.wheel')+
+   `<label class="color-value" for="operator-value">${t('color-picker.value')}<span class="color-value-track"><input id="operator-value" type="range" min="0" max="100" step="1" value="${start.v}" aria-describedby="color-readout"><i class="color-stop" aria-hidden="true"></i></span></label>`+
    `<p id="color-readout" class="color-readout" aria-live="polite"></p>`+
    `<div class="color-swatches">${OPERATOR_COLORS.map(c=>`<label class="color-swatch"><input type="radio" name="operator-color" value="${c.id}" aria-label="${c.label}" ${c.id===current.id?'checked':''}><span${c.hex?` style="--swatch:${c.hex}"`:' class="swatch-none"'}></span><small>${c.label}</small></label>`).join('')}`+
    `<input type="radio" name="operator-color" value="${custom||'#000000'}" data-custom-color hidden tabindex="-1" aria-hidden="true" ${custom?'checked':''}></div>`+
-   `<p class="color-note">點色票會把色輪和明度移到那個顏色，可以接著微調。只改地圖上的人物與倒地圖像，不影響規則；之後的任務沿用這個顏色。</p></fieldset>`;
+   t('color-picker.note');
 }
 
 // Draws the wheel at full brightness, sized to the element and the screen's pixel ratio.
@@ -44,7 +45,7 @@ export function mountColorPicker(root,redraw){
     const a=h*Math.PI/180,r=s/100*50;cursor.style.left=`${50+Math.cos(a)*r}%`;cursor.style.top=`${50+Math.sin(a)*r}%`;cursor.style.background=hsvToHex(h,s,v);
     slider.value=String(v);root.style.setProperty('--color-full',hsvToHex(h,s,100));
     root.classList.toggle('color-off',off);root.classList.toggle('color-dim',v<BRIGHTNESS_STOP);
-    readout.textContent=off?'原色：不上色。碰色輪或明度就會改用那個顏色。':`色相 ${h}° · 彩度 ${s}% · 明度 ${v}%${v<BRIGHTNESS_STOP?'（低於 40%：暗房裡可能看不清楚）':''}`;
+    readout.textContent=off?t('color-picker.original'):`${t('color-picker.readout',{h,s,v,v2:v<BRIGHTNESS_STOP?t('color-picker.tooDark'):''})}`;
   };
   const repaint=()=>{if(frame)return;frame=requestAnimationFrame(()=>{frame=0;redraw();});};
   // The wheel or slider moved: pick the matching swatch, or carry the colour in the hidden custom radio.

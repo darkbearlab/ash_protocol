@@ -68,28 +68,28 @@ export function offerKind(option){
  return 'gear';
 }
 export const terminalSells=(terminal,option)=>!terminal?.kind||offerKind(option)===terminal.kind;
-export const terminalName=terminal=>TERMINAL_KINDS[terminal?.kind]||'補給終端';
+export const terminalName=terminal=>TERMINAL_KINDS[terminal?.kind]||t('terminal.name');
 // Whether an offer can be bought here at all, before looking at how it is paid.
 export function offerReason(g,option){
  const p=g.player,terminal=g.nearbyTerminal;
- if(!terminal)return '附近沒有可用補給終端。';
+ if(!terminal)return t('terminal.noneNear');
  const slot=upgradeSlot(option);
- if(slot===null&&!OPTIONS.includes(option))return '沒有這項補給。';
+ if(slot===null&&!OPTIONS.includes(option))return t('terminal.noSuchOffer');
  if(!terminalSells(terminal,option))return t('terminal.notSold',{terminal:terminalName(terminal)});
  if(slot!==null){
-  if(!p.owned.includes(slot))return '背包裡沒有這把武器。';
-  if((p.upgrades[slot]||0)>=T.upgradeMax)return '此武器已達最高改裝等級。';
+  if(!p.owned.includes(slot))return t('terminal.weaponNotInPack');
+  if((p.upgrades[slot]||0)>=T.upgradeMax)return t('terminal.maxUpgrade');
  }
  const price=terminalCost(option,g),left=terminalRemaining(terminal);
  if(price>left)return t('terminal.creditShort',{left,price});
  if(slot!==null)return '';
  const item=TERMINAL_ITEMS[option];
- if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return '生命值已滿。';
- if(item?.wear&&p.wearables.includes(item.wear))return '已經有一件了。';
- if(item?.wear==='exo'&&activeTrait(p,'large'))return '體型太大，穿不下外骨骼。';
+ if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return t('terminal.healthFull');
+ if(item?.wear&&p.wearables.includes(item.wear))return t('terminal.haveOne');
+ if(item?.wear==='exo'&&activeTrait(p,'large'))return t('terminal.tooLargeExo');
  const kind=grenadeByItem(option)?'grenade':TERMINAL_AMMO[option]?option:null;
- if(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=g.ammoCapacity(kind))return '此彈種已達攜帶上限。';
- if(option==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=g.ammoCapacity(id)))return '各類備彈皆已滿。';
+ if(kind&&(kind==='grenade'?grenadeTotal(p):p[AMMUNITION[kind].key])>=g.ammoCapacity(kind))return t('terminal.ammoCapped');
+ if(option==='ammo'&&AMMO_IDS.every(id=>p[AMMUNITION[id].key]>=g.ammoCapacity(id)))return t('terminal.allAmmoFull');
  return '';
 }
 
@@ -111,22 +111,22 @@ export function tradeHoldings(g){
  }
  for(const [id,entry] of Object.entries(GRENADES)){
   const held=p[entry.resource]||0;
-  rows.push({id:`throw:${id}`,group:'throw',name:entry.name,unit:'1 個',lot:1,value:tradeValue(entry.cost/entry.amount),held,max:held,reason:''});
+  rows.push({id:`throw:${id}`,group:'throw',name:entry.name,unit:t('terminal.unitItem'),lot:1,value:tradeValue(entry.cost/entry.amount),held,max:held,reason:''});
  }
- rows.push({id:'med',group:'item',name:'醫療包',unit:'1 個',lot:1,value:T.medTradeIn,held:p.meds||0,max:p.meds||0,reason:''});
+ rows.push({id:'med',group:'item',name:t('game.medkitName'),unit:t('terminal.unitItem'),lot:1,value:T.medTradeIn,held:p.meds||0,max:p.meds||0,reason:''});
  for(const [id,offer] of Object.entries(TERMINAL_ITEMS)){
-  if(offer.resource){const held=p[offer.resource]||0;rows.push({id:`item:${id}`,group:'item',name:itemName(id),unit:'1 個',lot:1,value:tradeValue(offer.cost),held,max:held,reason:''});}
+  if(offer.resource){const held=p[offer.resource]||0;rows.push({id:`item:${id}`,group:'item',name:itemName(id),unit:t('terminal.unitItem'),lot:1,value:tradeValue(offer.cost),held,max:held,reason:''});}
   else if(offer.wear&&!offer.noTrade){
    const held=p.wearables.includes(offer.wear)?1:0,worn=p.prepared?.item===offer.wear;
-   rows.push({id:`wear:${id}`,group:'wear',name:itemName(id),unit:'1 件',lot:1,value:tradeValue(offer.cost),held,max:held&&!worn?1:0,reason:worn?'戴著的要先脫下':''});
+   rows.push({id:`wear:${id}`,group:'wear',name:itemName(id),unit:t('terminal.unitWear'),lot:1,value:tradeValue(offer.cost),held,max:held&&!worn?1:0,reason:worn?t('terminal.takeOffFirst'):''});
   }
  }
  for(const slot of p.owned){
   const w=g.weaponAt(slot),level=p.upgrades[slot]||0;
-  const reason=w.locked?'固定裝備':p.owned.length<=1?'至少保留一把':'';
-  rows.push({id:`weapon:${slot}`,group:'weapon',name:`${w.name}${level?` +${level}`:''}`,unit:'1 把',lot:1,value:salvageValue(p,slot),held:1,max:reason?0:1,reason,slot});
+  const reason=w.locked?t('terminal.bound'):p.owned.length<=1?t('terminal.keepOne'):'';
+  rows.push({id:`weapon:${slot}`,group:'weapon',name:`${w.name}${level?` +${level}`:''}`,unit:t('terminal.unitWeapon'),lot:1,value:salvageValue(p,slot),held:1,max:reason?0:1,reason,slot});
  }
- for(const [id,count] of Object.entries(p.learningItems||{}))if(LEARNING_ITEMS[id])rows.push({id:`learning:${id}`,group:'learning',name:LEARNING_ITEMS[id].name,unit:'1 份',lot:1,value:LEARNING_SCRAP,held:count,max:count,reason:''});
+ for(const [id,count] of Object.entries(p.learningItems||{}))if(LEARNING_ITEMS[id])rows.push({id:`learning:${id}`,group:'learning',name:LEARNING_ITEMS[id].name,unit:t('terminal.unitData'),lot:1,value:LEARNING_SCRAP,held:count,max:count,reason:''});
  return rows;
 }
 const itemName=id=>PREPARED_CATALOG.item[id]?.name||id;
@@ -135,20 +135,20 @@ const itemName=id=>PREPARED_CATALOG.item[id]?.name||id;
 export function terminalDeal(g,buy,trade={}){
  const price=terminalCost(buy,g),reason=offerReason(g,buy),empty={price,pool:0,scrap:price??0,waste:0};
  if(reason)return {...empty,reason};
- if(!trade||typeof trade!=='object'||Array.isArray(trade))return {...empty,reason:'抵價內容無效。'};
+ if(!trade||typeof trade!=='object'||Array.isArray(trade))return {...empty,reason:t('terminal.tradeInvalid')};
  const rows=new Map(tradeHoldings(g).map(row=>[row.id,row]));
  let pool=0,weapons=0;
  for(const [id,count] of Object.entries(trade)){
   const row=rows.get(id);
-  if(!row||!Number.isSafeInteger(count)||count<0)return {...empty,reason:'抵價內容無效。'};
+  if(!row||!Number.isSafeInteger(count)||count<0)return {...empty,reason:t('terminal.tradeInvalid')};
   if(!count)continue;
   if(count>row.max)return {...empty,reason:row.reason?t('terminal.rowReason',{item:row.name,reason:row.reason}):t('terminal.rowShort',{item:row.name})};
-  if(row.group==='weapon'){weapons++;if(buy===`upgrade:${row.slot}`)return {...empty,reason:'不能用正要改裝的武器抵價。'};}
+  if(row.group==='weapon'){weapons++;if(buy===`upgrade:${row.slot}`)return {...empty,reason:t('terminal.tradeUpgrading')};}
   pool+=count*row.value;
  }
- if(weapons&&g.player.owned.length-weapons<1)return {...empty,reason:'至少保留一把武器。'};
+ if(weapons&&g.player.owned.length-weapons<1)return {...empty,reason:t('terminal.keepOneWeapon')};
  const scrap=Math.max(0,price-pool),waste=Math.max(0,pool-price);
- if(g.player.scrap<scrap)return {price,pool,scrap,waste,reason:pool?`還差 ${scrap-g.player.scrap} 廢料。`:`終端需要 ${price} 廢料。`};
+ if(g.player.scrap<scrap)return {price,pool,scrap,waste,reason:pool?`${t('terminal.scrapShort',{v:scrap-g.player.scrap})}`:`${t('terminal.needScrap',{price})}`};
  return {price,pool,scrap,waste,reason:''};
 }
 // Accepts the pre-3.120.0 form too: a bare option id is a purchase paid in scrap alone.
@@ -173,12 +173,12 @@ function payWith(g,id,count){
 function deliver(g,buy){
  const p=g.player,slot=upgradeSlot(buy),item=TERMINAL_ITEMS[buy];
  if(slot!==null){p.upgrades[slot]=(p.upgrades[slot]||0)+1;return t('terminal.upgraded',{weapon:g.weaponAt(slot).name,n:p.upgrades[slot]});}
- if(buy==='heal'){healActor(p,T.healAmount);clearPoison(p);return '醫療修復';}
+ if(buy==='heal'){healActor(p,T.healAmount);clearPoison(p);return t('terminal.healed');}
  // 3.136.0: items stop at the carry cap; one bought past it waits at your feet.
- if(buy==='med'){g.receiveItem('medkit',1);return '醫療包 +1';}
+ if(buy==='med'){g.receiveItem('medkit',1);return t('terminal.medkitBought');}
  if(item?.resource){g.receiveItem(buy,1);return `${itemName(buy)} +1`;}
  if(item?.wear){p.wearables.push(item.wear);if(item.wear==='exo')p.exoPlates=EXO_TUNING.plates;return itemName(buy);}
- if(buy==='ammo'){g.supplyPack(TERMINAL_PACK);return '彈藥補給包';}
+ if(buy==='ammo'){g.supplyPack(TERMINAL_PACK);return t('terminal.ammoPack');}
  if(TERMINAL_AMMO[buy]){g.receiveAmmo(buy,TERMINAL_AMMO[buy].amount);return `${AMMUNITION[buy].name} +${TERMINAL_AMMO[buy].amount}`;}
  const grenade=grenadeByItem(buy);g.receiveGrenade(grenade,GRENADES[grenade].amount);return `${GRENADES[grenade].name} +${GRENADES[grenade].amount}`;
 }
@@ -193,7 +193,7 @@ export function useTerminal(g,arg){
  terminal.spent=(terminal.spent||0)+deal.price;
  const left=terminalRemaining(terminal);if(left<TERMINAL_MIN_PRICE)terminal.used=true;
  const got=deliver(g,buy);
- const paid=[deal.pool?`抵價 ${deal.pool}${deal.waste?`（${deal.waste} 作廢）`:''}`:'',deal.scrap?`廢料 ${deal.scrap}`:''].filter(Boolean).join('、')||'免費';
+ const paid=[deal.pool?`${t('terminal.tradeIn',{pool:deal.pool,v:deal.waste?`${t('terminal.wasted',{waste:deal.waste})}`:''})}`:'',deal.scrap?`${t('terminal.paidScrap',{scrap:deal.scrap})}`:''].filter(Boolean).join(t('common.listSeparator'))||t('terminal.free');
  g.log(t(terminal.used?'terminal.dealSpent':'terminal.deal',{got,paid,left:terminalRemaining(terminal)}));
  return true;
 }

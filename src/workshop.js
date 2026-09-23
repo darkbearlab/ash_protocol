@@ -15,16 +15,16 @@ import {distance} from './world.js';
 export const WORKSHOP_SKILL='workshop';
 export const UNIT_BLUEPRINTS={
  // mount: can carry one ranged weapon from the pack instead of the built-in gun (3.93.0).
- drone_follow:{name:'追隨無人機',cost:30,mount:true,text:'跟在你身邊，不用掩體，可以換位。'},
- drone_sentry:{name:'定點砲台',cost:30,mount:true,text:'部署後不動，可利用掩體，裝甲 5。'},
+ drone_follow:{name:t('unit.drone_follow.name'),cost:30,mount:true,text:t('unit.drone_follow.text')},
+ drone_sentry:{name:t('unit.drone_sentry.name'),cost:30,mount:true,text:t('unit.drone_sentry.text')},
  // payload: built with one throwable, which decides what the munition detonates.
- drone_munition:{name:'浮游彈藥',cost:15,payload:true,text:'不算部署上限。接近敵人後俯衝，同一次行動引爆裝入的投擲物，不預告。'},
+ drone_munition:{name:t('unit.drone_munition.name'),cost:15,payload:true,text:t('unit.drone_munition.text')},
  // enemy: gained by destroying that enemy type, once per run (docs/ENGINEER.md 4.2, 3.94.0). Built-in weapons only.
- unit_drone:{name:'改造無人機',cost:35,enemy:'drone',text:'飛行、不用掩體，內建電漿槍吃你的能量電池，會追擊繩索內的敵人。'},
- unit_bomber:{name:'改造自爆機器人',cost:25,enemy:'bomber_bot',text:'不算部署上限。走到敵人旁邊蓄勢一次，下次行動自爆；被打爆時也會爆炸。'},
+ unit_drone:{name:t('unit.unit_drone.name'),cost:35,enemy:'drone',text:t('unit.unit_drone.text')},
+ unit_bomber:{name:t('unit.unit_bomber.name'),cost:25,enemy:'bomber_bot',text:t('unit.unit_bomber.text')},
  // once: a boss blueprint, scrap only and built at most once per run (docs/ENGINEER.md 4.2, 3.95.0).
- unit_warden:{name:'改造封鎖官',cost:200,enemy:'warden',once:true,text:'頭目機體，可用掩體、不用彈藥，會追擊繩索內的敵人。'},
- unit_boss:{name:'改造核心守衛',cost:300,enemy:'boss',once:true,text:'頭目機體，可用掩體、不用彈藥，會追擊繩索內的敵人。'},
+ unit_warden:{name:t('unit.unit_warden.name'),cost:200,enemy:'warden',once:true,text:t('unit.unit_warden.text')},
+ unit_boss:{name:t('unit.unit_boss.name'),cost:300,enemy:'boss',once:true,text:t('unit.unit_boss.text')},
 };
 const ALLY_CAP=32;
 export const hasWorkshop=p=>Array.isArray(p?.skills)&&p.skills.includes(WORKSHOP_SKILL);
@@ -43,19 +43,19 @@ export const mountableSlots=g=>g.player.owned.length>1?g.player.owned.filter(slo
 
 export function buildReason(g,blueprint,payload,weapon){
  const p=g.player,def=typeof blueprint==='string'&&Object.hasOwn(UNIT_BLUEPRINTS,blueprint)?UNIT_BLUEPRINTS[blueprint]:null;
- if(!hasWorkshop(p))return '沒有工坊技能。';
- if(!def)return '沒有這張藍圖。';
+ if(!hasWorkshop(p))return t('workshop.noWorkshop');
+ if(!def)return t('workshop.noBlueprint');
  if(def.enemy&&!p.blueprints.includes(blueprint))return t('workshop.blueprintMissing',{enemy:ENEMY_TYPES[def.enemy].name});
- if(def.once&&p.usedBlueprints.includes(blueprint))return '頭目藍圖每局只能製作一次，已經製作過。';
- if(def.payload&&!validPayload(payload))return '請選擇要裝入的投擲物。';
- if(!def.payload&&payload!==undefined&&payload!==null)return '這張藍圖不裝投擲物。';
+ if(def.once&&p.usedBlueprints.includes(blueprint))return t('workshop.bossOnce');
+ if(def.payload&&!validPayload(payload))return t('workshop.pickPayload');
+ if(!def.payload&&payload!==undefined&&payload!==null)return t('workshop.noPayloadSlot');
  if(weapon!==undefined&&weapon!==null){
-  if(!def.mount)return '這張藍圖不能裝武器。';
-  if(!Number.isInteger(weapon)||!p.owned.includes(weapon))return '背包裡沒有這把武器。';
-  if(!mountableSlots(g).includes(weapon))return p.owned.length<=1?'至少保留一把武器。':'近戰或固定武器不能裝上機體。';
+  if(!def.mount)return t('workshop.noWeaponMount');
+  if(!Number.isInteger(weapon)||!p.owned.includes(weapon))return t('workshop.weaponNotInPack');
+  if(!mountableSlots(g).includes(weapon))return p.owned.length<=1?t('workshop.keepOneWeapon'):t('workshop.mountRanged');
  }
- if(unavailable(g))return '目前無法生產。';
- if(p.productionLines.length>=lineLimit(p))return '生產序列已滿。';
+ if(unavailable(g))return t('workshop.cannotBuild');
+ if(p.productionLines.length>=lineLimit(p))return t('workshop.linesFull');
  if(p.scrap<def.cost)return t('workshop.scrapShort',{n:def.cost});
  if(def.payload&&p[GRENADES[payload].resource]<1)return t('workshop.noPayload',{item:GRENADES[payload].name});
  return '';
@@ -80,13 +80,13 @@ const leftBehind=g=>a=>a.kind==='drone'&&a.floor!==g.floor;
 const deployCell=(g,point)=>point===false?null:point?droneCells(g).find(q=>q.x===point.x&&q.y===point.y)||null:defaultDroneCell(g);
 export function deployReason(g,line,point=null){
  const p=g.player,unit=Number.isInteger(line)?p.productionLines[line]:null;
- if(!hasWorkshop(p))return '沒有工坊技能。';
- if(!unit)return '這條序列沒有完成的機體。';
- if(unavailable(g))return '目前無法部署。';
+ if(!hasWorkshop(p))return t('workshop.noWorkshop');
+ if(!unit)return t('workshop.lineNotReady');
+ if(unavailable(g))return t('workshop.cannotDeploy');
  if(!ONE_SHOT_UNITS.includes(unit.blueprint)&&deployedUnits(g).length>=deployLimit(p))return t('workshop.deployCap',{n:deployLimit(p)});
- if(g.allies.length>=ALLY_CAP&&!g.allies.some(a=>wreck(a)||leftBehind(g)(a)))return '友軍名額已滿，無法部署。';
- if(point===false)return '部署位置需要完整的座標。';
- if(!deployCell(g,point))return point?'部署位置需在你 2 步內、走得到的空格。':'你身邊 2 步內沒有可以部署的空格。';
+ if(g.allies.length>=ALLY_CAP&&!g.allies.some(a=>wreck(a)||leftBehind(g)(a)))return t('workshop.alliesFull');
+ if(point===false)return t('workshop.deployNeedsSpot');
+ if(!deployCell(g,point))return point?t('workshop.deployRange'):t('workshop.deployNoRoom');
  return '';
 }
 // The oldest wrecks go first, then the oldest units left on other floors (which the player is told about). A lost
@@ -106,7 +106,7 @@ export function dropUnitWeapon(g,a,items=g.items){
 export function deployUnit(g,line,point=null){
  const reason=deployReason(g,line,point);if(reason)return g.fail(reason);
  makeRoom(g);const cell=deployCell(g,point),unit=g.player.productionLines[line];
- const a=addAlly(g,'drone',UNIT_SOURCES[unit.blueprint],{sourceId:unit.blueprint,point:cell});if(!a)return g.fail('友軍名額已滿，無法部署。');
+ const a=addAlly(g,'drone',UNIT_SOURCES[unit.blueprint],{sourceId:unit.blueprint,point:cell});if(!a)return g.fail(t('workshop.alliesFull'));
  g.player.productionLines.splice(line,1);
  if(unit.payload)a.payload=unit.payload;
  else{if(Number.isInteger(unit.weapon)){a.weapon=unit.weapon;a.ammo=Math.min(allyWeapon(a,g.player).mag,g.player.ammo[unit.weapon]);g.player.ammo[unit.weapon]=0;}reloadDrone(g,a);}
@@ -118,11 +118,11 @@ export function deployUnit(g,line,point=null){
 export const repairTargets=g=>hasWorkshop(g.player)?currentAllies(g).filter(a=>a.kind==='drone'&&a.hp<a.maxHp&&distance(a,g.player)===1&&g.canCross(g.player,a)):[];
 export function repairReason(g,id){
  const p=g.player,a=typeof id==='string'?currentAllies(g).find(x=>x.id===id&&x.kind==='drone'):null;
- if(!hasWorkshop(p))return '沒有工坊技能。';
- if(!a)return '附近沒有這台機體。';
- if(distance(a,p)!==1||!g.canCross(p,a))return '要站在機體旁邊才能修理。';
+ if(!hasWorkshop(p))return t('workshop.noWorkshop');
+ if(!a)return t('workshop.unitNotNear');
+ if(distance(a,p)!==1||!g.canCross(p,a))return t('workshop.repairAdjacent');
  if(a.hp>=a.maxHp)return t('workshop.undamaged',{ally:allyName(a)});
- if(unavailable(g))return '目前無法修理。';
+ if(unavailable(g))return t('workshop.cannotRepair');
  if(p.scrap<REPAIR_TUNING.cost)return t('workshop.scrapShort',{n:REPAIR_TUNING.cost});
  return '';
 }
@@ -178,18 +178,18 @@ export function bomberAct(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return false;
  a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return false;
  if(a.primed){g.allies=g.allies.filter(x=>x!==a);Object.assign(a,{status:'destroyed',hp:0});delete a.primed;bomberBlast(g,a);return true;}
- const t=ENEMY_UNIT_TUNING.bomber,targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=t.sight&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
+ const tune=ENEMY_UNIT_TUNING.bomber,targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=tune.sight&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
  if(targets[0]&&distance(a,targets[0])===1){
   a.primed=true;g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.6,color:'#ffc789',damage:0});
-  g.log('改造自爆機器人蓄勢，下次行動自爆。');return true;
+  g.log(t('workshop.bomberWindup'));return true;
  }
  const goal=targets[0]||(distance(a,g.player)>2?g.player:null);
  return goal?stepCloser(g,a,goal):false;
 }
 // The blast resolves like the enemy bot's (radius 1, 10 less per tile out); fire control adds its damage bonus.
 function bomberBlast(g,a){
- const t=ENEMY_UNIT_TUNING.bomber;g.log('改造自爆機器人自爆。');
- g.explode({x:a.x,y:a.y},t.radius,t.damage+classPerkRank(g.player,'engineer_firecontrol')*CLASS_PERK_TUNING.fireDamage,a);
+ const tune=ENEMY_UNIT_TUNING.bomber;g.log(t('workshop.bomberBlows'));
+ g.explode({x:a.x,y:a.y},tune.radius,tune.damage+classPerkRank(g.player,'engineer_firecontrol')*CLASS_PERK_TUNING.fireDamage,a);
 }
 // A unit destroyed by damage: its mounted weapon drops, a charge or pending bombardment is lost, and a suicide bot
 // explodes where it fell (its wreck stays).

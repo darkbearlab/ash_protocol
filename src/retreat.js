@@ -60,7 +60,7 @@ export function resolveRetreatWave(g){
     const e=g.spawnEnemy(spawn.type,spawn.x,spawn.y,spawn.id);e.reinforcement=true;g.enemies.push(e);
     // Perception is established by reveal, including smoke and signal break.
     g.effects.push({type:'pulse',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},radius:.7,color:'#83e4e9',damage:0});
-    g.log('敵方增援傳送抵達。',true);
+    g.log(t('retreat.arrived'),true);
   }
   g.reinforcements=pending;
 }

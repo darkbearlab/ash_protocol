@@ -11,7 +11,7 @@ export function addPoison(p,amount=T.poisonHitStacks){if(poisonImmune(p))return 
 export function tickPoison(g){const p=g.player;if(p.poison&&poisonImmune(p))clearPoison(p);if(!p.poison){delete p.poisonClock;return;}
  // Sealed protection blunts poison by one point per tier (user decision, 3.85.2); floor hazards keep the full hazmat value.
  const damage=Math.max(0,p.poison*T.poisonDamage-poisonResistance(p));p.hp-=damage;
- if(damage)g.log(t('poison.hurt',{damage}),true,'中毒造成傷害。');
+ if(damage)g.log(t('poison.hurt',{damage}),true,t('poison.hurtReal'));
  p.poisonClock=(p.poisonClock||0)+1;if(p.poisonClock>=T.poisonDecayTurns){delete p.poisonClock;p.poison--;}
 }
 export function migratePoison(p){if(!Number.isSafeInteger(p.poison)||p.poison<0||p.poison>6)return false;p.poison=Math.min(T.poisonCap,Math.ceil(p.poison/2));delete p.poisonClock;return true;}

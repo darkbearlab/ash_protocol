@@ -74,7 +74,7 @@ function capture(){
 
 // Every exported table that carries Chinese (names, descriptions, voice lines, prompts…), in full. Step 3 of the
 // translation work moves these into the language table; their contents must come out the same (3.166.1).
-const SKIP_MODULES=new Set(['controller.js','main.js','text-zh-tw.js']);
+const SKIP_MODULES=new Set(['controller.js','main.js','text-zh-tw.js','text-en.js','i18n.js','voices-zh-tw.js','voices-en.js']);
 const CJK_TEXT=/[一-鿿　-〿＀-￯]/;
 function snapshot(value){
  const seen=new WeakSet();

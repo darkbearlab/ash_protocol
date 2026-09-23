@@ -15,13 +15,13 @@ export const LINE_ITEMS=Object.freeze({escape_line:{resource:'escapeLines',free:
 export const isLineItem=id=>Object.hasOwn(LINE_ITEMS,id);
 export function lineReason(g,arg){
  const p=g.player,item=LINE_ITEMS[arg?.item];
- if(!item)return '沒有這種繩索';
- if(!(p[item.resource]>0))return '繩索已用盡';
+ if(!item)return t('lines.noSuchLine');
+ if(!(p[item.resource]>0))return t('lines.linesOut');
  const to={x:arg.x,y:arg.y};
- if(!Number.isInteger(to.x)||!Number.isInteger(to.y)||g.grid[to.y]?.[to.x]!==1)return '先選擇看得見的地板';
- if(distance(p,to)===0)return '選一格你不在的地板';
+ if(!Number.isInteger(to.x)||!Number.isInteger(to.y)||g.grid[to.y]?.[to.x]!==1)return t('lines.pickFloor');
+ if(distance(p,to)===0)return t('lines.notYourTile');
  if(distance(p,to)>LINE_TUNING.range||!g.visible(to))return t('common.landingRange',{range:LINE_TUNING.range});
- if(!g.passable(to.x,to.y)||!sweptClear(g,p,to))return '繩索的直線被擋住了';
+ if(!g.passable(to.x,to.y)||!sweptClear(g,p,to))return t('lines.lineBlocked');
  return '';
 }
 // A dead armed enemy's line, if any: a fixed roll of the kill itself (not the game's dice), then which kind.

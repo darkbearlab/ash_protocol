@@ -51,14 +51,14 @@ export const payloadFor=id=>swarmPayload(id);
 export function releasePayload(g,e){
  const kind=PAYLOADS.find(k=>activeTrait(e,payloadTrait(k)));if(!kind)return;
  spawnField(g,kind,e);
- g.log(kind==='toxic'?'孢子囊破裂，毒霧散開。':kind==='acid'?'孢子囊破裂，地上濺滿酸液。':'孢子囊破裂，孢子煙遮住了你的視線。',true);
+ g.log(kind==='toxic'?t('swarm-fields.toxicBurst'):kind==='acid'?t('swarm-fields.acidBurst'):t('swarm-fields.sporeBurst'),true);
 }
 
 // Contact: the player is poisoned for each turn it ends in mist; the player's units lose 1 hp in a turn they start in
 // it or walk into it (user decision). The swarm never.
 export function toxicPlayerTurn(g,addPoison){
  const p=g.player;if(p.hp<=0||!inToxic(g,p))return;
- if(addPoison(p,SWARM_TUNING.poisonHitStacks))g.log('你吸進了毒霧，中毒了。',true);else g.log('毒霧對你無效。');
+ if(addPoison(p,SWARM_TUNING.poisonHitStacks))g.log(t('swarm-fields.mistPoisoned'),true);else g.log(t('swarm-fields.mistImmune'));
 }
 export function toxicAllyTurn(g,a,wasIn){if(a.hp>0&&a.status==='active'&&(wasIn||inToxic(g,a)))g.damageAlly(a,1,null,false,true);}
 

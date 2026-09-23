@@ -8,8 +8,8 @@ export const ENDLESS_DISPLAY_FLOORS=666;
 export const PROTOCOL_EVENT_LIMIT=4096;
 export const CAP_SUPPLY={meds:2,grenade:2,rifle:24,pistol:24,shell:12};
 // Player-facing contents of one cap supply (3.49.1, Claude); names kept local so this module stays import-free.
-const SUPPLY_NAMES={meds:'醫療包',grenade:'手榴彈',rifle:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'發射器榴彈'};
-export const capSupplyText=(times=1)=>Object.entries(CAP_SUPPLY).map(([id,n])=>`${SUPPLY_NAMES[id]||id} +${n*times}`).join('、');
+const SUPPLY_NAMES={meds:t('supplyNames.med'),grenade:t('ammunition.grenade.name'),rifle:t('supplyNames.ammo'),pistol:t('supplyNames.pistol'),shell:t('supplyNames.shell'),energy:t('supplyNames.energy'),ordnance:t('ammunition.ordnance.name')};
+export const capSupplyText=(times=1)=>Object.entries(CAP_SUPPLY).map(([id,n])=>`${SUPPLY_NAMES[id]||id} +${n*times}`).join(t('common.listSeparator'));
 export const ENDLESS_TUNING={densityEvery:6,densityMax:3,get heavyExtra(){return expandRoster(factionDef(DEFAULT_FACTION).roster.deepExtra);}};
 export const isEndless=g=>g.mission?.id==='endless';
 export const floorLimit=g=>isEndless(g)?ENDLESS_MAX_FLOOR:6;

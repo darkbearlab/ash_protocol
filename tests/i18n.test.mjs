@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
 import {t,format,sentence,setLanguage,language,LANGUAGES} from '../src/i18n.js';
 import ZH from '../src/text-zh-tw.js';
+import EN from '../src/text-en.js';
+import {VOICES as ZH_VOICES,CREATURE as ZH_CREATURE} from '../src/voices-zh-tw.js';
+import {VOICES as EN_VOICES,CREATURE as EN_CREATURE} from '../src/voices-en.js';
 
 // 3.166.0 (docs/TEXT_INVENTORY.md step 2): the language table core and the rules that keep sentences whole.
 const SRC=new URL('../src/',import.meta.url);
@@ -30,7 +33,7 @@ test('an unknown id falls back to itself; a phrase becomes a sentence in the lan
  assert.equal(t('no.such.id'),'no.such.id');
  assert.equal(t('common.pickup',{item:'煙霧彈'}),'拾取煙霧彈。');
  assert.equal(sentence('超出射程'),'超出射程。');
- assert.deepEqual(LANGUAGES,['zh-TW']);assert.equal(language(),'zh-TW');
+ assert.deepEqual(LANGUAGES,['zh-TW','en']);assert.equal(language(),'zh-TW');
  assert.equal(setLanguage('xx'),'zh-TW','an unknown language keeps Chinese');
 });
 
@@ -40,6 +43,8 @@ test('every id the code asks for is in the Chinese table, and every table entry 
  for(const [prefix,values] of Object.entries(DYNAMIC))for(const v of values)asked.add(prefix+v);
  // Ids chosen by a condition, t(cond?'a':'b'): any quoted string shaped like an id of a table group counts.
  for(const src of Object.values(sources))for(const m of src.matchAll(/'([a-z][\w-]*)\.([A-Za-z][\w.]*)'/g))if(groups.has(m[1]))asked.add(`${m[1]}.${m[2]}`);
+ // The static page marks its text with ids (src/localize-dom.js).
+ for(const m of readFileSync(new URL('../index.html',import.meta.url),'utf8').matchAll(/data-i18n(?:-aria|-title)?="([^"]+)"/g))asked.add(m[1]);
  const missing=[...asked].filter(id=>!Object.hasOwn(ZH,id));
  assert.deepEqual(missing,[],'ids missing from src/text-zh-tw.js');
  const unused=Object.keys(ZH).filter(id=>!asked.has(id));
@@ -81,3 +86,30 @@ test('the floor exit label and stencil read one exit code',async()=>{
  const g=new Game(3);
  assert.equal(g.exitKind,'down');assert.equal(g.exitLabel,'下樓');
 });
+
+test('the English table covers every sentence with the same slots and no Chinese',()=>{
+ const missing=Object.keys(ZH).filter(id=>!Object.hasOwn(EN,id));
+ assert.deepEqual(missing,[],'Chinese ids without English');
+ assert.deepEqual(Object.keys(EN).filter(id=>!Object.hasOwn(ZH,id)),[],'English ids the Chinese table does not have');
+ // English may leave out a slot only where it says the same thing once: the class line would read "Soldier · Soldier"
+ // and the kill-house note would repeat the class code under its own name.
+ const DROPPED={'characters.nameLine':['name'],'killhouse-ui.noScore':['code']};
+ const slotSet=text=>[...new Set(slots(text))].sort();
+ const slotMismatch=Object.keys(EN).filter(id=>JSON.stringify(slotSet(EN[id]))!==JSON.stringify(slotSet(ZH[id]).filter(name=>!DROPPED[id]?.includes(name))));
+ assert.deepEqual(slotMismatch,[],'English sentences whose slots differ from the Chinese');
+ // The language button names both languages on purpose, so either reader can find it.
+ const bilingual=new Set(['settings.languageSection','settings.languageLabel']);
+ const cjk=/[一-鿿　-〿＀-￯]/;
+ assert.deepEqual(Object.keys(EN).filter(id=>!bilingual.has(id)&&cjk.test(EN[id])),[],'English sentences with Chinese in them');
+});
+
+test('English voices answer the same cues as the Chinese ones',()=>{
+ const gaps=[];
+ for(const [voice,cues] of Object.entries(ZH_VOICES)){
+  for(const cue of Object.keys(cues))if(!EN_VOICES[voice]?.[cue]?.length)gaps.push(`${voice}.${cue}`);
+  for(const cue of Object.keys(EN_VOICES[voice]||{}))if(!cues[cue])gaps.push(`extra ${voice}.${cue}`);
+ }
+ for(const category of Object.keys(ZH_CREATURE))if(!EN_CREATURE[category]?.length)gaps.push(`creature.${category}`);
+ assert.deepEqual(gaps,[]);
+});
+

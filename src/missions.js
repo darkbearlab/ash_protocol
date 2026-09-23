@@ -18,7 +18,7 @@ export const MISSIONS={
 export const RANDOM_MISSION_IDS=Object.keys(MISSIONS).filter(id=>id!=='endless');
 export const validMissionId=id=>typeof id==='string'&&Object.hasOwn(MISSIONS,id);
 export function newMission(id='extraction'){
-  if(!validMissionId(id))throw new Error('未知任務。');
+  if(!validMissionId(id))throw new Error(t('missions.unknown'));
   return {id,targets:[],...(MISSIONS[id].returnTrip?{returning:false,reinforced:[]}: {})};
 }
 export function prepareMission(g){
@@ -41,7 +41,7 @@ export function prepareMission(g){
       if(p)m.targets.push({id:`objective-${m.targets.length+1}`,...p,done:false});
     }
   }
-  if(m.targets.length!==def.count)throw new Error('無法配置任務目標。');
+  if(m.targets.length!==def.count)throw new Error(t('missions.cannotPlace'));
 }
 export const missionDefinition=g=>MISSIONS[g.mission.id];
 export const missionDepth=g=>missionDefinition(g).depth||FLOORS.length;
@@ -59,14 +59,14 @@ export function missionProgress(g){
   return {done:g.mission.targets.filter(t=>def.kind==='recover'?t.done:g.enemies.some(e=>e.id===t.id&&e.hp<=0)).length,total:def.count};
 }
 export function exitBlocked(g){
-  if(isEndless(g))return g.bossAlive?'本層頭目仍存活，電梯鎖定。':g.floor>=ENDLESS_MAX_FLOOR?'已達目前支援的最深層，仍可繼續戰鬥。':'';
+  if(isEndless(g))return g.bossAlive?t('missions.bossLocked'):g.floor>=ENDLESS_MAX_FLOOR?t('missions.deepestReached'):'';
   if(missionDefinition(g).returnTrip){
-    if(g.bossAlive)return '本層頭目仍存活，電梯鎖定。';
-    return !returning(g)&&g.floor===missionDepth(g)?'回收機密後，從本層入口上樓。':'';
+    if(g.bossAlive)return t('missions.bossLocked');
+    return !returning(g)&&g.floor===missionDepth(g)?t('missions.recoverThenUp'):'';
   }
-  if(g.floor!==missionDepth(g))return g.bossAlive?'本層頭目仍存活，電梯鎖定。':'';
+  if(g.floor!==missionDepth(g))return g.bossAlive?t('missions.bossLocked'):'';
   const {done,total}=missionProgress(g);
-  return done<total?missionDefinition(g).kind==='extraction'?'頭目仍存活，撤離鎖定。':t('missions.objectivesLeft',{done,total}):'';
+  return done<total?missionDefinition(g).kind==='extraction'?t('missions.extractLocked'):t('missions.objectivesLeft',{done,total}):'';
 }
 export function missionSummary(g){
   const def=missionDefinition(g),{done,total}=missionProgress(g);

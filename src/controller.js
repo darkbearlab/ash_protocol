@@ -1,4 +1,5 @@
-import {t} from './i18n.js';
+import {t,sentences,language,languageChoice,LANGUAGES,LANGUAGE_NAMES} from './i18n.js';
+import {localizeDocument} from './localize-dom.js';
 import {STORIES} from './story-data.js';
 import {playerCalloutEvent} from './callouts.js';
 import {GLITCH_TUNING} from './signal-glitch.js';
@@ -110,10 +111,10 @@ applyBrightness();
 let transmissionSeen=null;
 const transmissionKey=()=>`${game.runId}:${game.player.level}`;
 // Control deck (3.98.0, user request): pad size and layout are display preferences, kept local like the boundary lines.
-const PAD_SIZES=[44,52,60,68],PAD_LABELS={44:'標準',52:'大',60:'特大',68:'巨大'};
+const PAD_SIZES=[44,52,60,68],PAD_LABELS={44:t('controller.pad.standard'),52:t('controller.pad.large'),60:t('controller.pad.xlarge'),68:t('controller.pad.huge')};
 // 3.101.0 (user request): 格狀 drops the split entirely - one five-by-three field of identical cells, so the pad
 // size setting has nothing to say there, because the cell size is the deck width divided by five.
-const DECK_LAYOUTS=['classic','corner','grid'],DECK_LAYOUT_LABELS={classic:'經典',corner:'九宫格',grid:'格狀'},GRID_CELL_MAX=76;
+const DECK_LAYOUTS=['classic','corner','grid'],DECK_LAYOUT_LABELS={classic:t('controller.layout.classic'),corner:t('controller.layout.corner'),grid:t('controller.layout.grid')},GRID_CELL_MAX=76;
 let padLayout=DECK_LAYOUTS.includes(read('ash-pad-layout'))?read('ash-pad-layout'):'classic';
 let deckLayout=parseDeckLayout(read('ash-deck-layout'))||[...DECK_GRID];
 let deckPick=null;
@@ -129,7 +130,7 @@ audio.enabled=read('ash-sound')!=='off';
 // 3.117.0 (user request): music and effects each have a volume; the old on/off switch stays as the master.
 audio.setVolumes({music:volumePercent(read('ash-music-volume'),AUDIO_TUNING.musicDefault)/100,sfx:volumePercent(read('ash-sfx-volume'),AUDIO_TUNING.sfxDefault)/100});
 audio.setGrit(gritLevel(read('ash-audio-grit')));
-const GRIT_LABELS={off:'關閉',light:'輕',heavy:'重'};
+const GRIT_LABELS={off:t('controller.grit.off'),light:t('controller.grit.light'),heavy:t('controller.grit.heavy')};
 // Browsers only allow sound after a gesture; the first press anywhere starts it, and a hidden page goes quiet.
 for(const type of ['pointerdown','keydown'])document.addEventListener(type,()=>{audio.unlock();syncMusic();},{capture:true});
 document.addEventListener('visibilitychange',()=>audio.background(document.hidden));
@@ -147,15 +148,17 @@ function noteCombat(engaged){
   combatMusic=stepCombat(combatMusic,engaged?{engaged:true}:{turn:game.turn,enemiesInView:game.visibleEnemies.filter(e=>!isNoncombatant(e)).length});
   syncMusic();
 }
+// 3.167.0: the static page text follows the chosen language before the first frame.
+localizeDocument();
 const notice=document.createElement('div');notice.className='battle-notice';notice.setAttribute('role','status');$('#field-messages').append(notice);
 // The message bar shows one line; the button opens the whole combat log and counts the extra lines of the last action (3.44).
 // 3.104.0 (user request): the message bar sits in the header, one line with an ellipsis, and the extra-line counter
 // is a bare +N chip — the old ≡ looked like the ☰ menu two buttons away.
-const logButton=document.createElement('button');logButton.className='log-button';logButton.dataset.modal='log';logButton.setAttribute('aria-label','查看戰鬥紀錄');$('#field-messages').append(logButton);
+const logButton=document.createElement('button');logButton.className='log-button';logButton.dataset.modal='log';logButton.setAttribute('aria-label',t('controller.openLog'));$('#field-messages').append(logButton);
 // 3.104.0 (user request): the bar is not empty when quiet — it falls back to the floor and mission line that used to
 // live in this row, so a message only borrows the space for a couple of seconds.
 const missionLine=view=>isSimulation(view)?simulationLabel(view):isEndless(view)?`${depthLabel(view.floor)} · ${missionDefinition(view).name}`
- :`${pad(view.floor)} / ${returning(view)?'回程 · ':''}${missionDefinition(view).name}${view.floor===missionDepth(view)?` ${missionProgress(view).done}/${missionProgress(view).total}`:''}`;
+ :`${pad(view.floor)} / ${returning(view)?t('controller.returnPrefix'):''}${missionDefinition(view).name}${view.floor===missionDepth(view)?` ${missionProgress(view).done}/${missionProgress(view).total}`:''}`;
 function restNotice(){const view=renderer.game;if(!view)return;notice.textContent=missionLine(view);notice.classList.remove('danger');notice.classList.add('resting','show');logButton.textContent='';logButton.classList.remove('more');}
 let lastActionLogs=1;
 const freshLogs=old=>{const i=old?game.logs.indexOf(old):-1;return old&&i>=0?i:game.logs.length;};
@@ -163,13 +166,13 @@ const freshLogs=old=>{const i=old?game.logs.indexOf(old):-1;return old&&i>=0?i:g
 let saveWarned=false,saveWarningDue=false;
 // 3.150.0: the tab opened last owns the save; one that has been overtaken stops saving and says so.
 let tabLost=false;claimTab();
-addEventListener('storage',e=>{if(e.key!==tabKey()||!e.newValue||e.newValue===TAB_ID||tabLost)return;tabLost=true;modal(`<div class="eyebrow">SAVE / 另一個分頁</div><h2>遊戲在另一個分頁開啟了。</h2><p>為了不互相覆寫存檔，這個分頁已停止存檔。要在這裡繼續，請重新載入：會讀取最新的存檔，並由這個分頁接手。</p><button class="modal-button" data-modal="reclaimTab">在這個分頁繼續（重新載入）</button>`);});
+addEventListener('storage',e=>{if(e.key!==tabKey()||!e.newValue||e.newValue===TAB_ID||tabLost)return;tabLost=true;modal(t('controller.otherTab'));});
 function persist(){if(tabLost)return false;const ok=saveGame(game);$('#save-warning').hidden=ok;if(!ok&&!saveWarned){saveWarned=true;saveWarningDue=true;}return ok;}
-function showSaveWarning(){saveWarningDue=false;modal(`<div class="eyebrow">SAVE / 無法存檔</div><h2>這一步沒有存到。</h2><p>瀏覽器拒絕寫入本機儲存，可能是空間已滿、封鎖了網站資料，或上次還原還沒復原。在恢復之前，關閉頁面會失去這局進度。</p><p>可以先到設定匯出存檔；釋出空間或允許網站資料後，下一次成功存檔時上方的「⚠ 未存檔」會自動消失。</p><div class="modal-row"><button class="modal-button secondary" data-modal="settings">開啟設定</button><button class="modal-button" data-modal="close">繼續 →</button></div>`);}
+function showSaveWarning(){saveWarningDue=false;modal(t('controller.saveFailed'));}
 // Every line of the run (latest 50), newest first; a new turn starts a new block.
 function showLog(){
   const rows=game.logs.map((l,i)=>`<li class="${[l.danger?'danger':'',i&&game.logs[i-1].turn!==l.turn?'new-turn':''].join(' ').trim()}"><b>${String(l.turn).padStart(3,'0')}</b><span>${escapeHTML(l.text)}</span></li>`).join('');
-  modal(`<div class="eyebrow">LOG / 戰鬥紀錄</div><h2>最近 ${game.logs.length} 則</h2><ol class="combat-log">${rows||'<li><span>尚無紀錄。</span></li>'}</ol><button class="modal-button" data-modal="close">返回戰場 →</button>`);
+  modal(`<div class="eyebrow">${t('controller.log.eyebrow')}</div><h2>${t('controller.log.title',{logsLength:game.logs.length})}</h2><ol class="combat-log">${rows||t('controller.log.empty')}</ol><button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`);
 }
 const pad=n=>String(n).padStart(2,'0');
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -193,14 +196,14 @@ function skillLabel(view,id){
 function update(view=renderer.game) {
   syncMusic();
   const p=view.player,w=view.weapon,reserve=p[view.reserveKey()]??0;
-  const sectorLabel=isSimulation(view)?'模擬':isEndless(view)?depthLabel(view.floor):`${pad(view.floor)} 層`;
+  const sectorLabel=isSimulation(view)?t('controller.hud.simulation'):isEndless(view)?depthLabel(view.floor):`${t('controller.hud.floors',{v:pad(view.floor)})}`;
   if(notice.classList.contains('resting'))restNotice();
   // The mission summary moved into the ☰ menu (3.104.0, user request): most runs just push deeper, and the row
   // it used to occupy is worth more as the message bar.
   $('#turn').textContent=String(view.turn).padStart(3,'0');
   $('#mobile-hp-bar').style.width=`${Math.max(0,p.hp)/p.maxHp*100}%`;$('#mobile-hp').textContent=`${Math.max(0,p.hp)} / ${p.maxHp}`;
   $('#mobile-plates-bar').style.width=`${(p.plates||0)/view.plateCapacity*100}%`;$('#mobile-plates').textContent=`${p.plates||0} / ${view.plateCapacity}`;lowHealth(p);
-  $('#level').textContent=`${sectorLabel} · ${levelLabel(p.level)}`;$('#level').title=`${sectorLabel}；${levelTitle(p.level,p.xp,levelCost(game,p.level))}`;
+  $('#level').textContent=`${sectorLabel} · ${levelLabel(p.level)}`;$('#level').title=`${t('controller.hud.levelTitle',{sectorLabel,v:levelTitle(p.level,p.xp,levelCost(game,p.level))})}`;
   // One spelling of a prepared slot's label, so a mode that borrows the button can put it back exactly (3.109.0).
   // 3.161.0 (user report): the three prepared-slot buttons act on the live game — a tap skips the presentation first —
   // so their readiness, labels and counts come from it, not from the snapshot being animated. Skill cooldowns tick
@@ -210,24 +213,24 @@ function update(view=renderer.game) {
     const entry=preparedEntry(lp,category),button=$(`[data-action="${category}"]`),count=entry?.resource?lp[entry.resource]:null;
     button.querySelector('.action-icon').textContent=entry?.icon||'◇';
     if(category!=='grenade')button.querySelector('strong').textContent=slotLabel(lv,category);
-    button.title=entry?`${entry.name}：${category==='skill'?skillText(lp,lp.prepared.skill):entry.text}${category==='skill'?(ALLY_SKILLS.includes(lp.prepared.skill)?' 目前'+allySkillState(lv,lp.prepared.skill)+'。':' 目前'+skillStatus(lp,lp.prepared.skill)+'；冷卻剩餘 '+(lp.skillState[lp.prepared.skill]?.cooldown||0)+'。'):''}`:`到背包預備${PREPARED_CATEGORIES[category]}`;
+    button.title=entry?`${t('controller.prep.title',{entryName:entry.name,v:category==='skill'?skillText(lp,lp.prepared.skill):entry.text,v2:category==='skill'?(ALLY_SKILLS.includes(lp.prepared.skill)?t('controller.prep.now')+allySkillState(lv,lp.prepared.skill)+t('controller.period'):t('controller.prep.now')+skillStatus(lp,lp.prepared.skill)+t('controller.prep.cooldownLeft')+(lp.skillState[lp.prepared.skill]?.cooldown||0)+t('controller.period')):''})}`:`${t('controller.prep.readyInPack',{v:PREPARED_CATEGORIES[category]})}`;
     if(category==='skill'){if(entry?.toggle)button.setAttribute('aria-pressed',String(skillActive(lp,lp.prepared.skill)));else button.removeAttribute('aria-pressed');}
-    button.setAttribute('aria-label',entry?`使用預備${PREPARED_CATEGORIES[category]}：${entry.name}${category==='skill'?'，'+skillLabel(lv,lp.prepared.skill):''}${count===null?'':`，剩餘 ${count}`}`:`${PREPARED_CATEGORIES[category]}未預備`);
+    button.setAttribute('aria-label',entry?`${t('controller.prep.aria',{v:PREPARED_CATEGORIES[category],entryName:entry.name,v2:category==='skill'?t('controller.prep.comma')+skillLabel(lv,lp.prepared.skill):'',v3:count===null?'':`${t('controller.prep.remaining',{count})}`})}`:`${t('controller.prep.notReady',{v:PREPARED_CATEGORIES[category]})}`);
   }
-  $('[data-action="reload"] strong').textContent=w.melee?'近戰 ∞':`${view.actionCost('reload')===0?'快填':'裝填'} ${p.ammo[p.weapon]}/${w.mag}`;
-  $('[data-action="reload"]').title=w.melee?`${w.name}無須裝填`:`裝填：${view.actionCost('reload')} 回合`;
-  $('#quick-weapon').textContent=w.melee?`${w.code} · ∞`:`${w.code} · ${p.ammo[p.weapon]} / ${reserve}`;$('#quick-weapon').title=w.melee?w.desc:`${ammoName(w)}：備彈 ${reserve}/${view.ammoCapacity(w.ammoType)}`;
+  $('[data-action="reload"] strong').textContent=w.melee?t('controller.reload.melee'):`${view.actionCost('reload')===0?t('controller.reload.quick'):t('controller.reload.label')} ${p.ammo[p.weapon]}/${w.mag}`;
+  $('[data-action="reload"]').title=w.melee?`${t('controller.reload.meleeTitle',{wName:w.name})}`:`${t('controller.reload.title',{v:view.actionCost('reload')})}`;
+  $('#quick-weapon').textContent=w.melee?`${w.code} · ∞`:`${w.code} · ${p.ammo[p.weapon]} / ${reserve}`;$('#quick-weapon').title=w.melee?w.desc:`${t('controller.weaponTitle',{v:ammoName(w),reserve,v2:view.ammoCapacity(w.ammoType)})}`;
   const threats=view.visibleEnemies.filter(e=>!isNoncombatant(e)&&ENEMY_TYPES[e.type].range>1&&distance(e,p)<=ENEMY_TYPES[e.type].range&&(view.sight(e,p)||(unitTree(e).fixedTile&&e.charge&&e.aim&&distance(e.aim,p)===0)));
   const exposed=threats.filter(e=>!view.protectingCover(p,e)).length;
-  $('#status-effects').textContent=[view.pursuit?'追擊 · 下次攻擊免費':'',p.wearables?.includes('exo')?`外骨骼 ${p.exoPlates}/${EXO_TUNING.plates}`:'',view.decoy?`誘餌 ${view.decoy.hp} · ${Math.max(1,view.decoy.expires-view.turn)} 回合`:'',...timedStatuses(view),view.weapon?.aimPenalty&&!p.focus?`未瞄準 · 命中 −${view.weapon.aimPenalty}`:'',suppressionStatus(p),...meleeStatus(view),p.recovery?'鏈鋸收勢 · 下次行動跳過':'',skillActive(p,'anchor')?'下錨 · 攻擊×2 · 無法移動':'',p.vaultExposed?'翻越破綻 +20':'',skillActive(p,'early_warning')?'預警快照':'',isDark(view,p)?'暗區':'',exposed?`暴露 ${exposed}`:threats.length?(threats.some(e=>view.accuracy(e,p).coverEfficiency===.5)?'半效掩護':'掩護'):view.cover.length?'牆 / 箱旁':'',p.moved?'移動':'',threats.some(e=>view.accuracy(e,p).sidePenalty)?`側身 ${threats.filter(e=>view.accuracy(e,p).sidePenalty).length}`:'',p.guard?'減傷 50%':'',p.plates?`護甲板 ${p.plates}`:'',p.focus?'瞄準 +15':'',p.evasive?'閃避 +15':'',initiative(p)<0?'快速':initiative(p)>0?'緩速':''].filter(Boolean).join(' · ');
-  $('#status-effects').style.color=exposed?'#f3a182':'#b6d5b0';$('#status-effects').title=exposed?`${exposed} 名射手對你有無掩護射線；應立即尋找牆角或箱體。`:'掩體有方向性，注意側翼。';
+  $('#status-effects').textContent=[view.pursuit?t('controller.status.pursuit'):'',p.wearables?.includes('exo')?`${t('controller.status.exo',{exoPlates:p.exoPlates,plates:EXO_TUNING.plates})}`:'',view.decoy?`${t('controller.status.decoy',{hp:view.decoy.hp,v:Math.max(1,view.decoy.expires-view.turn)})}`:'',...timedStatuses(view),view.weapon?.aimPenalty&&!p.focus?`${t('controller.status.unaimed',{aimPenalty:view.weapon.aimPenalty})}`:'',suppressionStatus(p),...meleeStatus(view),p.recovery?t('controller.status.chainsaw'):'',skillActive(p,'anchor')?t('controller.status.anchor'):'',p.vaultExposed?t('controller.status.vault'):'',skillActive(p,'early_warning')?t('controller.status.warning'):'',isDark(view,p)?t('controller.status.dark'):'',exposed?`${t('controller.status.exposed',{exposed})}`:threats.length?(threats.some(e=>view.accuracy(e,p).coverEfficiency===.5)?t('controller.status.halfCover'):t('controller.status.cover')):view.cover.length?t('controller.status.byWall'):'',p.moved?t('controller.status.moved'):'',threats.some(e=>view.accuracy(e,p).sidePenalty)?`${t('controller.status.sidestep',{v:threats.filter(e=>view.accuracy(e,p).sidePenalty).length})}`:'',p.guard?t('controller.status.guard'):'',p.plates?`${t('controller.status.plates',{plates:p.plates})}`:'',p.focus?t('controller.status.focus'):'',p.evasive?t('controller.status.evasive'):'',initiative(p)<0?t('controller.status.fast'):initiative(p)>0?t('controller.status.slow'):''].filter(Boolean).join(' · ');
+  $('#status-effects').style.color=exposed?'#f3a182':'#b6d5b0';$('#status-effects').title=exposed?`${t('controller.status.exposedTitle',{exposed})}`:t('controller.status.coverTitle');
   // Grapple preview: only while the hook is ready and the locked target is a legal pull or dash.
   renderer.grapplePreview=null;
   if(p.prepared.skill==='grapple'&&!p.skillState.grapple?.cooldown&&!p.control.disabled&&view.status==='playing'){const plan=view.grapplePlan();if(!plan.reason)renderer.grapplePreview={from:{x:plan.mover.x,y:plan.mover.y},point:plan.point,dash:plan.dash};}
   const aimingButton=$('[data-action="toggleTargeting"]');
   aimingButton.setAttribute('aria-pressed',String(renderer.targetingEnabled));
-  aimingButton.setAttribute('aria-label',renderer.targetingEnabled?'關閉瞄準資訊':'開啟瞄準資訊');
-  aimingButton.textContent=renderer.targetingEnabled?'瞄準 開':'瞄準 關';
+  aimingButton.setAttribute('aria-label',renderer.targetingEnabled?t('controller.aim.off'):t('controller.aim.on'));
+  aimingButton.textContent=renderer.targetingEnabled?t('controller.aim.labelOn'):t('controller.aim.labelOff');
   aimingButton.classList.toggle('enemy-alert',!renderer.targetingEnabled&&view.visibleEnemies.length>0&&view.status==='playing');
   const details=renderer.targetingEnabled?targetDetails(view):null,card=$('#target-card');card.hidden=!details;
   if(details){$('#target-name').textContent=details.name;$('#target-name').setAttribute('aria-label',details.fullName||details.name);$('#target-detail').textContent=details.hp;$('#target-range').textContent=details.chance;$('#target-distance').textContent=details.distance;$('#target-cover').textContent=details.cover;$('#target-state').textContent=details.state;$('#target-traits').textContent=details.traits;$('#target-order').textContent=details.order;card.classList.toggle('out-of-range',!details.withinRange);}
@@ -242,7 +245,7 @@ function update(view=renderer.game) {
     // no second argument flips the class on every redraw. That was the dim-but-working skill button.
     b.classList.toggle('unavailable',Boolean(slot&&unusable));
   }
-  $('[data-action="fire"] strong').textContent=w.melee?'揮拳':'開火';
+  $('[data-action="fire"] strong').textContent=w.melee?t('controller.fire.punch'):t('controller.fire.label');
   updateAim(view);
   if(playback)return;
   if(view.floor!==previousFloor){previousFloor=view.floor;floorToast();}
@@ -299,19 +302,19 @@ function act(type,arg) {
   if(success||(type!=='grenade'&&type!=='launch'&&type!=='blindFire'&&type!=='deployCover'&&type!=='flare'&&type!=='rope'&&type!=='decoy'&&type!=='mine'&&!(type==='usePrepared'&&arg?.category==='grenade')))cancelAim();update();return success;
 }
 function move(dx,dy){if(renderer.mode==='deploy'){act('deployCover',[dx,dy]);return;}if(renderer.mode==='launch'||renderer.mode==='rope'){const from=renderer.aim||game.player;setAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='blind'){const from=renderer.aim||game.player;setBlindAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='pet'){setPetAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='drone'){setDroneAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='grenade'||renderer.mode==='flare'||renderer.mode==='place'){const pos={x:renderer.aim.x+dx,y:renderer.aim.y+dy};setAim(pos);}else if(renderer.mode==='suppress'){setSuppressAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});}else act('move',[dx,dy]);}
-function floorToast(){if(isSimulation(game))return;if(isEndless(game)){const growth=growthLabel(game.floor,game.difficultySpec);notify(`第 ${depthLabel(game.floor)} 層 · ${floorInfo(game.floor).name}：${growth?growth+'。':''}${endlessFloorText(game.floor)}${operatorSignal(game)}`);return;}notify(`第 ${game.floor} 層 · ${floorInfo(game.floor).name}：${returning(game)?game.missionSummary:game.floor===missionDepth(game)?missionDefinition(game).text:floorInfo(game.floor).text}`);}
+function floorToast(){if(isSimulation(game))return;if(isEndless(game)){const growth=growthLabel(game.floor,game.difficultySpec);notify(`${t('controller.floorNoticeFull',{v:depthLabel(game.floor),v2:floorInfo(game.floor).name,v3:growth?growth+t('controller.period'):'',v4:endlessFloorText(game.floor),v5:operatorSignal(game)})}`);return;}notify(`${t('controller.floorNotice',{floor:game.floor,v:floorInfo(game.floor).name,v2:returning(game)?game.missionSummary:game.floor===missionDepth(game)?missionDefinition(game).text:floorInfo(game.floor).text})}`);}
 const slotLabel=(view,category)=>{const p=view.player,entry=preparedEntry(p,category),count=entry?.resource?p[entry.resource]:null;
-  return entry?`${entry.short}${category==='skill'?' '+skillLabel(view,p.prepared.skill):count===null?'':` ${count}`}`:`${PREPARED_CATEGORIES[category]}未預備`;};
+  return entry?`${entry.short}${category==='skill'?' '+skillLabel(view,p.prepared.skill):count===null?'':` ${count}`}`:`${t('controller.prep.notReady',{v:PREPARED_CATEGORIES[category]})}`;};
 function cancelAim(){renderer.mode=null;renderer.aim=null;updateAim();}
 // 3.151.0 blind fire (src/blind-fire.js): tapping a tile you cannot see into, in range with a clear shot, aims a blind
 // shot like the launcher — 互動 fires, 開火 cancels, the pad moves the aim.
-const BLIND_HINT=`盲射：按右下確認射擊，命中 −${BLIND_TUNING.penalty}（霰彈槍不受影響），看不到結果；按開火取消。`;
+const BLIND_HINT=`${t('controller.blindHint',{penalty:BLIND_TUNING.penalty})}`;
 function startBlindAim(pos){renderer.mode='blind';renderer.aim={x:pos.x,y:pos.y};updateAim();notify(BLIND_HINT);}
-function setBlindAim(pos){const reason=blindReason(game,pos);if(reason){notify(reason+'。');return;}renderer.aim={x:pos.x,y:pos.y};updateAim();}
+function setBlindAim(pos){const reason=blindReason(game,pos);if(reason){notify(reason+t('controller.period'));return;}renderer.aim={x:pos.x,y:pos.y};updateAim();}
 // Suppressive fire aims an area like a grenade, but range comes from the weapon and validity from suppressivePreview (3.74.1).
-function startSuppressAim(){const p=game.player,reason=suppressivePreview(game,{x:p.x,y:p.y}).reason;if(reason){notify(reason);return;}const pick=[game.targeted,...game.visibleEnemies].find(e=>e&&game.enemies.includes(e)&&!suppressivePreview(game,{x:e.x,y:e.y}).reason);renderer.mode='suppress';renderer.aim=pick?{x:pick.x,y:pick.y}:{x:p.x,y:p.y};notify(`點武器射程 ${game.weapon.range} 格內看得見的地板，按右下確認壓制射擊；再按技能取消。`);updateAim();}
+function startSuppressAim(){const p=game.player,reason=suppressivePreview(game,{x:p.x,y:p.y}).reason;if(reason){notify(reason);return;}const pick=[game.targeted,...game.visibleEnemies].find(e=>e&&game.enemies.includes(e)&&!suppressivePreview(game,{x:e.x,y:e.y}).reason);renderer.mode='suppress';renderer.aim=pick?{x:pick.x,y:pick.y}:{x:p.x,y:p.y};notify(`${t('controller.suppressHint',{range:game.weapon.range})}`);updateAim();}
 function setSuppressAim(pos){const reason=suppressivePreview(game,pos).reason;if(reason){notify(reason);return;}renderer.aim=pos;updateAim();}
-function setAim(pos){const launch=renderer.mode==='launch'||renderer.mode==='rope',placing=renderer.mode==='place',range=renderer.mode==='rope'?LINE_TUNING.range:launch?game.weapon.range:placing?placeRange():5;if(distance(pos,game.player)<=range&&game.grid[pos.y]?.[pos.x]===1&&game.visible(pos)){renderer.aim=pos;updateAim();}else notify(launch||placing?`落點需在視線內 ${range} 格以內。`:'投擲落點需在視線內 5 格以內。');}
+function setAim(pos){const launch=renderer.mode==='launch'||renderer.mode==='rope',placing=renderer.mode==='place',range=renderer.mode==='rope'?LINE_TUNING.range:launch?game.weapon.range:placing?placeRange():5;if(distance(pos,game.player)<=range&&game.grid[pos.y]?.[pos.x]===1&&game.visible(pos)){renderer.aim=pos;updateAim();}else notify(launch||placing?`${t('controller.landingRange',{range})}`:t('controller.throwRange'));}
 const placeRange=()=>renderer.placeItem==='mine'?MINE_TUNING.range:DECOY_TUNING.range;
 // 3.111.0 (user request): a point-target launcher is aimed like a thrown grenade — pick a tile, confirm with 互動 —
 // so the fire key opens that mode instead of shooting the locked enemy. Pressing fire again cancels.
@@ -322,42 +325,42 @@ function fireWeapon(){
   const p=game.player,locked=game.targeted,face=isBarrier(locked)?barrierFace(locked,p):locked;
   const start=[face,...game.visibleEnemies].find(o=>o&&distance(o,p)<=game.weapon.range&&game.visible(o));
   renderer.mode='launch';renderer.aim=start?{x:start.x,y:start.y}:null;updateAim();
-  notify(start?'點地圖或用方向鍵調整落點，按右下確認；再按開火取消。':'點地圖選落點，按右下確認；再按開火取消。');
+  notify(start?t('controller.launchHintPad'):t('controller.launchHint'));
 }
 const operatorReady=view=>!isSimulation(view)&&view.status==='playing'&&!!view.operatorCorpse&&!view.operatorCorpse.recovered&&view.canTouch(view.operatorCorpse);
-function interactions(view=renderer.game){return [...view.nearbyObjectives.map(t=>({label:'回收機密',action:`objective:${t.id}`})),...view.nearbyContainers.map(c=>({label:`開${view.containerLabel(c)}`,action:`case:${c.id}`})),...view.nearbyDoors.map(b=>({label:view.doorLabel(b),action:`door:${b.id}`})),...(view.groundWeapon?[{label:'拾取',action:'bag'}]:[]),...(view.nearbyTerminal?[{label:`終端 ${terminalRemaining(view.nearbyTerminal)}`,action:'terminal'}]:[]),...(operatorReady(view)?[{label:'回收識別資料',action:'operator'}]:[]),...(view.canTouch(view.exitPoint)&&(!isSimulation(view)||exitStep(view))?[{label:view.exitBlocked?'電梯鎖定':view.exitLabel+(view.allyTravelSummary?' · '+view.allyTravelSummary:''),action:isSimulation(view)?'exitStep':'descend'}]:[])];}
+function interactions(view=renderer.game){return [...view.nearbyObjectives.map(o=>({label:t('controller.act.recover'),action:`objective:${o.id}`})),...view.nearbyContainers.map(c=>({label:`${t('controller.act.open',{v:view.containerLabel(c)})}`,action:`case:${c.id}`})),...view.nearbyDoors.map(b=>({label:view.doorLabel(b),action:`door:${b.id}`})),...(view.groundWeapon?[{label:t('controller.act.pickup'),action:'bag'}]:[]),...(view.nearbyTerminal?[{label:`${t('controller.act.terminal',{v:terminalRemaining(view.nearbyTerminal)})}`,action:'terminal'}]:[]),...(operatorReady(view)?[{label:t('controller.act.recoverId'),action:'operator'}]:[]),...(view.canTouch(view.exitPoint)&&(!isSimulation(view)||exitStep(view))?[{label:view.exitBlocked?t('controller.act.elevatorLocked'):view.exitLabel+(view.allyTravelSummary?' · '+view.allyTravelSummary:''),action:isSimulation(view)?'exitStep':'descend'}]:[])];}
 function updateAim(view=renderer.game){const blinding=renderer.mode==='blind',launching=renderer.mode==='launch'||blinding,deploying=renderer.mode==='deploy',commanding=renderer.mode==='pet'||renderer.mode==='drone',aiming=renderer.mode==='grenade',roping=renderer.mode==='rope',placing=renderer.mode==='place',flaring=renderer.mode==='flare'||roping||placing,suppressing=renderer.mode==='suppress',preview=suppressing&&renderer.aim?suppressivePreview(view,renderer.aim):null,b=$('#interact'),options=interactions(view);
   const entry=preparedEntry(view.player,'grenade');
-  $('#grenade-label').textContent=aiming?'取消投擲':entry?`${entry.short} ${(game?.player||view.player)[entry.resource]}`:'手榴彈未預備';
+  $('#grenade-label').textContent=aiming?t('controller.grenade.cancel'):entry?`${entry.short} ${(game?.player||view.player)[entry.resource]}`:t('controller.grenade.notReady');
   $('[data-action="grenade"]').classList.toggle('aiming',aiming);
   b.disabled=(Boolean(playback)&&!skipEnabled())||(view.status==='playing'&&!aiming&&!flaring&&!launching&&!commanding&&!suppressing&&!deploying&&!options.length)||Boolean(preview?.reason);
-  b.querySelector('strong').textContent=view.status!=='playing'?'結果':blinding?'確認盲射':launching?'確認發射':deploying?'取消設置':commanding?(renderer.mode==='drone'?'確認部署':'確認指揮'):aiming?'確認投擲':roping?'確認拉繩':placing?(renderer.placeItem==='mine'?'確認埋設':'確認投擲'):flaring?'確認照明':suppressing?`確認壓制 · ${preview?.rounds??0} 發`:options.length>1?'互動':options[0]?.label||'互動';
+  b.querySelector('strong').textContent=view.status!=='playing'?t('controller.interact.result'):blinding?t('controller.interact.confirmBlind'):launching?t('controller.interact.confirmLaunch'):deploying?t('controller.interact.cancelSetup'):commanding?(renderer.mode==='drone'?t('controller.interact.confirmDeploy'):t('controller.interact.confirmCommand')):aiming?t('controller.interact.confirmThrow'):roping?t('controller.interact.confirmLine'):placing?(renderer.placeItem==='mine'?t('controller.interact.confirmMine'):t('controller.interact.confirmThrow')):flaring?t('controller.interact.confirmFlare'):suppressing?`${t('controller.interact.confirmSuppress',{v:preview?.rounds??0})}`:options.length>1?t('controller.interact.label'):options[0]?.label||t('controller.interact.label');
   b.classList.toggle('aiming',aiming||flaring||launching||commanding||suppressing||deploying);
   const fire=$('[data-action="fire"]');
-  if(fire){fire.classList.toggle('aiming',launching);fire.querySelector('strong').textContent=blinding?'取消盲射':launching?'取消發射':view.weapon?.melee?'揮拳':'開火';}$('[data-action="skill"]')?.classList.toggle('aiming',suppressing);b.title=view.allyTravelSummary||'';
+  if(fire){fire.classList.toggle('aiming',launching);fire.querySelector('strong').textContent=blinding?t('controller.fire.cancelBlind'):launching?t('controller.fire.cancelLaunch'):view.weapon?.melee?t('controller.fire.punch'):t('controller.fire.label');}$('[data-action="skill"]')?.classList.toggle('aiming',suppressing);b.title=view.allyTravelSummary||'';
   const item=$('[data-action="item"]');
-  if(item){item.classList.toggle('aiming',deploying||flaring);item.querySelector('strong').textContent=deploying?'取消設置':roping?'取消拉繩':placing?'取消':flaring?'取消照明':slotLabel(view,'item');}
+  if(item){item.classList.toggle('aiming',deploying||flaring);item.querySelector('strong').textContent=deploying?t('controller.interact.cancelSetup'):roping?t('controller.item.cancelLine'):placing?t('controller.item.cancel'):flaring?t('controller.item.cancelFlare'):slotLabel(view,'item');}
   for(const key of ['0,-1','0,1','-1,0','1,0'])$(`[data-move="${key}"]`)?.classList.toggle('aiming',deploying);
 }
-function interact(){if(renderer.mode==='deploy'){cancelAim();return;}if(renderer.mode==='blind'){const reason=blindReason(game,renderer.aim);if(reason){notify(reason+'。');return;}act('blindFire',renderer.aim);return;}if(renderer.mode==='launch'){if(renderer.aim)act('launch',renderer.aim);else notify('先點地圖選落點。');return;}if(renderer.mode==='pet'){act('commandPet',renderer.aim);return;}if(renderer.mode==='drone'){act('deployUnit',{line:deployLine,x:renderer.aim.x,y:renderer.aim.y});return;}if(game.status!=='playing'){showResult();return;}if(renderer.mode==='grenade'){act('usePrepared',{category:'grenade',target:renderer.aim});return;}if(renderer.mode==='flare'){act('flare',renderer.aim);return;}if(renderer.mode==='place'){act(renderer.placeItem,renderer.aim);return;}if(renderer.mode==='rope'){act('rope',{...renderer.aim,item:renderer.ropeItem});return;}if(renderer.mode==='suppress'){const turn=game.turn;act('usePrepared',{category:'skill',target:renderer.aim});if(game.turn!==turn)cancelAim();return;}
-  const options=interactions();if(options.length>1){modal('<h2>附近互動</h2>'+options.map(o=>`<button class="modal-button secondary" data-context="${o.action}">${o.label}</button>`).join('')+'<button class="modal-button" data-modal="close">返回戰場</button>');return;}
+function interact(){if(renderer.mode==='deploy'){cancelAim();return;}if(renderer.mode==='blind'){const reason=blindReason(game,renderer.aim);if(reason){notify(reason+t('controller.period'));return;}act('blindFire',renderer.aim);return;}if(renderer.mode==='launch'){if(renderer.aim)act('launch',renderer.aim);else notify(t('controller.pickSpotFirst'));return;}if(renderer.mode==='pet'){act('commandPet',renderer.aim);return;}if(renderer.mode==='drone'){act('deployUnit',{line:deployLine,x:renderer.aim.x,y:renderer.aim.y});return;}if(game.status!=='playing'){showResult();return;}if(renderer.mode==='grenade'){act('usePrepared',{category:'grenade',target:renderer.aim});return;}if(renderer.mode==='flare'){act('flare',renderer.aim);return;}if(renderer.mode==='place'){act(renderer.placeItem,renderer.aim);return;}if(renderer.mode==='rope'){act('rope',{...renderer.aim,item:renderer.ropeItem});return;}if(renderer.mode==='suppress'){const turn=game.turn;act('usePrepared',{category:'skill',target:renderer.aim});if(game.turn!==turn)cancelAim();return;}
+  const options=interactions();if(options.length>1){modal(t('controller.interact.title')+options.map(o=>`<button class="modal-button secondary" data-context="${o.action}">${o.label}</button>`).join('')+t('controller.interact.back'));return;}
   if(options[0]?.action.startsWith('objective:'))act('recoverObjective',options[0].action.slice(10));
   else if(options[0]?.action.startsWith('case:'))act('openContainer',options[0].action.slice(5));
   else if(options[0]?.action.startsWith('door:')){const b=game.nearbyDoors.find(b=>b.id===options[0].action.slice(5));if(b)act('door',{id:b.id,open:!b.open});}
   else if(options[0]?.action==='bag')showInventory('weapon');else if(options[0]?.action==='terminal')showTerminal();else if(options[0]?.action==='descend')act('interact');else if(options[0]?.action==='exitStep')act('move',exitStep(game));else if(options[0]?.action==='operator')recoverCorpse();
 }
-function setPetAim(pos){if(game.seen[pos.y]?.[pos.x]&&game.passable(pos.x,pos.y)&&distance(pos,game.player)<=6){renderer.aim=pos;updateAim();}else notify('指揮位置需在已探索的 6 格內。');}
+function setPetAim(pos){if(game.seen[pos.y]?.[pos.x]&&game.passable(pos.x,pos.y)&&distance(pos,game.player)<=6){renderer.aim=pos;updateAim();}else notify(t('controller.commandRange'));}
 // Drone skills that put a chassis down open a placement cursor; the default tile faces the way the player looks.
-function setDroneAim(pos){if(droneCells(game).some(q=>q.x===pos.x&&q.y===pos.y)){renderer.aim={x:pos.x,y:pos.y};updateAim();}else notify('部署位置需在你 2 步內、走得到的空格。');}
-function skill(){if(renderer.mode==='pet'||renderer.mode==='drone'||renderer.mode==='suppress'){cancelAim();return;}const id=game.player.prepared.skill;if(!id){showInventory('skill','還沒有預備技能，點一個技能預備。');return;}if(id==='suppressive_fire'){startSuppressAim();return;}if(id==='pet_command'&&game.activeAllies.some(a=>a.kind==='pet')){renderer.mode='pet';renderer.aim={x:game.player.x,y:game.player.y};notify('點目的地後按右下確認；點自己代表召回。');updateAim();}else if(id==='workshop')showWorkshop();else act('usePrepared',{category:'skill'});}
-function grenade(){if(renderer.mode==='grenade'){cancelAim();return;}const entry=preparedEntry(game.player,'grenade');if(!entry){showInventory('grenade','還沒有預備投擲物，點一個投擲物預備。');return;}if(game.player[entry.resource]<=0){sayLine('empty',{item:entry.name});return;}renderer.mode='grenade';const locked=game.targeted,e=isBarrier(locked)?barrierFace(locked,game.player):locked;renderer.aim=e&&distance(e,game.player)<=5?{x:e.x,y:e.y}:{x:game.player.x,y:game.player.y};updateAim();}
+function setDroneAim(pos){if(droneCells(game).some(q=>q.x===pos.x&&q.y===pos.y)){renderer.aim={x:pos.x,y:pos.y};updateAim();}else notify(t('controller.deployRange'));}
+function skill(){if(renderer.mode==='pet'||renderer.mode==='drone'||renderer.mode==='suppress'){cancelAim();return;}const id=game.player.prepared.skill;if(!id){showInventory('skill',t('controller.skill.readyOne'));return;}if(id==='suppressive_fire'){startSuppressAim();return;}if(id==='pet_command'&&game.activeAllies.some(a=>a.kind==='pet')){renderer.mode='pet';renderer.aim={x:game.player.x,y:game.player.y};notify(t('controller.skill.commandHint'));updateAim();}else if(id==='workshop')showWorkshop();else act('usePrepared',{category:'skill'});}
+function grenade(){if(renderer.mode==='grenade'){cancelAim();return;}const entry=preparedEntry(game.player,'grenade');if(!entry){showInventory('grenade',t('controller.grenade.readyOne'));return;}if(game.player[entry.resource]<=0){sayLine('empty',{item:entry.name});return;}renderer.mode='grenade';const locked=game.targeted,e=isBarrier(locked)?barrierFace(locked,game.player):locked;renderer.aim=e&&distance(e,game.player)<=5?{x:e.x,y:e.y}:{x:game.player.x,y:game.player.y};updateAim();}
 // With nothing prepared, the item button opens the item tab instead of refusing (3.97.0).
 // 3.108.0: the slot is a 生效欄 now. Something in it with no action is worn, not held, so the button opens the pack
 // instead — and the long press still does, which is why that shortcut had to stay.
 function useItem(){if(renderer.mode==='deploy'||renderer.mode==='flare'||renderer.mode==='rope'||renderer.mode==='place'){cancelAim();return;}
   const entry=preparedEntry(game.player,'item');
-  if(!entry){showInventory('item','還沒有預備道具，點一個道具預備。');return;}
-  if(!entry.action){showInventory('item',`佩戴中：${entry.name}。脫下要 1 回合；消耗品可以直接在這裡按「使用」。`);return;}
+  if(!entry){showInventory('item',t('controller.item.readyOne'));return;}
+  if(!entry.action){showInventory('item',`${t('controller.item.worn',{entryName:entry.name})}`);return;}
   if(entry.aim==='side'){startDeploy();return;}
   if(entry.aim==='throw'){startThrowAim(game.player.prepared.item);return;}
   act('usePrepared',{category:'item'});}
@@ -368,28 +371,28 @@ function startPlaceAim(id){
   const p=game.player,entry=PREPARED_CATALOG.item[id];if(!(p[entry.resource]>0)){sayLine('empty',{item:entry.name});return;}
   // 3.148.1 (user report): the pad and swipes move this aim like a flare's, and it starts on a tile that would be accepted.
   renderer.mode='place';renderer.placeItem=id;renderer.aim=placeStart(game,id);updateAim();
-  notify(id==='mine'?`點 ${MINE_TUNING.range} 格內看得見的空地埋地雷；按右下確認，再按道具鍵取消。`:`點 ${DECOY_TUNING.range} 格內看得見的地板丟誘餌，框起來的敵人會被引開；按右下確認，再按道具鍵取消。`);
+  notify(id==='mine'?`${t('controller.item.mineHint',{range:MINE_TUNING.range})}`:`${t('controller.item.decoyHint',{range:DECOY_TUNING.range})}`);
 }
 function startRopeAim(id){
   const p=game.player,entry=PREPARED_CATALOG.item[id];if(!(p[entry.resource]>0)){sayLine('empty',{item:entry.name});return;}
   renderer.mode='rope';renderer.ropeItem=id;renderer.aim={x:p.x,y:p.y};updateAim();
-  notify(`點 ${LINE_TUNING.range} 格內看得見的地板，確認後沿直線把你拉過去${entry.action==='rope'&&PREPARED_CATALOG.item[id].resource==='escapeLines'?'（不耗回合）':''}；再按道具鍵取消。`);
+  notify(`${t('controller.item.lineHint',{range:LINE_TUNING.range,v:entry.action==='rope'&&PREPARED_CATALOG.item[id].resource==='escapeLines'?t('controller.item.free'):''})}`);
 }
 // 3.109.0 (user request): carried cover picks its side with the direction keys, so putting it behind you costs the
 // same one turn as putting it in front — no turning, and no second tap to confirm.
 // 3.123.0: a flare is an item aimed like a throwable: pick a floor tile, confirm with 互動, press 道具 again to cancel.
 function startFlareAim(){
-  const p=game.player;if(!(p.flares>0)){sayLine('empty',{item:'照明彈'});return;}
+  const p=game.player;if(!(p.flares>0)){sayLine('empty',{item:t('controller.item.flareName')});return;}
   const locked=game.targeted,e=isBarrier(locked)?barrierFace(locked,p):locked;
   renderer.mode='flare';renderer.aim=e&&!flareReason(game,{x:e.x,y:e.y})?{x:e.x,y:e.y}:{x:p.x,y:p.y};updateAim();
-  notify(`點 ${FLARE_TUNING.range} 格內看得見的地板，亮起的格子就是會被照亮的範圍；按右下確認，再按道具鍵取消。`);
+  notify(`${t('controller.item.flareHint',{range:FLARE_TUNING.range})}`);
 }
 function startDeploy(){
   // Refuse up front only when no side would work at all; the reason of the first blocked side explains why.
   const sides=[[0,-1],[0,1],[-1,0],[1,0]].map(d=>deployCoverReason(game,d));
-  if(sides.every(Boolean)){notify(sides[0]+'。');return;}
+  if(sides.every(Boolean)){notify(sides[0]+t('controller.period'));return;}
   renderer.mode='deploy';renderer.aim=null;updateAim();
-  notify('按方向鍵選一側架設掩體；再按道具鍵取消。');
+  notify(t('controller.item.barricadeHint'));
 }
 function toggleTargeting(){renderer.targetingEnabled=!renderer.targetingEnabled;write('ash-targeting',renderer.targetingEnabled?'on':'off');update();}
 // 3.165.0 auto-retarget: the locked enemy is out of range, so the lock goes to the nearest enemy in range with a clear shot
@@ -401,7 +404,7 @@ function retarget(){
   const inRange=game.visibleEnemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(p,e)<=w.range).sort((a,b)=>distance(p,a)-distance(p,b));
   const pick=inRange.find(e=>game.shotClear(p,e))||inRange[0];if(pick)game.target=pick.id;
 }
-function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify('附近沒有可見敵人。');return;}game.target=list[(list.findIndex(x=>x.id===game.target)+1)%list.length].id;update();}
+function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify(t('controller.noVisibleEnemies'));return;}game.target=list[(list.findIndex(x=>x.id===game.target)+1)%list.length].id;update();}
 // The corner × is gone (3.98.1, user request): it only ever appeared on menus that already carried a back button, and
 // its float reserved a column on the right of the content; the pinned footer is the way out.
 // On phones a menu is a bottom sheet (3.97.2, user request): its buttons and tab row sit on the screen's bottom edge for
@@ -440,14 +443,14 @@ function showIntro(){
     <div class="title-mark" aria-hidden="true"><svg viewBox="0 0 128 128"><path d="M23 99 58 24h15l34 75H85L65 50 44 99Z" fill="currentColor"/><path d="m56 85 9-21 9 21Z" fill="#0d1211"/></svg></div>
     <h2 class="title-word">ASH PROTOCOL</h2>
     <nav class="title-menu">
-      ${entry('enter','CONTINUE',simulating?simulationLabel(game):canContinue?`${characterName(game.player.character).split(' · ').pop()} · 第 ${game.floor} 層`:'無進行中的任務',!canContinue)}
-      ${simulating?entry('khMenu','EXIT SIMULATION','結束模擬，回到原本的戰役'):entry('deploy','NEW GAME','選擇角色與合約')}
-      ${simulating?'':entry('killhouse','KILL HOUSE','模擬訓練 · 街機')}
-      ${simulating?'':entry('unlocks','UNLOCKS',`協定點數 ${profile().protocol.balance} · 職業與紀錄`)}
-      ${entry('help','MANUAL','規則與操作')}
-      ${entry('settings','SETTING','備份 · 顯示 · 音效')}
+      ${entry('enter','CONTINUE',simulating?simulationLabel(game):canContinue?`${t('controller.title.continueMeta',{v:characterName(game.player.character).split(' · ').pop(),floor:game.floor})}`:t('controller.title.noRun'),!canContinue)}
+      ${simulating?entry('khMenu','EXIT SIMULATION',t('controller.title.exitSim')):entry('deploy','NEW GAME',t('controller.title.newGame'))}
+      ${simulating?'':entry('killhouse','KILL HOUSE',t('controller.title.killhouse'))}
+      ${simulating?'':entry('unlocks','UNLOCKS',`${t('controller.title.unlocks',{v:profile().protocol.balance})}`)}
+      ${entry('help','MANUAL',t('controller.title.manual'))}
+      ${entry('settings','SETTING',t('controller.title.settings'))}
     </nav>
-    ${storage.available?'':'<p class="title-warning">⚠ 本機儲存無法使用：這局進度不會保存，請到 SETTING 匯出備份。</p>'}
+    ${storage.available?'':t('controller.title.storageWarning')}
   </div>`,false,true);
 }
 // Deployment is a three-step flow. The draft carries the mission and seed
@@ -459,17 +462,17 @@ const lockedCharacters=()=>CHARACTER_IDS.filter(id=>CHARACTERS[id]&&!shelvedChar
 const randomSeed=()=>Math.floor(Math.random()*1000000000);
 const pick=list=>list[Math.floor(Math.random()*list.length)];
 const runIsLive=()=>game.status==='playing'&&(entered||resumable);
-const deployNotice=()=>runIsLive()?'<p class="deploy-warning">! 目前有進行中的任務。確認後才會放棄，已賺點數與永久進度保留。</p>':'';
-const seedLabel=seed=>seed===undefined?'隨機':String(seed);
+const deployNotice=()=>runIsLive()?t('controller.deploy.liveWarning'):'';
+const seedLabel=seed=>seed===undefined?t('controller.deploy.random'):String(seed);
 // Deployment-list additions, split from the old shared paragraph. MISSIONS[].text
 // is also the mission-floor toast, so floor-3 reminders stay out of the data.
 const MISSION_NOTES={
-  hunt:'第 3 層仍需擊敗頭目。指定目標以青色菱形標記。',
-  sweep:'第 3 層仍需擊敗頭目；第 6 層頭目不是必要目標。指定目標以青色菱形標記。',
-  retrieval:'第 3 層仍需擊敗頭目；第 6 層頭目不是必要目標。回收耗 1 回合，不占背包容量。',
-  roundtrip:'回收耗 1 回合，不占背包容量。',
-  archive:'第 3 層仍需擊敗頭目；第 6 層頭目不是必要目標。回收耗 1 回合，不占背包容量。',
-  endless:'每三層一場頭目戰：第 3、6、9、12… 層。死亡時記錄到達深度。'
+  hunt:t('controller.mission.note.hunt'),
+  sweep:t('controller.mission.note.sweep'),
+  retrieval:t('controller.mission.note.retrieval'),
+  roundtrip:t('controller.mission.note.roundtrip'),
+  archive:t('controller.mission.note.retrieval'),
+  endless:t('controller.mission.note.endless')
 };
 
 function startQuick(){
@@ -481,43 +484,43 @@ function showDeployment(){
   deploymentFaces=deploymentPortraits(Object.keys(CHARACTERS));
   deployDraft={mode:null,mission:null,seed:undefined};
   const row=(action,label,note)=>`<button class="title-entry" data-modal="${action}"><span class="title-caret" aria-hidden="true">&gt;</span><span class="title-label">${label}</span><span class="title-note">${note}</span></button>`;
-  modal(`<div class="eyebrow">DEPLOYMENT</div><h2>新任務</h2>${deployNotice()}
+  modal(`<div class="eyebrow">DEPLOYMENT</div><h2>${t('controller.deploy.newMission')}</h2>${deployNotice()}
 <nav class="title-menu deploy-menu">
-${row('deployNormal','NORMAL GAME','自選任務與種子')}
-${row('deployDaily','DAILY GAME',`每日固定 · 種子 ${dailySeed()}`)}
-${row('deployQuick','QUICK GAME','全隨機 · 直接開始')}
+${row('deployNormal','NORMAL GAME',t('controller.deploy.custom'))}
+${row('deployDaily','DAILY GAME',`${t('controller.deploy.daily',{dailySeed:dailySeed()})}`)}
+${row('deployQuick','QUICK GAME',t('controller.deploy.quick'))}
 </nav>
-<button class="modal-button secondary" data-modal="${runIsLive()?'settings':'intro'}">取消</button>`,true);
+<button class="modal-button secondary" data-modal="${runIsLive()?'settings':'intro'}">${t('controller.cancel')}</button>`,true);
 }
 
 function showDeployMission(){
   const selected=game.mission.id;
-  modal(`<div class="eyebrow">DEPLOYMENT / 1 OF 3</div><h2>選擇任務</h2>${deployNotice()}
+  modal(`<div class="eyebrow">DEPLOYMENT / 1 OF 3</div><h2>${t('controller.deploy.pickMission')}</h2>${deployNotice()}
 <fieldset class="term-list mission-list"><legend>SELECT CONTRACT</legend>${Object.entries(MISSIONS).map(([id,m])=>`<div class="term-row"><label class="term-pick"><input type="radio" name="mission" value="${id}" ${id===selected?'checked':''}><span class="term-caret" aria-hidden="true">&gt;</span><span class="term-body"><span class="term-name">${m.name}</span><span class="term-meta">${id==='endless'?ENDLESS_DISPLAY_FLOORS:(m.depth||6)}F</span></span></label></div>`).join('')}</fieldset>
-<div class="mission-brief" aria-live="polite">${Object.entries(MISSIONS).map(([id,m])=>`<p data-mission="${id}"${id===selected?' class="active"':''}>${m.text}${MISSION_NOTES[id]||''}</p>`).join('')}</div>
-<details class="term-detail seed-advanced"><summary>進階</summary><label class="seed-field">地圖種子（留空隨機）<input id="new-seed" type="number" min="0" max="999999999" placeholder="例：2026" inputmode="numeric"></label></details>
-<div class="modal-footer"><button class="modal-button secondary" data-modal="deploy">← 返回</button><button class="modal-button" data-modal="deployOperator">下一步：幹員 →</button></div>`,true);
+<div class="mission-brief" aria-live="polite">${Object.entries(MISSIONS).map(([id,m])=>`<p data-mission="${id}"${id===selected?' class="active"':''}>${sentences(m.text,MISSION_NOTES[id])}</p>`).join('')}</div>
+<details class="term-detail seed-advanced"><summary>${t('controller.deploy.advanced')}</summary><label class="seed-field">${t('controller.deploy.seedLabel')}<input id="new-seed" type="number" min="0" max="999999999" placeholder="${t('controller.deploy.seedExample')}" inputmode="numeric"></label></details>
+<div class="modal-footer"><button class="modal-button secondary" data-modal="deploy">${t('controller.back')}</button><button class="modal-button" data-modal="deployOperator">${t('controller.deploy.nextOperator')}</button></div>`,true);
 }
 
 function showDeployOperator(){
   const {mission,seed,mode}=deployDraft,label={normal:'NORMAL',daily:'DAILY',quick:'QUICK',retry:'REDEPLOY'}[mode]||'NORMAL',retry=mode==='retry';
-  modal(`<div class="eyebrow">${retry?'REDEPLOYMENT / SAME SEED':'DEPLOYMENT / 2 OF 3'}</div><h2>選擇幹員</h2>
-<p>${label} · ${MISSIONS[mission].name} · 種子 ${seedLabel(seed)}</p>${deployNotice()}
-<fieldset class="term-list operator-list"><legend>SELECT OPERATOR</legend>${orderedCharacters().map(id=>{const c=CHARACTERS[id];return `<div class="term-row"><label class="term-pick"><input type="radio" name="character" value="${id}" ${id===(deployDraft.character||game.player.character)?'checked':''}><span class="term-caret" aria-hidden="true">&gt;</span><span class="term-face">${portraitMarkup(deploymentFaces[id])}</span><span class="term-sprite"><canvas data-class-sprite="${id}" width="32" height="32" aria-hidden="true"></canvas></span><span class="term-body"><span class="term-name">${c.label}</span><span class="term-meta">${c.name.toUpperCase()} · ${c.hp||100}/${c.armor||0}</span></span></label><p class="term-note">${c.text}</p><details class="term-detail"><summary>詳細資料</summary><div class="term-detail-body"><small>${c.weapons.map(slot=>WEAPONS[slot].name).join('／')}</small><small>護甲板 ${c.plates||0} · ${combatStatSummary({character:id})} · 基礎投擲容量 ${capacity('grenade')+classCarryBonus(id,'grenade')}</small><small>醫療包 ×${startingSupplies(id).meds} · ${Object.values(GRENADES).filter(g=>startingSupplies(id)[g.resource]>0).map(g=>g.short+' ×'+startingSupplies(id)[g.resource]).join('／')}${startingKit(id)}</small>${(c.skills||[]).map(sid=>`<small><b>${SKILLS[sid].name}</b>：${SKILLS[sid].text}</small>`).join('')}${c.traits.map(t=>`<small><b>${TRAITS[t].name}</b>：${TRAITS[t].text}</small>`).join('')}</div></details></div>`;}).join('')}${lockedCharacters().map(id=>lockedOperatorRow(id)).join('')}</fieldset>
+  modal(`<div class="eyebrow">${retry?'REDEPLOYMENT / SAME SEED':'DEPLOYMENT / 2 OF 3'}</div><h2>${t('controller.deploy.pickOperator')}</h2>
+<p>${t('controller.deploy.summary',{label,missionName:MISSIONS[mission].name,v:seedLabel(seed)})}</p>${deployNotice()}
+<fieldset class="term-list operator-list"><legend>SELECT OPERATOR</legend>${orderedCharacters().map(id=>{const c=CHARACTERS[id];return `<div class="term-row"><label class="term-pick"><input type="radio" name="character" value="${id}" ${id===(deployDraft.character||game.player.character)?'checked':''}><span class="term-caret" aria-hidden="true">&gt;</span><span class="term-face">${portraitMarkup(deploymentFaces[id])}</span><span class="term-sprite"><canvas data-class-sprite="${id}" width="32" height="32" aria-hidden="true"></canvas></span><span class="term-body"><span class="term-name">${c.label}</span><span class="term-meta">${c.name.toUpperCase()} · ${c.hp||100}/${c.armor||0}</span></span></label><p class="term-note">${c.text}</p><details class="term-detail"><summary>${t('controller.deploy.details')}</summary><div class="term-detail-body"><small>${c.weapons.map(slot=>WEAPONS[slot].name).join(t('controller.slash'))}</small><small>${t('controller.deploy.stats1',{v:c.plates||0,v2:combatStatSummary({character:id}),v3:capacity('grenade')+classCarryBonus(id,'grenade')})}</small><small>${t('controller.deploy.stats2',{v:startingSupplies(id).meds,v2:Object.values(GRENADES).filter(g=>startingSupplies(id)[g.resource]>0).map(g=>g.short+' ×'+startingSupplies(id)[g.resource]).join(t('controller.slash')),v3:startingKit(id)})}</small>${(c.skills||[]).map(sid=>`<small><b>${SKILLS[sid].name}</b>${t('controller.deploy.skillText',{sidText:SKILLS[sid].text})}</small>`).join('')}${c.traits.map(tid=>`<small><b>${TRAITS[tid].name}</b>${t('controller.deploy.traitText',{tidText:TRAITS[tid].text})}</small>`).join('')}</div></details></div>`;}).join('')}${lockedCharacters().map(id=>lockedOperatorRow(id)).join('')}</fieldset>
 ${operatorColorPicker()}
-<div class="modal-footer"><button class="modal-button secondary" data-modal="${retry?'result':mode==='normal'?'deployNormal':'deploy'}">← 返回</button><button class="modal-button" data-modal="${retry?'retryStart':'deployDifficulty'}">${retry?'投入 →':'下一步：難度 →'}</button></div>`,true);
+<div class="modal-footer"><button class="modal-button secondary" data-modal="${retry?'result':mode==='normal'?'deployNormal':'deploy'}">${t('controller.back')}</button><button class="modal-button" data-modal="${retry?'retryStart':'deployDifficulty'}">${retry?t('controller.deploy.go'):t('controller.deploy.nextDifficulty')}</button></div>`,true);
   mountColorPicker($('#modal .color-list'),drawOperatorSprites);drawOperatorSprites();
 }
 // Step 3 (3.76.2): the difficulty knob's reserved slot and the real-mode switch, which locks when the run starts.
 function showDeployDifficulty(){
   const {mission,seed,mode,character}=deployDraft,label={normal:'NORMAL',daily:'DAILY',quick:'QUICK'}[mode]||'NORMAL',chosen=difficultyOption(deployDraft.difficulty);
-  modal(`<div class="eyebrow">DEPLOYMENT / 3 OF 3</div><h2>選擇難度</h2>
-<p>${label} · ${MISSIONS[mission].name} · ${characterName(character)} · 種子 ${seedLabel(seed)}</p>${deployNotice()}
+  modal(`<div class="eyebrow">DEPLOYMENT / 3 OF 3</div><h2>${t('controller.deploy.pickDifficulty')}</h2>
+<p>${t('controller.deploy.summary2',{label,missionName:MISSIONS[mission].name,v:characterName(character),v2:seedLabel(seed)})}</p>${deployNotice()}
 <fieldset class="term-list difficulty-list"><legend>SELECT DIFFICULTY</legend>${DIFFICULTY_OPTIONS.map(d=>`<div class="term-row"><label class="term-pick"><input type="radio" name="difficulty" value="${d.id}" ${d===chosen?'checked':''}><span class="term-caret" aria-hidden="true">&gt;</span><span class="term-body"><span class="term-name">${d.name}</span><span class="term-meta">${difficultyMeta(d)}</span></span></label></div>`).join('')}</fieldset>
-<p class="term-note difficulty-note">兩種難度的敵人數值成長一樣慢；標準另外讓詞條、菁英與特殊敵人提早出現。部署後不能切換。</p>
-<fieldset class="term-list facility-list"><legend>FACILITY · 開發用</legend>${FACILITY_OPTIONS.map(o=>`<div class="term-row"><label class="term-pick"><input type="radio" name="facility" value="${o.id}" ${o===facilityOption(deployDraft.facility)?'checked':''}><span class="term-caret" aria-hidden="true">&gt;</span><span class="term-body"><span class="term-name">${o.name}</span><span class="term-meta">${o.meta}</span></span></label></div>`).join('')}</fieldset>
-<fieldset class="term-list mode-list"><legend>MODE</legend><div class="term-row"><label class="term-pick term-toggle"><input type="checkbox" name="real-mode" ${deployDraft.realMode?'checked':''}><span class="term-caret" aria-hidden="true"></span><span class="term-body"><span class="term-name">真實模式</span><span class="term-meta">${realModeMeta()}</span></span></label><p class="term-note">${REAL_MODE_NOTE}</p></div></fieldset>
-<div class="modal-footer"><button class="modal-button secondary" data-modal="deployBackOperator">← 返回</button><button class="modal-button" data-modal="new">${runIsLive()?'確認放棄並部署':'開始新任務'} →</button></div>`,true);
+<p class="term-note difficulty-note">${t('controller.deploy.difficultyNote')}</p>
+<fieldset class="term-list facility-list"><legend>${t('controller.deploy.facility')}</legend>${FACILITY_OPTIONS.map(o=>`<div class="term-row"><label class="term-pick"><input type="radio" name="facility" value="${o.id}" ${o===facilityOption(deployDraft.facility)?'checked':''}><span class="term-caret" aria-hidden="true">&gt;</span><span class="term-body"><span class="term-name">${o.name}</span><span class="term-meta">${o.meta}</span></span></label></div>`).join('')}</fieldset>
+<fieldset class="term-list mode-list"><legend>MODE</legend><div class="term-row"><label class="term-pick term-toggle"><input type="checkbox" name="real-mode" ${deployDraft.realMode?'checked':''}><span class="term-caret" aria-hidden="true"></span><span class="term-body"><span class="term-name">${t('controller.deploy.realMode')}</span><span class="term-meta">${realModeMeta()}</span></span></label><p class="term-note">${REAL_MODE_NOTE}</p></div></fieldset>
+<div class="modal-footer"><button class="modal-button secondary" data-modal="deployBackOperator">${t('controller.back')}</button><button class="modal-button" data-modal="new">${runIsLive()?t('controller.deploy.abandonAndGo'):t('controller.deploy.start')} →</button></div>`,true);
 }
 // Operator colour (3.48.2; wheel, brightness and swatches since 3.140.0, src/color-picker.js): a large preview of the
 // picked class; saved only when the mission starts.
@@ -538,15 +541,15 @@ function drawOperatorSprites(){
 function missionDetails(){
   if(isSimulation(game))return `<p><strong>${simulationLabel(game)}</strong><br>${simulationBrief(game)}</p>`;
   const def=missionDefinition(game);
-  const targets=game.floor===missionDepth(game)?game.mission.targets.map((t,i)=>{
-    const e=game.enemies.find(e=>e.id===t.id),done=def.kind==='recover'?t.done:e?.hp<=0;
-    const known=def.kind==='recover'?game.seen[t.y]?.[t.x]:e&&game.visible(e);
-    return `<p>${done?'✓':'◇'} ${i+1}. ${done?'已完成':known?def.kind==='recover'?'已發現機密資料匣':enemyName(e):'尚未定位'}${!done&&known?'（查看樓層地圖）':''}</p>`;
+  const targets=game.floor===missionDepth(game)?game.mission.targets.map((target,i)=>{
+    const e=game.enemies.find(e=>e.id===target.id),done=def.kind==='recover'?target.done:e?.hp<=0;
+    const known=def.kind==='recover'?game.seen[target.y]?.[target.x]:e&&game.visible(e);
+    return `<p>${done?'✓':'◇'} ${i+1}. ${done?t('controller.mission.done'):known?def.kind==='recover'?t('controller.mission.dataFound'):enemyName(e):t('controller.mission.notLocated')}${!done&&known?t('controller.mission.seeMap'):''}</p>`;
   }).join(''):'';
   return `<p><strong>${game.missionSummary}</strong><br>${def.text}</p>${targets}`;
 }
-function showMission(){if(isSimulation(game)){modal(`<div class="eyebrow">SIMULATION / KILL HOUSE</div><h2>${simulationLabel(game)}</h2>${missionDetails()}<button class="modal-button" data-modal="close">返回模擬</button>`);return;}modal(`<div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2>${floorInfo(game.floor).name}</h2>${missionDetails()}<p>${isEndless(game)?endlessRules({intro:false}):'回收：靠近青色 D 資料匣後，按右下互動，耗 1 回合。爆炸不會毀掉任務資料；收下後不占容量。指定殲滅：青色菱形敵人，任何原因死亡都計入；普通敵人不代替指定目標。原路回收需沿各層入口上樓，到第 1 層入口撤離；其他任務完成後前往綠色電梯。'}</p><button class="modal-button" data-modal="close">返回戰場</button>`);}
-function showMap(){modal(`<div class="eyebrow">SECTOR ${pad(game.floor)} / ${isSimulation(game)?'KILL HOUSE':floorInfo(game.floor).name}</div><h2>樓層地圖</h2>${missionDetails()}<canvas id="overview" width="324" height="324" aria-label="已探索地圖，橙色為角色、紅色為可見敵人、綠色為已發現電梯"></canvas><p>橙：角色 · 紅：敵人 · 綠：電梯 · 青：任務目標 · 方框：鎖定目標<br>金色小點：已發現補給；彩色方框：未開補給箱；金線／青色門框：關門／開門，灰線：隔板。淡色地框：生活模組；亮綠小方塊：補給站（使用後暗綠）。只顯示已探索區域，查看不耗回合。</p><button class="modal-button" data-modal="close">返回戰場 →</button>`);renderer.drawMap($('#overview'));}
+function showMission(){if(isSimulation(game)){modal(`<div class="eyebrow">SIMULATION / KILL HOUSE</div><h2>${simulationLabel(game)}</h2>${missionDetails()}<button class="modal-button" data-modal="close">${t('controller.backToSim')}</button>`);return;}modal(`<div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2>${floorInfo(game.floor).name}</h2>${missionDetails()}<p>${isEndless(game)?endlessRules({intro:false}):t('controller.mission.help')}</p><button class="modal-button" data-modal="close">${t('controller.backToFieldPlain')}</button>`);}
+function showMap(){modal(`<div class="eyebrow">SECTOR ${pad(game.floor)} / ${isSimulation(game)?'KILL HOUSE':floorInfo(game.floor).name}</div><h2>${t('controller.map.title')}</h2>${missionDetails()}<canvas id="overview" width="324" height="324" aria-label="${t('controller.map.aria')}"></canvas><p>${t('controller.map.legend1')}<br>${t('controller.map.legend2')}</p><button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`);renderer.drawMap($('#overview'));}
 
 function updateOrientation(raise=false){
   // Primary pointer, not any pointer: a touch laptop has a touchscreen but cannot rotate (3.44).
@@ -585,19 +588,19 @@ function applyHotkeyHints(){
 function saveHotkeys(next){hotkeys=next;hotkeyMap=keyLookup(hotkeys);write('ash-hotkeys',JSON.stringify(hotkeys));applyHotkeyHints();}
 function showHotkeys(message=''){
   const groups=[...new Set(HOTKEY_ACTIONS.map(action=>action.group))];
-  const slot=(id,i)=>{const waiting=hotkeyCapture?.id===id&&hotkeyCapture.slot===i;return `<button class="hotkey-slot${waiting?' waiting':''}" data-hotkey-slot="${id}:${i}" aria-label="${actionLabel(id)} 第 ${i+1} 個按鍵：${waiting?'等待按鍵':keyLabel(hotkeys[id][i])}">${waiting?'按下按鍵…':keyLabel(hotkeys[id][i])}</button>`;};
-  modal(`<div class="eyebrow">KEYBOARD</div><h2>熱鍵設定</h2><p>點一格後按下新的按鍵；按 Backspace 清掉這一格，Esc 取消。已經被其他指令用掉的按鍵會從那個指令移過來。Esc 固定是選單與取消。</p>${message?`<p class="hotkey-message" role="status">${message}</p>`:''}${groups.map(group=>`<h3 class="pack-subhead">${group}</h3><div class="hotkey-rows">${HOTKEY_ACTIONS.filter(action=>action.group===group).map(action=>`<div class="hotkey-row"><span>${action.label}</span>${Array.from({length:HOTKEY_SLOTS},(_,i)=>slot(action.id,i)).join('')}</div>`).join('')}</div>`).join('')}${hotkeyCapture?'<button class="modal-button secondary" data-hotkey-cancel>取消</button>':''}<div class="modal-row"><button class="modal-button secondary" data-hotkey-reset>恢復預設</button><button class="modal-button secondary" data-modal="settings">返回設定</button></div>`);
+  const slot=(id,i)=>{const waiting=hotkeyCapture?.id===id&&hotkeyCapture.slot===i;return `<button class="hotkey-slot${waiting?' waiting':''}" data-hotkey-slot="${id}:${i}" aria-label="${t('controller.keys.slotAria',{v:actionLabel(id),v2:i+1,v3:waiting?t('controller.keys.waiting'):keyLabel(hotkeys[id][i])})}">${waiting?t('controller.keys.press'):keyLabel(hotkeys[id][i])}</button>`;};
+  modal(`<div class="eyebrow">KEYBOARD</div><h2>${t('controller.keys.title')}</h2><p>${t('controller.keys.help')}</p>${message?`<p class="hotkey-message" role="status">${message}</p>`:''}${groups.map(group=>`<h3 class="pack-subhead">${group}</h3><div class="hotkey-rows">${HOTKEY_ACTIONS.filter(action=>action.group===group).map(action=>`<div class="hotkey-row"><span>${action.label}</span>${Array.from({length:HOTKEY_SLOTS},(_,i)=>slot(action.id,i)).join('')}</div>`).join('')}</div>`).join('')}${hotkeyCapture?t('controller.keys.cancel'):''}<div class="modal-row"><button class="modal-button secondary" data-hotkey-reset>${t('controller.keys.reset')}</button><button class="modal-button secondary" data-modal="settings">${t('controller.backToSettings')}</button></div>`);
 }
 function captureHotkey(e){
   if(['Shift','Control','Alt','Meta','CapsLock','Dead','Process','Unidentified'].includes(e.key)||e.isComposing)return;
   e.preventDefault();e.stopPropagation();
   const {id,slot}=hotkeyCapture;hotkeyCapture=null;
   if(e.key==='Escape'){showHotkeys();return;}
-  if(e.key==='Backspace'){saveHotkeys(clearKey(hotkeys,id,slot));showHotkeys(`已清掉「${actionLabel(id)}」的第 ${slot+1} 個按鍵。`);return;}
+  if(e.key==='Backspace'){saveHotkeys(clearKey(hotkeys,id,slot));showHotkeys(`${t('controller.keys.cleared',{v:actionLabel(id),v2:slot+1})}`);return;}
   const result=bindKey(hotkeys,id,slot,e.key);
   if(result.error){showHotkeys(result.error);return;}
   saveHotkeys(result.bindings);
-  showHotkeys(`「${actionLabel(id)}」設為 ${keyLabel(normalizeKey(e.key))}${result.displaced.length?`，已從「${result.displaced.map(actionLabel).join('」「')}」移除`:''}。`);
+  showHotkeys(`${t('controller.keys.set',{v:actionLabel(id),v2:keyLabel(normalizeKey(e.key)),v3:result.displaced.length?`${t('controller.keys.moved',{v:result.displaced.map(actionLabel).join(t('controller.keys.joinQuote'))})}`:''})}`);
 }
 function applyDeck(){
   const deck=$('.control-deck'),pad=$('.direction-pad'),actions=$('.action-buttons'),corner=padLayout==='corner',grid=padLayout==='grid';
@@ -611,7 +614,7 @@ function applyDeck(){
     if(corner)pad.append($('[data-action="reload"]'),$('#interact'));
     deck.style.setProperty('--pad-cell',`${padCell}px`);deck.style.setProperty('--pad-gap',padCell>=52?'3px':'2px');
   }
-  pad.setAttribute('aria-label',grid?'操作區':corner?'移動、等待、裝填與互動':'移動與等待');
+  pad.setAttribute('aria-label',grid?t('controller.deck.grid'):corner?t('controller.deck.corner'):t('controller.deck.classic'));
   sizeDeck();
 }
 // The cells are square and share the deck's width, so their size is measured rather than chosen.
@@ -627,43 +630,43 @@ const layoutObserver=new ResizeObserver(()=>requestAnimationFrame(fitLayout));
 for(const el of [$('.workspace'),...$('.tactical-panel').children])layoutObserver.observe(el);
 window.addEventListener('orientationchange',fitLayout);screen.orientation?.addEventListener('change',fitLayout);window.addEventListener('resize',fitLayout);window.visualViewport?.addEventListener('resize',fitLayout);fitLayout();
 
-const INVENTORY_TABS={weapon:'武器',...PREPARED_CATEGORIES};
+const INVENTORY_TABS={weapon:t('controller.tab.weapon'),...PREPARED_CATEGORIES};
 // Engineer workshop panel (docs/ENGINEER.md phase 1): the class skill opens the production lines; building and
 // deploying are separate one-turn actions, and a deployed unit never comes back.
 let deployLine=0;
 function showWorkshop(message=''){
   const p=game.player,lines=lineLimit(p);
   const row=i=>{const unit=p.productionLines[i];
-    if(!unit)return `<div class="ground-loot"><strong>序列 ${i+1} · 空</strong><small>選一張藍圖生產，放進這條序列。</small><button data-workshop-build>生產 · 選藍圖</button></div>`;
+    if(!unit)return `<div class="ground-loot"><strong>${t('controller.ws.lineEmpty',{v:i+1})}</strong><small>${t('controller.ws.lineEmptyHint')}</small><button data-workshop-build>${t('controller.ws.build')}</button></div>`;
     const def=UNIT_BLUEPRINTS[unit.blueprint],reason=deployReason(game,i);
-    return `<div class="ground-loot"><strong>序列 ${i+1} · ${def.name}${unit.payload?` · ${GRENADES[unit.payload].name}`:''}${Number.isInteger(unit.weapon)?` · ${game.weaponAt(unit.weapon).name}`:''}</strong><small>${def.text}${unit.payload||['unit_bomber','unit_warden','unit_boss'].includes(unit.blueprint)?'':Number.isInteger(unit.weapon)?`彈匣 ${p.ammo[unit.weapon]}/${game.weaponAt(unit.weapon).mag}，部署時從你身上補滿。`:unit.blueprint==='unit_drone'?'部署時從你身上裝填能量電池。':'部署時從你身上裝填手槍彈。'}</small><button data-workshop-deploy="${i}" ${reason?'disabled':''}>${reason||'部署 · 選位置 · 1 回合'}</button></div>`;};
+    return `<div class="ground-loot"><strong>${t('controller.ws.lineUnit',{v:i+1,defName:def.name,v2:unit.payload?` · ${GRENADES[unit.payload].name}`:'',v3:Number.isInteger(unit.weapon)?` · ${game.weaponAt(unit.weapon).name}`:''})}</strong><small>${sentences(def.text,unit.payload||['unit_bomber','unit_warden','unit_boss'].includes(unit.blueprint)?'':Number.isInteger(unit.weapon)?`${t('controller.ws.magFromYou',{v:p.ammo[unit.weapon],v2:game.weaponAt(unit.weapon).mag})}`:unit.blueprint==='unit_drone'?t('controller.ws.energyFromYou'):t('controller.ws.pistolFromYou'))}</small><button data-workshop-deploy="${i}" ${reason?'disabled':''}>${reason||t('controller.ws.deploy')}</button></div>`;};
   // Field repair (3.96.0) lives in this panel, not on the interact button, which the adjacent follow drone would take over.
-  const repairs=repairTargets(game).map(a=>{const reason=repairReason(game,a.id),gain=Math.min(a.maxHp-a.hp,Math.ceil(a.maxHp*REPAIR_TUNING.share));return `<div class="ground-loot"><strong>修理 · ${allyName(a)} · HP ${a.hp}/${a.maxHp}</strong><small>在你旁邊，修理回復 ${gain} 生命。</small><button data-workshop-repair="${a.id}" ${reason?'disabled':''}>${reason||`修理 · ${REPAIR_TUNING.cost} 廢料 · 1 回合`}</button></div>`;}).join('');
-  modal(`<div class="eyebrow">WORKSHOP / ${p.productionLines.length} OF ${lines}</div><h2>工坊</h2><p>部署中 ${deployedUnits(game).length}/${deployLimit(p)} · 廢料 ${p.scrap}<br>敵方藍圖：${p.blueprints.map(id=>UNIT_BLUEPRINTS[id].name+(p.usedBlueprints.includes(id)?'（已製作）':'')).join('、')||'尚未取得'}<br>部署出去的機體不會回收；受損的機體在你旁邊時會列在下面，可以修理（${REPAIR_TUNING.cost} 廢料、1 回合、回復一半生命）；留在別層的不算部署上限。</p>${message?`<p role="status">${escapeHTML(message)}</p>`:''}${repairs}${Array.from({length:lines},(_,i)=>row(i)).join('')}<button class="modal-button" data-modal="close">返回戰場 →</button>`,true);
+  const repairs=repairTargets(game).map(a=>{const reason=repairReason(game,a.id),gain=Math.min(a.maxHp-a.hp,Math.ceil(a.maxHp*REPAIR_TUNING.share));return `<div class="ground-loot"><strong>${t('controller.ws.repairTitle',{v:allyName(a),hp:a.hp,maxHp:a.maxHp})}</strong><small>${t('controller.ws.repairHint',{gain})}</small><button data-workshop-repair="${a.id}" ${reason?'disabled':''}>${reason||`${t('controller.ws.repair',{cost:REPAIR_TUNING.cost})}`}</button></div>`;}).join('');
+  modal(`<div class="eyebrow">WORKSHOP / ${p.productionLines.length} OF ${lines}</div><h2>${t('controller.ws.title')}</h2><p>${t('controller.ws.summary',{v:deployedUnits(game).length,v2:deployLimit(p),scrap:p.scrap})}<br>${t('controller.ws.enemyBlueprints',{v:p.blueprints.map(id=>UNIT_BLUEPRINTS[id].name+(p.usedBlueprints.includes(id)?t('controller.ws.built'):'')).join(t('common.listSeparator'))||t('controller.ws.noneYet')})}<br>${t('controller.ws.help',{cost:REPAIR_TUNING.cost})}</p>${message?`<p role="status">${escapeHTML(message)}</p>`:''}${repairs}${Array.from({length:lines},(_,i)=>row(i)).join('')}<button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`,true);
 }
 function blueprintOption(id,def,payload=null,weapon=null){
   const p=game.player,reason=buildReason(game,id,payload??undefined,weapon??undefined),throwable=payload&&GRENADES[payload],gun=weapon!==null?game.weaponAt(weapon):null;
-  const detail=throwable?`投擲物：持有 ${p[throwable.resource]} 顆，製作時用掉 1 顆`
-    :gun?`武器：${gun.name} +${p.upgrades[weapon]||0}（${ammoName(gun)}，彈匣 ${p.ammo[weapon]}/${gun.mag}，身上 ${p[AMMUNITION[gun.ammoType].key]}）<br>從背包移到機體；製作時從你身上補滿彈匣，之後換彈也扣這種彈藥。${p.weapon===weapon?'<br>這是你手上的武器，裝上後改拿背包裡的下一把。':''}`
-    :id==='unit_warden'?`生命 ${ENEMY_UNIT_TUNING.warden.hp}、裝甲 ${ENEMY_UNIT_TUNING.warden.armor}<br>武器：內建蓄力砲，傷害 ${allyWeapon({kind:'drone',sourceId:id},p).min}、射程 ${ENEMY_UNIT_TUNING.warden.range}，每次射擊前蓄力一次（失去目標或被 EMP 失能時取消）`
-    :id==='unit_boss'?`生命 ${ENEMY_UNIT_TUNING.boss.hp}、裝甲 ${ENEMY_UNIT_TUNING.boss.armor}<br>武器：內建電漿砲，傷害 ${allyWeapon({kind:'drone',sourceId:id},p).min}、射程 ${ENEMY_UNIT_TUNING.boss.range}，和轟炸交替（中心 ${bombardDamage(p)}、半徑 1、兩次行動後爆炸，你在範圍內也會受傷）`
-    :id==='unit_bomber'?'不帶武器、不用彈藥；爆炸半徑 1，你在範圍內一樣會被波及'
-    :id==='unit_drone'?`武器：內建電漿槍，射程 ${ENEMY_UNIT_TUNING.drone.range}<br>彈藥：能量電池，部署時從你身上裝填（身上 ${p.energy}）`
-    :`武器：內建輕機槍${def.mount?'（也可以選一把背包裡的遠程武器裝上）':''}<br>彈藥：手槍彈，部署時從你身上裝填`;
-  return `<button class="perk" data-workshop-blueprint="${id}"${payload?` data-payload="${payload}"`:''}${gun?` data-weapon="${weapon}"`:''} ${reason?'disabled':''}><strong>${def.name}${throwable?` · ${throwable.name}`:gun?` · ${gun.name}`:''} · ${def.cost} 廢料${throwable?'＋1 顆':''}${def.once?' · 只吃廢料 · 一次性':''} · 1 回合</strong><span>${def.text}<br>${detail}${reason?`<br>${reason}`:''}</span></button>`;
+  const detail=throwable?`${t('controller.ws.throwableDetail',{v:p[throwable.resource]})}`
+    :gun?`${t('controller.ws.gunDetail',{gunName:gun.name,v:p.upgrades[weapon]||0,v2:ammoName(gun),v3:p.ammo[weapon],mag:gun.mag,v4:p[AMMUNITION[gun.ammoType].key]})}<br>${t('controller.ws.gunMove',{v:p.weapon===weapon?t('controller.ws.handGun'):''})}`
+    :id==='unit_warden'?`${t('controller.ws.hpArmor',{hp:ENEMY_UNIT_TUNING.warden.hp,armor:ENEMY_UNIT_TUNING.warden.armor})}<br>${t('controller.ws.wardenGun',{v:allyWeapon({kind:'drone',sourceId:id},p).min,range:ENEMY_UNIT_TUNING.warden.range})}`
+    :id==='unit_boss'?`${t('controller.ws.hpArmor',{hp:ENEMY_UNIT_TUNING.boss.hp,armor:ENEMY_UNIT_TUNING.boss.armor})}<br>${t('controller.ws.bossGun',{v:allyWeapon({kind:'drone',sourceId:id},p).min,range:ENEMY_UNIT_TUNING.boss.range,v2:bombardDamage(p)})}`
+    :id==='unit_bomber'?t('controller.ws.bomberNote')
+    :id==='unit_drone'?`${t('controller.ws.droneGun',{range:ENEMY_UNIT_TUNING.drone.range})}<br>${t('controller.ws.droneAmmo',{energy:p.energy})}`
+    :`${t('controller.ws.lmg',{v:def.mount?t('controller.ws.mountOption'):''})}<br>${t('controller.ws.pistolAmmo')}`;
+  return `<button class="perk" data-workshop-blueprint="${id}"${payload?` data-payload="${payload}"`:''}${gun?` data-weapon="${weapon}"`:''} ${reason?'disabled':''}><strong>${t('controller.ws.blueprintButton',{defName:def.name,v:throwable?` · ${throwable.name}`:gun?` · ${gun.name}`:'',cost:def.cost,v2:throwable?t('controller.ws.plusOne'):'',v3:def.once?t('controller.ws.scrapOnly'):''})}</strong><span>${def.text}<br>${detail}${reason?`<br>${reason}`:''}</span></button>`;
 }
 function showBlueprints(){
   const p=game.player;
-  modal(`<div class="eyebrow">WORKSHOP / BLUEPRINTS</div><h2>選擇藍圖</h2><p>廢料 ${p.scrap} · 序列 ${p.productionLines.length}/${lineLimit(p)}</p>${Object.entries(UNIT_BLUEPRINTS).flatMap(([id,def])=>def.payload?Object.keys(GRENADES).map(payload=>blueprintOption(id,def,payload)):[blueprintOption(id,def),...(def.mount?mountableSlots(game).map(slot=>blueprintOption(id,def,null,slot)):[])]).join('')}<button class="modal-button secondary" data-workshop>返回工坊</button>`,true);
+  modal(`<div class="eyebrow">WORKSHOP / BLUEPRINTS</div><h2>${t('controller.ws.pickBlueprint')}</h2><p>${t('controller.ws.pickSummary',{scrap:p.scrap,productionLinesLength:p.productionLines.length,v:lineLimit(p)})}</p>${Object.entries(UNIT_BLUEPRINTS).flatMap(([id,def])=>def.payload?Object.keys(GRENADES).map(payload=>blueprintOption(id,def,payload)):[blueprintOption(id,def),...(def.mount?mountableSlots(game).map(slot=>blueprintOption(id,def,null,slot)):[])]).join('')}<button class="modal-button secondary" data-workshop>${t('controller.ws.back')}</button>`,true);
 }
 function startDeployAim(line){
-  const reason=deployReason(game,line),cell=defaultDroneCell(game);if(reason||!cell){showWorkshop(reason||'你身邊 2 步內沒有可以部署的空格。');return;}
-  close();deployLine=line;renderer.mode='drone';renderer.aim=cell;notify('點身邊 2 步內的空格，按右下確認部署；再按技能取消。');updateAim();
+  const reason=deployReason(game,line),cell=defaultDroneCell(game);if(reason||!cell){showWorkshop(reason||t('controller.ws.noDeployTile'));return;}
+  close();deployLine=line;renderer.mode='drone';renderer.aim=cell;notify(t('controller.ws.deployHint'));updateAim();
 }
 // Learning data in the item tab (3.74.1). Reasons and counts come from learningInventory; both actions are free.
 function learningSection(){
   const entries=learningEntries(learningInventory(game));
-  return `<h3 class="pack-subhead">學習資料</h3>${entries.length?`<div class="pack-rows learning-list">${entries.map(e=>`<div class="pack-row learning-row"><div class="pack-pick"><span class="pack-icon" aria-hidden="true">${e.icon}</span><span class="pack-name">${e.title}</span><small>×${e.count}</small></div>${packInfo(`learn-${e.id}`,e.detail)}${e.useReason?`<p class="pack-reason">${e.useReason}</p>`:''}<div class="pack-actions"><button data-learn="${e.id}" ${e.useReason?'disabled':''}>使用 · 不耗回合</button></div></div>`).join('')}</div>`:'<p class="pack-empty">沒有學習資料。開啟未識別貨櫃可能取得。</p>'}${entries.length?`<p class="pack-reason">用不到的資料可以在補給終端抵 ${LEARNING_SCRAP} 廢料。</p>`:''}`;
+  return `<h3 class="pack-subhead">${t('controller.pack.learningTitle')}</h3>${entries.length?`<div class="pack-rows learning-list">${entries.map(e=>`<div class="pack-row learning-row"><div class="pack-pick"><span class="pack-icon" aria-hidden="true">${e.icon}</span><span class="pack-name">${e.title}</span><small>×${e.count}</small></div>${packInfo(`learn-${e.id}`,e.detail)}${e.useReason?`<p class="pack-reason">${e.useReason}</p>`:''}<div class="pack-actions"><button data-learn="${e.id}" ${e.useReason?'disabled':''}>${t('controller.pack.useFree')}</button></div></div>`).join('')}</div>`:t('controller.pack.learningEmpty')}${entries.length?`<p class="pack-reason">${t('controller.pack.learningTrade',{LEARNING_SCRAP})}</p>`:''}`;
 }
 
 // Druid feeding panel (3.72.1). Every number and legality check comes from petFeedingState quotes.
@@ -680,19 +683,19 @@ function petFeedingSection(){
 // Field pack, compact for phones (3.97.0, user request): no portrait or rules text, one row per entry with its
 // description behind "?", and the main button in the pinned footer. Operator stats and passive rules live in the journal,
 // reached from the settings menu (3.97.1, user report: a journal button in the pack was noise).
-const packInfo=(id,text)=>text?`<button class="pack-info" data-pack-info="${id}" aria-expanded="false" aria-controls="pack-desc-${id}" aria-label="說明">?</button><p class="pack-desc" id="pack-desc-${id}" hidden>${text}</p>`:'';
-const allyStatus=a=>`${a.status==='reforming'?'消散，重生倒數中':a.status==='arriving'?'等候落點':a.status==='destroyed'?'已毀':'活動'} · 第 ${a.floor} 層 · HP ${a.hp}/${a.maxHp}${a.kind==='drone'?(a.payload?` · 裝填${GRENADES[a.payload].short}`:['unit_bomber','unit_warden','unit_boss'].includes(a.sourceId)?(a.primed?(a.sourceId==='unit_warden'?' · 蓄力中':' · 蓄勢中'):a.bombard?' · 下次轟炸':''):(allyWeapon(a,game.player).builtIn?' · 自帶彈藥':` · ${Number.isInteger(a.weapon)?game.weaponAt(a.weapon).name+' ':''}${a.ammo}/${allyWeapon(a,game.player).mag} 發`)):''}`;
+const packInfo=(id,text)=>text?`<button class="pack-info" data-pack-info="${id}" aria-expanded="false" aria-controls="pack-desc-${id}" aria-label="${t('controller.pack.describe')}">?</button><p class="pack-desc" id="pack-desc-${id}" hidden>${text}</p>`:'';
+const allyStatus=a=>`${t('controller.ally.row',{v:a.status==='reforming'?t('controller.ally.reforming'):a.status==='arriving'?t('controller.ally.arriving'):a.status==='destroyed'?t('controller.ally.destroyed'):t('controller.ally.active'),floor:a.floor,hp:a.hp,maxHp:a.maxHp,v2:a.kind==='drone'?(a.payload?` ${t('controller.ally.loaded',{short:GRENADES[a.payload].short})}`:['unit_bomber','unit_warden','unit_boss'].includes(a.sourceId)?(a.primed?(a.sourceId==='unit_warden'?t('controller.ally.charging'):t('controller.ally.windingUp')):a.bombard?t('controller.ally.bombardNext'):''):(allyWeapon(a,game.player).builtIn?t('controller.ally.selfAmmo'):` ${t('controller.ally.ammo',{v:Number.isInteger(a.weapon)?game.weaponAt(a.weapon).name+' ':'',ammo:a.ammo,v2:allyWeapon(a,game.player).mag})}`)):''})}`;
 function showInventory(tab=inventoryTab,message='') {
   inventoryTab=Object.hasOwn(INVENTORY_TABS,tab)?tab:'weapon';
   const p=game.player,ground=game.items.filter(o=>o.type==='weapon'&&distance(o,p)<=1),category=inventoryTab;
   let content='';
   if(category==='weapon')content=`    <div class="pack-ammo">${AMMO_IDS.map(id=>`<span style="--tint:${AMMUNITION[id].tint};--tint-bg:${AMMUNITION[id].tint}26" title="${AMMUNITION[id].name}"><i>${AMMUNITION[id].short}</i><b>${p[AMMUNITION[id].key]}<small>/${game.ammoCapacity(id)}</small></b></span>`).join('')}</div>
-    <div class="pack-weapons">${p.owned.map(index=>{const w=game.weaponAt(index),d=game.weaponDamage(index),active=index===p.weapon,level=p.upgrades[index];const tint=w.ammoType?AMMUNITION[w.ammoType].tint:MELEE_TINT;return `<article class="pack-weapon ${active?'equipped':''}" style="--tint:${tint};--tint-bg:${tint}1f"><div><div class="pack-weapon-head"><h3>${w.name}${level?` +${level}`:''}</h3><small>${active?'已裝備':'備用'}${w.melee&&game.bumpMeleeSlot()===index?' · 撞擊使用':''} · ${w.code}</small></div><span>傷害 ${w.pellets?pelletSummary(index):`${d.min}–${d.max}`}${w.closeRange&&!w.pellets?` · 1–2 格 ${game.weaponDamage(index,{x:p.x+1,y:p.y}).min}–${game.weaponDamage(index,{x:p.x+1,y:p.y}).max}／命中 +15`:''}${w.shotCost>1?` · 每發耗 ${w.shotCost}`:''}${w.volleyCost?` · 一次射擊耗 ${w.volleyCost}`:''}${w.burst?` ×${w.burst}${w.burstRange!==undefined?'／遠距 ×1':''}`:''}${w.hits?` ×${w.hits}`:''} · 射程 ${w.range}${weaponBand(w)?` · 有效 ${bandLabel(weaponBand(w))}`:''} · ${ammoName(w)} · ${magazineLabel(w,p.ammo[index])}${w.locked?' · 固定裝備':''}</span>${p.affixes[index]?`<p>${w.affixText}</p>`:''}<div class="pack-actions">${w.melee?`<button data-bump="${index}" aria-pressed="${game.bumpMeleeSlot()===index}" ${game.bumpMeleeSlot()===index?'disabled':''}>${game.bumpMeleeSlot()===index?'撞擊使用中':'撞擊時用這把 · 不耗回合'}</button>`:''}<button data-equip="${index}" ${active?'disabled':''}>裝備 · ${game.actionCost('weapon',index)} 回合</button><button data-salvage="${index}" ${p.owned.length<=1||w.locked?'disabled':''}>${w.locked?'固定裝備':`拆解 +${salvageValue(p,index)}`}</button></div></div></article>`;}).join('')}</div>
-    ${ground.map(item=>{const w=game.weaponAt(item.slot),level=p.upgrades[item.slot]||0;const tint=w.ammoType?AMMUNITION[w.ammoType].tint:MELEE_TINT;return `<div class="ground-loot" style="--tint:${tint};--tint-bg:${tint}1f"><strong>附近：${w.name}${level?` +${level}`:''}</strong><small>${w.affixText} · 彈匣 ${p.ammo[item.slot]}/${w.mag}</small><button data-compare="${item.slot}">比較／拾取／交換</button><button data-salvage-ground="${item.slot}" ${w.locked?'disabled':''}>就地拆解 +${salvageValue(p,item.slot)}</button></div>`;}).join('')}
+    <div class="pack-weapons">${p.owned.map(index=>{const w=game.weaponAt(index),d=game.weaponDamage(index),active=index===p.weapon,level=p.upgrades[index];const tint=w.ammoType?AMMUNITION[w.ammoType].tint:MELEE_TINT;return `<article class="pack-weapon ${active?'equipped':''}" style="--tint:${tint};--tint-bg:${tint}1f"><div><div class="pack-weapon-head"><h3>${w.name}${level?` +${level}`:''}</h3><small>${active?t('controller.pack.equipped'):t('controller.pack.spare')}${w.melee&&game.bumpMeleeSlot()===index?t('controller.pack.bumpUse'):''} · ${w.code}</small></div><span>${t('controller.pack.weaponStats',{v:w.pellets?pelletSummary(index):`${d.min}–${d.max}`,v2:w.closeRange&&!w.pellets?` ${t('controller.pack.closeBandShort',{v:game.weaponDamage(index,{x:p.x+1,y:p.y}).min,v2:game.weaponDamage(index,{x:p.x+1,y:p.y}).max})}`:'',v3:w.shotCost>1?` ${t('controller.pack.perShot',{shotCost:w.shotCost})}`:'',v4:w.volleyCost?` ${t('controller.pack.perVolley',{volleyCost:w.volleyCost})}`:'',v5:w.burst?` ×${w.burst}${w.burstRange!==undefined?t('controller.pack.farSingle'):''}`:'',v6:w.hits?` ×${w.hits}`:'',range:w.range,v7:weaponBand(w)?` ${t('controller.pack.effective',{v:bandLabel(weaponBand(w))})}`:'',v8:ammoName(w),v9:magazineLabel(w,p.ammo[index]),v10:w.locked?t('controller.pack.boundTag'):''})}</span>${p.affixes[index]?`<p>${w.affixText}</p>`:''}<div class="pack-actions">${w.melee?`<button data-bump="${index}" aria-pressed="${game.bumpMeleeSlot()===index}" ${game.bumpMeleeSlot()===index?'disabled':''}>${game.bumpMeleeSlot()===index?t('controller.pack.bumpActive'):t('controller.pack.bumpSet')}</button>`:''}<button data-equip="${index}" ${active?'disabled':''}>${t('controller.pack.equip',{v:game.actionCost('weapon',index)})}</button><button data-salvage="${index}" ${p.owned.length<=1||w.locked?'disabled':''}>${w.locked?t('controller.pack.bound'):`${t('controller.pack.salvage',{v:salvageValue(p,index)})}`}</button></div></div></article>`;}).join('')}</div>
+    ${ground.map(item=>{const w=game.weaponAt(item.slot),level=p.upgrades[item.slot]||0;const tint=w.ammoType?AMMUNITION[w.ammoType].tint:MELEE_TINT;return `<div class="ground-loot" style="--tint:${tint};--tint-bg:${tint}1f"><strong>${t('controller.pack.nearby',{wName:w.name,v:level?` +${level}`:''})}</strong><small>${t('controller.pack.affixMag',{affixText:w.affixText,v:p.ammo[item.slot],mag:w.mag})}</small><button data-compare="${item.slot}">${t('controller.pack.compare')}</button><button data-salvage-ground="${item.slot}" ${w.locked?'disabled':''}>${t('controller.pack.salvageHere',{v:salvageValue(p,item.slot)})}</button></div>`;}).join('')}
 `;
   else {
     const options=preparedOptions(p,category);
-    const status=(id,entry)=>entry.wear?(p.prepared[category]===id?'脫下 1 回合':'戴上 1 回合'):entry.resource?`×${p[entry.resource]}${CAPPED_ITEMS.includes(id)?`/${game.itemCapacity()}`:''}`:category==='skill'?(ALLY_SKILLS.includes(id)?allySkillState(game,id):`${skillStatus(p,id)}${p.skillState[id]?.cooldown?` · 冷卻 ${p.skillState[id].cooldown}`:''}`):'已學會';
+    const status=(id,entry)=>entry.wear?(p.prepared[category]===id?t('controller.pack.takeOff'):t('controller.pack.putOn')):entry.resource?`×${p[entry.resource]}${CAPPED_ITEMS.includes(id)?`/${game.itemCapacity()}`:''}`:category==='skill'?(ALLY_SKILLS.includes(id)?allySkillState(game,id):`${skillStatus(p,id)}${p.skillState[id]?.cooldown?` ${t('controller.pack.cooldown',{cooldown:p.skillState[id].cooldown})}`:''}`):t('controller.pack.learned');
     // 3.107.0 (user request): a consumable is usable from the pack itself, so it needs no prepared slot. The slot
     // is on its way to becoming a 生效欄 for wearables, and a quick-use slot that also has to hold a medkit
     // cannot be both. The refusal comes from the rules layer, so a greyed button always matches what the turn
@@ -700,62 +703,62 @@ function showInventory(tab=inventoryTab,message='') {
     const useCell=(id,entry)=>{
       if(category!=='item'||!entry.action)return '';
       const reason=itemUseReason(game,id),cost=game.actionCost(entry.action);
-      return `<button class="pack-use" data-use-item="${id}"${reason?' disabled':''} title="${reason||t(cost?'controller.useItemPaid':'controller.useItemFree',{item:entry.name})}">使用</button>`;
+      return `<button class="pack-use" data-use-item="${id}"${reason?' disabled':''} title="${reason||t(cost?'controller.useItemPaid':'controller.useItemFree',{item:entry.name})}">${t('controller.pack.use')}</button>`;
     };
     const useReason=(id,entry)=>category==='item'&&entry.action&&p[entry.resource]?itemUseReason(game,id):'';
-    const row=([id,entry])=>{const on=p.prepared[category]===id,reason=useReason(id,entry);return `<div class="pack-row${on?' equipped':''}${category==='item'&&entry.action?' pack-row-usable':''}"><button class="pack-pick" data-prepare-category="${category}" data-prepare-id="${on?'':id}" aria-pressed="${on}"><span class="pack-icon" aria-hidden="true">${entry.icon}</span><span class="pack-name">${entry.name}</span><small>${on?entry.wear?'佩戴中 · ':'已預備 · ':''}${status(id,entry)}</small></button>${useCell(id,entry)}${packInfo(`${category}-${id}`,(category==='skill'?skillText(p,id):entry.text)+(id==='medkit'?` 目前回復 ${healingAmount(p,45)+p.healBonus} 生命。`:''))}${reason?`<p class="pack-reason">${reason}。</p>`:''}</div>`;};
-    const allies=category==='skill'&&(game.allies.length||p.skills.includes('workshop'))?`<h3 class="pack-subhead">同行與留置友軍</h3>${game.allies.length?`<ul class="pack-allies">${game.allies.map(a=>`<li><span>${allyName(a)}</span><small>${allyStatus(a)}</small></li>`).join('')}</ul>`:'<p class="pack-hint">無。</p>'}${p.skills.includes('workshop')?`<p class="pack-hint">工坊 · ${allySkillState(game,'workshop')} · 預備後按技能鈕打開</p>`:''}`:'';
-    content=`<p class="pack-hint">${category==='grenade'?`共用容量 ${grenadeTotal(p)} / ${game.ammoCapacity('grenade')} · `:''}${category==='item'?'消耗品直接按「使用」，不必先預備；佩戴型點一下戴上、再點一下脫下，各消耗 1 回合。預備與取消預備不耗回合。':'點一下預備，再點一下取消，不耗回合。'}</p>${options.length?`<div class="pack-rows">${options.map(row).join('')}</div>`:`<p class="pack-empty">${category==='skill'?'尚未學會主動技能。':'目前沒有可預備的項目。'}</p>`}${category==='item'?learningSection():''}${category==='skill'?petFeedingSection():''}${allies}`;
+    const row=([id,entry])=>{const on=p.prepared[category]===id,reason=useReason(id,entry);return `<div class="pack-row${on?' equipped':''}${category==='item'&&entry.action?' pack-row-usable':''}"><button class="pack-pick" data-prepare-category="${category}" data-prepare-id="${on?'':id}" aria-pressed="${on}"><span class="pack-icon" aria-hidden="true">${entry.icon}</span><span class="pack-name">${entry.name}</span><small>${on?entry.wear?t('controller.pack.wearing'):t('controller.pack.readied'):''}${status(id,entry)}</small></button>${useCell(id,entry)}${packInfo(`${category}-${id}`,(category==='skill'?skillText(p,id):entry.text)+(id==='medkit'?` ${t('controller.pack.medkitHeal',{v:healingAmount(p,45)+p.healBonus})}`:''))}${reason?`<p class="pack-reason">${t('controller.pack.reason',{reason})}</p>`:''}</div>`;};
+    const allies=category==='skill'&&(game.allies.length||p.skills.includes('workshop'))?`<h3 class="pack-subhead">${t('controller.pack.alliesTitle')}</h3>${game.allies.length?`<ul class="pack-allies">${game.allies.map(a=>`<li><span>${allyName(a)}</span><small>${allyStatus(a)}</small></li>`).join('')}</ul>`:t('controller.pack.none')}${p.skills.includes('workshop')?`<p class="pack-hint">${t('controller.pack.workshopHint',{v:allySkillState(game,'workshop')})}</p>`:''}`:'';
+    content=`<p class="pack-hint">${category==='grenade'?`${t('controller.pack.sharedCap',{v:grenadeTotal(p),v2:game.ammoCapacity('grenade')})} `:''}${category==='item'?t('controller.pack.itemHint'):t('controller.pack.readyHint')}</p>${options.length?`<div class="pack-rows">${options.map(row).join('')}</div>`:`<p class="pack-empty">${category==='skill'?t('controller.pack.noSkills'):t('controller.pack.nothing')}</p>`}${category==='item'?learningSection():''}${category==='skill'?petFeedingSection():''}${allies}`;
   }
-  modal(`<h2 class="visually-hidden">作戰背包</h2><div class="pack-resources"><span>◇ 廢料 <b>${p.scrap}</b></span><span>▣ 護甲板 <b>${p.plates}/${game.plateCapacity}</b></span><span>▤ 武器 <b>${p.owned.length}/${game.weaponCapacity}</b></span></div>
-    <div class="inventory-tabs" role="tablist" aria-label="背包分類">${Object.entries(INVENTORY_TABS).map(([id,label])=>`<button id="pack-tab-${id}" role="tab" aria-controls="pack-panel" aria-selected="${id===category}" tabindex="${id===category?0:-1}" data-inventory-tab="${id}">${label}</button>`).join('')}</div>
+  modal(`<h2 class="visually-hidden">${t('controller.pack.title')}</h2><div class="pack-resources"><span>${t('controller.pack.scrap')} <b>${p.scrap}</b></span><span>${t('controller.pack.plates')} <b>${p.plates}/${game.plateCapacity}</b></span><span>${t('controller.pack.weapons')} <b>${p.owned.length}/${game.weaponCapacity}</b></span></div>
+    <div class="inventory-tabs" role="tablist" aria-label="${t('controller.pack.tabs')}">${Object.entries(INVENTORY_TABS).map(([id,label])=>`<button id="pack-tab-${id}" role="tab" aria-controls="pack-panel" aria-selected="${id===category}" tabindex="${id===category?0:-1}" data-inventory-tab="${id}">${label}</button>`).join('')}</div>
     ${message?`<p class="pack-message" role="status">${escapeHTML(message)}</p>`:''}
     <section id="pack-panel" role="tabpanel" aria-labelledby="pack-tab-${category}" tabindex="0">${content}</section>
-    <div class="modal-footer"><button class="modal-button" data-modal="close">返回戰場 →</button></div>`,true);
+    <div class="modal-footer"><button class="modal-button" data-modal="close">${t('controller.backToField')}</button></div>`,true);
 }
 // 3.141.0 (docs/WEAPONS.md): a shotgun is read by its pellets: each pellet's damage, how many reach at 1-6 tiles, the
 // flat chance of each.
-function pelletSummary(slot){const w=game.weaponAt(slot),d=game.pelletDamage(slot,{x:game.player.x+1,y:game.player.y});return `每顆 ${d.min}–${d.max} × ${w.pellets.join('／')} 顆（1–${w.pellets.length} 格）· 每顆命中 ${pelletChance(w)}%`;}
+function pelletSummary(slot){const w=game.weaponAt(slot),d=game.pelletDamage(slot,{x:game.player.x+1,y:game.player.y});return `${t('controller.pack.pelletLine',{min:d.min,max:d.max,v:w.pellets.join(t('controller.slash')),pelletsLength:w.pellets.length,v2:pelletChance(w)})}`;}
 function showWeaponComparison(take,against=game.player.weapon){
   const p=game.player,item=game.nearbyWeapon(take);if(!item||!p.owned.includes(against)){showInventory();return;}
   const old=game.weaponAt(against),next=game.weaponAt(take),a=game.weaponDamage(against),b=game.weaponDamage(take);
   const shot=w=>clampHit(w.melee?w.hitChance+actorStat(p,'meleeAccuracy'):97+w.accuracyBonus+actorStat(p,'rangedAccuracy')),pierce=w=>`${Math.round(w.pierce*100)}%`;
-  const close=slot=>{const w=game.weaponAt(slot),d=w.pellets?game.pelletDamage(slot,{x:p.x+1,y:p.y}):game.weaponDamage(slot,{x:p.x+1,y:p.y});return w.pellets?`${d.count} 顆 × ${d.min}–${d.max}`:w.closeRange?`${d.min}–${d.max}／命中 +${w.closeAccuracy}`:'同一般傷害';};
-  const single=(slot,d)=>{const w=game.weaponAt(slot);return w.pellets?`每顆 ${game.pelletDamage(slot,{x:p.x+1,y:p.y}).min}–${game.pelletDamage(slot,{x:p.x+1,y:p.y}).max}`:`${d.min}–${d.max}`;};
-  const aimed=(w,moving)=>w.pellets?`每顆 ${pelletChance(w)}%`:`${shot(moving?{...w,accuracyBonus:w.accuracyBonus-22+w.tracking}:w)}%`;
-  const rows=[['1–2 格特效',close(against),close(take)],['單次傷害',single(against,a),single(take,b)],['每次攻擊發數',old.burstRange!==undefined?'2／遠距 1':old.burst||1,next.burstRange!==undefined?'2／遠距 1':next.burst||1],['靜止裸露命中',aimed(old,false),aimed(next,false)],['移動目標命中',aimed(old,true),aimed(next,true)],['每發耗彈',old.shotCost||1,next.shotCost||1],['射程',old.range,next.range],['彈匣',magazineLabel(old,p.ammo[against]),magazineLabel(next,p.ammo[take])],['彈種',ammoName(old),ammoName(next)],['穿透',pierce(old),pierce(next)],['改裝等級',`+${p.upgrades[against]}`,`+${p.upgrades[take]}`]];
-  modal(`<div class="eyebrow">WEAPON COMPARISON</div><h2>${next.name}</h2><p>${next.affixText}<br>${next.desc}</p><p>比較對象：${old.name} ${against===p.weapon?'（已裝備）':'（備用）'}<br>${old.affixText}</p><div class="pack-actions">${p.owned.map(slot=>`<button data-compare="${take}" data-against="${slot}" ${slot===against?'disabled':''}>${game.weaponAt(slot).name} +${p.upgrades[slot]} · ${magazineLabel(game.weaponAt(slot),p.ammo[slot])}</button>`).join('')}<button data-salvage-ground="${take}">就地拆解 +${20+(p.upgrades[take]||0)*10}</button>${p.owned.length<game.weaponCapacity?`<button class="primary" data-take="${take}">收進空格 · 1 回合</button>`:''}</div><table class="weapon-comparison"><thead><tr><th>能力</th><th>持有</th><th>地面</th></tr></thead><tbody>${rows.map(([label,left,right])=>`<tr><th>${label}</th><td>${left}</td><td>${right}</td></tr>`).join('')}</tbody></table><p>命中欄含天生命中修正，未計入條件被動／等待／掩體／目標迴避；傷害含本局模組與改裝，未扣目標護甲。穿透減少護甲與掩體減傷，不提高命中率。</p>${old.locked?'<p>裝甲內建武器不能交換或拆解，切換進出不耗回合。</p>':`<p>交換會將${old.name}連同剩餘彈匣、詞條與改裝放在腳下。${against===p.weapon?'新武器立即裝備。':'目前裝備不變。'}</p><button class="modal-button" data-replace="${take}" data-leave="${against}">交換此武器 · 1 回合</button>`}<button class="modal-button secondary" data-modal="bag">返回背包</button>`,true);
+  const close=slot=>{const w=game.weaponAt(slot),d=w.pellets?game.pelletDamage(slot,{x:p.x+1,y:p.y}):game.weaponDamage(slot,{x:p.x+1,y:p.y});return w.pellets?`${t('controller.pack.pellets',{count:d.count,min:d.min,max:d.max})}`:w.closeRange?`${t('controller.pack.closeBand',{min:d.min,max:d.max,closeAccuracy:w.closeAccuracy})}`:t('controller.pack.sameDamage');};
+  const single=(slot,d)=>{const w=game.weaponAt(slot);return w.pellets?`${t('controller.pack.perPellet',{v:game.pelletDamage(slot,{x:p.x+1,y:p.y}).min,v2:game.pelletDamage(slot,{x:p.x+1,y:p.y}).max})}`:`${d.min}–${d.max}`;};
+  const aimed=(w,moving)=>w.pellets?`${t('controller.pack.perPelletHit',{v:pelletChance(w)})}`:`${shot(moving?{...w,accuracyBonus:w.accuracyBonus-22+w.tracking}:w)}%`;
+  const rows=[[t('controller.cmp.close'),close(against),close(take)],[t('controller.cmp.single'),single(against,a),single(take,b)],[t('controller.cmp.rounds'),old.burstRange!==undefined?t('controller.cmp.burstBands'):old.burst||1,next.burstRange!==undefined?t('controller.cmp.burstBands'):next.burst||1],[t('controller.cmp.hitStill'),aimed(old,false),aimed(next,false)],[t('controller.cmp.hitMoving'),aimed(old,true),aimed(next,true)],[t('controller.cmp.ammoPerShot'),old.shotCost||1,next.shotCost||1],[t('controller.cmp.range'),old.range,next.range],[t('controller.cmp.magazine'),magazineLabel(old,p.ammo[against]),magazineLabel(next,p.ammo[take])],[t('controller.cmp.ammoType'),ammoName(old),ammoName(next)],[t('controller.cmp.pierce'),pierce(old),pierce(next)],[t('controller.cmp.upgrade'),`+${p.upgrades[against]}`,`+${p.upgrades[take]}`]];
+  modal(`<div class="eyebrow">WEAPON COMPARISON</div><h2>${next.name}</h2><p>${next.affixText}<br>${next.desc}</p><p>${t('controller.cmp.against',{oldName:old.name,v:against===p.weapon?t('controller.cmp.equipped'):t('controller.cmp.spare')})}<br>${old.affixText}</p><div class="pack-actions">${p.owned.map(slot=>`<button data-compare="${take}" data-against="${slot}" ${slot===against?'disabled':''}>${game.weaponAt(slot).name} +${p.upgrades[slot]} · ${magazineLabel(game.weaponAt(slot),p.ammo[slot])}</button>`).join('')}<button data-salvage-ground="${take}">${t('controller.pack.salvageHere',{v:20+(p.upgrades[take]||0)*10})}</button>${p.owned.length<game.weaponCapacity?`<button class="primary" data-take="${take}">${t('controller.cmp.take')}</button>`:''}</div><table class="weapon-comparison"><thead><tr><th>${t('controller.cmp.stat')}</th><th>${t('controller.cmp.held')}</th><th>${t('controller.cmp.ground')}</th></tr></thead><tbody>${rows.map(([label,left,right])=>`<tr><th>${label}</th><td>${left}</td><td>${right}</td></tr>`).join('')}</tbody></table><p>${t('controller.cmp.note')}</p>${old.locked?t('controller.cmp.boundNote'):`<p>${t('controller.cmp.swapNote',{oldName:old.name,v:against===p.weapon?t('controller.cmp.equipNew'):t('controller.cmp.keepCurrent')})}</p><button class="modal-button" data-replace="${take}" data-leave="${against}">${t('controller.cmp.swap')}</button>`}<button class="modal-button secondary" data-modal="bag">${t('controller.backToPack')}</button>`,true);
 }
 // Supply terminal (3.120.0 economy, src/terminal.js): a list of offers, then a payment step where the player picks what
 // goes into the value pool; scrap covers the rest. Every price, reason and value comes from the rules module.
 let terminalDraft=null;
-const TRADE_GROUPS={ammo:'彈藥',throw:'投擲物',item:'醫療包與道具',wear:'佩戴',weapon:'武器（照拆解價）',learning:'學習資料（照拆解價）'};
+const TRADE_GROUPS={ammo:t('controller.trade.ammo'),throw:t('controller.trade.throw'),item:t('controller.trade.item'),wear:t('controller.trade.wear'),weapon:t('controller.trade.weapon'),learning:t('controller.trade.learning')};
 function terminalOfferGroups(){
   const p=game.player;
   return [
-    {name:'醫療',rows:[{id:'heal',title:'醫療修復',detail:`回復 ${healingAmount(p,TERMINAL_TUNING.healAmount)} 生命並清除中毒。`},{id:'med',title:'醫療包 +1',detail:`持有 ${p.meds} / ${game.itemCapacity()}，超出的留在腳下。`},{id:'spray',title:PREPARED_CATALOG.item.spray.name,detail:`持有 ${p.sprays} / ${game.itemCapacity()}，超出的留在腳下。`}]},
-    {name:'彈藥',rows:[{id:'ammo',title:'彈藥補給包',detail:Object.entries(TERMINAL_PACK).map(([id,n])=>`${AMMUNITION[id].name} ${n}`).join('、')+'。'},...AMMO_IDS.map(id=>({id,title:`${AMMUNITION[id].name} +${TERMINAL_AMMO[id].amount}`,detail:`目前 ${p[AMMUNITION[id].key]} / ${game.ammoCapacity(id)}`}))]},
-    {name:'投擲物',rows:Object.values(GRENADES).map(entry=>({id:entry.item,title:`${entry.name} +${entry.amount}`,detail:`持有 ${p[entry.resource]} · 共用容量 ${grenadeTotal(p)} / ${game.ammoCapacity('grenade')}`}))},
-    {name:'道具',rows:Object.entries(TERMINAL_ITEMS).filter(([id,offer])=>offer.sold!==false&&id!=='spray').map(([id,offer])=>{const entry=PREPARED_CATALOG.item[id],held=offer.wear?p.wearables.includes(offer.wear):p[offer.resource];return {id,title:entry.name,detail:offer.wear?(held?'已經有一件。':'佩戴型：戴上與脫下各 1 回合。'):`持有 ${held} / ${game.itemCapacity()}，超出的留在腳下。`};})},
-    {name:'武器改裝',rows:p.owned.map(slot=>{const w=game.weaponAt(slot),level=p.upgrades[slot]||0;return {id:`upgrade:${slot}`,title:`${w.name} +${Math.min(level+1,TERMINAL_TUNING.upgradeMax)}`,detail:`單次傷害 +5 · 目前 +${level}${slot===p.weapon?' · 手上這把':''}`};})},
+    {name:t('controller.shop.medical'),rows:[{id:'heal',title:t('controller.shop.heal'),detail:`${t('controller.shop.healDetail',{v:healingAmount(p,TERMINAL_TUNING.healAmount)})}`},{id:'med',title:t('controller.shop.medkit'),detail:`${t('controller.shop.medsHeld',{meds:p.meds,itemCapacity:game.itemCapacity()})}`},{id:'spray',title:PREPARED_CATALOG.item.spray.name,detail:`${t('controller.shop.spraysHeld',{sprays:p.sprays,itemCapacity:game.itemCapacity()})}`}]},
+    {name:t('controller.shop.ammo'),rows:[{id:'ammo',title:t('controller.shop.ammoPack'),detail:Object.entries(TERMINAL_PACK).map(([id,n])=>`${AMMUNITION[id].name} ${n}`).join(t('common.listSeparator'))+t('controller.period')},...AMMO_IDS.map(id=>({id,title:`${AMMUNITION[id].name} +${TERMINAL_AMMO[id].amount}`,detail:`${t('controller.shop.current',{v:p[AMMUNITION[id].key],v2:game.ammoCapacity(id)})}`}))]},
+    {name:t('controller.shop.throwables'),rows:Object.values(GRENADES).map(entry=>({id:entry.item,title:`${entry.name} +${entry.amount}`,detail:`${t('controller.shop.throwHeld',{v:p[entry.resource],v2:grenadeTotal(p),v3:game.ammoCapacity('grenade')})}`}))},
+    {name:t('controller.shop.items'),rows:Object.entries(TERMINAL_ITEMS).filter(([id,offer])=>offer.sold!==false&&id!=='spray').map(([id,offer])=>{const entry=PREPARED_CATALOG.item[id],held=offer.wear?p.wearables.includes(offer.wear):p[offer.resource];return {id,title:entry.name,detail:offer.wear?(held?t('controller.shop.haveOne'):t('controller.shop.wearable')):`${t('controller.shop.itemHeld',{held,itemCapacity:game.itemCapacity()})}`};})},
+    {name:t('controller.shop.upgrades'),rows:p.owned.map(slot=>{const w=game.weaponAt(slot),level=p.upgrades[slot]||0;return {id:`upgrade:${slot}`,title:`${w.name} +${Math.min(level+1,TERMINAL_TUNING.upgradeMax)}`,detail:`${t('controller.shop.upgradeDetail',{level,v:slot===p.weapon?t('controller.shop.inHand'):''})}`};})},
   ].map(group=>({...group,rows:group.rows.filter(row=>terminalSells(game.nearbyTerminal,row.id))})).filter(group=>group.rows.length);   // 3.135.0: this kind's offers only
 }
 function terminalAffordable(id){
   const deal=terminalDeal(game,id,{});if(!deal.reason)return '';
   const most=tradeHoldings(game).reduce((sum,row)=>sum+row.max*row.value,0);
-  return game.player.scrap+most<deal.price?'廢料和可抵價的東西都不夠。':'';
+  return game.player.scrap+most<deal.price?t('controller.shop.cannotAfford'):'';
 }
 function showTerminal(){
   const p=game.player,terminal=game.nearbyTerminal;terminalDraft=null;
-  if(!terminal){notify('附近沒有可用補給終端。');return;}
-  modal(`<div class="eyebrow">SUPPLY TERMINAL</div><h2>${terminalName(terminal)}：選擇要交易的補給。</h2><p>此終端剩餘額度 <strong>${terminalRemaining(terminal)} / ${TERMINAL_TUNING.credit}</strong> · 持有廢料 ${p.scrap}。一次交易一項、耗費 1 回合，可以拿身上的東西抵價。容量不足時，多出的補給留在腳下。</p>${terminalOfferGroups().map(group=>`<h3 class="pack-subhead">${group.name}</h3>${group.rows.map(row=>{const reason=offerReason(game,row.id)||terminalAffordable(row.id);return `<button class="perk" data-terminal-pick="${row.id}" ${reason?'disabled':''}><strong>${row.title} · ${terminalCost(row.id,game)}</strong><span>${reason||row.detail}</span></button>`;}).join('')}`).join('')}<button class="modal-button secondary" data-modal="close">返回戰場</button>`);
+  if(!terminal){notify(t('controller.shop.noTerminal'));return;}
+  modal(`<div class="eyebrow">SUPPLY TERMINAL</div><h2>${t('controller.shop.title',{v:terminalName(terminal)})}</h2><p>${t('controller.shop.creditLeft')} <strong>${terminalRemaining(terminal)} / ${TERMINAL_TUNING.credit}</strong> ${t('controller.shop.intro',{scrap:p.scrap})}</p>${terminalOfferGroups().map(group=>`<h3 class="pack-subhead">${group.name}</h3>${group.rows.map(row=>{const reason=offerReason(game,row.id)||terminalAffordable(row.id);return `<button class="perk" data-terminal-pick="${row.id}" ${reason?'disabled':''}><strong>${row.title} · ${terminalCost(row.id,game)}</strong><span>${reason||row.detail}</span></button>`;}).join('')}`).join('')}<button class="modal-button secondary" data-modal="close">${t('controller.backToFieldPlain')}</button>`);
 }
 function showTerminalDeal(buy){
   const terminal=game.nearbyTerminal;if(!terminal||offerReason(game,buy)){showTerminal();return;}
   terminalDraft={buy,trade:{}};
   const title=terminalOfferGroups().flatMap(group=>group.rows).find(row=>row.id===buy)?.title||buy,price=terminalCost(buy,game),rows=tradeHoldings(game).filter(row=>row.held>0);
   const groups=Object.entries(TRADE_GROUPS).map(([group,name])=>[name,rows.filter(row=>row.group===group)]).filter(([,list])=>list.length);
-  modal(`<div class="eyebrow">SUPPLY TERMINAL / PAYMENT</div><h2>${title} · ${price}</h2><p>把要抵價的東西加進來，不夠的部分用廢料補；抵超過價格的部分作廢。護甲板不能抵價。本台剩餘額度 ${terminalRemaining(terminal)}，交易後 ${terminalRemaining(terminal)-price}。</p>${groups.length?groups.map(([name,list])=>`<h3 class="pack-subhead">${name}</h3><div class="terminal-trades">${list.map(row=>`<div class="terminal-trade"><span><strong>${row.name}</strong><small>每 ${row.unit} 抵 ${row.value} · 持有 ${row.held}${row.reason?` · ${row.reason}`:''}</small></span><span class="terminal-stepper"><button data-trade-step="${row.id}" data-step="-1" aria-label="少抵一份${row.name}" disabled>−</button><b data-trade-count="${row.id}">0</b><button data-trade-step="${row.id}" data-step="1" aria-label="多抵一份${row.name}" ${row.max?'':'disabled'}>＋</button></span></div>`).join('')}</div>`).join(''):'<p class="pack-empty">身上沒有可以抵價的東西。</p>'}<p class="terminal-total" id="terminal-total" aria-live="polite"></p><button class="modal-button" id="terminal-confirm" data-terminal-confirm>交易 · 1 回合</button><button class="modal-button secondary" data-terminal-back>返回清單</button>`);
+  modal(`<div class="eyebrow">SUPPLY TERMINAL / PAYMENT</div><h2>${title} · ${price}</h2><p>${t('controller.pay.intro',{v:terminalRemaining(terminal),v2:terminalRemaining(terminal)-price})}</p>${groups.length?groups.map(([name,list])=>`<h3 class="pack-subhead">${name}</h3><div class="terminal-trades">${list.map(row=>`<div class="terminal-trade"><span><strong>${row.name}</strong><small>${t('controller.trade.row',{unit:row.unit,rowValue:row.value,held:row.held,v:row.reason?` · ${row.reason}`:''})}</small></span><span class="terminal-stepper"><button data-trade-step="${row.id}" data-step="-1" aria-label="${t('controller.trade.less',{rowName:row.name})}" disabled>−</button><b data-trade-count="${row.id}">0</b><button data-trade-step="${row.id}" data-step="1" aria-label="${t('controller.trade.more',{rowName:row.name})}" ${row.max?'':'disabled'}>${t('controller.trade.plus')}</button></span></div>`).join('')}</div>`).join(''):t('controller.pay.nothing')}<p class="terminal-total" id="terminal-total" aria-live="polite"></p><button class="modal-button" id="terminal-confirm" data-terminal-confirm>${t('controller.pay.confirm')}</button><button class="modal-button secondary" data-terminal-back>${t('controller.pay.back')}</button>`);
   refreshTerminalDeal();
 }
 function refreshTerminalDeal(){
@@ -764,8 +767,8 @@ function refreshTerminalDeal(){
   for(const node of document.querySelectorAll('[data-trade-count]'))node.textContent=String(trade[node.dataset.tradeCount]||0);
   for(const button of document.querySelectorAll('[data-trade-step]')){const id=button.dataset.tradeStep,count=trade[id]||0;button.disabled=button.dataset.step==='-1'?count<=0:count>=(rows.get(id)?.max||0);}
   const total=$('#terminal-total'),confirm=$('#terminal-confirm');
-  if(total)total.textContent=`抵價 ${deal.pool}${deal.waste?`（${deal.waste} 作廢）`:''} ＋ 廢料 ${deal.scrap}（持有 ${p.scrap}）＝ ${Math.min(deal.pool,deal.price)+deal.scrap} / ${deal.price}`;
-  if(confirm){confirm.disabled=Boolean(deal.reason);confirm.textContent=deal.reason||'交易 · 1 回合';}
+  if(total)total.textContent=`${t('controller.pay.total',{pool:deal.pool,v:deal.waste?`${t('controller.pay.wasted',{waste:deal.waste})}`:'',scrap:deal.scrap,scrap2:p.scrap,v2:Math.min(deal.pool,deal.price)+deal.scrap,price:deal.price})}`;
+  if(confirm){confirm.disabled=Boolean(deal.reason);confirm.textContent=deal.reason||t('controller.pay.confirm');}
 }
 // Operator order is the user's preferred reading order; skills follow the
 // operator that owns them, so a class without a skill simply contributes none.
@@ -774,11 +777,11 @@ const OPERATOR_ORDER=['soldier','recon','engineer','necromancer','druid','bulwar
 let unlockTab='characters';
 const unlockStorageReady=()=>storage.available&&!storage.recoveryPending;
 function showUnlocks(tab=unlockTab,message=''){unlockTab=tab==='stories'?'stories':'characters';modal(unlockPageMarkup(profile(),{tab:unlockTab,message,available:unlockStorageReady()}),true);drawOperatorSprites();}
-function unlockRefusal(id){const entry=unlockEntry(id),reason=entry&&purchaseReason(profile(),entry,{available:unlockStorageReady()});if(entry&&!reason)return false;showUnlocks(unlockTab,reason?reason+'。':'');return true;}
+function unlockRefusal(id){const entry=unlockEntry(id),reason=entry&&purchaseReason(profile(),entry,{available:unlockStorageReady()});if(entry&&!reason)return false;showUnlocks(unlockTab,reason?reason+t('controller.period'):'');return true;}
 function confirmUnlock(id){if(!unlockRefusal(id))modal(purchaseConfirmMarkup(profile(),id),true);}
 function buyUnlock(id){if(unlockRefusal(id))return;const entry=unlockEntry(id);
-  if(!grantUnlock(game,id)){showUnlocks(unlockTab,'無法寫入玩家檔案，點數沒有扣除，請稍後再試。');return;}
-  showUnlocks(entry.kind==='story'?'stories':'characters',entry.kind==='story'?`已解鎖設施紀錄「${entry.title}」。`:`已解鎖${CHARACTERS[id].label}，之後的新任務可以選擇。`);}
+  if(!grantUnlock(game,id)){showUnlocks(unlockTab,t('controller.unlock.writeFailed'));return;}
+  showUnlocks(entry.kind==='story'?'stories':'characters',entry.kind==='story'?`${t('controller.unlock.story',{title:entry.title})}`:`${t('controller.unlock.class',{label:CHARACTERS[id].label})}`);}
 function recoverCorpse(){if(!operatorReady(game))return;const corpse=game.operatorCorpse,owned=availableCharacters(profile()).includes(corpse.character);
   if(!game.recoverOperator()){update();return;}
   persist();update();modal(operatorRecoveredMarkup(corpse.character,{newly:!owned}),true);drawOperatorSprites();}
@@ -792,14 +795,14 @@ function perkPips(player,perk,preview=false){
 }
 function runPerks(){
   const acquired=PERKS.filter(o=>(game.player.perks?.[o.id]||0)>0);
-  return acquired.length?`<section class="run-perks" aria-label="本局強化"><h3>本局強化</h3><ul>${acquired.map(o=>`<li><span>${o.name}</span>${perkPips(game.player,o)}</li>`).join('')}</ul></section>`:'';
+  return acquired.length?`<section class="run-perks" aria-label="${t('controller.perks.runTitle')}"><h3>${t('controller.perks.runTitle')}</h3><ul>${acquired.map(o=>`<li><span>${o.name}</span>${perkPips(game.player,o)}</li>`).join('')}</ul></section>`:'';
 }
 // Level-up (3.115.0, user request): the award first lands as an incoming transmission over the battlefield, and the three
 // choices open only once it is confirmed. Once per level of a run, so a second pending choice goes straight to the list.
 function showLevelUp(){
   if(transmissionSeen===transmissionKey()){showPerks();return;}
   if($('#modal').open&&$('#modal-content .transmission'))return;   // already on screen; do not restart its animation
-  modal(`<div class="transmission" role="alert"><div class="eyebrow">PRIORITY SIGNAL / LV. ${game.player.level}</div><p class="transmission-title"><canvas class="transmission-pixels" aria-hidden="true"></canvas><span class="visually-hidden">INCOMING TRANSMISSION</span></p><p class="transmission-note">臨時強化授權待接收。</p></div><div class="modal-footer"><button class="modal-button" data-modal="transmission">確認</button></div>`);
+  modal(`<div class="transmission" role="alert"><div class="eyebrow">PRIORITY SIGNAL / LV. ${game.player.level}</div><p class="transmission-title"><canvas class="transmission-pixels" aria-hidden="true"></canvas><span class="visually-hidden">INCOMING TRANSMISSION</span></p><p class="transmission-note">${t('controller.perks.pending')}</p></div><div class="modal-footer"><button class="modal-button" data-modal="transmission">${t('controller.confirm')}</button></div>`);
   // 3.116.0 (user request): the heading is drawn as pixel letters (src/pixel-text.js) instead of a smooth font.
   // 3.117.0 (user correction): tiny real text with hard pixels, redrawn once the webfont has loaded.
   const draw=()=>{const heading=$('#modal .transmission-pixels');if(heading)drawTinyText(heading,'INCOMING TRANSMISSION',{color:'#f0c27a',shadow:'#3a2412'});};
@@ -811,89 +814,91 @@ function showLevelUp(){
     flash(T,T.ms);setTimeout(()=>{if(renderer.glitchEnabled&&$('#modal-content .transmission'))flash(T.again,T.again.ms);},T.again.at);   // 3.150.0 (user): one more flash
   }
 }
-function showPerks(){modal(`<div class="eyebrow">UPGRADE AVAILABLE / LV. ${game.player.level}</div><h2>臨時強化已授權。</h2><p>強化生效至本次任務結束。${game.pendingPerks>1?`還有 ${game.pendingPerks} 次選擇。`:''}</p>${game.perkChoices.map(p=>`<button class="perk" data-perk="${p.id}"><strong>＋ ${p.name} ${perkPips(game.player,p,true)}</strong><span>${p.text}${p.effect==='health'?`（本角色回血 ${healingAmount(game.player,p.heal)}）`:''}</span></button>`).join('')}${runPerks()}`);}
+function showPerks(){modal(`<div class="eyebrow">UPGRADE AVAILABLE / LV. ${game.player.level}</div><h2>${t('controller.perks.granted')}</h2><p>${t('controller.perks.untilEnd',{v:game.pendingPerks>1?`${t('controller.perks.morePicks',{pendingPerks:game.pendingPerks})}`:''})}</p>${game.perkChoices.map(p=>`<button class="perk" data-perk="${p.id}"><strong>${t('controller.perks.option',{pName:p.name,v:perkPips(game.player,p,true)})}</strong><span>${p.text}${p.effect==='health'?`${t('controller.perks.classHeal',{v:healingAmount(game.player,p.heal)})}`:''}</span></button>`).join('')}${runPerks()}`);}
 // Journal and result: endless records (3.49.1), class names from the character labels.
 const classLabels=()=>Object.fromEntries(Object.entries(CHARACTERS).map(([id,c])=>[id,c.label]));
 function endlessJournal(records){const rows=endlessRecordRows(records,classLabels());
-  return `<h3>無盡深入</h3><p>${rows.best?`最佳：${rows.best}${rows.classes.length?`<br>各職業最深：${rows.classes.join(' · ')}`:''}`:'尚未挑戰。死亡時記錄到達深度；放棄不列入。'}</p>`;}
-function endlessResult(p,abandoned){if(abandoned)return '<p>放棄的無盡任務不列入深度紀錄。</p>';const records=profile(),rows=endlessRecordRows(records,classLabels());
-  return rows.best?`<p>${isRecordRun(records,game.floor,p.level,p.kills)?'<strong>新紀錄！</strong> ':''}無盡最佳：${rows.best}</p>`:'';}
+  return `<h3>${t('controller.endless.title')}</h3><p>${rows.best?`${t('controller.endless.best',{best:rows.best,v:rows.classes.length?`<br>${t('controller.endless.classBest',{v:rows.classes.join(' · ')})}`:''})}`:t('controller.endless.none')}</p>`;}
+function endlessResult(p,abandoned){if(abandoned)return t('controller.endless.abandoned');const records=profile(),rows=endlessRecordRows(records,classLabels());
+  return rows.best?`<p>${t('controller.endless.bestLine',{v:isRecordRun(records,game.floor,p.level,p.kills)?t('controller.endless.newRecord'):'',best:rows.best})}</p>`:'';}
 // Operator stats, run upgrades and passive rules moved here from the compact backpack (3.97.0).
-function operatorStatus(){const p=game.player;return `<h3>幹員狀態</h3><p>${characterName(p.character)} · 裝甲 ${p.armor}<br>${combatStatSummary(p)}${meleeSummary(p).map(line=>'<br>'+line).join('')}</p>${runPerks()}<h3>被動規則</h3><p>${traitLabels(p).join(' · ')||'無'}。<br>${traitRuleLines(p).join('<br>')}<br>被動自動生效，不占主動技能預備欄。</p>`;}
-function showJournal(){const p=game.player,records=profile();modal(`<div class="eyebrow">ARCHIVE / FIELD INTELLIGENCE</div><h2>歷次部署紀錄。</h2><div class="journal-tabs"><button data-modal="journal">任務紀錄</button><button data-modal="bestiary">敵人圖鑑</button><button data-modal="help">操作指南</button></div><p>${game.missionSummary}</p>${runIsLive()?operatorStatus():''}<div class="result-stats"><div><b>${records.runs}</b>完成任務</div><div><b>${records.wins}</b>成功撤離</div><div><b>${records.bestFloor}/6</b>最深紀錄</div></div><h3>協定點數 ${records.protocol.balance}</h3><p>本次累積 ${game.protocol.earned} · 死亡仍保留。可用於職業與設施紀錄解鎖；目前已解鎖 ${availableCharacters(records).length} 個職業。</p>${endlessJournal(records)}<h3>待撤離確認 ${(game.pendingStories||[]).length}</h3>${(game.pendingStories||[]).map(id=>{const story=STORIES.find(s=>s.id===id);return `<p class="lore-entry"><strong>${escapeHTML(story?.title||'已封存')}</strong><br>${escapeHTML(story?.body||'')}</p>`;}).join('')}<h3>最近任務</h3>${records.history.length?records.history.slice(0,5).map(r=>`<p>${MISSIONS[r.mission]?.name||MISSIONS.extraction.name} · ${characterName(r.character)} · RUN ${r.seed} · ${r.outcome==='abandoned'?'放棄':r.won?'撤離':'陣亡'}${r.realMode?' · 真實模式':''} · ${r.floor} 層${Number.isInteger(r.level)?` · LV.${pad(r.level)}`:''} · ${r.kills} 擊殺 · ${r.turn} 回合${Array.isArray(r.mapGenerations)&&r.mapGenerations.length?` · 地圖 v${r.mapGenerations.join('/')}`:''}</p>`).join(''):'<p>第一次任務紀錄尚未完成。</p>'}<button class="modal-button" data-modal="close">返回戰場 →</button>`,true);}
+function operatorStatus(){const p=game.player;return `<h3>${t('controller.status.title')}</h3><p>${t('controller.status.armor',{v:characterName(p.character),armor:p.armor})}<br>${combatStatSummary(p)}${meleeSummary(p).map(line=>'<br>'+line).join('')}</p>${runPerks()}<h3>${t('controller.status.passives')}</h3><p>${t('controller.status.passivesLine',{v:traitLabels(p).join(' · ')||t('controller.none')})}<br>${traitRuleLines(p).join('<br>')}<br>${t('controller.status.passivesNote')}</p>`;}
+function showJournal(){const p=game.player,records=profile();modal(`<div class="eyebrow">ARCHIVE / FIELD INTELLIGENCE</div><h2>${t('controller.journal.title')}</h2><div class="journal-tabs"><button data-modal="journal">${t('controller.journal.missions')}</button><button data-modal="bestiary">${t('controller.journal.bestiary')}</button><button data-modal="help">${t('controller.journal.manual')}</button></div><p>${game.missionSummary}</p>${runIsLive()?operatorStatus():''}<div class="result-stats"><div><b>${records.runs}</b>${t('controller.journal.runs')}</div><div><b>${records.wins}</b>${t('controller.journal.wins')}</div><div><b>${records.bestFloor}/6</b>${t('controller.journal.deepest')}</div></div><h3>${t('controller.journal.protocol',{balance:records.protocol.balance})}</h3><p>${t('controller.journal.protocolNote',{earned:game.protocol.earned,v:availableCharacters(records).length})}</p>${endlessJournal(records)}<h3>${t('controller.journal.pending',{v:(game.pendingStories||[]).length})}</h3>${(game.pendingStories||[]).map(id=>{const story=STORIES.find(s=>s.id===id);return `<p class="lore-entry"><strong>${escapeHTML(story?.title||t('controller.journal.archived'))}</strong><br>${escapeHTML(story?.body||'')}</p>`;}).join('')}<h3>${t('controller.journal.recent')}</h3>${records.history.length?records.history.slice(0,5).map(r=>`<p>${t('controller.journal.row',{v:MISSIONS[r.mission]?.name||MISSIONS.extraction.name,v2:characterName(r.character),seed:r.seed,v3:r.outcome==='abandoned'?t('controller.journal.abandoned'):r.won?t('controller.journal.extracted'):t('controller.journal.died'),v4:r.realMode?t('controller.journal.real'):'',floor:r.floor,v5:Number.isInteger(r.level)?` · LV.${pad(r.level)}`:'',kills:r.kills,turn:r.turn,v6:Array.isArray(r.mapGenerations)&&r.mapGenerations.length?` ${t('controller.journal.mapVersion',{v:r.mapGenerations.join('/')})}`:''})}</p>`).join(''):t('controller.journal.noRuns')}<button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`,true);}
 // The codex names cards the way the current facility does (3.103.1, user request), so 步槍兵 in play is 步槍兵 here.
 // A variant still hides behind its parent when either the base or the facing name matches, which is what kept the
 // armoured and elite cards out of the list before the factions had their own names.
 function bestiary(){const codexName=id=>enemyName({type:id,faction:game.facilityFaction});
- modal(`<div class="eyebrow">HOSTILE DATABASE / 10</div><h2>已登錄的敵對目標。</h2><div class="bestiary">${Object.entries(ENEMY_TYPES).filter(([id,e])=>!e.variantOf||(e.name!==ENEMY_TYPES[e.variantOf].name&&codexName(id)!==codexName(e.variantOf))).map(([id,e])=>`<article><span class="enemy-token" style="--enemy:${e.color}">${enemyGlyph(id)}</span><div><h3>${codexName(id)}</h3><small>基礎生命 ${e.hp} · 射程 ${e.range} · 護甲 ${e.armor}</small><p>${e.role}</p><p>${traitLabels({traits:startingTraits(id,game.floor)}).join(' · ')||'無被動規則'}${floorTraitNote(id,TRAITS)}</p></div></article>`).join('')}</div><h3>被動規則</h3>${Object.values(TRAITS).map(t=>`<p><strong>${t.name}</strong>：${t.text}</p>`).join('')}<p>相反規則互相抵銷，同名多個來源不疊加。快速 → 普通 → 緩速，各階玩家優先，每人每回合行動一次。</p><button class="modal-button" data-modal="close">返回戰場 →</button>`,true);}
+ modal(`<div class="eyebrow">HOSTILE DATABASE / 10</div><h2>${t('controller.bestiary.title')}</h2><div class="bestiary">${Object.entries(ENEMY_TYPES).filter(([id,e])=>!e.variantOf||(e.name!==ENEMY_TYPES[e.variantOf].name&&codexName(id)!==codexName(e.variantOf))).map(([id,e])=>`<article><span class="enemy-token" style="--enemy:${e.color}">${enemyGlyph(id)}</span><div><h3>${codexName(id)}</h3><small>${t('controller.bestiary.stats',{hp:e.hp,range:e.range,armor:e.armor})}</small><p>${e.role}</p><p>${traitLabels({traits:startingTraits(id,game.floor)}).join(' · ')||t('controller.bestiary.noPassives')}${floorTraitNote(id,TRAITS)}</p></div></article>`).join('')}</div><h3>${t('controller.status.passives')}</h3>${Object.values(TRAITS).map(tr=>`<p><strong>${tr.name}</strong>${t('controller.bestiary.traitText',{trText:tr.text})}</p>`).join('')}<p>${t('controller.bestiary.rulesNote')}</p><button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`,true);}
 // 3.157.0: gear a class starts with beyond medkits and throwables (the ninja's decoys, mines and lines), for the operator list.
-const startingKit=id=>{const s=startingSupplies(id),kit=Object.values(PREPARED_CATALOG.item).filter(e=>e.resource&&e.resource!=='meds'&&s[e.resource]>0);return kit.length?' · '+kit.map(e=>`${e.short} ×${s[e.resource]}`).join('／'):'';};
-function showHelp(){modal(`<div class="eyebrow">FIELD MANUAL / BUILD ${VERSION}</div><h2>每一步，都有代價。</h2><p>${t('manual.intro')}</p><div class="help-grid"><b>${t('manual.directionsTitle')}</b><span>${t('manual.directions')}</span><b>${t('manual.fireTitle')}</b><span>${t('manual.fire')}</span><b>${t('manual.classesTitle')}</b><span>${t('manual.classes')}</span>${['soldier','recon','engineer','bulwark','berserker','ninja'].map(id=>`<b>${CHARACTERS[id].label}</b><span>${t(`manual.class.${id}`,{allies:t('manual.alliesTitle'),range:GRAPPLE_RANGE,ambush:MELEE_TUNING.ambush})}</span>`).join('')}<b>${t('manual.alliesTitle')}</b><span>${t('manual.allies',{carry:CARRY_DISTANCE})}</span><b>${t('manual.doorsTitle')}</b><span>${t('manual.doors')}</span><b>掩體</b><span>掩體朝向與來火偏角小於 45° 為完整，45° 起半效，約 63.4°（側向是正向兩倍）起無效。半效命中懲罰與減傷減半，多個掩體取最強、不疊加。牆角仍可探身，但平行來火不提供掩護；爆炸傷害不吃掩體減傷。</span><b>${t('manual.orderTitle')}</b><span>${t('manual.order')}</span><b>無盡與等級</b><span>${endlessRules()} ${levelCapRules()}</span><b>解鎖</b><span>${UNLOCK_HELP}</span><b>照明與感知</b><span>部分房間停電，目標在暗區時射擊命中 −40 個百分點，可與移動／掩體疊加，不額外減傷。夜視消除此懲罰；紅外線看穿煙霧但不穿牆、不自帶夜視。Recon 起始兩者都有；狙擊手有夜視、封鎖官有紅外線。生物或有任一感知被動者都會被震撼彈失能，機械也不例外；多條符合不重複結算。</span><b>命中率</b><span>暴露且靜止 97%；移動 −22%。完整箱體 −35、牆／隔板 −42 個百分點；半效為 −18／−21。完整減傷 45%、半效 22.5%，敵我規則相同。角落的半透明卡片顯示名稱、HP、命中率、距離與掩體；卡片不攔截觸控。</span><b>${t('manual.grenadeTitle')}</b><span>${t('manual.grenade')}</span><b>${t('manual.bagTitle')}</b><span>${t('manual.bag',{packLimit:PACK_LIMIT})}</span><b>${t('manual.supplyTitle')}</b><span>${t('manual.supply',{credit:TERMINAL_TUNING.credit,lineRange:LINE_TUNING.range})}</span><b>${t('manual.pursuitTitle')}</b><span>${t('manual.pursuit')}</span><b>壓制與學習資料</b><span>${suppressionHelp()}</span><b>危險</b><span>! 代表敵人蓄勢。紅色轟炸格兩回合後爆炸；綠色毒液與橘色高熱格會傷害站在上面的單位。</span><b>${t('manual.exitTitle')}</b><span>${t('manual.exit')}</span><b>存檔</b><span>每步自動儲存在目前瀏覽器；寫入失敗時上方會出現「⚠ 未存檔」。設定可匯出 / 匯入存檔，避免換裝置失去進度。</span></div><button class="modal-button" data-modal="close">收到，返回戰場 →</button>`,true);}
+const startingKit=id=>{const s=startingSupplies(id),kit=Object.values(PREPARED_CATALOG.item).filter(e=>e.resource&&e.resource!=='meds'&&s[e.resource]>0);return kit.length?' · '+kit.map(e=>`${e.short} ×${s[e.resource]}`).join(t('controller.slash')):'';};
+function showHelp(){modal(`<div class="eyebrow">FIELD MANUAL / BUILD ${VERSION}</div><h2>${t('manual.title')}</h2><p>${t('manual.intro')}</p><div class="help-grid"><b>${t('manual.directionsTitle')}</b><span>${t('manual.directions')}</span><b>${t('manual.fireTitle')}</b><span>${t('manual.fire')}</span><b>${t('manual.classesTitle')}</b><span>${t('manual.classes')}</span>${['soldier','recon','engineer','bulwark','berserker','ninja'].map(id=>`<b>${CHARACTERS[id].label}</b><span>${t(`manual.class.${id}`,{allies:t('manual.alliesTitle'),range:GRAPPLE_RANGE,ambush:MELEE_TUNING.ambush})}</span>`).join('')}<b>${t('manual.alliesTitle')}</b><span>${t('manual.allies',{carry:CARRY_DISTANCE})}</span><b>${t('manual.doorsTitle')}</b><span>${t('manual.doors')}</span><b>${t('manual.coverTitle')}</b><span>${t('manual.cover')}</span><b>${t('manual.orderTitle')}</b><span>${t('manual.order')}</span><b>${t('manual.endlessTitle')}</b><span>${endlessRules()} ${levelCapRules()}</span><b>${t('manual.unlockTitle')}</b><span>${UNLOCK_HELP}</span><b>${t('manual.lightTitle')}</b><span>${t('manual.light')}</span><b>${t('manual.hitTitle')}</b><span>${t('manual.hit')}</span><b>${t('manual.grenadeTitle')}</b><span>${t('manual.grenade')}</span><b>${t('manual.bagTitle')}</b><span>${t('manual.bag',{packLimit:PACK_LIMIT})}</span><b>${t('manual.supplyTitle')}</b><span>${t('manual.supply',{credit:TERMINAL_TUNING.credit,lineRange:LINE_TUNING.range})}</span><b>${t('manual.pursuitTitle')}</b><span>${t('manual.pursuit')}</span><b>${t('manual.suppressTitle')}</b><span>${suppressionHelp()}</span><b>${t('manual.dangerTitle')}</b><span>${t('manual.danger')}</span><b>${t('manual.exitTitle')}</b><span>${t('manual.exit')}</span><b>${t('manual.saveTitle')}</b><span>${t('manual.save')}</span></div><button class="modal-button" data-modal="close">${t('manual.close')}</button>`,true);}
 function settings(){
   // 主選單進來只顯示全域設定；局內功能（指南、升級、簡介、放棄、重新部署）留在遊戲中的選單。
   const simulating=isSimulation(game),inRun=runIsLive(),sec=label=>`<div class="eyebrow settings-section">${label}</div>`;
-  modal(`<div class="eyebrow">SYSTEM / BUILD ${VERSION}</div><h2>${inRun?'作戰設定':'系統設定'}</h2>${inRun?runPerks():''}
-<p>${inRun?`${characterName(game.player.character)} · ${simulating?simulationLabel(game):`任務 ${game.seed} · 第 ${game.floor} 層`} · ${game.turn} 回合`:`協定點數 ${profile().protocol.balance}`}<br>${simulating?'模擬不保存中途進度。':storage.available?'進度已自動儲存。':'本機儲存不可用，請匯出存檔保留進度。'}</p>
-${sec('聲音')}
-<button class="modal-button secondary" data-modal="sound" aria-pressed="${audio.enabled}">聲音：${audio.enabled?'開啟':'關閉'}</button>
-<label class="boundary-opacity" for="music-volume">音樂音量 <output id="music-volume-value" for="music-volume">${Math.round(audio.musicVolume*100)}%</output><input id="music-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.musicVolume*100)}"></label>
-<label class="boundary-opacity" for="sfx-volume">音效音量 <output id="sfx-volume-value" for="sfx-volume">${Math.round(audio.sfxVolume*100)}%</output><input id="sfx-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.sfxVolume*100)}"></label>
+  modal(`<div class="eyebrow">SYSTEM / BUILD ${VERSION}</div><h2>${inRun?t('settings.titleRun'):t('settings.titleSystem')}</h2>${inRun?runPerks():''}
+<p>${inRun?`${t('settings.runLine',{v:characterName(game.player.character),v2:simulating?simulationLabel(game):`${t('controller.settings.missionLine',{seed:game.seed,floor:game.floor})}`,turn:game.turn})}`:`${t('settings.protocol',{v:profile().protocol.balance})}`}<br>${simulating?t('settings.simNoSave'):storage.available?t('settings.saved'):t('settings.noStorage')}</p>
+${sec(t('settings.languageSection'))}
+<button class="modal-button secondary" data-modal="language" lang="en">${t('settings.languageLabel',{name:LANGUAGE_NAMES[language()]})}</button>
+<p>${t('settings.languageNote')}</p>
+${sec(t('settings.sound'))}
+<button class="modal-button secondary" data-modal="sound" aria-pressed="${audio.enabled}">${t('settings.soundLabel',{v:audio.enabled?t('controller.on'):t('controller.off')})}</button>
+<label class="boundary-opacity" for="music-volume">${t('settings.musicVolume')} <output id="music-volume-value" for="music-volume">${Math.round(audio.musicVolume*100)}%</output><input id="music-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.musicVolume*100)}"></label>
+<label class="boundary-opacity" for="sfx-volume">${t('settings.sfxVolume')} <output id="sfx-volume-value" for="sfx-volume">${Math.round(audio.sfxVolume*100)}%</output><input id="sfx-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.sfxVolume*100)}"></label>
 <p>${t('settings.music')}</p>
-<button class="modal-button secondary" data-modal="audioGrit" aria-pressed="${audio.grit!=='off'}">訊號雜訊：${GRIT_LABELS[audio.grit]}</button>
+<button class="modal-button secondary" data-modal="audioGrit" aria-pressed="${audio.grit!=='off'}">${t('settings.gritLabel',{v:GRIT_LABELS[audio.grit]})}</button>
 <p>${t('settings.grit')}</p>
-${sec('顯示')}
-${inRun?`<div class="modal-row"><button class="modal-button secondary" data-modal="help">作戰指南</button><button class="modal-button secondary" data-modal="log">戰鬥紀錄</button></div>`:''}
-<button class="modal-button secondary" data-modal="movementBoundaries" aria-pressed="${renderer.movementBoundaries}">移動邊界白線：${renderer.movementBoundaries?'開啟':'關閉'}</button>
-<p>沿可見牆與障礙物標示輪廓；斷點不延伸。門另以綠線表示關閉、兩側綠點表示開啟。</p>
-<label class="boundary-opacity" for="boundary-opacity">白線不透明度 <output id="boundary-opacity-value" for="boundary-opacity">${renderer.boundaryOpacity}%</output><input id="boundary-opacity" type="range" min="0" max="100" step="5" value="${renderer.boundaryOpacity}" aria-describedby="boundary-opacity-help"></label>
+${sec(t('settings.display'))}
+${inRun?t('settings.inRunButtons'):''}
+<button class="modal-button secondary" data-modal="movementBoundaries" aria-pressed="${renderer.movementBoundaries}">${t('settings.boundsLabel',{v:renderer.movementBoundaries?t('controller.on'):t('controller.off')})}</button>
+<p>${t('settings.bounds')}</p>
+<label class="boundary-opacity" for="boundary-opacity">${t('settings.opacityLabel')} <output id="boundary-opacity-value" for="boundary-opacity">${renderer.boundaryOpacity}%</output><input id="boundary-opacity" type="range" min="0" max="100" step="5" value="${renderer.boundaryOpacity}" aria-describedby="boundary-opacity-help"></label>
 <p id="boundary-opacity-help">${t('settings.opacity')}</p>
-<button class="modal-button secondary" data-modal="skipPresentation" aria-pressed="${skipPresentation}">演出中按指令直接執行：${skipPresentation?'開啟':'關閉'}</button>
-<p>開啟時，上一回合的動畫還沒播完就按下一個指令，會立刻結束動畫並執行；關閉時要等動畫播完。本回合陣亡或任務結束時一定會播完。</p>
-<button class="modal-button secondary" data-modal="autoRetarget" aria-pressed="${autoRetarget}">目標超出射程時自動改鎖最近的敵人：${autoRetarget?'開啟':'關閉'}</button>
+<button class="modal-button secondary" data-modal="skipPresentation" aria-pressed="${skipPresentation}">${t('settings.skipLabel',{v:skipPresentation?t('controller.on'):t('controller.off')})}</button>
+<p>${t('settings.skip')}</p>
+<button class="modal-button secondary" data-modal="autoRetarget" aria-pressed="${autoRetarget}">${t('settings.retargetLabel',{v:autoRetarget?t('controller.on'):t('controller.off')})}</button>
 <p>${t('settings.retarget')}</p>
-<button class="modal-button secondary" data-modal="frameRate" aria-pressed="${renderer.frameRate!==60}">畫面更新：每秒 ${renderer.frameRate} 次</button>
+<button class="modal-button secondary" data-modal="frameRate" aria-pressed="${renderer.frameRate!==60}">${t('settings.fpsLabel',{frameRate:renderer.frameRate})}</button>
 <p>${t('settings.fps')}</p>
-<label class="boundary-opacity" for="screen-brightness">畫面明度 <output id="screen-brightness-value" for="screen-brightness">${screenBrightness}%</output><input id="screen-brightness" type="range" min="${SCREEN_BRIGHTNESS.min}" max="${SCREEN_BRIGHTNESS.max}" step="${SCREEN_BRIGHTNESS.step}" value="${screenBrightness}" aria-describedby="screen-brightness-help"></label>
+<label class="boundary-opacity" for="screen-brightness">${t('settings.brightnessLabel')} <output id="screen-brightness-value" for="screen-brightness">${screenBrightness}%</output><input id="screen-brightness" type="range" min="${SCREEN_BRIGHTNESS.min}" max="${SCREEN_BRIGHTNESS.max}" step="${SCREEN_BRIGHTNESS.step}" value="${screenBrightness}" aria-describedby="screen-brightness-help"></label>
 <p id="screen-brightness-help">${t('settings.brightness')}</p>
-<button class="modal-button secondary" data-modal="vhs" aria-pressed="${vhsFilter}">VHS 濾鏡：${vhsFilter?'開啟':'關閉'}</button>
+<button class="modal-button secondary" data-modal="vhs" aria-pressed="${vhsFilter}">${t('settings.vhsLabel',{v:vhsFilter?t('controller.on'):t('controller.off')})}</button>
 <p>${t('settings.vhs')}</p>
-<button class="modal-button secondary" data-modal="shake" aria-pressed="${renderer.shakeEnabled}">畫面震動：${renderer.shakeEnabled?'開啟':'關閉'}</button>
+<button class="modal-button secondary" data-modal="shake" aria-pressed="${renderer.shakeEnabled}">${t('settings.shakeLabel',{v:renderer.shakeEnabled?t('controller.on'):t('controller.off')})}</button>
 <p>${t('settings.shake')}</p>
-<button class="modal-button secondary" data-modal="glitch" aria-pressed="${renderer.glitchEnabled}">訊號干擾：${renderer.glitchEnabled?'開啟':'關閉'}</button>
+<button class="modal-button secondary" data-modal="glitch" aria-pressed="${renderer.glitchEnabled}">${t('settings.glitchLabel',{v:renderer.glitchEnabled?t('controller.on'):t('controller.off')})}</button>
 <p>${t('settings.glitch')}</p>
 <p>${t('settings.motion')}</p>
-<div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">操作區排版：${DECK_LAYOUT_LABELS[padLayout]}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>方向鍵大小：${padLayout==='grid'?'格狀不適用':`${PAD_LABELS[padCell]}（${padCell}）`}</button></div>
+<div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">${t('settings.layoutLabel',{v:DECK_LAYOUT_LABELS[padLayout]})}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>${t('settings.padLabel',{v:padLayout==='grid'?t('settings.padNotGrid'):`${t('settings.padSize',{v:PAD_LABELS[padCell],padCell})}`})}</button></div>
 <p>${t('settings.layout')}</p>
-<button class="modal-button secondary" data-modal="deckEditor" ${padLayout==='grid'?'':'disabled'}>編輯按鈕位置${padLayout==='grid'?'':'（格狀限定）'}</button>
-${sec('鍵盤')}
-<button class="modal-button secondary" data-modal="hotkeyHints" aria-pressed="${hotkeyHints}">按鈕上顯示熱鍵：${hotkeyHints?'開啟':'關閉'}</button>
+<button class="modal-button secondary" data-modal="deckEditor" ${padLayout==='grid'?'':'disabled'}>${t('settings.editDeck',{v:padLayout==='grid'?'':t('settings.gridOnly')})}</button>
+${sec(t('settings.keyboard'))}
+<button class="modal-button secondary" data-modal="hotkeyHints" aria-pressed="${hotkeyHints}">${t('settings.hintsLabel',{v:hotkeyHints?t('controller.on'):t('controller.off')})}</button>
 <p>${t('settings.hotkeys')}</p>
-<button class="modal-button secondary" data-modal="hotkeys">熱鍵設定</button>
-<p>每個指令可以設兩個按鍵。Esc 固定是選單與取消。</p>
-${sec('存檔')}
-<div class="modal-row"><button class="modal-button secondary" data-modal="backupExport">完整備份</button>${simulating?'':'<button class="modal-button secondary" data-modal="backupImport">還原備份</button>'}</div>
-${read('ash-backup-before-restore')?'<button class="modal-button secondary" data-modal="backupPrevious">下載還原前備份</button>':''}
-${simulating?'<p>模擬中：完整備份保存的是原本的戰役；還原、單局匯出入與重置要先結束模擬。</p>':`<p>完整備份包含點數、解鎖、任務歷史與目前任務。下方僅匯出／匯入單局任務。</p>
-<div class="modal-row"><button class="modal-button secondary" data-modal="export">匯出任務</button><button class="modal-button secondary" data-modal="import">匯入任務</button></div>`}
+<button class="modal-button secondary" data-modal="hotkeys">${t('settings.hotkeysButton')}</button>
+<p>${t('settings.keymapNote')}</p>
+${sec(t('settings.saveSection'))}
+<div class="modal-row"><button class="modal-button secondary" data-modal="backupExport">${t('settings.fullBackup')}</button>${simulating?'':t('settings.restore')}</div>
+${read('ash-backup-before-restore')?t('settings.previousBackup'):''}
+${simulating?t('settings.simBackup'):t('settings.backupBlock')}
 ${TEST_MODE?`${sec('測試：操作紀錄')}<div class="modal-row"><button class="modal-button secondary" data-modal="replayLoad">播放操作紀錄</button><button class="modal-button secondary" data-modal="replayFast">快速播放</button></div>
 <div class="modal-row"><button class="modal-button secondary" data-modal="recordStart" ${runIsLive()&&!simulating?'':'disabled'}>從現在開始記錄</button><button class="modal-button secondary" data-modal="recordDownload" ${recording?.game===game?'':'disabled'}>下載操作紀錄</button></div>
 <p>只在測試模式出現。操作紀錄來自 tools/text-play.mjs 或這裡的記錄；播放時畫面照常演出，每一步都和紀錄的狀態比對，不同就暫停。播放中不接受操作，左下角可以暫停或停止，停止後可以接手玩。</p>`:''}
-${sec('紀錄')}
-<button class="modal-button secondary" data-modal="journal">幹員狀態、任務紀錄與敵人圖鑑</button>
-${simulating?`${sec('模擬')}<button class="modal-button secondary" data-modal="mission">模擬說明</button><button class="modal-button secondary" data-modal="khMenu">結束模擬</button>`:inRun?`${sec('本局')}<button class="modal-button secondary" data-modal="mission">任務簡介</button><button class="modal-button secondary" data-modal="abandon" ${game.status!=='playing'?'disabled':''}>放棄本局（保留永久進度）</button><button class="modal-button secondary" data-modal="restart">重新部署新任務</button>`:''}
-${simulating?'':`${sec('危險')}
-<button class="modal-button secondary" data-modal="resetProgress">重置遊戲進度</button>`}
-<button class="modal-button" data-modal="close">${inRun?simulating?'繼續模擬 →':'繼續任務 →':'← 返回主選單'}</button>`);
+${sec(t('settings.records'))}
+<button class="modal-button secondary" data-modal="journal">${t('settings.journal')}</button>
+${simulating?`${sec(t('settings.simSection'))}<button class="modal-button secondary" data-modal="mission">${t('settings.simBrief')}</button><button class="modal-button secondary" data-modal="khMenu">${t('settings.endSim')}</button>`:inRun?`${sec(t('settings.runSection'))}<button class="modal-button secondary" data-modal="mission">${t('settings.briefing')}</button><button class="modal-button secondary" data-modal="abandon" ${game.status!=='playing'?'disabled':''}>${t('settings.abandon')}</button><button class="modal-button secondary" data-modal="restart">${t('settings.redeploy')}</button>`:''}
+${simulating?'':`${sec(t('settings.dangerSection'))}
+<button class="modal-button secondary" data-modal="resetProgress">${t('settings.reset')}</button>`}
+<button class="modal-button" data-modal="close">${inRun?simulating?t('settings.continueSim'):t('settings.continueRun'):t('controller.backToTitle')}</button>`);
 }
 // The result sheet reports on a run that is over, so it belongs to the title flow as well (3.98.1, user request):
 // full screen and back up at the top, not a bottom sheet with the finished battle showing above it. 查看最後戰場
 // is still how you look at the map.
-function showResult(){titleFlow=true;if(isSimulation(game)){showSimulationResult();return;}const won=game.status==='won',abandoned=game.status==='abandoned',p=game.player,copy=resultCopy(game);modal(`<div class="eyebrow">${copy.eyebrow} / RUN ${game.seed}${game.realMode?' / REAL':''}</div><h2>${copy.title}</h2><p>${copy.body}</p><p>${game.missionSummary}</p>${purgeReportMarkup(game)}${resultStoriesMarkup(game,profile())}${isEndless(game)?`<div class="result-stats"><div><b>${pad(game.floor)}</b>到達深度</div><div><b>${pad(p.level)}</b>等級</div><div><b>${p.kills}</b>消滅敵人</div></div>${endlessResult(p,abandoned)}<p>行動 ${game.turn} 回合</p>`:`<div class="result-stats"><div><b>${pad(game.deepestFloor)}</b>最深樓層</div><div><b>${p.kills}</b>消滅敵人</div><div><b>${game.turn}</b>行動回合</div></div>`}<p>${game.realMode?`真實模式 · 本次協定點數 +${protocolSettlement(game).base}，真實加成 +${protocolSettlement(game).bonus}`:`本次協定點數 +${game.protocol.earned}`} · 累計持有 ${profile().protocol.balance}<br>死亡仍保留，可在 UNLOCKS 解鎖職業與設施紀錄。</p><div class="operator-identity result-identity">${portraitMarkup(p.portrait,game.status)}<p>${characterName(p.character)}<br>總傷害 ${p.stats.damage} · 投擲 ${p.stats.grenades} · 資料 ${p.lore.length}/6</p></div><div class="modal-footer"><button class="modal-button secondary" data-modal="lastBattle">查看最後戰場</button>${game.status==='dead'?'<button class="modal-button secondary" data-modal="deploy">重新部署</button><button class="modal-button" data-modal="redeploySame">繼續投入幹員</button>':'<button class="modal-button" data-modal="deploy">重新部署 →</button>'}</div>`);}
+function showResult(){titleFlow=true;if(isSimulation(game)){showSimulationResult();return;}const won=game.status==='won',abandoned=game.status==='abandoned',p=game.player,copy=resultCopy(game);modal(`<div class="eyebrow">${copy.eyebrow} / RUN ${game.seed}${game.realMode?' / REAL':''}</div><h2>${copy.title}</h2><p>${copy.body}</p><p>${game.missionSummary}</p>${purgeReportMarkup(game)}${resultStoriesMarkup(game,profile())}${isEndless(game)?`<div class="result-stats"><div><b>${pad(game.floor)}</b>${t('controller.result.depth')}</div><div><b>${pad(p.level)}</b>${t('controller.result.level')}</div><div><b>${p.kills}</b>${t('controller.result.kills')}</div></div>${endlessResult(p,abandoned)}<p>${t('controller.result.turns',{turn:game.turn})}</p>`:`<div class="result-stats"><div><b>${pad(game.deepestFloor)}</b>${t('controller.result.deepest')}</div><div><b>${p.kills}</b>${t('controller.result.kills')}</div><div><b>${game.turn}</b>${t('controller.result.turnCount')}</div></div>`}<p>${t('controller.result.protocolTotal',{v:game.realMode?`${t('controller.result.realProtocol',{v:protocolSettlement(game).base,v2:protocolSettlement(game).bonus})}`:`${t('controller.result.protocol',{earned:game.protocol.earned})}`,v2:profile().protocol.balance})}<br>${t('controller.result.protocolNote')}</p><div class="operator-identity result-identity">${portraitMarkup(p.portrait,game.status)}<p>${characterName(p.character)}<br>${t('controller.result.stats',{damage:p.stats.damage,grenades:p.stats.grenades,loreLength:p.lore.length})}</p></div><div class="modal-footer"><button class="modal-button secondary" data-modal="lastBattle">${t('controller.result.lastBattle')}</button>${game.status==='dead'?t('controller.result.deadButtons'):t('controller.result.redeploy')}</div>`);}
 // Kill house sessions (docs/KILLHOUSE.md section 10). A simulation replaces the game on screen without abandoning or
 // saving the campaign; leaving puts the stashed campaign back exactly as it was.
 let simulationReturn=null;const simulationResults=new WeakMap();
 function startSimulation(options){
-  if(options.mode==='arcade'&&!availableCharacters(profile()).includes(options.character||'soldier')){notify('職業尚未解鎖。');return;}
+  if(options.mode==='arcade'&&!availableCharacters(profile()).includes(options.character||'soldier')){notify(t('controller.classLocked'));return;}
   let next;try{next=startKillhouse(options);}catch(error){notify(error.message,{danger:true});return;}
   if(!isSimulation(game))simulationReturn={game,entered,resumable};
   game=next;entered=true;playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();
@@ -923,8 +928,8 @@ function showSimulationResult(){
   if(!simulationResults.has(game))simulationResults.set(game,simulationResultMarkup());
   const html=simulationResults.get(game);if(!html){exitSimulation();showIntro();return;}modal(html);
 }
-function newGame(seed,character,mission,options={facilityFaction:'random'}){if(isSimulation(game))exitSimulation();const portrait=deploymentFaces[character];if(!availableCharacters(profile()).includes(character)||!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify('請選擇有效角色。');return;}if(game.status==='playing'&&(entered||resumable)){try{abandonRun(game);}catch(error){backupError(error);return;}}entered=true;resumable=false;game=startCampaign({seed,character,portrait,mission,options});playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();}
-function exportSave(){const blob=new Blob([game.serialize()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`ash-protocol-${game.seed}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('存檔已匯出。');}
+function newGame(seed,character,mission,options={facilityFaction:'random'}){if(isSimulation(game))exitSimulation();const portrait=deploymentFaces[character];if(!availableCharacters(profile()).includes(character)||!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify(t('controller.pickValidCharacter'));return;}if(game.status==='playing'&&(entered||resumable)){try{abandonRun(game);}catch(error){backupError(error);return;}}entered=true;resumable=false;game=startCampaign({seed,character,portrait,mission,options});playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();}
+function exportSave(){const blob=new Blob([game.serialize()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`ash-protocol-${game.seed}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify(t('controller.saveExported'));}
 function downloadJSON(raw,name){const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 // Layout editor (3.102.0, user request): tap one cell then another and they swap, which reaches any arrangement
 // without a function picker. Only 格狀 is editable, because only its cells are interchangeable.
@@ -943,7 +948,7 @@ function pickDeckSlot(index){
   if(deckPick===index){deckPick=null;showDeckEditor();return;}
   deckLayout=swapSlots(deckLayout,deckPick,index);deckPick=null;saveDeckLayout();showDeckEditor();
 }
-function backupError(error){modal(`<h2>備份操作未完成</h2><p>${escapeHTML(error.message)}</p><button class="modal-button" data-modal="backupCancel">返回設定</button>`);}
+function backupError(error){modal(`<h2>${t('controller.backup.failedTitle')}</h2><p>${escapeHTML(error.message)}</p><button class="modal-button" data-modal="backupCancel">${t('controller.backToSettings')}</button>`);}
 function adoptSnapshot(next){
   game=next.game?connectUnlocks(next.game):new Game(undefined,profile().unlocks.weapons,profile().upgrades.carrying);entered=Boolean(next.game);resumable=Boolean(next.game);
   playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;
@@ -953,16 +958,16 @@ function applyBackup(){
   if(!pendingBackup)return;
   try{
     const next=restoreBackup(pendingBackup,game);pendingBackup=null;
-    adoptSnapshot(next);notify('完整備份已還原；原資料可在設定下載。');
+    adoptSnapshot(next);notify(t('controller.backup.restored'));
   }catch(error){backupError(error);}
 }
 
 $('#import-backup').addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;pendingBackup=null;
   try{
-    if(file.size>BACKUP_LIMIT)throw new Error('備份檔案超過 5 MB 限制。');
+    if(file.size>BACKUP_LIMIT)throw new Error(t('controller.backup.tooLarge'));
     const raw=await file.text(),next=previewBackup(raw),p=next.snapshot.profile;pendingBackup=raw;
-    modal(`<div class="eyebrow">RESTORE BACKUP</div><h2>還原這份完整備份？</h2><p>${escapeHTML(file.name)}<br>${escapeHTML(new Date(next.snapshot.createdAt).toLocaleString('zh-TW'))}</p><p>協定點數：${profile().protocol.balance} → ${p.protocol.balance}<br>任務紀錄：${p.runs} 次 · 職業 ${p.unlocks.characters.length} · 紀錄 ${p.unlocks.stories?.length||0}<br>${next.game?`備份任務 ${next.game.seed} · 第 ${next.game.floor} 層 · ${next.game.turn} 回合`:'備份沒有進行中的任務，還原後可開始新任務。'}</p><p>點數、紀錄與目前任務會以備份快照替換。還原前會自動保存原資料，可回設定下載。</p><button class="modal-button" data-modal="backupConfirm">確認還原</button><button class="modal-button secondary" data-modal="backupCancel">取消</button>`);
+    modal(`<div class="eyebrow">RESTORE BACKUP</div><h2>${t('controller.backup.confirmTitle')}</h2><p>${escapeHTML(file.name)}<br>${escapeHTML(new Date(next.snapshot.createdAt).toLocaleString('zh-TW'))}</p><p>${t('controller.backup.protocol',{v:profile().protocol.balance,balance:p.protocol.balance})}<br>${t('controller.backup.records',{runs:p.runs,charactersLength:p.unlocks.characters.length,v:p.unlocks.stories?.length||0})}<br>${next.game?`${t('controller.backup.mission',{seed:next.game.seed,floor:next.game.floor,turn:next.game.turn})}`:t('controller.backup.noMission')}</p><p>${t('controller.backup.replaceNote')}</p><button class="modal-button" data-modal="backupConfirm">${t('controller.backup.confirm')}</button><button class="modal-button secondary" data-modal="backupCancel">${t('controller.cancel')}</button>`);
   }catch(error){backupError(error);}e.target.value='';
 });
 
@@ -991,7 +996,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.packInfo){const desc=document.getElementById('pack-desc-'+b.dataset.packInfo);if(desc){desc.hidden=!desc.hidden;b.setAttribute('aria-expanded',String(!desc.hidden));}return;}
   if(b.dataset.inventoryTab){showInventory(b.dataset.inventoryTab);$(`[data-inventory-tab="${inventoryTab}"]`).focus({preventScroll:true});return;}
   if(b.dataset.useItem){const id=b.dataset.useItem,entry=PREPARED_CATALOG.item[id],reason=itemUseReason(game,id);
-    if(reason){showInventory('item',reason+'。');return;}
+    if(reason){showInventory('item',reason+t('controller.period'));return;}
     if(entry.aim==='side'){close();startDeploy();return;}
     if(entry.aim==='throw'){close();startThrowAim(id);return;}
     modalAction(entry.action);return;}
@@ -999,7 +1004,7 @@ document.addEventListener('click',e=>{
     const category=b.dataset.prepareCategory,id=b.dataset.prepareId||null;
     // Putting a wearable on or taking it off costs a turn, so it closes the pack and resolves like any other action.
     if(game.actionCost('prepare',{category,id})>0){modalAction('prepare',{category,id});return;}
-    if(game.action('prepare',{category,id})){update();showInventory(category,id?'已預備，不耗回合。':'已取消預備，不耗回合。');$(`[data-inventory-tab="${category}"]`).focus({preventScroll:true});}return;
+    if(game.action('prepare',{category,id})){update();showInventory(category,id?t('controller.pack.readiedFree'):t('controller.pack.unreadiedFree'));$(`[data-inventory-tab="${category}"]`).focus({preventScroll:true});}return;
   }
   if(b.dataset.context){close();if(b.dataset.context.startsWith('objective:')){act('recoverObjective',b.dataset.context.slice(10));return;}if(b.dataset.context.startsWith('case:')){act('openContainer',b.dataset.context.slice(5));return;}if(b.dataset.context.startsWith('door:')){const door=game.nearbyDoors.find(d=>d.id===b.dataset.context.slice(5));if(door)act('door',{id:door.id,open:!door.open});}else if(b.dataset.context==='bag')showInventory('weapon');else if(b.dataset.context==='terminal')showTerminal();else if(b.dataset.context==='operator')recoverCorpse();else if(b.dataset.context==='exitStep'){if(exitStep(game))act('move',exitStep(game));}else act('interact');return;}
   if(b.dataset.move){move(...b.dataset.move.split(',').map(Number));return;}
@@ -1007,13 +1012,13 @@ document.addEventListener('click',e=>{
   if(b.dataset.perk){game.choosePerk(b.dataset.perk);$('#modal').close();update();return;}
   if(b.dataset.equip!==undefined){modalAction('weapon',Number(b.dataset.equip));return;}
   // 3.136.0 (user decision): which melee weapon a bump uses is picked in the pack, like a prepared grenade; it is free.
-  if(b.dataset.bump!==undefined){const slot=Number(b.dataset.bump);if(game.action('meleeChoice',slot)){update();showInventory('weapon',`撞擊時使用${game.weaponAt(slot).name}，不耗回合。`);}return;}
+  if(b.dataset.bump!==undefined){const slot=Number(b.dataset.bump);if(game.action('meleeChoice',slot)){update();showInventory('weapon',`${t('controller.pack.meleeChoice',{v:game.weaponAt(slot).name})}`);}return;}
   if(b.dataset.compare!==undefined){showWeaponComparison(Number(b.dataset.compare),b.dataset.against===undefined?game.player.weapon:Number(b.dataset.against));return;}
   if(b.dataset.replace!==undefined){modalAction('replaceWeapon',{take:Number(b.dataset.replace),leave:Number(b.dataset.leave)});return;}
   if(b.dataset.take!==undefined){modalAction('takeWeapon',Number(b.dataset.take));return;}
-  if(b.dataset.salvage!==undefined){const index=Number(b.dataset.salvage);modal(`<div class="eyebrow">SALVAGE WEAPON</div><h2>拆解${game.weaponAt(index).name}？</h2><p>回收彈匣內的備彈與廢料。武器將從背包移除，耗費 1 回合。</p><button class="modal-button" data-confirm-salvage="${index}">確認拆解</button><button class="modal-button secondary" data-modal="bag">返回背包</button>`);return;}
+  if(b.dataset.salvage!==undefined){const index=Number(b.dataset.salvage);modal(`<div class="eyebrow">SALVAGE WEAPON</div><h2>${t('controller.salvage.title',{v:game.weaponAt(index).name})}</h2><p>${t('controller.salvage.body')}</p><button class="modal-button" data-confirm-salvage="${index}">${t('controller.salvage.confirm')}</button><button class="modal-button secondary" data-modal="bag">${t('controller.backToPack')}</button>`);return;}
   if(b.dataset.salvageGround!==undefined){const slot=Number(b.dataset.salvageGround),level=game.player.upgrades[slot]||0;
-    modal(`<div class="eyebrow">SALVAGE ON SITE</div><h2>就地拆解${game.weaponAt(slot).name}？</h2><p>不撿起來，直接在原地拆掉：回收彈匣內的 ${game.player.ammo[slot]} 發與 ${salvageValue(game.player,slot)} 廢料，武器消失，耗費 1 回合。</p><button class="modal-button" data-confirm-salvage-ground="${slot}">確認拆解</button><button class="modal-button secondary" data-modal="bag">返回背包</button>`);return;}
+    modal(`<div class="eyebrow">SALVAGE ON SITE</div><h2>${t('controller.salvage.groundTitle',{v:game.weaponAt(slot).name})}</h2><p>${t('controller.salvage.groundBody',{v:game.player.ammo[slot],v2:salvageValue(game.player,slot)})}</p><button class="modal-button" data-confirm-salvage-ground="${slot}">${t('controller.salvage.confirm')}</button><button class="modal-button secondary" data-modal="bag">${t('controller.backToPack')}</button>`);return;}
   if(b.dataset.confirmSalvageGround!==undefined){modalAction('salvageGround',Number(b.dataset.confirmSalvageGround));return;}
   if(b.dataset.confirmSalvage!==undefined){modalAction('salvage',Number(b.dataset.confirmSalvage));return;}
   if(b.dataset.feedOption){feedAction({optionId:b.dataset.feedOption});return;}
@@ -1022,7 +1027,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.confirmFeedWeapon!==undefined){feedAction({optionId:'weapon',weaponSlot:Number(b.dataset.confirmFeedWeapon)});return;}
   if(b.dataset.petOutput){const kind=b.dataset.petOutput,reason=outputChoiceReason(game,{kind});if(reason){showInventory('skill',reason+'。');return;}
     if(game.action('setPetOutput',{kind})){update();showInventory('skill',`排出種類改為${GRENADES[kind].name}，不耗回合。`);}return;}
-  if(b.dataset.learn){const id=b.dataset.learn,entry=LEARNING_ITEMS[id];if(game.action('learn',id)){persist();update();showInventory('item',`已學會${(entry?.name||'').replace('學習資料','')}，${entry?.trait?'立即生效':'到技能分頁預備後使用'}。不耗回合。`);}else showInventory('item');return;}
+  if(b.dataset.learn){const id=b.dataset.learn,entry=LEARNING_ITEMS[id];if(game.action('learn',id)){persist();update();showInventory('item',t(entry?.trait?'controller.learnedPassive':'controller.learnedSkill',{name:(entry?.trait?TRAITS[entry.trait]?.name:SKILLS[entry?.skills?.[0]]?.name)??''}));}else showInventory('item');return;}
   if(b.dataset.unlockTab){showUnlocks(b.dataset.unlockTab);return;}
   if(b.dataset.unlockBuy){confirmUnlock(b.dataset.unlockBuy);return;}
   if(b.dataset.unlockConfirm){buyUnlock(b.dataset.unlockConfirm);return;}
@@ -1034,7 +1039,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.bagAction){modalAction(b.dataset.bagAction);return;}
   if(hotkeyCapture&&!b.dataset.hotkeySlot)hotkeyCapture=null;   // any other button ends the wait for a key
   if(b.dataset.hotkeySlot){const [id,slot]=b.dataset.hotkeySlot.split(':');hotkeyCapture={id,slot:Number(slot)};showHotkeys();return;}
-  if(b.dataset.hotkeyReset!==undefined){saveHotkeys(defaultBindings());showHotkeys('已恢復預設按鍵。');return;}
+  if(b.dataset.hotkeyReset!==undefined){saveHotkeys(defaultBindings());showHotkeys(t('controller.keys.restored'));return;}
   if(b.dataset.hotkeyCancel!==undefined){hotkeyCapture=null;showHotkeys();return;}
   if(b.dataset.terminalPick){showTerminalDeal(b.dataset.terminalPick);return;}
   if(b.dataset.tradeStep&&terminalDraft){const id=b.dataset.tradeStep,max=tradeHoldings(game).find(row=>row.id===id)?.max||0,next=Math.max(0,Math.min(max,(terminalDraft.trade[id]||0)+Number(b.dataset.step)));if(next)terminalDraft.trade[id]=next;else delete terminalDraft.trade[id];refreshTerminalDeal();return;}
@@ -1047,13 +1052,13 @@ document.addEventListener('click',e=>{
     // 3.114.0 (user request): after a loss, the same mission, seed and options with only the operative chosen again.
     case 'redeploySame':{const plan=retryPlan(game);deploymentFaces=deploymentPortraits(Object.keys(CHARACTERS));deployDraft={mode:'retry',mission:plan.mission,seed:plan.seed,character:plan.character,retry:plan.options};showDeployOperator();break;}
     case 'retryStart':{const character=$('input[name="character"]:checked')?.value,color=$('input[name="operator-color"]:checked')?.value;
-      if(!validCharacter(character)){notify('請選擇有效幹員。');return;}
+      if(!validCharacter(character)){notify(t('controller.pickValidOperator'));return;}
       if(validOperatorColor(color)){renderer.operatorColor=color;write('ash-operator-color',color);}
       newGame(deployDraft.seed,character,deployDraft.mission,deployDraft.retry);break;}
-    case 'abandon':modal('<h2>放棄本局？</h2><p>結束目前任務，保留已賺的協定點數、解鎖與紀錄。這不算成功撤離。確認前會自動保存完整備份。</p><button class="modal-button" data-modal="abandonConfirm">確認放棄本局</button><button class="modal-button secondary" data-modal="settings">取消</button>');break;
+    case 'abandon':modal(t('controller.abandon.dialog'));break;
     case 'abandonConfirm':try{if(abandonRun(game)){cancelAim();update();}}catch(error){backupError(error);}break;
-    case 'resetProgress':modal('<h2>重置遊戲進度？</h2><p>清除目前任務、全部協定點數、解鎖與任務紀錄，從零開始。只影響目前正式／測試區。</p><p>會先保存完整備份，之後可在設定下載「還原前備份」。音效與瞄準偏好不變；再次放棄任務、還原或重置會覆寫這份備份，請先下載留存。</p><button class="modal-button secondary" data-modal="backupExport">先下載目前完整備份</button><button class="modal-button" data-modal="resetConfirm">確認清空遊戲進度</button><button class="modal-button secondary" data-modal="settings">取消</button>');break;
-    case 'resetConfirm':try{adoptSnapshot(resetProgress(game));notify('遊戲進度已重置；原資料可從設定下載。');}catch(error){backupError(error);}break;
+    case 'resetProgress':modal(t('controller.reset.dialog'));break;
+    case 'resetConfirm':try{adoptSnapshot(resetProgress(game));notify(t('controller.reset.done'));}catch(error){backupError(error);}break;
     case 'settings':settings();break;
     case 'deckEditor':deckPick=null;showDeckEditor();break;
     case 'deckMirror':deckLayout=mirrorDeck(deckLayout);deckPick=null;saveDeckLayout();showDeckEditor('\u5df2\u5de6\u53f3\u93e1\u50cf\u3002');break;
@@ -1064,6 +1069,8 @@ document.addEventListener('click',e=>{
     case 'shake':renderer.shakeEnabled=!renderer.shakeEnabled;renderer.shakes=[];write('ash-shake',renderer.shakeEnabled?'on':'off');settings();break;
     case 'glitch':renderer.glitchEnabled=!renderer.glitchEnabled;renderer.glitches=[];renderer.objectGlitches.clear();write('ash-glitch',renderer.glitchEnabled?'on':'off');settings();break;
     case 'reclaimTab':location.reload();return;
+    // 3.167.0: the language is chosen when the page loads, so switching saves the choice and reloads (the run is saved).
+    case 'language':{const next=LANGUAGES[(LANGUAGES.indexOf(language())+1)%LANGUAGES.length];if(runIsLive())persist();if(languageChoice(next))location.reload();else notify(t('settings.languageFailed'));break;}
     case 'vhs':vhsFilter=!vhsFilter;write('ash-vhs',vhsFilter?'on':'off');document.documentElement.classList.toggle('vhs',vhsFilter);settings();break;
     case 'transmission':transmissionSeen=transmissionKey();showPerks();break;
     case 'hotkeyHints':hotkeyHints=!hotkeyHints;write('ash-hotkey-hints',hotkeyHints?'on':'off');applyHotkeyHints();settings();break;
@@ -1073,7 +1080,7 @@ document.addEventListener('click',e=>{
     case 'autoRetarget':autoRetarget=!autoRetarget;write('ash-auto-retarget',autoRetarget?'on':'off');if(autoRetarget)retarget();settings();break;
     case 'movementBoundaries':renderer.movementBoundaries=!renderer.movementBoundaries;write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off');settings();break;
     case 'sound':audio.setEnabled(!audio.enabled);write('ash-sound',audio.enabled?'on':'off');syncMusic();settings();break;
-    case 'backupExport':try{downloadJSON(exportBackup(game),'ash-protocol-backup.json');notify('完整備份已匯出。');}catch(error){backupError(error);}break;
+    case 'backupExport':try{downloadJSON(exportBackup(game),'ash-protocol-backup.json');notify(t('controller.backup.exported'));}catch(error){backupError(error);}break;
     case 'backupImport':$('#import-backup').click();break;
     case 'replayLoad':case 'replayFast':replayOptions={fast:b.dataset.modal==='replayFast'};$('#import-replay').click();break;
     case 'recordStart':startRecording();settings();break;
@@ -1086,23 +1093,23 @@ document.addEventListener('click',e=>{
     case 'restart':case 'deploy':if(isSimulation(game))exitSimulation();if(!runIsLive())titleFlow=true;if(tutorialGate(profile()).required)modal(tutorialGateMarkup());else showDeployment();break;
     case 'killhouse':showKillhouseMenu();break;case 'khTutorial':startSimulation({mode:'tutorial'});break;case 'khArcade':startSimulation({mode:'arcade',character:b.dataset.character});break;
     case 'khRetry':startSimulation({mode:'arcade',character:game.player.character});break;case 'khMenu':exitSimulation();showIntro();break;
-    case 'khSkip':if(!saveTutorialOutcome('skipped'))notify('無法寫入略過紀錄，下次部署仍會詢問。',{danger:true});showDeployment();break;
+    case 'khSkip':if(!saveTutorialOutcome('skipped'))notify(t('controller.killhouse.skipNotSaved'),{danger:true});showDeployment();break;
     case 'deployNormal':deployDraft={mode:'normal',mission:null,seed:undefined};showDeployMission();break;
     case 'deployOperator':{const value=$('#new-seed')?.value,seed=value!==undefined&&value!==''?Number(value):undefined;
-      if(seed!==undefined&&(!Number.isInteger(seed)||seed<0||seed>999999999)){const advanced=$('.seed-advanced');if(advanced)advanced.open=true;notify('種子需為 0–999999999 的整數。');return;}
+      if(seed!==undefined&&(!Number.isInteger(seed)||seed<0||seed>999999999)){const advanced=$('.seed-advanced');if(advanced)advanced.open=true;notify(t('controller.deploy.seedInvalid'));return;}
       const mission=$('input[name="mission"]:checked')?.value;
-      if(!validMissionId(mission)){notify('請選擇有效任務。');return;}
+      if(!validMissionId(mission)){notify(t('controller.deploy.pickValidMission'));return;}
       deployDraft={mode:'normal',mission,seed};showDeployOperator();break;}
     case 'deployDaily':{const seed=dailySeed();deployDraft={mode:'daily',mission:dailyMission(seed,MISSION_IDS),seed};showDeployOperator();break;}
-    case 'deployQuick':if(runIsLive()){modal('<div class="eyebrow">QUICK GAME</div><h2>放棄目前任務？</h2><p>快速任務會立即隨機決定任務、種子與幹員並開始。已賺點數與永久進度保留。</p><button class="modal-button" data-modal="deployQuickStart">確認放棄並開始 →</button><button class="modal-button secondary" data-modal="deploy">← 返回</button>');}else startQuick();break;
+    case 'deployQuick':if(runIsLive()){modal(t('controller.deploy.quickAbandon'));}else startQuick();break;
     case 'deployQuickStart':startQuick();break;
     case 'deployDifficulty':{const character=$('input[name="character"]:checked')?.value,color=$('input[name="operator-color"]:checked')?.value;
-      if(!validCharacter(character)){notify('請選擇有效角色。');return;}
+      if(!validCharacter(character)){notify(t('controller.pickValidCharacter'));return;}
       deployDraft={...deployDraft,character,color:validOperatorColor(color)?color:deployDraft.color};showDeployDifficulty();break;}
     case 'deployBackOperator':deployDraft={...deployDraft,difficulty:$('input[name="difficulty"]:checked')?.value,realMode:Boolean($('input[name="real-mode"]')?.checked),facility:$('input[name="facility"]:checked')?.value};showDeployOperator();break;
     case 'new':{const {character,color}=deployDraft,options=runOptions({difficulty:$('input[name="difficulty"]:checked')?.value,realMode:Boolean($('input[name="real-mode"]')?.checked),facility:$('input[name="facility"]:checked')?.value});
       if(validOperatorColor(color)){renderer.operatorColor=color;write('ash-operator-color',color);}
-      if(!validMissionId(deployDraft.mission)){notify('請先選擇任務。');showDeployment();return;}
+      if(!validMissionId(deployDraft.mission)){notify(t('controller.deploy.pickMissionFirst'));showDeployment();return;}
       newGame(deployDraft.seed,character,deployDraft.mission,options);break;}
   }return;}
   switch(b.dataset.action){
@@ -1135,19 +1142,19 @@ $('#battle').addEventListener('pointerup',e=>{
   if(renderer.mode==='grenade'||renderer.mode==='launch'||renderer.mode==='flare'||renderer.mode==='rope'||renderer.mode==='place'){setAim(pos);return;}
   if(renderer.mode==='suppress'){setSuppressAim(pos);return;}
   if(renderer.mode==='blind'){setBlindAim(pos);return;}
-  const ally=game.localAllies.find(a=>distance(a,pos)===0);if(ally){notify(`${allyName(ally)} · ${ally.status==='reforming'?'消散，重生倒數中':ally.status==='arriving'?'等候落點':ally.status==='destroyed'?'已毀':`HP ${ally.hp}/${ally.maxHp}${repairTargets(game).includes(ally)?' · 在你旁邊，可以打開工坊修理':''}${ally.kind==='drone'?(ally.payload?` · 裝填${GRENADES[ally.payload].name}`:['unit_bomber','unit_warden','unit_boss'].includes(ally.sourceId)?(ally.primed?(ally.sourceId==='unit_bomber'?' · 蓄勢中，下次行動自爆':' · 蓄力中，下次行動射擊'):ally.bombard?' · 下次攻擊改為轟炸':''):` · ${Number.isInteger(ally.weapon)?game.weaponAt(ally.weapon).name+' · ':''}彈藥 ${ally.ammo}/${allyWeapon(ally,game.player).mag}`):''}`}。`);return;}
+  const ally=game.localAllies.find(a=>distance(a,pos)===0);if(ally){notify(`${t('controller.allyInfo',{v:allyName(ally),v2:ally.status==='reforming'?t('controller.ally.reforming'):ally.status==='arriving'?t('controller.ally.arriving'):ally.status==='destroyed'?t('controller.ally.destroyed'):`HP ${ally.hp}/${ally.maxHp}${repairTargets(game).includes(ally)?t('controller.ally.repairable'):''}${ally.kind==='drone'?(ally.payload?` ${t('controller.ally.payload',{payloadName:GRENADES[ally.payload].name})}`:['unit_bomber','unit_warden','unit_boss'].includes(ally.sourceId)?(ally.primed?(ally.sourceId==='unit_bomber'?t('controller.ally.bomberPrimed'):t('controller.ally.wardenPrimed')):ally.bombard?t('controller.ally.bombardNextAttack'):''):` ${t('controller.ally.ammoLine',{v:Number.isInteger(ally.weapon)?game.weaponAt(ally.weapon).name+' · ':'',ammo:ally.ammo,v2:allyWeapon(ally,game.player).mag})}`):''}`})}`);return;}
   const edge=renderer.hitBarrier(e.clientX-r.left,e.clientY-r.top);
   if(edge){game.target=edge.id;if(!renderer.targetingEnabled)toggleTargeting();else update();return;}
   const target=[...game.visibleEnemies,...game.props.filter(p=>p.hp>0&&game.visible(p))].find(o=>distance(o,pos)===0);
   if(target){game.target=target.id;if(game.enemies.includes(target)&&!renderer.targetingEnabled)toggleTargeting();else update();return;}
   const supply=game.props.find(o=>isContainer(o)&&!o.opened&&distance(o,pos)===0&&game.visible(o));
-  if(supply){notify(`${containerName(supply)}：${game.canTouch(supply)?'按右下互動開啟（1 回合）':'靠近後以右下互動開啟'}。`);return;}
-  const corpse=game.operatorCorpse;if(corpse&&!corpse.recovered&&!isSimulation(game)&&distance(pos,corpse)===0&&game.visible(corpse)){if(operatorReady(game))recoverCorpse();else notify(`${CHARACTERS[corpse.character]?.label||'幹員'}的遺體：靠近後按右下互動回收識別資料，不耗回合。`);return;}
+  if(supply){notify(`${t('controller.crateInfo',{v:containerName(supply),v2:game.canTouch(supply)?t('controller.crate.openNow'):t('controller.crate.openNear')})}`);return;}
+  const corpse=game.operatorCorpse;if(corpse&&!corpse.recovered&&!isSimulation(game)&&distance(pos,corpse)===0&&game.visible(corpse)){if(operatorReady(game))recoverCorpse();else notify(`${t('controller.corpseInfo',{v:CHARACTERS[corpse.character]?.label||t('controller.operative')})}`);return;}
   if(distance(pos,game.exitPoint)===0&&game.canTouch(pos)&&(!isSimulation(game)||exitStep(game))){if(isSimulation(game))act('move',exitStep(game));else act('interact');return;}
   if(game.props.some(o=>o.type==='terminal'&&!o.used&&distance(o,pos)===0&&game.canTouch(o))){showTerminal();return;}
   if(distance(pos,game.player)===1)move(pos.x-game.player.x,pos.y-game.player.y);
   else if(!game.visibleTiles.has(`${pos.x},${pos.y}`)&&!blindReason(game,pos))startBlindAim(pos);
-  else notify('點相鄰格移動，或在戰場滑動一步。');
+  else notify(t('controller.moveHint'));
 });
 $('#battle').addEventListener('pointercancel',()=>{pointerStart=null;});
 // Long press (3.97.0, user request): holding the grenade, item or skill button opens that backpack tab; sliding off the
@@ -1246,7 +1253,7 @@ if(TEST_MODE)globalThis.__ashReplay={load:(raw,options)=>loadReplay(typeof raw==
   get recording(){return recording?.game===game?recording.log:null;}};
 $('#import-save').addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
-  try{if(file.size>1000000)throw new Error('存檔超過大小限制。');const imported=Game.restore(await file.text());if(!imported)throw new Error('存檔格式不相容或任務已結束。');const kept=write('ash-save-before-import',game.serialize());game=connectUnlocks(imported);entered=true;resumable=true;game.setCarryLevel(profile().upgrades.carrying);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify(kept?'存檔已匯入；原進度已在本機備份。':'存檔已匯入；原進度的本機備份沒有寫入成功。'); }catch(error){modal('<h2>無法匯入存檔</h2><p>'+escapeHTML(error.message)+'</p><button class="modal-button" data-modal="close">返回戰場</button>');}e.target.value='';
+  try{if(file.size>1000000)throw new Error(t('controller.import.tooLarge'));const imported=Game.restore(await file.text());if(!imported)throw new Error(t('controller.import.incompatible'));const kept=write('ash-save-before-import',game.serialize());game=connectUnlocks(imported);entered=true;resumable=true;game.setCarryLevel(profile().upgrades.carrying);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify(kept?t('controller.import.done'):t('controller.import.doneNoBackup')); }catch(error){modal(t('controller.import.failedTitle')+escapeHTML(error.message)+t('controller.import.failedClose'));}e.target.value='';
 });
 document.addEventListener('selectstart',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(!target?.closest('input,textarea'))e.preventDefault();});
 document.addEventListener('contextmenu',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(target?.closest('.battle-panel'))e.preventDefault();});

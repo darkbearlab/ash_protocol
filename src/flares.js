@@ -30,8 +30,8 @@ export function flareCells(game,center){
 }
 export function flareReason(game,pos){
   const p=game.player;
-  if(!(p.flares>0))return '沒有照明彈';
-  if(!pos||!Number.isInteger(pos.x)||!Number.isInteger(pos.y)||game.grid[pos.y]?.[pos.x]!==1)return '先選擇可見地板作為落點';
+  if(!(p.flares>0))return t('flares.noFlare');
+  if(!pos||!Number.isInteger(pos.x)||!Number.isInteger(pos.y)||game.grid[pos.y]?.[pos.x]!==1)return t('flares.pickFloor');
   if(distance(p,pos)>FLARE_TUNING.range||!game.visible(pos))return t('common.landingRange',{range:FLARE_TUNING.range});
   return '';
 }

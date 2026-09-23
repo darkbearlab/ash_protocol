@@ -9,16 +9,16 @@ import {recordShot} from './traits.js';
 export const suppressiveArea=(g,point)=>areaCells(g.grid,point,1,g.barriers,g);
 export function suppressiveReason(g,point){
  const p=g.player,w=g.weapon;
- if(!p.skills.includes('suppressive_fire')||p.prepared.skill!=='suppressive_fire')return '請先預備壓制射擊。';
- if(w.melee)return '壓制射擊需要槍械。';
+ if(!p.skills.includes('suppressive_fire')||p.prepared.skill!=='suppressive_fire')return t('suppressive-fire.readyFirst');
+ if(w.melee)return t('suppressive-fire.needsGun');
  if(p.ammo[p.weapon]<T.skillRounds)return t('suppressive-fire.magMin',{n:T.skillRounds});
- if(!point||![point.x,point.y].every(Number.isInteger)||g.grid[point.y]?.[point.x]!==1||distance(p,point)>w.range||!g.visible(point))return '請選擇武器射程內看得見的地板。';
+ if(!point||![point.x,point.y].every(Number.isInteger)||g.grid[point.y]?.[point.x]!==1||distance(p,point)>w.range||!g.visible(point))return t('suppressive-fire.pickFloor');
  return '';
 }
 export function suppressiveFire(g,point){
  const p=g.player,w=g.weapon;
  // Intent is a fixed region. A lost firing line still spends the committed rounds.
- if(w.melee||p.ammo[p.weapon]<T.skillRounds)return g.fail('彈匣不足，壓制射擊未完成。');
+ if(w.melee||p.ammo[p.weapon]<T.skillRounds)return g.fail(t('suppressive-fire.magShort'));
  const cells=new Set(suppressiveArea(g,point).map(key)),targets=g.enemies.filter(e=>e.hp>0&&cells.has(key(e))).sort((a,b)=>a.id.localeCompare(b.id));
  const hits=new Set(),shots=Math.min(T.skillRounds+(w.extraRounds||0),p.ammo[p.weapon]);let cursor=0,rounds=0;
  for(let i=0;i<shots&&p.hp>0;i++)presentStep(g,()=>{

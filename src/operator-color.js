@@ -16,7 +16,7 @@ export const DEFAULT_OPERATOR_COLOR='amber';
 // brightness slider (src/color-picker.js), kept as a lower-case '#rrggbb'.
 const CUSTOM=/^#[0-9a-f]{6}$/;
 export const validOperatorColor=id=>OPERATOR_COLORS.some(c=>c.id===id)||typeof id==='string'&&CUSTOM.test(id);
-export const operatorColor=id=>OPERATOR_COLORS.find(c=>c.id===id)||(typeof id==='string'&&CUSTOM.test(id)?{id,label:'自訂',hex:id,custom:true}:OPERATOR_COLORS.find(c=>c.id===DEFAULT_OPERATOR_COLOR));
+export const operatorColor=id=>OPERATOR_COLORS.find(c=>c.id===id)||(typeof id==='string'&&CUSTOM.test(id)?{id,label:t('operator-color.custom'),hex:id,custom:true}:OPERATOR_COLORS.find(c=>c.id===DEFAULT_OPERATOR_COLOR));
 const rgb=hex=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
 
 // HSV with hue in degrees and saturation and brightness in percent, whole numbers, as the picker shows them.

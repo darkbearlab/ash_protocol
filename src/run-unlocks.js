@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {STORIES} from './story-data.js';
 import {UNLOCK_SETTINGS,CHARACTER_IDS,STARTING_CHARACTERS,availableCharacters,validStoryId,shelvedCharacter} from './unlock-catalog.js';
 import {rollFacilityFaction,FACTIONS} from './faction-catalog.js';
@@ -19,7 +20,7 @@ export function initializeRunUnlocks(g,options={}){g.unlockedCharacters=availabl
 // in a row without one, the next floor has one. Every roll comes from the seed, so the pity needs no save field.
 export const corpseChance=floor=>floor<UNLOCK_SETTINGS.corpseStart?0:Math.min(UNLOCK_SETTINGS.corpseMax,UNLOCK_SETTINGS.corpseStep*(floor-UNLOCK_SETTINGS.corpseStart+1));
 export function corpseFloor(seed,floor){let dry=0,hit=false;for(let f=UNLOCK_SETTINGS.corpseStart;f<=floor;f++){hit=dry>=UNLOCK_SETTINGS.corpsePity||unlockRandom(seed,f,'corpse-chance')<corpseChance(f);dry=hit?0:dry+1;}return hit;}
-export const CORPSE_NOTE='偵測到失聯幹員的生命訊號：遺體上方有光柱，靠近後按互動回收識別資料。';
+export const CORPSE_NOTE=t('run-unlocks.lifeSignal');
 export function floorCorpseNote(g){if(g.operatorCorpse&&!g.operatorCorpse.recovered)g.log(CORPSE_NOTE);}
 export function populateRunUnlocks(g){
  g.operatorCorpse=null;if(g.simulation||g.mission.id!=='endless')return;
@@ -33,9 +34,9 @@ export function populateRunUnlocks(g){
 }
 export function recoverOperator(g){
  const c=g.operatorCorpse;if(g.simulation||UNLOCK_SETTINGS.demo||g.status!=='playing'||g.player.hp<=0||!c||c.recovered||!g.canTouch(c))return false;
- const handler=bindings.get(g);if(!handler)return g.fail('玩家檔案尚未連接，無法保存解鎖。');
- if(!availableCharacters(handler.profile()).includes(c.character)&&!handler.grant(c.character,'corpse'))return g.fail('無法儲存解鎖，請稍後再試。');
- c.recovered=true;g.log('已回收人員識別資料。');return true;
+ const handler=bindings.get(g);if(!handler)return g.fail(t('run-unlocks.noProfile'));
+ if(!availableCharacters(handler.profile()).includes(c.character)&&!handler.grant(c.character,'corpse'))return g.fail(t('run-unlocks.saveFailed'));
+ c.recovered=true;g.log(t('run-unlocks.recovered'));return true;
 }
 export function collectStory(g,item){
  if(g.simulation||g.mission.id==='endless')return null;

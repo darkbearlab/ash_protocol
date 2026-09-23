@@ -9,7 +9,7 @@ export const BARRIER_TYPES={
 };
 export const isBarrier=b=>Boolean(b&&Object.hasOwn(BARRIER_TYPES,b.type));
 export const vaultable=b=>Boolean(b&&b.hp>0&&BARRIER_TYPES[b.type]?.vaultable);
-export const barrierName=b=>b.vault?'保險室鐵門':BARRIER_TYPES[b.type]?.name||'障礙物';   // vault: 3.146.0
+export const barrierName=b=>b.vault?t('barriers.vaultDoor'):BARRIER_TYPES[b.type]?.name||t('barriers.obstacle');   // vault: 3.146.0
 export const edgeKey=b=>`${b.axis}:${b.x},${b.y}`;
 export function edgeCells(b){return b.axis==='x'?[{x:b.x-.5,y:b.y},{x:b.x+.5,y:b.y}]:[{x:b.x,y:b.y-.5},{x:b.x,y:b.y+.5}];}
 export const edgeAdjacent=(b,p)=>edgeCells(b).some(q=>q.x===p.x&&q.y===p.y);

@@ -6,6 +6,7 @@
 // shoot from a bad distance when they cannot move.
 // settle: after a unit steps to fix its distance it shoots for this many turns from where it stands, even at a penalty.
 // Without it a player could walk at a rifleman forever: it would back off every turn and never fire.
+import {t} from './i18n.js';
 export const BAND_TUNING={perTile:4,cap:12,settle:3};
 
 // By weapon id (src/data.js WEAPONS), which ally weapons share (src/allies.js hands out 'rifle' and 'plasma').
@@ -22,4 +23,4 @@ export const enemyBand=type=>ENEMY_BANDS[type]??ENEMY_BANDS[String(type).split('
 export const shiftedBand=(band,reach,near=0)=>band?[Math.max(1,band[0]+near),band[1]+(reach||0)]:null;
 export const inBand=(band,distance)=>!band||distance>=band[0]&&distance<=band[1];
 export const bandPenalty=(band,distance)=>band?Math.min(BAND_TUNING.cap,BAND_TUNING.perTile*Math.max(0,band[0]-distance,distance-band[1])):0;
-export const bandLabel=band=>band?`${band[0]}–${band[1]}`:'不限';
+export const bandLabel=band=>band?`${band[0]}–${band[1]}`:t('range-band.any');

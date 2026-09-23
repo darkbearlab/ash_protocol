@@ -1,21 +1,22 @@
+import {t} from './i18n.js';
 import {purgeReview,cloneDesignation} from './purge-review.js';
 
 // Result screen verdict (user wording, 2026-09-15). No counts or rates are shown; the institution only files the verdict.
 export const PURGE_VERDICTS={
-  excellent:{status:'列為資產封存',reason:'肅清績效優異',note:'交戰紀錄納入後續訓練教材'},
-  adequate:{status:'記憶校正後重新部署',reason:'肅清績效合格'},
-  deficient:{status:'已處決',reason:'肅清績效不足'}
+  excellent:{status:t('purge-review-ui.assetArchive'),reason:t('purge-review-ui.purgeExcellent'),note:t('purge-review-ui.trainingMaterial')},
+  adequate:{status:t('purge-review-ui.redeployed'),reason:t('purge-review-ui.purgePass')},
+  deficient:{status:t('purge-review-ui.executed'),reason:t('purge-review-ui.purgeFail')}
 };
 
 export function purgeRows(g){
   const unit=cloneDesignation(g.runId);
-  if(g.status==='dead')return [['單位',`${unit} 訊號中斷`],['狀態','列入損耗']];
-  if(g.status==='abandoned')return [['單位',`${unit} 任務中止`],['狀態','列入損耗']];
+  if(g.status==='dead')return [[t('purge-review-ui.unit'),`${t('purge-review-ui.signalLost',{unit})}`],[t('purge-review-ui.status'),t('purge-review-ui.attrition')]];
+  if(g.status==='abandoned')return [[t('purge-review-ui.unit'),`${t('purge-review-ui.aborted',{unit})}`],[t('purge-review-ui.status'),t('purge-review-ui.attrition')]];
   if(g.status!=='won')return [];
-  const rows=[['單位',`${unit} 已撤離`],['目標狀態','達成']],review=purgeReview(g);
+  const rows=[[t('purge-review-ui.unit'),`${t('purge-review-ui.extracted',{unit})}`],[t('purge-review-ui.objectiveStatus'),t('purge-review-ui.achieved')]],review=purgeReview(g);
   if(!review)return rows;
   const v=PURGE_VERDICTS[review.tier];
-  return [...rows,['狀態',v.status],['原因',v.reason],...(v.note?[['備註',v.note]]:[])];
+  return [...rows,[t('purge-review-ui.status'),v.status],[t('purge-review-ui.reason'),v.reason],...(v.note?[[t('purge-review-ui.remarks'),v.note]]:[])];
 }
 
 export function purgeReportMarkup(g){

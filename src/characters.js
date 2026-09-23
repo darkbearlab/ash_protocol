@@ -15,7 +15,7 @@ export const CHARACTERS={
   ninja:{...defaults,name:'Ninja',label:t('characters.ninja.label'),text:t('characters.ninja.text'),combat:{rangedEvasion:10},carryBonus:{grenade:2},traits:['biological','sidestep','night_vision','ambush','duelist','point_blank'],weapons:[10,2],skills:['camouflage'],prepared:{grenade:'smoke',skill:'camouflage'},supplies:{grenades:0,smoke:4,stun:1,decoys:5,mines:5,escapeLines:5,redeployLines:5}},
 };
 export const validCharacter=id=>typeof id==='string'&&Object.hasOwn(CHARACTERS,id);
-export const characterName=id=>{const c=CHARACTERS[id]||CHARACTERS.soldier;return `${c.name} · ${c.label}`;};
+export const characterName=id=>{const c=CHARACTERS[id]||CHARACTERS.soldier;return t('characters.nameLine',{name:c.name,label:c.label});};
 // `cap` (3.158.0): on load a save may already sit at the trait cap, so re-deriving never pushes it over.
 export function grantCharacterTraits(player,cap=Infinity){const own=CHARACTERS[player.character].traits,source=`character:${player.character}`;
  // 3.160.0: a passive the class no longer has (the berserker's 毒無效) leaves with the class source; learned copies stay.

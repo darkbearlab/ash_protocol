@@ -152,8 +152,9 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .title-menu{width:100%;max-width:340px;margin-top:34px;border-top:1px solid #2a332c}
 .title-entry{display:grid;grid-template-columns:18px auto 1fr;align-items:baseline;gap:10px;width:100%;padding:15px 6px;background:none;border:0;border-bottom:1px solid #2a332c;color:var(--text);text-align:left;cursor:pointer;font-family:var(--mono)}
 .title-caret{color:var(--orange);opacity:.35;font-size:13px;line-height:1}
-.title-label{font-size:15px;letter-spacing:.16em}
-.title-note{font-size:10px;color:var(--muted);letter-spacing:.04em;justify-self:end;text-align:right;white-space:nowrap}
+.title-label{font-size:15px;letter-spacing:.16em;white-space:nowrap}
+/* 3.167.0: the label stays on one line; a long English note wraps under itself instead. */
+.title-note{font-size:10px;color:var(--muted);letter-spacing:.04em;justify-self:end;text-align:right;min-width:0}
 .title-entry:hover:not(:disabled),.title-entry:focus-visible{background:#141a17;outline:0}
 .title-entry:hover:not(:disabled) .title-caret,.title-entry:focus-visible .title-caret{opacity:1}
 .title-entry:hover:not(:disabled) .title-label,.title-entry:focus-visible .title-label{color:var(--orange)}

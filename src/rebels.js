@@ -123,7 +123,7 @@ export function execute(g,enforcer,target){
  // shouted after the charge, so it stays over any shot the same soldier just fired instead of being replaced by it.
  for(const o of rallied)g.enemyCallout?.(o,'state',{state:'rally'});
  const set=rallies.get(g)||new Set();for(const o of inRange)set.add(o.id);rallies.set(g,set);
- g.log(fired?t('rebels.rallyFire',{n:fired}):'叛軍歸隊。',true);
+ g.log(fired?t('rebels.rallyFire',{n:fired}):t('rebels.rally'),true);
 }
 // 3.127.1 (user request): seeing you, the enforcer does what a researcher does — raises the alarm for everyone within
 // eight tiles (a free action, every five turns) — and then looks for cover. It never walks at you on its own: the

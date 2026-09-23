@@ -1,5 +1,6 @@
 // Display helpers for enemy affixes and grenadier telegraphs (3.75.1, Claude). Rules stay in enemy-affixes.js and
 // enemy-intents.js; these read only their public queries, so unrevealed affixes never reach the screen.
+import {t} from './i18n.js';
 import {enemyNameParts,composeEnemyName} from './enemy-affixes.js';
 import {grenadeTelegraphs} from './enemy-intents.js';
 
@@ -14,7 +15,7 @@ export function cardEnemyName(enemy,limit=CARD_AFFIX_FRAGMENTS){
 // Throw lines start only from a seen thrower or tile, so a grenadier out of sight never gives away where it stands.
 export function grenadeMarkers(g){
  const seen=new Set(g.visibleEnemies.map(e=>e.id));
- return grenadeTelegraphs(g).map(t=>({phase:t.phase,x:t.x,y:t.y,radius:t.radius,origin:t.origin,
-  line:seen.has(t.sourceId)||Boolean(g.visible(t.origin)),
-  label:t.phase==='prepare'?'投擲':`爆炸 ${Math.max(1,t.countdown)}`}));
+ return grenadeTelegraphs(g).map(m=>({phase:m.phase,x:m.x,y:m.y,radius:m.radius,origin:m.origin,
+  line:seen.has(m.sourceId)||Boolean(g.visible(m.origin)),
+  label:m.phase==='prepare'?t('affix-ui.throw'):`${t('affix-ui.blast',{v:Math.max(1,m.countdown)})}`}));
 }

@@ -28,12 +28,12 @@ export const floorTraitNote=(type,traits)=>(enemyDef(type)?.floorTraits||[]).map
 // Faction reskins and elites (3.79.1; docs/FACTION_DATA.md 9, docs/ELITE_ENEMIES.md 3). A faction override tint wins over
 // the card tint; legacy and plain cards have none, so they draw exactly as before. Elites keep their colours and gain a
 // gold outline, and a display-only label that is not a trait. Corpses use a dimmer gold so the ring fades with the body (3.80.1).
-export const ELITE_VISUAL=Object.freeze({outline:'#f2c45a',corpseOutline:'#8f7438',label:'精英'});
+export const ELITE_VISUAL=Object.freeze({outline:'#f2c45a',corpseOutline:'#8f7438',label:t('enemy-visuals.elite')});
 // Display-only tag for units that never fight (civilians, 3.82.1); like the elite label it is not a trait.
-export const NONCOMBATANT_LABEL='非戰鬥人員';
+export const NONCOMBATANT_LABEL=t('enemy-visuals.noncombatant');
 // Swarm presentation (3.84.1, docs/SWARM.md 8): venom blobs and the tongue pull. The rules only announce them (SWARM 6.4).
 export const VENOM_VISUAL=Object.freeze({blob:'#a8c93f',rim:'#e4f59a',drop:'#8fb33a'});
-export const TONGUE_VISUAL=Object.freeze({line:'#e27aa6d0',fill:'#d97aa033',edge:'#f0a3c4',landing:'#f0a3c4aa',flesh:'#c95c86',tip:'#f2b3cf',label:'鉤舌蓄勢'});
+export const TONGUE_VISUAL=Object.freeze({line:'#e27aa6d0',fill:'#d97aa033',edge:'#f0a3c4',landing:'#f0a3c4aa',flesh:'#c95c86',tip:'#f2b3cf',label:t('enemy-visuals.tongueWindup')});
 // Kill house humanoids draw as holograms (docs/KILLHOUSE.md section 10); campaign enemies keep their colours.
 export const SIMULATION_VISUAL={tint:'#5fd6ea'};
 // 3.134.0: a swarm bomber's sac shows in its colour — green mist, yellow acid, brown spore (docs/SWARM_FIELDS.md).

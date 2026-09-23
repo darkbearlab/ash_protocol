@@ -1,4 +1,5 @@
 // Cosmetic choices never consume the map/combat RNG. IDs are persisted with the run.
+import {t} from './i18n.js';
 const LEGACY_PORTRAITS=Object.freeze(['ember','onyx','silver','cedar']);
 export const PORTRAITS=Object.freeze([...LEGACY_PORTRAITS,...Array.from({length:12},(_,i)=>`portrait-${String(i+5).padStart(2,'0')}`)]);
 export const validPortrait=id=>typeof id==='string'&&PORTRAITS.includes(id);
@@ -12,5 +13,5 @@ export function deploymentPortraits(characters,random=Math.random){
 export const portraitPath=id=>`./assets/pixel/portraits/${validPortrait(id)?id:PORTRAITS[0]}.png`;
 export function portraitMarkup(id,outcome='playing'){
   const dead=outcome==='dead';
-  return `<span class="operator-portrait${dead?' is-kia':''}"><img src="${portraitPath(id)}" width="64" height="64" alt="幹員頭像" draggable="false">${dead?'<b class="kia-stamp" aria-label="陣亡">KIA</b>':''}</span>`;
+  return `<span class="operator-portrait${dead?' is-kia':''}"><img src="${portraitPath(id)}" width="64" height="64" alt="${t('portraits.alt')}" draggable="false">${dead?t('portraits.kia'):''}</span>`;
 }

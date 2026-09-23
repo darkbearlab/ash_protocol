@@ -13,7 +13,7 @@ export const nestStyle=(p,faction)=>factionDef(faction)?.nestStyle??(((p.x*31+p.
 export function collapseNest(g,p){
  p.hp=0;const style=nestStyle(p,g.facilityFaction);
  g.effects.push({type:'nestCollapse',nestStyle:style,from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});
- g.log(style==='rift'?'裂隙閉合，留下紫色的空間粉末。':'地洞塌陷，被落土回填。');g.reveal();
+ g.log(style==='rift'?t('runtime-enemies.riftClosed'):t('runtime-enemies.burrowCollapsed'));g.reveal();
 }
 export const enemyRoom=g=>Math.max(0,RUNTIME_TUNING.liveLimit-g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&!e.horde).length);
 export const expendableRoom=g=>Math.max(0,RUNTIME_TUNING.expendableLimit-g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&!e.horde&&e.expendable).length);
@@ -37,7 +37,7 @@ export function addRuntimePopulation(base,seed,floor,check,faction=DEFAULT_FACTI
 }
 registerUnitTree('nest',{tick:({g,nest})=>{
   if(nest.nest.remaining===0){collapseNest(g,nest);return;}
-  const s=nest.nest;if(!s.active&&distance(g.player,nest)<=RUNTIME_TUNING.triggerRadius){s.active=true;g.log('巢穴甦醒，開始釋出蟲群。',true);}
+  const s=nest.nest;if(!s.active&&distance(g.player,nest)<=RUNTIME_TUNING.triggerRadius){s.active=true;g.log(t('runtime-enemies.nestAwake'),true);}
   if(!s.active||s.remaining===0)return;
   if(s.cooldown>0&&--s.cooldown>0)return;
   if(!enemyRoom(g)||!expendableRoom(g))return;
@@ -45,7 +45,7 @@ registerUnitTree('nest',{tick:({g,nest})=>{
   if(!p)return;
   const e=g.spawnEnemy(factionDef(g.facilityFaction??DEFAULT_FACTION).nestChild,p.x,p.y,`${nest.id}-child-${++s.serial}`);e.nestId=nest.id;e.alert=true;e.lastKnown={x:g.player.x,y:g.player.y};g.enemies.push(e);s.remaining--;s.cooldown=s.interval;
   const style=nestStyle(nest,g.facilityFaction);
-  g.effects.push({type:'nestSpawn',nestStyle:style,from:{x:nest.x,y:nest.y},to:p,damage:0});g.log(style==='rift'?'裂隙中傳送出一隻幼蟲。':'地洞中鑽出一隻幼蟲。');
+  g.effects.push({type:'nestSpawn',nestStyle:style,from:{x:nest.x,y:nest.y},to:p,damage:0});g.log(style==='rift'?t('runtime-enemies.riftLarva'):t('runtime-enemies.burrowLarva'));
   if(s.remaining===0)collapseNest(g,nest);
 }});
 export function tickNests(g){for(const nest of g.props.filter(p=>p.type==='nest'&&p.hp>0))unitTree(nest).tick({g,nest});}

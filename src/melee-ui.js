@@ -6,8 +6,8 @@ import {distance} from './world.js';
 // Skill-button word for the hook against the locked target; the refusal reason itself stays the rules layer's.
 export function grappleLabel(view){
   const plan=view.grapplePlan(),locked=view.enemies.find(e=>e.id===view.target&&e.hp>0);
-  if(!plan.reason)return plan.dash?'衝刺':'拉近';
-  return plan.why==='landing'?'無落點':locked&&distance(view.player,locked)>GRAPPLE_RANGE?'太遠':'無目標';
+  if(!plan.reason)return plan.dash?t('melee-ui.charge'):t('melee-ui.pull');
+  return plan.why==='landing'?t('melee-ui.noLanding'):locked&&distance(view.player,locked)>GRAPPLE_RANGE?t('melee-ui.tooFar'):t('melee-ui.noTarget');
 }
 // Paid turns until the next battle-spirit stack fades. Stacks tick at the end of a paid turn (tickSpirit), so the
 // first loss lands spiritDelay turns after the kill and then every spiritInterval turns.
@@ -19,8 +19,8 @@ export function spiritFadeIn(view){
 export function meleeStatus(view){
   const p=view.player,out=[];
   if(p.battleSpirit?.stacks)out.push(t('melee-ui.spiritFade',{stacks:p.battleSpirit.stacks,turns:spiritFadeIn(view)}));
-  if(view.targeted&&ambushReady(view,view.targeted))out.push(`伏擊 ×${MELEE_TUNING.ambush}`);
-  if(duelActive(view))out.push(`單挑 +${MELEE_TUNING.duelist}`);
+  if(view.targeted&&ambushReady(view,view.targeted))out.push(`${t('melee-ui.ambush',{ambush:MELEE_TUNING.ambush})}`);
+  if(duelActive(view))out.push(`${t('melee-ui.duelist',{duelist:MELEE_TUNING.duelist})}`);
   return out;
 }
 // Bag header lines: what the blade stash and battle spirit are worth right now.

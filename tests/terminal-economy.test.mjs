@@ -100,7 +100,7 @@ test('the terminal screen reads every price, reason and value from the rules; th
   assert.ok(source.includes("const reason=offerReason(game,row.id)||terminalAffordable(row.id);"));
   assert.ok(source.includes("modalAction('terminal',{buy,trade});"));
   assert.ok(source.includes('data-trade-step="${row.id}"'));
-  assert.ok(source.includes("{label:`終端 ${terminalRemaining(view.nearbyTerminal)}`,action:'terminal'}"),'the interact button shows the credit');
+  assert.ok(source.includes("{label:`${t('controller.act.terminal',{v:terminalRemaining(view.nearbyTerminal)})}`,action:'terminal'}"),'the interact button shows the credit');
   assert.ok(!source.includes('data-upgrade=')&&!source.includes('data-dismantle-learning='),'no modification or data dismantling in the pack');
   assert.ok(renderer.includes("terminalCredit(p,a){if(p.used||!p.spent)return;"));
 });

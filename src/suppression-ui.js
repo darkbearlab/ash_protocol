@@ -22,7 +22,7 @@ export function learningEntries(inventory){
   const passive=Boolean(item.trait);
   const detail=passive?(TRAITS[item.trait]?.text||''):item.skills.map(id=>t('suppression-ui.skillLine',{name:SKILLS[id]?.name||id,text:SKILLS[id]?.text||''})).join(' ');
   const rank=item.maxRank?t('suppression-ui.rank',{rank:item.rank,max:item.maxRank}):'';
-  return {id:item.id,title:item.name,count:item.count,kind:passive?'被動':'主動技能',icon:passive?'◆':'✦',
+  return {id:item.id,title:item.name,count:item.count,kind:passive?t('suppression-ui.passive'):t('suppression-ui.activeSkill'),icon:passive?'◆':'✦',
    detail:t(passive?'suppression-ui.detailPassive':'suppression-ui.detailSkill',{rank,detail}),
    useReason:item.useReason,dismantleReason:item.dismantleReason,scrap:item.scrap,rank:item.rank,maxRank:item.maxRank};
  });

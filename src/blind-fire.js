@@ -17,14 +17,14 @@ export const silenced=g=>silent.has(g);
 const hiddenAt=(g,tile)=>g.enemies.find(e=>e.hp>0&&e.x===tile.x&&e.y===tile.y);
 export function blindReason(g,tile){
   const p=g.player,w=g.weapon;
-  if(!tile||!Number.isInteger(tile.x)||!Number.isInteger(tile.y)||g.grid[tile.y]?.[tile.x]!==1)return '只能朝地板盲射';
-  if(w.melee)return '近戰武器不能盲射';
+  if(!tile||!Number.isInteger(tile.x)||!Number.isInteger(tile.y)||g.grid[tile.y]?.[tile.x]!==1)return t('blind-fire.floorOnly');
+  if(w.melee)return t('blind-fire.noMelee');
   if(w.lance||w.pointTarget||w.explosive)return t('blind-fire.weaponCannot',{weapon:w.name});
-  if(distance(p,tile)===0)return '不能朝自己腳下盲射';
+  if(distance(p,tile)===0)return t('blind-fire.notUnderfoot');
   if(distance(p,tile)>w.range)return t('blind-fire.outOfRange');
-  if(!g.shotClear(p,tile))return '射線被擋住';
-  const seen=hiddenAt(g,tile);if(seen&&g.teamVisible(seen))return '看得到目標，直接鎖定開火';
-  if(g.activeAllies.some(a=>a.hp>0&&a.x===tile.x&&a.y===tile.y))return '友軍在那一格';
+  if(!g.shotClear(p,tile))return t('blind-fire.lineBlocked');
+  const seen=hiddenAt(g,tile);if(seen&&g.teamVisible(seen))return t('blind-fire.targetVisible');
+  if(g.activeAllies.some(a=>a.hp>0&&a.x===tile.x&&a.y===tile.y))return t('blind-fire.allyThere');
   if(p.ammo[p.weapon]<(w.shotCost||1))return t('blind-fire.magShort');
   return '';
 }
