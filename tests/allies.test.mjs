@@ -254,10 +254,10 @@ test('allies can never box the player in: a dead-end ally still swaps and two su
  for(let i=0;i<9;i++)assert.ok(n.action('move',[1,0]));for(let i=0;i<12;i++)assert.ok(n.action('move',[-1,0]),`step back ${i}`);assert.equal(n.player.x,3);assert.ok(Game.restore(n.serialize()));
 });
 test('sentries, disabled allies, low rails and an anchored bulwark refuse a swap without spending time',()=>{
- const g=arena(),s=drone(g,{x:11,y:10},'active','drone_sentry');assert.equal(g.action('move',[1,0]),false);assert.match(g.logs[0].text,/砲台/);
- s.sourceId='drone_follow';s.control.disabled=2;assert.equal(g.action('move',[1,0]),false);assert.match(g.logs[0].text,/失能/);
+ const g=arena(),s=drone(g,{x:11,y:10},'active','drone_sentry');assert.equal(g.action('move',[1,0]),false);assert.equal(g.refusal.cue,'blocked');assert.match(g.refusal.text,/砲台/);
+ s.sourceId='drone_follow';s.control.disabled=2;assert.equal(g.action('move',[1,0]),false);assert.equal(g.refusal.cue,'blocked');assert.match(g.refusal.text,/失能/);
  s.control.disabled=0;g.barriers=[makeBarrier('low_partition',{x:10,y:10},{x:11,y:10},'swap-rail')];assert.equal(g.action('move',[1,0]),false);assert.equal(g.turn,1);assert.equal(s.x,11);
- const b=arena('bulwark');assert.ok(use(b));addAlly(b,'survivor','rifleman',{point:{x:11,y:10}});const turn=b.turn;assert.equal(b.action('move',[1,0]),false);assert.match(b.logs[0].text,/下錨/);assert.equal(b.turn,turn);
+ const b=arena('bulwark');assert.ok(use(b));addAlly(b,'survivor','rifleman',{point:{x:11,y:10}});const turn=b.turn;assert.equal(b.action('move',[1,0]),false);assert.equal(b.refusal.cue,'anchored');assert.match(b.refusal.text,/下錨/);assert.equal(b.turn,turn);
 });
 test('a faster ally that already acted gives up its next action instead, and the rest marker round-trips',()=>{
  const g=arena('necromancer'),a=addAlly(g,'summon','raider',{sourceId:'raise_dead',point:{x:11,y:10}}),e=enemy(g,13,10);grantTrait(a,'fast','test:swap');e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();

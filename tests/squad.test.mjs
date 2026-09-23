@@ -94,7 +94,7 @@ test('suppression reaches the player from a tile beside them, and three stacks p
   g.player.suppression=SUPPRESSION_TUNING.pinned;
   assert.ok(pinned(g.player));
   assert.equal(g.action('move',[0,-1]),false);
-  assert.ok(g.logs[0].text.includes('壓制中無法移動'));
+  assert.equal(g.refusal?.cue,'pinned');   // 3.163.0: spoken, not logged
 });
 
 test('已就緒 is the wait, handed to the squad: half damage, −15 to be hit, +15 on its shot',()=>{

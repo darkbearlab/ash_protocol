@@ -1,4 +1,5 @@
 import {STORIES} from './story-data.js';
+import {playerCalloutEvent} from './callouts.js';
 import {CLASS_PERK_TUNING} from './class-perks.js';
 import {GLITCH_TUNING} from './signal-glitch.js';
 import {availableCharacters,unlockEntry,CHARACTER_IDS,shelvedCharacter} from './unlock-catalog.js';
@@ -266,11 +267,14 @@ renderer.onFrame=dt=>{
   playback.advance(dt);
   if(playback.done)endPlayback();
 };
+// 3.163.0 (user decision): the operator's own line over their head — an invalid input, or a warning of the next one.
+const sayLine=(cue,detail={})=>renderer.addEffects([playerCalloutEvent(cue,detail)]);
 function act(type,arg) {
   skipPlayback();
   if(playback||orientationBlocked||!entered||$('#modal').open||performance.now()<lockUntil)return false;
   pointerStart=null;
   const oldLog=game.logs[0],{success,steps}=captureAction(game,()=>game.action(type,arg));
+  if(!success&&game.refusal)sayLine(game.refusal.cue,game.refusal.item?{item:game.refusal.item}:{});
   if(success){
     // Persist the fully resolved turn before presenting any of its snapshots.
     lastActionLogs=freshLogs(oldLog);persist();lockUntil=performance.now()+120;const cue=actionSound(type==='usePrepared'?preparedEntry(game.player,arg.category)?.action:type);if(cue)audio.play(cue);noteCombat(false);
@@ -310,7 +314,7 @@ const placeRange=()=>renderer.placeItem==='mine'?MINE_TUNING.range:DECOY_TUNING.
 function fireWeapon(){
   if(renderer.mode==='launch'||renderer.mode==='blind'){cancelAim();return;}
   if(!game.weapon.pointTarget){act('fire');return;}
-  if(game.player.ammo[game.player.weapon]<=0){notify('彈匣已空，請裝填。');return;}
+  if(game.player.ammo[game.player.weapon]<=0){sayLine('reload_needed');return;}
   const p=game.player,locked=game.targeted,face=isBarrier(locked)?barrierFace(locked,p):locked;
   const start=[face,...game.visibleEnemies].find(o=>o&&distance(o,p)<=game.weapon.range&&game.visible(o));
   renderer.mode='launch';renderer.aim=start?{x:start.x,y:start.y}:null;updateAim();
@@ -342,7 +346,7 @@ function setPetAim(pos){if(game.seen[pos.y]?.[pos.x]&&game.passable(pos.x,pos.y)
 // Drone skills that put a chassis down open a placement cursor; the default tile faces the way the player looks.
 function setDroneAim(pos){if(droneCells(game).some(q=>q.x===pos.x&&q.y===pos.y)){renderer.aim={x:pos.x,y:pos.y};updateAim();}else notify('部署位置需在你 2 步內、走得到的空格。');}
 function skill(){if(renderer.mode==='pet'||renderer.mode==='drone'||renderer.mode==='suppress'){cancelAim();return;}const id=game.player.prepared.skill;if(!id){showInventory('skill','還沒有預備技能，點一個技能預備。');return;}if(id==='suppressive_fire'){startSuppressAim();return;}if(id==='pet_command'&&game.activeAllies.some(a=>a.kind==='pet')){renderer.mode='pet';renderer.aim={x:game.player.x,y:game.player.y};notify('點目的地後按右下確認；點自己代表召回。');updateAim();}else if(id==='workshop')showWorkshop();else act('usePrepared',{category:'skill'});}
-function grenade(){if(renderer.mode==='grenade'){cancelAim();return;}const entry=preparedEntry(game.player,'grenade');if(!entry){showInventory('grenade','還沒有預備投擲物，點一個投擲物預備。');return;}if(game.player[entry.resource]<=0){notify(`${entry.name}已用盡。`);return;}renderer.mode='grenade';const locked=game.targeted,e=isBarrier(locked)?barrierFace(locked,game.player):locked;renderer.aim=e&&distance(e,game.player)<=5?{x:e.x,y:e.y}:{x:game.player.x,y:game.player.y};updateAim();}
+function grenade(){if(renderer.mode==='grenade'){cancelAim();return;}const entry=preparedEntry(game.player,'grenade');if(!entry){showInventory('grenade','還沒有預備投擲物，點一個投擲物預備。');return;}if(game.player[entry.resource]<=0){sayLine('empty',{item:entry.name});return;}renderer.mode='grenade';const locked=game.targeted,e=isBarrier(locked)?barrierFace(locked,game.player):locked;renderer.aim=e&&distance(e,game.player)<=5?{x:e.x,y:e.y}:{x:game.player.x,y:game.player.y};updateAim();}
 // With nothing prepared, the item button opens the item tab instead of refusing (3.97.0).
 // 3.108.0: the slot is a 生效欄 now. Something in it with no action is worn, not held, so the button opens the pack
 // instead — and the long press still does, which is why that shortcut had to stay.
@@ -357,13 +361,13 @@ function useItem(){if(renderer.mode==='deploy'||renderer.mode==='flare'||rendere
 function startThrowAim(id){const action=PREPARED_CATALOG.item[id]?.action;if(action==='rope')startRopeAim(id);else if(action==='decoy'||action==='mine')startPlaceAim(action);else startFlareAim();}
 // 3.144.0 (src/field-gear.js): a decoy or a mine is placed like a flare — pick the tile, confirm with 互動, press 道具 to cancel.
 function startPlaceAim(id){
-  const p=game.player,entry=PREPARED_CATALOG.item[id];if(!(p[entry.resource]>0)){notify(`${entry.name}已用盡。`);return;}
+  const p=game.player,entry=PREPARED_CATALOG.item[id];if(!(p[entry.resource]>0)){sayLine('empty',{item:entry.name});return;}
   // 3.148.1 (user report): the pad and swipes move this aim like a flare's, and it starts on a tile that would be accepted.
   renderer.mode='place';renderer.placeItem=id;renderer.aim=placeStart(game,id);updateAim();
   notify(id==='mine'?`點 ${MINE_TUNING.range} 格內看得見的空地埋地雷；按右下確認，再按道具鍵取消。`:`點 ${DECOY_TUNING.range} 格內看得見的地板丟誘餌，框起來的敵人會被引開；按右下確認，再按道具鍵取消。`);
 }
 function startRopeAim(id){
-  const p=game.player,entry=PREPARED_CATALOG.item[id];if(!(p[entry.resource]>0)){notify(`${entry.name}已用盡。`);return;}
+  const p=game.player,entry=PREPARED_CATALOG.item[id];if(!(p[entry.resource]>0)){sayLine('empty',{item:entry.name});return;}
   renderer.mode='rope';renderer.ropeItem=id;renderer.aim={x:p.x,y:p.y};updateAim();
   notify(`點 ${LINE_TUNING.range} 格內看得見的地板，確認後沿直線把你拉過去${entry.action==='rope'&&PREPARED_CATALOG.item[id].resource==='escapeLines'?'（不耗回合）':''}；再按道具鍵取消。`);
 }
@@ -371,7 +375,7 @@ function startRopeAim(id){
 // same one turn as putting it in front — no turning, and no second tap to confirm.
 // 3.123.0: a flare is an item aimed like a throwable: pick a floor tile, confirm with 互動, press 道具 again to cancel.
 function startFlareAim(){
-  const p=game.player;if(!(p.flares>0)){notify('照明彈已用盡。');return;}
+  const p=game.player;if(!(p.flares>0)){sayLine('empty',{item:'照明彈'});return;}
   const locked=game.targeted,e=isBarrier(locked)?barrierFace(locked,p):locked;
   renderer.mode='flare';renderer.aim=e&&!flareReason(game,{x:e.x,y:e.y})?{x:e.x,y:e.y}:{x:p.x,y:p.y};updateAim();
   notify(`點 ${FLARE_TUNING.range} 格內看得見的地板，亮起的格子就是會被照亮的範圍；按右下確認，再按道具鍵取消。`);

@@ -86,7 +86,7 @@ test('a two-round affix spends two a shot and will not fire on one',()=>{
  const {g,p}=lane(),slot=hold(g,PL,'burst'),e=foe(g,'raider',4,0,'e');g.target=e.id;g.rng=()=>.99;
  assert.equal(g.weapon.name,'爆裂・極光電漿步槍');assert.equal(g.weapon.min,Math.round(52*.85));
  assert.equal(g.action('fire'),true);assert.equal(p.ammo[slot],4);
- p.ammo[slot]=1;const turn=g.turn;assert.equal(g.action('fire'),false);assert.equal(g.turn,turn);assert.match(g.logs[0].text,/彈匣不足 2 發/);
+ p.ammo[slot]=1;const turn=g.turn;assert.equal(g.action('fire'),false);assert.equal(g.turn,turn);assert.equal(g.refusal.cue,'reload_needed');assert.match(g.refusal.text,/彈匣不足 2 發/);   // 3.163.0: spoken, not logged
 });
 
 test('貫穿 hits every visible unit on the line, friends too, and stops at the first crate past the target',()=>{

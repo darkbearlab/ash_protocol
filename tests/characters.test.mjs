@@ -75,7 +75,9 @@ test('sideways movement changes actual hit rolls independently for crossing enem
 });
 test('quick reload transfers only missing pistol ammunition and preserves fast enemies, environment and all bonuses',()=>{
   const g=arena('recon'),e=enemy(g);grantTrait(e,'fast','test',2);grantTrait(g.player,'slow','test',2);Object.assign(g.player,{ammo:[0,4,16,0,0,0],pistol:1,guard:true,focus:true,evasive:true,moved:true,moveDelta:[0,1],poison:3});g.hazards=[{x:10,y:10,type:'fire'}];g.marks=[{x:10,y:10,due:1}];
-  const before=JSON.parse(g.serialize());assert.equal(g.actionCost('reload'),0);const {success,steps}=captureAction(g,()=>g.action('reload'));assert.equal(success,true);assert.equal(steps.length,0);
+  const before=JSON.parse(g.serialize());assert.equal(g.actionCost('reload'),0);const {success,steps}=captureAction(g,()=>g.action('reload'));assert.equal(success,true);
+  // 3.163.0: the only thing presented is the operator's 最後一個彈匣 (this reload spends the last pistol round).
+  assert.deepEqual(steps.flatMap(s=>s.effects).map(e=>`${e.type}:${e.cue}`),['callout:last_magazine']);
   const after=JSON.parse(g.serialize());before.data.player.ammo[2]=17;before.data.player.pistol=0;before.data.logs=after.data.logs;assert.deepEqual(after,before);assert.equal(g.action('reload'),false);
   g.player.pistol=10;g.player.ammo[2]=18;assert.equal(g.action('reload'),false);assert.equal(g.turn,1);assert.equal(g.player.pistol,10);
 });

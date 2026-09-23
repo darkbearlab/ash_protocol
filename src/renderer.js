@@ -350,14 +350,14 @@ export class Renderer {
       if(visible){
         // Follow the speaker, alive or fallen, while its tile is visible (3.84.2): a unit that speaks, moves and dies in one turn
         // used to leave its bubble on the tile where it spoke.
-        const speaker=g.enemies.find(a=>a.id===e.actorId),shown=speaker&&(speaker.hp>0?g.visibleEnemies.includes(speaker):g.visible(speaker)),p=shown?this.projectActor(speaker):this.project(e.position.x,e.position.y);x=p.x;y=p.y-this.tile*.62;
+        const own=e.speaker==='player',speaker=own?g.player:g.enemies.find(a=>a.id===e.actorId),shown=own||speaker&&(speaker.hp>0?g.visibleEnemies.includes(speaker):g.visible(speaker)),p=shown?this.projectActor(speaker):this.project(e.position.x,e.position.y);x=p.x;y=p.y-this.tile*.62;
         if(speaker&&speaker.hp<=0)this.callouts.silence(item,time);}
       else ({x,y}=edgePoint(e.direction,this.w,this.h));
       const w=Math.ceil(c.measureText(text).width)+10,h=15,left=Math.max(2,Math.min(this.w-w-2,x-w/2)),top=Math.max(2,Math.min(this.h-h-2,y-h));
-      const border=e.priority==='high'?'#f2a85c':e.priority==='medium'?'#9fd9c8':'#9aa59a';
+      const border=e.speaker==='player'?this.operatorColor:e.priority==='high'?'#f2a85c':e.priority==='medium'?'#9fd9c8':'#9aa59a';
       c.globalAlpha=bubbleAlpha(item,time);
       this.box(left,top,w,h,'#101a17e6',border);if(visible)this.box(Math.round(x)-2,top+h,4,3,border);
-      c.fillStyle=e.priority==='high'?'#ffd7a8':'#e3eee6';c.fillText(text,left+w/2,top+11);
+      c.fillStyle=e.speaker==='player'?'#f4f7ef':e.priority==='high'?'#ffd7a8':'#e3eee6';c.fillText(text,left+w/2,top+11);
     }
     c.restore();
   }

@@ -90,7 +90,7 @@ test('a suicide bot destroyed by damage still explodes, the player is not protec
  const g=arena(),p=g.player,a=unit(g,'unit_bomber'),e=enemy(g,12,10);g.reveal();
  g.damageAlly(a,999);assert.equal(a.status,'destroyed');assert.equal(a.primed,undefined);assert.equal(e.hp,500-blastDamage);assert.ok(p.hp<500);assert.ok(validAllies(g));assert.ok(Game.restore(g.serialize()));
  const h=arena(),b=unit(h,'unit_bomber');
- assert.equal(h.action('move',[1,0]),false);assert.match(h.logs[0].text,/改造自爆機器人不會和你換位/);assert.ok(!departAllies(h).includes(b.id));
+ assert.equal(h.action('move',[1,0]),false);assert.equal(h.refusal.cue,'blocked');assert.match(h.refusal.text,/改造自爆機器人不會和你換位/);assert.ok(!departAllies(h).includes(b.id));
  h.player.x=3;h.reveal();assert.ok(bomberAct(h,b));assert.equal(distance(b,h.player),7);
  h.player.x=b.x-1;assert.equal(bomberAct(h,b),false);
  for(const change of [d=>d.allies[0].primed=false,d=>d.allies[0].type='drone',d=>d.allies[0].payload='frag',d=>Object.assign(d.allies[0],{sourceId:'unit_drone',type:'drone',primed:true}),d=>d.player.blueprints=[]]){

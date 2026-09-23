@@ -15,13 +15,13 @@ test('a blocked step keeps a live enemy locked and costs no turn',()=>{
  const g=arena();foe(g);wall(g);g.target='foe';const turn=g.turn;
  assert.equal(g.action('move',[0,-1]),false);
  assert.equal(g.target,'foe');assert.equal(g.turn,turn);
- assert.match(g.logs[0].text,/先點隔板鎖定/);
+ assert.equal(g.refusal.cue,'blocked');assert.match(g.refusal.text,/先點隔板鎖定/);   // 3.163.0: spoken, not logged
 });
 
 test('with nothing locked the partition becomes the target, so firing can break it',()=>{
  const g=arena();wall(g);g.target=null;
  assert.equal(g.action('move',[0,-1]),false);
- assert.equal(g.target,'wallA');assert.match(g.logs[0].text,/可開火破壞/);
+ assert.equal(g.target,'wallA');assert.equal(g.refusal.cue,'blocked');assert.match(g.refusal.text,/可開火破壞/);
 });
 
 test('a dead enemy does not hold the lock',()=>{

@@ -4,7 +4,7 @@
 import {ENEMY_TYPES} from './engine.js';
 import {factionDef} from './factions.js';
 
-export const CALLOUT_UI_TUNING=Object.freeze({generalMs:2500,dangerMs:4000,heardFactor:.7,cooldownMs:1500,maxOnScreen:4,fadeMs:400,edgeMargin:30});
+export const CALLOUT_UI_TUNING=Object.freeze({generalMs:2500,dangerMs:4000,playerMs:1500,heardFactor:.7,cooldownMs:1500,maxOnScreen:4,fadeMs:400,edgeMargin:30});
 
 const HUMAN={
  // 3.130.0 draft: in place for an ambush. Vague by the user's rule — never says what it is doing.
@@ -95,7 +95,12 @@ export function calloutVoice(event){
  return def?.mechanical?'machine':def?.voice==='creature'?'creature':typeof def?.voice==='string'&&Object.hasOwn(VOICE_LINES,def.voice)?def.voice:factionVoice;
 }
 const hash=text=>{let h=2166136261;for(const c of text){h^=c.codePointAt(0);h=Math.imul(h,16777619);}return h>>>0;};
+// 3.163.0 (user decision 2026-09-23): the operator speaks only about an invalid input or the next one. The user wrote
+// these; never a number.
+export const PLAYER_LINES=Object.freeze({blocked:'被擋住了',locked:'上鎖了',pinned:'被壓制了',anchor_on:'下錨！',anchor_off:'解除下錨！',anchored:'下錨中！',reload_needed:'需要裝填',last_magazine:'最後一個彈匣',no_ammo:'沒彈藥了',out_of_range:'目標在射程外',no_target:'沒有目標',chambered:'已上膛',not_needed:'不需要',fatal:'會死！'});
+export const playerLine=event=>event.cue==='empty'?`${event.item||'道具'}沒了`:PLAYER_LINES[event.cue]||'';
 export function calloutLine(event,variant=0){
+ if(event.speaker==='player')return playerLine(event);
  const voice=calloutVoice(event),lines=voice==='creature'?CREATURE[event.category]:(VOICE_LINES[voice]||HUMAN)[event.cue];
  return lines?.length?lines[hash(`${event.actorId||event.direction||''}:${event.cue}:${variant}`)%lines.length]:'';
 }
@@ -107,19 +112,21 @@ const RANK={high:3,medium:2,low:1};
 export class CalloutBoard{
  constructor(tuning=CALLOUT_UI_TUNING){this.tuning=tuning;this.items=[];this.sequence=0;}
  clear(){this.items=[];}
- duration(event){const t=this.tuning,base=event.priority==='high'?t.dangerMs:t.generalMs;return Math.round(event.visibility==='visible'?base:base*t.heardFactor);}
+ duration(event){const t=this.tuning;if(event.speaker==='player')return t.playerMs;const base=event.priority==='high'?t.dangerMs:t.generalMs;return Math.round(event.visibility==='visible'?base:base*t.heardFactor);}
  add(event,now){
   if(event?.type!=='callout'||!event.cue)return null;
   this.prune(now);
   const key=event.visibility==='visible'?`actor:${event.actorId}`:`dir:${event.direction}`,expires=now+this.duration(event);
   const same=this.items.find(i=>i.key===key);
-  if(same&&same.event.cue===event.cue){same.expires=Math.max(same.expires,expires);return same;}
+  if(same&&same.event.cue===event.cue&&(same.event.item||'')===(event.item||'')){same.expires=Math.max(same.expires,expires);return same;}
   if(same&&RANK[same.event.priority]>RANK[event.priority])return null;
   if(event.priority!=='high'&&this.items.some(i=>i.event.cue===event.cue&&i.event.visibility===event.visibility&&now-i.started<=this.tuning.cooldownMs))return null;
   if(same)this.items.splice(this.items.indexOf(same),1);
   const item={key,event,text:calloutLine(event,this.sequence++),started:now,expires};
   this.items.push(item);
-  while(this.items.length>this.tuning.maxOnScreen){const drop=[...this.items].sort((a,b)=>RANK[a.event.priority]-RANK[b.event.priority]||a.started-b.started)[0];this.items.splice(this.items.indexOf(drop),1);}
+  // The operator's own bubble (3.163.0) neither counts toward the cap nor is ever the one dropped.
+  const others=()=>this.items.filter(i=>i.event.speaker!=='player');
+  while(others().length>this.tuning.maxOnScreen){const drop=others().sort((a,b)=>RANK[a.event.priority]-RANK[b.event.priority]||a.started-b.started)[0];this.items.splice(this.items.indexOf(drop),1);}
   return this.items.includes(item)?item:null;
  }
  // A fallen speaker's line fades out within fadeMs, whatever it said (user decision, 3.84.3). Only the first call counts,
