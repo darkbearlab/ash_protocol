@@ -7,7 +7,7 @@ import {CHARACTERS} from './characters.js';
 
 // One prompt per tutorial room, in recipe order (room 4 holds the researcher).
 export const TUTORIAL_PROMPTS=[
-  {title:'移動與掩體',text:'用方向鈕、WASD 或點相鄰格移動。掩體只擋從它那一側射來的攻擊：讓掩體夾在你和敵人之間才有效。'},
+  {title:'移動與掩體',text:'用方向鈕或點相鄰格移動。掩體只擋從它那一側射來的攻擊：讓掩體夾在你和敵人之間才有效。'},
   {title:'射擊',text:'點敵人鎖定，浮卡會顯示命中率，再按開火。距離、目標的掩體與暗處都會壓低命中。'},
   {title:'蓄勢預告',text:'敵人頭上出現「!」，代表下一次行動會射向鎖定的位置。離開那一格，或按等待進入防禦待機，直接傷害減半。'},
   {title:'門與投擲物',text:'朝關著的門移動，會花 1 回合把門打開。門後有 2 個目標：預備手榴彈後按投擲選落點，爆炸不吃掩體減傷。'},
