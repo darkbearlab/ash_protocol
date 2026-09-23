@@ -12,7 +12,9 @@ export const SAVE_VERSION = 70;
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
 export const PACK_LIMIT = 3;
 export const PLATE_CAPACITY = 30;
-export const SUPPLY_ROOMS={ammo:{name:'彈藥庫',color:'#d9bd7b'},medical:{name:'醫療室',color:'#a9d9ac'},armor:{name:'裝甲庫',color:'#92c4df'}};
+// Floor stencils (3.165.2, user decision 2026-09-23): zone labels painted on the floor are English in every language,
+// like the living-module codes (WC, ACCESS, OFFICE…). They never go into a language table.
+export const SUPPLY_ROOMS={ammo:{code:'AMMO',color:'#d9bd7b'},medical:{code:'MEDICAL',color:'#a9d9ac'},armor:{code:'ARMOR',color:'#92c4df'}};
 export const RARE_ARMORY={weapon:8,minFloor:3,chance:.2};
 export const WEAPONS = [
   { id:'rifle', weaponClass:'rifle', name:'餘燼突擊步槍', type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'rifle', desc:'可靠的中距離主力，適合多數交戰。' },

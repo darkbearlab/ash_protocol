@@ -1,5 +1,12 @@
 # 更新紀錄
 
+## 3.165.2 — 地面的區域標字一律英文（使用者決定，2026-09-23）
+
+- 補給房地面上的標字從「彈藥庫／醫療室／裝甲庫」改成 **AMMO／MEDICAL／ARMOR**，和生活模組（WC、ACCESS、OFFICE…）與出口（EXIT、UP、DOWN、LOCK）一樣是英文。之後不論翻成什麼語言，地面標字都維持英文、不進語言表。
+- 新測試 `tests/floor-labels.test.mjs` 鎖住補給房與生活模組的標字只能是大寫英文。只改外觀，生成與規則不變。
+- 同日：翻譯準備第 1 步的文本盤點完成（docs/TEXT_INVENTORY.md，工具 tools/text-inventory.mjs）；使用者 37 項全部照建議選定。
+- 1250 個測試通過。identity 完全相同。報告：qa/results/2026-09-23-claude-3.165.2-floor-stencils.md。
+
 ## 測試修正：擊殺屋出口測試改用固定種子 — 2026-09-23（遊戲仍 3.165.1）
 
 - 2026-09-23 一次完整 `npm test` 裡，「walking into exit settles at the player step」失敗一次，重跑通過。原因是競技場種子取自時間：種子 1–5000 裡有 11 張地圖（約 0.2%），出口在角落，一邊牆、一邊隔板，其餘能走的鄰格都站著守衛，測試找不到可以走進出口的格子就拋錯。
