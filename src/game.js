@@ -80,7 +80,7 @@ import {AFFIXES,weaponStats,rollAffix,affixAllowed} from './weapons.js';
 import {AMMUNITION,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds} from './ammunition.js';
 import {presentStep} from './presentation.js';
 import {registerPurgeFloor,notePurgeDeparture,validPurge} from './purge-review.js';
-import {SIZE,SAVE_VERSION,RARE_ARMORY,WEAPONS,FLOORS,floorInfo,ENEMY_TYPES,PERK_D,LEGACY_SAVE_VERSIONS} from './data.js';
+import {SIZE,SAVE_VERSION,RARE_ARMORY,WEAPONS,FLOORS,floorInfo,ENEMY_TYPES,PERK_D,LEGACY_SAVE_VERSIONS,VOID,seeThrough} from './data.js';
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
 import {wallCover,shotChance,bracingBonus,adjacentWalls} from './combat.js';
@@ -250,7 +250,8 @@ export class Game {
   }
   accuracy(attacker,target){return shotChance(this,attacker,target);}
   solid(x,y){return this.props.find(o=>o.x===x&&o.y===y&&o.hp>0&&(o.type==='cover'||o.type==='barrel'||o.type==='nest'));}
-  passable(x,y,actor){return this.grid[y]?.[x]===1&&(!this.solid(x,y)||hasEnemyTag(actor,'flying'))&&!knownMine(this,actor,x,y);}
+  // 3.164.0: a flyer may hover over a pit (src/pits.js); everyone else keeps to the floor.
+  passable(x,y,actor){const v=this.grid[y]?.[x];return (v===1||v===VOID&&hasEnemyTag(actor,'flying'))&&(!this.solid(x,y)||hasEnemyTag(actor,'flying'))&&!knownMine(this,actor,x,y);}
   // `warnings:false` (restore only): a loaded save redraws what is seen but raises no new alarm; the next look in play does.
   reveal({warnings=true}={}) {
     syncPetSenses(this);
@@ -887,7 +888,10 @@ export class Game {
   enemyDropPoint(e){
     // 3.127.2: a flyer killed above a cover prop must not leave its loot on a tile the player can never step on.
     const here={x:e.x,y:e.y};if(this.passable(here.x,here.y)&&!this.items.some(i=>distance(i,here)===0))return here;
-    return DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(q=>this.passable(q.x,q.y)&&this.canCross(here,q)&&!occupied(this,q)&&!this.items.some(i=>distance(i,q)===0))||here;
+    const near=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(q=>this.passable(q.x,q.y)&&this.canCross(here,q)&&!occupied(this,q)&&!this.items.some(i=>distance(i,q)===0));if(near)return near;
+    // 3.164.0: shot down over the middle of a pit, it drops on the nearest floor at the rim.
+    if(this.grid[here.y]?.[here.x]===VOID){let best=null;for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){const q={x,y};if(this.passable(x,y)&&!occupied(this,q)&&!this.items.some(i=>distance(i,q)===0)&&(!best||distance(here,q)<distance(here,best)))best=q;}if(best)return best;}
+    return here;
   }
   dropEnemyWeapon(e,weapon){const item=this.registerWeapon({...this.enemyDropPoint(e),type:'weapon',weapon},true);this.items.push(item);this.log(`戰利品：${this.weaponAt(item.slot).name}留在屍體旁，靠近後可拾取。`);}
   damageProp(prop,damage,attacker=null) {
@@ -949,9 +953,11 @@ export class Game {
     const p=this.player,def=GRENADES[id];
     if(id==='frag')this.explode(pos,2,fragDamage,attacker);
     else {
-      const cells=areaCells(this.grid,pos,2,this.barriers,this),affected=new Set(cells.map(key));
+      // 3.164.0: sight crosses a pit, so the area can reach over one; the grenade still disrupts a flyer there, but its smoke
+      // lies only on the floor.
+      const cells=areaCells(this.grid,pos,2,this.barriers,this),affected=new Set(cells.map(key)),floorCells=cells.filter(q=>this.grid[q.y]?.[q.x]===1);
       this.effects.push({type:'pulse',radius:2,color:def.color,from:{x:pos.x,y:pos.y},to:{x:pos.x,y:pos.y}});
-      if(id==='smoke'){this.smoke=[...this.smoke,{cells,expires:this.turn+SMOKE_DURATION-1}];this.log('煙霧展開：阻斷無紅外線者的視線，爆炸仍可傷害。');}
+      if(id==='smoke'){this.smoke=[...this.smoke,{cells:floorCells,expires:this.turn+SMOKE_DURATION-1}];this.log('煙霧展開：阻斷無紅外線者的視線，爆炸仍可傷害。');}
       else for(const actor of [p,...this.enemies,...this.activeAllies])if(affected.has(key(actor))&&applyDisruption(actor,def.keyword)){
         if(actor!==p)actor.alert=true;
         this.log(`${actor===p?'你':actor.kind?allyName(actor):enemyName(actor)}失能：跳過 ${actor.control.disabled} 次行動。`,actor===p,`${actor===p?'你':actor.kind?allyName(actor):enemyName(actor)}陷入失能。`);
@@ -1268,7 +1274,7 @@ export class Game {
         }
       }
       if(![version>=12?data.player:p,...data.enemies].every(a=>validControl(a.control)))return null;
-      const point=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&data.grid[q.y]?.[q.x]===1;
+      const point=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&seeThrough(data.grid[q.y]?.[q.x]);   // 3.164.0: a scanned flyer may hover over a pit
       if(data.enemies.some(e=>e.lastKnown!==null&&!point(e.lastKnown)))return null;
       if(!Array.isArray(data.smoke)||data.smoke.length>32||data.smoke.some(s=>!Number.isInteger(s.expires)||s.expires<=data.turn||s.expires>data.turn+SMOKE_DURATION-1||!Array.isArray(s.cells)||s.cells.length<1||s.cells.length>13||s.cells.some(q=>!point(q))))return null;
       if(version>=12&&!['smoke','emp','stun'].every(k=>Number.isSafeInteger(data.player[k])&&data.player[k]>=0&&data.player[k]<=10000000))return null;

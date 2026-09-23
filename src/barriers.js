@@ -1,4 +1,5 @@
 import {bestCover} from './cover.js';
+import {seeThrough} from './data.js';
 // An edge belongs to both adjacent floor cells. axis is its normal, not its tangent.
 export const BARRIER_TYPES={
   door:{name:'隔離門',maxHp:60,openable:true,destructible:true,move:true,sight:true,shot:true,blast:true,cover:true},
@@ -41,7 +42,7 @@ export function validBarriers(edges,grid,ids=[]){
   const keys=new Set(),names=new Set(ids);
   for(const b of edges){
     if(!b||!Object.hasOwn(BARRIER_TYPES,b.type)||!['x','y'].includes(b.axis)||typeof b.id!=='string'||!/^edge-[a-zA-Z0-9_-]{1,90}$/.test(b.id)||names.has(b.id))return false;
-    if(!Number.isFinite(b.x)||!Number.isFinite(b.y)||!edgeCells(b).every(p=>Number.isInteger(p.x)&&Number.isInteger(p.y)&&grid[p.y]?.[p.x]===1)||keys.has(edgeKey(b)))return false;
+    if(!Number.isFinite(b.x)||!Number.isFinite(b.y)||!edgeCells(b).every(p=>Number.isInteger(p.x)&&Number.isInteger(p.y)&&seeThrough(grid[p.y]?.[p.x]))||!edgeCells(b).some(p=>grid[p.y]?.[p.x]===1)||keys.has(edgeKey(b)))return false;
     if(!Number.isInteger(b.maxHp)||b.maxHp!==BARRIER_TYPES[b.type].maxHp||!Number.isInteger(b.hp)||b.hp<0||b.hp>b.maxHp||typeof b.open!=='boolean'||(b.open&&!BARRIER_TYPES[b.type].openable))return false;
     // 3.146.0 (src/vault.js): only a vault door carries these, all three; a locked one is shut.
     if((b.vault!==undefined||b.locked!==undefined||b.indestructible!==undefined)&&(b.type!=='door'||b.vault!==true||b.indestructible!==true||typeof b.locked!=='boolean'||b.locked&&b.open))return false;

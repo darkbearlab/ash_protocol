@@ -1,5 +1,5 @@
 import {actorStat} from './actor-stats.js';
-import {PERK_D} from './data.js';
+import {PERK_D,VOID} from './data.js';
 import {lightingEffects} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
 import {blockedBetween,edgeAdjacent,edgeBlocks} from './barriers.js';
@@ -11,7 +11,8 @@ import {toxicShot} from './swarm-fields.js';
 import {classPerkRank,CLASS_PERK_TUNING,markValues} from './class-perks.js';
 
 export function adjacentWalls(grid,actor) {
-  return DIRECTIONS.filter(([dx,dy])=>grid[actor.y+dy]?.[actor.x+dx]!==1)
+  // 3.164.0: a pit is not a wall — nothing to lean on at its edge.
+  return DIRECTIONS.filter(([dx,dy])=>grid[actor.y+dy]?.[actor.x+dx]!==1&&grid[actor.y+dy]?.[actor.x+dx]!==VOID)
     .map(([dx,dy])=>({x:actor.x+dx,y:actor.y+dy,type:'wall',indestructible:true}));
 }
 export function anchors(grid,p,barriers,channel) {

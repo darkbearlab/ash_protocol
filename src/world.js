@@ -20,9 +20,10 @@ import {selectSupplyStations,addLivingModules,moduleCells} from './modules.js';
 import {floorTerminalKinds,KIND_ROOMS} from './terminal-kinds.js';
 import {packSupplies} from './containers.js';
 import {placeVault} from './vault.js';
+import {placePit} from './pits.js';
 import {vaultable,blockedBetween,barrierBetween,makeBarrier,edgeCells} from './barriers.js';
 import {startingTraits,grantTrait} from './traits.js';
-import {SIZE,ENEMY_TYPES,floorInfo,WEAPONS,RARE_ARMORY} from './data.js';
+import {SIZE,ENEMY_TYPES,floorInfo,WEAPONS,RARE_ARMORY,VOID,seeThrough} from './data.js';
 import {weaponUnlocked} from './progression.js';
 export function random(seed) {
   let a=seed>>>0;
@@ -35,20 +36,20 @@ export const DIRECTIONS=[[0,-1],[1,0],[0,1],[-1,0]];
 export function lineOfSight(grid,a,b,barriers=[],channel='sight') {
   let x=Math.floor(a.x+.5),y=Math.floor(a.y+.5);
   const endX=Math.floor(b.x+.5),endY=Math.floor(b.y+.5),dx=b.x-a.x,dy=b.y-a.y,sx=Math.sign(dx),sy=Math.sign(dy);
-  if(grid[y]?.[x]!==1||grid[endY]?.[endX]!==1)return false;
+  if(!seeThrough(grid[y]?.[x])||!seeThrough(grid[endY]?.[endX]))return false;
   const stepX=dx?1/Math.abs(dx):Infinity,stepY=dy?1/Math.abs(dy):Infinity;
   let tx=dx?(x+(sx>0?.5:-.5)-a.x)/dx:Infinity,ty=dy?(y+(sy>0?.5:-.5)-a.y)/dy:Infinity;
   for(let i=0;i<SIZE*3;i++){
     if(x===endX&&y===endY)return true;
     if(Math.abs(tx-ty)<1e-9){
       const from={x,y},across={x:x+sx,y:y+sy},horizontal={x:x+sx,y},vertical={x,y:y+sy};
-      const viaX=grid[y]?.[x+sx]===1&&!blockedBetween(barriers,from,horizontal,channel)&&!blockedBetween(barriers,horizontal,across,channel);
-      const viaY=grid[y+sy]?.[x]===1&&!blockedBetween(barriers,from,vertical,channel)&&!blockedBetween(barriers,vertical,across,channel);
+      const viaX=seeThrough(grid[y]?.[x+sx])&&!blockedBetween(barriers,from,horizontal,channel)&&!blockedBetween(barriers,horizontal,across,channel);
+      const viaY=seeThrough(grid[y+sy]?.[x])&&!blockedBetween(barriers,from,vertical,channel)&&!blockedBetween(barriers,vertical,across,channel);
       if(!viaX&&!viaY)return false;x+=sx;y+=sy;tx+=stepX;ty+=stepY;
     }
     else if(tx<ty){if(blockedBetween(barriers,{x,y},{x:x+sx,y},channel))return false;x+=sx;tx+=stepX;}
     else{if(blockedBetween(barriers,{x,y},{x,y:y+sy},channel))return false;y+=sy;ty+=stepY;}
-    if(grid[y]?.[x]!==1)return false;
+    if(!seeThrough(grid[y]?.[x]))return false;
   }return false;
 }
 export const SWARM_PAYLOADS=Object.freeze(['toxic','acid','spore']);
@@ -73,7 +74,7 @@ export function previewSpecial(map,seed,floor,difficulty,faction){
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeVault(themeTerminals(addSwarmWaves(addNoncombatants(map,seed,floor,faction),seed,floor,faction),seed,floor),seed,floor);}
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor);}
 // 3.135.0 (user decision, docs/ITEMS.md): once everything else stands, each of the floor's two terminals takes its kind
 // and moves to the supply room of that kind. Done last, so nothing else on the floor shifts; the room's reserved console
 // corner is tried first, and a terminal that finds no free tile there that keeps the floor safe stays put, still typed.

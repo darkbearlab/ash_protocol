@@ -2,7 +2,11 @@ import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
-export const SAVE_VERSION = 69;
+// Grid cells: 0 wall, 1 floor, VOID a pit (3.164.0, src/pits.js) — nobody walks on it but flyers; sight, shots and
+// blasts cross it. seeThrough is what a line of sight may pass over or end on.
+export const VOID = 2;
+export const seeThrough = v => v === 1 || v === VOID;
+export const SAVE_VERSION = 70;
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);

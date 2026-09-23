@@ -41,7 +41,7 @@ export function spawnField(g,kind,center){
   if(g.grid[center.y]?.[center.x]===1&&!g.hazards.some(h=>h.x===center.x&&h.y===center.y))g.hazards.push({x:center.x,y:center.y,type:'acid'});
   return;
  }
- const cells=areaCells(g.grid,center,FIELD_TUNING.radius,g.barriers,g);if(!cells.length)return;
+ const cells=areaCells(g.grid,center,FIELD_TUNING.radius,g.barriers,g).filter(q=>g.grid[q.y]?.[q.x]===1);if(!cells.length)return;   // 3.164.0: mist lies on the floor
  g.smoke=[...g.smoke,{kind,cells,expires:g.turn+SMOKE_DURATION-1}];
  g.effects.push({type:'pulse',from:{x:center.x,y:center.y},to:{x:center.x,y:center.y},radius:FIELD_TUNING.radius,color:kind==='toxic'?'#a9d24f':'#c7a66b'});
 }

@@ -3,7 +3,7 @@ import './enemy-data.js';   // kept for load order
 import {expireExposure} from './corner.js';
 import {enemyRoom} from './runtime-enemies.js';
 import {MAP_FIELDS,validMapMetadata} from './map-geometry.js';
-import {SIZE} from './data.js';
+import {SIZE,VOID} from './data.js';
 import {distance,key,reachable} from './world.js';
 import {missionDefinition,returning,missionObjects} from './missions.js';
 
@@ -78,7 +78,7 @@ export function validRetreatState(g,checkFloor){
   }
   for(const [floor,frame]of Object.entries(g.floorStates)){
     if(!object(frame)||Object.keys(frame).some(k=>k!=='savedTurn'&&!FLOOR_FIELDS.includes(k))||!REQUIRED_FLOOR_FIELDS.every(k=>Object.hasOwn(frame,k))||!validMapMetadata(frame)||!Number.isInteger(frame.savedTurn)||frame.savedTurn<1||frame.savedTurn>g.turn)return false;
-    if(!Array.isArray(frame.grid)||frame.grid.length!==SIZE||frame.grid.some(row=>!Array.isArray(row)||row.length!==SIZE||row.some(v=>v!==0&&v!==1)))return false;
+    if(!Array.isArray(frame.grid)||frame.grid.length!==SIZE||frame.grid.some(row=>!Array.isArray(row)||row.length!==SIZE||row.some(v=>v!==0&&v!==1&&v!==VOID)))return false;
     if(!Array.isArray(frame.rooms)||!frame.rooms.length||frame.rooms.length>SIZE*SIZE||frame.rooms.some(r=>!object(r)||!['x','y','w','h','cx','cy'].every(k=>Number.isInteger(r[k]))||r.x<0||r.y<0||r.w<1||r.h<1||r.x+r.w>SIZE||r.y+r.h>SIZE))return false;
     const roomIndex=i=>Number.isInteger(i)&&i>=0&&i<frame.rooms.length;
     if(!roomIndex(frame.startRoom)||!roomIndex(frame.endRoom)||!Array.isArray(frame.links)||frame.links.some(link=>!Array.isArray(link)||link.length!==2||!link.every(roomIndex))||!['mainRoute','rewardRooms'].every(k=>Array.isArray(frame[k])&&frame[k].every(roomIndex)))return false;

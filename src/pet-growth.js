@@ -188,7 +188,7 @@ export function petHit(g,a,target,actual,weapon){
 function smokeAt(g,a,point,throwing){
  const to={x:point.x,y:point.y},from={x:a.x,y:a.y};
  if(throwing)g.effects.push({type:'shot',style:'grenade',color:GRENADES.smoke.color,from,to,damage:0});
- g.smoke=[...g.smoke,{cells:areaCells(g.grid,to,2,g.barriers,g),expires:g.turn+SMOKE_DURATION-1}];
+ g.smoke=[...g.smoke,{cells:areaCells(g.grid,to,2,g.barriers,g).filter(q=>g.grid[q.y]?.[q.x]===1),expires:g.turn+SMOKE_DURATION-1}];   // 3.164.0: smoke lies on the floor
  g.effects.push({type:'pulse',from:to,to,radius:2,color:GRENADES.smoke.color});
 }
 export function petReactions(g){

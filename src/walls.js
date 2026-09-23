@@ -1,4 +1,5 @@
 import {styleSprite} from './map-styles.js';
+import {VOID} from './data.js';
 import {roomTiles} from './map-geometry.js';
 // Raised walls are cosmetic: ground-grid movement, visibility and cover stay unchanged.
 import {WALL_ATLAS,approved,materialSprite,MATERIAL_SELECTION} from './materials.js';
@@ -8,7 +9,7 @@ export const WALL_CAPS=['steel','olive','concrete','grille','cables','grid','haz
 export const WALL_HEIGHT=.5;
 const DIRS=[[0,-1],[1,0],[0,1],[-1,0]];
 const defaults={industrial:[0,0],sanitary:[2,2],security:[1,1],utility:[3,3]};
-const solid=(g,x,y)=>g.grid[y]?.[x]!==undefined&&g.grid[y][x]!==1;
+const solid=(g,x,y)=>g.grid[y]?.[x]!==undefined&&g.grid[y][x]!==1&&g.grid[y][x]!==VOID;   // 3.164.0: a pit is not wall
 function hash(value){let n=2166136261;for(const c of value)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;}
 
 export function wallStyle(g,x,y,theme='industrial',selection=MATERIAL_SELECTION){

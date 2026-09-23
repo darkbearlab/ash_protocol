@@ -38,6 +38,7 @@ import {MUZZLE_FLASHES,flashCells,flashUnit,muzzlePoint} from './muzzle-flash.js
 import {targetCardPlacement,actorObstacle,spriteSize} from './target-card.js';
 import {inCone,coneTargets} from './shotgun.js';
 import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTelegraphs} from './engine.js';
+import {VOID} from './data.js';
 
 // Orthographic board: world +x = screen right, world +y = screen down.
 // Pixel atlases use nearest-neighbor drawing, with procedural missing-image fallbacks.
@@ -170,6 +171,7 @@ export class Renderer {
     const minY=Math.max(0,Math.floor(this.camera.y-this.h/t/2-1)),maxY=Math.min(SIZE-1,Math.ceil(this.camera.y+this.h/t/2+2));
     for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++) {
       const a=this.project(x,y),left=a.x-half,top=a.y-half,seen=g.seen[y][x];
+      if(g.grid[y][x]===VOID)continue;   // 3.164.0 pits: no floor at all (user decision)
       if(g.grid[y][x]!==1) {
         if([[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.grid[y+dy]?.[x+dx]===1&&g.seen[y+dy]?.[x+dx])){this.box(left,top,t,t,'#202e2b');wallCells.push({a,x,y});}
         else this.box(left,top,t,t,'#12201a10','#6685790c');continue;
@@ -183,8 +185,9 @@ export class Renderer {
       this.line(left+7,top+7,left+t-8,top+7,'#8c9a6425');
       if(v===2||v===5)for(let i=0;i<4;i++)this.line(left+9,top+12+i*4,left+t-9,top+12+i*4,'#12231955',2);
       if(v===1){this.box(left+5,top+5,2,2,'#bcc39466');this.box(left+t-7,top+t-7,2,2,'#bcc39455');}
-      for(const [dx,dy]of[[0,-1],[-1,0]])if(g.grid[y+dy]?.[x+dx]!==1){if(dx)this.line(left+3,top+7,left+3,top+t-7,'#c3aa625e',2);else this.line(left+7,top+3,left+t-7,top+3,'#c3aa625e',2);}
+      for(const [dx,dy]of[[0,-1],[-1,0]])if(g.grid[y+dy]?.[x+dx]!==1&&g.grid[y+dy]?.[x+dx]!==VOID){if(dx)this.line(left+3,top+7,left+3,top+t-7,'#c3aa625e',2);else this.line(left+7,top+3,left+t-7,top+3,'#c3aa625e',2);}
       }else this.decals?.floor(this,x,y,a,Math.ceil(t));   // faction decals lie under the darkness bands, fog and props
+      this.pitRim(a,x,y,t);   // 3.164.0: like a decal, but fixed — under the darkness bands, fog, props and railings
       const module=g.props.find(m=>m.type==='module'&&moduleCells(m).some(q=>q.x===x&&q.y===y));if(module&&!this.terrainReady)this.moduleFloor(a,module);
       for(const band of floorShading(g,x,y))this.box(left+band.x*t,top+band.y*t,band.w*t,band.h*t,band.color);
       floorCells.push({a,left,top,x,y});c.globalAlpha=1;
@@ -360,6 +363,16 @@ export class Renderer {
       c.fillStyle=e.speaker==='player'?'#f4f7ef':e.priority==='high'?'#ffd7a8':'#e3eee6';c.fillText(text,left+w/2,top+11);
     }
     c.restore();
+  }
+  // 3.164.0 pits (src/pits.js): a red-black warning band along every floor edge that drops into a pit, closing at the
+  // outer corners. Pixel stripes from a 16x3 art strip scaled like the tiles; the phase repeats every tile so the bands join.
+  pitRim(a,x,y,t){
+    const g=this.game,v=(dx,dy)=>g.grid[y+dy]?.[x+dx]===VOID,sides=[[0,-1],[1,0],[0,1],[-1,0]].filter(([dx,dy])=>v(dx,dy)),corners=[[-1,-1],[1,-1],[1,1],[-1,1]].filter(([dx,dy])=>v(dx,dy)&&!v(dx,0)&&!v(0,dy));
+    if(!sides.length&&!corners.length)return;
+    if(!this.pitStripes){const make=(w,h)=>{const cv=document.createElement('canvas');cv.width=w;cv.height=h;const q=cv.getContext('2d');for(let j=0;j<h;j++)for(let i=0;i<w;i++){q.fillStyle=((i+j)&3)<2?'#b23a2c':'#16120f';q.fillRect(i,j,1,1);}return cv;};this.pitStripes={h:make(16,3),v:make(3,16)};}
+    const c=this.ctx,left=a.x-t/2,top=a.y-t/2,b=t*3/16,{h,v:vs}=this.pitStripes;
+    for(const [dx,dy]of sides){if(dy)c.drawImage(h,left,dy>0?top+t-b:top,t,b);else c.drawImage(vs,dx>0?left+t-b:left,top,b,t);}
+    for(const [dx,dy]of corners)c.drawImage(h,0,0,3,3,dx>0?left+t-b:left,dy>0?top+t-b:top,b,b);
   }
   cornerBadge(a){
     // Screen-space status: readable above wall art, without fading the actor silhouette.
@@ -558,7 +571,7 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
   grenadeLabel(m){const t=this.tile,a=this.project(m.x,m.y),y=a.y-t*.5-3,w=m.label.length*10+8,prepare=m.phase==='prepare';
     this.box(a.x-w/2,y-10,w,13,'#1b1410d9',prepare?'#f0c77a99':'#f8996999');this.text(m.label,a.x,y,prepare?'#ffe0a0':'#ffd3a4',9);}
   markArea(center,radius,fill,stroke,label){const g=this.game,t=this.tile;for(const {x,y} of areaCells(g.grid,center,radius,g.barriers,g)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}if(label){const a=this.project(center.x,center.y);this.text(label,a.x,a.y+5,'#ffd3a4',17);}}
-  drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?(isDark(g,{x,y})?'#343e62':'#809672'):(isDark(g,{x,y})?'#232a40':'#384b3a');c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const m of g.props.filter(p=>p.type==='module'))for(const q of moduleCells(m))if(g.seen[q.y]?.[q.x]){c.strokeStyle=MODULE_TYPES[m.theme].color+'88';c.lineWidth=1;c.strokeRect(q.x*k+1,q.y*k+1,k-2,k-2);}for(const station of g.props.filter(p=>p.type==='terminal'&&g.seen[p.y]?.[p.x])){c.fillStyle=station.used?'#526c62':'#a3e3c0';c.fillRect(station.x*k+3,station.y*k+3,k-6,k-6);}for(const b of g.barriers)if(b.hp>0&&edgeCells(b).some(p=>g.seen[p.y]?.[p.x])){const x=(b.x+.5)*k,y=(b.y+.5)*k;c.strokeStyle=b.open?'#8ad2bb':b.type==='door'?'#dec184':'#bdc7bd';c.lineWidth=2;c.beginPath();c.moveTo(x-(b.axis==='y'?k/2:0),y-(b.axis==='x'?k/2:0));c.lineTo(x+(b.axis==='y'?k/2:0),y+(b.axis==='x'?k/2:0));c.stroke();}for(const box of g.props.filter(o=>isContainer(o)&&!o.opened&&g.seen[o.y]?.[o.x])){c.strokeStyle=CONTAINER_KINDS[box.kind].color;c.lineWidth=2;c.strokeRect(box.x*k+3,box.y*k+3,Math.max(3,k-6),Math.max(3,k-6));}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.exitPoint,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),...(g.localAllies||[]).map(a=>[a,a.hp>0?'#83efd1':'#b5a774']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}for(const o of [...missionObjects(g).filter(t=>!t.done),...g.visibleEnemies.filter(e=>missionTarget(g,e))])if(g.seen[o.y]?.[o.x]){c.strokeStyle='#88f3ff';c.lineWidth=2;c.strokeRect(o.x*k+1,o.y*k+1,k-2,k-2);}const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
+  drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===VOID&&g.seen[y][x]){c.fillStyle='#07090a';c.fillRect(x*k+1,y*k+1,k-2,k-2);c.strokeStyle='#b8392c99';c.lineWidth=1;c.strokeRect(x*k+1.5,y*k+1.5,k-3,k-3);}for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?(isDark(g,{x,y})?'#343e62':'#809672'):(isDark(g,{x,y})?'#232a40':'#384b3a');c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const m of g.props.filter(p=>p.type==='module'))for(const q of moduleCells(m))if(g.seen[q.y]?.[q.x]){c.strokeStyle=MODULE_TYPES[m.theme].color+'88';c.lineWidth=1;c.strokeRect(q.x*k+1,q.y*k+1,k-2,k-2);}for(const station of g.props.filter(p=>p.type==='terminal'&&g.seen[p.y]?.[p.x])){c.fillStyle=station.used?'#526c62':'#a3e3c0';c.fillRect(station.x*k+3,station.y*k+3,k-6,k-6);}for(const b of g.barriers)if(b.hp>0&&edgeCells(b).some(p=>g.seen[p.y]?.[p.x])){const x=(b.x+.5)*k,y=(b.y+.5)*k;c.strokeStyle=b.open?'#8ad2bb':b.type==='door'?'#dec184':'#bdc7bd';c.lineWidth=2;c.beginPath();c.moveTo(x-(b.axis==='y'?k/2:0),y-(b.axis==='x'?k/2:0));c.lineTo(x+(b.axis==='y'?k/2:0),y+(b.axis==='x'?k/2:0));c.stroke();}for(const box of g.props.filter(o=>isContainer(o)&&!o.opened&&g.seen[o.y]?.[o.x])){c.strokeStyle=CONTAINER_KINDS[box.kind].color;c.lineWidth=2;c.strokeRect(box.x*k+3,box.y*k+3,Math.max(3,k-6),Math.max(3,k-6));}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.exitPoint,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),...(g.localAllies||[]).map(a=>[a,a.hp>0?'#83efd1':'#b5a774']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}for(const o of [...missionObjects(g).filter(t=>!t.done),...g.visibleEnemies.filter(e=>missionTarget(g,e))])if(g.seen[o.y]?.[o.x]){c.strokeStyle='#88f3ff';c.lineWidth=2;c.strokeRect(o.x*k+1,o.y*k+1,k-2,k-2);}const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
   // Callouts go to the bubble board, timed from the moment playback reaches them; everything else is a short effect.
   // Pixel cells laid along the barrel (src/muzzle-flash.js), over the shooter's sprite. In a dark room the first frames
   // also throw a small light; it is only paint, lighting and sight rules never see it.
