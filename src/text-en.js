@@ -1274,7 +1274,7 @@ export default Object.freeze({
  "melee-classes.grappleLanding":"No reachable melee spot: both your side and the target's are blocked.",
  // src/melee-ui.js
  "melee-ui.spiritFade":"Battle Spirit {stacks} (−1 in {turns}t)",
- "melee-ui.blades":"Blade Collector {n} · atk +{attack}% · dmg taken −{defense}%",
+ "melee-ui.blades":"Blade Stash {n} · atk +{attack}% · dmg taken −{defense}%",
  "melee-ui.spirit":"Battle Spirit {n} · dmg taken −{defense}%",
  "melee-ui.charge":"Charge",
  "melee-ui.pull":"Pull",
