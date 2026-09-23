@@ -9,6 +9,7 @@
 //   and everyone in range draws a boost even with no coward left in sight. No experience for the player.
 // - 強徵兵 (conscript): on a fresh rebel floor every ordinary gun-carrying rebel has a conscript beside it, outside the
 //   threat budget: the same card, but no experience, no scrap, no drop, and first to break.
+import {t} from './i18n.js';
 import {enemyDef,isNoncombatant,isBossClass} from './enemy-data.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 import {ENEMY_TYPES} from './data.js';
@@ -112,7 +113,7 @@ export function advanceCharge(g,e){
 export function execute(g,enforcer,target){
  const range=REBEL_TUNING.enforcerRange;
  g.effects.push({type:'enemyShot',attackerType:enforcer.type,from:{x:enforcer.x,y:enforcer.y},to:{x:target.x,y:target.y},damage:0});
- g.log(`${enemyDisplayName(enforcer)}處決了${enemyDisplayName(target)}。`,true);
+ g.log(t('rebels.executed',{enemy:enemyDisplayName(enforcer),victim:enemyDisplayName(target)}),true);
  g.hurt(target,target.hp,enforcer);
  const inRange=g.enemies.filter(o=>o.hp>0&&isRebel(o)&&o!==enforcer&&distance(enforcer,o)<=range);
  g.enemyCallout?.(enforcer,'telegraph',{action:'execute'});
@@ -122,7 +123,7 @@ export function execute(g,enforcer,target){
  // shouted after the charge, so it stays over any shot the same soldier just fired instead of being replaced by it.
  for(const o of rallied)g.enemyCallout?.(o,'state',{state:'rally'});
  const set=rallies.get(g)||new Set();for(const o of inRange)set.add(o.id);rallies.set(g,set);
- g.log(fired?`叛軍歸隊，${fired} 人立刻開火！`:'叛軍歸隊。',true);
+ g.log(fired?t('rebels.rallyFire',{n:fired}):'叛軍歸隊。',true);
 }
 // 3.127.1 (user request): seeing you, the enforcer does what a researcher does — raises the alarm for everyone within
 // eight tiles (a free action, every five turns) — and then looks for cover. It never walks at you on its own: the
@@ -133,7 +134,7 @@ export function soundAlarm(g,e,target=g.player){
  e.alarmCooldown=REBEL_TUNING.alarmCooldown;
  // 3.144.0: an enemy drawn off by the decoy is not told where you are (src/field-gear.js).
  for(const o of g.enemies)if(o!==e&&o.hp>0&&!isNoncombatant(o)&&!(target===g.player&&g.isFooled?.(o))&&distance(e,o)<=REBEL_TUNING.alarmRadius){o.alert=true;o.lastKnown={x:target.x,y:target.y};}
- g.log(`${enemyDisplayName(e)}發出警告，附近的敵人全部警戒了。`,true);
+ g.log(t('rebels.alarm',{enemy:enemyDisplayName(e)}),true);
  g.enemyCallout?.(e,'telegraph',{action:'alarm'});
  return true;
 }
@@ -150,7 +151,7 @@ export function enforcerAct(ctx){
  if(victim){
   e.executeIntent={id:victim.id};
   g.effects.push({type:'enemyTelegraph',phase:'prepare',from:{x:e.x,y:e.y},to:{x:victim.x,y:victim.y},damage:0});
-  g.log(`${enemyDisplayName(e)}盯上了躲著的${enemyDisplayName(victim)}！`,true);
+  g.log(t('rebels.spotted',{enemy:enemyDisplayName(e),victim:enemyDisplayName(victim)}),true);
   return true;
  }
  // Cover first: exposed to you, it walks to the nearest spot that shields it and stays there.
@@ -178,7 +179,7 @@ export function rebelMorale(g){
   if(!sees&&!rallied.has(e.id))continue;
   grantTrait(e,TAUNT_TRAITS[Math.floor(g.rng()*TAUNT_TRAITS.length)],TAUNT_SOURCE,1);drawn++;
  }
- if(drawn)g.log(`叛軍士氣高漲：${drawn} 人獲得一回合增益。`,true);
+ if(drawn)g.log(t('rebels.morale',{n:drawn}),true);
  return drawn;
 }
 

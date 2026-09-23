@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {isBossClass,isNoncombatant,ALLY_BASE_TYPES} from './enemy-data.js';
 import {pinned,finishSuppression} from './suppression.js';
 import {petRank} from './pet-growth.js';
@@ -122,7 +123,7 @@ export function arriveAllies(g,ids){
  for(const a of g.allies.filter(a=>ids.includes(a.id))){
   if(a.kind==='pet'){transportPet(g,a);continue;}
   const cell=routeCells(g,g.player,{limit:6,openDoors:false}).find(q=>q.d>0);
-  if(!cell){g.log(`${allyName(a)}無落腳空格，留在原層。`,true);if(a.kind==='summon'){a.status='destroyed';a.hp=0;}continue;}
+  if(!cell){g.log(t('allies.noRoom',{ally:allyName(a)}),true);if(a.kind==='summon'){a.status='destroyed';a.hp=0;}continue;}
   Object.assign(a,{x:cell.x,y:cell.y,floor:g.floor,order:null,moved:false,moveDelta:[0,0],vaultExposed:false});
  }
 }
@@ -230,7 +231,7 @@ function actAlly(g,a){
    g.effects.push({type:'shot',weaponId:w.id,style:w.melee?'claw':a.kind==='drone'&&(w.ammoType==='energy'||w.builtIn)?'plasma':'bullet',from:{x:a.x,y:a.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:'#89e8c8'});
    if(hit)hits.add(e);
    if(hit&&w.mounted)mountedHit(g,a,e,w);
-   else if(hit)g.hitTarget(e,w.min+Math.floor(g.rng()*(w.max-w.min+1)),a,0,w);else g.log(`${allyName(a)}射擊／攻擊落空。`);
+   else if(hit)g.hitTarget(e,w.min+Math.floor(g.rng()*(w.max-w.min+1)),a,0,w);else g.log(t('allies.miss',{ally:allyName(a)}));
   }
   if(!w.melee)finishSuppression([e],hits,rounds,a.kind==='pet'&&petRank(g.player,'turret')>=2&&rounds>0?1:0,g);
  };
@@ -240,7 +241,7 @@ function actAlly(g,a){
  // idle at half a magazine or less. It spends the drone's own action, never the player's.
  const reserve=AMMUNITION[w.ammoType]?.key;
  const topUp=a.kind==='drone'&&Boolean(reserve)&&a.ammo<w.mag&&(a.ammo===0||!shot&&a.ammo<=w.mag/2)&&g.player[reserve]>0&&carryCandidates(g).includes(a);
- const reload=()=>{const before=a.ammo;reloadDrone(g,a);g.log(`${allyName(a)}自動換彈 +${a.ammo-before}。`);};
+ const reload=()=>{const before=a.ammo;reloadDrone(g,a);g.log(t('allies.reload',{ally:allyName(a),n:a.ammo-before}));};
  if(a.kind==='drone'&&a.sourceId==='drone_sentry'){if(shot)attack(shot);else if(topUp)reload();return;}
  // Swapping past another ally is for real errands (rejoining, a commanded tile, a fight); idle following just queues.
  if(!linked){a.tactics=null;stepToward(g,a,g.player,beside(g.player),linked,true);return;}
@@ -300,7 +301,7 @@ function swapPast(g,a,far,here,linked){
  const from={x:a.x,y:a.y},to={x:b.x,y:b.y};
  Object.assign(a,{...to,moveDelta:[to.x-from.x,to.y-from.y],moved:true,vaultExposed:false});
  Object.assign(b,{...from,moveDelta:[from.x-to.x,from.y-to.y],moved:true,vaultExposed:false,restTurn:restFor(g,b)});delete b.primed;
- petMoved(g,a);petMoved(g,b);g.log(`${allyName(a)}與${allyName(b)}交換位置。`);return true;
+ petMoved(g,a);petMoved(g,b);g.log(t('allies.swapped',{ally:allyName(a),other:allyName(b)}));return true;
 }
 // Walking into an ally trades places with it (NetHack-style). The ally lands on the tile the player is leaving,
 // which is always free, so allies can never box the player in. Refused for fixed sentries, disabled allies and
@@ -308,17 +309,17 @@ function swapPast(g,a,far,here,linked){
 export function swapReason(g,a){
  if(pinned(a)||pinned(g.player))return '壓制中無法換位。';
  if(a.kind==='drone'&&a.sourceId==='drone_sentry')return '定點砲台固定原地，請繞行。';
- if(oneShot(a))return `${allyName(a)}不會和你換位，請繞行。`;
- if(a.control?.disabled)return `${allyName(a)}失能中，無法換位。`;
+ if(oneShot(a))return t('allies.noSwap',{ally:allyName(a)});
+ if(a.control?.disabled)return t('allies.swapDisabled',{ally:allyName(a)});
  if(!g.canCross(g.player,a))return '隔著矮隔板無法與友軍換位。';
- if(!g.passable(g.player.x,g.player.y,a))return `${allyName(a)}無法站到你的位置。`;
+ if(!g.passable(g.player.x,g.player.y,a))return t('allies.swapBlocked',{ally:allyName(a)});
  return '';
 }
 export function swapWithPlayer(g,a){
  const p=g.player,from={x:a.x,y:a.y};
  // Being displaced cancels a warden's charge, as it cancels an enemy's windup.
  Object.assign(a,{x:p.x,y:p.y,moveDelta:[p.x-from.x,p.y-from.y],moved:true,vaultExposed:false,restTurn:restFor(g,a)});delete a.primed;
- petMoved(g,a);g.log(`${allyName(a)}與你交換位置，放棄一次行動。`);
+ petMoved(g,a);g.log(t('allies.swappedYou',{ally:allyName(a)}));
 }
 // Runs once per paid world turn, before skills tick. When the rising timer is ready, the necromancer has room for
 // another summon and someone has fallen on this floor, one rises beside the player and acts from the next turn.

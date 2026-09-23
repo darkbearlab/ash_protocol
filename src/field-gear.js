@@ -11,6 +11,7 @@
 // - 外骨骼 (exoskeleton): a wearable. Ranged hit +10, melee damage +20%, and 50 armour plates of its own that take their
 //   share of each hit before your plates do. When they are gone the frame breaks, is lost and pins you: 5 suppression
 //   stacks. Nothing repairs it, and a large frame (the bulwark) cannot wear it.
+import {t} from './i18n.js';
 import {distance,DIRECTIONS} from './world.js';
 import {isBarrier} from './barriers.js';
 import {enemyDef,hasEnemyTag,isBossClass,isNoncombatant} from './enemy-data.js';
@@ -36,7 +37,7 @@ export function decoyReason(g,pos){
  const p=g.player;
  if(!(p.decoys>0))return '沒有誘餌';
  if(!floorTile(g,pos))return '先選擇看得見的地板作為落點';
- if(distance(p,pos)>DECOY_TUNING.range||!g.visible(pos))return `落點需在視線內 ${DECOY_TUNING.range} 格以內`;
+ if(distance(p,pos)>DECOY_TUNING.range||!g.visible(pos))return t('common.landingRange',{range:DECOY_TUNING.range});
  return '';
 }
 export function throwDecoy(g,pos){
@@ -45,7 +46,7 @@ export function throwDecoy(g,pos){
  for(const e of fooled){e.alert=true;e.lastKnown={x:pos.x,y:pos.y};}
  g.decoy={x:pos.x,y:pos.y,hp:DECOY_TUNING.hp,maxHp:DECOY_TUNING.hp,expires:g.turn+DECOY_TUNING.duration-1,fooled:fooled.map(e=>e.id)};
  g.effects.push({type:'shot',style:'grenade',from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
- g.log(fooled.length?`誘餌啟動：${fooled.length} 名敵人被引開，看不到你。`:'誘餌啟動，附近沒有敵人上當。');
+ g.log(fooled.length?t('field-gear.decoyFooled',{n:fooled.length}):'誘餌啟動，附近沒有敵人上當。');
  return true;
 }
 export const fooled=(g,e)=>Boolean(g.decoy?.hp>0&&e?.id&&g.decoy.fooled.includes(e.id));
@@ -73,7 +74,7 @@ export function decoyAct(g,e){
  const damage=def.expendable?def.damage:scaleEnemy(def.damage+floorDamageBonus(g.floor,g.difficultySpec),g.floor,'damage',g.difficultySpec),hit=g.rng()*100<DECOY_TUNING.hit;
  e.facing=[Math.sign(d.x-e.x),Math.sign(d.y-e.y)];
  g.effects.push({type:'enemyShot',attackerType:e.type,style:def.attackStyle,from:{x:e.x,y:e.y},to:{x:d.x,y:d.y},damage:0,miss:!hit});
- if(hit){g.log(`${enemyDisplayName(e)}攻擊誘餌（${damage}）。`,false,`${enemyDisplayName(e)}攻擊誘餌。`);damageDecoy(g,damage);}else g.log(`${enemyDisplayName(e)}沒打中誘餌。`,false,`${enemyDisplayName(e)}沒打中誘餌。`);
+ if(hit){g.log(t('field-gear.decoyHit',{enemy:enemyDisplayName(e),damage}),false,t('field-gear.decoyHitReal',{enemy:enemyDisplayName(e)}));damageDecoy(g,damage);}else g.log(t('field-gear.decoyMiss',{enemy:enemyDisplayName(e)}),false,t('field-gear.decoyMiss',{enemy:enemyDisplayName(e)}));
  return true;
 }
 // The turn counts up before anyone acts, so a decoy thrown this turn sees four enemy rounds (like a flare's count).
@@ -95,9 +96,9 @@ export const knownMine=(g,actor,x,y)=>Boolean(actor?.id&&(g.mines||[]).some(m=>m
 export function mineReason(g,pos){
  const p=g.player;
  if(!(p.mines>0))return '沒有地雷';
- if((g.mines||[]).length>=MINE_TUNING.max)return `同一層最多 ${MINE_TUNING.max} 顆地雷`;
+ if((g.mines||[]).length>=MINE_TUNING.max)return t('field-gear.mineCap',{n:MINE_TUNING.max});
  if(!floorTile(g,pos))return '先選擇看得見的地板';
- if(distance(p,pos)>MINE_TUNING.range||!g.visible(pos))return `埋設點需在視線內 ${MINE_TUNING.range} 格以內`;
+ if(distance(p,pos)>MINE_TUNING.range||!g.visible(pos))return t('field-gear.mineRange',{range:MINE_TUNING.range});
  if(standing(g,pos)||g.solid(pos.x,pos.y)||g.props.some(o=>o.x===pos.x&&o.y===pos.y)||mineAt(g,pos.x,pos.y))return '那一格已經有東西';
  if(g.exitPoint&&g.exitPoint.x===pos.x&&g.exitPoint.y===pos.y)return '出口不能埋地雷';
  return '';
@@ -106,7 +107,7 @@ export function placeMine(g,pos){
  const p=g.player;p.mines--;p.facing=[Math.sign(pos.x-p.x),Math.sign(pos.y-p.y)];
  const seen=g.enemies.filter(e=>e.hp>0&&g.sight(e,pos)).map(e=>e.id);
  g.mineSerial=(g.mineSerial||0)+1;g.mines=[...(g.mines||[]),{id:`mine-${g.floor}-${g.mineSerial}`,x:pos.x,y:pos.y,seen}];
- g.log(seen.length?`地雷埋好了，但有 ${seen.length} 名敵人看見，會繞開它。`:'地雷埋好了。');
+ g.log(seen.length?t('field-gear.mineSeen',{n:seen.length}):'地雷埋好了。');
  return true;
 }
 export function detonateMine(g,m){
@@ -128,7 +129,7 @@ export function mineAct(g,e){
  if(!m)return false;
  const hit=g.rng()*100<MINE_TUNING.hit;e.facing=[Math.sign(m.x-e.x),Math.sign(m.y-e.y)];
  g.effects.push({type:'enemyShot',attackerType:e.type,style:enemyDef(e).attackStyle,from:{x:e.x,y:e.y},to:{x:m.x,y:m.y},damage:0,miss:!hit});
- if(hit){g.log(`${enemyDisplayName(e)}開槍引爆了地雷！`,true);detonateMine(g,m);}else g.log(`${enemyDisplayName(e)}朝地雷開槍，沒打中。`);
+ if(hit){g.log(t('field-gear.mineShot',{enemy:enemyDisplayName(e)}),true);detonateMine(g,m);}else g.log(t('field-gear.mineShotMiss',{enemy:enemyDisplayName(e)}));
  return true;
 }
 export const validMines=g=>Array.isArray(g.mines)&&g.mines.length<=MINE_TUNING.max&&new Set(g.mines.map(m=>`${m.x},${m.y}`)).size===g.mines.length&&g.mines.every(m=>m&&typeof m.id==='string'&&floorTile(g,m)&&Array.isArray(m.seen)&&m.seen.every(id=>typeof id==='string'))&&Number.isInteger(g.mineSerial)&&g.mineSerial>=g.mines.length;

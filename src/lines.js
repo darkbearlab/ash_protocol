@@ -6,6 +6,7 @@
 //   units stop it, brood do not. One line, one use.
 // - Not sold, not upgradeable, and no perk or passive touches it (user: 不該成為 build 的一部份).
 // - Any armed enemy may drop one, on a fixed roll of its own so nothing else about the floor shifts.
+import {t} from './i18n.js';
 import {sweptClear} from './line-move.js';
 import {distance} from './world.js';
 
@@ -19,7 +20,7 @@ export function lineReason(g,arg){
  const to={x:arg.x,y:arg.y};
  if(!Number.isInteger(to.x)||!Number.isInteger(to.y)||g.grid[to.y]?.[to.x]!==1)return '先選擇看得見的地板';
  if(distance(p,to)===0)return '選一格你不在的地板';
- if(distance(p,to)>LINE_TUNING.range||!g.visible(to))return `落點需在視線內 ${LINE_TUNING.range} 格以內`;
+ if(distance(p,to)>LINE_TUNING.range||!g.visible(to))return t('common.landingRange',{range:LINE_TUNING.range});
  if(!g.passable(to.x,to.y)||!sweptClear(g,p,to))return '繩索的直線被擋住了';
  return '';
 }

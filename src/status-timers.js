@@ -1,5 +1,6 @@
 // Timed states on the player, each with how long it still lasts (3.151.0, user: one place shows remaining durations).
 // The status line shows these right after the exo, and the text client prints the same strings.
+import {t} from './i18n.js';
 import {SWARM_TUNING} from './swarm-tuning.js';
 import {decayedStacks,suppressionStacks} from './suppression.js';
 import {TRAITS} from './traits.js';
@@ -15,13 +16,13 @@ export function cloudTurns(g,kind){const p=g.player;return Math.max(0,...(g.smok
 export function timedStatuses(g){
   const p=g.player,skill=id=>p.skillState?.[id]?.remaining||0;
   return [
-    g.shadowSteps?`免費移動 ${g.shadowSteps} 步`:'',
-    p.poison?`中毒 ${p.poison} 層 · ${poisonTurns(p)} 回合`:'',
-    p.control?.disabled?`失能 ${p.control.disabled} 回合 · 按等待`:'',
-    p.control?.immune?`失能免疫 ${p.control.immune} 回合`:'',
-    skill('signal_break')?`斷層 ${skill('signal_break')} 回合`:'',
-    skill('camouflage')?`迷彩 ${skill('camouflage')} 回合`:'',
-    ...(p.traits||[]).filter(t=>t.turns>0&&TRAITS[t.id]).map(t=>`${TRAITS[t.id].name} ${t.turns} 回合`),
-    ...['smoke','toxic','spore'].map(kind=>{const turns=cloudTurns(g,kind);return turns?`${CLOUD_NAMES[kind]||'煙霧中'} ${turns} 回合`:'';}),
+    g.shadowSteps?t('status-timers.freeSteps',{n:g.shadowSteps}):'',
+    p.poison?t('status-timers.poison',{stacks:p.poison,turns:poisonTurns(p)}):'',
+    p.control?.disabled?t('status-timers.disabled',{n:p.control.disabled}):'',
+    p.control?.immune?t('status-timers.immune',{n:p.control.immune}):'',
+    skill('signal_break')?t('status-timers.signalBreak',{n:skill('signal_break')}):'',
+    skill('camouflage')?t('status-timers.camouflage',{n:skill('camouflage')}):'',
+    ...(p.traits||[]).filter(s=>s.turns>0&&TRAITS[s.id]).map(s=>t('status-timers.trait',{name:TRAITS[s.id].name,turns:s.turns})),
+    ...['smoke','toxic','spore'].map(kind=>{const turns=cloudTurns(g,kind);return turns?t('status-timers.cloud',{name:CLOUD_NAMES[kind]||'煙霧中',turns}):'';}),
   ].filter(Boolean);
 }

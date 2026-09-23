@@ -1,4 +1,5 @@
 // Stable catalog IDs; unlockId is reserved and deliberately ignored this release.
+import {t} from './i18n.js';
 export const LEARNING_SCRAP=15;
 // 3.113.0 (user request): class skills were learnable only to prove a skill could be mounted on its own; that proof
 // is done, so the eight class-native skills leave the pool. Suppressive fire belongs to no class and stays. The
@@ -7,8 +8,8 @@ export const RETIRED_LEARNING=['skill_drones','skill_pet_command','skill_raise_d
 const skills={suppressive_fire:['壓制射擊',['suppressive_fire']]};
 const traits={braced:'架槍',correction:'著彈修正',sidestep:'側身',quick_reload:'快速裝填',night_vision:'夜視',infrared:'紅外線',extended_burst:'延伸點射',tactical_supply:'戰術配給',bloodlust:'嗜血',battle_spirit:'戰意',blade_stash:'刃藏',heavy_armor:'重裝防護',ambush:'伏擊',duelist:'單挑',rapid_fire:'連射',suppression_resistance:'壓制抗性',extended_carry:'攜行擴充',disruption_resistant:'抗失能',agile:'敏捷'};
 export const LEARNING_ITEMS=Object.fromEntries([
- ...Object.entries(skills).map(([id,[name,skills]])=>[`skill_${id}`,{name:`${name}學習資料`,skills,unlockId:null}]),
- ...Object.entries(traits).map(([trait,name])=>[`trait_${trait}`,{name:`${name}學習資料`,trait,unlockId:null}]),
+ ...Object.entries(skills).map(([id,[name,skills]])=>[`skill_${id}`,{name:t('learning-data.item',{name}),skills,unlockId:null}]),
+ ...Object.entries(traits).map(([trait,name])=>[`trait_${trait}`,{name:t('learning-data.item',{name}),trait,unlockId:null}]),
 ]);
 export const validLearningId=id=>typeof id==='string'&&Object.hasOwn(LEARNING_ITEMS,id);
 // 3.135.0 (user decision, docs/ITEMS.md): night vision and infrared, passives with no cost and nothing to do, are no

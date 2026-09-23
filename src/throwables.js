@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {isBossClass} from './enemy-data.js';
 import {interruptEnemyIntent} from './enemy-intents.js';
 import {objectSightGrid} from './scenery.js';
@@ -18,8 +19,8 @@ export const GRENADES={
   // 3.150.0 (user decision 2026-09-19): priced like the other throwables, one for 12 (it was two for 12).
   frag:{name:'破片手榴彈',short:'破片彈',icon:'◉',resource:'grenades',item:'grenade',cost:12,amount:1,color:'#c8d692',action:'grenade',text:'射程 5、半徑 2。造成爆炸傷害，會自傷及引爆油桶。'},
   smoke:{name:'煙霧彈',short:'煙霧彈',icon:'≋',resource:'smoke',item:'smoke',cost:12,amount:1,color:'#a9bbcb',action:'grenade',text:`射程 5、半徑 2，持續 ${SMOKE_DURATION} 輪（含投擲當輪）。阻斷無紅外線者的視線，煙內僅見相鄰格；紅外線可穿煙，不減傷。`},
-  emp:{name:'EMP 彈',short:'EMP',icon:'ϟ',resource:'emp',item:'emp',keyword:'mechanical',cost:15,amount:1,color:'#81dce9',action:'grenade',text:`射程 5、半徑 2。機械中斷蓄勢並跳過 ${DISRUPT_TURNS} 次行動（通常含投擲當回合），頭目 ${BOSS_DISRUPT_TURNS} 次；恢復後免疫 ${DISRUPT_IMMUNITY} 次行動。不扣生命。`},
-  stun:{name:'震撼彈',short:'震撼彈',icon:'✦',resource:'stun',item:'stun',keyword:'biological',cost:15,amount:1,color:'#eee0a0',action:'grenade',text:`射程 5、半徑 2。生物或有夜視／紅外線者中斷蓄勢並跳過 ${DISRUPT_TURNS} 次行動（通常含投擲當回合），頭目 ${BOSS_DISRUPT_TURNS} 次；恢復後免疫 ${DISRUPT_IMMUNITY} 次行動。會震暈自己，同樣 ${DISRUPT_TURNS} 次。`},
+  emp:{name:'EMP 彈',short:'EMP',icon:'ϟ',resource:'emp',item:'emp',keyword:'mechanical',cost:15,amount:1,color:'#81dce9',action:'grenade',text:t('throwables.emp',{turns:DISRUPT_TURNS,bossTurns:BOSS_DISRUPT_TURNS,immunity:DISRUPT_IMMUNITY})},
+  stun:{name:'震撼彈',short:'震撼彈',icon:'✦',resource:'stun',item:'stun',keyword:'biological',cost:15,amount:1,color:'#eee0a0',action:'grenade',text:t('throwables.stun',{turns:DISRUPT_TURNS,bossTurns:BOSS_DISRUPT_TURNS,immunity:DISRUPT_IMMUNITY})},
 };
 export const grenadeTotal=p=>Object.values(GRENADES).reduce((n,g)=>n+(p[g.resource]||0),0);
 export const grenadeByItem=type=>Object.keys(GRENADES).find(id=>GRENADES[id].item===type);

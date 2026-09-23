@@ -6,6 +6,7 @@
 //   gunfire and beams through it do half damage at half the hit chance; none of it touches the swarm.
 // - 孢子煙 (spore): smoke that blinds only the player's side — the swarm sees straight through it.
 // - 酸液 (acid): the existing acid hazard, one tile.
+import {t} from './i18n.js';
 import {areaCells,SMOKE_DURATION} from './throwables.js';
 import {SWARM_TUNING} from './swarm-tuning.js';
 import {pinned} from './suppression.js';
@@ -80,7 +81,7 @@ export function lobAction(ctx){
  if(e.lobIntent){
   const point=e.lobIntent.point;delete e.lobIntent;e.lobCooldown=FIELD_TUNING.lobCooldown;
   g.effects.push({type:'shot',style:'grenade',color:'#a9d24f',from:{x:e.x,y:e.y},to:{...point},damage:0});
-  spawnField(g,'toxic',point);g.log(`${enemyDisplayName(e)}拋出毒霧。`,true);
+  spawnField(g,'toxic',point);g.log(t('swarm-fields.lobbed',{enemy:enemyDisplayName(e)}),true);
   return true;
  }
  if((e.lobCooldown||0)>0)return false;
@@ -88,7 +89,7 @@ export function lobAction(ctx){
  interruptEnemyIntent(e,'target_lost');e.lobIntent={origin:{x:e.x,y:e.y},point};
  g.effects.push({type:'enemyTelegraph',phase:'prepare',from:{x:e.x,y:e.y},to:{...point},damage:0});
  enemyCallout(g,e,'telegraph',{action:'grenade'});
- g.log(`${enemyDisplayName(e)}鼓起毒囊，準備拋出毒霧！`,true);
+ g.log(t('swarm-fields.swelling',{enemy:enemyDisplayName(e)}),true);
  return true;
 }
 export function tickFields(g){

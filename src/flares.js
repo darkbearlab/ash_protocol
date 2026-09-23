@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {distance,lineOfSight} from './world.js';
 import {objectSightGrid} from './scenery.js';
 import {coverEffects} from './cover.js';
@@ -31,7 +32,7 @@ export function flareReason(game,pos){
   const p=game.player;
   if(!(p.flares>0))return '沒有照明彈';
   if(!pos||!Number.isInteger(pos.x)||!Number.isInteger(pos.y)||game.grid[pos.y]?.[pos.x]!==1)return '先選擇可見地板作為落點';
-  if(distance(p,pos)>FLARE_TUNING.range||!game.visible(pos))return `落點需在視線內 ${FLARE_TUNING.range} 格以內`;
+  if(distance(p,pos)>FLARE_TUNING.range||!game.visible(pos))return t('common.landingRange',{range:FLARE_TUNING.range});
   return '';
 }
 export const validFlares=(flares,grid,turn)=>Array.isArray(flares)&&flares.length<=FLARE_TUNING.maxActive&&flares.every(f=>f&&Number.isInteger(f.x)&&Number.isInteger(f.y)&&grid[f.y]?.[f.x]===1&&Number.isInteger(f.expires)&&f.expires>turn&&f.expires<=turn+FLARE_TUNING.duration-1);

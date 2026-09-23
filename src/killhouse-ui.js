@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {cloneDesignation} from './purge-review.js';
 import {CHARACTERS} from './characters.js';
 
@@ -84,14 +85,14 @@ ${button('khTutorial','進入模擬訓練 →')}${button('khSkip','跳過，直�
 export function killhouseMenuMarkup(profile,characters,locked=[]){
   const k=profile.killhouse,best=k?.best;
   return `<div class="eyebrow">KILL HOUSE / SIMULATION</div><h2>模擬訓練</h2>
-<p>${best?`最高分 ${best.score}（${characterLabel(best.character)}）`:'尚無街機紀錄。'}街機模式：整備後進入單層訓練場，沒有升級、掉落與頭目，只記最高分。</p>
-<nav class="title-menu deploy-menu">${entry('khTutorial','TRAINING','教學 · 固定士兵')}${characters.map(id=>entry('khArcade',`ARCADE · ${characterLabel(id)}`,k?.byCharacter?.[id]?`最高分 ${k.byCharacter[id].score}`:CHARACTERS[id].name.toUpperCase(),` data-character="${id}"`)).join('')}${locked.map(id=>entry('khArcade',`ARCADE · ${characterLabel(id)}`,'未解鎖 · 主選單 UNLOCKS',' disabled')).join('')}</nav>
+<p>${best?t('killhouse-ui.best',{score:best.score,character:characterLabel(best.character)}):'尚無街機紀錄。'}${t('killhouse-ui.arcadeIntro')}</p>
+<nav class="title-menu deploy-menu">${entry('khTutorial','TRAINING','教學 · 固定士兵')}${characters.map(id=>entry('khArcade',`ARCADE · ${characterLabel(id)}`,k?.byCharacter?.[id]?t('killhouse-ui.score',{score:k.byCharacter[id].score}):CHARACTERS[id].name.toUpperCase(),` data-character="${id}"`)).join('')}${locked.map(id=>entry('khArcade',`ARCADE · ${characterLabel(id)}`,'未解鎖 · 主選單 UNLOCKS',' disabled')).join('')}</nav>
 ${button('intro','← 返回主選單',true)}`;
 }
 
 export function disposedMarkup(result){
   const tutorial=result.mode==='tutorial',restart=tutorial&&result.deathDestination==='restart';
-  return `<div class="eyebrow">SIMULATION / INVENTORY DISPOSED</div><h2>銷毀此庫存</h2><p>模擬中陣亡。此庫存判定不合格，已銷毀；${tutorial?'訓練紀錄不保存。':'本次成績不列入紀錄。'}</p>
+  return `<div class="eyebrow">SIMULATION / INVENTORY DISPOSED</div><h2>銷毀此庫存</h2><p>${t(tutorial?'killhouse-ui.disposedTutorial':'killhouse-ui.disposedArcade')}</p>
 ${restart?button('khTutorial','重新開始訓練 →'):''}${tutorial?'':button('khRetry','再次模擬 →')+button('killhouse','更換職業',true)}${button('khMenu','返回主選單',!tutorial||restart)}`;
 }
 

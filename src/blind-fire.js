@@ -4,6 +4,7 @@
 // You learn only what you can see (option 丙): no hit or miss line, no impact at a tile out of sight, every tracer drawn
 // as a miss, and what the shot left there (a body, blood, dropped loot) shows once you see the tile. Whether firing gives
 // your position away is the usual rule: enemies who can see you. A hit enemy still cries out as usual, which you hear.
+import {t,sentence} from './i18n.js';
 import {distance,key} from './world.js';
 
 export const BLIND_TUNING={penalty:40};
@@ -18,13 +19,13 @@ export function blindReason(g,tile){
   const p=g.player,w=g.weapon;
   if(!tile||!Number.isInteger(tile.x)||!Number.isInteger(tile.y)||g.grid[tile.y]?.[tile.x]!==1)return '只能朝地板盲射';
   if(w.melee)return '近戰武器不能盲射';
-  if(w.lance||w.pointTarget||w.explosive)return `${w.name}不能盲射`;
+  if(w.lance||w.pointTarget||w.explosive)return t('blind-fire.weaponCannot',{weapon:w.name});
   if(distance(p,tile)===0)return '不能朝自己腳下盲射';
-  if(distance(p,tile)>w.range)return '超出射程';
+  if(distance(p,tile)>w.range)return t('blind-fire.outOfRange');
   if(!g.shotClear(p,tile))return '射線被擋住';
   const seen=hiddenAt(g,tile);if(seen&&g.teamVisible(seen))return '看得到目標，直接鎖定開火';
   if(g.activeAllies.some(a=>a.hp>0&&a.x===tile.x&&a.y===tile.y))return '友軍在那一格';
-  if(p.ammo[p.weapon]<(w.shotCost||1))return '彈匣不足，請裝填';
+  if(p.ammo[p.weapon]<(w.shotCost||1))return t('blind-fire.magShort');
   return '';
 }
 
@@ -44,7 +45,7 @@ export function shownItems(g){const memo=g.blindAftermath;if(!memo?.size)return 
 export function forgetSeenAftermath(g){if(g.blindAftermath?.size)for(const k of g.blindAftermath.keys())if(g.visibleTiles?.has(k))g.blindAftermath.delete(k);}
 
 export function blindFire(g,tile){
-  const reason=blindReason(g,tile);if(reason)return g.fail(reason+'。');
+  const reason=blindReason(g,tile);if(reason)return g.fail(sentence(reason));
   const p=g.player,w=g.weapon,k=key(tile),seen=Boolean(g.visibleTiles?.has(k)),ammo=p.ammo[p.weapon];
   const before=floorState(g);
   const effects=g.effects,push=effects.push,tileOf=e=>e.to||e.from;
@@ -60,6 +61,6 @@ export function blindFire(g,tile){
   p.fireChain=null;   // no correction from shots you could not see land
   rememberUnseen(g,before);
   const spent=ammo-p.ammo[p.weapon];
-  g.log(seen?`盲射：消耗 ${spent} 發。`:`盲射：消耗 ${spent} 發，看不到結果。`);
+  g.log(t(seen?'blind-fire.spent':'blind-fire.spentUnseen',{n:spent}));
   return done;
 }

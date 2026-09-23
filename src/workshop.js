@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {isNoncombatant} from './enemy-data.js';
 import {ENEMY_TYPES} from './data.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
@@ -44,7 +45,7 @@ export function buildReason(g,blueprint,payload,weapon){
  const p=g.player,def=typeof blueprint==='string'&&Object.hasOwn(UNIT_BLUEPRINTS,blueprint)?UNIT_BLUEPRINTS[blueprint]:null;
  if(!hasWorkshop(p))return '沒有工坊技能。';
  if(!def)return '沒有這張藍圖。';
- if(def.enemy&&!p.blueprints.includes(blueprint))return `尚未取得藍圖：擊毀${ENEMY_TYPES[def.enemy].name}後取得。`;
+ if(def.enemy&&!p.blueprints.includes(blueprint))return t('workshop.blueprintMissing',{enemy:ENEMY_TYPES[def.enemy].name});
  if(def.once&&p.usedBlueprints.includes(blueprint))return '頭目藍圖每局只能製作一次，已經製作過。';
  if(def.payload&&!validPayload(payload))return '請選擇要裝入的投擲物。';
  if(!def.payload&&payload!==undefined&&payload!==null)return '這張藍圖不裝投擲物。';
@@ -55,8 +56,8 @@ export function buildReason(g,blueprint,payload,weapon){
  }
  if(unavailable(g))return '目前無法生產。';
  if(p.productionLines.length>=lineLimit(p))return '生產序列已滿。';
- if(p.scrap<def.cost)return `廢料不足，需要 ${def.cost}。`;
- if(def.payload&&p[GRENADES[payload].resource]<1)return `沒有${GRENADES[payload].name}。`;
+ if(p.scrap<def.cost)return t('workshop.scrapShort',{n:def.cost});
+ if(def.payload&&p[GRENADES[payload].resource]<1)return t('workshop.noPayload',{item:GRENADES[payload].name});
  return '';
 }
 // Re-checked at resolution: a faster enemy acting first can still cancel a committed build without charging anything.
@@ -70,7 +71,7 @@ export function buildUnit(g,blueprint,payload,weapon){
   p.owned=p.owned.filter(slot=>slot!==weapon);if(p.weapon===weapon)p.weapon=p.owned[0];
   p.ammo[weapon]+=n;p[key]-=n;p.productionLines.push({blueprint,weapon});
  }else p.productionLines.push({blueprint});
- g.log(`消耗 ${def.cost} 廢料${def.payload?`與 1 顆${GRENADES[payload].name}`:''}，${def.name}${mounted?`（${g.weaponAt(weapon).name}）`:''}已放進生產序列。`);return true;
+ g.log(t('workshop.queued',{cost:def.cost,payload:def.payload?t('workshop.queuedPayload',{grenade:GRENADES[payload].name}):'',unit:def.name,weapon:mounted?t('workshop.queuedWeapon',{weapon:g.weaponAt(weapon).name}):''}));return true;
 }
 
 // Wrecks and units left on other floors may be dropped to make room in a full ally list; nothing else is.
@@ -82,7 +83,7 @@ export function deployReason(g,line,point=null){
  if(!hasWorkshop(p))return '沒有工坊技能。';
  if(!unit)return '這條序列沒有完成的機體。';
  if(unavailable(g))return '目前無法部署。';
- if(!ONE_SHOT_UNITS.includes(unit.blueprint)&&deployedUnits(g).length>=deployLimit(p))return `部署上限 ${deployLimit(p)} 台已滿。`;
+ if(!ONE_SHOT_UNITS.includes(unit.blueprint)&&deployedUnits(g).length>=deployLimit(p))return t('workshop.deployCap',{n:deployLimit(p)});
  if(g.allies.length>=ALLY_CAP&&!g.allies.some(a=>wreck(a)||leftBehind(g)(a)))return '友軍名額已滿，無法部署。';
  if(point===false)return '部署位置需要完整的座標。';
  if(!deployCell(g,point))return point?'部署位置需在你 2 步內、走得到的空格。':'你身邊 2 步內沒有可以部署的空格。';
@@ -93,13 +94,13 @@ export function deployReason(g,line,point=null){
 // never revisited has no saved state, so the weapon is simply gone with the unit.
 function makeRoom(g){
  while(g.allies.length>=ALLY_CAP){const i=g.allies.findIndex(wreck);if(i<0)break;g.allies.splice(i,1);}
- while(g.allies.length>=ALLY_CAP){const i=g.allies.findIndex(leftBehind(g));if(i<0)break;const [a]=g.allies.splice(i,1);dropUnitWeapon(g,a,g.floorStates?.[a.floor]?.items);g.log(`友軍名額已滿：留在第 ${a.floor} 層的${allyName(a)}已失去連線。`);}
+ while(g.allies.length>=ALLY_CAP){const i=g.allies.findIndex(leftBehind(g));if(i<0)break;const [a]=g.allies.splice(i,1);dropUnitWeapon(g,a,g.floorStates?.[a.floor]?.items);g.log(t('workshop.allyCapLost',{floor:a.floor,ally:allyName(a)}));}
 }
 // A unit that is destroyed or lost drops its mounted weapon, with the rest of its magazine, where it was.
 export function dropUnitWeapon(g,a,items=g.items){
  if(!Number.isInteger(a.weapon)||!items)return;const p=g.player;
  items.push({x:a.x,y:a.y,type:'weapon',weapon:p.weaponBases[a.weapon],slot:a.weapon});p.ammo[a.weapon]=a.ammo;a.ammo=0;
- if(items===g.items)g.log(`${g.weaponAt(a.weapon).name}掉在${allyName(a)}的位置。`);delete a.weapon;
+ if(items===g.items)g.log(t('workshop.weaponDropped',{weapon:g.weaponAt(a.weapon).name,ally:allyName(a)}));delete a.weapon;
 }
 // Re-checked at resolution: if a faster enemy took the chosen tile, the unit stays in its line and nothing is spent.
 export function deployUnit(g,line,point=null){
@@ -109,7 +110,7 @@ export function deployUnit(g,line,point=null){
  g.player.productionLines.splice(line,1);
  if(unit.payload)a.payload=unit.payload;
  else{if(Number.isInteger(unit.weapon)){a.weapon=unit.weapon;a.ammo=Math.min(allyWeapon(a,g.player).mag,g.player.ammo[unit.weapon]);g.player.ammo[unit.weapon]=0;}reloadDrone(g,a);}
- g.log(`${allyName(a)}${unit.payload?`（${GRENADES[unit.payload].short}）`:''}已部署。`);return true;
+ g.log(t('workshop.deployed',{ally:allyName(a),payload:unit.payload?t('workshop.deployedPayload',{grenade:GRENADES[unit.payload].short}):''}));return true;
 }
 
 // Field repair (docs/ENGINEER.md sections 9 and 16, 3.96.0; no dismantling, user decision): standing beside a damaged
@@ -120,9 +121,9 @@ export function repairReason(g,id){
  if(!hasWorkshop(p))return '沒有工坊技能。';
  if(!a)return '附近沒有這台機體。';
  if(distance(a,p)!==1||!g.canCross(p,a))return '要站在機體旁邊才能修理。';
- if(a.hp>=a.maxHp)return `${allyName(a)}沒有損傷。`;
+ if(a.hp>=a.maxHp)return t('workshop.undamaged',{ally:allyName(a)});
  if(unavailable(g))return '目前無法修理。';
- if(p.scrap<REPAIR_TUNING.cost)return `廢料不足，需要 ${REPAIR_TUNING.cost}。`;
+ if(p.scrap<REPAIR_TUNING.cost)return t('workshop.scrapShort',{n:REPAIR_TUNING.cost});
  return '';
 }
 // Re-checked at resolution: if a faster enemy destroyed or moved the unit first, the turn is spent but not the scrap.
@@ -130,7 +131,7 @@ export function repairUnit(g,id){
  const reason=repairReason(g,id);if(reason)return g.fail(reason);
  const a=currentAllies(g).find(x=>x.id===id),before=a.hp;g.player.scrap-=REPAIR_TUNING.cost;a.hp=Math.min(a.maxHp,a.hp+Math.ceil(a.maxHp*REPAIR_TUNING.share));
  g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.5,color:'#89e8c8',damage:0});
- g.log(`消耗 ${REPAIR_TUNING.cost} 廢料修理${allyName(a)}，生命 +${a.hp-before}（${a.hp}/${a.maxHp}）。`);return true;
+ g.log(t('workshop.repaired',{cost:REPAIR_TUNING.cost,ally:allyName(a),n:a.hp-before,hp:a.hp,max:a.maxHp}));return true;
 }
 
 // Loitering munition, phase 2 (docs/ENGINEER.md 4.1). On its own action: beside a seen enemy it detonates; within dive
@@ -164,7 +165,7 @@ function detonate(g,a,point){
  const def=GRENADES[a.payload],from={x:a.x,y:a.y};
  g.allies=g.allies.filter(x=>x!==a);Object.assign(a,{x:point.x,y:point.y,status:'destroyed',hp:0});
  if(from.x!==point.x||from.y!==point.y)g.effects.push({type:'pulse',from,to:{...point},radius:.5,color:def.color,damage:0});
- g.log(`浮游彈藥俯衝引爆${def.name}。`);
+ g.log(t('workshop.munitionDive',{grenade:def.name}));
  g.applyThrowable(a.payload,point,FRAG_DAMAGE+g.player.blastBonus,a);
  return true;
 }
@@ -198,10 +199,12 @@ export function unitDestroyed(g,a){
 }
 // Enemy blueprints (docs/ENGINEER.md 4.2, 3.94.0): destroying a drone or a suicide bot gives the workshop that blueprint,
 // once per run. Any killer counts (you, your units, a blast, the environment); a suicide bot blowing itself up does not.
+// 3.166.0: the controller asks this instead of testing the log's first characters.
+export const isBlueprintLog=text=>Object.values(UNIT_BLUEPRINTS).some(b=>text===t('workshop.blueprint',{unit:b.name}));
 export function salvageBlueprint(g,e,attacker){
  const id=Object.hasOwn(ENEMY_BLUEPRINTS,e.type)?ENEMY_BLUEPRINTS[e.type]:null,p=g.player;
  if(!id||attacker===e||!hasWorkshop(p)||p.blueprints.includes(id))return false;
- p.blueprints.push(id);g.log(`取得藍圖：${UNIT_BLUEPRINTS[id].name}。打開工坊就能生產。`);return true;
+ p.blueprints.push(id);g.log(t('workshop.blueprint',{unit:UNIT_BLUEPRINTS[id].name}));return true;
 }
 
 const validLine=u=>{

@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {Game} from './game.js';
 import {killhouseMap} from './killhouse-maps.js';
 import {simulationConfig,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
@@ -16,7 +17,8 @@ export class KillhouseGame extends Game {
  awardProtocol(){}
  choosePerk(id){return simulationUpgrades(this)&&super.choosePerk(id);}
  get perkChoices(){return simulationUpgrades(this)?super.perkChoices:[];}
- get exitLabel(){return this.simulation.phase==='armory'?'進入訓練場':'撤離';}
+ get exitKind(){return this.simulation.phase==='armory'?'enter':'extract';}
+ get exitLabel(){return t(`missions.exit.${this.exitKind}`);}
  get exitBlocked(){return '';}
  get missionSummary(){return `KILL HOUSE · ${this.simulation.phase}`;}
  openContainer(arg){return simulationDrops(this)?super.openContainer(arg):this.fail('模擬戰場不提供箱內補給。');}

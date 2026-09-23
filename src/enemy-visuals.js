@@ -1,5 +1,6 @@
 // Enemy appearance and interface lookups (3.77.1, Claude; docs/ENEMY_DATA.md 4.5). Only presentation reads these;
 // rules keep reading enemy-data.js. Missing fields fall back to the type's own sprite and a humanoid drawing.
+import {t} from './i18n.js';
 import {enemyDef} from './enemy-data.js';
 import {factionDef,enemyFaction,factionOverride} from './factions.js';
 
@@ -22,7 +23,7 @@ export const enemyMeleeStyle=type=>enemyDef(type)?.attackStyle==='claw'?'claw':'
 export const enemyGlyph=type=>enemyDef(type)?.glyph||'!';
 export const enemyVoice=type=>enemyDef(type)?.voice;
 // Bestiary note for traits gained deeper, e.g. 「（第 4 層起：快速）」. TRAITS is passed in to keep this module rule-free.
-export const floorTraitNote=(type,traits)=>(enemyDef(type)?.floorTraits||[]).map(t=>`（第 ${t.minFloor} 層起：${traits[t.id].name}）`).join('');
+export const floorTraitNote=(type,traits)=>(enemyDef(type)?.floorTraits||[]).map(f=>t('enemy-visuals.floorTrait',{floor:f.minFloor,trait:traits[f.id].name})).join('');
 
 // Faction reskins and elites (3.79.1; docs/FACTION_DATA.md 9, docs/ELITE_ENEMIES.md 3). A faction override tint wins over
 // the card tint; legacy and plain cards have none, so they draw exactly as before. Elites keep their colours and gain a

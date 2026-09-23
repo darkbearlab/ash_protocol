@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {isBossClass} from './enemy-data.js';
 import {interruptEnemyIntent} from './enemy-intents.js';
 import {pinned} from './suppression.js';
@@ -37,11 +38,11 @@ export function defensiveEvasion(g,attacker,target){
 export function grapplePlan(g,id=g.target){
  const p=g.player,e=g.enemies.find(e=>e.id===id&&e.hp>0),slot=g.bumpMeleeSlot();
 
- if(!e||distance(p,e)>GRAPPLE_RANGE||(!g.visible(e)||!g.shotClear(p,e)))return {reason:`鉤鎖需要先鎖定 ${GRAPPLE_RANGE} 格內、看得到的敵人。`};
+ if(!e||distance(p,e)>GRAPPLE_RANGE||(!g.visible(e)||!g.shotClear(p,e)))return {reason:t('melee-classes.grappleTarget',{range:GRAPPLE_RANGE}),why:'target'};
  const dash=activeTrait(e,'large')||isBossClass(e),mover=dash?p:e,anchor=dash?e:p;
- if(dash&&(pinned(p)||p.skillState?.anchor?.remaining))return {reason:'固定中無法衝向目標。'};
+ if(dash&&(pinned(p)||p.skillState?.anchor?.remaining))return {reason:t('melee-classes.grappleFixed'),why:'fixed'};
  const point=pullLanding(g,mover,anchor);
- if(!point)return {reason:'沒有可到達的近戰落點：身邊或目標旁都被擋住。'};
+ if(!point)return {reason:t('melee-classes.grappleLanding'),why:'landing'};
  return {enemy:e,mover,point,dash,slot};
 }
 export function useGrapple(g,id){

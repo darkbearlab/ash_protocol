@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {rapidFireModifiers} from './suppression.js';
 import {AMMUNITION} from './ammunition.js';
 import {WEAPONS,PERK_D} from './data.js';
@@ -45,7 +46,7 @@ export function weaponStats(base,affix=null,actor=null){
   const w=WEAPONS[base];if(w.melee)return {...w,affix:null,affixText:w.desc,accuracyBonus:0,tracking:0};
   const rank=AFFIXES[affix]&&!AFFIXES[affix].dropOnly?masteryRank(actor):0,a=masteredAffix(AFFIXES[affix]||{},rank);
   const burstRange=w.range+(a.range||0),extended=w.weaponClass==='smg'&&activeTrait(actor,'extended_burst');
-  return {...w,name:a.name?`${a.name}・${w.name}`:w.name,affix,affixText:(a.text||'標準型，沒有詞條')+(rank?` · 改裝精通：好處 +${Math.round(PERK_D.mastery*rank*100)}%`:'')+(w.lootOnly?` · ${w.desc}`:'')+(extended?` · 延伸點射：${burstRange} 格內兩發，${burstRange+1}–${burstRange+2} 格單發`:''),
+  return {...w,name:a.name?`${a.name}・${w.name}`:w.name,affix,affixText:(a.text||'標準型，沒有詞條')+(rank?` · 改裝精通：好處 +${Math.round(PERK_D.mastery*rank*100)}%`:'')+(w.lootOnly?` · ${w.desc}`:'')+(extended?t('weapons.extendedBurst',{range:burstRange,from:burstRange+1,to:burstRange+2}):''),
     min:Math.round(w.min*(a.damage||1)),max:Math.round(w.max*(a.damage||1)),
     ...(w.closeRange?{closeMin:Math.round(w.closeMin*(a.damage||1)),closeMax:Math.round(w.closeMax*(a.damage||1))}:{}),
     ...(w.farFrom?{farMin:Math.round(w.farMin*(a.damage||1)),farMax:Math.round(w.farMax*(a.damage||1))}:{}),

@@ -6,6 +6,7 @@
 // - Moving off the announced tile makes it miss. A miss still carries it to the landing it announced (when that tile
 //   is still clear), and it lands exposed for a turn — the vaulting penalty, +20 to hit it.
 // - Three turns before it can crouch again.
+import {t} from './i18n.js';
 import {SWARM_TUNING} from './swarm-tuning.js';
 import {personalityOf} from './personality.js';
 import {pullLanding} from './melee-classes.js';
@@ -37,20 +38,20 @@ export function pounceAction(ctx){
   delete e.pounceIntent;e.pounceCooldown=SWARM_TUNING.pounceCooldown;
   const hit=plan&&key(pending.origin)===key(e)&&key(pending.target)===key(g.player)&&key(pending.point)===key(plan.point);
   if(hit){
-   land(g,e,plan.point);g.log(`${enemyDisplayName(e)}撲到你面前！`,true);
+   land(g,e,plan.point);g.log(t('pounce.landed',{enemy:enemyDisplayName(e)}),true);
    bite?.({...ctx,d:1,los:true});e.charge=false;e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
    return true;
   }
   // A miss is still a leap: it goes where it said it would, if it can, and lands open.
   if(distance(pending.point,g.player)>0&&sweptClear(g,e,pending.point)&&g.passable(pending.point.x,pending.point.y,e))land(g,e,pending.point);
-  e.vaultExposed=true;g.log(`${enemyDisplayName(e)}撲空，露出破綻。`,true);
+  e.vaultExposed=true;g.log(t('pounce.missed',{enemy:enemyDisplayName(e)}),true);
   return true;
  }
  if(!plan)return false;
  interruptEnemyIntent(e,'target_lost');e.pounceIntent=plan;
  g.effects.push({type:'enemyTelegraph',phase:'prepare',from:{...plan.origin},to:{...plan.point},damage:0});
  enemyCallout(g,e,'telegraph',{action:'aim'});
- g.log(`${enemyDisplayName(e)}伏低身子準備撲擊：離開這一格！`,true);
+ g.log(t('pounce.crouch',{enemy:enemyDisplayName(e)}),true);
  return true;
 }
 export function tickPounces(g){

@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {roomContains,roomTiles} from './map-geometry.js';
 import {REQUIRED_TARGET_ROOMS,eligibleMissionEnemy} from './map-population.js';
 import {isEndless,ENDLESS_MAX_FLOOR,ENDLESS_DISPLAY_FLOORS,MAX_LEVEL} from './endless.js';
@@ -46,7 +47,9 @@ export const missionDefinition=g=>MISSIONS[g.mission.id];
 export const missionDepth=g=>missionDefinition(g).depth||FLOORS.length;
 export const returning=g=>Boolean(missionDefinition(g).returnTrip&&g.mission.returning);
 export const exitPoint=g=>returning(g)?g.start:g.end;
-export const exitLabel=g=>isEndless(g)?'下樓':returning(g)?g.floor===1?'撤離':'上樓':g.floor===missionDepth(g)?'撤離':'下樓';
+// 3.166.0: what the exit does, as a code. The button label reads it from the language table, the floor stencil maps it.
+export const exitKind=g=>isEndless(g)?'down':returning(g)?g.floor===1?'extract':'up':g.floor===missionDepth(g)?'extract':'down';
+export const exitLabel=g=>t(`missions.exit.${exitKind(g)}`);
 export const deepestFloor=g=>returning(g)?missionDepth(g):g.floor;
 export const missionTarget=(g,e)=>g.floor===missionDepth(g)&&missionDefinition(g).kind==='hunt'&&g.mission.targets.some(t=>t.id===e.id);
 export const missionObjects=g=>g.floor===missionDepth(g)&&missionDefinition(g).kind==='recover'?g.mission.targets:[];
@@ -63,13 +66,14 @@ export function exitBlocked(g){
   }
   if(g.floor!==missionDepth(g))return g.bossAlive?'本層頭目仍存活，電梯鎖定。':'';
   const {done,total}=missionProgress(g);
-  return done<total?missionDefinition(g).kind==='extraction'?'頭目仍存活，撤離鎖定。':`任務目標 ${done}/${total}，完成後才能撤離。`:'';
+  return done<total?missionDefinition(g).kind==='extraction'?'頭目仍存活，撤離鎖定。':t('missions.objectivesLeft',{done,total}):'';
 }
 export function missionSummary(g){
   const def=missionDefinition(g),{done,total}=missionProgress(g);
-  if(isEndless(g))return `${def.name} · 第 ${g.floor} / ${ENDLESS_DISPLAY_FLOORS} 層`;
-  if(returning(g))return `${def.name} · 回程 ${g.floor} → 1 · ${g.floor===1?'前往入口撤離':'返回本層入口上樓'}`;
-  return `${def.name} · ${g.floor<missionDepth(g)?`目標位於第 ${missionDepth(g)} 層`:`${done}/${total} · ${done===total?'前往撤離電梯':def.kind==='recover'?'尋找青色資料匣':def.kind==='hunt'?'殲滅標記目標':'擊敗頭目'}`}`;
+  if(isEndless(g))return t('missions.summaryEndless',{mission:def.name,floor:g.floor,total:ENDLESS_DISPLAY_FLOORS});
+  if(returning(g))return t(g.floor===1?'missions.summaryReturnExit':'missions.summaryReturnUp',{mission:def.name,floor:g.floor});
+  if(g.floor<missionDepth(g))return t('missions.summaryDepth',{mission:def.name,depth:missionDepth(g)});
+  return t('missions.summaryProgress',{mission:def.name,done,total,goal:t(done===total?'missions.goalExit':def.kind==='recover'?'missions.goalRecover':def.kind==='hunt'?'missions.goalHunt':'missions.goalBoss')});
 }
 export function validMission(m,g){
   if(!m||!validMissionId(m.id)||!Array.isArray(m.targets))return false;

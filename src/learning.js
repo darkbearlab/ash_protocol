@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {suppressionResistance} from './suppression.js';
 import {LEARNING_ITEMS,LEARNING_SCRAP,validLearningId} from './learning-data.js';
 import {grantTrait,hasTrait} from './traits.js';
@@ -23,7 +24,7 @@ export function useLearning(g,id,dismantle=false){
   if(d.trait==='heavy_armor')grantTrait(p,'slow',`learned:${id}`);}
  else {for(const skill of d.skills)if(!p.skills.includes(skill)){p.skills.push(skill);p.skillState[skill]={remaining:0,cooldown:0};}initializeAllies(g);}
  if(--p.learningItems[id]===0)delete p.learningItems[id];
- g.log(dismantle?`拆解${d.name}，廢料 +${LEARNING_SCRAP}。`:`已學會${d.name}。`);g.reveal();return true;
+ g.log(dismantle?t('learning.dismantled',{item:d.name,scrap:LEARNING_SCRAP}):t('learning.learned',{item:d.name}));g.reveal();return true;
 }
 export const learningInventory=g=>Object.entries(g.player.learningItems).map(([id,count])=>({id,count,...LEARNING_ITEMS[id],...(LEARNING_ITEMS[id].trait==='suppression_resistance'?{rank:suppressionResistance(g.player),maxRank:3}:{}),scrap:LEARNING_SCRAP,useReason:learningReason(g,id),dismantleReason:learningReason(g,id,true)}));
 export const validLearningInventory=p=>p.learningItems&&typeof p.learningItems==='object'&&!Array.isArray(p.learningItems)&&Object.entries(p.learningItems).every(([id,n])=>validLearningId(id)&&Number.isSafeInteger(n)&&n>0&&n<=10000000);

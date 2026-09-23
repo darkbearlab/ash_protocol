@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {DEFAULT_FACTION,factionDef,expandRoster} from './faction-catalog.js';
 // Shared rules/tuning. Catalog-only dependency; no RNG.
 export const MAX_LEVEL=20;
@@ -42,6 +43,6 @@ export function giveCapSupply(g){
   const beforeSupply={resources:Object.fromEntries(['meds','grenades','reserve','pistol','shell','energy','ordnance'].map(k=>[k,g.player[k]])),items:structuredClone(g.items),logs:structuredClone(g.logs)};
   const {meds,...ammo}=CAP_SUPPLY;
   g.receiveItem('medkit',meds);g.supplyPack(ammo);
-  g.log(`獲得封頂補給（${capSupplyText()}；超量彈藥留在腳下）。`);
+  g.log(t('endless.capSupply',{supply:capSupplyText()}));
   g.effects.push({type:'capSupply',beforeSupply,level:g.player.level,from:{x:g.player.x,y:g.player.y},to:{x:g.player.x,y:g.player.y},damage:0});
 }

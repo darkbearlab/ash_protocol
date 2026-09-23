@@ -20,6 +20,7 @@
 // - Blind, they hold 已就緒 for six turns of patience, then half of them bound to where you were last seen; nobody
 //   there means the squad disbands and the next contact is a fresh identification.
 // - A squad standing on your only way to the lift never advances and never loses patience.
+import {t} from './i18n.js';
 import {SUPPRESSION_TUNING,finishSuppression} from './suppression.js';
 import {areaCells} from './throwables.js';
 import {enemyDef,isNoncombatant} from './enemy-data.js';
@@ -232,7 +233,7 @@ function blindFire(ctx){
  e.blindShot=SQUAD_TUNING.blindPenalty;
  try{cardAttack(ctx);}finally{delete e.blindShot;}
  e.charge=false;e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
- g.log(`${enemyDisplayName(e)}依小隊長回報的位置朝你開火。`,true);
+ g.log(t('squad.calledShot',{enemy:enemyDisplayName(e)}),true);
  return true;
 }
 // The turn the orders go out is quiet even for a soldier who happens to be standing in a good spot already: the user's
@@ -257,7 +258,7 @@ export function suppressFrom(g,member,player,leader){
  g.effects.push({type:'enemyShot',attackerType:member.type,from:{x:member.x,y:member.y},to:{x:point.x,y:point.y},damage:0,miss:true});
  finishSuppression(targets,new Set(),0,SUPPRESSION_TUNING.skillStacks,g);
  enemyCallout(g,member,'state',{state:'hold'});
- g.log(`${enemyDisplayName(member)}朝${distance(point,player)===0?'你':'你身邊'}壓制射擊。`,distance(point,player)===0);
+ g.log(t(distance(point,player)===0?'squad.suppressYou':'squad.suppressNear',{enemy:enemyDisplayName(member)}),distance(point,player)===0);
  return true;
 }
 // The member's own turn while the squad works: walk to the assigned tile, then keep the player's head down. Both
@@ -317,7 +318,7 @@ export function squadLeaderAct(ctx){
   if(!los||!members.length)return false;
   deploySquad(g,e,members,weaponId);
   enemyCallout(g,e,'telegraph',{action:'flank'});
-  g.log(`${enemyDisplayName(e)}識別了你的${g.weapon?.name||'武器'}，小隊開始展開。`,true);
+  g.log(t('squad.identified',{enemy:enemyDisplayName(e),weapon:g.weapon?.name||t('squad.weaponFallback')}),true);
   return true;                                        // the identification turn: orders only, no suppression
  }
  const sensed=mine.some(m=>senses(g,m,p)),reported=!sensed&&senses(g,e,p);
@@ -325,7 +326,7 @@ export function squadLeaderAct(ctx){
  if(e.squad.state==='deploy'){
   if(squadSet(g,e)){
    makeReady(g,e,mine);e.squad.state='ready';
-   g.log(`${enemyDisplayName(e)}下令：小隊已就緒。`,true);
+   g.log(t('squad.ready',{enemy:enemyDisplayName(e)}),true);
    return true;
   }
   if(canSuppress(g,e,e)&&suppressFrom(g,e,p,e))return true;
@@ -337,17 +338,17 @@ export function squadLeaderAct(ctx){
   e.squad.state='ready';e.squad.blind=reported;
   if(!hold)assignMovers(g,e,mine,p,false);
   makeReady(g,e,mine.filter(m=>m.order?.kind!=='bound'));
-  if(reported)g.log(`${enemyDisplayName(e)}回報你的位置。`,true);
+  if(reported)g.log(t('squad.reported',{enemy:enemyDisplayName(e)}),true);
   return true;
  }
  e.squad.blind=false;
  if(hold||e.squad.state!=='search'){
   if(!hold)e.squad.patience=Math.max(0,(e.squad.patience??SQUAD_TUNING.patience)-1);
   if(hold||e.squad.patience>0){
-   if(e.squad.state!=='patience')g.log(`${enemyDisplayName(e)}：失去目標，原地待命。`,true);
+   if(e.squad.state!=='patience')g.log(t('squad.lostTarget',{enemy:enemyDisplayName(e)}),true);
    e.squad.state='patience';makeReady(g,e,mine);return true;
   }
-  e.squad.state='search';g.log(`${enemyDisplayName(e)}下令：交叉掩護，搜索最後位置。`,true);
+  e.squad.state='search';g.log(t('squad.search',{enemy:enemyDisplayName(e)}),true);
   // 3.130.0 (user decision): the other half goes to wait by the doorway on your way to the lift. The farthest from
   // your last tile go, so the nearest still search.
   const searchers=Math.max(1,Math.floor(mine.length/2)),last=e.squad.last||{x:e.x,y:e.y};
@@ -357,7 +358,7 @@ export function squadLeaderAct(ctx){
  // The searchers are whoever is not away on an ambush; among them the search bounds half at a time, as before.
  const last=e.squad.last||{x:e.x,y:e.y},search=mine.filter(m=>m.order?.kind!=='ambush');
  if(search.some(m=>distance(m,last)<=1)||!search.length){
-  disbandSquad(g,e,all);g.log(`${enemyDisplayName(e)}的小隊找不到你，解散搜索。`,true);return true;
+  disbandSquad(g,e,all);g.log(t('squad.disband',{enemy:enemyDisplayName(e)}),true);return true;
  }
  assignMovers(g,e,search,last,true);
  makeReady(g,e,search.filter(m=>m.order?.kind!=='bound'));

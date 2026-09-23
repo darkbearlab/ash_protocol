@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {isNoncombatant} from './enemy-data.js';
 import {factionDef,factionActors,expandRoster,enemyBaseName} from './factions.js';
 import {birthRandom} from './enemy-affixes.js';
@@ -33,7 +34,7 @@ export function scream(g,e){
  e.screamCooldown=CIVILIAN_TUNING.screamCooldown;
  // 3.144.0: a guard drawn off by the decoy only snaps out when you attack (src/field-gear.js).
  for(const guard of g.enemies)if(guard.hp>0&&!isNoncombatant(guard)&&!g.isFooled?.(guard)&&distance(e,guard)<=CIVILIAN_TUNING.screamRadius){guard.alert=true;guard.lastKnown={x:g.player.x,y:g.player.y};}
- g.log(`${enemyBaseName(e)}尖叫，附近的守衛警戒了。`,true);g.enemyCallout(e,'telegraph',{action:'scream'});return true;
+ g.log(t('civilians.scream',{enemy:enemyBaseName(e)}),true);g.enemyCallout(e,'telegraph',{action:'scream'});return true;
 }
 // 3.131.0: a civilian's flight is a flee order it gives itself on its first turn — no time limit, nothing ends it.
 // The order runs from the card's `before`, where the flight always ran, so nothing about when it acts has changed.

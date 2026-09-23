@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {bandLabel} from './range-band.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 import {cardEnemyName} from './affix-ui.js';
@@ -41,7 +42,7 @@ function pelletLine(game,target){
   const {count,min,max}=game.pelletDamage(p.weapon,target),toxic=toxicShot(game,p,target,w),pierce=w.pierce||0;
   const cover=game.protectingCover(target,p),cut=cover?w.pelletCover*coverEffects(cover,target,p).efficiency*(1-pierce):0,armor=(ENEMY_TYPES[target.type]?.armor||0)*(1-pierce);
   const real=d=>Math.max(1,Math.round(d*(1-cut)*(toxic?.5:1)-armor)),low=real(min),high=real(max);
-  return `${count} 顆 × ${low}–${high}${low!==min||high!==max?`（原 ${min}–${max}）`:''} · 每顆 ${pelletChance(w,toxic)}%`;
+  return t('target-card.pellets',{count,low,high,base:low!==min||high!==max?t('target-card.pelletsBase',{min,max}):'',chance:pelletChance(w,toxic)});
 }
 // 3.142.0 (playtest): 爆裂 warns when its burst would reach you or a friend standing next to the target.
 function blastNotes(game,target){
@@ -58,7 +59,7 @@ export function targetDetails(game){
   const short=!melee&&(game.weapon.shotCost||1)>1&&game.player.ammo[game.player.weapon]<game.weapon.shotCost;
   const pellets=pelletLine(game,target),range=distance(game.player,target),withinDistance=range<=game.weapon.range,withinRange=withinDistance&&game.shotClear(game.player,target)&&(!melee||isBarrier(target)||game.canCross(game.player,target));
   const details={name:(enemy?(missionTarget(game,target)?'◇ ':'')+cardEnemyName(target):null)||(isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target,game.facilityFaction)].name:isContainer(target)?containerName(target):target.type==='barrel'?'爆裂油桶':FURNITURE[target.style]?.name||'可破壞掩體'),fullName:enemy?enemyDisplayName(target):'',hp:`${isBarrier(target)?'耐久':'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}${enemy?.armor>0?`\n護甲 ${enemy.armor}`:''}`,
-    chance:withinRange?(short?`彈匣不足 ${game.weapon.shotCost} 發`:game.weapon.pointTarget?'落點必定爆炸':pellets||`命中 ${aim.chance}%`):melee?'無法近戰':'無法射擊',distance:`距離 ${range} 格\n射程 ${game.weapon.range} 格${aim.band?` · 有效 ${bandLabel(aim.band)}`:''}${game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?' · 單發':' · 兩發'):''}`,
+    chance:withinRange?(short?t('target-card.magShort',{n:game.weapon.shotCost}):game.weapon.pointTarget?'落點必定爆炸':pellets||t('target-card.hit',{chance:aim.chance})):melee?'無法近戰':'無法射擊',distance:t('target-card.distance',{range,weaponRange:game.weapon.range,band:aim.band?t('target-card.band',{band:bandLabel(aim.band)}):'',burst:game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?t('target-card.single'):t('target-card.double')):''}),
     traits:enemy?[factionTag(target),target.elite?ELITE_VISUAL.label:'',isNoncombatant(target)?NONCOMBATANT_LABEL:'',...traitLabels(target)].filter(Boolean).join(' · '):'',
     order:enemy&&(initiative(displayTarget)!==0||initiative(game.player)!==0)?(initiative(displayTarget)<initiative(game.player)?'行動在你之前':initiative(displayTarget)>initiative(game.player)?'行動在你之後':'同速，你先行動'):'',
     cover:melee?'近戰無視掩體':enemy?(activeTrait(target,'no_cover')?'無法利用掩體':aim.cover?(aim.coverEfficiency===.5?'半效 ':'')+(aim.cover.type==='low_partition'?'矮隔板掩護':isBarrier(aim.cover)?'隔間掩護':aim.cover.type==='wall'?'牆角掩護':aim.cover.style?'家具掩護':'箱體掩護'):'無掩護'):'可破壞物',

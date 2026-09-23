@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {SUPPRESSION_TUNING as T,finishSuppression,withShotTargets} from './suppression.js';
 import {areaCells} from './throwables.js';
 import {distance,key} from './world.js';
@@ -10,7 +11,7 @@ export function suppressiveReason(g,point){
  const p=g.player,w=g.weapon;
  if(!p.skills.includes('suppressive_fire')||p.prepared.skill!=='suppressive_fire')return '請先預備壓制射擊。';
  if(w.melee)return '壓制射擊需要槍械。';
- if(p.ammo[p.weapon]<T.skillRounds)return `彈匣至少需要 ${T.skillRounds} 發。`;
+ if(p.ammo[p.weapon]<T.skillRounds)return t('suppressive-fire.magMin',{n:T.skillRounds});
  if(!point||![point.x,point.y].every(Number.isInteger)||g.grid[point.y]?.[point.x]!==1||distance(p,point)>w.range||!g.visible(point))return '請選擇武器射程內看得見的地板。';
  return '';
 }
@@ -36,7 +37,7 @@ export function suppressiveFire(g,point){
   for(const [e,hp] of before)if(e.hp<hp)hits.add(e);
   recordShot(p,target.id,g.turn);
  });
- finishSuppression(targets,hits,rounds,T.skillStacks,g);for(const e of targets){g.noticeAttack(e);e.alert=true;e.lastKnown={x:p.x,y:p.y};}g.log(`壓制射擊，消耗 ${rounds} 發。`);return true;
+ finishSuppression(targets,hits,rounds,T.skillStacks,g);for(const e of targets){g.noticeAttack(e);e.alert=true;e.lastKnown={x:p.x,y:p.y};}g.log(t('suppressive-fire.fired',{n:rounds}));return true;
 }
 
 export const suppressivePreview=(g,point)=>({range:g.weapon.range,minimumRounds:T.skillRounds,rounds:Math.min(T.skillRounds+(g.weapon.extraRounds||0),g.player.ammo[g.player.weapon]),accuracyPenalty:T.skillAccuracy,reason:suppressiveReason(g,point),cells:point&&Number.isInteger(point.x)&&Number.isInteger(point.y)?suppressiveArea(g,point):[]});

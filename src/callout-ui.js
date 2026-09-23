@@ -1,6 +1,7 @@
 // Callout bubbles (3.76.4, Claude): line table, throttling and placement for REAL_MODE callout events.
 // The rules layer decides what is heard and hides identity; this only words and paces it. Line picks hash the
 // event and a board counter, never the combat RNG.
+import {t} from './i18n.js';
 import {ENEMY_TYPES} from './engine.js';
 import {factionDef} from './factions.js';
 
@@ -98,7 +99,7 @@ const hash=text=>{let h=2166136261;for(const c of text){h^=c.codePointAt(0);h=Ma
 // 3.163.0 (user decision 2026-09-23): the operator speaks only about an invalid input or the next one. The user wrote
 // these; never a number.
 export const PLAYER_LINES=Object.freeze({blocked:'被擋住了',locked:'上鎖了',pinned:'被壓制了',anchor_on:'下錨！',anchor_off:'解除下錨！',anchored:'下錨中！',reload_needed:'需要裝填',last_magazine:'最後一個彈匣',no_ammo:'沒彈藥了',out_of_range:'目標在射程外',no_target:'沒有目標',chambered:'已上膛',not_needed:'不需要',fatal:'會死！'});
-export const playerLine=event=>event.cue==='empty'?`${event.item||'道具'}沒了`:PLAYER_LINES[event.cue]||'';
+export const playerLine=event=>event.cue==='empty'?t('callout-ui.empty',{item:event.item||t('callout-ui.itemFallback')}):PLAYER_LINES[event.cue]||'';
 export function calloutLine(event,variant=0){
  if(event.speaker==='player')return playerLine(event);
  const voice=calloutVoice(event),lines=voice==='creature'?CREATURE[event.category]:(VOICE_LINES[voice]||HUMAN)[event.cue];

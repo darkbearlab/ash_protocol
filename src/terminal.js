@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {activeTrait} from './traits.js';
 import {EXO_TUNING} from './field-gear.js';
 import {AMMO_IDS,AMMUNITION,TERMINAL_AMMO} from './ammunition.js';
@@ -74,13 +75,13 @@ export function offerReason(g,option){
  if(!terminal)return '附近沒有可用補給終端。';
  const slot=upgradeSlot(option);
  if(slot===null&&!OPTIONS.includes(option))return '沒有這項補給。';
- if(!terminalSells(terminal,option))return `${terminalName(terminal)}不賣這一類。`;
+ if(!terminalSells(terminal,option))return t('terminal.notSold',{terminal:terminalName(terminal)});
  if(slot!==null){
   if(!p.owned.includes(slot))return '背包裡沒有這把武器。';
   if((p.upgrades[slot]||0)>=T.upgradeMax)return '此武器已達最高改裝等級。';
  }
  const price=terminalCost(option,g),left=terminalRemaining(terminal);
- if(price>left)return `此終端剩餘額度 ${left}，不夠 ${price}。`;
+ if(price>left)return t('terminal.creditShort',{left,price});
  if(slot!==null)return '';
  const item=TERMINAL_ITEMS[option];
  if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return '生命值已滿。';
@@ -106,7 +107,7 @@ export function tradeHoldings(g){
  const p=g.player,rows=[];
  for(const id of AMMO_IDS){
   const {lot,value}=ammoLot(id),held=p[AMMUNITION[id].key]||0;
-  rows.push({id:`ammo:${id}`,group:'ammo',name:AMMUNITION[id].name,unit:`${lot} 發`,lot,value,held,max:Math.floor(held/lot),reason:held&&held<lot?`不足 ${lot} 發`:''});
+  rows.push({id:`ammo:${id}`,group:'ammo',name:AMMUNITION[id].name,unit:t('terminal.rounds',{n:lot}),lot,value,held,max:Math.floor(held/lot),reason:held&&held<lot?t('terminal.roundsShort',{n:lot}):''});
  }
  for(const [id,entry] of Object.entries(GRENADES)){
   const held=p[entry.resource]||0;
@@ -141,7 +142,7 @@ export function terminalDeal(g,buy,trade={}){
   const row=rows.get(id);
   if(!row||!Number.isSafeInteger(count)||count<0)return {...empty,reason:'抵價內容無效。'};
   if(!count)continue;
-  if(count>row.max)return {...empty,reason:row.reason?`${row.name}：${row.reason}。`:`${row.name}不夠。`};
+  if(count>row.max)return {...empty,reason:row.reason?t('terminal.rowReason',{item:row.name,reason:row.reason}):t('terminal.rowShort',{item:row.name})};
   if(row.group==='weapon'){weapons++;if(buy===`upgrade:${row.slot}`)return {...empty,reason:'不能用正要改裝的武器抵價。'};}
   pool+=count*row.value;
  }
@@ -171,7 +172,7 @@ function payWith(g,id,count){
 }
 function deliver(g,buy){
  const p=g.player,slot=upgradeSlot(buy),item=TERMINAL_ITEMS[buy];
- if(slot!==null){p.upgrades[slot]=(p.upgrades[slot]||0)+1;return `${g.weaponAt(slot).name}改裝 +${p.upgrades[slot]}，單次傷害 +5`;}
+ if(slot!==null){p.upgrades[slot]=(p.upgrades[slot]||0)+1;return t('terminal.upgraded',{weapon:g.weaponAt(slot).name,n:p.upgrades[slot]});}
  if(buy==='heal'){healActor(p,T.healAmount);clearPoison(p);return '醫療修復';}
  // 3.136.0: items stop at the carry cap; one bought past it waits at your feet.
  if(buy==='med'){g.receiveItem('medkit',1);return '醫療包 +1';}
@@ -193,6 +194,6 @@ export function useTerminal(g,arg){
  const left=terminalRemaining(terminal);if(left<TERMINAL_MIN_PRICE)terminal.used=true;
  const got=deliver(g,buy);
  const paid=[deal.pool?`抵價 ${deal.pool}${deal.waste?`（${deal.waste} 作廢）`:''}`:'',deal.scrap?`廢料 ${deal.scrap}`:''].filter(Boolean).join('、')||'免費';
- g.log(`終端交易：${got}。付出 ${paid}。此終端剩餘額度 ${terminalRemaining(terminal)}${terminal.used?'，已耗盡':''}。`);
+ g.log(t(terminal.used?'terminal.dealSpent':'terminal.deal',{got,paid,left:terminalRemaining(terminal)}));
  return true;
 }

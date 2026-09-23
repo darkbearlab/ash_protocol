@@ -35,6 +35,7 @@ const KIND={
  'controller.js':'介面（HTML 樣板：選單、背包、終端、結算、設定、操作指南）',
  'callout-ui.js':'敵人台詞','story-data.js':'故事碎片（由 content/stories 產生）',
  'killhouse-ui.js':'擊殺屋教學','material-review.js':'開發工具頁',
+ 'text-zh-tw.js':'語言表（中文，3.166.0 起）',
  'data.js':'資料：武器、敵人、升級、補給名稱與說明','traits.js':'資料：被動特性','skills.js':'資料：主動技能','prepared.js':'資料：道具與投擲物',
  'characters.js':'資料：職業','weapons.js':'資料：武器詞條','enemy-affixes.js':'資料：敵人詞條','missions.js':'資料：任務',
 };
@@ -50,8 +51,9 @@ export function inventory(){
   const chars=lits.reduce((s,l)=>s+count(l.text),0);if(!chars)continue;total+=chars;
   rows.push({file:f,chars,strings:new Set(lits.map(l=>l.text.trim())).size,kind:kindOf(f)});
   for(const l of lits){
-   // Chinese glued to an interpolation: the word order is Chinese, so English needs a whole-sentence template.
-   if(l.template&&/[一-鿿]\{\}|\{\}[一-鿿]/.test(l.text))concat.push({file:f,text:l.text.slice(0,70)});
+   // Chinese (or full-width punctuation, 3.166.0) glued to an interpolation: the word order is Chinese, so English needs a
+   // whole-sentence template in the language table.
+   if(l.template&&/[一-鿿　-〿＀-￯]\{\}|\{\}[一-鿿　-〿＀-￯]/.test(l.text))concat.push({file:f,text:l.text.slice(0,70)});
    // A number followed by a counter word: English needs a singular and a plural.
    if(l.template&&/\{\}\s?(回合|格|發|層|次|個|名|點|顆|把|條|秒|階|台|隻|項|份)/.test(l.text))units.push({file:f,text:l.text.slice(0,70)});
    if(/存檔已升級|舊存檔/.test(l.text))migration.push({file:f,chars:count(l.text)});

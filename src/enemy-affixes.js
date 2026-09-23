@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {enemyFaction,factionDef,enemyBaseName} from './factions.js';
 import {hasEnemyTag,isNoncombatant} from './enemy-data.js';
 import {ENEMY_TYPES} from './data.js';
@@ -38,7 +39,11 @@ export function rollEnemyAffixes(e,seed,floor,offset){e.affixes=[];if(isNoncomba
  if(deployer.applies(e)&&birthRandom(seed,floor,e.id,'deployer-v1')()<deployerChance(floor,offset))giveEnemyAffix(e,'deployer');
  return e;}
 export const revealedAffixes=e=>ENEMY_AFFIXES.filter(d=>e?.affixes?.some(a=>a.id===d.id&&a.revealed)).map(({id,fragment,order,reveal})=>({id,fragment,order,reveal}));
-export const enemyDisplayName=e=>`${enemyBaseName(e)}${revealedAffixes(e).map(d=>`・${d.fragment}`).join('')}${e.affixes?.some(a=>!a.revealed)?'？':''}`;
+// 3.166.0: the name is composed from parts (base, revealed fragments, an unknown mark), so the target card can shorten
+// it without taking the string apart and another language can order the parts its own way.
+export const enemyNameParts=e=>({base:enemyBaseName(e),fragments:revealedAffixes(e).map(d=>d.fragment),unknown:Boolean(e.affixes?.some(a=>!a.revealed))});
+export const composeEnemyName=({base,fragments,unknown},cut=false)=>t('enemy-affixes.name',{base,affixes:fragments.map(fragment=>t('enemy-affixes.fragment',{fragment})).join(''),cut:cut?t('enemy-affixes.cut'):'',unknown:unknown?t('enemy-affixes.unknown'):''});
+export const enemyDisplayName=e=>composeEnemyName(enemyNameParts(e));
 export function revealEnemyAffix(g,e,id){const a=e.affixes?.find(a=>a.id===id);if(!a||a.revealed)return false;a.revealed=true;g.enemyCallout?.(e,'affix_revealed',{affixId:id});return true;}
 export function validEnemyAffixes(e){if(e.traits?.some(t=>t.source==='endless:elite'))return false;if(e.affixes===undefined)return !e.traits?.some(t=>t.source?.startsWith('affix:'));if(!Array.isArray(e.affixes)||e.affixes.length>ENEMY_AFFIXES.length||new Set(e.affixes.map(a=>a.id)).size!==e.affixes.length)return false;return e.affixes.every(a=>{const d=ENEMY_AFFIXES.find(d=>d.id===a.id);return d&&(!d.infection||infected(e))&&typeof a.revealed==='boolean'&&(!['suppressor','grenadier'].includes(a.id)||armed(e))&&(!d.trait||e.traits.some(t=>t.id===d.trait&&t.source===`affix:${a.id}`));})&&e.traits.filter(t=>t.source.startsWith('affix:')).every(t=>e.affixes.some(a=>t.source===`affix:${a.id}`&&ENEMY_AFFIXES.find(d=>d.id===a.id)?.trait===t.id));}
 export function migrateEnemyAffixes(g){g.difficultyOffset=0;for(const e of [...g.enemies,...(g.allies||[]),...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])]){const old=(e.traits||[]).filter(t=>t.source==='endless:elite');e.traits=(e.traits||[]).filter(t=>t.source!=='endless:elite');if(old.length)e.affixes=[];for(const t of old)giveEnemyAffix(e,t.id,true);}}

@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {STORIES} from './story-data.js';
 import {playerCalloutEvent} from './callouts.js';
 import {CLASS_PERK_TUNING} from './class-perks.js';
@@ -7,7 +8,7 @@ import {connectUnlocks,startCampaign,startKillhouse,grantUnlock} from './storage
 import {unlockPageMarkup,purchaseReason,purchaseConfirmMarkup,operatorRecoveredMarkup,resultStoriesMarkup,lockedOperatorRow,operatorSignal,UNLOCK_HELP} from './unlock-ui.js';
 import {isNoncombatant} from './enemy-data.js';
 import {healingAmount} from './traits.js';
-import {UNIT_BLUEPRINTS,buildReason,deployReason,deployedUnits,mountableSlots,repairReason,repairTargets} from './workshop.js';
+import {UNIT_BLUEPRINTS,isBlueprintLog,buildReason,deployReason,deployedUnits,mountableSlots,repairReason,repairTargets} from './workshop.js';
 import {ALLY_SKILLS,allySkillState,canAllySkill,allyName,allyWeapon,droneCells,defaultDroneCell,deployLimit,lineLimit,MUNITION_TUNING,TETHER,CARRY_DISTANCE,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,PET_TETHER,DRONE_HP,SENTRY_ARMOR,ENEMY_UNIT_TUNING,bombardDamage,REPAIR_TUNING} from './allies.js';
 import {petFeedingState,petFeedQuote,outputChoiceReason} from './pet-growth.js';
 import {feedingView,petStatusLine,petOutputLine,fuelLabel,fuelPercent,lineProgress,nodeSymbol,nextNode,unlockedMajors,abilityChips,PET_LINE_NAMES,PET_LINE_TINTS,petHelpText} from './pet-ui.js';
@@ -177,7 +178,7 @@ const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>'
 function notify(text,{extra=0,danger=false}={}){notice.textContent=text;notice.classList.remove('resting');notice.classList.add('show');notice.classList.toggle('danger',danger);logButton.textContent=extra>0?`+${extra}`:'';logButton.classList.toggle('more',extra>0);clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice.classList.remove('show');noticeTimer=setTimeout(restNotice,600);},2700);}
 // A new blueprint is announced with the action's latest line even when later logs would cover it (docs/ENGINEER.md
 // section 7); the latest line keeps its danger colour.
-const notifyLatest=()=>{const latest=game.logs[0],blueprint=game.logs.slice(0,Math.max(1,lastActionLogs)).find(l=>l.text.startsWith('取得藍圖'));if(latest)notify(blueprint&&blueprint!==latest?`${blueprint.text} ${latest.text}`:latest.text,{extra:lastActionLogs-1,danger:latest.danger});};
+const notifyLatest=()=>{const latest=game.logs[0],blueprint=game.logs.slice(0,Math.max(1,lastActionLogs)).find(l=>isBlueprintLog(l.text));if(latest)notify(blueprint&&blueprint!==latest?`${blueprint.text} ${latest.text}`:latest.text,{extra:lastActionLogs-1,danger:latest.danger});};
 // Half health or less: the battlefield edges pulse red, deeper and faster as health falls (3.43).
 function lowHealth(p){
   const glow=$('#low-health'),ratio=Math.max(0,p.hp)/p.maxHp,on=ratio<=.5;glow.classList.toggle('on',on);if(!on)return;
@@ -700,7 +701,7 @@ function showInventory(tab=inventoryTab,message='') {
     const useCell=(id,entry)=>{
       if(category!=='item'||!entry.action)return '';
       const reason=itemUseReason(game,id),cost=game.actionCost(entry.action);
-      return `<button class="pack-use" data-use-item="${id}"${reason?' disabled':''} title="${reason||`使用${entry.name}，${cost?'消耗 1 回合':'不耗回合'}`}">使用</button>`;
+      return `<button class="pack-use" data-use-item="${id}"${reason?' disabled':''} title="${reason||t(cost?'controller.useItemPaid':'controller.useItemFree',{item:entry.name})}">使用</button>`;
     };
     const useReason=(id,entry)=>category==='item'&&entry.action&&p[entry.resource]?itemUseReason(game,id):'';
     const row=([id,entry])=>{const on=p.prepared[category]===id,reason=useReason(id,entry);return `<div class="pack-row${on?' equipped':''}${category==='item'&&entry.action?' pack-row-usable':''}"><button class="pack-pick" data-prepare-category="${category}" data-prepare-id="${on?'':id}" aria-pressed="${on}"><span class="pack-icon" aria-hidden="true">${entry.icon}</span><span class="pack-name">${entry.name}</span><small>${on?entry.wear?'佩戴中 · ':'已預備 · ':''}${status(id,entry)}</small></button>${useCell(id,entry)}${packInfo(`${category}-${id}`,(category==='skill'?skillText(p,id):entry.text)+(id==='medkit'?` 目前回復 ${healingAmount(p,45)+p.healBonus} 生命。`:''))}${reason?`<p class="pack-reason">${reason}。</p>`:''}</div>`;};
@@ -785,10 +786,10 @@ function recoverCorpse(){if(!operatorReady(game))return;const corpse=game.operat
 
 function perkPips(player,perk,preview=false){
   const n=player.perks?.[perk.id]||0;
-  if(perk.cap===null)return `<span class="perk-pips" role="img" aria-label="已取得 ${n} 次${preview?'，選取後 '+(n+1)+' 次':''}"><span aria-hidden="true">×${n}</span></span>`;
+  if(perk.cap===null)return `<span class="perk-pips" role="img" aria-label="${t(preview?'controller.perkTakenPreview':'controller.perkTaken',{n,next:n+1})}"><span aria-hidden="true">×${n}</span></span>`;
   const total=Math.max(perk.cap,n+(preview?1:0)),shown=Math.min(total,32);
   const dots=Array.from({length:shown},(_,i)=>i<n?'●':preview&&i===n?'<span class="perk-next">◉</span>':'○').join('');
-  return `<span class="perk-pips" role="img" aria-label="${n}/${perk.cap}${preview?'，選取後 '+(n+1)+'/'+perk.cap:''}"><span aria-hidden="true">${dots}${total>shown?' ×'+total:''}</span></span>`;
+  return `<span class="perk-pips" role="img" aria-label="${t(preview?'controller.perkRankPreview':'controller.perkRank',{n,cap:perk.cap,next:n+1})}"><span aria-hidden="true">${dots}${total>shown?' ×'+total:''}</span></span>`;
 }
 function runPerks(){
   const acquired=PERKS.filter(o=>(game.player.perks?.[o.id]||0)>0);

@@ -1,3 +1,4 @@
+import {t,sentence} from './i18n.js';
 import {blindFire,blindReason,blindAim,silenced,forgetSeenAftermath} from './blind-fire.js';
 import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,recoverOperator,validRunUnlocks,floorCorpseNote} from './run-unlocks.js';
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
@@ -63,7 +64,7 @@ import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
 import {fullLighting,validLighting,lightingEffects} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
 import {addTrace,spentCase,validTraces} from './traces.js';
-import {missionDefinition,missionDepth,returning,exitPoint,exitLabel,deepestFloor,newMission,prepareMission,validMission,missionObjects,missionTarget,missionSummary,exitBlocked} from './missions.js';
+import {missionDefinition,missionDepth,returning,exitPoint,exitLabel,exitKind,deepestFloor,newMission,prepareMission,validMission,missionObjects,missionTarget,missionSummary,exitBlocked} from './missions.js';
 import {validModules} from './modules.js';
 import {isContainer,containerName,validContainers,rigContainers,isRigged,RIG_TUNING,FIELD_ITEMS} from './containers.js';
 import {BARRIER_TYPES,BARRIER_LIMIT,makeBarrier,vaultable,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,validBarriers} from './barriers.js';
@@ -98,9 +99,9 @@ export {TERMINAL_ITEMS,terminalCost,terminalReason} from './terminal.js';
 export function launchReason(g,pos){
  const p=g.player,w=g.weapon;
  if(!w.pointTarget)return '這把武器不能對地發射';
- if(p.ammo[p.weapon]<=0)return '彈匣已空，請裝填';
+ if(p.ammo[p.weapon]<=0)return t('game.launchEmpty');
  if(!pos||!Number.isInteger(pos.x)||!Number.isInteger(pos.y)||g.grid[pos.y]?.[pos.x]!==1)return '先選擇視線內的地板作為落點';
- if(distance(p,pos)>w.range||!g.visible(pos))return `落點需在視線內 ${w.range} 格以內`;
+ if(distance(p,pos)>w.range||!g.visible(pos))return t('common.landingRange',{range:w.range});
  return '';
 }
 export const DEPLOY_COVER='low_partition';
@@ -111,7 +112,7 @@ export function deployCoverReason(g,arg){
  const spot={x:p.x+arg[0],y:p.y+arg[1]};
  if(g.grid[spot.y]?.[spot.x]!==1)return '那一側不是平地';
  const edge=barrierBetween(g.barriers,p,spot);
- if(edge&&edge.hp>0)return `那一側已經有${barrierName(edge)}`;
+ if(edge&&edge.hp>0)return t('game.sideTaken',{barrier:barrierName(edge)});
  if(!edge&&g.barriers.length>=BARRIER_LIMIT)return '這一層的障礙物已經太多';
  return '';
 }
@@ -120,14 +121,15 @@ const ITEM_BY_ACTION=Object.fromEntries(Object.entries(PREPARED_CATALOG.item).ma
 // dead before the modal closes. One helper answers both it and validateAction, so the two can never disagree.
 // An empty string means the item can be used right now.
 // 3.163.0: which item refusals the operator says out loud (src/callout-ui.js PLAYER_LINES); the rest stay in the log.
-const itemRefusal=(reason,entry)=>reason.startsWith('沒有')?['empty',{item:entry.name}]:reason==='生命已滿且未中毒'||reason==='護甲板已滿'?['not_needed']:reason==='生命不足以承受'?['fatal']:[];
+// 3.166.0: compared with the table's own sentences, so the mapping holds in any language.
+const itemRefusal=(reason,entry)=>reason===t('common.noItem',{item:entry.name})?['empty',{item:entry.name}]:reason===t('game.healNotNeeded')||reason===t('game.platesFull')?['not_needed']:reason===t('game.surgeFatal')?['fatal']:[];
 export function itemUseReason(g,id){
  const p=g.player,entry=PREPARED_CATALOG.item[id];
  if(!entry?.action)return '沒有這個道具';
- if(!p[entry.resource])return `沒有${entry.name}`;
- if(entry.action==='heal')return p.hp<p.maxHp||p.poison>0?'':'生命已滿且未中毒';
- if(entry.action==='plate')return (p.plates||0)<g.plateCapacity?'':'護甲板已滿';
- if(entry.action==='surge')return p.control.disabled?'失能中無法使用':g.shadowSteps?'免費移動還沒用完':p.hp>SURGE_COST?'':'生命不足以承受';
+ if(!p[entry.resource])return t('common.noItem',{item:entry.name});
+ if(entry.action==='heal')return p.hp<p.maxHp||p.poison>0?'':t('game.healNotNeeded');
+ if(entry.action==='plate')return (p.plates||0)<g.plateCapacity?'':t('game.platesFull');
+ if(entry.action==='surge')return p.control.disabled?'失能中無法使用':g.shadowSteps?'免費移動還沒用完':p.hp>SURGE_COST?'':t('game.surgeFatal');
  return '';
 }
 const freshPlayer=()=>({keycards:[],decoys:0,mines:0,exoPlates:0,learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
@@ -176,7 +178,7 @@ export class Game {
   meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b));}
   defensiveEvasion(a,b){return defensiveEvasion(this,a,b);}
   grapplePlan(id=this.target){return grapplePlan(this,id);}
-  get allyTravelSummary(){const near=carryCandidates(this).length,total=this.activeAllies.length;return total?`帶${near} 留${total-near}`:'';}
+  get allyTravelSummary(){const near=carryCandidates(this).length,total=this.activeAllies.length;return total?t('game.allyCarry',{near,left:total-near}):'';}
   get weapon(){return this.weaponAt(this.player.weapon);}
   weaponAt(slot){if(slot===UNARMED_SLOT)return {...UNARMED};return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot],this.player);}
   fireChance(target){if(this.weapon.melee)return this.meleeAccuracy(this.player,target,this.weapon.hitChance);return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.weapon.closeRange&&distance(this.player,target)<=this.weapon.closeRange?this.weapon.closeAccuracy:0)+actorStat(this.player,'rangedAccuracy')+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)-lightingEffects(this,this.player,target).penalty));}
@@ -186,16 +188,17 @@ export class Game {
   get perkChoices(){return ensurePerks(this);}
   get exitPoint(){return exitPoint(this);}
   get exitLabel(){return exitLabel(this);}
+  get exitKind(){return exitKind(this);}
   get deepestFloor(){return deepestFloor(this);}
   get exitBlocked(){return exitBlocked(this);}
   get missionSummary(){return missionSummary(this);}
   get nearbyObjectives(){return missionObjects(this).filter(t=>!t.done&&this.canTouch(t));}
   recoverObjective(id){
-    const t=this.nearbyObjectives.find(t=>t.id===id);
-    if(!t)return this.fail('附近沒有可回收的機密資料。');
-    t.done=true;
+    const objective=this.nearbyObjectives.find(o=>o.id===id);
+    if(!objective)return this.fail('附近沒有可回收的機密資料。');
+    objective.done=true;
     if(missionDefinition(this).returnTrip){this.mission.returning=true;scheduleRetreatWave(this);this.log('機密已取得：返回本層入口上樓，沿原路撤離。',true);}
-    this.log('機密資料已回收；'+this.missionSummary+'。');return true;
+    this.log(t('game.objectiveRecovered',{summary:this.missionSummary}));return true;
   }
   get bossAlive(){return this.enemies.some(e=>isBossClass(e)&&e.hp>0);}
   get nearbyTerminal(){return this.props.find(o=>o.type==='terminal'&&!o.used&&this.canTouch(o));}
@@ -231,8 +234,8 @@ export class Game {
     this.items.push(...contents.map(i=>i.type==='weapon'?this.registerWeapon({...i,...pos},true):({...i,...pos})));
     // container (3.118.0): tells the open-case sound apart from a pet's unpack, which uses the same visual.
     this.effects.push({type:'unpack',container:true,from:{x:c.x,y:c.y},to:pos,damage:0});
-    if(!contents.length){this.log(`${containerName(c)}已開啟，裡面是空的。`);return true;}
-    this.log(`${containerName(c)}已開啟，補給${distance(pos,this.player)===0?'留在腳下，移開再走回拾取':'落在地上，走上去拾取'}。`);return true;
+    if(!contents.length){this.log(t('game.containerEmpty',{container:containerName(c)}));return true;}
+    this.log(t(distance(pos,this.player)===0?'game.containerUnderfoot':'game.containerSpilled',{container:containerName(c)}));return true;
   }
   canOperateDoor(b){
     if(b.type!=='door'||b.hp<=0)return false;
@@ -241,12 +244,12 @@ export class Game {
     return edgeCells(b).some(q=>(b.axis==='x'?p.x===q.x&&Math.abs(p.y-q.y)===1:p.y===q.y&&Math.abs(p.x-q.x)===1)&&this.passable(q.x,q.y)&&this.canCross(p,q));
   }
   get nearbyDoors(){return this.barriers.filter(b=>this.canOperateDoor(b));}
-  doorLabel(b){const dx=b.x-this.player.x,dy=b.y-this.player.y;return `${dx>0?'東':dx<0?'西':''}${dy>0?'南':dy<0?'北':''}側${b.locked?(lockedReason(this,b)?'鐵門上鎖':'刷鑰匙卡'):b.open?'關門':'開門'}`;}
+  doorLabel(b){const dx=b.x-this.player.x,dy=b.y-this.player.y;return t('game.doorLabel',{side:t(`dir.${(dx>0?'e':dx<0?'w':'')+(dy>0?'s':dy<0?'n':'')||'none'}`),action:t(b.locked?(lockedReason(this,b)?'game.doorLocked':'game.doorKeycard'):b.open?'game.doorClose':'game.doorOpen')});}
   setDoor(b,open){
     if(!b||b.type!=='door'||b.hp<=0||b.locked&&open)return false;   // 3.146.0: a locked vault door opens only with the keycard
     if(b.open===open)return true;b.open=open;
     this.effects.push({type:'gate',from:{x:b.x,y:b.y},to:{x:b.x,y:b.y},axis:b.axis,open});
-    this.log(`${barrierName(b)}已${open?'開啟':'關閉'}。`);this.reveal();return true;
+    this.log(t(open?'game.barrierOpened':'game.barrierClosed',{barrier:barrierName(b)}));this.reveal();return true;
   }
   accuracy(attacker,target){return shotChance(this,attacker,target);}
   solid(x,y){return this.props.find(o=>o.x===x&&o.y===y&&o.hp>0&&(o.type==='cover'||o.type==='barrel'||o.type==='nest'));}
@@ -280,7 +283,7 @@ export class Game {
   receiveItem(id,amount,{spill=true}={}){
     const entry=PREPARED_CATALOG.item[id],key=entry.resource,accepted=Math.min(amount,Math.max(0,this.itemCapacity()-(this.player[key]||0)));
     this.player[key]=(this.player[key]||0)+accepted;
-    if(spill&&amount>accepted){this.dropItem(id,amount-accepted);this.log(`${entry.name}超出攜帶上限，${amount-accepted} 留在腳下。`);}
+    if(spill&&amount>accepted){this.dropItem(id,amount-accepted);this.log(t('game.itemOverflow',{item:entry.name,n:amount-accepted}));}
     return accepted;
   }
   dropAmmo(type,amount,pos=this.player){
@@ -292,7 +295,7 @@ export class Game {
   receiveAmmo(type,amount,{spill=true}={}){
     if(type==='grenade')return this.receiveGrenade('frag',amount,{spill});
     const key=AMMUNITION[type].key,accepted=Math.min(amount,Math.max(0,this.ammoCapacity(type)-this.player[key]));
-    this.player[key]+=accepted;if(spill&&amount>accepted){this.dropAmmo(type,amount-accepted);this.log(`${AMMUNITION[type].name}超出容量，${amount-accepted} 留在腳下。`);}return accepted;
+    this.player[key]+=accepted;if(spill&&amount>accepted){this.dropAmmo(type,amount-accepted);this.log(t('game.ammoOverflow',{ammo:AMMUNITION[type].name,n:amount-accepted}));}return accepted;
   }
   setCarryLevel(level){
     this.carryLevel=carryLevels(0);
@@ -303,7 +306,7 @@ export class Game {
   receiveGrenade(id,amount,{spill=true}={}){
     const def=GRENADES[id],accepted=Math.min(amount,Math.max(0,this.ammoCapacity('grenade')-grenadeTotal(this.player)));
     this.player[def.resource]+=accepted;
-    if(spill&&amount>accepted){this.dropGrenade(id,amount-accepted);this.log(`${def.name}超出共用容量，${amount-accepted} 留在腳下。`);}return accepted;
+    if(spill&&amount>accepted){this.dropGrenade(id,amount-accepted);this.log(t('game.grenadeOverflow',{grenade:def.name,n:amount-accepted}));}return accepted;
   }
   dropGrenade(id,amount){const def=GRENADES[id],p=this.player,item=this.items.find(o=>o.type===def.item&&distance(o,p)===0);if(item)item.amount=(item.amount??1)+amount;else this.items.push({x:p.x,y:p.y,type:def.item,amount});}
   trimGrenades(){let excess=grenadeTotal(this.player)-this.ammoCapacity('grenade');for(const [id,def]of Object.entries(GRENADES)){const n=Math.min(Math.max(0,excess),this.player[def.resource]);if(n){this.player[def.resource]-=n;this.dropGrenade(id,n);excess-=n;}}}
@@ -318,7 +321,7 @@ export class Game {
   // The only place the prepared slot is written. Wearables hang their passives off it, so the two can never drift.
   setPrepared(category,id){this.player.prepared[category]=id;syncWearableTraits(this.player);return true;}
   recoverOperator(){return recoverOperator(this);}
-  awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(`協定點數 +${amount}，死亡仍保留。`);}
+  awardProtocol(type,id) {const event=`${type}:${id}`,amount=PROTOCOL_REWARDS[type];if(!amount||this.protocol.events.includes(event))return;this.protocol.events.push(event);this.protocol.earned+=amount;this.log(t('game.protocolEarned',{n:amount}));}
 
   // 3.136.0 (user decision): the melee weapon picked in the pack, else the first one in the pack, else bare hands. Before
   // 3.136.0 only weapons free to switch both ways counted, and every melee weapon was, so the fallback is the old rule.
@@ -331,7 +334,7 @@ export class Game {
     if(type==='learn'||type==='dismantleLearning'){const reason=learningReason(this,arg,type==='dismantleLearning');return !reason||this.fail(reason);}
     if(type==='meleeChoice')return arg===null||Number.isInteger(arg)&&p.owned.includes(arg)&&this.weaponAt(arg).melee||this.fail('只能選背包裡的近戰武器。');
     if(type==='suppressiveFire'){const reason=suppressiveReason(this,arg);return !reason||this.fail(reason);}
-    if(type==='blindFire'){const reason=blindReason(this,arg);return !reason||this.fail(reason+'。',reason==='超出射程'?'out_of_range':reason.startsWith('彈匣')?'reload_needed':null);}
+    if(type==='blindFire'){const reason=blindReason(this,arg);return !reason||this.fail(sentence(reason),reason===t('blind-fire.outOfRange')?'out_of_range':reason===t('blind-fire.magShort')?'reload_needed':null);}
     if(type==='feedPet'){const q=petFeedQuote(this,arg);return q.allowed||this.fail(q.reason);}
     if(type==='setPetOutput')return !outputChoiceReason(this,arg)||this.fail(outputChoiceReason(this,arg));
     if(type==='buildUnit'){const reason=buildReason(this,arg?.blueprint,arg?.payload,arg?.weapon);return !reason||this.fail(reason);}
@@ -343,7 +346,7 @@ export class Game {
     if(type==='skill'&&arg==='suppressive_fire')return this.fail('壓制射擊需要區域落點。');
     if(type==='skill'&&arg==='grapple'&&canUseSkill(p,arg)){const plan=grapplePlan(this);return !plan.reason||this.fail(plan.reason);}
     if(type==='skill')return (ALLY_SKILLS.includes(arg)?canAllySkill(this,arg):canUseSkill(p,arg))||this.fail((arg==='pet_command'&&p.prepared.skill===arg&&petSkillReason(this))||(arg==='raise_dead'&&p.prepared.skill===arg&&!p.control.disabled&&'目前沒有召喚物可以集結。')||'技能無法啟動：請確認預備欄與冷卻狀態。');
-    if(type==='prepare'&&arg?.id==='exo'&&exoReason(p))return this.fail(exoReason(p)+'。');
+    if(type==='prepare'&&arg?.id==='exo'&&exoReason(p))return this.fail(sentence(exoReason(p)));
     if(type==='prepare')return Boolean(arg&&canPrepare(p,arg.category,arg.id)&&p.prepared[arg.category]!==arg.id);
     // 3.107.0 (user request): consumables no longer need the prepared slot — the pack uses them in place. The
     // grenade slot stays, because there it also chooses which grenade is thrown.
@@ -353,7 +356,7 @@ export class Game {
       const [dx,dy]=arg,x=p.x+dx,y=p.y+dy;
       const edge=barrierBetween(this.barriers,p,{x,y});
       // Bumping a partition points it out so it can be shot, but it never steals a live enemy lock (3.54.1).
-      if(edgeBlocks(edge)&&!vaultable(edge)){if(edge.type==='door'){const locked=lockedReason(this,edge);return !locked||this.fail(locked+'。','locked');}
+      if(edgeBlocks(edge)&&!vaultable(edge)){if(edge.type==='door'){const locked=lockedReason(this,edge);return !locked||this.fail(sentence(locked),'locked');}
         if(this.enemies.some(e=>e.id===this.target&&e.hp>0))return this.fail('隔板阻擋通行。想破壞它，先點隔板鎖定。','blocked');
         this.target=edge.id;return this.fail('隔板阻擋通行，可開火破壞。','blocked');}
       if(!this.passable(x,y))return this.fail('前方有牆壁或障礙。','blocked');
@@ -364,19 +367,19 @@ export class Game {
     }
     if(type==='recoverObjective')return this.nearbyObjectives.some(t=>t.id===arg)||this.fail('附近沒有可回收的機密資料。');
     if(type==='openContainer')return this.nearbyContainers.some(c=>c.id===arg)||this.fail('附近沒有可開啟的補給箱。');
-    if(type==='door'){const b=arg&&typeof arg.open==='boolean'&&this.nearbyDoors.find(b=>b.id===arg.id&&b.open!==arg.open);if(!b)return false;const locked=arg.open&&lockedReason(this,b);return !locked||this.fail(locked+'。','locked');}
-    if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。','no_target');if(distance(p,e)>w.range)return this.fail('目標超出射程。','out_of_range');if(!this.shotClear(p,e)||(w.melee&&!w.thrust&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?'目標藏在轉角後，換個射擊位置。':'射線或近戰路徑被障礙物擋住。');return w.melee||p.ammo[p.weapon]>=(w.shotCost||1)||this.fail(p.ammo[p.weapon]>0?`彈匣不足 ${w.shotCost} 發，請裝填。`:'彈匣已空，請裝填。','reload_needed');}
+    if(type==='door'){const b=arg&&typeof arg.open==='boolean'&&this.nearbyDoors.find(b=>b.id===arg.id&&b.open!==arg.open);if(!b)return false;const locked=arg.open&&lockedReason(this,b);return !locked||this.fail(sentence(locked),'locked');}
+    if(type==='fire'){const e=this.targeted;if(!e)return this.fail('射線內沒有目標。','no_target');if(distance(p,e)>w.range)return this.fail('目標超出射程。','out_of_range');if(!this.shotClear(p,e)||(w.melee&&!w.thrust&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?'目標藏在轉角後，換個射擊位置。':'射線或近戰路徑被障礙物擋住。');return w.melee||p.ammo[p.weapon]>=(w.shotCost||1)||this.fail(p.ammo[p.weapon]>0?t('common.magShort',{n:w.shotCost}):'彈匣已空，請裝填。','reload_needed');}
     if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail('彈匣已滿或沒有對應備彈。',w.melee?'not_needed':p.ammo[p.weapon]>=w.mag?'chambered':'no_ammo');
     // Consumables (3.106.0). Adrenaline is free to use but may never be the thing that kills you; the reasons
     // live in itemUseReason so the pack can grey the same buttons this would refuse.
-    if(type==='deployCover'){const reason=deployCoverReason(this,arg);return !reason||this.fail(reason+'。');}
-    if(type==='flare'){const reason=flareReason(this,arg);return !reason||this.fail(reason+'。');}
+    if(type==='deployCover'){const reason=deployCoverReason(this,arg);return !reason||this.fail(sentence(reason));}
+    if(type==='flare'){const reason=flareReason(this,arg);return !reason||this.fail(sentence(reason));}
     // 3.144.0 (src/field-gear.js): the decoy is thrown like a flare, the mine laid within three tiles.
-    if(type==='decoy'){const reason=decoyReason(this,arg);return !reason||this.fail(reason+'。');}
-    if(type==='mine'){const reason=mineReason(this,arg);return !reason||this.fail(reason+'。');}
-    if(type==='rope'){const reason=lineReason(this,arg);return !reason||this.fail(reason+'。');}
-    if(type==='launch'){const reason=launchReason(this,arg);return !reason||this.fail(reason+'。',reason.startsWith('彈匣')?'reload_needed':null);}
-    if(ITEM_BY_ACTION[type]){const id=ITEM_BY_ACTION[type],reason=itemUseReason(this,id);return !reason||this.fail(reason+'。',...itemRefusal(reason,PREPARED_CATALOG.item[id]));}
+    if(type==='decoy'){const reason=decoyReason(this,arg);return !reason||this.fail(sentence(reason));}
+    if(type==='mine'){const reason=mineReason(this,arg);return !reason||this.fail(sentence(reason));}
+    if(type==='rope'){const reason=lineReason(this,arg);return !reason||this.fail(sentence(reason));}
+    if(type==='launch'){const reason=launchReason(this,arg);return !reason||this.fail(sentence(reason),reason===t('game.launchEmpty')?'reload_needed':null);}
+    if(ITEM_BY_ACTION[type]){const id=ITEM_BY_ACTION[type],reason=itemUseReason(this,id);return !reason||this.fail(sentence(reason),...itemRefusal(reason,PREPARED_CATALOG.item[id]));}
     if(type==='grenade')return (p[preparedEntry(p,'grenade').resource]>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail('需要手榴彈與視線內 5 格的有效落點。');
     if(type==='weapon')return (p.owned.includes(Number(arg))&&Number(arg)!==p.weapon)||this.fail('無法換裝此武器。',Number(arg)===p.weapon?'not_needed':null);
     if(type==='salvage')return (p.owned.includes(Number(arg))&&p.owned.length>1&&!this.weaponAt(Number(arg)).locked)||this.fail('無法拆解此武器。');
@@ -428,7 +431,7 @@ export class Game {
     // Free preparation/equipment commits outside the turn queue and preserves all timed state.
     if(this.actionCost(type,arg)===0){
       if(type==='prepare')this.setPrepared(arg.category,arg.id);
-      else if(type==='weapon'){p.weapon=Number(arg);this.log(`切換至${this.weapon.name}，不耗回合。`);}
+      else if(type==='weapon'){p.weapon=Number(arg);this.log(t('game.switchWeaponFree',{weapon:this.weapon.name}));}
       else if(type==='reload')return this.reload();
       else if(type==='skill')return this.activateSkill(arg);
       else if(type==='commandPet')return commandPet(this,arg);
@@ -436,7 +439,7 @@ export class Game {
       else if(type==='surge')return this.surge();
       else if(type==='rope')return presentStep(this,()=>this.fireLine(arg));
       else if(type==='setPetOutput'){p.petBond.outputChoice=arg.kind;return true;}
-      else if(type==='meleeChoice'){p.meleeSlot=arg;this.log(arg===null?'撞擊時改用背包裡第一把近戰武器。':`撞擊時使用${this.weaponAt(arg).name}。`);return true;}
+      else if(type==='meleeChoice'){p.meleeSlot=arg;this.log(arg===null?'撞擊時改用背包裡第一把近戰武器。':t('game.meleeChoice',{weapon:this.weaponAt(arg).name}));return true;}
       return true;
     }
     if(this.pursuit&&!p.recovery&&['fire','blindFire','launch','bumpMelee','grenade','grapple','suppressiveFire'].includes(type)){
@@ -527,9 +530,9 @@ export class Game {
       }
       const p=this.player,def=skillValues(p,id);p.skillState[id]={remaining:def.duration,cooldown:def.cooldownAfterEffect?0:def.cooldown};
       // 3.143.0 (user, 2026-09-19): the scan no longer alerts the enemies it finds or hands them your position.
-      if(id==='early_warning'){this.sensorContacts=this.enemies.filter(e=>e.hp>0&&distance(p,e)<=def.radius).map(e=>{grantTrait(e,'exposed','skill:early_warning',markValues(p).duration);return {x:e.x,y:e.y};});this.log(`預警取得 ${this.sensorContacts.length} 個位置。`,true);}
+      if(id==='early_warning'){this.sensorContacts=this.enemies.filter(e=>e.hp>0&&distance(p,e)<=def.radius).map(e=>{grantTrait(e,'exposed','skill:early_warning',markValues(p).duration);return {x:e.x,y:e.y};});this.log(t('game.warningContacts',{n:this.sensorContacts.length}),true);}
       this.effects.push({type:'pulse',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},radius:.6,color:'#8ae9da',damage:0,skill:id});   // skill: the signal interference (3.149.0)
-      this.log(`${def.name}啟動：持續 ${def.duration} 回合，冷卻 ${def.cooldown} 回合。`);this.reveal();return true;
+      this.log(t('game.skillOn',{skill:def.name,turns:def.duration,cooldown:def.cooldown}));this.reveal();return true;
     });
   }
   executePlayer(type,arg){
@@ -541,7 +544,7 @@ export class Game {
       case 'prepare': {
         const off=wornEntry(p),on=isWearable(arg.id)?PREPARED_CATALOG.item[arg.id]:null;
         this.setPrepared(arg.category,arg.id);
-        this.log(on&&off?`脫下${off.name}，換上${on.name}。`:on?`戴上${on.name}。`:`脫下${off?.name||'裝備'}。`);
+        this.log(on&&off?t('game.gearSwap',{off:off.name,on:on.name}):on?t('game.gearOn',{gear:on.name}):t('game.gearOff',{gear:off?.name||t('common.gear')}));
         success=true;break;
       }
       case 'feedPet': return presentStep(this,()=>feedPet(this,arg));
@@ -584,12 +587,12 @@ export class Game {
         const room=this.plateCapacity-(p.plates||0);
         if(room<=0)return this.fail('護甲板已滿。','not_needed');
         p.sprays--;const gained=Math.min(SPRAY_PLATES,room);p.plates=(p.plates||0)+gained;
-        this.log(`使用修復噴劑，護甲板 +${gained}。`);success=true;break;
+        this.log(t('game.sprayUsed',{n:gained}));success=true;break;
       }
       case 'launch': success=presentStep(this,()=>this.launch(arg));break;
       case 'deployCover': {
         const reason=deployCoverReason(this,arg);
-        if(reason)return this.fail(reason+'。');
+        if(reason)return this.fail(sentence(reason));
         const spot={x:p.x+arg[0],y:p.y+arg[1]},dead=barrierBetween(this.barriers,p,spot);
         const built=makeBarrier(DEPLOY_COVER,p,spot,dead?.id||`edge-deploy-${this.floor}-${spot.x}-${spot.y}-${p.x!==spot.x?'x':'y'}`);
         // Rebuilding over a wreck keeps its id and edge, so the barrier list can never grow a duplicate.
@@ -606,7 +609,7 @@ export class Game {
         const index=arg===undefined?p.owned[(p.owned.indexOf(p.weapon)+1)%p.owned.length]:Number(arg);
         if(!p.owned.includes(index))return this.fail('背包裡沒有這把武器。');
         if(index===p.weapon)return this.fail('已裝備此武器。','not_needed');
-        p.weapon=index;this.log(`切換至${this.weapon.name}。`);success=true;break;
+        p.weapon=index;this.log(t('game.switchWeapon',{weapon:this.weapon.name}));success=true;break;
       }
       case 'salvage':success=this.salvage(Number(arg));break;
       case 'takeWeapon':success=this.takeWeapon(Number(arg));break;
@@ -626,7 +629,7 @@ export class Game {
     if(p.adrenaline<=0)return this.fail('腎上腺素已用盡。','empty',{item:'腎上腺素'});
     if(p.hp<=SURGE_COST)return this.fail('生命不足以承受腎上腺素。','fatal');
     p.adrenaline--;p.hp-=SURGE_COST;this.shadowSteps=SURGE_STEPS;this.pursuit=0;
-    this.log(`腎上腺素：生命 −${SURGE_COST}，可免費移動 ${SURGE_STEPS} 格。`,true);
+    this.log(t('game.surge',{hp:SURGE_COST,steps:SURGE_STEPS}),true);
     return true;
   }
   reload(){
@@ -635,14 +638,14 @@ export class Game {
     if(need<=0)return this.fail('彈匣已滿。','chambered');
     if(p[reserve]<=0)return this.fail('沒有對應備彈。探索補給箱或切換武器。','no_ammo');
     const amount=Math.min(need,p[reserve]);p.ammo[p.weapon]+=amount;p[reserve]-=amount;
-    this.log(`裝填完成，補充 ${amount} 發${this.actionCost('reload')===0?'，不耗回合':''}。`);
+    this.log(t(this.actionCost('reload')===0?'game.reloadedFree':'game.reloaded',{n:amount}));
     if(p[reserve]<=0)playerCallout(this,'last_magazine');   // 3.163.0: the warning before 沒彈藥了
     return true;
   }
   // No hit roll: the round lands on the chosen tile and the blast decides who is caught, which is what makes the launcher
   // a crowd weapon rather than a single-target one that loses its whole area effect on a miss.
   launch(pos){
-    const reason=launchReason(this,pos);if(reason)return this.fail(reason+'。',reason.startsWith('彈匣')?'reload_needed':null);
+    const reason=launchReason(this,pos);if(reason)return this.fail(sentence(reason),reason===t('game.launchEmpty')?'reload_needed':null);
     const p=this.player,w=this.weapon;
     p.facing=[Math.sign(pos.x-p.x),Math.sign(pos.y-p.y)];
     this.recordExposure(p,pos);p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
@@ -653,7 +656,7 @@ export class Game {
     const hits=new Set(before.filter(([o,hp])=>o.hp<hp).map(([o])=>o));
     finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),1,0,this);
     p.fireChain=null;
-    this.log(hits.size?`榴彈落地爆炸，波及 ${hits.size} 名敵人。`:'榴彈落地爆炸。');
+    this.log(hits.size?t('game.launcherHits',{n:hits.size}):'榴彈落地爆炸。');
     return true;
   }
   // 3.112.0 (user request): one shell, every enemy and ally the cone reaches. 3.141.0 (user decisions 2026-09-19): each
@@ -674,8 +677,8 @@ export class Game {
         const {count,min,max}=this.pelletDamage(p.weapon,o),chance=pelletChance(w,toxicShot(this,p,o,w)),landed=[];
         for(let i=0;i<count;i++)if(this.rng()*100<chance)landed.push(min+Math.floor(this.rng()*(max-min+1)));
         this.effects.push({type:'shot',weaponId:w.id,style:'bullet',from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!landed.length});
-        const foe=this.enemies.includes(o),name=foe?enemyName(o):'友軍';
-        this.log(landed.length?`${landed.length}/${count} 顆彈丸打中${name}。`:`彈丸全數落空（${count} 顆）。`,false,landed.length?`彈丸打中${name}。`:'彈丸落空。');
+        const foe=this.enemies.includes(o),name=foe?enemyName(o):t('common.ally');
+        this.log(landed.length?t('game.pelletsHit',{hit:landed.length,count,target:name}):t('game.pelletsMissed',{count}),false,landed.length?t('game.pelletsHitReal',{target:name}):'彈丸落空。');
         if(!landed.length)continue;
         if(foe){const before=o.hp;this.hitTarget(o,landed.reduce((a,b)=>a+b,0),p,w.pierce||0,w,landed);if(o.hp<before)hits.add(o);}
         else this.damageAlly(o,landed.reduce((a,b)=>a+b,0),p);
@@ -699,13 +702,13 @@ export class Game {
         this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:intent.x,y:intent.y},damage:0,miss:true,color:w.ammoType==='energy'?'#8ae9da':null});
       });
       if(this.enemies.some(e=>e.id===intent.id))recordShot(p,intent.id,this.turn);else p.fireChain=null;
-      this.log(`原目標已失去有效射線，向最後確認位置開火落空，消耗 ${w.volleyCost?w.volleyCost:shots*cost} 發。`);
+      this.log(t('game.lostLine',{n:w.volleyCost?w.volleyCost:shots*cost}));
       return true;
     }
     if(!e)return this.fail('射線內沒有目標。','no_target');
     if(distance(p,e)>w.range)return this.fail('目標超出射程，靠近再開火。','out_of_range');
     if(p.ammo[p.weapon]<=0)return this.fail('彈匣已空，請裝填。','reload_needed');
-    if(p.ammo[p.weapon]<(w.shotCost||1))return this.fail(`彈匣不足 ${w.shotCost} 發，請裝填。`,'reload_needed');
+    if(p.ammo[p.weapon]<(w.shotCost||1))return this.fail(t('common.magShort',{n:w.shotCost}),'reload_needed');
     if(this.enemies.includes(e))noticeAttack(this,e);
     // Doors, cover and barrels are still breached one at a time; an enemy gets the cone.
     if(w.cone&&this.enemies.includes(e))return this.fireCone(e);
@@ -751,12 +754,12 @@ export class Game {
       for(const [n,o] of units.entries()){
         if(this.enemies.includes(o))noticeAttack(this,o);
         const damage=roll(o),hit=this.rng()*100<chance;
-        if(!hit){this.log(`光束沒打中第 ${n+1} 個：${this.enemies.includes(o)?enemyName(o):'友軍'}（命中率 ${chance}%）。`,false,'光束沒有打中。');continue;}
+        if(!hit){this.log(t('game.beamMiss',{index:n+1,target:this.enemies.includes(o)?enemyName(o):t('common.ally'),chance}),false,'光束沒有打中。');continue;}
         if(this.activeAllies.includes(o)){this.damageAlly(o,damage,p);friends++;continue;}
         const before=o.hp;this.hitTarget(o,damage,p,w.pierce||0);if(o.hp<before)hits.add(o);
       }
       if(stop)this.hitTarget(stop,roll(stop),p,w.pierce||0);
-      this.log(`貫穿光束打中直線上 ${hits.size} 名敵人${friends?`、${friends} 名友軍`:''}。`,false,'貫穿光束射出。');
+      this.log(t(friends?'game.beamHitsAllies':'game.beamHits',{n:hits.size,allies:friends}),false,'貫穿光束射出。');
     });
     finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),1,0,this);
     if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
@@ -773,15 +776,15 @@ export class Game {
       ambush=!w.unarmed&&Boolean(valid)&&ambushReady(this,target);if(ambush&&!this.shadowBonus)shortenCamo(p);
       const chance=this.meleeAccuracy(p,target,w.hitChance),hit=Boolean(valid)&&this.rng()*100<chance;
       this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:to.x,y:to.y},damage:0,miss:!hit});
-      if(!hit){this.log(valid?`近戰揮擊未命中（${chance}%）。`:'原目標已離開近戰範圍，揮擊落空。',false,valid?'近戰揮擊未命中。':'原目標已離開近戰範圍，揮擊落空。');return;}
+      if(!hit){this.log(valid?t('game.meleeMiss',{chance}):'原目標已離開近戰範圍，揮擊落空。',false,valid?'近戰揮擊未命中。':'原目標已離開近戰範圍，揮擊落空。');return;}
       landed=true;
       // 3.136.0 (src/melee-weapons.js): claws bite harder on an unarmoured enemy; the sabre's blow splashes onto the
       // target's visible neighbours; the chainsaw costs your next action once it bites.
       const foe=this.enemies.includes(target),bare=w.bareBonus&&foe&&!(ENEMY_TYPES[target.type]?.armor>0)?1+w.bareBonus:1;
       const d=this.weaponDamage(slot),damage=Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)*bare);this.hitTarget(target,damage,p,w.pierce||0,w);
       if(w.splash&&foe)for(const other of this.enemies.filter(o=>o.hp>0&&o!==target&&distance(o,target)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*w.splash),p,w.pierce||0,w);
-      if(w.recovery){p.recovery=1;this.log(`${w.name}咬進目標：你會跳過下一次行動。`);}
-      const shadow=classPerkRank(p,'ninja_shadowstep');if(ambush&&shadow&&!this.shadowBonus){this.shadowSteps=shadow>=2?2:1;this.log(`影步就緒：可免費移動 ${this.shadowSteps} 格。`);}
+      if(w.recovery){p.recovery=1;this.log(t('game.recovery',{weapon:w.name}));}
+      const shadow=classPerkRank(p,'ninja_shadowstep');if(ambush&&shadow&&!this.shadowBonus){this.shadowSteps=shadow>=2?2:1;this.log(t('game.shadowReady',{n:this.shadowSteps}));}
     });
     // 3.136.0 chainsaw: the rest of its cuts, each in a presentation step of its own so every number shows.
     if(landed&&w.hits>1&&this.enemies.includes(target))for(let i=1;i<w.hits&&target.hp>0&&p.hp>0;i++)presentStep(this,()=>{
@@ -798,13 +801,13 @@ export class Game {
     p.fireChain=null;p.facing=[Math.sign(aim.x-p.x),Math.sign(aim.y-p.y)];
     const units=thrustTargets(this,p,aim),objects=aim===e&&!this.enemies.includes(e)&&!this.activeAllies.includes(e)?[e]:[];
     presentStep(this,()=>{
-      if(!units.length&&!objects.length){this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:aim.x,y:aim.y},damage:0,miss:true});this.log(`${w.name}刺空了。`,false,`${w.name}刺空。`);return;}
+      if(!units.length&&!objects.length){this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:aim.x,y:aim.y},damage:0,miss:true});this.log(t('game.thrustWhiff',{weapon:w.name}),false,t('game.thrustWhiffReal',{weapon:w.name}));return;}
       for(const o of [...units,...objects]){
         if(this.enemies.includes(o))noticeAttack(this,o);
         const foe=this.enemies.includes(o),ambush=foe&&ambushReady(this,o),chance=this.meleeAccuracy(p,o,w.hitChance),hit=this.rng()*100<chance;
         if(ambush&&!this.shadowBonus)shortenCamo(p);
         this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!hit});
-        if(!hit){this.log(`${w.name}刺擊未命中（${chance}%）。`,false,`${w.name}刺擊未命中。`);continue;}
+        if(!hit){this.log(t('game.thrustMiss',{weapon:w.name,chance}),false,t('game.thrustMissReal',{weapon:w.name}));continue;}
         const d=this.weaponDamage(p.weapon),damage=Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1));
         if(this.activeAllies.includes(o))this.damageAlly(o,damage,p);else this.hitTarget(o,damage,p,w.pierce||0,w);
       }
@@ -816,7 +819,7 @@ export class Game {
     const p=this.player;if(!Array.isArray(delta)||delta.length!==2||!delta.every(Number.isInteger)||Math.abs(delta[0])+Math.abs(delta[1])!==1)return this.fail('影步需要選擇相鄰方向。');
     const point={x:p.x+delta[0],y:p.y+delta[1]},edge=barrierBetween(this.barriers,p,point);
     if(!this.passable(point.x,point.y)||!this.canCross(p,point)||vaultable(edge)||occupied(this,point))return this.fail('影步落點必須是沒有障礙與單位的平地。','blocked');
-    presentStep(this,()=>{Object.assign(p,{x:point.x,y:point.y,facing:[...delta],moved:true,moveDelta:[...delta]});this.shadowSteps--;this.pickup();this.reveal();this.log(this.shadowSteps?`尚可免費移動 ${this.shadowSteps} 格。`:'免費移動結束。');});
+    presentStep(this,()=>{Object.assign(p,{x:point.x,y:point.y,facing:[...delta],moved:true,moveDelta:[...delta]});this.shadowSteps--;this.pickup();this.reveal();this.log(this.shadowSteps?t('game.freeStepsLeft',{n:this.shadowSteps}):'免費移動結束。');});
     if(this.shadowSteps===0&&classPerkRank(p,'ninja_shadowstep')>=3){const target=[this.targeted,...this.enemies].find((e,i,a)=>e&&e.hp>0&&distance(p,e)<=1&&this.canCross(p,e)&&a.indexOf(e)===i);if(target){const slot=this.bumpMeleeSlot();if(slot!==undefined){const before=target.hp;this.target=target.id;this.shadowBonus=true;this.strike({id:target.id,x:target.x,y:target.y},slot);this.shadowBonus=false;if(before>0&&target.hp<=0){const cam=p.skillState?.camouflage;if(cam?.remaining)cam.remaining=Math.min(skillValues(p,'camouflage').duration,cam.remaining+CLASS_PERK_TUNING.shadowDuration);else if(cam)cam.cooldown=Math.max(0,cam.cooldown-CLASS_PERK_TUNING.shadowCooldown);}}}}
     return true;
   }
@@ -848,20 +851,21 @@ export class Game {
     if(attacker===this.player&&weapon.melee&&!weapon.unarmed)meleeReward(this,target,before);
   }
   // cause (3.142.1): damage nobody dealt (a hazard underfoot) says what it was instead of 命中, which reads as a shot.
+  // 3.166.0: cause is the hazard id ('acid' or 'heat'); the sentence lives in the language table.
   hurt(e,damage,attacker=null,cause=null) {
     if(e.hp<=0||!shotDamageAllowed(this,e))return;
     if(attacker===this.player)noticeAttack(this,e);
     const beforeHp=e.hp;e.hp-=damage;injuryCallout(this,e,beforeHp);if(damage>0)orderHit(this,e);this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
-    if(cause)this.log(`${enemyName(e)}${cause}，受到 ${damage} 傷害。`,false,`${enemyName(e)}${cause}。`);else this.log(`命中${enemyName(e)}，造成 ${damage} 傷害。`,false,`命中${enemyName(e)}。`);
+    if(cause)this.log(t(`game.stepped.${cause}`,{target:enemyName(e),damage}),false,t(`game.stepped.${cause}Real`,{target:enemyName(e)}));else this.log(t('game.hit',{target:enemyName(e),damage}),false,t('game.hitReal',{target:enemyName(e)}));
     if(e.hp>0)return;
-    if(isNoncombatant(e)){this.log(enemyName(e)+'已倒下。');enemyDeath(this,e);return;}
+    if(isNoncombatant(e)){this.log(t('game.civilianDown',{target:enemyName(e)}));enemyDeath(this,e);return;}
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
     // 3.127.0: an enforcer's execution is not the player's kill, and a conscript pays out nothing.
     const executed=isEnforcer(attacker);
     if(!executed)this.player.kills++;if(!e.expendable&&!executed&&simulationUpgrades(this))this.player.xp+=enemyKillXp(e);
     if(!e.expendable&&!e.conscript&&!executed&&simulationDrops(this))this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
-    this.log(`${enemyName(e)}已消滅。`);if(missionTarget(this,e))this.log(this.missionSummary+'。');salvageBlueprint(this,e,attacker);
+    this.log(t('game.killed',{target:enemyName(e)}));if(missionTarget(this,e))this.log(sentence(this.missionSummary));salvageBlueprint(this,e,attacker);
     // The number stops at MAX_LEVEL (3.52.0, user call). Past it the threshold stays at the level-20 cost and each
     // one hands over supplies instead of a pick, so the HUD can simply read MAX.
     const p=this.player;
@@ -893,7 +897,7 @@ export class Game {
     if(this.grid[here.y]?.[here.x]===VOID){let best=null;for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){const q={x,y};if(this.passable(x,y)&&!occupied(this,q)&&!this.items.some(i=>distance(i,q)===0)&&(!best||distance(here,q)<distance(here,best)))best=q;}if(best)return best;}
     return here;
   }
-  dropEnemyWeapon(e,weapon){const item=this.registerWeapon({...this.enemyDropPoint(e),type:'weapon',weapon},true);this.items.push(item);this.log(`戰利品：${this.weaponAt(item.slot).name}留在屍體旁，靠近後可拾取。`);}
+  dropEnemyWeapon(e,weapon){const item=this.registerWeapon({...this.enemyDropPoint(e),type:'weapon',weapon},true);this.items.push(item);this.log(t('game.lootDropped',{weapon:this.weaponAt(item.slot).name}));}
   damageProp(prop,damage,attacker=null) {
     if(prop.indestructible)return;
     if(prop.hp>0&&damage>0)addTrace(this,prop,'chip');
@@ -916,13 +920,13 @@ export class Game {
   // so shooting it from range costs the supplies but not your health (3.100.0, user request).
   detonateCase(c,attacker=null){
     const lost=c.contents.length;c.contents=[];c.opened=true;c.hp=0;
-    this.log(`${containerName(c)}裝了引信——爆炸！${lost?'裡面的補給全毀。':''}`);
+    this.log(t(lost?'game.rigLost':'game.rig',{container:containerName(c)}));
     this.explode(c,RIG_TUNING.radius,FRAG_DAMAGE,attacker);
     return true;
   }
   // 3.123.0: see src/flares.js. The light is judged live from the flare's tile, so only the tile and its end are kept.
   throwFlare(pos){
-    const reason=flareReason(this,pos);if(reason)return this.fail(reason+'。');
+    const reason=flareReason(this,pos);if(reason)return this.fail(sentence(reason));
     const p=this.player;p.flares--;p.facing=[Math.sign(pos.x-p.x),Math.sign(pos.y-p.y)];
     this.effects.push({type:'shot',style:'grenade',color:'#ffd27a',from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     this.flares=[...(this.flares||[]),{x:pos.x,y:pos.y,expires:this.turn+FLARE_TUNING.duration-1}].slice(-FLARE_TUNING.maxActive);
@@ -930,12 +934,12 @@ export class Game {
   }
   // 3.135.0 grapple lines (src/lines.js): one straight pull to the chosen tile, then whatever lies there is picked up.
   fireLine(arg){
-    const reason=lineReason(this,arg);if(reason)return this.fail(reason+'。');
+    const reason=lineReason(this,arg);if(reason)return this.fail(sentence(reason));
     const p=this.player,item=LINE_ITEMS[arg.item],from={x:p.x,y:p.y},to={x:arg.x,y:arg.y};
     p[item.resource]--;Object.assign(p,to);p.moved=true;p.moveDelta=[Math.sign(to.x-from.x),Math.sign(to.y-from.y)];p.facing=[...p.moveDelta];
     p.cornerExposure=null;p.fireChain=null;p.guard=false;p.focus=false;p.evasive=false;
     this.effects.push({type:'tonguePull',sourceId:'player',from,to:{...to},origin:{...to},damage:0});
-    this.log(`${PREPARED_CATALOG.item[arg.item].name}把你拉了過去。`);this.pickup();this.reveal();return true;
+    this.log(t('game.linePull',{item:PREPARED_CATALOG.item[arg.item].name}));this.pickup();this.reveal();return true;
   }
   flareLit(point){return Boolean(this.flares?.length)&&this.flares.some(flare=>flareLights(this,flare,point));}
   throwGrenade(pos) {
@@ -943,7 +947,7 @@ export class Game {
     if(!def||p[def.resource]<=0)return this.fail('預備的投擲物已用盡。','empty',{item:def?.name||'投擲物'});
     if(!pos||!Number.isInteger(pos.x)||!Number.isInteger(pos.y)||this.grid[pos.y]?.[pos.x]!==1)return this.fail('先選擇可見地板或敵人作為投擲位置。');
     if(distance(p,pos)>5||!this.visible(pos))return this.fail('投擲位置需在視線內 5 格以內。');
-    p[def.resource]--;p.stats.grenades++;this.log(`投擲${def.name}。`);
+    p[def.resource]--;p.stats.grenades++;this.log(t('game.throw',{grenade:def.name}));
     this.effects.push({type:'shot',style:'grenade',color:def.color,from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     this.applyThrowable(id,pos,Math.round((FRAG_DAMAGE+p.blastBonus)*bladeMultiplier(p)),p);
     return true;
@@ -960,7 +964,8 @@ export class Game {
       if(id==='smoke'){this.smoke=[...this.smoke,{cells:floorCells,expires:this.turn+SMOKE_DURATION-1}];this.log('煙霧展開：阻斷無紅外線者的視線，爆炸仍可傷害。');}
       else for(const actor of [p,...this.enemies,...this.activeAllies])if(affected.has(key(actor))&&applyDisruption(actor,def.keyword)){
         if(actor!==p)actor.alert=true;
-        this.log(`${actor===p?'你':actor.kind?allyName(actor):enemyName(actor)}失能：跳過 ${actor.control.disabled} 次行動。`,actor===p,`${actor===p?'你':actor.kind?allyName(actor):enemyName(actor)}陷入失能。`);
+        const name=actor===p?null:actor.kind?allyName(actor):enemyName(actor),n=actor.control.disabled;
+        this.log(name===null?t('game.disabledYou',{n}):t('game.disabled',{name,n}),actor===p,name===null?t('game.disabledYouReal'):t('game.disabledReal',{name}));
       }
       this.reveal();
     }
@@ -978,7 +983,7 @@ export class Game {
     for(const prop of hitProps)this.damageProp(prop,damage,attacker);
     for(const e of hitEnemies)this.hurt(e,reduceDirectDamage(e,Math.max(1,damage-distance(origin,e)*10)),attacker);
     for(const a of hitAllies)this.damageAlly(a,Math.max(1,damage-distance(origin,a)*10),null,true);
-    if(hitPlayer)this.damagePlayer(Math.max(1,damage-distance(origin,this.player)*10),'爆炸衝擊',null,true);
+    if(hitPlayer)this.damagePlayer(Math.max(1,damage-distance(origin,this.player)*10),t('game.blastSource'),null,true);
     // 3.144.0: a blast damages the decoy and sets off every mine it reaches (each is removed before it goes off).
     if(this.decoy&&affected(this.decoy))damageDecoy(this,Math.max(1,damage-distance(origin,this.decoy)*10));
     for(const m of (this.mines||[]).filter(affected))detonateMine(this,m);
@@ -991,7 +996,8 @@ export class Game {
     damage=reduceDirectDamage(p,meleeDefense(p,Math.max(1,Math.round(damage-p.armor))));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
     // 3.144.0: a worn exoskeleton's plates take their share of the hit (half of it) before your own plates do.
     const half=Math.floor(damage/2),frame=exoAbsorb(this,half),absorbed=Math.min(p.plates||0,half-frame);p.plates=(p.plates||0)-absorbed;damage-=frame+absorbed;
-    p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');this.log(`${label}${cover?'（掩體減傷）':''}${frame?`（外骨骼吸收 ${frame}）`:''}${absorbed?`（護甲板吸收 ${absorbed}）`:''}，生命 −${damage}。`,true,`${label}${cover?'（掩體減傷）':''}${frame||absorbed?'（護甲吸收）':''}，你受傷了。`);
+    p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');const coverNote=cover?t('game.noteCover'):'';
+    this.log(t('game.playerHurt',{source:label,notes:coverNote+(frame?t('game.noteExo',{n:frame}):'')+(absorbed?t('game.notePlates',{n:absorbed}):''),damage}),true,t('game.playerHurtReal',{source:label,notes:coverNote+(frame||absorbed?t('game.noteArmor'):'')}));
     if(frame&&p.exoPlates<=0)breakExo(this);
     if(attacker&&ENEMY_TYPES[attacker.type]?.mechanical&&ENEMY_TYPES[attacker.type].range>1)addTrace(this,p,'scorch');
     if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:enemyDef(attacker)?.attackStyle||(ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet'),from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
@@ -1004,10 +1010,10 @@ export class Game {
     if(!blast&&attacker&&toxicShot(this,attacker,a,this.actorWeapon(attacker)))damage*=.5;   // 3.134.0 mist
     if(!environment)petCombat(this,a);damage=reduceDirectDamage(a,Math.max(1,Math.round(damage-a.armor)));
     if(!environment)damage=petDefense(this,a,damage);a.hp=Math.max(0,a.hp-damage);
-    addTrace(this,a,activeTrait(a,'mechanical')?'oil':'blood');this.effects.push({type:'impact',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},damage});this.log(`${allyName(a)}受傷 −${damage}。`,true,`${allyName(a)}受傷。`);
+    addTrace(this,a,activeTrait(a,'mechanical')?'oil':'blood');this.effects.push({type:'impact',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},damage});this.log(t('game.allyHurt',{ally:allyName(a),damage}),true,t('game.allyHurtReal',{ally:allyName(a)}));
     if(!a.hp&&a.kind==='pet'){if(!petSurvives(this,a))petDeath(this,a);petReactions(this);this.reveal();return;}
     petReactions(this);
-    if(!a.hp){a.status='destroyed';a.order=null;this.log(`${allyName(a)}已被摧毀。`,true);unitDestroyed(this,a);this.reveal();}
+    if(!a.hp){a.status='destroyed';a.order=null;this.log(t('game.allyDestroyed',{ally:allyName(a)}),true);unitDestroyed(this,a);this.reveal();}
   }
   enemyTarget(e){
     if(isNoncombatant(e))return this.player;
@@ -1084,13 +1090,13 @@ export class Game {
   }
   environmentTurn() {
     const p=this.player,hpBefore=p.hp,hazard=this.hazards.find(h=>h.x===p.x&&h.y===p.y);
-    if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)addPoison(p,SWARM_TUNING.acidStacks);this.log(`${hazard.type==='acid'?'污染液':'高熱地板'}傷害 −${damage}。`,true,`${hazard.type==='acid'?'污染液':'高熱地板'}造成傷害。`);}
+    if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)addPoison(p,SWARM_TUNING.acidStacks);this.log(t(hazard.type==='acid'?'game.acidHurt':'game.heatHurt',{damage}),true,t(hazard.type==='acid'?'game.acidHurtReal':'game.heatHurtReal'));}
     toxicPlayerTurn(this,addPoison);   // 3.134.0 mist: poisoned for a turn ended in it
     tickPoison(this);
     if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp,player:true});
     for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying')))if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);
     petReactions(this);
-    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying'))){const hazard=this.hazards.find(h=>h.x===e.x&&h.y===e.y);if(hazard)this.hurt(e,6,null,hazard.type==='acid'?'踩到污染液':'踩到高熱地板');}
+    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying'))){const hazard=this.hazards.find(h=>h.x===e.x&&h.y===e.y);if(hazard)this.hurt(e,6,null,hazard.type==='acid'?'acid':'heat');}
   }
   pickup() {
     // 3.118.0: a presentation-only 'pickup' effect when anything was collected, including part of a pile left behind by a
@@ -1098,36 +1104,36 @@ export class Game {
     const p=this.player,before=this.items.length;let partial=false;
     this.items=this.items.filter(item=>{
       if(distance(item,p)!==0)return true;
-      if(item.type==='learning'){if(!validLearningId(item.learningId))return true;p.learningItems[item.learningId]=(p.learningItems[item.learningId]||0)+1;this.log(`拾取${LEARNING_ITEMS[item.learningId].name}。`);return false;}
+      if(item.type==='learning'){if(!validLearningId(item.learningId))return true;p.learningItems[item.learningId]=(p.learningItems[item.learningId]||0)+1;this.log(t('common.pickup',{item:LEARNING_ITEMS[item.learningId].name}));return false;}
       if(item.type==='weapon') {
         this.registerWeapon(item);
         if(p.owned.length>=this.weaponCapacity){this.log('武器欄已滿。打開背包比較並交換，原武器會留在地上。');return true;}
         this.collectWeapon(item);return false;
       }
       const utility=grenadeByItem(item.type);
-      if(utility){const amount=item.amount??1,accepted=this.receiveGrenade(utility,amount,{spill:false});if(accepted){partial=true;this.log(`拾取${GRENADES[utility].name} +${accepted}。`);}if(accepted<amount){item.amount=amount-accepted;this.log('投擲物共用容量已滿，剩餘留在原地。');return true;}return false;}
+      if(utility){const amount=item.amount??1,accepted=this.receiveGrenade(utility,amount,{spill:false});if(accepted){partial=true;this.log(t('common.pickupAmount',{item:GRENADES[utility].name,n:accepted}));}if(accepted<amount){item.amount=amount-accepted;this.log('投擲物共用容量已滿，剩餘留在原地。');return true;}return false;}
       const ammo=itemAmmo(item.type);
       if(ammo){const amount=item.amount??AMMUNITION[ammo].pickup,accepted=this.receiveAmmo(ammo,amount,{spill:false});
-        if(accepted){partial=true;this.log(`拾取${AMMUNITION[ammo].name} +${accepted}。`);}
-        if(accepted<amount){item.amount=amount-accepted;this.log(`${AMMUNITION[ammo].name}容量已滿，剩餘 ${item.amount} 留在原地。`);return true;}
+        if(accepted){partial=true;this.log(t('common.pickupAmount',{item:AMMUNITION[ammo].name,n:accepted}));}
+        if(accepted<amount){item.amount=amount-accepted;this.log(t('game.ammoFull',{ammo:AMMUNITION[ammo].name,n:item.amount}));return true;}
       }
       // 3.136.0: medkits and field kit stop at the carry cap; the rest of a pile stays where it lies.
       else if(item.type==='med'||FIELD_ITEMS.includes(item.type)){
         const id=groundItemId(item.type),entry=PREPARED_CATALOG.item[id],amount=item.amount||1,accepted=this.receiveItem(id,amount,{spill:false});
-        if(accepted){partial=true;this.log(`拾取${entry.name} +${accepted}。`);}
-        if(accepted<amount){item.amount=amount-accepted;this.log(`${entry.name}已達攜帶上限，剩餘 ${item.amount} 留在原地。`);return true;}
+        if(accepted){partial=true;this.log(t('common.pickupAmount',{item:entry.name,n:accepted}));}
+        if(accepted<amount){item.amount=amount-accepted;this.log(t('game.itemFull',{item:entry.name,n:item.amount}));return true;}
       }
       // 3.135.0: grapple lines, dropped only (src/lines.js).
-      else if(isLineItem(item.type)){const entry=PREPARED_CATALOG.item[item.type],amount=item.amount||1;p[entry.resource]+=amount;this.log(`拾取${entry.name} +${amount}。`);}
+      else if(isLineItem(item.type)){const entry=PREPARED_CATALOG.item[item.type],amount=item.amount||1;p[entry.resource]+=amount;this.log(t('common.pickupAmount',{item:entry.name,n:amount}));}
       // 3.135.0: goggles are found, not bought; one pair is all anyone carries.
       // 3.146.0: the keycard opens this floor's vault; a vault's exoskeleton comes with its full plates.
       else if(item.type==='key')pickKeycard(this);
       else if(item.type==='exo'){if(p.wearables.includes('exo')||activeTrait(p,'large')){this.log('這副外骨骼你用不上，留在原地。');return true;}p.wearables.push('exo');p.exoPlates=EXO_TUNING.plates;this.log('取得外骨骼。在背包裡預備就能穿上。');}
       else if(item.type==='irg'){if(p.wearables.includes('irg')){this.log('已經有一副紅外線護目鏡，這副留在原地。');return true;}p.wearables.push('irg');this.log('取得紅外線護目鏡。在背包裡預備就能戴上。');}
       else if(item.type==='nvg'){if(p.wearables.includes('nvg')){this.log('已經有一副夜視鏡，這副留在原地。');return true;}p.wearables.push('nvg');this.log('取得夜視鏡。在背包裡預備就能戴上。');}
-      else if(item.type==='armor'){const amount=Math.min(item.amount||20,this.plateCapacity-(p.plates||0));if(amount<=0){this.log('護甲板已滿，補給留在原地。');return true;}p.plates=(p.plates||0)+amount;this.log(`修復護甲板 +${amount}（${p.plates}/${this.plateCapacity}）。`);}
-      else if(item.type==='scrap'){const amount=Math.round((item.amount||15)*(1+p.scavenger*.5));p.scrap+=amount;this.log(`回收廢料 +${amount}。`);}
-      else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;const story=collectStory(this,item);this.log(story?`資料已解密：${story.body}`:`資料已回收。`);}
+      else if(item.type==='armor'){const amount=Math.min(item.amount||20,this.plateCapacity-(p.plates||0));if(amount<=0){this.log('護甲板已滿，補給留在原地。');return true;}p.plates=(p.plates||0)+amount;this.log(t('game.platesRepaired',{n:amount,plates:p.plates,cap:this.plateCapacity}));}
+      else if(item.type==='scrap'){const amount=Math.round((item.amount||15)*(1+p.scavenger*.5));p.scrap+=amount;this.log(t('game.scrapGained',{n:amount}));}
+      else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;const story=collectStory(this,item);this.log(story?t('game.storyDecrypted',{body:story.body}):'資料已回收。');}
       return false;
     });
     if(partial||this.items.length<before)this.effects.push({type:'pickup',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});
@@ -1140,7 +1146,7 @@ export class Game {
     p.weaponBases.push(item.weapon);p.affixes.push(affix);p.ammo.push(weaponStats(item.weapon,affix).mag);p.upgrades.push(0);
     item.slot=slot;return item;
   }
-  collectWeapon(item){const p=this.player;p.owned.push(item.slot);this.log(`取得武器：${this.weaponAt(item.slot).name}。在背包中裝備。`);}
+  collectWeapon(item){const p=this.player;p.owned.push(item.slot);this.log(t('game.weaponCollected',{weapon:this.weaponAt(item.slot).name}));}
   addWeapon(base){
     if(!WEAPONS[base]||this.player.owned.length>=this.weaponCapacity)return false;
     const item=this.registerWeapon({weapon:base});this.collectWeapon(item);return item.slot;
@@ -1149,7 +1155,7 @@ export class Game {
   takeWeapon(slot) {
     const item=this.nearbyWeapon(slot);
     if(!item)return this.fail('附近沒有這把武器。');
-    if(this.player.owned.length>=this.weaponCapacity)return this.fail(`武器欄已滿（${this.weaponCapacity} 格）。可比較並交換武器。`);
+    if(this.player.owned.length>=this.weaponCapacity)return this.fail(t('game.weaponsFull',{n:this.weaponCapacity}));
     this.collectWeapon(item);this.items=this.items.filter(o=>o!==item);return true;
   }
   replaceWeapon(arg) {
@@ -1158,7 +1164,7 @@ export class Game {
     p.owned[p.owned.indexOf(old)]=item.slot;if(p.weapon===old)p.weapon=item.slot;
     this.items=this.items.filter(o=>o!==item);
     this.items.push({x:p.x,y:p.y,type:'weapon',weapon:p.weaponBases[old],slot:old});
-    this.log(`換入${this.weaponAt(item.slot).name}；${this.weaponAt(old).name}連同彈匣與改裝留在腳下。`);return true;
+    this.log(t('game.weaponSwap',{weapon:this.weaponAt(item.slot).name,old:this.weaponAt(old).name}));return true;
   }
   salvage(index) {
     const p=this.player;
@@ -1167,7 +1173,7 @@ export class Game {
     if(p.owned.length<=1)return this.fail('至少保留一把武器。');
     if(!this.weaponAt(index).melee)this.receiveAmmo(this.weaponAt(index).ammoType,p.ammo[index]);p.ammo[index]=0;p.owned=p.owned.filter(i=>i!==index);
     p.scrap+=salvageValue(p,index);p.upgrades[index]=0;p.stats.salvaged++;
-    if(p.weapon===index)p.weapon=p.owned[0];this.log(`拆解${this.weaponAt(index).name}，回收彈匣與廢料。`);return true;
+    if(p.weapon===index)p.weapon=p.owned[0];this.log(t('game.salvage',{weapon:this.weaponAt(index).name}));return true;
   }
   // Salvage a dropped weapon without picking it up (3.50.0, user request): same yield as the pack version,
   // so a full pack can still turn loot into scrap and magazine ammunition.
@@ -1179,7 +1185,7 @@ export class Game {
     if(!w.melee)this.receiveAmmo(w.ammoType,p.ammo[slot]);p.ammo[slot]=0;
     const scrap=salvageValue(p,slot);p.scrap+=scrap;p.upgrades[slot]=0;p.stats.salvaged++;
     this.items=this.items.filter(o=>o!==item);
-    this.log(`就地拆解${w.name}，回收彈匣與 ${scrap} 廢料。`);return true;
+    this.log(t('game.salvageFloor',{weapon:w.name,scrap}));return true;
   }
   useTerminal(arg){return useTerminal(this,arg);}
   descend(advanceTurn=true) {
@@ -1190,25 +1196,25 @@ export class Game {
     const next=this.floor-1,frame=returning(this)&&this.floor>1?this.floorStates[next]:null,arrival=frame&&arrivalCell(frame,this.allies.filter(a=>a.floor===next&&a.status==='active'));
     if(returning(this)&&this.floor>1&&!arrival)return this.fail('上一層入口暫無安全落腳處。');
     this.awardProtocol('floor',this.floor);
-    if((returning(this)&&this.floor===1)||(!isEndless(this)&&!missionDefinition(this).returnTrip&&this.floor===missionDepth(this))){this.awardProtocol('extraction','win');this.status='won';this.log(this.missionSummary+'。撤離成功。');return true;}
+    if((returning(this)&&this.floor===1)||(!isEndless(this)&&!missionDefinition(this).returnTrip&&this.floor===missionDepth(this))){this.awardProtocol('extraction','win');this.status='won';this.log(t('game.extracted',{summary:this.missionSummary}));return true;}
     notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;this.decoy=null;this.mines=[];for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
     if(returning(this)){
       if(advanceTurn)this.turn++;
       Object.assign(this,resumedFloor(frame,this.turn));delete this.floorStates[next];this.floor=next;
       Object.assign(p,arrival,{guard:false,focus:false,evasive:false,moved:false,moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null});
       endSkillEffects(p);this.sensorContacts=[];delete this.blindAftermath;p.vaultExposed=false;this.target=null;arriveAllies(this,companions);scheduleRetreatWave(this);this.reveal();
-      this.log(`返回${floorInfo(this.floor).name}：物資與戰場保持原狀，沒有換層補給。`);return true;
+      this.log(t('game.returnFloor',{floor:floorInfo(this.floor).name}));return true;
     }
     if(missionDefinition(this).returnTrip)this.floorStates[this.floor]=archiveFloor(this);
     this.floor++;if(advanceTurn)this.turn++;const recovered=healActor(p,25);
-    this.loadFloor();arriveAllies(this,companions);this.reveal();this.supplyPack({rifle:20,pistol:24,shell:12,energy:15,ordnance:2});this.log(`進入${floorInfo(this.floor).name}。生命 +${recovered}，補充各類備彈。`);return true;
+    this.loadFloor();arriveAllies(this,companions);this.reveal();this.supplyPack({rifle:20,pistol:24,shell:12,energy:15,ordnance:2});this.log(t('game.enterFloor',{floor:floorInfo(this.floor).name,hp:recovered}));return true;
   }
   choosePerk(id) {
     if(this.status!=='playing'||!this.pendingPerks||this.perkPicks>=perkLimit(this.player.level)||this.perkPicks+this.pendingPerks>perkLimit(this.player.level))return false;
     const offer=this.perkChoices.find(o=>o.id===id);
     if(!offer||!eligiblePerks(this).some(o=>o.id===id))return false;
     recordPerkOffer(this);applyPerk(this,offer);this.pendingPerks--;this.perkPicks++;this.perkDraft=null;ensurePerks(this);
-    this.log(`模組已安裝：${offer.name}。`);return true;
+    this.log(t('game.perkInstalled',{perk:offer.name}));return true;
   }
   serialize(){ensurePerks(this);const {rng,effects,visibleTiles,onEnemyCallout,pursuitPending,pursuitBlocked,shadowBonus,blindAftermath,refusal,...data}=this;return JSON.stringify({version:SAVE_VERSION,data,rngState:rng.state()});}
   static restore(raw) {

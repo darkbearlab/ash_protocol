@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN,MELEE_TUNING} from './melee-classes.js';
 import {grantTrait,removeTraitSource} from './traits.js';
 import {TETHER,CARRY_DISTANCE,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,PET_TETHER,DRONE_HP,SENTRY_ARMOR,WORKSHOP_TUNING,MUNITION_TUNING,ENEMY_UNIT_TUNING,REPAIR_TUNING,allyWeapon,summonInterval,summonLimit} from './allies.js';
@@ -6,21 +7,21 @@ import {classPerkRank,CLASS_PERK_TUNING,markValues} from './class-perks.js';
 const FOLLOW=allyWeapon({kind:'drone',sourceId:'drone_follow'}),SENTRY=allyWeapon({kind:'drone',sourceId:'drone_sentry'});
 // Texts whose numbers class perks change are templates: the pack and the skill button show the player's actual values (3.151).
 const SKILL_TEXTS={
- early_warning:v=>`免費掃描 ${v.radius} 格內敵人，穿牆顯示當下位置光點，維持至下一次耗回合行動結束，並標定它們 ${v.mark.duration} 回合：標定中你對它們命中 +${v.mark.accuracy}、傷害 +${Math.round(v.mark.damage*100)}%${v.mark.evasion?`、它們對你的命中 −${v.mark.evasion}`:''}。不追蹤移動、不提供射線，也不會讓敵人發現你。冷卻 ${v.cooldown} 次耗回合行動。`,
- signal_break:v=>`免費啟動，${v.duration} 次耗回合行動內敵人無法更新你的位置；仍會搜索最後目擊處。冷卻從啟動起算 ${v.cooldown} 次耗回合行動。已鎖定的狙擊與轟炸仍會落下，下樓結束效果但不重置冷卻。`,
- camouflage:v=>`免費啟動。接下來 ${v.duration} 次付費行動內，敵人對你的射擊與近戰命中 −${MELEE_TUNING.camoEvasion}，攻擊不會解除。效果結束後才開始冷卻 ${v.cooldown} 回合，伏擊可縮短。迷彩不會讓敵人看不到你。`,
+ early_warning:v=>t('skills.earlyWarning',{radius:v.radius,markTurns:v.mark.duration,accuracy:v.mark.accuracy,damage:Math.round(v.mark.damage*100),evasion:v.mark.evasion?t('skills.warningEvasion',{n:v.mark.evasion}):'',cooldown:v.cooldown}),
+ signal_break:v=>t('skills.signalBreak',{turns:v.duration,cooldown:v.cooldown}),
+ camouflage:v=>t('skills.camouflage',{turns:v.duration,evasion:MELEE_TUNING.camoEvasion,cooldown:v.cooldown}),
  raise_dead:v=>`被動：每 ${v.interval} 回合自動從本層倒下過的非頭目、非機械敵人中抽一隻起身（倒下越多的種類越常出現，屍體不消耗），最多 ${v.limit} 隻，出現在你身邊、下回合才行動；生命同該物種（32～150），傷害取物種基礎值（不含深層加成），沒有裝甲；主動追擊離你 ${SUMMON_TETHER} 格內看得到的敵人。按技能免費集結：${RALLY_TURNS} 回合內召喚物停止追擊、回到你身邊，換層前使用。未同行者換層消失。`,
 },SKILL_CARDS={raise_dead:v=>`每 ${v.interval} 回合自動起身 · 集結免費`};
 // Active skills are separate from passive traits and item quantities.
 export const SKILLS={
  suppressive_fire:{name:'壓制射擊',short:'壓制',icon:'◇',action:'suppressiveFire',cost:1,duration:0,cooldown:0,target:'area',text:'消耗 3 發，命中 −20；目標格與相鄰四格敵人獲得 1 層壓制，命中可再加 1 層。'},
  anchor:{name:'下錨',short:'下錨',icon:'◇',action:'skill',toggle:true,cost:1,duration:1,cooldown:0,text:'啟動／解除各 1 回合。下錨時不能移動或換層，套用笨拙；自己的武器射擊與近戰於普通與緩速各執行一次，分別消耗彈藥；投擲物與友軍不受影響。'},
- workshop:{name:'工坊',short:'工坊',icon:'▣',action:'skill',cost:0,duration:0,cooldown:0,card:'打開生產序列 · 生產與部署各 1 回合',text:`打開生產序列，不耗回合。空的序列花廢料生產機體（1 回合）；完成的機體點身邊 2 步內空格部署（1 回合），部署後不回收；受損的機體站在旁邊從工坊修理（${REPAIR_TUNING.cost} 廢料、1 回合、回復一半生命）。追隨無人機 ${DRONE_HP} HP、${FOLLOW.mag} 發、射程 ${FOLLOW.range}，跟在你身邊、可以換位；定點砲台裝甲 ${SENTRY_ARMOR}、可用掩體、${SENTRY.mag} 發、不移動。生產時可把背包裡的遠程武器裝上機體，改用那把武器射擊與換彈，被打爆時武器掉落。機體在你 ${CARRY_DISTANCE} 步內自己用你身上的彈藥換彈（內建輕機槍用手槍彈），繩索 ${TETHER} 格。浮游彈藥花廢料與 1 顆投擲物生產、生命 ${MUNITION_TUNING.hp}、不算部署上限，接近敵人後俯衝並在同一次行動引爆；你在爆炸範圍內也會被波及。擊毀巡弋無人機或自爆機器人會取得藍圖（每種一次）：改造無人機生命 ${ENEMY_UNIT_TUNING.drone.hp}、電漿槍射程 ${ENEMY_UNIT_TUNING.drone.range}、吃能量電池，會追擊繩索內的敵人；改造自爆機器人生命 ${ENEMY_UNIT_TUNING.bomber.hp}、不算部署上限，蓄勢一次後自爆，被打爆時也會爆炸。擊毀封鎖官或核心守衛取得頭目藍圖（只吃廢料、每局製作一次）：改造封鎖官生命 ${ENEMY_UNIT_TUNING.warden.hp}、每次射擊前蓄力；改造核心守衛生命 ${ENEMY_UNIT_TUNING.boss.hp}、槍擊與延遲轟炸交替，轟炸範圍內的你也會受傷。基礎 ${WORKSHOP_TUNING.lines} 條序列、同時部署 ${WORKSHOP_TUNING.deploy} 台，職業升級各可加到 4。`},
+ workshop:{name:'工坊',short:'工坊',icon:'▣',action:'skill',cost:0,duration:0,cooldown:0,card:'打開生產序列 · 生產與部署各 1 回合',text:t('skills.workshop',{repairCost:REPAIR_TUNING.cost,droneHp:DRONE_HP,droneMag:FOLLOW.mag,droneRange:FOLLOW.range,sentryArmor:SENTRY_ARMOR,sentryMag:SENTRY.mag,carry:CARRY_DISTANCE,tether:TETHER,munitionHp:MUNITION_TUNING.hp,droneUnitHp:ENEMY_UNIT_TUNING.drone.hp,droneUnitRange:ENEMY_UNIT_TUNING.drone.range,bomberHp:ENEMY_UNIT_TUNING.bomber.hp,wardenHp:ENEMY_UNIT_TUNING.warden.hp,bossHp:ENEMY_UNIT_TUNING.boss.hp,lines:WORKSHOP_TUNING.lines,deploy:WORKSHOP_TUNING.deploy})},
  pet_command:{name:'伴生指揮',short:'指揮',icon:'♧',action:'skill',cost:0,duration:0,cooldown:0,card:'指令免費 · 相鄰餵食 1 回合',text:`指揮已探索 ${TETHER} 格內位置，或召回。獵獸追擊 ${PET_TETHER} 格內敵人；相鄰餵食累積成長與燃料，死亡後自動重生，換層必定同行。`},
  // The cooldown field is the rising timer, so it must be able to hold SUMMON_INTERVAL; saves are validated against it.
  raise_dead:{name:'亡者集結',short:'集結',icon:'♧',action:'skill',cost:0,duration:0,cooldown:SUMMON_INTERVAL,card:SKILL_CARDS.raise_dead({interval:SUMMON_INTERVAL}),text:SKILL_TEXTS.raise_dead({interval:SUMMON_INTERVAL,limit:SUMMON_LIMIT})},
  early_warning:{name:'預警',short:'預警',icon:'⌖',action:'skill',cost:0,duration:1,cooldown:5,radius:8,text:SKILL_TEXTS.early_warning({radius:8,cooldown:5,mark:markValues(null)})},signal_break:{name:'訊號斷層',short:'斷層',icon:'⌁',action:'skill',cost:0,duration:3,cooldown:6,text:SKILL_TEXTS.signal_break({duration:3,cooldown:6})},
- grapple:{name:'鉤鎖',short:'鉤鎖',icon:'◇',action:'skill',cost:1,duration:0,cooldown:GRAPPLE_COOLDOWN,text:`鉤住目前鎖定、${GRAPPLE_RANGE} 格內看得到的敵人（可斜向）：一般敵人拉到你身邊，大型與頭目改由你衝過去，到位後用斧頭砍一刀。花 1 回合，冷卻 ${GRAPPLE_COOLDOWN}（含施放回合）。沒有落點時不能使用、不花回合。`},
+ grapple:{name:'鉤鎖',short:'鉤鎖',icon:'◇',action:'skill',cost:1,duration:0,cooldown:GRAPPLE_COOLDOWN,text:t('skills.grapple',{range:GRAPPLE_RANGE,cooldown:GRAPPLE_COOLDOWN})},
  camouflage:{name:'光學迷彩',short:'迷彩',icon:'◇',action:'skill',cost:0,duration:CAMO_DURATION,cooldown:CAMO_COOLDOWN,cooldownAfterEffect:true,text:SKILL_TEXTS.camouflage({duration:CAMO_DURATION,cooldown:CAMO_COOLDOWN})},
 };
 export const initialSkillState=ids=>Object.fromEntries(ids.map(id=>[id,{remaining:0,cooldown:0}]));

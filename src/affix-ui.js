@@ -1,15 +1,13 @@
 // Display helpers for enemy affixes and grenadier telegraphs (3.75.1, Claude). Rules stay in enemy-affixes.js and
 // enemy-intents.js; these read only their public queries, so unrevealed affixes never reach the screen.
-import {enemyDisplayName,revealedAffixes} from './enemy-affixes.js';
+import {enemyNameParts,composeEnemyName} from './enemy-affixes.js';
 import {grenadeTelegraphs} from './enemy-intents.js';
 
 // The target card is a fixed 104px column: past two fragments it ends in "…", while the log keeps the full name.
 export const CARD_AFFIX_FRAGMENTS=2;
 export function cardEnemyName(enemy,limit=CARD_AFFIX_FRAGMENTS){
- const full=enemyDisplayName(enemy),shown=revealedAffixes(enemy);if(shown.length<=limit)return full;
- const unknown=full.endsWith('？'),fragments=list=>list.map(d=>`・${d.fragment}`).join('');
- const base=full.slice(0,full.length-fragments(shown).length-(unknown?1:0));
- return `${base}${fragments(shown.slice(0,limit))}…${unknown?'？':''}`;
+ const parts=enemyNameParts(enemy);if(parts.fragments.length<=limit)return composeEnemyName(parts);
+ return composeEnemyName({...parts,fragments:parts.fragments.slice(0,limit)},true);
 }
 
 // Prepare marks the landing tile while the throw can still be stopped; flight marks the blast and its countdown.

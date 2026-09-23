@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {clearPoison} from './poison.js';
 import {fitDrone,petMaxHp} from './allies.js';
 import {skillValues} from './skills.js';
@@ -97,4 +98,4 @@ export function validPerks(g){
 // 3.148.0 升級 D.
 export const steadyBonus=p=>PERK_D.steady*(p?.perks?.steady||0);
 export const skirmishBonus=p=>PERK_D.skirmish*(p?.perks?.skirmish||0);
-export const perkRank=(p,o)=>o.cap===null?`已取得 ${count(p,o.id)} 次 · 可重複`:`${count(p,o.id)}/${o.cap} → ${count(p,o.id)+1}/${o.cap}`;
+export const perkRank=(p,o)=>o.cap===null?t('perks.repeatable',{n:count(p,o.id)}):`${count(p,o.id)}/${o.cap} → ${count(p,o.id)+1}/${o.cap}`;

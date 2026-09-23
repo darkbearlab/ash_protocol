@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {DEFAULT_FACTION,factionDef} from './factions.js';
 import './enemy-data.js';   // kept for load order
 import {expireExposure} from './corner.js';
@@ -49,7 +50,7 @@ export function scheduleRetreatWave(g){
   const chosen=[];
   for(const point of cells){if(chosen.every(p=>distance(p,point)>=3))chosen.push(point);if(chosen.length===2)break;}
   g.reinforcements=chosen.map((point,i)=>({...point,id:`retreat-${g.floor}-${i}`,type:factionDef(g.facilityFaction??DEFAULT_FACTION).retreatWave[i?1:0],due:g.turn+2}));
-  g.log(`撤退增援：本層 ${chosen.length} 個傳送訊號，兩次行動後抵達；不再追加。`,true);
+  g.log(t('retreat.wave',{n:chosen.length}),true);
 }
 export function resolveRetreatWave(g){
   const pending=[];
