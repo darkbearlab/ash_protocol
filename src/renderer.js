@@ -39,8 +39,9 @@ import {targetCardPlacement,actorObstacle,spriteSize} from './target-card.js';
 import {inCone,coneTargets} from './shotgun.js';
 import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTelegraphs} from './engine.js';
 import {VOID} from './data.js';
-// 3.165.0: the range flash is two quick flashes of this length with this gap between them.
-const RANGE_FLASH=Object.freeze({ms:170,gap:110});
+// 3.165.0: the range flash is two quick flashes of this length with this gap between them. 3.165.1 (user: 太搶眼了):
+// thinner, faster and fainter — a hint, not a highlight.
+const RANGE_FLASH=Object.freeze({ms:90,gap:70,alpha:.45,width:1});
 
 // Orthographic board: world +x = screen right, world +y = screen down.
 // Pixel atlases use nearest-neighbor drawing, with procedural missing-image fallbacks.
@@ -381,7 +382,7 @@ export class Renderer {
   drawRangeFlash(){
     const f=this.rangeFlash;if(!f)return;const age=this.time-f.start;if(age>=RANGE_FLASH.ms*2+RANGE_FLASH.gap){this.rangeFlash=null;return;}
     if(age%(RANGE_FLASH.ms+RANGE_FLASH.gap)>=RANGE_FLASH.ms)return;
-    const c=this.ctx,t=this.tile,has=(x,y)=>f.cells.has(`${x},${y}`);c.save();c.strokeStyle='#ffd84a';c.lineWidth=2;c.lineCap='square';c.beginPath();
+    const c=this.ctx,t=this.tile,has=(x,y)=>f.cells.has(`${x},${y}`);c.save();c.globalAlpha*=RANGE_FLASH.alpha;c.strokeStyle='#ffd84a';c.lineWidth=RANGE_FLASH.width;c.lineCap='square';c.beginPath();
     for(const k of f.cells){const [x,y]=k.split(',').map(Number),a=this.project(x,y),l=a.x-t/2,tp=a.y-t/2;
       if(!has(x,y-1)){c.moveTo(l,tp);c.lineTo(l+t,tp);}if(!has(x,y+1)){c.moveTo(l,tp+t);c.lineTo(l+t,tp+t);}
       if(!has(x-1,y)){c.moveTo(l,tp);c.lineTo(l,tp+t);}if(!has(x+1,y)){c.moveTo(l+t,tp);c.lineTo(l+t,tp+t);}}
