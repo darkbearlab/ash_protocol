@@ -64,9 +64,12 @@ test('arcade recipes reachable, no runtime sources/bosses/rewards/upgrades, civi
   assert.equal(g.openContainer('fake'),false);assert.equal(g.useTerminal('ammo'),false);assert.equal(g.choosePerk('damage'),false);
  }assert.ok(recipes.size>=2);
 });
+// A fixed seed (2026-09-23): 11 of seeds 1-5000 put guards on every open side of the exit, so the time-based seed left
+// no approach tile and failed a full run. Seed 3 keeps three guards within two tiles of the exit, and removing the
+// exit check from executePlayer makes this test fail on it (the stubbed enemy turn kills the player).
 test('walking into exit settles at the player step, before later enemies can retaliate',()=>{
- const g=enterCombat(createKillhouse({mode:'arcade'}));
- const [dx,dy]=exitApproach(g);
+ const g=enterCombat(createKillhouse({mode:'arcade',seed:3}));
+ const approach=exitApproach(g);assert.ok(approach,'seed 3 must leave a free tile next to the exit');const [dx,dy]=approach;
  Object.assign(g.player,{x:g.end.x-dx,y:g.end.y-dy});for(const e of g.enemies)e.alert=true;
  let enemyActions=0;g.enemyAct=()=>{enemyActions++;g.player.hp=0;};assert.ok(g.action('move',[dx,dy]));assert.equal(g.status,'won');assert.equal(enemyActions,0);assert.equal(g.simulationResult.turns,1);
 });
