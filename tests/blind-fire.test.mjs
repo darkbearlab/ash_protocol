@@ -50,7 +50,7 @@ test('you learn nothing you cannot see: no hit line, no impact, every tracer a m
  const ammo=p.ammo[p.weapon],before=g.logs.length;
  assert.ok(g.action('blindFire',{x:14,y:10}));assert.ok(e.hp<500,'the shot landed');
  const lines=g.logs.slice(0,g.logs.length-before).map(l=>l.text);
- assert.ok(lines.includes(`盲射：消耗 ${ammo-p.ammo[p.weapon]} 發，看不到結果。`));
+ assert.ok(lines.includes(`盲射：消耗 ${ammo-p.ammo[p.weapon]} 發。`));
  assert.ok(!lines.some(t=>/命中|未命中|傷害/.test(t)),lines.join(' / '));
  assert.ok(g.effects.filter(f=>f.type==='shot').every(f=>f.miss));
  assert.ok(!g.effects.some(f=>f.type==='impact'||f.type==='blast'));

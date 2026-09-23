@@ -1,6 +1,6 @@
 # 文本盤點與翻譯準備
 
-第 1 步盤點：2026-09-23，遊戲版本 3.165.1。第 2 步改結構：2026-09-24，3.166.0（第九節）。第 3～5 步與中英切換：2026-09-24，3.167.0（第十一節）。量測工具：`node tools/text-inventory.mjs [--json 輸出.json]`（唯讀，只讀 src）。
+第 1 步盤點：2026-09-23，遊戲版本 3.165.1。第 2 步改結構：2026-09-24，3.166.0（第九節）。第 3～5 步與中英切換：2026-09-24，3.167.0（第十一節）。英文介面精簡：3.167.1（第十二節）。量測工具：`node tools/text-inventory.mjs [--json 輸出.json]`（唯讀，只讀 src）。
 使用者的逐項決定記在決策頁：<https://claude.ai/artifact/PcfosPycUBvFqaNPeMzcta>（私人頁面，資料在頁面的資料庫
 `decisions` 集合，每項一筆 `{choice, note, at}`）。**2026-09-23 使用者 37 項全部照建議選定**，已抄進〈三〉的決定欄；本檔才是依據。
 
@@ -314,3 +314,22 @@ Claude 的小改動：VHS 那句依全文慣例在 VHS 與中文之間加一個�
 - 故事碎片（標題與內容）等故事定稿後再翻。
 - 英文敵人台詞每種只有 1 句，之後可以補變化。
 - 下架職業（德魯伊、死靈法師）的文字不翻。
+
+## 十二、英文介面精簡（3.167.1，2026-09-24）
+
+使用者 2026-09-24：「有些你雖然翻的都對，但我想看看是否可以改成更短，也許有一點點破壞完整原意但完全不影響的翻法」。
+審稿頁 <https://claude.ai/artifact/FDu65HGwVFZeuGmkg2kWbL>（資料庫 `decisions` 集合，每項 `{choice, text, note, at}`，choice 是 keep／short／custom）
+列出 855 條介面文字（按鈕、標籤、標題、目標卡、狀態列、短提示），Claude 對 237 條提出較短的英文。
+
+**使用者的選擇**：219 條用建議、9 條自己寫、9 條維持原文。套進英文表 227 句；中文只少一句（下面第一項）。
+
+- 盲射紀錄拿掉「看不到結果」，**所有語言一起拿掉**（使用者備註）：兩句變成同一句，刪掉 `blind-fire.spentUnseen`，只留「盲射：消耗 N 發。」。
+- `controller.skill.commandHint` 是德魯伊指揮獵獸的提示，使用者說擱置：英文不改。
+- 使用者自己寫的：盲射理由 Blocked／Need to reload／Target in sight；結算 View battlefield；狀態列 Blade Collector、Battle Spirit；Spore smoke；失聯幹員 Missing operative's signal detected。
+  Claude 的小修正：`blocked` 改大寫開頭（它會接句點當成一句話顯示）、`Spores smoke` 改成 `Spore smoke`、`Blade Collector{n}` 補空格。
+- 維持原文但有備註：`verdict.deploy` 改成 Recommend immediate combat deployment；改造自爆機器人說明改成 hits friendlies too。
+- 貫穿全篇的縮寫：回合寫 `5t`（狀態列原本就這樣寫）、樓層寫 `F3+`、HUD 的樓層寫 `F01`；確認鈕拿掉 Confirm、取消鈕一律 Cancel。
+
+**待使用者決定**：狂戰士的被動特性「刃藏」在術語表是 Blade Stash，使用者在狀態列寫了 Blade Collector。兩者要統一成哪一個。
+
+**順手修的錯**：橫向提示的「仍以橫向繼續」按鈕沒有指令，按下去會送出空的遊戲指令，規則回「沒有這個道具」。按鈕沒有指令時不再送出（controller.js）。這個錯在翻譯之前就有。

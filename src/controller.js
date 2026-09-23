@@ -1119,7 +1119,9 @@ document.addEventListener('click',e=>{
     case 'zoomIn':zoomBy(.15);break;
     case 'zoomOut':zoomBy(-.15);break;
     case 'center':centerCamera();break;
-    default:act(b.dataset.action);
+    // 3.167.1: a button with no action (the landscape override) is not a game command; it used to send an empty
+    // action that the rules refused as "no such item".
+    default:if(b.dataset.action)act(b.dataset.action);
   }
 });
 $('#orientation-guard').addEventListener('cancel',e=>e.preventDefault());

@@ -61,6 +61,6 @@ export function blindFire(g,tile){
   p.fireChain=null;   // no correction from shots you could not see land
   rememberUnseen(g,before);
   const spent=ammo-p.ammo[p.weapon];
-  g.log(t(seen?'blind-fire.spent':'blind-fire.spentUnseen',{n:spent}));
+  g.log(t('blind-fire.spent',{n:spent}));
   return done;
 }

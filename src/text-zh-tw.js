@@ -131,7 +131,6 @@ export default Object.freeze({
  "blind-fire.outOfRange":"超出射程",
  "blind-fire.magShort":"彈匣不足，請裝填",
  "blind-fire.spent":"盲射：消耗 {n} 發。",
- "blind-fire.spentUnseen":"盲射：消耗 {n} 發，看不到結果。",
  "blind-fire.floorOnly":"只能朝地板盲射",
  "blind-fire.noMelee":"近戰武器不能盲射",
  "blind-fire.notUnderfoot":"不能朝自己腳下盲射",
