@@ -13,16 +13,16 @@ const armed=e=>hasEnemyTag(e,'armed');
 const combatant=e=>!isNoncombatant(e)&&!ENEMY_TYPES[e.type]?.expendable;
 const infected=e=>hasEnemyTag(e,'infected')&&Boolean(factionDef(enemyFaction(e))?.infectedAffixes);
 export const ENEMY_AFFIXES=[
- {id:'fast',fragment:'快速',order:0,applies:e=>combatant(e)&&!e.traits.some(t=>['fast','slow'].includes(t.id)),trait:'fast',reveal:REVEAL_TYPES.effect},
- {id:'infrared',fragment:'紅外線',order:1,applies:e=>combatant(e)&&!activeTrait(e,'infrared'),trait:'infrared',reveal:REVEAL_TYPES.effect},
- {id:'night_vision',fragment:'夜視',order:2,applies:e=>combatant(e)&&!activeTrait(e,'night_vision'),trait:'night_vision',reveal:REVEAL_TYPES.effect},
- {id:'suppressor',fragment:'壓制者',order:3,applies:armed,trait:'rapid_fire',reveal:REVEAL_TYPES.effect},
- {id:'grenadier',fragment:'擲彈兵',order:4,applies:armed,behavior:'grenade',reveal:REVEAL_TYPES.effect},
- {id:'venomous',fragment:'帶毒',order:5,applies:infected,infection:true,reveal:REVEAL_TYPES.effect},
- {id:'brood_host',fragment:'育蟲',order:6,applies:infected,infection:true,reveal:REVEAL_TYPES.effect},
+ {id:'fast',fragment:t('enemyAffixes.fast.fragment'),order:0,applies:e=>combatant(e)&&!e.traits.some(t=>['fast','slow'].includes(t.id)),trait:'fast',reveal:REVEAL_TYPES.effect},
+ {id:'infrared',fragment:t('enemyAffixes.infrared.fragment'),order:1,applies:e=>combatant(e)&&!activeTrait(e,'infrared'),trait:'infrared',reveal:REVEAL_TYPES.effect},
+ {id:'night_vision',fragment:t('enemyAffixes.night_vision.fragment'),order:2,applies:e=>combatant(e)&&!activeTrait(e,'night_vision'),trait:'night_vision',reveal:REVEAL_TYPES.effect},
+ {id:'suppressor',fragment:t('enemyAffixes.suppressor.fragment'),order:3,applies:armed,trait:'rapid_fire',reveal:REVEAL_TYPES.effect},
+ {id:'grenadier',fragment:t('enemyAffixes.grenadier.fragment'),order:4,applies:armed,behavior:'grenade',reveal:REVEAL_TYPES.effect},
+ {id:'venomous',fragment:t('enemyAffixes.venomous.fragment'),order:5,applies:infected,infection:true,reveal:REVEAL_TYPES.effect},
+ {id:'brood_host',fragment:t('enemyAffixes.brood_host.fragment'),order:6,applies:infected,infection:true,reveal:REVEAL_TYPES.effect},
  // Carries one loitering munition. The range bar keeps it off the raider: a rusher that launches and then closes
  // would put the player in two jaws at once.
- {id:'deployer',fragment:'投放',order:7,applies:e=>armed(e)&&(ENEMY_TYPES[e.type]?.range??0)>=6,special:true,spawns:'munition',reveal:REVEAL_TYPES.effect},
+ {id:'deployer',fragment:t('enemyAffixes.deployer.fragment'),order:7,applies:e=>armed(e)&&(ENEMY_TYPES[e.type]?.range??0)>=6,special:true,spawns:'munition',reveal:REVEAL_TYPES.effect},
 ];
 // 3.137.0: where affixes and deployers begin, and how fast they climb, belong to the difficulty curve (src/endless.js).
 export const deployerChance=(floor,d)=>Math.min(AFFIX_TUNING.deployerCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).deployerStart+1)*AFFIX_TUNING.deployerPerDepth);

@@ -1,34 +1,35 @@
+import {t} from './i18n.js';
 import {SKILLS} from './skills.js';
 import {TRAITS,grantTrait,removeTraitSource,activeTrait} from './traits.js';
 import {GRENADES} from './throwables.js';
 // Separate prepared slots. Stable catalog IDs are saved; quantities retain existing keys.
-export const PREPARED_CATEGORIES={grenade:'手榴彈',item:'道具',skill:'技能'};
+export const PREPARED_CATEGORIES={grenade:t('preparedCategories.grenade'),item:t('preparedCategories.item'),skill:t('preparedCategories.skill')};
 export const PREPARED_CATALOG={
   grenade:GRENADES,
   // 3.106.0 (docs/ITEMS.md, user): the repair spray is the medkit's armour twin; adrenaline is the ninja's shadow step
   // with a price, so it is free to use and buys movement only.
-  item:{medkit:{name:'醫療包',short:'醫療包',icon:'✚',resource:'meds',action:'heal',text:'回復生命並清除中毒。使用消耗 1 回合，滿血且未中毒時不消耗。'},
-   spray:{name:'修復噴劑',short:'噴劑',icon:'▣',resource:'sprays',action:'plate',text:'補上 20 點護甲板。使用消耗 1 回合，護甲板已滿時無法使用。'},
-   adrenaline:{name:'腎上腺素',short:'腎上腺素',icon:'⚡',resource:'adrenaline',action:'surge',text:'不消耗回合。接下來可免費移動 2 格，做其他事就結束；代價是 15 生命。'},
+  item:{medkit:{name:t('preparedCatalog.item.medkit.name'),short:t('preparedCatalog.item.medkit.short'),icon:'✚',resource:'meds',action:'heal',text:t('preparedCatalog.item.medkit.text')},
+   spray:{name:t('preparedCatalog.item.spray.name'),short:t('preparedCatalog.item.spray.short'),icon:'▣',resource:'sprays',action:'plate',text:t('preparedCatalog.item.spray.text')},
+   adrenaline:{name:t('preparedCatalog.item.adrenaline.name'),short:t('preparedCatalog.item.adrenaline.short'),icon:'⚡',resource:'adrenaline',action:'surge',text:t('preparedCatalog.item.adrenaline.text')},
    // 3.109.0 (user request): cover you carry. It goes on an edge rather than a tile, so it can be vaulted and can
    // never seal a corridor, and `aim:'side'` tells the UI to ask for a direction before running the action.
-   barricade:{name:'摺疊掩體',short:'掩體',icon:'▬',resource:'barricades',action:'deployCover',aim:'side',text:'在身邊任一側的邊線架起矮隔板：擋住移動並提供掩體，但不擋視線與射線，任何人都能翻越（翻越者下次被射擊命中 +20）。使用消耗 1 回合。'},
+   barricade:{name:t('preparedCatalog.item.barricade.name'),short:t('preparedCatalog.item.barricade.short'),icon:'▬',resource:'barricades',action:'deployCover',aim:'side',text:t('preparedCatalog.item.barricade.text')},
    // 3.108.0 (user, docs/ITEMS.md): the first wearable. It has no action — the prepared slot is its 生效欄, not a
    // quick-use slot — so wearing it is what does the work, and the item button greys while it is on.
    // 3.123.0 (user decisions, docs/ITEMS.md 照明彈): an item, but aimed like a throwable (`aim:'throw'`).
-   flare:{name:'照明彈',short:'照明彈',icon:'✺',resource:'flares',action:'flare',aim:'throw',text:'射程 5 格、半徑 3 格，持續 8 輪。落點看得到、而且沒有對照明彈取得完整掩體的暗格會被照亮：站在上面的敵我都失去暗區的命中懲罰。'},
+   flare:{name:t('preparedCatalog.item.flare.name'),short:t('preparedCatalog.item.flare.short'),icon:'✺',resource:'flares',action:'flare',aim:'throw',text:t('preparedCatalog.item.flare.text')},
    // 3.135.0 (user decision, docs/ITEMS.md): grapple lines, dropped only. One line, one use; the escape line is free,
    // the redeploy line costs a turn. Aimed like a flare: pick the landing tile, confirm.
-   escape_line:{name:'逃命繩索',short:'逃命繩',icon:'↟',resource:'escapeLines',action:'rope',aim:'throw',text:'不消耗回合。朝 6 格內看得見的地板射出繩索，沿直線把你拉過去；牆、實心物件和其他單位會擋住，幼蟲不會。一條只能用一次。'},
-   redeploy_line:{name:'重部署鉤索',short:'鉤索',icon:'⇢',resource:'redeployLines',action:'rope',aim:'throw',text:'消耗 1 回合。朝 6 格內看得見的地板射出鉤索，沿直線把你拉過去；牆、實心物件和其他單位會擋住，幼蟲不會。一條只能用一次。'},
+   escape_line:{name:t('preparedCatalog.item.escape_line.name'),short:t('preparedCatalog.item.escape_line.short'),icon:'↟',resource:'escapeLines',action:'rope',aim:'throw',text:t('preparedCatalog.item.escape_line.text')},
+   redeploy_line:{name:t('preparedCatalog.item.redeploy_line.name'),short:t('preparedCatalog.item.redeploy_line.short'),icon:'⇢',resource:'redeployLines',action:'rope',aim:'throw',text:t('preparedCatalog.item.redeploy_line.text')},
    // 3.148.0 (user decision 2026-09-19): infrared goggles, the night-vision goggles' counterpart; squad leaders drop them.
-   irg:{name:'紅外線護目鏡',short:'紅外',icon:'◍',wear:true,traits:['infrared'],text:'佩戴期間看得穿煙霧（牆與關著的門照樣擋），不抵銷暗區懲罰；會受震撼彈失能。戴上與脫下各消耗 1 回合，佩戴期間道具鍵停用。'},
-   nvg:{name:'夜視鏡',short:'夜視',icon:'◉',wear:true,traits:['night_vision'],text:'佩戴期間忽略目標暗區的射擊命中懲罰（不穿煙）。戴上與脫下各消耗 1 回合，佩戴期間道具鍵停用。'},
+   irg:{name:t('preparedCatalog.item.irg.name'),short:t('preparedCatalog.item.irg.short'),icon:'◍',wear:true,traits:['infrared'],text:t('preparedCatalog.item.irg.text')},
+   nvg:{name:t('preparedCatalog.item.nvg.name'),short:t('preparedCatalog.item.nvg.short'),icon:'◉',wear:true,traits:['night_vision'],text:t('preparedCatalog.item.nvg.text')},
    // 3.144.0 (user decisions 2026-09-19, src/field-gear.js, docs/ITEMS.md): a decoy thrown like a flare, a mine laid
    // within three tiles, and the exoskeleton, a wearable with plates of its own.
-   decoy:{name:'誘餌',short:'誘餌',icon:'◎',resource:'decoys',action:'decoy',aim:'throw',text:'射程 5 格。落點 6 格內的敵人（頭目、自爆單位除外）會把誘餌當成你：看不到你、改去攻擊誘餌，但照樣打你的友軍。你攻擊的敵人、以及看得到牠被攻擊的敵人會回過神來；走到你旁邊的也會看穿。誘餌 30 耐久，維持 4 回合。消耗 1 回合。'},
-   mine:{name:'地雷',short:'地雷',icon:'✱',resource:'mines',action:'mine',aim:'throw',text:'埋在 3 格內看得見的空地上，同一層最多 3 顆。走路的敵人踩到就爆炸：中心 60、相鄰 50（加上爆破專家）；你和友軍踩到不會爆，但會被炸到。其他爆炸也會引爆它。敵人看不到地雷；看著你埋的會繞開，有槍的會在爆炸範圍外開槍引爆它。換層後就沒了。消耗 1 回合。'},
-   exo:{name:'外骨骼',short:'外骨骼',icon:'⛨',wear:true,traits:['exoskeleton'],text:'射擊命中 +10、近戰傷害 +20%，自帶 50 點護甲板，受傷時先替你吸收（和護甲板一樣吸收一半）。護甲板打光時外骨骼損毀、消失，你直接被壓制 5 層。無法修復；重裝兵穿不下。戴上與脫下各消耗 1 回合。'}},
+   decoy:{name:t('preparedCatalog.item.decoy.name'),short:t('preparedCatalog.item.decoy.short'),icon:'◎',resource:'decoys',action:'decoy',aim:'throw',text:t('preparedCatalog.item.decoy.text')},
+   mine:{name:t('preparedCatalog.item.mine.name'),short:t('preparedCatalog.item.mine.short'),icon:'✱',resource:'mines',action:'mine',aim:'throw',text:t('preparedCatalog.item.mine.text')},
+   exo:{name:t('preparedCatalog.item.exo.name'),short:t('preparedCatalog.item.exo.short'),icon:'⛨',wear:true,traits:['exoskeleton'],text:t('preparedCatalog.item.exo.text')}},
   skill:SKILLS,
 };
 // 3.136.0 (user decision): every carried item stops at five. The carry learning data (攜行擴充) widens every pouch:

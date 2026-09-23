@@ -1,17 +1,18 @@
+import {t} from './i18n.js';
 import {validLearningId} from './learning-data.js';
 import {unlockRandom} from './run-unlocks.js';
 import {WEAPONS} from './data.js';
 import {validVaultCase} from './vault.js';
 // Low floor cases: walkable, no cover or destruction. Contents move to ground exactly once.
 export const CONTAINER_KINDS={
-  unknown:{name:'未識別貨櫃',color:'#94bbc3',symbol:'?'},
-  ammo:{name:'彈藥箱',color:'#d9bd7b',symbol:'R'},medical:{name:'醫療箱',color:'#a9d9ac',symbol:'+'},
-  armor:{name:'護甲箱',color:'#92c4df',symbol:'▣'},ordnance:{name:'投擲物箱',color:'#b8c694',symbol:'G'},
-  salvage:{name:'廢料箱',color:'#c5a171',symbol:'◇'},supply:{name:'補給箱',color:'#c9c6ac',symbol:'·'},
+  unknown:{name:t('containerKinds.unknown.name'),color:'#94bbc3',symbol:'?'},
+  ammo:{name:t('containerKinds.ammo.name'),color:'#d9bd7b',symbol:'R'},medical:{name:t('containerKinds.medical.name'),color:'#a9d9ac',symbol:'+'},
+  armor:{name:t('containerKinds.armor.name'),color:'#92c4df',symbol:'▣'},ordnance:{name:t('containerKinds.ordnance.name'),color:'#b8c694',symbol:'G'},
+  salvage:{name:t('containerKinds.salvage.name'),color:'#c5a171',symbol:'◇'},supply:{name:t('containerKinds.supply.name'),color:'#c9c6ac',symbol:'·'},
   // 3.110.0 (user request): a case that is neither ammunition nor a refill — the things you have to decide how to spend.
-  field:{name:'器材箱',color:'#d0b3d9',symbol:'▬'},
+  field:{name:t('containerKinds.field.name'),color:'#d0b3d9',symbol:'▬'},
   // 3.146.0 (src/vault.js): behind the locked door, one item from the high-rarity list.
-  vault:{name:'保險箱',color:'#e8c95a',symbol:'◆'},
+  vault:{name:t('containerKinds.vault.name'),color:'#e8c95a',symbol:'◆'},
 };
 export const FIELD_ITEMS=['spray','adrenaline','barricade','flare','decoy','mine'];   // decoy, mine: 3.144.0
 const types=new Set(['ammo','pistol','shell','energy','ordnance','grenade','emp','stun','smoke','med','armor','scrap','nvg',...FIELD_ITEMS]);   // nvg: 3.135.0, found in unidentified crates
@@ -34,7 +35,7 @@ export function rigContainers(g){
  }
  return g;
 }
-export const containerName=o=>CONTAINER_KINDS[o.kind]?.name||'補給箱';
+export const containerName=o=>CONTAINER_KINDS[o.kind]?.name||t('containerKinds.fallback');
 const kindFor=type=>['ammo','pistol','shell','energy','ordnance'].includes(type)?'ammo':['grenade','emp','stun','smoke'].includes(type)?'ordnance':type==='med'?'medical':type==='armor'?'armor':type==='scrap'?'salvage':FIELD_ITEMS.includes(type)?'field':'supply';
 export function packSupplies(map,floor){
   const grouped=new Set(),cases=[];

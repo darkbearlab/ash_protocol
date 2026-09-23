@@ -72,10 +72,42 @@ function capture(){
  return runs;
 }
 
+// Every exported table that carries Chinese (names, descriptions, voice lines, prompts…), in full. Step 3 of the
+// translation work moves these into the language table; their contents must come out the same (3.166.1).
+const SKIP_MODULES=new Set(['controller.js','main.js','text-zh-tw.js']);
+const CJK_TEXT=/[一-鿿　-〿＀-￯]/;
+function snapshot(value){
+ const seen=new WeakSet();
+ return JSON.stringify(value,(key,v)=>{
+  if(typeof v==='function')return '[fn]';
+  if(v instanceof Map)return {map:[...v]};
+  if(v instanceof Set)return {set:[...v]};
+  if(v&&typeof v==='object'){if(seen.has(v))return '[seen]';seen.add(v);}
+  return v;
+ });
+}
+async function exportedTables(){
+ const {readdirSync}=await import('node:fs');
+ const out={};
+ for(const file of readdirSync(new URL('../src/',import.meta.url)).filter(f=>f.endsWith('.js')&&!SKIP_MODULES.has(f)).sort()){
+  let mod;try{mod=await import(`../src/${file}`);}catch(error){out[file]=[`!import ${error?.message||error}`];continue;}
+  const rows=[];
+  for(const name of Object.keys(mod).sort()){
+   const value=mod[name];if(typeof value==='function')continue;
+   let text;try{text=snapshot(value);}catch(error){text=`!${error?.message||error}`;}
+   if(text&&CJK_TEXT.test(text))rows.push(`${name} ${text}`);
+  }
+  if(rows.length)out[file]=rows;
+ }
+ return out;
+}
+
 const mode=process.argv.includes('--write')?'write':process.argv.includes('--compare')?'compare':null;
 const file=process.argv[process.argv.indexOf(mode==='write'?'--write':'--compare')+1];
 if(!mode||!file){console.log('usage: node qa/text-identity.mjs --write <file> | --compare <file>');process.exit(2);}
-const now=capture(),lines=Object.values(now).reduce((n,t)=>n+t.length,0);
+const now=capture();
+for(const [file,rows] of Object.entries(await exportedTables()))now[`exports:${file}`]=rows;
+const lines=Object.values(now).reduce((n,t)=>n+t.length,0);
 if(mode==='write'){writeFileSync(file,JSON.stringify(now));console.log('text baseline written',Object.keys(now).length,'runs',lines,'texts');}
 else{
  const before=JSON.parse(readFileSync(file,'utf8')),diffs=[];

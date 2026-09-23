@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
@@ -17,63 +18,63 @@ export const PLATE_CAPACITY = 30;
 export const SUPPLY_ROOMS={ammo:{code:'AMMO',color:'#d9bd7b'},medical:{code:'MEDICAL',color:'#a9d9ac'},armor:{code:'ARMOR',color:'#92c4df'}};
 export const RARE_ARMORY={weapon:8,minFloor:3,chance:.2};
 export const WEAPONS = [
-  { id:'rifle', weaponClass:'rifle', name:'餘燼突擊步槍', type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'rifle', desc:'可靠的中距離主力，適合多數交戰。' },
+  { id:'rifle', weaponClass:'rifle', name:t('weapons.rifle.name'), type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'rifle', desc:t('weapons.rifle.desc') },
   // 3.112.0 (user request): range 6 and a 60 degree cone. Close and middle bands keep their numbers; 5-6 tiles is new and weak.
   // splash stays for the paths that still fire it at one target: mounted drones and suppressive fire.
   // 3.141.0 (user decisions 2026-09-19, docs/WEAPONS.md): the player's cone fires pellets. pellets[d-1] land-rolls at d
   // tiles, each pelletMin-pelletMax and a flat pelletHit%; armour counts against every pellet and cover cuts pelletCover.
   // The bands above stay for doors, cover, barrels, mounted drones and suppressive fire.
-  { id:'shotgun', weaponClass:'shotgun', name:'破門者霰彈槍', type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, closeRange:2, closeMin:60, closeMax:72, closeAccuracy:15, farFrom:5, farMin:21, farMax:27, cone:30, range:6, mag:4, file:'shotgun', ammoType:'shell', splash:1,
+  { id:'shotgun', weaponClass:'shotgun', name:t('weapons.shotgun.name'), type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, closeRange:2, closeMin:60, closeMax:72, closeAccuracy:15, farFrom:5, farMin:21, farMax:27, cone:30, range:6, mag:4, file:'shotgun', ammoType:'shell', splash:1,
     pellets:[6,6,5,4,3,2], pelletMin:10, pelletMax:12, pelletHit:95, pelletCover:.6,
-    desc:'錐形射擊：一發打中錐形內所有目標（包含友軍），被前方單位擋住的打不到。每個目標依距離吃 6／6／5／4／3／2 顆彈丸（1～6 格），每顆 10–12、命中 95%，不受暗區與移動影響；裝甲每顆都扣，掩體減傷 60%。對掩體與門只打單一目標。' },
-  { id:'smg', weaponClass:'smg', name:'蜂群衝鋒槍', type:'SUBMACHINE GUN', code:'SM–24', min:13, max:17, range:5, mag:18, file:'smg', ammoType:'pistol', burst:2, desc:'每回合射擊兩發。適合清理近距離輕裝敵人。' },
-  { id:'sniper', weaponClass:'sniper', name:'寂靜精準步槍', type:'PRECISION RIFLE', code:'SR–07', min:52, max:66, range:10, mag:3, file:'sniper', ammoType:'rifle', pierce:0.7, aimPenalty:40, desc:'長距離單發重擊，穿透 70% 裝甲與掩體減傷。沒有先原地等待一回合瞄準時，命中 −40。' },
+    desc:t('weapons.shotgun.desc') },
+  { id:'smg', weaponClass:'smg', name:t('weapons.smg.name'), type:'SUBMACHINE GUN', code:'SM–24', min:13, max:17, range:5, mag:18, file:'smg', ammoType:'pistol', burst:2, desc:t('weapons.smg.desc') },
+  { id:'sniper', weaponClass:'sniper', name:t('weapons.sniper.name'), type:'PRECISION RIFLE', code:'SR–07', min:52, max:66, range:10, mag:3, file:'sniper', ammoType:'rifle', pierce:0.7, aimPenalty:40, desc:t('weapons.sniper.desc') },
   // 3.141.0 (user decisions 2026-09-19): a precision rifle's hit without the aiming, full piercing, the rifle's range. It is
   // strong because batteries are short: a reserve for the big fights that still takes a weapon slot.
-  { id:'plasma', weaponClass:'plasma', name:'極光電漿步槍', type:'PLASMA CARBINE', code:'PL–08', min:52, max:66, range:7, mag:6, file:'plasma', ammoType:'energy', pierce:1, desc:'消耗能量電池。無視裝甲與掩體減傷（掩體仍會降低命中），對機械傷害 +20%。' },
-  { id:'launcher', weaponClass:'launcher', name:'日蝕榴彈發射器', type:'GRENADE LAUNCHER', code:'GL–03', min:54, max:64, range:6, mag:2, file:'launcher', ammoType:'ordnance', explosive:true, pointTarget:true, desc:'瞄準視線內一格地板發射，必定在落點爆炸，半徑 1 格。沒有最短射程，無視掩體，會傷害自己與引爆油桶。' },
-  {id:'lmg',weaponClass:'lmg',name:'堡壘輕機槍',type:'LIGHT MACHINE GUN',code:'LM–30',min:18,max:22,range:7,mag:30,file:'lmg',ammoType:'rifle',burst:3,desc:'使用步槍彈，每次三連發，適合持續壓制。'},
-  {id:'powerfist',weaponClass:'melee',name:'震擊動力拳',type:'POWER GAUNTLET',code:'PF–01',min:70,max:90,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,hitChance:99,pierce:.5,desc:'相鄰一格近戰，命中 99%，無限使用、無須裝填。無視掩體，穿透 50% 裝甲。裝甲內建，雙向切換免費；不能拆解或交換，可改裝至 +3。'},
-  {id:'thunder',weaponClass:'burst_launcher',name:'雷鳴爆彈槍',type:'BURST GRENADE RIFLE',code:'TB–09',min:24,max:30,range:6,mag:9,file:'thunder',ammoType:'ordnance',burst:3,explosive:true,lootOnly:true,desc:'三連發爆彈，每發命中後爆炸半徑 1 格；會自傷及引爆油桶。使用榴彈彈藥，僅能探索拾取。'},
-  {id:'axe',weaponClass:'melee',name:'狂戰斧',type:'BOUND AXE',code:'AX–01',min:44,max:54,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'berserker',hitChance:92,pierce:.3,desc:'狂戰士綁定近戰武器，不能拆解或交換。相鄰一格，命中 92%，穿透 30% 裝甲，無限使用。'},
-  {id:'katana',weaponClass:'melee',name:'忍刀',type:'BOUND BLADE',code:'KT–01',min:30,max:36,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'ninja',hitChance:95,desc:'忍者綁定近戰武器，不能拆解或交換。相鄰一格，命中 95%，無限使用。'},
+  { id:'plasma', weaponClass:'plasma', name:t('weapons.plasma.name'), type:'PLASMA CARBINE', code:'PL–08', min:52, max:66, range:7, mag:6, file:'plasma', ammoType:'energy', pierce:1, desc:t('weapons.plasma.desc') },
+  { id:'launcher', weaponClass:'launcher', name:t('weapons.launcher.name'), type:'GRENADE LAUNCHER', code:'GL–03', min:54, max:64, range:6, mag:2, file:'launcher', ammoType:'ordnance', explosive:true, pointTarget:true, desc:t('weapons.launcher.desc') },
+  {id:'lmg',weaponClass:'lmg',name:t('weapons.lmg.name'),type:'LIGHT MACHINE GUN',code:'LM–30',min:18,max:22,range:7,mag:30,file:'lmg',ammoType:'rifle',burst:3,desc:t('weapons.lmg.desc')},
+  {id:'powerfist',weaponClass:'melee',name:t('weapons.powerfist.name'),type:'POWER GAUNTLET',code:'PF–01',min:70,max:90,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,hitChance:99,pierce:.5,desc:t('weapons.powerfist.desc')},
+  {id:'thunder',weaponClass:'burst_launcher',name:t('weapons.thunder.name'),type:'BURST GRENADE RIFLE',code:'TB–09',min:24,max:30,range:6,mag:9,file:'thunder',ammoType:'ordnance',burst:3,explosive:true,lootOnly:true,desc:t('weapons.thunder.desc')},
+  {id:'axe',weaponClass:'melee',name:t('weapons.axe.name'),type:'BOUND AXE',code:'AX–01',min:44,max:54,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'berserker',hitChance:92,pierce:.3,desc:t('weapons.axe.desc')},
+  {id:'katana',weaponClass:'melee',name:t('weapons.katana.name'),type:'BOUND BLADE',code:'KT–01',min:30,max:36,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'ninja',hitChance:95,desc:t('weapons.katana.desc')},
 ];
 // Unbound loot variants append IDs; class-bound originals remain untouched.
-for(const [base,id] of [[9,'loot_axe'],[10,'loot_katana']]){const {locked,boundCharacter,...weapon}=WEAPONS[base];WEAPONS.push({...weapon,id,lootOnly:true,type:'MELEE WEAPON',desc:'拾獲近戰武器，雙向切換免費，可交換、拆解與改裝。'});}
+for(const [base,id] of [[9,'loot_axe'],[10,'loot_katana']]){const {locked,boundCharacter,...weapon}=WEAPONS[base];WEAPONS.push({...weapon,id,lootOnly:true,type:'MELEE WEAPON',desc:t('weapons.lootMelee.desc')});}
 // 3.136.0 (user decisions 2026-09-19, docs/MELEE_WEAPONS.md): melee weapons anyone may carry, found in unidentified
 // crates. A bump attack uses the one picked in the pack. Switching to one to hold it costs a turn like any gun.
 WEAPONS.push(
-  {id:'knife',weaponClass:'melee',name:'求生小刀',type:'SURVIVAL KNIFE',code:'KN–02',min:16,max:20,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:97,desc:'比徒手準、也比徒手痛，換掉一格武器欄。撞上敵人時使用。'},
-  {id:'claws',weaponClass:'melee',name:'手爪',type:'CLAW GAUNTLET',code:'CL–03',min:14,max:18,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:95,phase:'fast',bareBonus:.5,desc:'快速段出手：在快速的敵人行動之前打到牠。目標沒有裝甲時傷害 ×1.5。'},
-  {id:'sabre',weaponClass:'melee',name:'軍刀',type:'SABRE',code:'SB–04',min:26,max:32,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:90,splash:.45,desc:'命中後，目標身旁看得見的其他敵人受到 45% 傷害。'},
-  {id:'spear',weaponClass:'melee',name:'長矛',type:'SPEAR',code:'SP–05',min:20,max:26,range:2,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:92,thrust:true,desc:'撞上敵人時照常近戰。拿在手上時可以開火：刺向 2 格內的目標，直線上每個單位各自判定命中，友軍也會被刺中；貼身時會刺穿到後面一格。'},
-  {id:'chainsaw',weaponClass:'melee',name:'鏈鋸',type:'CHAINSAW',code:'CS–06',min:3,max:10,hits:10,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:88,pierce:1,phase:'slow',recovery:true,desc:'緩速段出手：普通敵人先行動。命中後連鋸 10 下，每下 3–10、無視裝甲；命中後你會跳過下一次行動。'},
+  {id:'knife',weaponClass:'melee',name:t('weapons.knife.name'),type:'SURVIVAL KNIFE',code:'KN–02',min:16,max:20,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:97,desc:t('weapons.knife.desc')},
+  {id:'claws',weaponClass:'melee',name:t('weapons.claws.name'),type:'CLAW GAUNTLET',code:'CL–03',min:14,max:18,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:95,phase:'fast',bareBonus:.5,desc:t('weapons.claws.desc')},
+  {id:'sabre',weaponClass:'melee',name:t('weapons.sabre.name'),type:'SABRE',code:'SB–04',min:26,max:32,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:90,splash:.45,desc:t('weapons.sabre.desc')},
+  {id:'spear',weaponClass:'melee',name:t('weapons.spear.name'),type:'SPEAR',code:'SP–05',min:20,max:26,range:2,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:92,thrust:true,desc:t('weapons.spear.desc')},
+  {id:'chainsaw',weaponClass:'melee',name:t('weapons.chainsaw.name'),type:'CHAINSAW',code:'CS–06',min:3,max:10,hits:10,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:88,pierce:1,phase:'slow',recovery:true,desc:t('weapons.chainsaw.desc')},
 );
-export const FLOORS = ['軌道轉運站','污染冷卻區','軍械封鎖區','生化培養艙','高壓熔爐','深淵反應核心'];
+export const FLOORS = [t('floors.0'),t('floors.1'),t('floors.2'),t('floors.3'),t('floors.4'),t('floors.5')];
 export const FLOOR_INFO = [
-  { color:'#a4b484', subtitle:'TRANSIT HUB', text:'轉運站。殘存補給未清點。', hazard:null },
-  { color:'#73b8a0', subtitle:'COOLANT WORKS', text:'冷卻區遭污染，綠色格會造成傷害。', hazard:'acid' },
-  { color:'#cead71', subtitle:'ARMORY LOCKDOWN', text:'電梯由頭目鎖定。軍械箱內存有新式武器。', hazard:null, get boss(){return factionBoss(DEFAULT_FACTION,3);} },
-  { color:'#bc89b6', subtitle:'BIO CULTURE', text:'自爆單位會引爆周遭油桶。地面有綠色毒液。', hazard:'acid' },
-  { color:'#de885a', subtitle:'THERMAL FORGE', text:'熔爐地板高溫。重裝單位與狙擊手據守長廊。', hazard:'fire' },
-  { color:'#d56e60', subtitle:'ABYSS CORE', text:'頭目擊殺後方可撤離。留意預告標記。', hazard:'fire', get boss(){return factionBoss(DEFAULT_FACTION,6);} },
+  { color:'#a4b484', subtitle:'TRANSIT HUB', text:t('floorInfo.0.text'), hazard:null },
+  { color:'#73b8a0', subtitle:'COOLANT WORKS', text:t('floorInfo.1.text'), hazard:'acid' },
+  { color:'#cead71', subtitle:'ARMORY LOCKDOWN', text:t('floorInfo.2.text'), hazard:null, get boss(){return factionBoss(DEFAULT_FACTION,3);} },
+  { color:'#bc89b6', subtitle:'BIO CULTURE', text:t('floorInfo.3.text'), hazard:'acid' },
+  { color:'#de885a', subtitle:'THERMAL FORGE', text:t('floorInfo.4.text'), hazard:'fire' },
+  { color:'#d56e60', subtitle:'ABYSS CORE', text:t('floorInfo.5.text'), hazard:'fire', get boss(){return factionBoss(DEFAULT_FACTION,6);} },
 ];
 export function floorInfo(floor){const index=((floor-1)%FLOORS.length+FLOORS.length)%FLOORS.length;return {...FLOOR_INFO[index],name:FLOORS[index],cycleFloor:index+1,weapon:[2,3,4,5,3,4][index]};}
 export const ENEMY_TYPES = {
-  fodder:{sprite:{key:'rifleman',size:.8},projectile:'melee',voice:'creature',tags:[],traits:['slow','no_cover'],behavior:'fodder',rounds:1,attackStyle:'bullet',name:'失能遊蕩者',hp:6,damage:2,range:1,armor:0,color:'#a0a184',xp:0,expendable:true,role:'緩速、每兩次行動機會活動一次。徒手可清理，擊殺獲得追擊。'},
-  brood:{sprite:{key:'crawler',size:.65},projectile:'melee',voice:'creature',tags:[],traits:['fast','no_cover','underfoot'],behavior:'brood',rounds:1,attackStyle:'bullet',name:'裂隙幼蟲',hp:6,damage:4,range:1,armor:0,color:'#cfac7c',xp:0,expendable:true,role:'巢穴釋出的快速幼蟲。沒有戰利品，擊殺獲得追擊。'},
-  rifleman:{projectile:'rifle',casing:'rifle',tags:['armed'],traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:0,chance:.20,ammo:'ammo'},name:'斷訊槍兵',hp:22,damage:17,range:7,armor:0,color:'#9fba81',xp:1,fragile:true,rapid:true,seekCover:true,role:'低耐久、自動步槍連續壓制。先找牆角或掩體，再優先擊殺。'},
-  raider:{projectile:'smg',casing:'pistol',tags:['armed'],traits:[],rounds:2,attackStyle:'bullet',loot:{weapon:2,chance:.18,ammo:'pistol'},name:'破口突擊兵',hp:18,damage:21,range:5,armor:0,color:'#d4b185',xp:1,fragile:true,rapid:true,seekCover:true,role:'近距離高傷害、低生命。與槍兵交叉火力，勿停在暴露通道。'},
-  crawler:{drawing:{shape:'critter',color:'#ba966d'},projectile:'melee',voice:'creature',tags:['breaker'],traits:[],floorTraits:[{id:'fast',minFloor:4}],rounds:1,attackStyle:'claw', name:'裂隙獵犬', hp:32, damage:9, range:1, armor:0, color:'#bd9667', xp:1, role:'接近後蓄勢撕咬。拉開一格即可避開攻擊。' },
-  gunner:{sprite:{key:'rifleman'},projectile:'shotgun',casing:'shell',tags:['armed'],traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:1,chance:.14,ammo:'shell'}, name:'叛變哨兵', hp:42, damage:11, range:6, armor:0, color:'#92a480', xp:1, role:'中距離槍擊。牆壁阻擋射線，掩體可減傷。' },
-  drone:{drawing:{shape:'drone'},projectile:'plasma',glyph:'◇',tags:['flying'],traits:['no_cover'],rounds:1,attackStyle:'plasma',loot:{ammo:'energy'}, name:'無人機', hp:28, damage:9, range:5, armor:0, color:'#85c4c0', xp:1, mechanical:true, role:'可飛越地形傷害與掩體，但無法穿牆。' },
-  brute:{drawing:{heavy:true},projectile:'melee',tags:['breaker'],traits:['large','suppression_resistance'],rounds:1,attackStyle:'slash',loot:{rareWeapon:8,rareChance:.1}, name:'破壞者', hp:90, damage:20, range:1, armor:7, color:'#b99573', xp:2, role:'重裝近戰。用狙擊、電漿或爆炸穿透護甲。' },
-  sniper:{drawing:{longBarrel:true},projectile:'sniper',casing:'rifle',tags:['armed'],traits:['night_vision'],behavior:'sniper',accepts:['ambush'],dropsGoggles:true,rounds:1,attackStyle:'bullet',loot:{weapon:3,chance:.2,ammo:'ammo'}, name:'盲眼狙擊手', hp:45, damage:23, range:10, armor:1, color:'#b3adcb', xp:2, role:'具夜視，忽略暗區懲罰；射程 10 格，瞄準需要兩回合。' },
-  bomber:{drawing:{shape:'critter',color:'#aabb71',glow:'#e9d24c33'},voice:'creature',tags:['breaker'],traits:[],behavior:'bomber',sacs:true,rounds:1,attackStyle:'bullet', name:'孢子自爆體', hp:30, damage:30, range:1, armor:0, color:'#b8bc67', xp:1, role:'死亡或近身蓄勢後爆炸。保持至少 2 格距離。' },
-  warden:{sprite:{scale:1.15},drawing:{heavy:true},projectile:'plasma',tags:['boss'],traits:['infrared','suppression_resistance'],behavior:'warden',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{weapon:4,chance:1,ammo:'energy',rareWeapon:8,rareChance:.15}, name:'封鎖官', hp:180, damage:19, range:6, armor:5, color:'#d9aa70', xp:4, mechanical:true, role:'具紅外線可穿煙，但也怕震撼彈。攻擊需蓄勢，掉落稀有軍械。' },
-  boss:{sprite:{scale:1.15},drawing:{heavy:true},projectile:'plasma',glyph:'Ω',tags:['boss','breaker'],traits:['suppression_resistance'],behavior:'boss',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{ammo:'ordnance'}, name:'核心守衛', hp:280, damage:22, range:7, armor:7, color:'#df785f', xp:6, mechanical:true, role:'反應核心頭目。交替槍擊與延遲轟炸，離開紅色標記。' },
+  fodder:{sprite:{key:'rifleman',size:.8},projectile:'melee',voice:'creature',tags:[],traits:['slow','no_cover'],behavior:'fodder',rounds:1,attackStyle:'bullet',name:t('enemyTypes.fodder.name'),hp:6,damage:2,range:1,armor:0,color:'#a0a184',xp:0,expendable:true,role:t('enemyTypes.fodder.role')},
+  brood:{sprite:{key:'crawler',size:.65},projectile:'melee',voice:'creature',tags:[],traits:['fast','no_cover','underfoot'],behavior:'brood',rounds:1,attackStyle:'bullet',name:t('enemyTypes.brood.name'),hp:6,damage:4,range:1,armor:0,color:'#cfac7c',xp:0,expendable:true,role:t('enemyTypes.brood.role')},
+  rifleman:{projectile:'rifle',casing:'rifle',tags:['armed'],traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:0,chance:.20,ammo:'ammo'},name:t('enemyTypes.rifleman.name'),hp:22,damage:17,range:7,armor:0,color:'#9fba81',xp:1,fragile:true,rapid:true,seekCover:true,role:t('enemyTypes.rifleman.role')},
+  raider:{projectile:'smg',casing:'pistol',tags:['armed'],traits:[],rounds:2,attackStyle:'bullet',loot:{weapon:2,chance:.18,ammo:'pistol'},name:t('enemyTypes.raider.name'),hp:18,damage:21,range:5,armor:0,color:'#d4b185',xp:1,fragile:true,rapid:true,seekCover:true,role:t('enemyTypes.raider.role')},
+  crawler:{drawing:{shape:'critter',color:'#ba966d'},projectile:'melee',voice:'creature',tags:['breaker'],traits:[],floorTraits:[{id:'fast',minFloor:4}],rounds:1,attackStyle:'claw', name:t('enemyTypes.crawler.name'), hp:32, damage:9, range:1, armor:0, color:'#bd9667', xp:1, role:t('enemyTypes.crawler.role') },
+  gunner:{sprite:{key:'rifleman'},projectile:'shotgun',casing:'shell',tags:['armed'],traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:1,chance:.14,ammo:'shell'}, name:t('enemyTypes.gunner.name'), hp:42, damage:11, range:6, armor:0, color:'#92a480', xp:1, role:t('enemyTypes.gunner.role') },
+  drone:{drawing:{shape:'drone'},projectile:'plasma',glyph:'◇',tags:['flying'],traits:['no_cover'],rounds:1,attackStyle:'plasma',loot:{ammo:'energy'}, name:t('enemyTypes.drone.name'), hp:28, damage:9, range:5, armor:0, color:'#85c4c0', xp:1, mechanical:true, role:t('enemyTypes.drone.role') },
+  brute:{drawing:{heavy:true},projectile:'melee',tags:['breaker'],traits:['large','suppression_resistance'],rounds:1,attackStyle:'slash',loot:{rareWeapon:8,rareChance:.1}, name:t('enemyTypes.brute.name'), hp:90, damage:20, range:1, armor:7, color:'#b99573', xp:2, role:t('enemyTypes.brute.role') },
+  sniper:{drawing:{longBarrel:true},projectile:'sniper',casing:'rifle',tags:['armed'],traits:['night_vision'],behavior:'sniper',accepts:['ambush'],dropsGoggles:true,rounds:1,attackStyle:'bullet',loot:{weapon:3,chance:.2,ammo:'ammo'}, name:t('enemyTypes.sniper.name'), hp:45, damage:23, range:10, armor:1, color:'#b3adcb', xp:2, role:t('enemyTypes.sniper.role') },
+  bomber:{drawing:{shape:'critter',color:'#aabb71',glow:'#e9d24c33'},voice:'creature',tags:['breaker'],traits:[],behavior:'bomber',sacs:true,rounds:1,attackStyle:'bullet', name:t('enemyTypes.bomber.name'), hp:30, damage:30, range:1, armor:0, color:'#b8bc67', xp:1, role:t('enemyTypes.bomber.role') },
+  warden:{sprite:{scale:1.15},drawing:{heavy:true},projectile:'plasma',tags:['boss'],traits:['infrared','suppression_resistance'],behavior:'warden',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{weapon:4,chance:1,ammo:'energy',rareWeapon:8,rareChance:.15}, name:t('enemyTypes.warden.name'), hp:180, damage:19, range:6, armor:5, color:'#d9aa70', xp:4, mechanical:true, role:t('enemyTypes.warden.role') },
+  boss:{sprite:{scale:1.15},drawing:{heavy:true},projectile:'plasma',glyph:'Ω',tags:['boss','breaker'],traits:['suppression_resistance'],behavior:'boss',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{ammo:'ordnance'}, name:t('enemyTypes.boss.name'), hp:280, damage:22, range:7, armor:7, color:'#df785f', xp:6, mechanical:true, role:t('enemyTypes.boss.role') },
   // Rebel suicide robot (3.80.0): the bomber behaviour on a mechanical body, borrowing the drone sprite with a rust tint.
-  bomber_bot:{sprite:{key:'drone',tint:'#d9894a'},drawing:{shape:'drone'},tags:['breaker'],traits:[],behavior:'bomber',rounds:1,attackStyle:'plasma',name:'自爆機器人',hp:30,damage:30,range:1,armor:0,color:'#c98f55',xp:1,mechanical:true,role:'近身蓄勢後自爆，被擊毀時也會爆炸。機械：怕 EMP、不受壓制。保持至少 2 格距離。'},
+  bomber_bot:{sprite:{key:'drone',tint:'#d9894a'},drawing:{shape:'drone'},tags:['breaker'],traits:[],behavior:'bomber',rounds:1,attackStyle:'plasma',name:t('enemyTypes.bomber_bot.name'),hp:30,damage:30,range:1,armor:0,color:'#c98f55',xp:1,mechanical:true,role:t('enemyTypes.bomber_bot.role')},
 };
 // Compatibility view keeps the historical key order; loot has one authoritative home.
 export const ENEMY_LOOT=Object.freeze(Object.fromEntries(['rifleman','raider','gunner','sniper','drone','brute','warden','boss'].map(id=>[id,Object.freeze(ENEMY_TYPES[id].loot)])));
@@ -85,17 +86,17 @@ for(const base of ['raider','gunner'])ENEMY_TYPES[`${base}_elite`]=variantCard(b
 for(const base of ['rifleman','raider'])ENEMY_TYPES[`${base}_armored`]=variantCard(base,{armor:1});
 // Swarm (3.83.0, docs/FACTION_DATA.md 16): a giant bug with huge HP and no armour, oversized bug bosses on the crawler
 // art, and infected soldiers that fire more rounds with far worse aim (card combat becomes the unit's combatModifiers).
-ENEMY_TYPES.giant_bug={sprite:{key:'crawler',size:1.3,scale:1.3,tint:'#9a7a52'},drawing:{shape:'critter',color:'#9a7a52'},projectile:'melee',voice:'creature',tags:['breaker'],traits:['large','suppression_resistance'],rounds:1,attackStyle:'claw',name:'巨型蟲',hp:150,damage:22,range:1,armor:0,color:'#9a7a52',xp:3,role:'血很多、沒有裝甲的巨蟲。穿甲沒有用，要靠持續火力。'};
-ENEMY_TYPES.hive_beast={...ENEMY_TYPES.giant_bug,sprite:{key:'crawler',size:1.55,scale:1.55,tint:'#80603f'},drawing:{shape:'critter',color:'#80603f'},tags:['boss','breaker'],name:'巢穴巨獸',hp:420,damage:26,xp:4,role:'第 3 層的蟲族頭目：生命極高、沒有裝甲的近戰巨獸。'};
-ENEMY_TYPES.hive_matriarch={...ENEMY_TYPES.hive_beast,sprite:{key:'crawler',size:1.7,scale:1.7,tint:'#6e4a5a'},drawing:{shape:'critter',color:'#6e4a5a'},name:'母巢巨獸',hp:600,damage:30,xp:5,role:'第 6 層的蟲族頭目：比巢穴巨獸更大、更耐打。'};
-for(const [base,rounds,ammo,tint,name] of [['rifleman',3,'ammo','#8fa06a','被感染槍兵'],['raider',4,'pistol','#a0925e','被感染突擊兵']])
- ENEMY_TYPES[`${base}_infected`]=variantCard(base,{name,rounds,combat:{rangedAccuracy:-35},loot:{ammo},voice:'infected',sprite:{key:base,tint},role:'被蟲族寄生的士兵：一次連發很多發，但幾乎打不準；只要命中仍會造成壓制。'});
+ENEMY_TYPES.giant_bug={sprite:{key:'crawler',size:1.3,scale:1.3,tint:'#9a7a52'},drawing:{shape:'critter',color:'#9a7a52'},projectile:'melee',voice:'creature',tags:['breaker'],traits:['large','suppression_resistance'],rounds:1,attackStyle:'claw',name:t('enemyTypes.giant_bug.name'),hp:150,damage:22,range:1,armor:0,color:'#9a7a52',xp:3,role:t('enemyTypes.giant_bug.role')};
+ENEMY_TYPES.hive_beast={...ENEMY_TYPES.giant_bug,sprite:{key:'crawler',size:1.55,scale:1.55,tint:'#80603f'},drawing:{shape:'critter',color:'#80603f'},tags:['boss','breaker'],name:t('enemyTypes.hive_beast.name'),hp:420,damage:26,xp:4,role:t('enemyTypes.hive_beast.role')};
+ENEMY_TYPES.hive_matriarch={...ENEMY_TYPES.hive_beast,sprite:{key:'crawler',size:1.7,scale:1.7,tint:'#6e4a5a'},drawing:{shape:'critter',color:'#6e4a5a'},name:t('enemyTypes.hive_matriarch.name'),hp:600,damage:30,xp:5,role:t('enemyTypes.hive_matriarch.role')};
+for(const [base,rounds,ammo,tint,name] of [['rifleman',3,'ammo','#8fa06a',t('enemyTypes.rifleman_infected.name')],['raider',4,'pistol','#a0925e',t('enemyTypes.raider_infected.name')]])
+ ENEMY_TYPES[`${base}_infected`]=variantCard(base,{name,rounds,combat:{rangedAccuracy:-35},loot:{ammo},voice:'infected',sprite:{key:base,tint},role:t('enemyTypes.infected.role')});
 // Squad leader (3.125.0, user design): support first, rifle second. It identifies the player's weapon, sends the squad
 // to positions that answer it, and spends its own action keeping them 已就緒, so it is the unit to shoot first.
-ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],traits:['suppression_resistance','night_vision','infrared'],dropsInfrared:true,rounds:1,attackStyle:'bullet',behavior:'squad_leader',loot:{weapon:0,chance:.2,ammo:'ammo'},name:'小隊長',hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:'指揮官：識別你手上的武器，把隊員派到能有效還擊的位置，並讓全隊保持「已就緒」。它活著時隊員會壓制你。'};
+ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],traits:['suppression_resistance','night_vision','infrared'],dropsInfrared:true,rounds:1,attackStyle:'bullet',behavior:'squad_leader',loot:{weapon:0,chance:.2,ammo:'ammo'},name:t('enemyTypes.squad_leader.name'),hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:t('enemyTypes.squad_leader.role')};
 // Enforcer (3.127.0, user design, docs/REBELS.md): slow, with a long and hopeless gun; its real work is executing the
 // rebels who hide, which throws the whole unit back into the fight. Two a floor, three from floor 7.
-ENEMY_TYPES.enforcer={sprite:{key:'rifleman',tint:'#8a3a34'},drawing:{shape:'humanoid',color:'#8a3a34'},projectile:'rifle',casing:'pistol',tags:['armed'],traits:['slow'],rounds:1,attackStyle:'bullet',behavior:'enforcer',speaksAs:'enforcer',maxPerFloor:2,maxPerFloorDeep:3,combat:{rangedAccuracy:-40},loot:{weapon:2,chance:.18,ammo:'pistol'},name:'督戰官',hp:40,damage:10,range:10,armor:1,color:'#8a3a34',xp:2,role:'叛軍的督戰官：行動緩慢，一把射程很遠卻幾乎打不中的槍。看到你會警告附近所有敵人，然後躲到掩體後，不會自己衝上來。盯上躲起來的叛軍、下一回合處決，讓周圍所有人立刻歸隊開火。先殺它，或搶先殺掉被盯上的那個。'};
+ENEMY_TYPES.enforcer={sprite:{key:'rifleman',tint:'#8a3a34'},drawing:{shape:'humanoid',color:'#8a3a34'},projectile:'rifle',casing:'pistol',tags:['armed'],traits:['slow'],rounds:1,attackStyle:'bullet',behavior:'enforcer',speaksAs:'enforcer',maxPerFloor:2,maxPerFloorDeep:3,combat:{rangedAccuracy:-40},loot:{weapon:2,chance:.18,ammo:'pistol'},name:t('enemyTypes.enforcer.name'),hp:40,damage:10,range:10,armor:1,color:'#8a3a34',xp:2,role:t('enemyTypes.enforcer.role')};
 // Stable IDs; append content without changing saved offers. null cap means consumable reward.
 // 3.138.0 (user decisions 2026-09-19, docs/PERK_GROWTH.md): the direct-number perks give less per rank. `classic` holds the
 // values a run started before 3.138.0 keeps (src/perks.js perkDef); the utility perks are unchanged.
@@ -103,54 +104,54 @@ ENEMY_TYPES.enforcer={sprite:{key:'rifleman',tint:'#8a3a34'},drawing:{shape:'hum
 // a regular affix's upside is added again, and the plate capacity.
 export const PERK_D=Object.freeze({steady:8,skirmish:6,mastery:.25,rack:10});
 export const PERKS = [
-  {id:'damage',rules:[1,2],name:'武器增幅',cap:3,effect:'weapon',amount:4,text:'每次完整武器攻擊傷害合計 +4，連發分攤；每次近戰 +4。',classic:{amount:6,text:'每次完整武器攻擊傷害合計 +6，連發分攤；每次近戰 +6。'}},
-  {id:'health',name:'生存本能',cap:3,effect:'health',amount:20,heal:30,text:'最大生命 +20，立即回復 30 生命。',classic:{amount:25,heal:40,text:'最大生命 +25，立即回復 40 生命。'}},
-  {id:'armor',rules:[1,2],name:'複合裝甲',cap:3,effect:'stat',stat:'armor',amount:2,text:'每次直接受傷減少 2 點。',classic:{amount:3,text:'每次直接受傷減少 3 點。'}},
-  {id:'med',name:'戰地補給',cap:null,effect:'supply',text:'獲得 2 醫療包、2 手榴彈與分類備彈；超量彈藥留在腳下。'},
-  {id:'blast',name:'爆破專家',cap:3,effect:'stat',stat:'blastBonus',amount:12,text:'破片手榴彈與爆炸武器傷害 +12。',classic:{amount:18,text:'破片手榴彈與爆炸武器傷害 +18。'}},
-  {id:'scavenger',name:'資源回收',cap:3,effect:'scavenger',amount:1,text:'擊殺與撿到的廢料 +50%，立即獲得 15 廢料。'},
-  {id:'medic',name:'急救訓練',cap:3,effect:'medic',amount:20,text:'醫療包回復量 +20；立即獲得 1 醫療包。'},
-  {id:'hazmat',name:'密封防護',cap:3,effect:'hazmat',amount:5,text:'環境傷害 −5、中毒每回合傷害 −1，立即解除中毒；第 3 階免疫現有環境傷害。'},
-  {id:'accuracy',rules:[1,2],name:'精準射擊',cap:3,effect:'combat',stats:['rangedAccuracy'],amount:5,text:'射擊命中 +5 個百分點。',classic:{amount:8,text:'射擊命中 +8 個百分點。'}},
-  {id:'evasion',rules:[1,2],name:'戰術閃避',cap:3,effect:'combat',stats:['rangedEvasion'],amount:5,text:'被射擊命中 −5 個百分點。',classic:{amount:8,text:'被射擊命中 −8 個百分點。'}},
-  {id:'melee',name:'格鬥訓練',cap:3,effect:'combat',stats:['meleeAccuracy','meleeEvasion'],amount:8,text:'近戰命中與近戰迴避各 +8 個百分點。'},
-  {id:'plating',name:'裝甲回收',cap:3,effect:'plating',amount:10,text:'有裝甲的敵人掉落護甲板的機率 +15 個百分點（基礎 20%），一般敵人也有 6% 機率掉落 5 點；立即獲得 10 護甲板。'},
+  {id:'damage',rules:[1,2],name:t('perks.damage.name'),cap:3,effect:'weapon',amount:4,text:t('perks.damage.text'),classic:{amount:6,text:t('perks.damage.classic.text')}},
+  {id:'health',name:t('perks.health.name'),cap:3,effect:'health',amount:20,heal:30,text:t('perks.health.text'),classic:{amount:25,heal:40,text:t('perks.health.classic.text')}},
+  {id:'armor',rules:[1,2],name:t('perks.armor.name'),cap:3,effect:'stat',stat:'armor',amount:2,text:t('perks.armor.text'),classic:{amount:3,text:t('perks.armor.classic.text')}},
+  {id:'med',name:t('perks.med.name'),cap:null,effect:'supply',text:t('perks.med.text')},
+  {id:'blast',name:t('perks.blast.name'),cap:3,effect:'stat',stat:'blastBonus',amount:12,text:t('perks.blast.text'),classic:{amount:18,text:t('perks.blast.classic.text')}},
+  {id:'scavenger',name:t('perks.scavenger.name'),cap:3,effect:'scavenger',amount:1,text:t('perks.scavenger.text')},
+  {id:'medic',name:t('perks.medic.name'),cap:3,effect:'medic',amount:20,text:t('perks.medic.text')},
+  {id:'hazmat',name:t('perks.hazmat.name'),cap:3,effect:'hazmat',amount:5,text:t('perks.hazmat.text')},
+  {id:'accuracy',rules:[1,2],name:t('perks.accuracy.name'),cap:3,effect:'combat',stats:['rangedAccuracy'],amount:5,text:t('perks.accuracy.text'),classic:{amount:8,text:t('perks.accuracy.classic.text')}},
+  {id:'evasion',rules:[1,2],name:t('perks.evasion.name'),cap:3,effect:'combat',stats:['rangedEvasion'],amount:5,text:t('perks.evasion.text'),classic:{amount:8,text:t('perks.evasion.classic.text')}},
+  {id:'melee',name:t('perks.melee.name'),cap:3,effect:'combat',stats:['meleeAccuracy','meleeEvasion'],amount:8,text:t('perks.melee.text')},
+  {id:'plating',name:t('perks.plating.name'),cap:3,effect:'plating',amount:10,text:t('perks.plating.text')},
   // 3.148.0 (user decisions 2026-09-19, docs/PERK_GROWTH.md 升級 D): runs started from 3.148.0 (perkRules 3) get these four
   // in place of 武器增幅, 複合裝甲, 精準射擊 and 戰術閃避, which stay with older runs. Numbers in PERK_D.
-  {id:'steady',rules:[3],name:'沉著',cap:3,effect:'passive',text:'等待後下一次射擊的命中加成 +8（基礎 15）。'},
-  {id:'skirmish',rules:[3],name:'游擊',cap:3,effect:'passive',text:'你移動之後，敵人射擊你時的移動懲罰 +6（基礎 22）。'},
-  {id:'mod_mastery',rules:[3],name:'改裝精通',cap:3,effect:'passive',text:'身上武器的一般詞條，好處放大 25%，壞處不變（射程無條件捨去）；貫穿、爆裂、速射不受影響。身上有帶一般詞條的武器才會出現。'},
-  {id:'plate_rack',rules:[3],name:'加掛板架',cap:3,effect:'rack',amount:10,text:'護甲板上限 +10，立即獲得 10 護甲板。'},
-  {id:'bulwark_plating',name:'板甲護持',characters:['bulwark'],cap:3,effect:'passive',text:'護甲板還有剩時，直接傷害額外 −8%；每階累加。'},
-  {id:'bulwark_recovery',name:'板材回收',characters:['bulwark'],cap:3,effect:'passive',text:'敵人掉落護甲板機率 +15 個百分點、每份 +5 點；可與裝甲回收疊加。'},
-  {id:'bulwark_anchor',name:'下錨強化',characters:['bulwark'],cap:3,effect:'passive',text:'下錨中受到的直接傷害 −10%；第 3 階解除下錨不耗回合。'},
-  {id:'berserker_fury',name:'狂怒堆疊',characters:['berserker'],cap:3,effect:'passive',text:'戰意層數上限 +1。'},
-  {id:'berserker_endure',name:'血怒不退',characters:['berserker'],cap:3,effect:'passive',text:'戰意開始衰減的延遲 +2 回合、每層衰減間隔 +1 回合。'},
-  {id:'berserker_thirst',name:'嗜血狂歡',characters:['berserker'],cap:3,effect:'passive',text:'近戰吸血 +8 個百分點（基礎 20%）。'},
+  {id:'steady',rules:[3],name:t('perks.steady.name'),cap:3,effect:'passive',text:t('perks.steady.text')},
+  {id:'skirmish',rules:[3],name:t('perks.skirmish.name'),cap:3,effect:'passive',text:t('perks.skirmish.text')},
+  {id:'mod_mastery',rules:[3],name:t('perks.mod_mastery.name'),cap:3,effect:'passive',text:t('perks.mod_mastery.text')},
+  {id:'plate_rack',rules:[3],name:t('perks.plate_rack.name'),cap:3,effect:'rack',amount:10,text:t('perks.plate_rack.text')},
+  {id:'bulwark_plating',name:t('perks.bulwark_plating.name'),characters:['bulwark'],cap:3,effect:'passive',text:t('perks.bulwark_plating.text')},
+  {id:'bulwark_recovery',name:t('perks.bulwark_recovery.name'),characters:['bulwark'],cap:3,effect:'passive',text:t('perks.bulwark_recovery.text')},
+  {id:'bulwark_anchor',name:t('perks.bulwark_anchor.name'),characters:['bulwark'],cap:3,effect:'passive',text:t('perks.bulwark_anchor.text')},
+  {id:'berserker_fury',name:t('perks.berserker_fury.name'),characters:['berserker'],cap:3,effect:'passive',text:t('perks.berserker_fury.text')},
+  {id:'berserker_endure',name:t('perks.berserker_endure.name'),characters:['berserker'],cap:3,effect:'passive',text:t('perks.berserker_endure.text')},
+  {id:'berserker_thirst',name:t('perks.berserker_thirst.name'),characters:['berserker'],cap:3,effect:'passive',text:t('perks.berserker_thirst.text')},
   {id:'necro_horde',name:'群葬',characters:['necromancer'],cap:3,effect:'passive',text:'同時存在的召喚物上限 +1（基礎 3）。'},
   {id:'necro_haste',name:'速葬',characters:['necromancer'],cap:3,effect:'passive',text:'自動起身間隔 −1 次付費行動（基礎 4，下限 1）；目前倒數同步縮短。'},
   {id:'necro_blades',name:'亡者利刃',characters:['necromancer'],cap:3,effect:'passive',text:'所有召喚物的近戰與射擊傷害 +4；不增加耐久。'},
-  {id:'engineer_salvage',name:'戰場回收',characters:['engineer'],cap:3,effect:'passive',text:'每次擊殺額外 +2 廢料；立即獲得 15 廢料。'},
-  {id:'engineer_frame',name:'機體強化',characters:['engineer'],cap:3,effect:'passive',text:'所有機體最大生命 +20、裝甲 +1。已部署的機體立即增加上限，不直接修復。'},
-  {id:'engineer_firecontrol',name:'火控校準',characters:['engineer'],cap:3,effect:'passive',text:'所有機體射擊命中 +8 個百分點、傷害 +3。'},
-  {id:'engineer_lines',name:'生產序列',characters:['engineer'],cap:3,effect:'passive',text:'工坊生產序列 +1 條（基礎 1 條）。'},
-  {id:'engineer_deploy',name:'部署上限',characters:['engineer'],cap:3,effect:'passive',text:'同時部署的機體 +1 台（基礎 1 台，留在別層的不算）。'},
+  {id:'engineer_salvage',name:t('perks.engineer_salvage.name'),characters:['engineer'],cap:3,effect:'passive',text:t('perks.engineer_salvage.text')},
+  {id:'engineer_frame',name:t('perks.engineer_frame.name'),characters:['engineer'],cap:3,effect:'passive',text:t('perks.engineer_frame.text')},
+  {id:'engineer_firecontrol',name:t('perks.engineer_firecontrol.name'),characters:['engineer'],cap:3,effect:'passive',text:t('perks.engineer_firecontrol.text')},
+  {id:'engineer_lines',name:t('perks.engineer_lines.name'),characters:['engineer'],cap:3,effect:'passive',text:t('perks.engineer_lines.text')},
+  {id:'engineer_deploy',name:t('perks.engineer_deploy.name'),characters:['engineer'],cap:3,effect:'passive',text:t('perks.engineer_deploy.text')},
   {id:'druid_beast',name:'飽食',characters:['druid'],cap:3,effect:'passive',text:'胃容量 +10 燃料，射擊與排出消耗減少 10%。'},
   {id:'druid_claws',name:'飢餓',characters:['druid'],cap:3,effect:'passive',text:'胃空時獵獸近戰傷害 +25%。'},
   {id:'druid_symbiosis',name:'共生',characters:['druid'],cap:3,effect:'passive',text:'寵物每次擊殺敵人，你回復 4 生命；每階累加。'},
-  {id:'soldier_overwatch',name:'廣域預警',characters:['soldier'],cap:3,effect:'passive',text:'預警半徑 +2、冷卻 −1（最低 2）。'},
-  {id:'soldier_marked',name:'標定弱化',characters:['soldier'],cap:3,effect:'passive',text:'預警的標定持續 +1 回合；標定者對你的命中 −6。'},
+  {id:'soldier_overwatch',name:t('perks.soldier_overwatch.name'),characters:['soldier'],cap:3,effect:'passive',text:t('perks.soldier_overwatch.text')},
+  {id:'soldier_marked',name:t('perks.soldier_marked.name'),characters:['soldier'],cap:3,effect:'passive',text:t('perks.soldier_marked.text')},
   // 3.159.0 (user decision): 架槍精通 gave way to the second mark line; saves carry its ranks over.
-  {id:'soldier_hunter',name:'標定壓制',characters:['soldier'],cap:3,effect:'passive',text:'預警的標定持續 +1 回合；你對標定者的傷害 +10%。'},
-  {id:'recon_unseen',name:'隱蔽射手',characters:['recon'],cap:3,effect:'passive',text:'射擊目標看不到你時，每階傷害 +12%。'},
-  {id:'recon_blackout',name:'斷層延長',characters:['recon'],cap:3,effect:'passive',text:'訊號斷層持續 +1、冷卻 −1（最低 3）。'},
-  {id:'recon_sidestep',name:'側身精通',characters:['recon'],cap:3,effect:'passive',text:'側身使敵人命中每階再 −6，暴露下限同步放寬。'},
-  {id:'ninja_shadowstep',name:'影步',characters:['ninja'],cap:3,effect:'passive',text:'伏擊命中後取得免費移動；二階延長至 2 格，三階結束時可追加伏擊。'},
-  {id:'ninja_ambush',name:'伏擊精通',characters:['ninja'],cap:3,effect:'passive',text:'伏擊傷害倍率每階 +0.15。'},
-  {id:'ninja_overload',name:'光學過載',characters:['ninja'],cap:3,effect:'passive',text:'迷彩持續 +1、冷卻 −2（最低 4）。'},
+  {id:'soldier_hunter',name:t('perks.soldier_hunter.name'),characters:['soldier'],cap:3,effect:'passive',text:t('perks.soldier_hunter.text')},
+  {id:'recon_unseen',name:t('perks.recon_unseen.name'),characters:['recon'],cap:3,effect:'passive',text:t('perks.recon_unseen.text')},
+  {id:'recon_blackout',name:t('perks.recon_blackout.name'),characters:['recon'],cap:3,effect:'passive',text:t('perks.recon_blackout.text')},
+  {id:'recon_sidestep',name:t('perks.recon_sidestep.name'),characters:['recon'],cap:3,effect:'passive',text:t('perks.recon_sidestep.text')},
+  {id:'ninja_shadowstep',name:t('perks.ninja_shadowstep.name'),characters:['ninja'],cap:3,effect:'passive',text:t('perks.ninja_shadowstep.text')},
+  {id:'ninja_ambush',name:t('perks.ninja_ambush.name'),characters:['ninja'],cap:3,effect:'passive',text:t('perks.ninja_ambush.text')},
+  {id:'ninja_overload',name:t('perks.ninja_overload.name'),characters:['ninja'],cap:3,effect:'passive',text:t('perks.ninja_overload.text')},
 ];
-export const SUPPLY_NAMES = {ammo:'步槍彈',pistol:'手槍彈',shell:'霰彈',energy:'能量電池',ordnance:'榴彈彈藥',med:'醫療包',armor:'護甲板',grenade:'破片手榴彈',smoke:'煙霧彈',emp:'EMP 彈',stun:'震撼彈',scrap:'廢料',weapon:'武器箱',lore:'資料片段',spray:'修復噴劑',adrenaline:'腎上腺素',barricade:'摺疊掩體',flare:'照明彈',nvg:'夜視鏡',escape_line:'逃命繩索',redeploy_line:'重部署鉤索',decoy:'誘餌',mine:'地雷',exo:'外骨骼',key:'鑰匙卡',irg:'紅外線護目鏡'};
-PERKS.push({id:'ammo_recovery',name:'彈藥回收',cap:3,effect:'passive',text:'一般敵人彈藥掉落率每階 +15 個百分點（35% → 50% → 65% → 80%）。'});
+export const SUPPLY_NAMES = {ammo:t('supplyNames.ammo'),pistol:t('supplyNames.pistol'),shell:t('supplyNames.shell'),energy:t('supplyNames.energy'),ordnance:t('supplyNames.ordnance'),med:t('supplyNames.med'),armor:t('supplyNames.armor'),grenade:t('supplyNames.grenade'),smoke:t('supplyNames.smoke'),emp:t('supplyNames.emp'),stun:t('supplyNames.stun'),scrap:t('supplyNames.scrap'),weapon:t('supplyNames.weapon'),lore:t('supplyNames.lore'),spray:t('supplyNames.spray'),adrenaline:t('supplyNames.adrenaline'),barricade:t('supplyNames.barricade'),flare:t('supplyNames.flare'),nvg:t('supplyNames.nvg'),escape_line:t('supplyNames.escape_line'),redeploy_line:t('supplyNames.redeploy_line'),decoy:t('supplyNames.decoy'),mine:t('supplyNames.mine'),exo:t('supplyNames.exo'),key:t('supplyNames.key'),irg:t('supplyNames.irg')};
+PERKS.push({id:'ammo_recovery',name:t('perks.ammo_recovery.name'),cap:3,effect:'passive',text:t('perks.ammo_recovery.text')});
 export const LORE = STORIES.map(s=>s.body);
 
 // Loitering munition (3.103.0, user request): launched by a 投放 enemy, it appears exactly at its strike range so one
@@ -158,10 +159,10 @@ export const LORE = STORIES.map(s=>s.body);
 // shooting it down has to be reliable, or the one turn of warning is not really a choice.
 ENEMY_TYPES.munition={sprite:{key:'drone'},drawing:{shape:'drone',color:'#e0a65c',glow:'#f0b06a44'},glyph:'◈',tags:['flying'],traits:['no_cover'],behavior:'munition',rounds:1,attackStyle:'plasma',projectile:'plasma',
  // revealRange matches range on purpose: you see it exactly when it is close enough to hook you (3.105.0, user request).
- name:'浮游彈藥',hp:10,damage:34,range:3,revealRange:3,armor:0,color:'#e0a65c',xp:1,mechanical:true,expendable:true,
- role:'出現後下一回合以鉤索移到你身邊引爆。退出射程或直接打下來。'};
-ENEMY_TYPES.civilian={tags:['noncombatant'],traits:[],behavior:'civilian',voice:'civilian',name:'滯留研究員',hp:12,damage:0,range:0,rounds:0,armor:0,xp:0,color:'#d9ddd2',sprite:{key:'civilian'},drawing:{color:'#d9ddd2',unarmed:true},role:'不戰鬥的設施人員。看到你會尖叫並一直逃跑。'};
+ name:t('enemyTypes.munition.name'),hp:10,damage:34,range:3,revealRange:3,armor:0,color:'#e0a65c',xp:1,mechanical:true,expendable:true,
+ role:t('enemyTypes.munition.role')};
+ENEMY_TYPES.civilian={tags:['noncombatant'],traits:[],behavior:'civilian',voice:'civilian',name:t('enemyTypes.civilian.name'),hp:12,damage:0,range:0,rounds:0,armor:0,xp:0,color:'#d9ddd2',sprite:{key:'civilian'},drawing:{color:'#d9ddd2',unarmed:true},role:t('enemyTypes.civilian.role')};
 
-ENEMY_TYPES.spitter={lobs:true,name:"毒液噴吐蟲",hp:34,damage:0,range:6,armor:0,xp:1,tags:[],traits:[],rounds:1,attackStyle:"venom",projectile:"venom",voice:"creature",venom:true,sprite:{key:"spitter"},drawing:{shape:"critter",color:"#9aab55"},color:"#9aab55",role:"噴吐毒液，命中不直接傷害，延長中毒時間。"};
+ENEMY_TYPES.spitter={lobs:true,name:t('enemyTypes.spitter.name'),hp:34,damage:0,range:6,armor:0,xp:1,tags:[],traits:[],rounds:1,attackStyle:"venom",projectile:"venom",voice:"creature",venom:true,sprite:{key:"spitter"},drawing:{shape:"critter",color:"#9aab55"},color:"#9aab55",role:t('enemyTypes.spitter.role')};
 for(const type of ["hive_beast","hive_matriarch"])ENEMY_TYPES[type].tongue=true;
 for(const type of ["rifleman_infected","raider_infected","fodder"])ENEMY_TYPES[type].tags=[...ENEMY_TYPES[type].tags,"infected"];

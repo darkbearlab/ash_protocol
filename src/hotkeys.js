@@ -1,27 +1,28 @@
 // Keyboard bindings (3.121.0, user request): every battle command can take two keys, set in the settings, and the main
 // buttons can show their key in the top-left corner, like the key overlays of a mobile game emulator. A local
 // preference, never part of a save. Escape is fixed to the menu and cancelling, so a bad binding can always be undone.
+import {t} from './i18n.js';
 export const HOTKEY_SLOTS=2;
 export const HOTKEY_ACTIONS=Object.freeze([
- {id:'moveUp',group:'移動',label:'向上移動',defaults:['ArrowUp','w']},
- {id:'moveLeft',group:'移動',label:'向左移動',defaults:['ArrowLeft','a']},
- {id:'moveDown',group:'移動',label:'向下移動',defaults:['ArrowDown','s']},
- {id:'moveRight',group:'移動',label:'向右移動',defaults:['ArrowRight','d']},
- {id:'wait',group:'移動',label:'等待',defaults:['f','.']},
- {id:'fire',group:'行動',label:'開火',defaults:[' ']},
- {id:'reload',group:'行動',label:'裝填',defaults:['r']},
- {id:'grenade',group:'行動',label:'投擲',defaults:['g']},
- {id:'item',group:'行動',label:'道具',defaults:['h']},
- {id:'skill',group:'行動',label:'技能',defaults:['v']},
- {id:'interact',group:'行動',label:'互動',defaults:['e']},
- {id:'cycleTarget',group:'目標與畫面',label:'切換目標',defaults:['Tab']},
- {id:'toggleTargeting',group:'目標與畫面',label:'瞄準資訊開關',defaults:['q']},
- {id:'bag',group:'目標與畫面',label:'背包',defaults:['b']},
- {id:'weapons',group:'目標與畫面',label:'武器分頁',defaults:['i']},
- {id:'map',group:'目標與畫面',label:'樓層地圖',defaults:['m']},
- {id:'center',group:'目標與畫面',label:'鏡頭復位',defaults:['c']},
- {id:'zoomIn',group:'目標與畫面',label:'放大',defaults:['=']},
- {id:'zoomOut',group:'目標與畫面',label:'縮小',defaults:['-']},
+ {id:'moveUp',group:t('hotkeyActions.moveUp.group'),label:t('hotkeyActions.moveUp.label'),defaults:['ArrowUp','w']},
+ {id:'moveLeft',group:t('hotkeyActions.moveLeft.group'),label:t('hotkeyActions.moveLeft.label'),defaults:['ArrowLeft','a']},
+ {id:'moveDown',group:t('hotkeyActions.moveDown.group'),label:t('hotkeyActions.moveDown.label'),defaults:['ArrowDown','s']},
+ {id:'moveRight',group:t('hotkeyActions.moveRight.group'),label:t('hotkeyActions.moveRight.label'),defaults:['ArrowRight','d']},
+ {id:'wait',group:t('hotkeyActions.wait.group'),label:t('hotkeyActions.wait.label'),defaults:['f','.']},
+ {id:'fire',group:t('hotkeyActions.fire.group'),label:t('hotkeyActions.fire.label'),defaults:[' ']},
+ {id:'reload',group:t('hotkeyActions.reload.group'),label:t('hotkeyActions.reload.label'),defaults:['r']},
+ {id:'grenade',group:t('hotkeyActions.grenade.group'),label:t('hotkeyActions.grenade.label'),defaults:['g']},
+ {id:'item',group:t('hotkeyActions.item.group'),label:t('hotkeyActions.item.label'),defaults:['h']},
+ {id:'skill',group:t('hotkeyActions.skill.group'),label:t('hotkeyActions.skill.label'),defaults:['v']},
+ {id:'interact',group:t('hotkeyActions.interact.group'),label:t('hotkeyActions.interact.label'),defaults:['e']},
+ {id:'cycleTarget',group:t('hotkeyActions.cycleTarget.group'),label:t('hotkeyActions.cycleTarget.label'),defaults:['Tab']},
+ {id:'toggleTargeting',group:t('hotkeyActions.toggleTargeting.group'),label:t('hotkeyActions.toggleTargeting.label'),defaults:['q']},
+ {id:'bag',group:t('hotkeyActions.bag.group'),label:t('hotkeyActions.bag.label'),defaults:['b']},
+ {id:'weapons',group:t('hotkeyActions.weapons.group'),label:t('hotkeyActions.weapons.label'),defaults:['i']},
+ {id:'map',group:t('hotkeyActions.map.group'),label:t('hotkeyActions.map.label'),defaults:['m']},
+ {id:'center',group:t('hotkeyActions.center.group'),label:t('hotkeyActions.center.label'),defaults:['c']},
+ {id:'zoomIn',group:t('hotkeyActions.zoomIn.group'),label:t('hotkeyActions.zoomIn.label'),defaults:['=']},
+ {id:'zoomOut',group:t('hotkeyActions.zoomOut.group'),label:t('hotkeyActions.zoomOut.label'),defaults:['-']},
 ]);
 const IDS=HOTKEY_ACTIONS.map(action=>action.id);
 // Which button shows which command's key. The settings button shows the fixed Escape.

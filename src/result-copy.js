@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {purgeReview} from './purge-review.js';
 import {isEndless} from './endless.js';
 import {missionDepth} from './missions.js';
@@ -7,8 +8,8 @@ import {rollFacilityFaction} from './faction-catalog.js';
 // used up. The purge verdict below the heading still decides what happens to a unit that came back, so the win copy
 // never promises its fate.
 export const RESULT_EYEBROWS=Object.freeze({abandoned:'MISSION ABANDONED',won:'PURGE COMPLETE',dead:'UNIT EXPENDED'});
-export const WIN_COPY=Object.freeze({title:'火種已熄滅。',body:'設施目標已達成。交戰紀錄已提交評估。'});
-export const ABANDON_COPY=Object.freeze({title:'任務已放棄。',body:'已賺取的協定點數與解鎖保留，這次任務已結束。'});
+export const WIN_COPY=Object.freeze({title:t('winCopy.title'),body:t('winCopy.body')});
+export const ABANDON_COPY=Object.freeze({title:t('abandonCopy.title'),body:t('abandonCopy.body')});
 // Endless depth bands, and the share of a finite mission's depth that counts as "partly complete".
 export const RESULT_TUNING=Object.freeze({endlessDeep:13,endlessMid:7,partialShare:2/3});
 

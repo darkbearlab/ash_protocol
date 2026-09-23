@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {suppressionPenalty} from './suppression.js';
 import {CHARACTERS,validCharacter} from './characters.js';
 
@@ -14,5 +15,5 @@ export const clampHit=chance=>Math.max(10,Math.min(99,chance));
 export const EXO_ACCURACY=10;
 export const meleeChance=(attacker,target,base=97)=>clampHit(base+actorStat(attacker,'meleeAccuracy')-actorStat(target,'meleeEvasion'));
 
-const labels={rangedAccuracy:'射擊命中',rangedEvasion:'射擊迴避',meleeAccuracy:'近戰命中',meleeEvasion:'近戰迴避'};
+const labels={rangedAccuracy:t('labels.rangedAccuracy'),rangedEvasion:t('labels.rangedEvasion'),meleeAccuracy:t('labels.meleeAccuracy'),meleeEvasion:t('labels.meleeEvasion')};
 export const combatStatSummary=actor=>COMBAT_STATS.filter(key=>actorStat(actor,key)!==0).map(key=>labels[key]+' '+(actorStat(actor,key)>0?'+':'')+actorStat(actor,key)).join(' · ')||'無額外命中／迴避修正';

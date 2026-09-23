@@ -1,6 +1,7 @@
 // Control deck layout (3.101.0, user request): the 格狀 deck is one continuous five-by-three field of identical cells,
 // with no split between movement and actions. A layout is just an array of 15 slots, which is also the shape a slot
 // editor would edit and store, so the same validator guards both.
+import {t} from './i18n.js';
 export const DECK_COLUMNS=5,DECK_ROWS=3,DECK_SLOTS=DECK_COLUMNS*DECK_ROWS;
 // Every button the deck owns, by the selector that finds it. Nothing else may enter a layout.
 export const DECK_BUTTONS={
@@ -27,7 +28,7 @@ export const validDeckLayout=layout=>Array.isArray(layout)&&layout.length===DECK
 export const deckPlacement=layout=>layout.flatMap((id,index)=>id?[{id,selector:DECK_BUTTONS[id],row:Math.floor(index/DECK_COLUMNS)+1,column:index%DECK_COLUMNS+1}]:[]);
 // Editor metadata and moves (3.102.0, user request). Swapping two slots reaches any arrangement in two taps, so the
 // editor needs no function picker; swapping with an empty slot simply moves the button there.
-export const DECK_LABELS={up:'向上',down:'向下',left:'向左',right:'向右',wait:'等待',fire:'開火',reload:'裝填',grenade:'手榴彈',item:'道具',skill:'技能',interact:'互動'};
+export const DECK_LABELS={up:t('deckLabels.up'),down:t('deckLabels.down'),left:t('deckLabels.left'),right:t('deckLabels.right'),wait:t('deckLabels.wait'),fire:t('deckLabels.fire'),reload:t('deckLabels.reload'),grenade:t('deckLabels.grenade'),item:t('deckLabels.item'),skill:t('deckLabels.skill'),interact:t('deckLabels.interact')};
 export const DECK_GLYPHS={up:'↑',down:'↓',left:'←',right:'→',wait:'◷',fire:'⌖',reload:'⟳',grenade:'◉',item:'✚',skill:'◇',interact:'⇩'};
 export const swapSlots=(layout,a,b)=>{const next=[...layout];[next[a],next[b]]=[next[b],next[a]];return next;};
 // Stored layouts are user data: anything that does not validate is discarded rather than repaired.

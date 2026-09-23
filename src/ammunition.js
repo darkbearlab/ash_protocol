@@ -1,17 +1,18 @@
 // Stable resource IDs. `reserve` / item `ammo` remain rifle rounds for old tools.
 // tint: one colour per ammunition type (3.50.1). The pack's reserve chips and each weapon card read it, so a
 // weapon's colour tells you which reserve it drains. MELEE_TINT covers the weapons that never reload.
+import {t} from './i18n.js';
 export const MELEE_TINT='#8ea88c';
 // 3.115.0 (user decision; qa/results/2026-09-17-claude-shotgun-supply.md): every shell source doubled and every battery
 // source raised by half, the least that let a shotgun or plasma bot that cannot die stop running dry. Start loadouts
 // and carry capacity are unchanged.
 export const AMMUNITION={
-  pistol:{name:'手槍彈',short:'手槍彈',tint:'#7fa9dd',key:'pistol',item:'pistol',base:120,step:30,pickup:24},
-  rifle:{name:'步槍彈',short:'步槍彈',tint:'#d9b46a',key:'reserve',item:'ammo',base:72,step:18,pickup:16},
-  shell:{name:'霰彈',short:'霰彈',tint:'#e08a63',key:'shell',item:'shell',base:24,step:6,pickup:12},
-  energy:{name:'能量電池',short:'電池',tint:'#62c6c9',key:'energy',item:'energy',base:36,step:9,pickup:18},
-  ordnance:{name:'發射器榴彈',short:'榴彈',tint:'#b58ad8',key:'ordnance',item:'ordnance',base:8,step:2,pickup:4},
-  grenade:{name:'手榴彈',short:'手榴彈',tint:'#c3cf7c',key:'grenades',item:'grenade',base:4,step:1,pickup:1}
+  pistol:{name:t('ammunition.pistol.name'),short:t('ammunition.pistol.short'),tint:'#7fa9dd',key:'pistol',item:'pistol',base:120,step:30,pickup:24},
+  rifle:{name:t('ammunition.rifle.name'),short:t('ammunition.rifle.short'),tint:'#d9b46a',key:'reserve',item:'ammo',base:72,step:18,pickup:16},
+  shell:{name:t('ammunition.shell.name'),short:t('ammunition.shell.short'),tint:'#e08a63',key:'shell',item:'shell',base:24,step:6,pickup:12},
+  energy:{name:t('ammunition.energy.name'),short:t('ammunition.energy.short'),tint:'#62c6c9',key:'energy',item:'energy',base:36,step:9,pickup:18},
+  ordnance:{name:t('ammunition.ordnance.name'),short:t('ammunition.ordnance.short'),tint:'#b58ad8',key:'ordnance',item:'ordnance',base:8,step:2,pickup:4},
+  grenade:{name:t('ammunition.grenade.name'),short:t('ammunition.grenade.short'),tint:'#c3cf7c',key:'grenades',item:'grenade',base:4,step:1,pickup:1}
 };
 export const AMMO_IDS=['pistol','rifle','shell','energy','ordnance'];
 export const CARRY_COSTS=[20,40,70];

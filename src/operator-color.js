@@ -1,14 +1,15 @@
 // Operator colour (3.48.2, Claude): a cosmetic tint laid over the grey class sprites. Picked on the deploy screen,
 // kept as a local preference like the other display settings; never part of the run save or the combat RNG.
+import {t} from './i18n.js';
 export const OPERATOR_COLORS=[
-  {id:'amber',label:'琥珀',hex:'#e8a15c'},
-  {id:'red',label:'赤紅',hex:'#e2584a'},
-  {id:'blue',label:'鈷藍',hex:'#5c8fe8'},
-  {id:'cyan',label:'青碧',hex:'#48c6cf'},
-  {id:'green',label:'軍綠',hex:'#8cc257'},
-  {id:'violet',label:'紫羅蘭',hex:'#a97de6'},
-  {id:'white',label:'雪白',hex:'#e4e7e2'},
-  {id:'none',label:'原色',hex:null},
+  {id:'amber',label:t('operatorColors.amber.label'),hex:'#e8a15c'},
+  {id:'red',label:t('operatorColors.red.label'),hex:'#e2584a'},
+  {id:'blue',label:t('operatorColors.blue.label'),hex:'#5c8fe8'},
+  {id:'cyan',label:t('operatorColors.cyan.label'),hex:'#48c6cf'},
+  {id:'green',label:t('operatorColors.green.label'),hex:'#8cc257'},
+  {id:'violet',label:t('operatorColors.violet.label'),hex:'#a97de6'},
+  {id:'white',label:t('operatorColors.white.label'),hex:'#e4e7e2'},
+  {id:'none',label:t('operatorColors.none.label'),hex:null},
 ];
 export const DEFAULT_OPERATOR_COLOR='amber';
 // 3.140.0 (user decisions 2026-09-19): besides a preset id, the choice can be any colour from the picker's wheel and

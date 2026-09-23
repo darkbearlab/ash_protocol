@@ -1,4 +1,5 @@
 // Import-free catalog: data/endless compatibility views can depend on this without cycles.
+import {t} from './i18n.js';
 export const DEFAULT_FACTION='legacy';
 // First human split (3.80.0, Claude; docs/FACTIONS.md 10.8). Loyalists hold the two bosses and field few robots; rebels
 // fill numbers with drones and suicide robots and add always-elite hero cards. Neither has fodder or nests, which wait
@@ -7,17 +8,17 @@ export const DEFAULT_FACTION='legacy';
 // Faction names (3.104.0, user request): the two human factions field the same cards, so they get their own names.
 // Loyalists are the garrison and say what the unit does; the rebels are the same unit that turned, so 叛變 goes in front.
 // The armoured loyalist variants deliberately share their plain card's name. legacy keeps the ENEMY_TYPES names.
-const LOYALIST_NAMES={squad_leader:{name:'小隊長'},rifleman:{name:'步槍兵'},rifleman_armored:{name:'步槍兵'},raider:{name:'突擊兵'},raider_armored:{name:'突擊兵'},
- gunner:{name:'破門手'},sniper:{name:'狙擊手'},crawler:{name:'軍犬'}};
-const REBEL_NAMES={drone:{name:'叛變無人機'},brute:{name:'叛變破壞者'},rifleman:{name:'叛變步槍兵'},raider:{name:'叛變突擊兵'},raider_elite:{name:'叛變突擊兵'},
- gunner:{name:'叛變破門手'},gunner_elite:{name:'叛變破門手'},sniper:{name:'叛變狙擊手'},crawler:{name:'叛變軍犬'}};
+const LOYALIST_NAMES={squad_leader:{name:t('loyalistNames.squad_leader.name')},rifleman:{name:t('loyalistNames.rifleman.name')},rifleman_armored:{name:t('loyalistNames.rifleman_armored.name')},raider:{name:t('loyalistNames.raider.name')},raider_armored:{name:t('loyalistNames.raider_armored.name')},
+ gunner:{name:t('loyalistNames.gunner.name')},sniper:{name:t('loyalistNames.sniper.name')},crawler:{name:t('loyalistNames.crawler.name')}};
+const REBEL_NAMES={drone:{name:t('rebelNames.drone.name')},brute:{name:t('rebelNames.brute.name')},rifleman:{name:t('rebelNames.rifleman.name')},raider:{name:t('rebelNames.raider.name')},raider_elite:{name:t('rebelNames.raider_elite.name')},
+ gunner:{name:t('rebelNames.gunner.name')},gunner_elite:{name:t('rebelNames.gunner_elite.name')},sniper:{name:t('rebelNames.sniper.name')},crawler:{name:t('rebelNames.crawler.name')}};
 export const FACTIONS={
- legacy:{name:'現行混合',tag:false,roster:{
+ legacy:{name:t('factions.legacy.name'),tag:false,roster:{
   early:[['rifleman',2],['raider',1],['gunner',1],['drone',1],['crawler',1]],
   late:[['rifleman',2],['raider',2],['gunner',1],['drone',1],['brute',1],['sniper',1],['bomber',1]],
   deepExtra:[['brute',1],['sniper',1],['bomber',1]],
  },bosses:{3:'warden',6:'boss'},scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:'fodder',nestChild:'brood'},
- loyalist:{noncombatants:{roster:[['civilian',1]],perFloor:{min:3,max:5}},name:'忠誠者',tag:true,pickable:true,voice:'loyalist',roster:{
+ loyalist:{noncombatants:{roster:[['civilian',1]],perFloor:{min:3,max:5}},name:t('factions.loyalist.name'),tag:true,pickable:true,voice:'loyalist',roster:{
   early:[['rifleman',1],['rifleman_armored',1],['raider',1],['gunner',1],['drone',1],['crawler',1]],
   late:[['rifleman',1],['rifleman_armored',1],['raider',1],['raider_armored',1],['gunner',1],['drone',1],['brute',1],['sniper',1],['crawler',1]],
   deepExtra:[['brute',1],['sniper',1]],
@@ -28,7 +29,7 @@ export const FACTIONS={
   // 3.133.0 personality table (user decision, docs/ORDERS.md §8.1); a card not listed takes no orders on its own.
   personality:{rifleman:'disciplined',rifleman_armored:'disciplined',raider:'disciplined',raider_armored:'disciplined',gunner:'disciplined',sniper:'cunning',squad_leader:'commander',drone:'mindless',civilian:'fleeing'},
   bosses:{3:'warden',6:'boss'},scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
- rebel:{name:'叛軍',tag:true,pickable:true,voice:'rebel',eliteAffixes:4,roster:{
+ rebel:{name:t('factions.rebel.name'),tag:true,pickable:true,voice:'rebel',eliteAffixes:4,roster:{
   early:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',1],['crawler',1],['raider_elite',1],['enforcer',1]],
   late:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',2],['brute',1],['sniper',1],['crawler',1],['raider_elite',1],['gunner_elite',1],['enforcer',1]],
   deepExtra:[['bomber_bot',1],['gunner_elite',1]],
@@ -37,14 +38,14 @@ export const FACTIONS={
  bosses:{3:'warden',6:'boss'},scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:REBEL_NAMES},
  // Swarm (3.83.0, user): creature cards and infected soldiers, a giant bug, oversized bug bosses and burrow nests only.
  // The venom shot, the tongue pull and the infected affixes come with the Codex rules (docs/SWARM.md).
- swarm:{hordeType:'brood',infectedAffixes:['venomous','brood_host'],name:'蟲族',tag:true,pickable:true,voice:'creature',nestStyle:'burrow',roster:{
+ swarm:{hordeType:'brood',infectedAffixes:['venomous','brood_host'],name:t('factions.swarm.name'),tag:true,pickable:true,voice:'creature',nestStyle:'burrow',roster:{
   early:[['rifleman_infected',2],['raider_infected',1],['crawler',1]],
   late:[['crawler',2],['rifleman_infected',2],['raider_infected',2],['bomber',1],['giant_bug',1],['spitter',1]],
   deepExtra:[['giant_bug',1],['bomber',1],['spitter',1]],
  },
  personality:{crawler:'feral',rifleman_infected:'mindless',raider_infected:'mindless',bomber:'mindless'},
  // preview (3.137.0, docs/DIFFICULTY.md): the special enemy floor 2 shows on the standard curve.
- bosses:{3:'hive_beast',6:'hive_matriarch'},scout:'rifleman_infected',preview:'spitter',retreatWave:['crawler','crawler'],fodder:'fodder',nestChild:'brood',overrides:{fodder:{name:'被感染者'},brood:{name:'蟲群幼體'},crawler:{name:'獵殺蟲'}}},
+ bosses:{3:'hive_beast',6:'hive_matriarch'},scout:'rifleman_infected',preview:'spitter',retreatWave:['crawler','crawler'],fodder:'fodder',nestChild:'brood',overrides:{fodder:{name:t('factions.swarm.overrides.fodder.name')},brood:{name:t('factions.swarm.overrides.brood.name')},crawler:{name:t('factions.swarm.overrides.crawler.name')}}},
 };
 export const factionDef=id=>typeof id==='string'&&Object.hasOwn(FACTIONS,id)?FACTIONS[id]:undefined;
 export const expandRoster=entries=>entries.flatMap(([id,count])=>Array(count).fill(id));

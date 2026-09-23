@@ -5,11 +5,12 @@ export const LEARNING_SCRAP=15;
 // is done, so the eight class-native skills leave the pool. Suppressive fire belongs to no class and stays. The
 // retired IDs are kept so older saves can turn what they still hold into scrap instead of failing to load.
 export const RETIRED_LEARNING=['skill_drones','skill_pet_command','skill_raise_dead','skill_early_warning','skill_anchor','skill_signal_break','skill_grapple','skill_camouflage'];
-const skills={suppressive_fire:['壓制射擊',['suppressive_fire']]};
-const traits={braced:'架槍',correction:'著彈修正',sidestep:'側身',quick_reload:'快速裝填',night_vision:'夜視',infrared:'紅外線',extended_burst:'延伸點射',tactical_supply:'戰術配給',bloodlust:'嗜血',battle_spirit:'戰意',blade_stash:'刃藏',heavy_armor:'重裝防護',ambush:'伏擊',duelist:'單挑',rapid_fire:'連射',suppression_resistance:'壓制抗性',extended_carry:'攜行擴充',disruption_resistant:'抗失能',agile:'敏捷'};
+// 3.166.2: an item's name is the name of what it teaches, read from the skill and trait tables (one word, one place).
+const skills={suppressive_fire:['suppressive_fire']};
+const traits=['braced','correction','sidestep','quick_reload','night_vision','infrared','extended_burst','tactical_supply','bloodlust','battle_spirit','blade_stash','heavy_armor','ambush','duelist','rapid_fire','suppression_resistance','extended_carry','disruption_resistant','agile'];
 export const LEARNING_ITEMS=Object.fromEntries([
- ...Object.entries(skills).map(([id,[name,skills]])=>[`skill_${id}`,{name:t('learning-data.item',{name}),skills,unlockId:null}]),
- ...Object.entries(traits).map(([trait,name])=>[`trait_${trait}`,{name:t('learning-data.item',{name}),trait,unlockId:null}]),
+ ...Object.entries(skills).map(([id,skills])=>[`skill_${id}`,{name:t('learning-data.item',{name:t(`skills.${id}.name`)}),skills,unlockId:null}]),
+ ...traits.map(trait=>[`trait_${trait}`,{name:t('learning-data.item',{name:t(`traits.${trait}.name`)}),trait,unlockId:null}]),
 ]);
 export const validLearningId=id=>typeof id==='string'&&Object.hasOwn(LEARNING_ITEMS,id);
 // 3.135.0 (user decision, docs/ITEMS.md): night vision and infrared, passives with no cost and nothing to do, are no

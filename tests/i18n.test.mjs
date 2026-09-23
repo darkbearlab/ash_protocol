@@ -14,6 +14,7 @@ const DYNAMIC={
  'game.stepped.':['acid','acidReal','heat','heatReal'],
  'missions.exit.':['down','up','extract','enter'],
  'manual.class.':['soldier','recon','engineer','bulwark','berserker','ninja'],
+ 'sceneryFurniture.':['rover.cockpit','rover.part','shuttle.cockpit','shuttle.part'],
 };
 
 test('slots print like a template literal, pick a word by count, and stay visible when missing',()=>{

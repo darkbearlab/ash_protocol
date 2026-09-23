@@ -1,5 +1,6 @@
 // Terminal kinds (3.135.0, user decision 2026-09-18, docs/ITEMS.md). No imports, so map generation can read it.
-export const TERMINAL_KINDS=Object.freeze({arms:'軍械彈藥終端',medical:'治療終端',gear:'道具終端'});
+import {t} from './i18n.js';
+export const TERMINAL_KINDS=Object.freeze({arms:t('terminalKinds.arms'),medical:t('terminalKinds.medical'),gear:t('terminalKinds.gear')});
 // Each kind stands in the supply room of its theme: arms and ammunition in the ammo room (where the armory weapon
 // lies), medical in the medical room, gear in the armour room.
 export const KIND_ROOMS=Object.freeze({arms:'ammo',medical:'medical',gear:'armor'});

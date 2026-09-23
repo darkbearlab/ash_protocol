@@ -1,10 +1,11 @@
+import {t} from './i18n.js';
 import {bestCover} from './cover.js';
 import {seeThrough} from './data.js';
 // An edge belongs to both adjacent floor cells. axis is its normal, not its tangent.
 export const BARRIER_TYPES={
-  door:{name:'隔離門',maxHp:60,openable:true,destructible:true,move:true,sight:true,shot:true,blast:true,cover:true},
-  low_partition:{name:'矮隔板',maxHp:60,openable:false,destructible:true,vaultable:true,move:true,sight:false,shot:false,blast:false,cover:true},
-  partition:{name:'隔板',maxHp:90,openable:false,destructible:true,move:true,sight:true,shot:true,blast:true,cover:true},
+  door:{name:t('barrierTypes.door.name'),maxHp:60,openable:true,destructible:true,move:true,sight:true,shot:true,blast:true,cover:true},
+  low_partition:{name:t('barrierTypes.low_partition.name'),maxHp:60,openable:false,destructible:true,vaultable:true,move:true,sight:false,shot:false,blast:false,cover:true},
+  partition:{name:t('barrierTypes.partition.name'),maxHp:90,openable:false,destructible:true,move:true,sight:true,shot:true,blast:true,cover:true},
 };
 export const isBarrier=b=>Boolean(b&&Object.hasOwn(BARRIER_TYPES,b.type));
 export const vaultable=b=>Boolean(b&&b.hp>0&&BARRIER_TYPES[b.type]?.vaultable);

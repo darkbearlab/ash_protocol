@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {DEFAULT_FACTION,factionDef} from './factions.js';
 import {isNoncombatant} from './enemy-data.js';
 import {registerUnitTree,unitTree} from './behavior-tree.js';
@@ -6,7 +7,7 @@ import {roomTiles} from './map-geometry.js';
 // Initial conservative values. Existing normal enemy budgets and rewards are unchanged.
 export const RUNTIME_TUNING={liveLimit:64,expendableLimit:6,fodderCount:2,nestMinFloor:2,nestCount:1,nestHp:45,triggerRadius:6,interval:2,totalSpawn:6};
 // Cosmetic identity derives from the saved anchor, never combat/generation RNG.
-export const NEST_STYLES={burrow:{name:'蟲群地洞',color:'#b99770'},rift:{name:'裂隙傳送門',color:'#b078ed'}};
+export const NEST_STYLES={burrow:{name:t('nestStyles.burrow.name'),color:'#b99770'},rift:{name:t('nestStyles.rift.name'),color:'#b078ed'}};
 // A faction may fix its nest look (swarm burrows, 3.83.0); otherwise the saved anchor picks one.
 export const nestStyle=(p,faction)=>factionDef(faction)?.nestStyle??(((p.x*31+p.y*17+Number(p.id.split('-')[1]))&1)?'burrow':'rift');
 export function collapseNest(g,p){

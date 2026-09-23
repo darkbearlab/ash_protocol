@@ -1,12 +1,13 @@
+import {t} from './i18n.js';
 import {roomContains} from './map-geometry.js';
 import {SCENERY_FURNITURE,LARGE_MODULE_TYPES} from './scenery.js';
 import {makeBarrier,barrierBetween,edgeCells} from './barriers.js';
 
-export const FURNITURE={toilet:{name:'衛浴設備',hp:35},sink:{name:'洗手台',hp:40},counter:{name:'門禁櫃檯',hp:70},scanner:{name:'檢查設備',hp:45},locker:{name:'置物櫃',hp:75},bench:{name:'值勤桌',hp:55},...SCENERY_FURNITURE};
+export const FURNITURE={toilet:{name:t('furniture.toilet.name'),hp:35},sink:{name:t('furniture.sink.name'),hp:40},counter:{name:t('furniture.counter.name'),hp:70},scanner:{name:t('furniture.scanner.name'),hp:45},locker:{name:t('furniture.locker.name'),hp:75},bench:{name:t('furniture.bench.name'),hp:55},...SCENERY_FURNITURE};
 export const MODULE_TYPES={
-  restroom:{name:'衛浴間',code:'WC',color:'#9ccbc8',furniture:['toilet','sink']},
-  checkpoint:{name:'門禁櫃檯',code:'ACCESS',color:'#d1bc85',furniture:['counter','scanner']},
-  guardpost:{name:'值勤哨站',code:'POST',color:'#a7b797',furniture:['locker','bench']},
+  restroom:{name:t('moduleTypes.restroom.name'),code:'WC',color:'#9ccbc8',furniture:['toilet','sink']},
+  checkpoint:{name:t('moduleTypes.checkpoint.name'),code:'ACCESS',color:'#d1bc85',furniture:['counter','scanner']},
+  guardpost:{name:t('moduleTypes.guardpost.name'),code:'POST',color:'#a7b797',furniture:['locker','bench']},
   ...LARGE_MODULE_TYPES,
 };
 const dirs=[[0,-1],[1,0],[0,1],[-1,0]],key=p=>`${p.x},${p.y}`;
