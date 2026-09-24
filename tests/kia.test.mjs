@@ -68,17 +68,19 @@ test('the operative\'s fall on the presentation carries the killing blow',()=>{
  assert.equal(quiet.blow,null);
 });
 
-test('each officer has a call and a loss report; the overseer only an ellipsis; the call stays long and cannot be tapped away',()=>{
- for(const speaker of ['egret','wren','overseer'])for(const event of ['kia','lossReport']){
+test('each officer has a call, a loss report and an extraction line; the overseer only an ellipsis; the call stays long and cannot be tapped away',()=>{
+ for(const speaker of ['egret','wren','overseer'])for(const event of ['kia','lossReport','extracted']){
   const message=commsLine(speaker,event,{},{random:()=>0});
   assert.ok(message,`${speaker} ${event}`);
   if(speaker==='overseer')assert.equal(t(message.line),'……');
   else assert.ok(Object.hasOwn(COMMS_SPEAKERS[speaker].expressions,message.expression));
  }
- assert.deepEqual(Object.keys(COMMS_LINES.overseer),['kia','lossReport']);
+ assert.deepEqual(Object.keys(COMMS_LINES.overseer),['kia','lossReport','extracted']);
  // The user's picks on the review page (2026-09-24): Egret 2 calls and 3 reports, Wren 3 calls and 2 reports.
  assert.deepEqual(['egret','wren'].map(who=>[COMMS_LINES[who].kia.length,COMMS_LINES[who].lossReport.length]),[[2,3],[3,2]]);
  assert.equal(t('comms.wren.lossReport.1'),'……任務失敗。損失報告，提交。','her revision');
+ // 3.177.0 (user request): the victory results carry the officer's extraction line, a draft of three each for now.
+ assert.deepEqual(['egret','wren'].map(who=>COMMS_LINES[who].extracted.length),[3,3]);
  const text=t('comms.egret.kia.1');
  assert.equal(kiaSeconds(text),Math.round(commsDuration(text)*1.4)/1000);
  const listeners={},classes=new Set();
@@ -103,4 +105,11 @@ test('the fallen sprites are all drawn as if hit from the left, and the scene mi
  assert.deepEqual(draw({dx:-1,dy:0}),[['scale',-1,1],['sprite',true]],'from the right: mirrored');
  assert.deepEqual(draw({dx:1,dy:0}),[['sprite',true]],'from the left: as drawn');
  assert.deepEqual(draw(null),[['sprite',true]],'no direction: as drawn');
+});
+
+// 3.177.0 (user request): the results pick the officer's line by how the run ended; only a fresh result speaks, never a replay.
+test('the results speak the loss report for a death and the extraction line for a win',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const source=await readFile(new URL('../src/controller.js',import.meta.url),'utf8');
+ assert.match(source,/const resultEvent=\{dead:'lossReport',won:'extracted'\}\[game\.status\],report=fresh&&resultEvent&&!replay\?commsLine\(dutySpeaker\(\{game\}\),resultEvent\):null;/);
 });

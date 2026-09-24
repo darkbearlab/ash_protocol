@@ -236,6 +236,13 @@ export default Object.freeze({
  "comms.wren.kia.2":"欸……喂？說句話啊。喂！",
  "comms.wren.kia.3":"別開玩笑了，快回話！聽得到吧？",
  "comms.wren.lossReport.2":"任務失敗，報告已提交。下一個要活著回來啦。",
+ "comms.egret.extracted.1":"確認撤離。任務完成，辛苦了。",
+ "comms.egret.extracted.2":"幹員生命訊號穩定，撤離完成。戰鬥紀錄已提交審查。",
+ "comms.egret.extracted.3":"回收完成。……歡迎回來。",
+ "comms.wren.extracted.1":"好耶，撤出來了！這次幹得不錯喔。",
+ "comms.wren.extracted.2":"撤離確認～報告我交了，你先休息吧。",
+ "comms.wren.extracted.3":"活著回來了耶。……嗯，這樣就好。",
+ "comms.overseer.extracted.1":"……",
  // containerKinds
  "containerKinds.unknown.name":"未識別貨櫃",
  "containerKinds.ammo.name":"彈藥箱",
