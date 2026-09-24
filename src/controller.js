@@ -418,7 +418,7 @@ const placeRange=()=>renderer.placeItem==='mine'?MINE_TUNING.range:DECOY_TUNING.
 function fireWeapon(){
   if(renderer.mode==='launch'||renderer.mode==='blind'){cancelAim();return;}
   if(!game.weapon.pointTarget){act('fire');return;}
-  if(game.player.ammo[game.player.weapon]<=0){sayLine('reload_needed');return;}
+  if(game.player.ammo[game.player.weapon]<=0){sayLine(game.emptyCue());return;}
   const p=game.player,locked=game.targeted,face=isBarrier(locked)?barrierFace(locked,p):locked;
   const start=[face,...game.visibleEnemies].find(o=>o&&distance(o,p)<=game.weapon.range&&game.visible(o));
   renderer.mode='launch';renderer.aim=start?{x:start.x,y:start.y}:null;updateAim();

@@ -156,7 +156,7 @@ export default Object.freeze({
  "callout-ui.player.anchored":"Anchored!",
  "callout-ui.player.reload_needed":"Need to reload",
  "callout-ui.player.last_magazine":"Last magazine",
- "callout-ui.player.no_ammo":"Out of ammo",
+ "callout-ui.player.no_ammo":"No more ammo",
  "callout-ui.player.out_of_range":"Out of range",
  "callout-ui.player.no_target":"No target",
  "callout-ui.player.chambered":"Already loaded",

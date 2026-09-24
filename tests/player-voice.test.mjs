@@ -66,3 +66,12 @@ test('the operator\'s bubble: 1.5 s, a repeat extends it, a new line replaces it
  for(let i=0;i<6;i++)board.add({type:'callout',cue:'grenade',category:'danger',priority:'high',visibility:'visible',actorId:'e'+i,position:{x:i,y:0}},1300+i);
  const shown=board.active(1310);assert.equal(shown.filter(i=>i.event.speaker!=='player').length,CALLOUT_UI_TUNING.maxOnScreen);assert.ok(shown.some(i=>i.event.speaker==='player'));
 });
+
+// 3.177.5 (user): out of ammo altogether, firing says 沒彈藥了 as reloading does; 需要裝填 only while a reload would work.
+test('with no reserve, firing an empty or short magazine says 沒彈藥了, and so does the shot that empties it',()=>{
+ const g=arena(),p=g.player;enemy(g,12,10);p[g.reserveKey()]=0;
+ p.ammo[p.weapon]=0;refused(g,'fire',undefined,'no_ammo');refused(g,'reload',undefined,'no_ammo');
+ p.ammo[p.weapon]=1;assert.ok(g.action('fire'));assert.ok(spoken(g,'no_ammo'),'the last round, nothing to reload');assert.ok(!spoken(g,'reload_needed'));
+ p[g.reserveKey()]=5;p.ammo[p.weapon]=0;refused(g,'fire',undefined,'reload_needed');
+ assert.equal(g.emptyCue(),'reload_needed');p[g.reserveKey()]=0;assert.equal(g.emptyCue(),'no_ammo');
+});

@@ -273,6 +273,9 @@ export class Game {
   autoTarget(){if(blindAim(this))return;if(!this.targeted)this.target=this.visibleEnemies.filter(e=>!isNoncombatant(e)).sort((a,b)=>distance(this.player,a)-distance(this.player,b))[0]?.id??null;}
   log(text,danger=false,realText=null){if(silenced(this))return;this.logs.unshift({turn:this.turn,text:this.realMode&&realText!==null?realText:text,danger});this.logs=this.logs.slice(0,50);}
   reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType]?.key??null;}
+  // 3.177.5 (user): what the operator says about an empty or short magazine. With no reserve left there is nothing to
+  // reload, so firing says 沒彈藥了, the same as reloading does; 需要裝填 only while a reload would work.
+  emptyCue(weapon=this.weapon){const key=this.reserveKey(weapon);return key&&!(this.player[key]>0)?'no_ammo':'reload_needed';}
   get weaponCapacity(){return CHARACTERS[this.player.character].weaponCapacity;}
   get plateCapacity(){return CHARACTERS[this.player.character].plateCapacity+PERK_D.rack*(this.player.perks?.plate_rack||0);}   // 加掛板架: 3.148.0
   ammoCapacity(type){const base=capacity(type,0)+classCarryBonus(this.player.character,type);return !activeTrait(this.player,'extended_carry')?base:type==='grenade'?base+CARRY_TUNING.throwBonus:Math.round(base*CARRY_TUNING.ammoBonus);}
@@ -337,7 +340,7 @@ export class Game {
     if(type==='learn'||type==='dismantleLearning'){const reason=learningReason(this,arg,type==='dismantleLearning');return !reason||this.fail(reason);}
     if(type==='meleeChoice')return arg===null||Number.isInteger(arg)&&p.owned.includes(arg)&&this.weaponAt(arg).melee||this.fail(t('game.meleeFromPack'));
     if(type==='suppressiveFire'){const reason=suppressiveReason(this,arg);return !reason||this.fail(reason);}
-    if(type==='blindFire'){const reason=blindReason(this,arg);return !reason||this.fail(sentence(reason),reason===t('blind-fire.outOfRange')?'out_of_range':reason===t('blind-fire.magShort')?'reload_needed':null);}
+    if(type==='blindFire'){const reason=blindReason(this,arg);return !reason||this.fail(sentence(reason),reason===t('blind-fire.outOfRange')?'out_of_range':reason===t('blind-fire.magShort')?this.emptyCue():null);}
     if(type==='feedPet'){const q=petFeedQuote(this,arg);return q.allowed||this.fail(q.reason);}
     if(type==='setPetOutput')return !outputChoiceReason(this,arg)||this.fail(outputChoiceReason(this,arg));
     if(type==='buildUnit'){const reason=buildReason(this,arg?.blueprint,arg?.payload,arg?.weapon);return !reason||this.fail(reason);}
@@ -371,7 +374,7 @@ export class Game {
     if(type==='recoverObjective')return this.nearbyObjectives.some(t=>t.id===arg)||this.fail(t('game.noObjectiveNear'));
     if(type==='openContainer')return this.nearbyContainers.some(c=>c.id===arg)||this.fail(t('game.noContainerNear'));
     if(type==='door'){const b=arg&&typeof arg.open==='boolean'&&this.nearbyDoors.find(b=>b.id===arg.id&&b.open!==arg.open);if(!b)return false;const locked=arg.open&&lockedReason(this,b);return !locked||this.fail(sentence(locked),'locked');}
-    if(type==='fire'){const e=this.targeted;if(!e)return this.fail(t('game.noTarget'),'no_target');if(distance(p,e)>w.range)return this.fail(t('game.targetOutOfRange'),'out_of_range');if(!this.shotClear(p,e)||(w.melee&&!w.thrust&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?t('game.targetBehindCorner'):t('game.lineBlocked'));return w.melee||p.ammo[p.weapon]>=(w.shotCost||1)||this.fail(p.ammo[p.weapon]>0?t('common.magShort',{n:w.shotCost}):t('game.magEmpty'),'reload_needed');}
+    if(type==='fire'){const e=this.targeted;if(!e)return this.fail(t('game.noTarget'),'no_target');if(distance(p,e)>w.range)return this.fail(t('game.targetOutOfRange'),'out_of_range');if(!this.shotClear(p,e)||(w.melee&&!w.thrust&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?t('game.targetBehindCorner'):t('game.lineBlocked'));return w.melee||p.ammo[p.weapon]>=(w.shotCost||1)||this.fail(p.ammo[p.weapon]>0?t('common.magShort',{n:w.shotCost}):t('game.magEmpty'),this.emptyCue());}
     if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail(t('game.magFullOrNoAmmo'),w.melee?'not_needed':p.ammo[p.weapon]>=w.mag?'chambered':'no_ammo');
     // Consumables (3.106.0). Adrenaline is free to use but may never be the thing that kills you; the reasons
     // live in itemUseReason so the pack can grey the same buttons this would refuse.
@@ -381,7 +384,7 @@ export class Game {
     if(type==='decoy'){const reason=decoyReason(this,arg);return !reason||this.fail(sentence(reason));}
     if(type==='mine'){const reason=mineReason(this,arg);return !reason||this.fail(sentence(reason));}
     if(type==='rope'){const reason=lineReason(this,arg);return !reason||this.fail(sentence(reason));}
-    if(type==='launch'){const reason=launchReason(this,arg);return !reason||this.fail(sentence(reason),reason===t('game.launchEmpty')?'reload_needed':null);}
+    if(type==='launch'){const reason=launchReason(this,arg);return !reason||this.fail(sentence(reason),reason===t('game.launchEmpty')?this.emptyCue():null);}
     if(ITEM_BY_ACTION[type]){const id=ITEM_BY_ACTION[type],reason=itemUseReason(this,id);return !reason||this.fail(sentence(reason),...itemRefusal(reason,PREPARED_CATALOG.item[id]));}
     if(type==='grenade')return (p[preparedEntry(p,'grenade').resource]>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail(t('game.throwNeedsTarget'));
     if(type==='weapon')return (p.owned.includes(Number(arg))&&Number(arg)!==p.weapon)||this.fail(t('game.cannotEquip'),Number(arg)===p.weapon?'not_needed':null);
@@ -484,7 +487,7 @@ export class Game {
         const ammoBefore=p.ammo[p.weapon],slotWeapon=p.weapon;
         const success=type==='move'?presentStep(this,()=>this.executePlayer(type,arg)):this.executePlayer(type,fireIntent||arg);
         // 3.163.0: the shot that empties the magazine warns before the next press would be refused.
-        if(success&&p.weapon===slotWeapon&&this.weapon.ammoType&&!this.weapon.melee&&ammoBefore>0&&p.ammo[p.weapon]<=0)playerCallout(this,'reload_needed');
+        if(success&&p.weapon===slotWeapon&&this.weapon.ammoType&&!this.weapon.melee&&ammoBefore>0&&p.ammo[p.weapon]<=0)playerCallout(this,this.emptyCue());
         if(!success)this.log(t('game.situationChanged'));
         p.guard=success&&type==='wait';p.moved=success&&(type==='move'||type==='grapple'&&p.moved);p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
         petReactions(this);this.reveal();checkMines(this);
@@ -648,7 +651,7 @@ export class Game {
   // No hit roll: the round lands on the chosen tile and the blast decides who is caught, which is what makes the launcher
   // a crowd weapon rather than a single-target one that loses its whole area effect on a miss.
   launch(pos){
-    const reason=launchReason(this,pos);if(reason)return this.fail(sentence(reason),reason===t('game.launchEmpty')?'reload_needed':null);
+    const reason=launchReason(this,pos);if(reason)return this.fail(sentence(reason),reason===t('game.launchEmpty')?this.emptyCue():null);
     const p=this.player,w=this.weapon;
     p.facing=[Math.sign(pos.x-p.x),Math.sign(pos.y-p.y)];
     this.recordExposure(p,pos);p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
@@ -666,7 +669,7 @@ export class Game {
   // takes the pellets its distance allows, every pellet rolling a flat chance and its own damage (src/shotgun.js).
   fireCone(aim,blind=false){
     const p=this.player,w=this.weapon;
-    if(p.ammo[p.weapon]<=0)return this.fail(t('game.magEmpty'),'reload_needed');
+    if(p.ammo[p.weapon]<=0)return this.fail(t('game.magEmpty'),this.emptyCue());
     p.facing=[Math.sign(aim.x-p.x),Math.sign(aim.y-p.y)];
     const targets=coneTargets(this,p,aim,w,blind),hits=new Set();
     presentStep(this,()=>{
@@ -710,8 +713,8 @@ export class Game {
     }
     if(!e)return this.fail(t('game.noTarget'),'no_target');
     if(distance(p,e)>w.range)return this.fail(t('game.outOfRangeCloser'),'out_of_range');
-    if(p.ammo[p.weapon]<=0)return this.fail(t('game.magEmpty'),'reload_needed');
-    if(p.ammo[p.weapon]<(w.shotCost||1))return this.fail(t('common.magShort',{n:w.shotCost}),'reload_needed');
+    if(p.ammo[p.weapon]<=0)return this.fail(t('game.magEmpty'),this.emptyCue());
+    if(p.ammo[p.weapon]<(w.shotCost||1))return this.fail(t('common.magShort',{n:w.shotCost}),this.emptyCue());
     if(this.enemies.includes(e))noticeAttack(this,e);
     // Doors, cover and barrels are still breached one at a time; an enemy gets the cone.
     if(w.cone&&this.enemies.includes(e))return this.fireCone(e);
