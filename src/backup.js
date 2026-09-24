@@ -1,5 +1,6 @@
 import {t} from './i18n.js';
 import {CHARACTER_IDS,STARTING_CHARACTERS,validStoryId} from './unlock-catalog.js';
+import {validDutyRecord} from './duty.js';
 import {isSimulation} from './killhouse-policy.js';
 import {validKillhouseProfile} from './killhouse-profile.js';
 import {validGenerationHistory} from './map-geometry.js';
@@ -41,6 +42,7 @@ export function validateProfile(raw){
     requireValue(Object.values(raw.endless.byCharacter).every(r=>raw.endless.best&&r.floor<=raw.endless.best.floor),t('backup.endlessMismatch'));
   }
   if(raw.version>=6)requireValue(validKillhouseProfile(raw.killhouse),t('backup.killhouse'));
+  if(raw.duty!==undefined)requireValue(validDutyRecord(raw.duty),t('backup.duty'));   // 3.169.0: optional
   return normalizeProfile(JSON.parse(JSON.stringify(raw)));
 }
 

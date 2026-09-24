@@ -9,6 +9,7 @@ import {Game,createKillhouse} from './engine.js';
 import {normalizeProfile,creditProtocol,recordEndless,PROFILE_VERSION} from './progression.js';
 import {makeBackup,decodeBackup} from './backup.js';
 import {LEGACY_SAVE_VERSIONS} from './data.js';
+import {nextDuty,validDuty} from './duty.js';
 export const storage={available:true,recoveryPending:false};
 // Browser QA uses a separate namespace, never the user's campaign.
 export const TEST_MODE=typeof location!=='undefined'&&new URLSearchParams(location.search).get('test')==='1';
@@ -126,9 +127,14 @@ export function saveTutorialOutcome(outcome){if(storage.recoveryPending)return f
 export function saveArcadeResult(game,score,formula='v1'){if(!isSimulation(game)||storage.recoveryPending)return false;const p=profile();recordArcade(p,game.simulationResult,score,{scope:game.simulation.options.scoreScope,formula});return write('ash-profile',JSON.stringify(p));}
 
 // User-facing creation gates. Bare Game/createKillhouse remain fixture/engine constructors.
-export function startCampaign({seed,character='soldier',portrait='onyx',mission='extraction',options={}}={}){
+// 3.169.0 (docs/STORY.md 8): deploying picks today's comms officer and counts toward the day's missions; `duty` forces
+// one (test mode only, from the controller).
+export function startCampaign({seed,character='soldier',portrait='onyx',mission='extraction',options={},duty}={}){
  const p=profile();if(!availableCharacters(p).includes(character))throw Error(t('storage.classLocked'));
- return connectUnlocks(new Game(seed,p.unlocks.weapons,0,character,portrait,mission,{...options,profile:p}));
+ const rota=nextDuty(p.duty);
+ const game=connectUnlocks(new Game(seed,p.unlocks.weapons,0,character,portrait,mission,{...options,profile:p,duty:validDuty(duty)?duty:rota.duty}));
+ if(!storage.recoveryPending){p.duty=rota.record;write('ash-profile',JSON.stringify(p));}
+ return game;
 }
 export function startKillhouse(options={}){
  if(options.mode==='arcade'&&!availableCharacters(profile()).includes(options.character||'soldier'))throw Error(t('storage.classLocked'));

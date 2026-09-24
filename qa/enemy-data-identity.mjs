@@ -17,7 +17,8 @@ const GROUPS=['generation','missions','bots'];
 // holdings of 3.90.0 (docs/UNLOCKS.md). An absent corpse (operatorCorpse null), empty production lines (3.91.0) and an
 // empty enemy blueprint lists (3.94.0-3.95.0, docs/ENGINEER.md) are dropped too, so only runs that actually carry them hash differently.
 //   node qa/enemy-data-identity.mjs --candidate  also writes qa/enemy-data-candidate.json (untracked) to copy single entries
-const IGNORED_KEYS=new Set(['faction','facilityFaction','purge','unlockedCharacters','unlockedStories','pendingStories','encounteredCharacters','factionOverride']);
+// The comms duty officer (3.169.0, docs/STORY.md 8) only picks who speaks, on the same terms.
+const IGNORED_KEYS=new Set(['faction','facilityFaction','purge','unlockedCharacters','unlockedStories','pendingStories','encounteredCharacters','factionOverride','duty']);
 const normalize=value=>Array.isArray(value)?value.map(normalize):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).filter(([key,item])=>!IGNORED_KEYS.has(key)&&!(key==='operatorCorpse'&&item===null)&&!(['productionLines','blueprints','usedBlueprints'].includes(key)&&Array.isArray(item)&&item.length===0)).map(([key,item])=>[key,normalize(item)])):value;
 const hash=value=>createHash('sha256').update(JSON.stringify(normalize(value))).digest('hex').slice(0,16);
 // Errors are recorded rather than thrown, so a floor that fails the same way before and after still matches.

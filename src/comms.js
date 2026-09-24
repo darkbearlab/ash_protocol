@@ -2,6 +2,7 @@
 // box wherever they appear — the mission briefing first, the field and the main menu later. The left plate is the
 // speaker's portrait; until the art exists it reads SOUND ONLY and, like the floor stencils, stays English.
 import {t,language} from './i18n.js';
+import {validDuty,DEFAULT_DUTY} from './duty.js';
 
 // 3.168.1 (user request): a hairline under the box closes in from both sides; when it meets in the middle, the box
 // goes. Longer lines stay longer.
@@ -11,16 +12,40 @@ export const commsDuration=text=>{
  return Math.round(Math.min(COMMS_TUNING.maxMs,Math.max(COMMS_TUNING.minMs,COMMS_TUNING.baseMs+COMMS_TUNING.perCharMs*chars)));
 };
 
-// Speakers (3.168.2, user request): each has a name and a portrait per expression. A missing portrait shows the SOUND
-// ONLY plate, so a speaker can talk before the art exists. Only the controller is written yet; the classmate and the
-// supervisor who take a mission while she is in memory correction wait for the user's writing.
+// Speakers (3.168.2, user request; names 3.169.0, user's tentative choice): each has a name and a portrait per
+// expression. A missing portrait shows the SOUND ONLY plate, so a speaker can talk before the art exists; the overseer
+// never has one.
 export const COMMS_SPEAKERS=Object.freeze({
- controller:Object.freeze({name:t('comms.speaker.controller'),portraits:Object.freeze({})}),   // {expression: image path}
+ egret:Object.freeze({name:t('comms.speaker.egret'),portraits:Object.freeze({})}),        // 白鷺, the main controller
+ wren:Object.freeze({name:t('comms.speaker.wren'),portraits:Object.freeze({})}),          // 鷦鷯, her classmate
+ overseer:Object.freeze({name:t('comms.speaker.overseer'),portraits:Object.freeze({})}),  // 監視官, no face, no name
 });
 export const DEFAULT_EXPRESSION='neutral';
-// Who is on duty for a mission: the speaker a message reaches when it names none. Always the controller for now; the
-// rule for her stand-ins (which missions, how it is decided) goes here once it is written.
-export const dutySpeaker=(context={})=>'controller';
+// Who is on duty: the officer saved with the run (src/duty.js picks it at deployment), Egret when there is none.
+export const dutySpeaker=(context={})=>validDuty(context.game?.duty)?context.game.duty:DEFAULT_DUTY;
+
+// What each speaker says, by event (3.169.0; docs/STORY.md 8). One line is picked at random each time. Egret's lines
+// are the user's picks from the review page; Wren and the overseer are hooks with no lines yet, so on their days the
+// field stays quiet and the briefing uses the neutral placeholder.
+export const COMMS_LINES=Object.freeze({
+ egret:Object.freeze({
+  briefing:['comms.egret.briefing.1','comms.egret.briefing.2','comms.egret.briefing.3'],
+  squadDeploy:['comms.egret.squadDeploy.1','comms.egret.squadDeploy.2'],
+  squadReady:['comms.egret.squadReady.1','comms.egret.squadReady.2'],
+  grenade:['comms.egret.grenade.1','comms.egret.grenade.2'],
+  boss:['comms.egret.boss.1','comms.egret.boss.2'],
+  flank:['comms.egret.flank.1'],
+  researcher:['comms.egret.researcher.1','comms.egret.researcher.2'],
+ }),
+ wren:Object.freeze({}),       // same events as Egret once written
+ overseer:Object.freeze({}),   // contact (first enemy on a floor: kill them all) and researcher (kill them), once written
+});
+// A message from `speaker` for `event`, or null when that speaker has nothing to say about it.
+export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_LINES}={}){
+ const ids=lines[speaker]?.[event];
+ if(!ids?.length)return null;
+ return {speaker,line:ids[Math.min(ids.length-1,Math.floor(random()*ids.length))],vars};
+}
 
 // A message is {speaker, expression, line, vars} or {speaker, expression, text}:
 //   speaker     a key of the speakers table, or 'duty' / left out for whoever is on duty

@@ -60,7 +60,7 @@ test('flyers hover over a pit, walkers do not; a flyer shot down there drops its
  const drop=g.enemyDropPoint(drone);assert.equal(g.grid[drop.y][drop.x],1,'on the floor');assert.ok(Math.abs(drop.x-13)+Math.abs(drop.y-10)<=2,'at the rim');
 });
 test('a blast reaches across a pit, smoke only settles on the floor, and it all survives a save',()=>{
- assert.equal(SAVE_VERSION,70);
+ assert.equal(SAVE_VERSION,71);
  const g=arena(),p=g.player;Object.assign(p,{x:10,y:10});const drone=enemy(g,'drone',12,10),far=enemy(g,'rifleman',12,12);
  const hp=drone.hp;g.explode({x:11,y:10},2,20);assert.ok(drone.hp<hp,'a blast at the rim catches the flyer over the pit');
  p.smoke=1;p.prepared.grenade='smoke';assert.ok(g.action('grenade',{x:11,y:11}));assert.ok(g.smoke.at(-1).cells.every(q=>g.grid[q.y][q.x]===1),'no smoke over the pit');

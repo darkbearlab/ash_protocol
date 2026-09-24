@@ -5,6 +5,7 @@ import {protocolSettlement,terminalRun} from './real-mode.js';
 import {carryLevels,carryingSpent} from './ammunition.js';
 import {ENDLESS_MAX_FLOOR} from './endless.js';
 import {validCharacter} from './characters.js';
+import {validDutyRecord} from './duty.js';
 // Stable IDs for weapon-pool / character unlocks and permanent equipment upgrades.
 export const PROTOCOL_REWARDS={floor:4,lore:3,warden:8,boss:12,hive_beast:8,hive_matriarch:12,extraction:16};
 export const newRunId=()=>globalThis.crypto?.randomUUID?.()||`run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -29,7 +30,9 @@ export function normalizeProfile(raw={}) {
   return {...p,version:PROFILE_VERSION,killhouse:normalizeKillhouse(p.version>=6?p.killhouse:null),upgrades:{carrying:carryLevels(0)},runs:integer(p.runs),wins:integer(p.wins),bestFloor:Math.min(6,Math.max(1,integer(p.bestFloor))),bestKills:integer(p.bestKills),
     endless:endlessRecords(p.version>=5?p.endless:null),history:Array.isArray(p.history)?p.history:[],protocol:{balance:balance+refund,earned},
     unlocks:{weapons:Array.isArray(p.unlocks?.weapons)?p.unlocks.weapons.filter(id=>typeof id==='string'):[],characters,stories},unlockLedger:{characters:[...characters],stories:[...stories]},
-    protocolRuns:p.protocolRuns&&typeof p.protocolRuns==='object'&&!Array.isArray(p.protocolRuns)?p.protocolRuns:{}};
+    protocolRuns:p.protocolRuns&&typeof p.protocolRuns==='object'&&!Array.isArray(p.protocolRuns)?p.protocolRuns:{},
+    // 3.169.0: the day and the missions deployed on it, for the comms rota; a damaged record starts the day over.
+    duty:validDutyRecord(p.duty)?{date:p.duty.date,count:p.duty.count}:undefined};
 }
 // Cumulative high-water marks survive history trimming and importing an older save.
 // Keep this ledger: removing entries would allow the same run to be credited twice.

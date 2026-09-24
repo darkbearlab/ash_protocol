@@ -87,6 +87,7 @@ import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './w
 import {wallCover,shotChance,bracingBonus,adjacentWalls} from './combat.js';
 import {terminalReason,useTerminal,validTerminalSpent} from './terminal.js';
 import {FLARE_TUNING,flareLights,flareReason,validFlares} from './flares.js';
+import {validDuty,DEFAULT_DUTY} from './duty.js';
 
 // Consumables (3.106.0, user request): the spray matches the ground armour pickup, and adrenaline is priced in health.
 export const SPRAY_PLATES=20,SURGE_COST=15,SURGE_STEPS=2;
@@ -146,6 +147,8 @@ export class Game {
     this.difficulty=options.difficulty??DEFAULT_CURVE;if(!validCurve(this.difficulty))throw new Error('Invalid difficulty');
     // 3.138.0 (docs/PERK_GROWTH.md): the perk rules this run uses; runs started earlier restore as 1.
     this.perkRules=3;   // 3.148.0 升級 D (docs/PERK_GROWTH.md); 2 = 3.138.0-3.147.0, 1 = before 3.138.0
+    // 3.169.0 (docs/STORY.md 8): who is on comms for this run, fixed at deployment (storage.startCampaign).
+    this.duty=validDuty(options.duty)?options.duty:DEFAULT_DUTY;
     this.facilityFaction=options.facilityFaction==='random'?rollFacilityFaction(seed):factionDef(options.facilityFaction)?options.facilityFaction:pickFacilityFaction(seed,mission);this.mission=newMission(mission);this.carryLevel=carryLevels(0);this.seed=seed;this.rng=random(seed);this.floor=1;this.turn=1;this.player=freshPlayer();
     Object.assign(this.player,{hp:CHARACTERS[character].hp||100,maxHp:CHARACTERS[character].hp||100,armor:CHARACTERS[character].armor||0,plates:CHARACTERS[character].plates||0});
     this.player.skills=[...(CHARACTERS[character].skills||[])];this.player.skillState=initialSkillState(this.player.skills);
@@ -1245,6 +1248,9 @@ export class Game {
       // 3.138.0: a run started before the slower perks keeps the classic perk rules.
       if(version<65)data.perkRules=1;
       if(![1,2,3].includes(data.perkRules))return null;
+      // 3.169.0: runs started before the duty rota were Egret's; the officer only picks lines, so a damaged value is not
+      // worth losing a run over.
+      if(version<71||!validDuty(data.duty))data.duty=DEFAULT_DUTY;
       // 3.113.0: class skills are no longer learnable. Anything still holding one of the retired data items becomes
       // the scrap it would have dismantled for, wherever it is: in the pack, on the ground, or in an unopened case,
       // on this floor and on every archived one. Skills already learned from them are kept.

@@ -63,7 +63,7 @@ test('adrenaline can never be the thing that kills you, and does not stack',()=>
 // must not cap them either, or the two would tell the player different things.
 // 3.136.0 (user decision): the carry cap of five applies; one bought past it waits at your feet.
 test('the terminal sells both up to the carry cap, and old saves migrate to none',()=>{
- assert.equal(SAVE_VERSION,70);   // 3.148.0: perk D
+ assert.equal(SAVE_VERSION,71);   // 3.148.0: perk D
  const g=run(),p=g.player;
  p.sprays=4;p.adrenaline=5;p.scrap=999;g.items=[];
  g.props.push({type:'terminal',x:p.x,y:p.y,used:false});

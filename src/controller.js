@@ -56,7 +56,9 @@ import {AMMUNITION,AMMO_IDS,MELEE_TINT,capacity,TERMINAL_AMMO} from './ammunitio
 import {captureAction,planPresentation,Playback} from './presentation.js';
 import {Game,WEAPONS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,protocolSettlement,itemUseReason,deployCoverReason,TERMINAL_ITEMS} from './engine.js';
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MODE_NOTE,runOptions,FACILITY_OPTIONS,facilityOption} from './deploy-ui.js';
-import {commsMarkup,armComms,commsForLogs} from './comms.js';
+import {commsMarkup,armComms,commsForLogs,commsLine,dutySpeaker} from './comms.js';
+import {commsEvents,commsSnapshot,newCommsMemory} from './comms-events.js';
+import {validDuty} from './duty.js';
 import {factionDef} from './faction-catalog.js';
 import {Renderer} from './render.js';
 import {AudioEngine,AUDIO_TUNING,volumePercent} from './audio.js';
@@ -182,7 +184,7 @@ const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>'
 function notify(text,{extra=0,danger=false}={}){notice.textContent=text;notice.classList.remove('resting');notice.classList.add('show');notice.classList.toggle('danger',danger);logButton.textContent=extra>0?`+${extra}`:'';logButton.classList.toggle('more',extra>0);clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice.classList.remove('show');noticeTimer=setTimeout(restNotice,600);},2700);}
 // A new blueprint is announced with the action's latest line even when later logs would cover it (docs/ENGINEER.md
 // section 7); the latest line keeps its danger colour.
-const notifyLatest=()=>{sayCommsFor(game.logs.slice(0,lastActionLogs));const latest=game.logs[0],blueprint=game.logs.slice(0,Math.max(1,lastActionLogs)).find(l=>isBlueprintLog(l.text));if(latest)notify(blueprint&&blueprint!==latest?`${blueprint.text} ${latest.text}`:latest.text,{extra:lastActionLogs-1,danger:latest.danger});};
+const notifyLatest=()=>{sayCommsEvents(game.logs.slice(0,lastActionLogs));const latest=game.logs[0],blueprint=game.logs.slice(0,Math.max(1,lastActionLogs)).find(l=>isBlueprintLog(l.text));if(latest)notify(blueprint&&blueprint!==latest?`${blueprint.text} ${latest.text}`:latest.text,{extra:lastActionLogs-1,danger:latest.danger});};
 // Comms over the field (3.168.1, user request): new log lines that a hook names make someone speak; the hooks wait
 // for the writing (src/comms.js COMMS_HOOKS). A message names its speaker, expression and line (3.168.2). One box at a
 // time, the rest wait their turn.
@@ -195,6 +197,15 @@ function showNextComms(){
   armComms(commsLayer.querySelector('.comms'),()=>{commsLayer.innerHTML='';commsQueue.shift();showNextComms();});
 }
 function sayCommsFor(entries){for(const message of commsForLogs(entries))sayComms(message);}
+// 3.169.0 (docs/STORY.md 8): the officer on duty remarks on what the last action showed; the kill house has no comms.
+let commsBefore=null,commsMemory=null,dutyOverride=null;
+function sayCommsEvents(entries){
+  sayCommsFor(entries);
+  if(!entered||isSimulation(game))return;
+  if(commsMemory?.runId!==game.runId)commsMemory=newCommsMemory(game.runId);
+  const speaker=dutySpeaker({game});
+  for(const event of commsEvents({game,before:commsBefore,logs:entries,memory:commsMemory})){const message=commsLine(speaker,event.type,event.vars);if(message)sayComms(message);}
+}
 // Half health or less: the battlefield edges pulse red, deeper and faster as health falls (3.43).
 function lowHealth(p){
   const glow=$('#low-health'),ratio=Math.max(0,p.hp)/p.maxHp,on=ratio<=.5;glow.classList.toggle('on',on);if(!on)return;
@@ -292,6 +303,7 @@ function act(type,arg) {
   skipPlayback();
   if(playback||orientationBlocked||!entered||$('#modal').open||performance.now()<lockUntil)return false;
   pointerStart=null;
+  commsBefore=commsSnapshot(game);
   const oldLog=game.logs[0],{success,steps}=captureAction(game,()=>game.action(type,arg));
   if(!success&&game.refusal)sayLine(game.refusal.cue,game.refusal.item?{item:game.refusal.item}:{});
   if(!success&&game.refusal?.cue==='out_of_range'){renderer.flashRange();retarget();}   // 3.165.0: where you could shoot from here
@@ -569,7 +581,7 @@ function showMission(){if(isSimulation(game)){modal(`<div class="eyebrow">SIMULA
 function showBriefing(){
   const def=missionDefinition(game),difficulty=difficultyOption(game.difficulty).name;
   const rows=[['briefing.objective',sentences(def.text,MISSION_NOTES[game.mission.id])],['briefing.facility',factionDef(game.facilityFaction)?.name||''],['briefing.difficulty',game.realMode?`${difficulty} · ${t('controller.deploy.realMode')}`:difficulty]].filter(([,v])=>v);
-  modal(`<div class="briefing">${commsMarkup({line:'comms.briefing'},{context:{game}})}<section class="briefing-card" aria-labelledby="briefing-title"><div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2 id="briefing-title">${def.name}</h2><p class="briefing-sector">${floorInfo(game.floor).name}</p><dl class="briefing-rows">${rows.map(([k,v])=>`<dt>${t(k)}</dt><dd>${v}</dd>`).join('')}</dl></section></div><div class="modal-footer"><button class="modal-button" data-modal="close">${t('briefing.start')}</button></div>`);
+  modal(`<div class="briefing">${commsMarkup(commsLine(dutySpeaker({game}),'briefing')||{line:'comms.briefing'},{context:{game}})}<section class="briefing-card" aria-labelledby="briefing-title"><div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2 id="briefing-title">${def.name}</h2><p class="briefing-sector">${floorInfo(game.floor).name}</p><dl class="briefing-rows">${rows.map(([k,v])=>`<dt>${t(k)}</dt><dd>${v}</dd>`).join('')}</dl></section></div><div class="modal-footer"><button class="modal-button" data-modal="close">${t('briefing.start')}</button></div>`);
   armComms($('#modal-content .comms'));
 }
 function showMap(){modal(`<div class="eyebrow">SECTOR ${pad(game.floor)} / ${isSimulation(game)?'KILL HOUSE':floorInfo(game.floor).name}</div><h2>${t('controller.map.title')}</h2>${missionDetails()}<canvas id="overview" width="324" height="324" aria-label="${t('controller.map.aria')}"></canvas><p>${t('controller.map.legend1')}<br>${t('controller.map.legend2')}</p><button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`);renderer.drawMap($('#overview'));}
@@ -951,7 +963,7 @@ function showSimulationResult(){
   if(!simulationResults.has(game))simulationResults.set(game,simulationResultMarkup());
   const html=simulationResults.get(game);if(!html){exitSimulation();showIntro();return;}modal(html);
 }
-function newGame(seed,character,mission,options={facilityFaction:'random'}){if(isSimulation(game))exitSimulation();const portrait=deploymentFaces[character];if(!availableCharacters(profile()).includes(character)||!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify(t('controller.pickValidCharacter'));return;}if(game.status==='playing'&&(entered||resumable)){try{abandonRun(game);}catch(error){backupError(error);return;}}entered=true;resumable=false;game=startCampaign({seed,character,portrait,mission,options});playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();showBriefing();}
+function newGame(seed,character,mission,options={facilityFaction:'random'}){if(isSimulation(game))exitSimulation();const portrait=deploymentFaces[character];if(!availableCharacters(profile()).includes(character)||!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify(t('controller.pickValidCharacter'));return;}if(game.status==='playing'&&(entered||resumable)){try{abandonRun(game);}catch(error){backupError(error);return;}}entered=true;resumable=false;game=startCampaign({seed,character,portrait,mission,options,duty:TEST_MODE?dutyOverride:undefined});dutyOverride=null;commsMemory=null;commsBefore=null;playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();showBriefing();}
 function exportSave(){const blob=new Blob([game.serialize()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`ash-protocol-${game.seed}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify(t('controller.saveExported'));}
 function downloadJSON(raw,name){const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 // Layout editor (3.102.0, user request): tap one cell then another and they swap, which reaches any arrangement
@@ -1272,7 +1284,9 @@ $('#import-replay').addEventListener('change',async e=>{
   try{if(file.size>20000000)throw new Error('檔案超過 20 MB。');loadReplay(await file.text(),replayOptions);}
   catch(error){modal('<h2>無法播放操作紀錄</h2><p>'+escapeHTML(error.message)+'</p><button class="modal-button" data-modal="close">返回</button>');}
 });
-if(TEST_MODE)globalThis.__ashComms={say:message=>sayComms(message)};   // preview the field channel: text, or {speaker, expression, line|text}
+// Test mode: preview the field channel (text, or {speaker, expression, line|text}), force the next mission's officer, or
+// have the officer on duty say an event's line.
+if(TEST_MODE)globalThis.__ashComms={say:message=>sayComms(message),duty:id=>{dutyOverride=validDuty(id)?id:null;return dutyOverride;},event:(type,vars={})=>{const message=commsLine(dutySpeaker({game}),type,vars);if(message)sayComms(message);return message;}};
 if(TEST_MODE)globalThis.__ashReplay={load:(raw,options)=>loadReplay(typeof raw==='string'?raw:JSON.stringify(raw),options),
   pause(){if(replay){replay.paused=true;replayBadge();}},resume(){if(replay){replay.paused=false;replayBadge();}},stop:()=>stopReplay(),record:startRecording,hash:()=>stateHash(game),
   get state(){return replay?{index:replay.index,total:replay.log.ops.length,paused:replay.paused,fast:replay.fast,mismatch:replay.mismatch}:{done:replayResult};},
