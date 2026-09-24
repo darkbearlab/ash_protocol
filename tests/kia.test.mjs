@@ -82,6 +82,8 @@ test('each officer has a call, a loss report, an extraction approval and line; t
  assert.equal(t('comms.wren.lossReport.1'),'……任務失敗。損失報告，提交。','her revision');
  // 3.177.0 (user design): the end of a run has an approval on the field and a line on the dark screen; drafts, three each.
  assert.deepEqual(['egret','wren'].map(who=>[COMMS_LINES[who].extractApproved.length,COMMS_LINES[who].extracted.length]),[[3,3],[3,3]]);
+ // 3.177.1: the user's picks keep all twelve; one is her revision.
+ assert.equal(t('comms.wren.extractApproved.2'),'撤離批准！路線確認，回來吧！','her revision');
  const text=t('comms.egret.kia.1');
  assert.equal(kiaSeconds(text),Math.round(commsDuration(text)*1.4)/1000);
  const listeners={},classes=new Set();

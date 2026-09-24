@@ -246,7 +246,7 @@ export default Object.freeze({
  "comms.egret.extractApproved.2":"Extraction request received. ...Approved. Pull out now.",
  "comms.egret.extractApproved.3":"Position confirmed. Route clear. Cleared to extract.",
  "comms.wren.extractApproved.1":"Got your extraction signal~ Route's clear, go go go!",
- "comms.wren.extractApproved.2":"Extraction approved! I checked the route, it's clear. Come on out.",
+ "comms.wren.extractApproved.2":"Extraction approved! Route confirmed. Come on back!",
  "comms.wren.extractApproved.3":"Okay, got it. Extraction approved. Don't look back.",
  "comms.overseer.extractApproved.1":"...",
  "comms.overseer.executed.1":"...",

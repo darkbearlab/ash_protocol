@@ -247,7 +247,7 @@ export default Object.freeze({
  "comms.egret.extractApproved.2":"收到撤離請求。……已批准，請立即撤出。",
  "comms.egret.extractApproved.3":"確認幹員位置。撤離路線暢通，准許撤離。",
  "comms.wren.extractApproved.1":"收到撤離訊號～通道沒問題，快走快走！",
- "comms.wren.extractApproved.2":"撤離批准！路線我看過了，沒人擋，出來吧。",
+ "comms.wren.extractApproved.2":"撤離批准！路線確認，回來吧！",
  "comms.wren.extractApproved.3":"好，確認到了。撤離核准，別回頭喔。",
  "comms.overseer.extractApproved.1":"……",
  "comms.overseer.executed.1":"……",
