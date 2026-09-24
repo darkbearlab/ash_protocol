@@ -1657,6 +1657,7 @@ export default Object.freeze({
  "settings.languageLabel":"Language / 語言: {name}",
  "settings.languageNote":"Reloads the page; progress is kept.",
  "settings.languageFailed":"Could not save the language setting.",
+ "settings.languageWip":"English is a work in progress: story fragments and a few other texts are still in Chinese.",
  // src/skills.js
  "skills.warningEvasion":", their hit chance on you −{n}",
  "skills.earlyWarning":"Free. Scans enemies within {radius} tiles and shows their current positions through walls until your next paid action ends, marking them for {markTurns} {markTurns|turn|turns}: against marked enemies you get +{accuracy} to hit and +{damage}% damage{evasion}. Does not track movement or give a line of fire, and does not give you away. Cooldown {cooldown} paid actions.",

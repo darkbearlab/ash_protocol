@@ -15,6 +15,9 @@ import EN from './text-en.js';
 const TABLES={'zh-TW':ZH_TW,en:EN};
 export const LANGUAGES=Object.freeze(Object.keys(TABLES));
 export const LANGUAGE_NAMES=Object.freeze({'zh-TW':'中文',en:'English'});
+// 3.168.1 (user request): a language that still has gaps is marked where it is chosen. The gaps are tracked in
+// docs/TEXT_INVENTORY.md 14; drop the mark when that list is empty.
+export const LANGUAGE_STATUS=Object.freeze({en:'work in progress'});
 // Browser QA keeps its own copy of every setting (src/storage.js); this module cannot import storage.js, which imports
 // modules that need the table, so it reads the key the same way.
 const TEST_MODE=typeof location!=='undefined'&&new URLSearchParams(location.search).get('test')==='1';
