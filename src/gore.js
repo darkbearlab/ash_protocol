@@ -3,7 +3,7 @@
 // stamped on a floor layer that is never saved. Colours follow what the body is made of: people bleed red and
 // orange, the swarm bleeds yellow-green, machines spill oil and throw sparks; an enemy may name its own (`gore` in its
 // data). Presentation only: rules, saves and replays never see it.
-import {enemyDef,isBossClass} from './enemy-data.js';
+import {enemyDef} from './enemy-data.js';
 import {activeTrait} from './traits.js';
 import {WEAPONS} from './data.js';
 
@@ -27,12 +27,19 @@ export const validGoreSetting=value=>GORE_SETTINGS.includes(value);
 export const goreLevel=(setting,reduceMotion=false)=>{const level=validGoreSetting(setting)?setting:'full';return reduceMotion&&level==='full'?'simple':level;};
 
 // Amounts (1 = the killed-in-action scene). An enemy's burst is the light version: half the flesh, a dimmer and
-// smaller glow; elites and bosses are nearly full. Simple drops the light and the sparks.
+// smaller glow. How much flesh follows the body's size (3.175.1, user: by maximum health — a larva is a pinch, a hive
+// matriarch a flood), with a little more for elites so the gold-framed ones still stand out. Simple drops the light and
+// the sparks.
 export const GORE_TUNING=Object.freeze({
   enemy:Object.freeze({blood:.5,light:.5,glow:.7}),
-  heavy:Object.freeze({blood:.8,light:.8,glow:.9}),
+  baseHp:22,            // a rifleman: size 1
+  size:Object.freeze([.6,2.2]),
+  eliteBonus:1.25,
   drift:.3,
 });
+// Body size from maximum health: the square root against a rifleman's, held between .6 and 2.2 (so a boss fills its
+// corner, not the screen). Remaining health does not count: a boss finished with a small shot still goes big.
+export const goreSize=maxHp=>{const [lo,hi]=GORE_TUNING.size;return Math.min(hi,Math.max(lo,Math.sqrt(Math.max(1,maxHp||GORE_TUNING.baseHp)/GORE_TUNING.baseHp)));};
 
 function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 // The burst, in tile units, the same every time for the same seed. Each piece jumps most of the way out at once (the
@@ -82,17 +89,17 @@ export const goreForceScale=damage=>Math.min(1.6,Math.max(.7,Math.sqrt(Math.max(
 
 // An enemy's burst at a given setting level, or null for none. Every burst draws its own amount, spread, reach, mist
 // and glow within a range around what the blow calls for (a second random stream, so the pieces keep their places).
-export function enemyBurst(seed,blow,{kind='flesh',heavy=false,level='full',style='bullet',damage=24}={}){
+// The size sets how much flesh and mist (and how big the puffs); the blow sets how far and how wide.
+export function enemyBurst(seed,blow,{kind='flesh',size=1,elite=false,level='full',style='bullet',damage=24}={}){
   if(!blow||level==='off')return null;
-  const t=heavy?GORE_TUNING.heavy:GORE_TUNING.enemy,shape=GORE_STYLES[style]||GORE_STYLES.bullet,force=goreForceScale(damage);
+  const t=GORE_TUNING.enemy,shape=GORE_STYLES[style]||GORE_STYLES.bullet,force=goreForceScale(damage),body=size*(elite?GORE_TUNING.eliteBonus:1);
   const j=rng(seed^0x5bd1e995),vary=(lo,hi)=>lo+(hi-lo)*j();
   const amount=vary(.75,1.25),cone=vary(.8,1.2),reach=vary(.85,1.2),mistSize=vary(.8,1.3),glow=vary(.8,1.2),aim=vary(-.12,.12);
-  return makeBurst(seed,blow,{kind,blood:t.blood*shape.amount*force*amount,glow:t.glow*shape.glow*glow,light:level==='simple'?0:t.light*Math.min(1.5,shape.glow),
-    cone:shape.cone*cone,reach:shape.reach*(.8+.2*force)*reach,mistSize:shape.mist*mistSize,aim});
+  return makeBurst(seed,blow,{kind,blood:t.blood*shape.amount*force*amount*body,glow:t.glow*shape.glow*glow,light:level==='simple'?0:t.light*Math.min(1.5,shape.glow),
+    cone:shape.cone*cone,reach:shape.reach*(.8+.2*force)*reach,mistSize:shape.mist*mistSize*Math.sqrt(body),aim});
 }
 
 // How long a burst stays in the air, in world seconds (after this only its stains remain).
 export const burstLife=burst=>burst?Math.max(.32,...burst.drops.map(d=>d.land),...burst.mist.map(m=>m.life),...burst.sparks.map(s=>s.life)):0;
 // Distance out along a piece's path `s` world seconds after the burst: the pop, then an easing drift.
 export const burstReach=(pop,D,s,tau)=>D*(pop+(1-pop)*(1-Math.exp(-Math.max(0,s)/tau)));
-export const heavyBody=actor=>Boolean(actor?.elite||isBossClass(actor));

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {GORE_PALETTES,GORE_SETTINGS,GORE_TUNING,goreKind,goreLevel,validGoreSetting,makeBurst,enemyBurst,burstLife,heavyBody,goreForce,goreForceScale} from '../src/gore.js';
+import {GORE_PALETTES,GORE_SETTINGS,GORE_TUNING,goreKind,goreLevel,validGoreSetting,makeBurst,enemyBurst,burstLife,goreSize,goreForce,goreForceScale} from '../src/gore.js';
 import {killingBlow,ENEMY_BLOWS,kiaBurst} from '../src/kia.js';
 import {planPresentation} from '../src/presentation.js';
 
@@ -28,20 +28,40 @@ test('the setting: full by default, simple under reduced motion, off; enemies ge
  assert.equal(goreLevel('full',true),'simple','reduced motion keeps it at simple');
  assert.equal(goreLevel('off',true),'off');
  assert.ok(validGoreSetting('simple')&&!validGoreSetting('max'));
- const blow={dx:0,dy:1},scene=kiaBurst(5,blow),full=enemyBurst(5,blow),simple=enemyBurst(5,blow,{level:'simple'}),heavy=enemyBurst(5,blow,{heavy:true});
+ const blow={dx:0,dy:1},scene=kiaBurst(5,blow),full=enemyBurst(5,blow),simple=enemyBurst(5,blow,{level:'simple'}),big=enemyBurst(5,blow,{size:2.2});
  assert.equal(enemyBurst(5,blow,{level:'off'}),null);
  assert.equal(enemyBurst(5,null),null,'no direction, no burst');
  const mean=list=>list.reduce((a,b)=>a+b,0)/list.length,seeds=[...Array(60).keys()].map(i=>i+1);
- const fullDrops=seeds.map(s=>enemyBurst(s,blow).drops.length),heavyDrops=seeds.map(s=>enemyBurst(s,blow,{heavy:true}).drops.length);
- assert.ok(Math.abs(mean(fullDrops)-46*GORE_TUNING.enemy.blood)<3,'on average half the flesh of the operative\'s death');
- assert.ok(mean(heavyDrops)>mean(fullDrops)&&mean(heavyDrops)<scene.drops.length,'elites and bosses are nearly full');
- assert.ok(full.drops.length<heavy.drops.length,'the same draw, heavier body');
+ const fullDrops=seeds.map(s=>enemyBurst(s,blow).drops.length);
+ assert.ok(Math.abs(mean(fullDrops)-46*GORE_TUNING.enemy.blood)<3,'a rifleman: on average half the flesh of the operative\'s death');
+ assert.ok(full.drops.length<big.drops.length,'the same draw, a bigger body');
  assert.equal(simple.light,0);assert.equal(simple.sparks.length,0,'simple: no light, no sparks');
  assert.equal(simple.drops.length,full.drops.length,'but the same flesh');
  assert.ok(full.glow<1&&full.light<1);
  assert.ok(burstLife(full)>=.32&&burstLife(full)<=1.5,'in the air for about a second, then only stains');
- assert.ok(heavyBody({type:'rifleman',elite:true}));
- assert.ok(!heavyBody({type:'rifleman'}));
+ assert.ok(scene.drops.length>full.drops.length);
+});
+
+// 3.175.1 (user: by maximum health): how much flesh follows the body's size; the blow still sets how far it flies.
+test('the body\'s size, from its maximum health, sets how much: a larva a pinch, a matriarch a flood',()=>{
+ assert.equal(goreSize(22),1,'a rifleman');
+ assert.equal(goreSize(6),.6,'a larva, held at the floor');
+ assert.equal(goreSize(600),2.2,'the hive matriarch, held at the ceiling');
+ assert.ok(Math.abs(goreSize(90)-Math.sqrt(90/22))<1e-9,'a brute');
+ assert.equal(goreSize(undefined),1);
+ const blow={dx:1,dy:0},mean=list=>list.reduce((a,b)=>a+b,0)/list.length,seeds=[...Array(60).keys()].map(i=>i+1);
+ const at=(size,f,extra={})=>mean(seeds.map(s=>f(enemyBurst(s,blow,{size,...extra}))));
+ const drops=b=>b.drops.length,puff=b=>mean(b.mist.map(m=>m.r0)),reach=b=>mean(b.drops.map(d=>d.D));
+ assert.ok(at(goreSize(6),drops)<at(1,drops)&&at(1,drops)<at(goreSize(150),drops)&&at(goreSize(150),drops)<=at(goreSize(600),drops));
+ assert.ok(at(2.2,puff)>at(1,puff)*1.3,'bigger bodies, bigger puffs');
+ assert.ok(Math.abs(at(2.2,reach)-at(1,reach))<at(1,reach)*.1,'size does not change how far it flies');
+ assert.ok(at(1,drops,{elite:true})>at(1,drops)*1.15,'a little more for elites');
+ const player={x:2,y:4,hp:50,character:'soldier'};
+ const state=(enemy,hp)=>({player,enemies:[{...enemy,hp}],allies:[],items:[],logs:[],visible:()=>true});
+ const fallOf=enemy=>planPresentation([{before:state(enemy,5),after:state(enemy,0),effects:[{type:'shot',from:{x:2,y:4},to:{x:6,y:4},damage:0},{type:'impact',from:{x:6,y:4},to:{x:6,y:4},damage:30}]}]).events.flatMap(e=>e.effects).find(e=>e.type==='fall'&&e.actorType===enemy.type);
+ assert.equal(fallOf({id:'1-1',type:'boss',x:6,y:4}).size,2.2,'from the type\'s maximum health');
+ assert.equal(fallOf({id:'1-1',type:'rifleman',x:6,y:4,maxHp:90}).size,goreSize(90),'or the body\'s own');
+ assert.equal(fallOf({id:'1-1',type:'raider_elite',x:6,y:4,elite:true}).elite,true);
 });
 
 // 3.175.1 (user request): no two bursts alike; the kind of round and how hard it hit shape the spray.
@@ -87,7 +107,8 @@ test('an enemy\'s fall carries the killing blow and its body kind; a kill with n
  assert.deepEqual(fallOf([{type:'shot',weaponId:'ar',style:'bullet',from:{x:2,y:4},to:{x:6,y:4},damage:0},{type:'impact',from:{x:6,y:4},to:{x:6,y:4},damage:25}]).blow,{dx:1,dy:0});
  assert.equal(fallOf([{type:'shot',weaponId:'ar',from:{x:2,y:4},to:{x:6,y:4},damage:0,miss:true}]).blow,null,'a miss is not the blow');
  assert.equal(shot.gore,'flesh');
- assert.equal(shot.heavy,false);
+ assert.equal(shot.size,1);
+ assert.equal(shot.elite,false);
  assert.equal(fallOf([]).blow,null,'poison or fire: no burst');
 });
 
