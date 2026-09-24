@@ -31,7 +31,7 @@ import {WALL_ATLAS,drawWall} from './walls.js';
 import {drawTrace} from './traces.js';
 import {drawKiaGround,drawKiaBody,drawKiaAir} from './kia-art.js';
 import {drawBurstAir,Splatter} from './gore-art.js';
-import {enemyBurst,burstLife} from './gore.js';
+import {enemyBurst,hitBurst,burstLife} from './gore.js';
 import {THEMES,themeAt,resolveSprite} from './themes.js';
 import {missionObjects,missionTarget} from './missions.js';
 import {MODULE_TYPES,moduleCells,modulePoint} from './modules.js';
@@ -623,7 +623,9 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
   }
   addEffects(effects,elapsed=0){const start=this.time-Math.max(0,elapsed);
     // 3.175.0 kill gore (src/gore.js): a kill with a direction bursts on the far side; how much follows the setting.
-    for(const e of effects)if(e.type==='fall'&&e.actorType!=='player'&&e.blow&&this.gore&&this.goreLevel!=='off'){const g=this.game,seed=((g.seed|0)*31+(g.turn|0)*977+e.to.x*57+e.to.y)|0,burst=enemyBurst(seed,e.blow,{kind:e.gore,size:e.size,elite:e.elite,level:this.goreLevel,style:e.force?.style,damage:e.force?.damage});if(burst)this.gore.push({start,at:{x:e.to.x,y:e.to.y},burst,life:burstLife(burst)*1000});}for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);const kicks=shakeImpulses(effects,this.game.player,start);if(this.shakeEnabled)this.shakes=[...liveImpulses(this.shakes,this.time),...kicks].slice(-24);
+    for(const e of effects)if(e.type==='fall'&&e.actorType!=='player'&&e.blow&&this.gore&&this.goreLevel!=='off'){const g=this.game,seed=((g.seed|0)*31+(g.turn|0)*977+e.to.x*57+e.to.y)|0,burst=enemyBurst(seed,e.blow,{kind:e.gore,size:e.size,elite:e.elite,level:this.goreLevel,style:e.force?.style,damage:e.force?.damage});if(burst)this.gore.push({start,at:{x:e.to.x,y:e.to.y},burst,life:burstLife(burst)*1000});}
+    // 3.176.0 hit gore: a small spray for every harmful hit a body lives through.
+    for(const e of effects)if(e.type==='impact'&&e.hit?.blow&&this.gore&&this.goreLevel!=='off'){const g=this.game,seed=((g.seed|0)*37+(g.turn|0)*1009+e.to.x*61+e.to.y*7+this.gore.length)|0,burst=hitBurst(seed,e.hit.blow,{kind:e.hit.gore,size:e.hit.size,level:this.goreLevel,style:e.hit.force?.style,damage:e.damage});if(burst)this.gore.push({start,at:{x:e.to.x,y:e.to.y},burst,life:burstLife(burst)*1000});}for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);const kicks=shakeImpulses(effects,this.game.player,start);if(this.shakeEnabled)this.shakes=[...liveImpulses(this.shakes,this.time),...kicks].slice(-24);
     if(this.glitchEnabled){const r=effectGlitches(effects,this.game,start,kicks);this.glitches=[...liveGlitches(this.glitches,this.time),...r.screen].slice(-24);for(const o of r.objects)this.objectGlitches.set(o.key,o);if(r.hit)this.onPlayerHit?.();}}
   // 3.149.0 signal interference: the state-driven glitches, then the whole-frame one.
   glitchFrame(){

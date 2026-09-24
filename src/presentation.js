@@ -86,6 +86,17 @@ export function mergeMoveSteps(steps){
   if(group)merged.push(group);
   return merged;
 }
+// Who stands on `at` after the step and is still alive: the operative, or an enemy or ally (not a pet).
+function livingBody(state,at){
+  if(!at)return null;
+  const p=state.player;if(p&&p.hp>0&&p.x===at.x&&p.y===at.y)return {player:true};
+  const actor=[...(state.enemies||[]),...(state.allies||[])].find(e=>e.hp>0&&e.kind!=='pet'&&e.x===at.x&&e.y===at.y);
+  return actor?{actor}:null;
+}
+function hitInfo(effects,at,body){
+  const types=body.player?['enemyShot']:ENEMY_BLOWS,actor=body.actor;
+  return {blow:killingBlow(effects,at,types),force:goreForce(effects,at,types),gore:body.player?'flesh':goreKind(actor),size:body.player?1:goreSize(actor.maxHp||enemyDef(actor)?.hp)};
+}
 export function planPresentation(steps,{reduceMotion=false}={}){
   const events=[];let time=0;
   if(!reduceMotion)steps=mergeMoveSteps(steps);
@@ -106,6 +117,9 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     // 3.174.0: the operative's fall carries the killing blow's direction for the killed-in-action scene (src/kia.js);
     // 3.175.0: every other fall carries it too, with what the body is made of, for kill gore (src/gore.js).
     for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0,...(dead.type==='player'?{blow:killingBlow(step.effects,dead)}:{blow:killingBlow(step.effects,dead,ENEMY_BLOWS),force:goreForce(step.effects,dead,ENEMY_BLOWS),gore:goreKind(dead),size:goreSize(dead.maxHp||enemyDef(dead)?.hp),elite:Boolean(dead.elite)})});
+    // 3.176.0 hit gore: a harmful hit on a body that lives through it carries what the renderer needs for a small
+    // spray (src/gore.js hitBurst). Hits on props and on bodies that fell this step (their fall bursts) carry nothing.
+    for(let i=0;i<impacts.length;i++){const e=impacts[i],body=e.type==='impact'&&e.damage>0?livingBody(step.after,e.to):null;if(body)impacts[i]={...e,hit:hitInfo(step.effects,e.to,body)};}
     const player=step.before.player,settle=reduceMotion?120:DEATH_MS;
     const far=deaths.filter(dead=>dead.type!=='player'&&step.before.enemies.some(b=>b.id===dead.id&&step.before.visible?.(b))&&Math.max(Math.abs(dead.x-player.x),Math.abs(dead.y-player.y))>=KILL_HOLD_REACH);
     for(const dead of far)impacts.push({type:'cameraHold',from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},duration:settle+KILL_HOLD_MS,damage:0});

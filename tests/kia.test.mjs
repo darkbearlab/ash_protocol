@@ -87,3 +87,20 @@ test('each officer has a call and a loss report; the overseer only an ellipsis; 
  assert.equal(listeners.click,undefined);
  assert.ok(classes.has('held'));
 });
+
+// 3.176.0 (user calibration): every fallen sprite reads as knocked down from the left; a blow from the right mirrors it.
+test('the fallen sprites are all drawn as if hit from the left, and the scene mirrors them for a blow from the right',async()=>{
+ const {readFile}=await import('node:fs/promises');
+ const {createHash}=await import('node:crypto');
+ const root=new URL('../assets/pixel/classes-v1/',import.meta.url),meta=JSON.parse(await readFile(new URL('atlas.json',root),'utf8'));
+ assert.equal(meta.fallen_facing.from,'left');
+ assert.deepEqual(Object.keys(meta.fallen_facing.flipped).sort(),['bulwark','druid','engineer','necromancer','recon','soldier'],'the six the user found drawn from the right');
+ for(const [name,{after}] of Object.entries(meta.fallen_facing.flipped))assert.equal(createHash('sha256').update(await readFile(new URL(`dead-${name}.png`,root))).digest('hex'),after,name);
+ const {drawKiaBody}=await import('../src/kia-art.js');
+ const draw=blow=>{const calls=[];const ctx={save(){},restore(){},translate(){},rotate(){},scale:(x,y)=>calls.push(['scale',x,y]),drawImage(){}};
+  const r={tile:34,ctx,kia:{start:0,blow,frozen:false},classSprite:(a,size,c,dead)=>calls.push(['sprite',dead])};
+  drawKiaBody(r,{x:100,y:100},'soldier',KIA_TUNING.fallMs+10);return calls;};
+ assert.deepEqual(draw({dx:-1,dy:0}),[['scale',-1,1],['sprite',true]],'from the right: mirrored');
+ assert.deepEqual(draw({dx:1,dy:0}),[['sprite',true]],'from the left: as drawn');
+ assert.deepEqual(draw(null),[['sprite',true]],'no direction: as drawn');
+});

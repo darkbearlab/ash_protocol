@@ -99,6 +99,18 @@ export function enemyBurst(seed,blow,{kind='flesh',size=1,elite=false,level='ful
     cone:shape.cone*cone,reach:shape.reach*(.8+.2*force)*reach,mistSize:shape.mist*mistSize*Math.sqrt(body),aim});
 }
 
+// 3.176.0 (user request): every harmful hit that a body lives through throws a little — a few drops and a wisp of mist,
+// or a few sparks off a machine, and a pinprick of light — away from the shot. About a tenth of a kill; the kind of
+// round, the harm and the body's size still shape it, a little. The same setting governs it.
+export const HIT_TUNING=Object.freeze({blood:.11,light:.15,glow:.3,reach:.45,mist:.6});
+export function hitBurst(seed,blow,{kind='flesh',size=1,level='full',style='bullet',damage=10}={}){
+  if(!blow||level==='off')return null;
+  const t=HIT_TUNING,shape=GORE_STYLES[style]||GORE_STYLES.bullet,force=goreForceScale(damage);
+  const j=rng(seed^0x27d4eb2f),vary=(lo,hi)=>lo+(hi-lo)*j();
+  return makeBurst(seed,blow,{kind,blood:t.blood*shape.amount*force*Math.sqrt(size)*vary(.75,1.3),glow:t.glow*shape.glow,light:level==='simple'?0:t.light*Math.min(1.5,shape.glow),
+    cone:shape.cone*vary(.8,1.2),reach:t.reach*shape.reach*(.8+.2*force)*vary(.8,1.25),mistSize:t.mist*shape.mist*vary(.8,1.2),aim:vary(-.15,.15)});
+}
+
 // How long a burst stays in the air, in world seconds (after this only its stains remain).
 export const burstLife=burst=>burst?Math.max(.32,...burst.drops.map(d=>d.land),...burst.mist.map(m=>m.life),...burst.sparks.map(s=>s.life)):0;
 // Distance out along a piece's path `s` world seconds after the burst: the pop, then an easing drift.

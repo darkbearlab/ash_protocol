@@ -122,3 +122,38 @@ test('drops land within a second of world time; the burst code ships offline and
  assert.match(settings,/data-modal="gore"/,'the setting is on the settings page');
  assert.match(settings,/write\('ash-gore',goreChoice\)/,'kept on this device, not in the save');
 });
+
+// 3.176.0 (user request): every harmful hit a body lives through throws a little, about a tenth of a kill.
+test('a hit that is not a kill throws a little flesh or a few sparks, shaped like a kill but far smaller',async()=>{
+ const {hitBurst,HIT_TUNING}=await import('../src/gore.js');
+ const blow={dx:1,dy:0},mean=list=>list.reduce((a,b)=>a+b,0)/list.length,seeds=[...Array(100).keys()].map(i=>i+1);
+ const avg=(o,f)=>mean(seeds.map(s=>f(hitBurst(s,blow,o))));
+ assert.ok(avg({},b=>b.drops.length)>=2.5&&avg({},b=>b.drops.length)<=6,'a few drops');
+ assert.ok(avg({},b=>b.mist.length)<=2,'a wisp of mist');
+ assert.ok(avg({kind:'mech'},b=>b.sparks.length)>avg({},b=>b.sparks.length),'machines throw more sparks');
+ assert.ok(avg({damage:40},b=>b.drops.length)>avg({damage:8},b=>b.drops.length),'harder hits throw more');
+ assert.ok(avg({size:2.2},b=>b.drops.length)>avg({},b=>b.drops.length),'bigger bodies throw more');
+ assert.ok(avg({},b=>Math.max(...b.drops.map(d=>d.D)))<avg({},b=>Math.max(...enemyBurst(1,blow).drops.map(d=>d.D))),'and not as far as a kill');
+ assert.equal(hitBurst(3,blow,{level:'simple'}).sparks.length,0);
+ assert.equal(hitBurst(3,blow,{level:'off'}),null);
+ assert.equal(hitBurst(3,null),null);
+ assert.ok(HIT_TUNING.blood<GORE_TUNING.enemy.blood/3);
+});
+
+test('the presentation marks harmful hits on living bodies, not kills or props; the operative\'s hits come from the shooter',()=>{
+ const player={x:2,y:4,hp:50,character:'soldier'};
+ const at={x:6,y:4},state=(hp,extra=[])=>({player,enemies:[{id:'1-1',type:'rifleman',faction:'rebel',x:6,y:4,hp},...extra],allies:[],items:[],logs:[],visible:()=>true});
+ const shot=[{type:'shot',weaponId:'rifle',from:{x:2,y:4},to:at,damage:0},{type:'impact',from:at,to:at,damage:9}];
+ const impacts=(before,after,effects)=>planPresentation([{before,after,effects}]).events.flatMap(e=>e.effects).filter(e=>e.type==='impact');
+ const lived=impacts(state(20),state(11),shot)[0];
+ assert.deepEqual(lived.hit.blow,{dx:1,dy:0});
+ assert.deepEqual(lived.hit.force,{style:'bullet',damage:9});
+ assert.equal(lived.hit.gore,'flesh');assert.equal(lived.hit.size,1);
+ assert.equal(impacts(state(5),state(0),shot)[0].hit,undefined,'a kill bursts from its fall instead');
+ const crate=[{type:'shot',weaponId:'rifle',from:{x:2,y:4},to:{x:4,y:4},damage:0},{type:'impact',from:{x:4,y:4},to:{x:4,y:4},damage:9}];
+ assert.equal(impacts(state(20),state(20),crate)[0].hit,undefined,'a prop is no body');
+ const me=hp=>({player:{...player,hp},enemies:[{id:'1-1',type:'rifleman',x:6,y:4,hp:20}],allies:[],items:[],logs:[],visible:()=>true});
+ const onMe=planPresentation([{before:me(50),after:me(40),effects:[{type:'enemyShot',attackerType:'rifleman',from:{x:6,y:4},to:{x:2,y:4},damage:10}]}]).events.flatMap(e=>e.effects).find(e=>e.type==='impact');
+ assert.deepEqual(onMe.hit.blow,{dx:-1,dy:0},'shot from the right: the spray goes left');
+ assert.equal(onMe.hit.gore,'flesh');
+});

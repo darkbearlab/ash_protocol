@@ -37,8 +37,11 @@ export function drawKiaBody(r,a,character,time,dark=false){
     const q=easeOut(f/.45),tilt=(blow?Math.sign(dx||1)*.3:.15)*q;
     c.save();c.translate(Math.round(a.x+dx*kick*q),Math.round(a.y+dy*kick*q+t*.03*q));c.rotate(tilt);r.classSprite({x:0,y:0},size,character,false,dark);c.restore();
   }else{
-    const q=easeOut((f-.45)/.55);
-    r.classSprite({x:a.x+dx*kick+(1-q)*t*.044,y:a.y+dy*kick-(1-q)*t*.088+t*.03},size,character,true,dark);
+    // 3.176.0: every fallen sprite is drawn as if knocked down from the left (tools/normalize_fallen_facing.py, the
+    // user's calibration); a blow from the right mirrors it, so the body lies the way the slow motion tipped it.
+    const q=easeOut((f-.45)/.55),side=dx<0?-1:1,x=a.x+dx*kick+(1-q)*t*.044*side,y=a.y+dy*kick-(1-q)*t*.088+t*.03;
+    if(side<0){c.save();c.translate(Math.round(x),Math.round(y));c.scale(-1,1);r.classSprite({x:0,y:0},size,character,true,dark);c.restore();}
+    else r.classSprite({x,y},size,character,true,dark);
   }
 }
 function flash(r,a,size,character,color){

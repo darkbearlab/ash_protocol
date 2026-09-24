@@ -60,6 +60,15 @@
 - 空中的血滴與血霧：每一塊依它當下所在的格子調暗。光暈、光束、火花是光，在暗處保留七成。
 - 陣亡演出的噴濺與血泊也一樣。照明彈照亮時跟著變亮（同一個 `isDark`）。
 
+## 受擊（3.176.0）
+
+使用者：「如果每次受擊都有一點效果的話呢，例如說超小但可見的血霧／火花之類的。」照 Claude 的提議做：
+
+- 每一次有傷害、目標沒被打死的命中（敵人、隊友、幹員都算）都噴一點：平均 3～6 滴血、1～2 團小霧，機械約 5 道火花，一點小亮光；方向背離射手、顏色依派系。約是擊殺的十分之一（`HIT_TUNING`、`hitBurst`）。彈種、傷害、體型與個體差異照樣影響，但幅度小。
+- 打死的那一下不另外噴（交給倒下的噴濺）；打在箱子、路障等物件上不噴。
+- 落地的血滴一樣留在血跡圖層，暗房一樣變暗；同一個「擊殺血光」設定管：簡化沒有光與火花，關閉沒有。
+- 演出時間軸替每個命中效果帶 `hit`（`blow`、`force`、`gore`、`size`），繪圖器收到就產生。
+
 ## 設定
 
 設定頁「擊殺血光」：完整（預設）→ 簡化 → 關閉，存在這台裝置（`ash-gore`），不進存檔。系統要求減少動態時，完整會當成簡化（按鈕上會註明）。簡化是只有血肉噴濺，沒有光與火花；關閉是維持原本的倒下。只影響敵人；幹員陣亡演出永遠是完整的。
@@ -83,6 +92,6 @@
 
 - `src/gore.js`：`GORE_PALETTES`、`goreKind`、`GORE_SETTINGS`／`goreLevel`、`GORE_TUNING`、`GORE_STYLES`／`goreForce`／`goreForceScale`（3.175.1）、`makeBurst`（固定種子；`cone`、`reach`、`mistSize`、`aim`）、`enemyBurst`（彈種、威力、體型與個體差異）、`goreSize`、`burstLife`、`burstReach`。
 - `src/gore-art.js`：`drawBurstAir`（光、火花、霧、空中的血滴；`shade` 依格子調暗）與 `Splatter`（整層血跡圖層，記下有血的格子、逐格依亮暗畫出）。
-- `src/presentation.js`：每個倒下事件帶 `blow`（`src/kia.js` 的 `killingBlow`；敵人被幹員或隊友的 `shot` 與彼此的 `enemyShot` 打中；幹員的射擊本身傷害為 0、傷害在同格的 `impact`，所以只要那格這一步受了傷、沒落空的射擊就算）、`force`（彈種與傷害，3.175.1）、`gore`、`size`（最大生命算出的體型）、`elite`。
+- `src/presentation.js`：有傷害且目標活著的命中帶 `hit`（3.176.0）；每個倒下事件帶 `blow`（`src/kia.js` 的 `killingBlow`；敵人被幹員或隊友的 `shot` 與彼此的 `enemyShot` 打中；幹員的射擊本身傷害為 0、傷害在同格的 `impact`，所以只要那格這一步受了傷、沒落空的射擊就算）、`force`（彈種與傷害，3.175.1）、`gore`、`size`（最大生命算出的體型）、`elite`。
 - `src/renderer.js`：`addEffects` 收到敵人的倒下就產生噴濺（依 `goreLevel`）；地面在畫角色之前烙印並畫出圖層；空中在特效層之後畫、被牆擋住；在空中的時間過了就移除。
 - `src/controller.js`：設定的讀寫與按鈕；新局、讀檔、重播載入時清空。
