@@ -1,0 +1,210 @@
+{
+ "source": "art/comms-v1/source-wren.png",
+ "source_sha256": "90394c47502660d68cce29255d951aeef9df0e9952457b3cc039511f1f05efdf",
+ "grid": 4,
+ "cell": 64,
+ "palette": [
+  "#000034",
+  "#ACACAC",
+  "#343457",
+  "#FFCEAC",
+  "#000000",
+  "#747474",
+  "#CEAC74",
+  "#34ACAC",
+  "#573400",
+  "#575790",
+  "#FFFFFF",
+  "#340000",
+  "#CE5734",
+  "#903434",
+  "#005774",
+  "#347474"
+ ],
+ "megadrive_words": [
+  "0x0200",
+  "0x0AAA",
+  "0x0422",
+  "0x0ACE",
+  "0x0000",
+  "0x0666",
+  "0x06AC",
+  "0x0AA2",
+  "0x0024",
+  "0x0844",
+  "0x0EEE",
+  "0x0002",
+  "0x024C",
+  "0x0228",
+  "0x0640",
+  "0x0662"
+ ],
+ "pitch": 8.02,
+ "palette_swaps": {
+  "#FFCE90": "#FFCEAC",
+  "#CE9057": "#CEAC74"
+ },
+ "md_levels": [
+  0,
+  52,
+  87,
+  116,
+  144,
+  172,
+  206,
+  255
+ ],
+ "steps": [
+  "merge colours in rounds of OKLab reach (0.01, 0.014, 0.018, 0.022, 0.026, 0.03, 0.034) (most frequent real colour leads), drop specks under 0.01%",
+  "snap each colour to the closest-looking of the 512 Mega Drive colours (OKLab); over 16, merge the two most alike until 16 remain",
+  "one pitch for the sheet (6.0-13.0) and a phase per cell and axis, fitted to edge contrast (lines against centres); each virtual pixel votes from its centre; centred on 64x64",
+  "palette swaps after review"
+ ],
+ "pillow": "12.2.0",
+ "cells": [
+  {
+   "file": "art/comms-v1/wren/cells/01.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "450326c22d3063faaff899deaa323ab36c3383bf88901dbfc074abcaf68e65cf"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/02.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "b59c1635f54ff1e5f85a0682a7e00435c8def28ce50239f099267338cef96b76"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/03.png",
+   "native": [
+    63,
+    64
+   ],
+   "colors": 16,
+   "sha256": "3e7334ae8d33d972f66b86a0322c52d66199b3595134a800c7c94efc955702ff"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/04.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "130d0e7c6d5f93da0e303b58290109674d0e133e52f988ab28fe8f205d85895e"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/05.png",
+   "native": [
+    63,
+    63
+   ],
+   "colors": 14,
+   "sha256": "646cc6289daf2f158eda404092c17285a5be6098fb3530b349b6e9153e28399b"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/06.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "766237fb8bedd210e378ede46edce1f5153f3f32b3d2822edd7f1a2ea2576452"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/07.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "57a832abc933080adca4ec21b22b3cc83a0c067b569a0048fc054e64e72e8ae9"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/08.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "e45e8579a8207bf8b8b2948d7a30e082c464ff7646f7a9c12fa5a9330b4ce850"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/09.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "b43c664af67dd74a65a94492628959bd485eaf9c34b796e6eac4430075f69d46"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/10.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "3599b62f0984658a4eaaa3665e2c2d67afc3ff188d6c8ea21b39a40ba2e302fa"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/11.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "a716cc1b515af0eace57912e6bb616e3391a9321bfed11678b4750c23fb3d634"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/12.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "a1a0f7fbc0eb96e00eec4bb1d8d16a8627c37eb51cd24506e3c5ec3a244acd6f"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/13.png",
+   "native": [
+    64,
+    63
+   ],
+   "colors": 15,
+   "sha256": "8e830d545ac588df493c563032458897ae6f3a5f5b50e3ce1fec5efb0ac38dd7"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/14.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "c764d59a6eb51af012c311a565885d7f36a1e5744a0d726ca41cce42199f722c"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/15.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "7ade6e214fb252bc4622c101f55ab7353d1844d8f66b2ecd887cb426c5b1a6af"
+  },
+  {
+   "file": "art/comms-v1/wren/cells/16.png",
+   "native": [
+    64,
+    64
+   ],
+   "colors": 16,
+   "sha256": "3d1d0a6440c80302167cabec518707798dddba1f2f50c34298d29fd5f068e74d"
+  }
+ ]
+}

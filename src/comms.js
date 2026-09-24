@@ -12,13 +12,16 @@ export const commsDuration=text=>{
  return Math.round(Math.min(COMMS_TUNING.maxMs,Math.max(COMMS_TUNING.minMs,COMMS_TUNING.baseMs+COMMS_TUNING.perCharMs*chars)));
 };
 
-// Speakers (3.168.2, user request; names 3.169.0, user's tentative choice): each has a name and a portrait per
-// expression. A missing portrait shows the SOUND ONLY plate, so a speaker can talk before the art exists; the overseer
-// never has one.
+// Speakers (3.168.2, user request; names 3.169.0, user's tentative choice; faces 3.170.0): each has a name and, when
+// drawn, a 4x4 sheet of 64x64 faces (art/comms-v1, installed to assets/pixel/comms-v1) with the cell of each
+// expression. No sheet means the SOUND ONLY plate; the overseer never has one. An expression a speaker was not drawn
+// with shows her neutral face.
+const SHEET=id=>`./assets/pixel/comms-v1/${id}.png`;
+const cells=names=>Object.freeze(Object.fromEntries(names.map((name,i)=>[name,i])));
 export const COMMS_SPEAKERS=Object.freeze({
- egret:Object.freeze({name:t('comms.speaker.egret'),portraits:Object.freeze({})}),        // 白鷺, the main controller
- wren:Object.freeze({name:t('comms.speaker.wren'),portraits:Object.freeze({})}),          // 鷦鷯, her classmate
- overseer:Object.freeze({name:t('comms.speaker.overseer'),portraits:Object.freeze({})}),  // 監視官, no face, no name
+ egret:Object.freeze({name:t('comms.speaker.egret'),sheet:SHEET('egret'),expressions:cells(['neutral','smile','speaking','listening','serious','concerned','worried','alarmed','surprised','sad','relieved','thinking','closed','determined','flustered','gentle'])}),   // 白鷺
+ wren:Object.freeze({name:t('comms.speaker.wren'),sheet:SHEET('wren'),expressions:cells(['neutral','grin','speaking','wink','bored','annoyed','serious','alarmed','surprised','sheepish','worried','smug','laughing','sigh','determined','sad'])}),   // 鷦鷯
+ overseer:Object.freeze({name:t('comms.speaker.overseer')}),   // 監視官, no face, no name
 });
 export const DEFAULT_EXPRESSION='neutral';
 // Who is on duty: the officer saved with the run (src/duty.js picks it at deployment), Egret when there is none.
@@ -33,18 +36,24 @@ export const COMMS_LINES=Object.freeze({
   squadDeploy:['comms.egret.squadDeploy.1','comms.egret.squadDeploy.2'],
   squadReady:['comms.egret.squadReady.1','comms.egret.squadReady.2'],
   grenade:['comms.egret.grenade.1','comms.egret.grenade.2'],
-  boss:['comms.egret.boss.1','comms.egret.boss.2'],
+  boss:['comms.egret.boss.1',{id:'comms.egret.boss.2',expression:'worried'}],
   flank:['comms.egret.flank.1'],
   researcher:['comms.egret.researcher.1','comms.egret.researcher.2'],
  }),
  wren:Object.freeze({}),       // same events as Egret once written
  overseer:Object.freeze({}),   // contact (first enemy on a floor: kill them all) and researcher (kill them), once written
 });
+// The face each speaker makes for an event (3.170.0); a line may carry its own ({id, expression}).
+export const COMMS_EXPRESSIONS=Object.freeze({
+ egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned'}),
+});
 // A message from `speaker` for `event`, or null when that speaker has nothing to say about it.
-export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_LINES}={}){
+export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_LINES,expressions=COMMS_EXPRESSIONS}={}){
  const ids=lines[speaker]?.[event];
  if(!ids?.length)return null;
- return {speaker,line:ids[Math.min(ids.length-1,Math.floor(random()*ids.length))],vars};
+ const pick=ids[Math.min(ids.length-1,Math.floor(random()*ids.length))],entry=typeof pick==='string'?{id:pick}:pick;
+ const expression=entry.expression||expressions[speaker]?.[event];
+ return {speaker,line:entry.id,vars,...(expression?{expression}:{})};
 }
 
 // A message is {speaker, expression, line, vars} or {speaker, expression, text}:
@@ -56,13 +65,15 @@ export function resolveComms(message,context={},speakers=COMMS_SPEAKERS){
  const m=typeof message==='string'?{text:message}:message||{};
  const asked=m.speaker&&m.speaker!=='duty'?m.speaker:dutySpeaker(context);
  const id=Object.hasOwn(speakers,asked)?asked:dutySpeaker(context);
- const speaker=speakers[id]||{name:'',portraits:{}},expression=m.expression||DEFAULT_EXPRESSION;
- return {speaker:id,name:m.name??speaker.name,expression,portrait:speaker.portraits?.[expression]||null,text:m.text??(m.line?t(m.line,m.vars):'')};
+ const speaker=speakers[id]||{name:''},expression=m.expression||DEFAULT_EXPRESSION;
+ const cell=speaker.expressions?.[expression]??speaker.expressions?.[DEFAULT_EXPRESSION]??0;
+ return {speaker:id,name:m.name??speaker.name,expression,portrait:speaker.sheet?{sheet:speaker.sheet,cell}:null,text:m.text??(m.line?t(m.line,m.vars):'')};
 }
 
 export function commsMarkup(message,{timer=true,context={},speakers=COMMS_SPEAKERS}={}){
  const c=resolveComms(message,context,speakers);
- const face=c.portrait?`<img class="comms-portrait" src="${c.portrait}" width="44" height="44" alt="" draggable="false">`:'<span>SOUND</span><span>ONLY</span>';
+ // The face is one cell of a 4x4 sheet, shown as a background so the whole sheet loads once per speaker.
+ const face=c.portrait?`<span class="comms-portrait" style="background-image:url('${c.portrait.sheet}');background-position:-${c.portrait.cell%4*64}px -${Math.floor(c.portrait.cell/4)*64}px"></span>`:'<span>SOUND</span><span>ONLY</span>';
  return `<div class="comms" role="group" aria-label="${t('comms.aria')}" data-speaker="${c.speaker}" data-expression="${c.expression}"><div class="comms-face" aria-hidden="true">${face}</div><div class="comms-body"><p class="comms-name">${c.name}</p><p class="comms-line">${c.text}</p></div>${timer?'<span class="comms-timer" aria-hidden="true"></span>':''}</div>`;
 }
 

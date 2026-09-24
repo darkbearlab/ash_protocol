@@ -1,0 +1,10 @@
+{
+ "egret": {
+  "from": "art/comms-v1/egret/sheet.png",
+  "sha256": "d334089605aa043fb796b551458afe8e8c1223044bccdc137f2df35f27bc955d"
+ },
+ "wren": {
+  "from": "art/comms-v1/wren/sheet.png",
+  "sha256": "fe5179450a8676ac965ae3a24157eec81cbfce72a8764c3a064946318955299e"
+ }
+}
