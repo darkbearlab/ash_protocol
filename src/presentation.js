@@ -2,7 +2,7 @@ import {enemyProjectile,enemyMeleeStyle} from './enemy-visuals.js';
 import {NEST_EFFECT_MS} from './nest-art.js';
 import {actorMoves} from './actor-visuals.js';
 import {killingBlow,ENEMY_BLOWS} from './kia.js';
-import {goreKind,heavyBody} from './gore.js';
+import {goreKind,heavyBody,goreForce} from './gore.js';
 // Presentation observes one synchronous turn. Snapshots never roll back rules or RNG.
 const observers=new WeakMap(),activeSteps=new WeakSet();
 export function snapshot(game){
@@ -104,7 +104,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     // A brief impact flash precedes the grey corpse's settling motion.
     // 3.174.0: the operative's fall carries the killing blow's direction for the killed-in-action scene (src/kia.js);
     // 3.175.0: every other fall carries it too, with what the body is made of, for kill gore (src/gore.js).
-    for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0,...(dead.type==='player'?{blow:killingBlow(step.effects,dead)}:{blow:killingBlow(step.effects,dead,ENEMY_BLOWS),gore:goreKind(dead),heavy:heavyBody(dead)})});
+    for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0,...(dead.type==='player'?{blow:killingBlow(step.effects,dead)}:{blow:killingBlow(step.effects,dead,ENEMY_BLOWS),force:goreForce(step.effects,dead,ENEMY_BLOWS),gore:goreKind(dead),heavy:heavyBody(dead)})});
     const player=step.before.player,settle=reduceMotion?120:DEATH_MS;
     const far=deaths.filter(dead=>dead.type!=='player'&&step.before.enemies.some(b=>b.id===dead.id&&step.before.visible?.(b))&&Math.max(Math.abs(dead.x-player.x),Math.abs(dead.y-player.y))>=KILL_HOLD_REACH);
     for(const dead of far)impacts.push({type:'cameraHold',from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},duration:settle+KILL_HOLD_MS,damage:0});

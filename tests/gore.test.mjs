@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
-import {GORE_PALETTES,GORE_SETTINGS,GORE_TUNING,goreKind,goreLevel,validGoreSetting,makeBurst,enemyBurst,burstLife,heavyBody} from '../src/gore.js';
+import {GORE_PALETTES,GORE_SETTINGS,GORE_TUNING,goreKind,goreLevel,validGoreSetting,makeBurst,enemyBurst,burstLife,heavyBody,goreForce,goreForceScale} from '../src/gore.js';
 import {killingBlow,ENEMY_BLOWS,kiaBurst} from '../src/kia.js';
 import {planPresentation} from '../src/presentation.js';
 
@@ -31,14 +31,47 @@ test('the setting: full by default, simple under reduced motion, off; enemies ge
  const blow={dx:0,dy:1},scene=kiaBurst(5,blow),full=enemyBurst(5,blow),simple=enemyBurst(5,blow,{level:'simple'}),heavy=enemyBurst(5,blow,{heavy:true});
  assert.equal(enemyBurst(5,blow,{level:'off'}),null);
  assert.equal(enemyBurst(5,null),null,'no direction, no burst');
- assert.equal(full.drops.length,Math.round(46*GORE_TUNING.enemy.blood),'half the flesh of the operative\'s death');
- assert.ok(full.drops.length<heavy.drops.length&&heavy.drops.length<scene.drops.length,'elites and bosses are nearly full');
+ const mean=list=>list.reduce((a,b)=>a+b,0)/list.length,seeds=[...Array(60).keys()].map(i=>i+1);
+ const fullDrops=seeds.map(s=>enemyBurst(s,blow).drops.length),heavyDrops=seeds.map(s=>enemyBurst(s,blow,{heavy:true}).drops.length);
+ assert.ok(Math.abs(mean(fullDrops)-46*GORE_TUNING.enemy.blood)<3,'on average half the flesh of the operative\'s death');
+ assert.ok(mean(heavyDrops)>mean(fullDrops)&&mean(heavyDrops)<scene.drops.length,'elites and bosses are nearly full');
+ assert.ok(full.drops.length<heavy.drops.length,'the same draw, heavier body');
  assert.equal(simple.light,0);assert.equal(simple.sparks.length,0,'simple: no light, no sparks');
  assert.equal(simple.drops.length,full.drops.length,'but the same flesh');
  assert.ok(full.glow<1&&full.light<1);
  assert.ok(burstLife(full)>=.32&&burstLife(full)<=1.5,'in the air for about a second, then only stains');
  assert.ok(heavyBody({type:'rifleman',elite:true}));
  assert.ok(!heavyBody({type:'rifleman'}));
+});
+
+// 3.175.1 (user request): no two bursts alike; the kind of round and how hard it hit shape the spray.
+test('every burst draws its own amount, spread and reach, shaped by the kind of round and the harm',()=>{
+ const blow={dx:1,dy:0},mean=list=>list.reduce((a,b)=>a+b,0)/list.length,seeds=[...Array(60).keys()].map(i=>i+1);
+ const spread=b=>mean(b.drops.map(d=>Math.abs(d.a-b.away))),reach=b=>mean(b.drops.map(d=>d.D));
+ const bursts=seeds.map(s=>enemyBurst(s,blow));
+ assert.ok(new Set(bursts.map(b=>b.drops.length)).size>=6,'the amount varies');
+ assert.ok(Math.max(...bursts.map(spread))>Math.min(...bursts.map(spread))*1.25,'the spread varies');
+ assert.ok(Math.max(...bursts.map(reach))>Math.min(...bursts.map(reach))*1.2,'the reach varies');
+ assert.ok(new Set(bursts.map(b=>b.away.toFixed(3))).size>=50,'each is aimed a little differently');
+ const by=style=>seeds.map(s=>enemyBurst(s,blow,{style}));
+ const avg=(style,f)=>mean(by(style).map(f));
+ assert.ok(avg('pellet',spread)>avg('bullet',spread)&&avg('bullet',spread)>avg('precision',spread),'shotgun wide, sniper narrow');
+ assert.ok(avg('blast',spread)>avg('pellet',spread),'a blast throws widest');
+ assert.ok(avg('melee',reach)<avg('bullet',reach)&&avg('precision',reach)>avg('bullet',reach),'blades close, the sniper far');
+ assert.ok(avg('plasma',b=>b.drops.length)<avg('bullet',b=>b.drops.length)&&avg('plasma',b=>b.glow)>avg('bullet',b=>b.glow),'plasma burns: less liquid, more light');
+ assert.ok(avg('melee',b=>b.glow)<avg('bullet',b=>b.glow)*.5,'little light from a blade');
+ const hard=enemyBurst(9,blow,{damage:60}),soft=enemyBurst(9,blow,{damage:8});
+ assert.ok(hard.drops.length>soft.drops.length&&reach(hard)>reach(soft),'the harder the blow, the more and the farther');
+ const at={x:5,y:5},hit=(weaponId,extra={})=>goreForce([{type:'shot',weaponId,from:{x:1,y:5},to:at,damage:0,...extra},{type:'impact',from:at,to:at,damage:30}],at);
+ assert.deepEqual(hit('rifle'),{style:'bullet',damage:30});
+ assert.equal(hit('shotgun').style,'pellet');
+ assert.equal(hit('sniper').style,'precision');
+ assert.equal(hit('plasma',{style:'plasma'}).style,'plasma');
+ assert.equal(hit('katana',{style:'claw'}).style,'melee');
+ assert.equal(hit('chainsaw').style,'melee');
+ assert.equal(hit('launcher',{style:'grenade'}).style,'blast');
+ assert.equal(goreForce([{type:'blast',from:{x:3,y:5},to:{x:3,y:5},damage:0,radius:2},{type:'impact',from:at,to:at,damage:40}],at).style,'blast');
+ assert.equal(goreForceScale(24),1);assert.equal(goreForceScale(1000),1.6);assert.equal(goreForceScale(1),.7);
 });
 
 test('an enemy\'s fall carries the killing blow and its body kind; a kill with no direction has none',()=>{

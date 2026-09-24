@@ -3,6 +3,8 @@
 // Everything is sized in tiles, so the push-in and the zoom buttons scale it with the board.
 import {KIA_TUNING} from './kia.js';
 import {drawBurstAir} from './gore-art.js';
+import {isDark} from './lighting.js';
+import {DARK_ACTOR_BRIGHTNESS} from './actor-visuals.js';
 import {classSpriteRect} from './class-art.js';
 import {tintedSprite} from './operator-color.js';
 import {spriteSize} from './target-card.js';
@@ -16,7 +18,7 @@ export function drawKiaGround(r,time){
   const k=r.kia,b=k?.burst;if(!b)return;
   const since=time-k.start;if(since<=0)return;
   const c=r.ctx,t=r.tile,a=r.project(k.at.x,k.at.y),pool=Math.min(1,Math.max(0,(since-FALL)/1600));
-  if(pool>0){c.fillStyle='rgba(92,15,18,.72)';c.beginPath();c.ellipse(a.x+k.blow.dx*t*.03,a.y+t*.15,t*(.09+.26*pool),t*(.06+.13*pool),0,0,Math.PI*2);c.fill();}
+  if(pool>0){c.fillStyle=`rgba(92,15,18,${isDark(r.game,k.at)?.72*DARK_ACTOR_BRIGHTNESS:.72})`;c.beginPath();c.ellipse(a.x+k.blow.dx*t*.03,a.y+t*.15,t*(.09+.26*pool),t*(.06+.13*pool),0,0,Math.PI*2);c.fill();}
 }
 
 // The body: standing and flashing while the world is frozen, knocked a little away from the blow and tipping over,
@@ -51,5 +53,5 @@ function flash(r,a,size,character,color){
 // In the air: the burst (src/gore-art.js), with only a bright core while the world is frozen.
 export function drawKiaAir(r,time){
   const k=r.kia;if(!k?.burst)return;
-  drawBurstAir(r.ctx,r.tile,r.project(k.at.x,k.at.y),k.burst,time-k.start,k.frozen);
+  drawBurstAir(r.ctx,r.tile,r.project(k.at.x,k.at.y),k.burst,time-k.start,k.frozen,(dx,dy)=>isDark(r.game,{x:Math.round(k.at.x+dx),y:Math.round(k.at.y+dy)})?DARK_ACTOR_BRIGHTNESS:1);
 }
