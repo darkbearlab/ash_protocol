@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {t,setLanguage} from '../src/i18n.js';
-import {logSlots,commsForLogs,commsDuration,commsMarkup,resolveComms,dutySpeaker,commsLine,COMMS_HOOKS,COMMS_SPEAKERS,COMMS_TUNING,COMMS_LINES,COMMS_EXPRESSIONS,DEFAULT_EXPRESSION} from '../src/comms.js';
+import {logSlots,commsForLogs,commsDuration,commsMarkup,armComms,resolveComms,dutySpeaker,commsLine,COMMS_HOOKS,COMMS_SPEAKERS,COMMS_TUNING,COMMS_LINES,COMMS_EXPRESSIONS,DEFAULT_EXPRESSION} from '../src/comms.js';
 
 // 3.168.1 (user request, docs/STORY.md 8): someone speaks when a hooked log line appears. The hooks name
 // language-table sentences, so a line is recognised in either language and hands its slot values to the message.
@@ -27,7 +27,7 @@ test('a message names its speaker, expression and line; the speaker defaults to 
  assert.equal(dutySpeaker(),'egret','Egret when no run says otherwise');
  assert.equal(dutySpeaker({game:{duty:'wren'}}),'wren','the officer saved with the run');
  const plain=resolveComms('連線測試。');
- assert.deepEqual(plain,{speaker:'egret',name:t('comms.speaker.egret'),expression:DEFAULT_EXPRESSION,portrait:{sheet:'./assets/pixel/comms-v1/egret.png',cell:0},text:'連線測試。'});
+ assert.deepEqual(plain,{speaker:'egret',name:t('comms.speaker.egret'),expression:DEFAULT_EXPRESSION,portrait:{sheet:'./assets/pixel/comms-v1/egret.png',cell:0},text:'連線測試。',ms:null});
  const flagged=resolveComms({line:'game.reloaded',vars:{n:2},expression:'worried'});
  assert.equal(flagged.text,t('game.reloaded',{n:2}));
  assert.equal(flagged.expression,'worried');
@@ -121,4 +121,35 @@ test('a closed dialog stays hidden whatever it last showed',()=>{
    for(const name of classes)assert.doesNotMatch(selector,new RegExp(`^\\.${name}(?![\\w-])[^\\s>+~]*$`),`${selector} would show the closed dialog`);
  }
  assert.match(css,/dialog:not\(\[open\]\)\{display:none!important\}/);
+});
+
+// 3.172.0 (user request, after a playtest): a message may set how long it stays; a tap closes the box early.
+test('a message may set its own time, within the limit; the line length decides otherwise',()=>{
+ assert.equal(resolveComms({text:'x',seconds:2}).ms,2000);
+ assert.equal(resolveComms({text:'x',seconds:600}).ms,COMMS_TUNING.maxSeconds*1000);
+ for(const seconds of [0,-1,NaN,'3',undefined])assert.equal(resolveComms({text:'x',seconds}).ms,null,String(seconds));
+ assert.match(commsMarkup({text:'x',seconds:1.5}),/data-ms="1500"/);
+ assert.doesNotMatch(commsMarkup('x'),/data-ms/);
+ assert.equal(commsForLogs([{text:t('game.reloaded',{n:2})}],[{log:'game.reloaded',line:'common.pickupAmount',seconds:4}])[0].seconds,4,'a hook passes it on');
+});
+
+function fakeBox(ms,text='連線測試。'){
+ const classes=new Set(),listeners={};
+ return {classes,listeners,dataset:ms?{ms:String(ms)}:{},classList:{add:c=>classes.add(c)},addEventListener:(type,fn)=>{listeners[type]=fn;},
+  querySelector:s=>s==='.comms-timer'?{style:{}}:s==='.comms-line'?{textContent:text}:null};
+}
+test('the box closes when its time is up, or at once when tapped, and says so once',t=>{
+ t.mock.timers.enable({apis:['setTimeout']});
+ let done=0;
+ const timed=fakeBox(1200);armComms(timed,()=>done++);
+ t.mock.timers.tick(1199);assert.equal(timed.classes.has('closed'),false);
+ t.mock.timers.tick(1);assert.equal(timed.classes.has('closed'),true);
+ t.mock.timers.tick(COMMS_TUNING.closeMs);assert.equal(done,1);
+ const tapped=fakeBox();armComms(tapped,()=>done++);
+ tapped.listeners.click();assert.equal(tapped.classes.has('closed'),true,'a tap closes it before its time');
+ tapped.listeners.click();
+ t.mock.timers.tick(COMMS_TUNING.maxMs+COMMS_TUNING.closeMs);assert.equal(done,2,'the tap and the timer do not both finish it');
+ const lined=fakeBox(null,'x'.repeat(20));armComms(lined,()=>done++);
+ t.mock.timers.tick(commsDuration('x'.repeat(20))-1);assert.equal(lined.classes.has('closed'),false,'no time given: the line length decides');
+ t.mock.timers.tick(1);assert.equal(lined.classes.has('closed'),true);
 });

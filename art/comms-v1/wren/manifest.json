@@ -40,6 +40,9 @@
   "0x0662"
  ],
  "pitch": 8.02,
+ "repeated_lines": null,
+ "lowered_rows": 1,
+ "crown_fixes": {},
  "palette_swaps": {
   "#FFCE90": "#FFCEAC",
   "#CE9057": "#CEAC74"
@@ -57,7 +60,8 @@
  "steps": [
   "merge colours in rounds of OKLab reach (0.01, 0.014, 0.018, 0.022, 0.026, 0.03, 0.034) (most frequent real colour leads), drop specks under 0.01%",
   "snap each colour to the closest-looking of the 512 Mega Drive colours (OKLab); over 16, merge the two most alike until 16 remain",
-  "one pitch for the sheet (6.0-13.0) and a phase per cell and axis, fitted to edge contrast (lines against centres); each virtual pixel votes from its centre; centred on 64x64",
+  "one pitch for the sheet (6.0-13.0) and a phase per cell and axis, fitted to edge contrast (lines against centres); each virtual pixel votes from its centre",
+  "framed on 64x64: edge slivers from neighbouring cells dropped, each head centred across the cell, one head height for the whole sheet; ENLARGE speakers grow by repeating the least visible rows and mirrored column pairs until the figure reaches the bottom; every figure lowered onto the bottom edge",
   "palette swaps after review"
  ],
  "pillow": "12.2.0",
@@ -69,7 +73,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "450326c22d3063faaff899deaa323ab36c3383bf88901dbfc074abcaf68e65cf"
+   "sha256": "8b36914a2710e7f8cd1c1501dcb34fcae8af334c2582fa885d5569f315298f66"
   },
   {
    "file": "art/comms-v1/wren/cells/02.png",
@@ -78,7 +82,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "b59c1635f54ff1e5f85a0682a7e00435c8def28ce50239f099267338cef96b76"
+   "sha256": "38831d24b8917888155c6bddf6107087228ddd24074cf419b9b3bfd4acd4c45c"
   },
   {
    "file": "art/comms-v1/wren/cells/03.png",
@@ -87,7 +91,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "3e7334ae8d33d972f66b86a0322c52d66199b3595134a800c7c94efc955702ff"
+   "sha256": "b2095fb39dc4460fbd3cb057e041331d8c75111a4b697ca2aacd1ee9d3161493"
   },
   {
    "file": "art/comms-v1/wren/cells/04.png",
@@ -96,7 +100,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "130d0e7c6d5f93da0e303b58290109674d0e133e52f988ab28fe8f205d85895e"
+   "sha256": "0f2b805702fe92433a5d19bcc0582794890714b8eb20175375490ef3897717d0"
   },
   {
    "file": "art/comms-v1/wren/cells/05.png",
@@ -105,7 +109,7 @@
     63
    ],
    "colors": 14,
-   "sha256": "646cc6289daf2f158eda404092c17285a5be6098fb3530b349b6e9153e28399b"
+   "sha256": "790640ce2faafd8de19c8957108f44fb3e055de805cd66c86b1472d92fe3b80a"
   },
   {
    "file": "art/comms-v1/wren/cells/06.png",
@@ -114,7 +118,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "766237fb8bedd210e378ede46edce1f5153f3f32b3d2822edd7f1a2ea2576452"
+   "sha256": "8f4b33fe23713889e940e27eb9a0a9b0cc4e08bf81bedbf70de8852eadc2cce5"
   },
   {
    "file": "art/comms-v1/wren/cells/07.png",
@@ -123,7 +127,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "57a832abc933080adca4ec21b22b3cc83a0c067b569a0048fc054e64e72e8ae9"
+   "sha256": "fcd8d5d1de612b879dfd3d51f16359407901b98f3fea7b0e200eea0b9921a6c1"
   },
   {
    "file": "art/comms-v1/wren/cells/08.png",
@@ -132,7 +136,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "e45e8579a8207bf8b8b2948d7a30e082c464ff7646f7a9c12fa5a9330b4ce850"
+   "sha256": "cfaef482b90df2ef15a1decd0a18a7091b39f27f3bd32188701daeec66fcf644"
   },
   {
    "file": "art/comms-v1/wren/cells/09.png",
@@ -141,7 +145,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "b43c664af67dd74a65a94492628959bd485eaf9c34b796e6eac4430075f69d46"
+   "sha256": "4b4e99b2ebf113fe0eb91c3de4eef5cc0d9dd0cf500cfdd81a7e9f6388f908d1"
   },
   {
    "file": "art/comms-v1/wren/cells/10.png",
@@ -150,7 +154,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "3599b62f0984658a4eaaa3665e2c2d67afc3ff188d6c8ea21b39a40ba2e302fa"
+   "sha256": "eb9a4285094282521ca03ed45270b3540438a0e66b85db274024ca43cf24b32b"
   },
   {
    "file": "art/comms-v1/wren/cells/11.png",
@@ -159,7 +163,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "a716cc1b515af0eace57912e6bb616e3391a9321bfed11678b4750c23fb3d634"
+   "sha256": "3e2bddef2c0c5b1ec415fd7746ee8aa725a3c32e575a067ead4fec421d17d414"
   },
   {
    "file": "art/comms-v1/wren/cells/12.png",
@@ -168,7 +172,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "a1a0f7fbc0eb96e00eec4bb1d8d16a8627c37eb51cd24506e3c5ec3a244acd6f"
+   "sha256": "459ed27dd8434979710f54418853b298f4cdacd5caf3dd4d3c2e9ad803641d67"
   },
   {
    "file": "art/comms-v1/wren/cells/13.png",
@@ -177,7 +181,7 @@
     63
    ],
    "colors": 15,
-   "sha256": "8e830d545ac588df493c563032458897ae6f3a5f5b50e3ce1fec5efb0ac38dd7"
+   "sha256": "055f6528be9da5fcfcdb91bf6b564cc41a73833e7623e76926b3c9f281d0aa20"
   },
   {
    "file": "art/comms-v1/wren/cells/14.png",
@@ -186,7 +190,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "c764d59a6eb51af012c311a565885d7f36a1e5744a0d726ca41cce42199f722c"
+   "sha256": "626daae239da86314fb2f9e4f4a3e87421439b46e1cfedb13bb66771cfc2820a"
   },
   {
    "file": "art/comms-v1/wren/cells/15.png",
@@ -195,7 +199,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "7ade6e214fb252bc4622c101f55ab7353d1844d8f66b2ecd887cb426c5b1a6af"
+   "sha256": "802bc2579967bc3cc339d4abbfb39ae074c80a7ab7b5b95a2e316583cae59717"
   },
   {
    "file": "art/comms-v1/wren/cells/16.png",
@@ -204,7 +208,7 @@
     64
    ],
    "colors": 16,
-   "sha256": "3d1d0a6440c80302167cabec518707798dddba1f2f50c34298d29fd5f068e74d"
+   "sha256": "8d991f58104df69103760bcc65f5f5fdb86bfbf762003aeed4fee37c9bd7bc09"
   }
  ]
 }

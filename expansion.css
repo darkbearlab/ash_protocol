@@ -502,7 +502,9 @@ div.briefing{display:flex;flex-direction:column;gap:10px;flex:1}
    the field and took its taps. The content rule names its element now, and a closed dialog is always hidden. */
 dialog:not([open]){display:none!important}
 .comms{position:relative;display:flex;gap:10px;align-items:flex-start;padding:8px;border:1px solid #2f3a33;background:#0d1412;transition:opacity .22s,visibility .22s}
-.comms-face{flex:none;width:66px;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1px solid #c98b55;color:#c98b55;font:600 8px/1.2 var(--mono);letter-spacing:.16em;background:repeating-linear-gradient(0deg,#0000 0 2px,#ffffff0d 2px 3px),#130e0b;animation:transmission-flicker 2.6s steps(1) infinite}
+.comms-face{flex:none;width:66px;height:66px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:1px solid #c98b55;color:#c98b55;font:600 8px/1.2 var(--mono);letter-spacing:.16em;background:repeating-linear-gradient(0deg,#0000 0 2px,#ffffff0d 2px 3px),#130e0b;animation:comms-flicker 2.6s steps(1) infinite}
+/* 3.172.0: the face flickers by dimming, not fading, so over the field nothing shows through it. */
+@keyframes comms-flicker{0%,100%{filter:none}44%{filter:brightness(.5)}46%{filter:none}71%{filter:brightness(.8)}72%{filter:none}}
 /* 3.169.0: the overseer has no face and never will; his plate is the colour of a warning, not of a person. */
 .comms[data-speaker="overseer"] .comms-face{border-color:#a3473f;color:#d06a5f;background:repeating-linear-gradient(0deg,#0000 0 2px,#ffffff0a 2px 3px),#1a0c0b}
 .comms[data-speaker="overseer"] .comms-name{color:#d06a5f}
@@ -527,6 +529,9 @@ dialog:not([open]){display:none!important}
 .comms-timer{position:absolute;left:0;right:0;bottom:-4px;height:1px;background:#e8ece4;transform-origin:50% 50%;animation:comms-timer 5s linear forwards}
 @keyframes comms-timer{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 .comms.closed{opacity:0;visibility:hidden}
-.comms-layer{position:absolute;left:8px;right:8px;bottom:56px;z-index:3;pointer-events:none;display:flex;flex-direction:column}
-.comms-layer .comms{background:#0d1412eb}
+/* 3.172.0 (user request, after a playtest): over the field the box sits against the top edge instead of the middle,
+   lets the field show through, and a tap closes it. */
+.comms-layer{position:absolute;left:8px;right:8px;top:6px;z-index:3;pointer-events:none;display:flex;flex-direction:column}
+.comms-layer .comms{pointer-events:auto;cursor:pointer;background:#0d14129e;border-color:#2f3a33b3;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);-webkit-tap-highlight-color:transparent}
+.comms-layer .comms-name,.comms-layer .comms-line{text-shadow:0 1px 2px #000,0 0 1px #000}
 @media (prefers-reduced-motion:reduce){.comms-face,.comms-line::after{animation:none}}

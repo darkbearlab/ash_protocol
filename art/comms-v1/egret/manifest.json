@@ -40,6 +40,28 @@
   "0x0440"
  ],
  "pitch": 9.02,
+ "repeated_lines": {
+  "rows": [
+   12,
+   16,
+   34,
+   40,
+   51,
+   56
+  ],
+  "columns": [
+   10,
+   22,
+   27,
+   36,
+   41,
+   53
+  ]
+ },
+ "lowered_rows": 0,
+ "crown_fixes": {
+  "13": "#343434"
+ },
  "palette_swaps": {},
  "md_levels": [
   0,
@@ -54,7 +76,8 @@
  "steps": [
   "merge colours in rounds of OKLab reach (0.01, 0.014, 0.018, 0.022, 0.026, 0.03, 0.034) (most frequent real colour leads), drop specks under 0.01%",
   "snap each colour to the closest-looking of the 512 Mega Drive colours (OKLab); over 16, merge the two most alike until 16 remain",
-  "one pitch for the sheet (6.0-13.0) and a phase per cell and axis, fitted to edge contrast (lines against centres); each virtual pixel votes from its centre; centred on 64x64",
+  "one pitch for the sheet (6.0-13.0) and a phase per cell and axis, fitted to edge contrast (lines against centres); each virtual pixel votes from its centre",
+  "framed on 64x64: edge slivers from neighbouring cells dropped, each head centred across the cell, one head height for the whole sheet; ENLARGE speakers grow by repeating the least visible rows and mirrored column pairs until the figure reaches the bottom; every figure lowered onto the bottom edge",
   "palette swaps after review"
  ],
  "pillow": "12.2.0",
@@ -66,7 +89,7 @@
     57
    ],
    "colors": 16,
-   "sha256": "a12b279e22b8173b6a9eed657a3de4bc8d4a940c5c73d12385393edd585e1d85"
+   "sha256": "f78d07d2feaf6e4b0120e87297dd55abc764fa94cffa32aa7bf15a044d62991d"
   },
   {
    "file": "art/comms-v1/egret/cells/02.png",
@@ -75,7 +98,7 @@
     57
    ],
    "colors": 15,
-   "sha256": "da0fcae39e97c09180335a5c015fb2507615c27d0d35ea38d4ea7353b8853665"
+   "sha256": "979542435b91dda99046e67dde7f82691476f5b1a295bb87f3c3d330a61db60b"
   },
   {
    "file": "art/comms-v1/egret/cells/03.png",
@@ -84,7 +107,7 @@
     57
    ],
    "colors": 16,
-   "sha256": "cdcf50587bec397751750d710c59d4075144337b77f38ba29deceb895fb5d9cd"
+   "sha256": "e3861e966a6fc70d069e5f9fb1e022da919e7f10edc3f1794dacf26aaf5241cf"
   },
   {
    "file": "art/comms-v1/egret/cells/04.png",
@@ -93,7 +116,7 @@
     57
    ],
    "colors": 15,
-   "sha256": "5ae13e7f537e422be1de1ac8939e5c2f429efd721853179d1bdec41602f2e586"
+   "sha256": "73e827775a508cf51c464d529b1aae561a39201570103c6e9fa11dc48bf4ab82"
   },
   {
    "file": "art/comms-v1/egret/cells/05.png",
@@ -102,7 +125,7 @@
     57
    ],
    "colors": 15,
-   "sha256": "95d7260bcb487eb3835937bb430abaf3b22fc78685abd7faa262ed544868cea9"
+   "sha256": "f22f8e9908c0838d2317a60752984e898f0071c3de4db358a3f34be3d7c22a8c"
   },
   {
    "file": "art/comms-v1/egret/cells/06.png",
@@ -111,7 +134,7 @@
     57
    ],
    "colors": 16,
-   "sha256": "efc3522e97af6a1cc2a3f1fb0425bc15570ab171179531cba990108e628e6c0c"
+   "sha256": "35e161301e92a9246c7d2ef08d73c696df47ff9172129630e4e49660423ab556"
   },
   {
    "file": "art/comms-v1/egret/cells/07.png",
@@ -120,7 +143,7 @@
     56
    ],
    "colors": 15,
-   "sha256": "50a4ab6e801a73a95317283ebfc56c4c1b019e9fecc749905e7503543b63a0b4"
+   "sha256": "63f008ef0d3e982cb8cc315c7e4678641790109bf63d09ecdd58a980a8eb36ba"
   },
   {
    "file": "art/comms-v1/egret/cells/08.png",
@@ -129,7 +152,7 @@
     56
    ],
    "colors": 16,
-   "sha256": "4fd0ad42cf05c901c8a048550b667cafa674a544a461d4b26dffab14e858f8d2"
+   "sha256": "3c5e64121264e143501f9b9df03192fafadce88385582280be93ffbcc7f8684b"
   },
   {
    "file": "art/comms-v1/egret/cells/09.png",
@@ -138,7 +161,7 @@
     57
    ],
    "colors": 16,
-   "sha256": "34c3b19af0f18dbc023d0965274d9bf2bee91272f0c9fa591f01824fc42d97c7"
+   "sha256": "d31854f02c06f3dd9eea26c09001a64ce927e07786912da35590997704c159ff"
   },
   {
    "file": "art/comms-v1/egret/cells/10.png",
@@ -147,7 +170,7 @@
     57
    ],
    "colors": 14,
-   "sha256": "be9d9537619b8bda1055d9ade020e3712aca418b7c9d48d5c1b523386512da75"
+   "sha256": "ed8daaef11527a78e934294829cda66f249fcb1cee555226151f82883dc72760"
   },
   {
    "file": "art/comms-v1/egret/cells/11.png",
@@ -156,7 +179,7 @@
     57
    ],
    "colors": 15,
-   "sha256": "2cdf09eb9fafdb5f6623c37bff65de7a267955b97091abd5d7183a2a28a4678a"
+   "sha256": "3ce639b382bea6513bb57c35418d50663e8b6555fb9413492891d64ee9fd25af"
   },
   {
    "file": "art/comms-v1/egret/cells/12.png",
@@ -165,7 +188,7 @@
     57
    ],
    "colors": 15,
-   "sha256": "6f7945b48c2f0afdb3bbb0b992f7684d28f524973090df3bfa192426a2d1b763"
+   "sha256": "cb3808a95e8b1e5199804e22af68e6913d8c4cae4492c47829fff8dabfe7702c"
   },
   {
    "file": "art/comms-v1/egret/cells/13.png",
@@ -174,7 +197,7 @@
     56
    ],
    "colors": 16,
-   "sha256": "60301b6748625029b1891804cb4a44410ea4e663f7fd776773eef57e036738cf"
+   "sha256": "f337494c1b0bf0c71fe7cb39ebe1818391b9752196781d8159fa695dfc5cd9f0"
   },
   {
    "file": "art/comms-v1/egret/cells/14.png",
@@ -183,7 +206,7 @@
     56
    ],
    "colors": 15,
-   "sha256": "a2ce8ba9a4cfef2597ab3d2eb47d5c3e052e0a8ad31254c6f64155d2be7a63cb"
+   "sha256": "cef707407287881ec6fad807df7f137dc2b3fff0b57f67743f01418a2033aed7"
   },
   {
    "file": "art/comms-v1/egret/cells/15.png",
@@ -192,7 +215,7 @@
     56
    ],
    "colors": 15,
-   "sha256": "3a4bf590fe804c91a3a83dc30be8a4d25f57f6cfdac8e5c3488152e4590a1f20"
+   "sha256": "2aef35e113c8716421894627da46e297d6b66320293f2549d122195594c7fd90"
   },
   {
    "file": "art/comms-v1/egret/cells/16.png",
@@ -201,7 +224,7 @@
     56
    ],
    "colors": 15,
-   "sha256": "058c136cde53d7a85a418322c8b6c3bf81a08d22f53ac7999b6777c4e70fff06"
+   "sha256": "3372d9b7994a30f1b35133f8a02ecff2e296cd55bef708085b01ac7929def175"
   }
  ]
 }

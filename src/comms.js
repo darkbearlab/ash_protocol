@@ -5,8 +5,9 @@ import {t,language} from './i18n.js';
 import {validDuty,DEFAULT_DUTY} from './duty.js';
 
 // 3.168.1 (user request): a hairline under the box closes in from both sides; when it meets in the middle, the box
-// goes. Longer lines stay longer.
-export const COMMS_TUNING=Object.freeze({baseMs:2600,perCharMs:90,minMs:3500,maxMs:10000,closeMs:220});
+// goes. Longer lines stay longer. 3.172.0 (user request, after a playtest): faster, a tap closes it early, and a message
+// may set its own time (`seconds`, up to maxSeconds).
+export const COMMS_TUNING=Object.freeze({baseMs:1500,perCharMs:60,minMs:2500,maxMs:7000,closeMs:220,maxSeconds:60});
 export const commsDuration=text=>{
  const chars=[...String(text).replace(/<[^>]*>/g,'')].length;
  return Math.round(Math.min(COMMS_TUNING.maxMs,Math.max(COMMS_TUNING.minMs,COMMS_TUNING.baseMs+COMMS_TUNING.perCharMs*chars)));
@@ -69,6 +70,7 @@ export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_
 //   speaker     a key of the speakers table, or 'duty' / left out for whoever is on duty
 //   expression  which portrait; left out means neutral
 //   line, vars  a language-table id and its slots (the flag form); text is ready-made text instead
+//   seconds     how long the box stays (3.172.0); left out, the length of the line decides (commsDuration)
 // A plain string is ready-made text from whoever is on duty.
 export function resolveComms(message,context={},speakers=COMMS_SPEAKERS){
  const m=typeof message==='string'?{text:message}:message||{};
@@ -76,24 +78,30 @@ export function resolveComms(message,context={},speakers=COMMS_SPEAKERS){
  const id=Object.hasOwn(speakers,asked)?asked:dutySpeaker(context);
  const speaker=speakers[id]||{name:''},expression=m.expression||DEFAULT_EXPRESSION;
  const cell=speaker.expressions?.[expression]??speaker.expressions?.[DEFAULT_EXPRESSION]??0;
- return {speaker:id,name:m.name??speaker.name,expression,portrait:speaker.sheet?{sheet:speaker.sheet,cell}:null,text:m.text??(m.line?t(m.line,m.vars):'')};
+ const ms=Number.isFinite(m.seconds)&&m.seconds>0?Math.round(Math.min(COMMS_TUNING.maxSeconds,m.seconds)*1000):null;
+ return {speaker:id,name:m.name??speaker.name,expression,portrait:speaker.sheet?{sheet:speaker.sheet,cell}:null,text:m.text??(m.line?t(m.line,m.vars):''),ms};
 }
 
 export function commsMarkup(message,{timer=true,context={},speakers=COMMS_SPEAKERS}={}){
  const c=resolveComms(message,context,speakers);
  // The face is one cell of a 4x4 sheet, shown as a background so the whole sheet loads once per speaker.
  const face=c.portrait?`<span class="comms-portrait" style="background-image:url('${c.portrait.sheet}');background-position:-${c.portrait.cell%4*64}px -${Math.floor(c.portrait.cell/4)*64}px"></span>`:'<span>SOUND</span><span>ONLY</span>';
- return `<div class="comms" role="group" aria-label="${t('comms.aria')}" data-speaker="${c.speaker}" data-expression="${c.expression}"><div class="comms-face" aria-hidden="true">${face}</div><div class="comms-body"><p class="comms-name">${c.name}</p><p class="comms-line">${c.text}</p></div>${timer?'<span class="comms-timer" aria-hidden="true"></span>':''}</div>`;
+ return `<div class="comms" role="group" aria-label="${t('comms.aria')}" data-speaker="${c.speaker}" data-expression="${c.expression}"${c.ms?` data-ms="${c.ms}"`:''}><div class="comms-face" aria-hidden="true">${face}</div><div class="comms-body"><p class="comms-name">${c.name}</p><p class="comms-line">${c.text}</p></div>${timer?'<span class="comms-timer" aria-hidden="true"></span>':''}</div>`;
 }
 
 // Starts the hairline of a box already on the page; `done` runs once the box has closed. A timer closes it, not the
 // animation's end event, which a page that is not drawing (a background tab) never delivers; the line only shows it.
+// A tap on the box closes it at once (3.172.0). Returns the close function.
 export function armComms(box,done=()=>{}){
  const timer=box?.querySelector('.comms-timer');
- if(!timer){done();return;}
- const ms=commsDuration(box.querySelector('.comms-line')?.textContent||'');
+ if(!timer){done();return ()=>{};}
+ const ms=Number(box.dataset?.ms)||commsDuration(box.querySelector('.comms-line')?.textContent||'');
  timer.style.animationDuration=`${ms}ms`;
- setTimeout(()=>{box.classList.add('closed');setTimeout(done,COMMS_TUNING.closeMs);},ms);
+ let open=true,clock=null;
+ const close=()=>{if(!open)return;open=false;clearTimeout(clock);box.classList.add('closed');setTimeout(done,COMMS_TUNING.closeMs);};
+ clock=setTimeout(close,ms);
+ box.addEventListener('click',close);
+ return close;
 }
 
 // Log hooks (3.168.1, user request): someone speaks when a given log line appears. Each hook names a language-table

@@ -10,7 +10,8 @@ Steps, in the order the user asked for (2026-09-24):
      16-colour palette shared by all sixteen faces of a speaker, the way one palette line serves a character;
   3. true pixelization: each cell's own virtual pixel grid is measured (the source's pixels are about 8 to 8.4 image
      pixels and start at a different offset in every cell), each virtual pixel takes the colour most of its centre
-     shows, and the result is centred on a 64x64 canvas.
+     shows; the figure is framed on a 64x64 canvas (3.172.0: stray slivers from the neighbouring cell dropped, the
+     head centred across the cell, every head of a sheet at one height).
   4. palette swaps after review (PALETTE_SWAPS): same pixels, another Mega Drive colour.
 Deterministic: no random sampling, no dithering. Only Pillow is required. Rebuilding only touches art/comms-v1; the
 game reads assets/pixel/comms-v1, which changes only through --install (and may carry hand edits, see install()).
@@ -174,20 +175,118 @@ def centre_grid(cell, pitch):
         grid.append(line)
     return grid
 
-def place(grid, palette, flat):
-    """Step 3b: every virtual pixel to its palette colour, centred on a 64x64 canvas padded with the background."""
+def indexed(grid, palette):
+    """Step 3b: every virtual pixel to its palette colour; the background is the commonest colour on the border."""
     index = nearest(palette)
     values = [[index(c) for c in line] for line in grid]
     border = Counter(values[0] + values[-1] + [r[0] for r in values] + [r[-1] for r in values])
-    background = max(border.items(), key=lambda kv: (kv[1], -kv[0]))[0]
-    out = Image.new('P', (CELL, CELL), background)
-    out.putpalette(flat + [0] * (768 - len(flat)))
-    oy, ox = (CELL - len(values)) // 2, (CELL - len(values[0])) // 2
+    return values, max(border.items(), key=lambda kv: (kv[1], -kv[0]))[0]
+
+# 3.172.0 (user: Egret's face was off centre): the figure is framed, not the sampled grid. The source's cells do not
+# hold the figure at the same place, and a cell's edge can catch a sliver of its neighbour.
+HEAD_ROWS = 14   # the top of the head (hair) sets the horizontal centre; lower rows carry the headset's boom mic
+
+def figure(values, background):
+    """Keeps the figure: the largest patch of non-background pixels, plus any patch that does not touch the cell's
+    edge (a patch on the edge that is not the figure came from the neighbouring cell). Returns the cleaned grid, the
+    head's top row and the head's horizontal centre."""
+    h, w = len(values), len(values[0])
+    # A head never reaches the top of its cell; anything on the first row is the collar of the cell above (Egret's
+    # bottom row sits so high in the source that the cell's edge runs through the crown).
+    values = [[background] * w] + [line[:] for line in values[1:]]
+    seen, patches = set(), []
+    for sy in range(h):
+        for sx in range(w):
+            if (sx, sy) in seen or values[sy][sx] == background: continue
+            patch, stack = [], [(sx, sy)]; seen.add((sx, sy))
+            while stack:
+                x, y = stack.pop(); patch.append((x, y))
+                for dx in (-1, 0, 1):
+                    for dy in (-1, 0, 1):
+                        nx, ny = x + dx, y + dy
+                        if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in seen and values[ny][nx] != background:
+                            seen.add((nx, ny)); stack.append((nx, ny))
+            patches.append(patch)
+    body = max(patches, key=len)
+    cleaned = [line[:] for line in values]
+    for patch in patches:
+        if patch is not body and any(x in (0, w - 1) or y in (0, h - 1) for x, y in patch):
+            for x, y in patch: cleaned[y][x] = background
+    top = min(y for _, y in body)
+    head = [x for x, y in body if y < top + HEAD_ROWS]
+    return cleaned, top, (min(head) + max(head)) / 2
+
+def place(values, background, ox, oy):
+    """Step 3c: the grid on a 64x64 canvas padded with the background, offset so the figure is framed."""
+    out = [[background] * CELL for _ in range(CELL)]
     for gy, line in enumerate(values):
         for gx, value in enumerate(line):
             x, y = gx + ox, gy + oy
-            if 0 <= x < CELL and 0 <= y < CELL: out.putpixel((x, y), value)
+            if 0 <= x < CELL and 0 <= y < CELL: out[y][x] = value
     return out
+
+# 3.172.0 (user: enlarge Egret a little so she reaches the bottom of the frame). Pixel art only scales cleanly by whole
+# numbers, so the sheet grows by repeating single rows and columns where a repeat shows least: lines that already
+# match a neighbour in most of the sixteen faces (hair, uniform), never features such as eyes. The same lines are
+# repeated in every cell so the faces stay aligned, and columns are repeated in mirrored pairs so the face stays
+# symmetric. ENLARGE names the speakers; the rows added are what it takes for the typical figure to touch the bottom.
+ENLARGE = {'egret'}
+SPREAD = 4   # repeated lines at least this far apart, so no feature is stretched twice
+
+def repeat_cost(cells, background, line, axis):
+    """How much repeating one row (axis 'y') or column ('x') would show: in each cell, the pixels where it differs
+    from its closer-matching neighbour. The worst face counts first: a line that is plain forehead in fifteen faces
+    but the raised brows of the sixteenth would thicken those brows."""
+    costs = []
+    for cell in cells:
+        get = (lambda i: cell[i]) if axis == 'y' else (lambda i: [row[i] for row in cell])
+        here = get(line)
+        if all(v == background for v in here): costs.append(0); continue
+        costs.append(min(sum(a != b for a, b in zip(here, get(line + d))) for d in (-1, 1)))
+    return (max(costs), sum(costs))
+
+def pick(costs, count):
+    chosen = []
+    for key in sorted(costs, key=lambda k: (costs[k], k)):
+        if len(chosen) == count: break
+        if all(abs(key - c) >= SPREAD for c in chosen): chosen.append(key)
+    return sorted(chosen)
+
+def enlarge(cells, background):
+    bottoms = [max(y for y in range(CELL) if any(v != background for v in cell[y])) for cell in cells]
+    tops = [min(y for y in range(CELL) if any(v != background for v in cell[y])) for cell in cells]
+    lefts = [min(x for x in range(CELL) if any(row[x] != background for row in cell)) for cell in cells]
+    rights = [max(x for x in range(CELL) if any(row[x] != background for row in cell)) for cell in cells]
+    rows = CELL - 1 - round(median(bottoms))
+    height, width = median(bottoms) - median(tops) + 1, median(rights) - median(lefts) + 1
+    pairs = round(rows * width / height / 2)
+    top, bottom = round(median(tops)), round(median(bottoms))
+    repeat_rows = pick({y: repeat_cost(cells, background, y, 'y') for y in range(top + 1, bottom)}, rows)
+    # Mirrored pairs about the cell's centre line (between columns 31 and 32): distance d gives columns 31-d and 32+d.
+    def pair_cost(d):
+        left, right = repeat_cost(cells, background, 31 - d, 'x'), repeat_cost(cells, background, 32 + d, 'x')
+        return (max(left[0], right[0]), left[1] + right[1])
+    repeat_pairs = pick({d: pair_cost(d) for d in range(0, 31 - min(lefts))}, pairs)
+    columns = sorted([31 - d for d in repeat_pairs] + [32 + d for d in repeat_pairs])
+    grown = []
+    for cell in cells:
+        tall = [line for y, line in enumerate(cell) for _ in range(2 if y in repeat_rows else 1)][:CELL]
+        wide = [[v for x, v in enumerate(line) for _ in range(2 if x in columns else 1)] for line in tall]
+        cut = len(columns) // 2
+        if any(v != background for line in wide for v in line[:cut] + line[-cut:]):
+            raise SystemExit('enlarge: the figure would leave the cell')
+        grown.append([line[cut:cut + CELL] for line in wide])
+    return grown, {'rows': repeat_rows, 'columns': columns}
+
+def bottom_on_frame(cells, background):
+    """Moves the sheet down so the typical figure's bottom row is the cell's last row (user: reach the frame)."""
+    shift = CELL - 1 - round(median([max(y for y in range(CELL) if any(v != background for v in cell[y])) for cell in cells]))
+    if shift <= 0: return cells, 0
+    return [[[background] * CELL for _ in range(shift)] + cell[:CELL - shift] for cell in cells], shift
+
+# Fixed touch-ups, cell number (1-16) -> the colour the figure's top row should be. Egret 13: the source's cell edge
+# blends her crown outline with the collar above, which comes out grey-purple; the other faces draw it dark.
+CROWN_FIXES = {'egret': {13: (52, 52, 52)}}
 
 # Palette swaps after review (user, 2026-09-24): Wren's skin one step lighter, same pixels.
 PALETTE_SWAPS = {
@@ -212,9 +311,32 @@ def process(name):
     shown = [swaps.get(c, c) for c in palette]
     flat = [v for p in shown for v in p]
     atlas.putpalette(flat + [0] * (768 - len(flat)))
+    # Framing: each head centred across the cell, and every head of the sheet at one height, the one that centres the
+    # typical figure top to bottom, so the face does not jump when the expression changes.
+    framed = []
+    for grid in grids:
+        values, background = indexed(grid, palette)
+        cleaned, top, centre = figure(values, background)
+        bottom = max(y for y, line in enumerate(cleaned) for v in line if v != background)
+        framed.append((cleaned, background, top, centre, bottom))
+    head_top = round(median([(CELL - (bottom - top + 1)) / 2 for _, _, top, _, bottom in framed]))
+    backgrounds = {background for _, background, _, _, _ in framed}
+    if len(backgrounds) != 1: raise SystemExit(f'{name}: cells disagree on the background: {backgrounds}')
+    background = backgrounds.pop()
+    # A head of odd width sits on the cell's exact centre.
+    canvases = [place(cleaned, background, int(CELL / 2 - centre), head_top - top) for cleaned, _, top, centre, _ in framed]
+    grown = None
+    if name in ENLARGE: canvases, grown = enlarge(canvases, background)
+    canvases, lowered = bottom_on_frame(canvases, background)
+    for number, colour in CROWN_FIXES.get(name, {}).items():
+        cell = canvases[number - 1]
+        top = min(y for y in range(CELL) if any(v != background for v in cell[y]))
+        cell[top] = [palette.index(colour) if v != background else v for v in cell[top]]
     for i in range(GRID * GRID):
         x, y = i % GRID, i // GRID
-        cell, native = place(grids[i], palette, flat), (len(grids[i][0]), len(grids[i]))
+        cell, native = Image.new('P', (CELL, CELL)), (len(grids[i][0]), len(grids[i]))
+        cell.putpalette(flat + [0] * (768 - len(flat)))
+        cell.putdata([v for line in canvases[i] for v in line])
         path = folder / 'cells' / f'{i + 1:02d}.png'
         cell.save(path, bits=4, optimize=False)
         atlas.paste(cell, (x * CELL, y * CELL))
@@ -231,9 +353,9 @@ def process(name):
     manifest = {
         'source': source.relative_to(ROOT).as_posix(), 'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest(),
         'grid': GRID, 'cell': CELL, 'palette': ['#%02X%02X%02X' % c for c in shown], 'megadrive_words': [md_word(c) for c in shown],
-        'pitch': pitch,
+        'pitch': pitch, 'repeated_lines': grown, 'lowered_rows': lowered, 'crown_fixes': {str(k): '#%02X%02X%02X' % v for k, v in CROWN_FIXES.get(name, {}).items()},
         'palette_swaps': {'#%02X%02X%02X' % a: '#%02X%02X%02X' % b for a, b in swaps.items()},
-        'md_levels': MD_LEVELS, 'steps': [f'merge colours in rounds of OKLab reach {MERGE_ROUNDS} (most frequent real colour leads), drop specks under {MIN_SHARE:.2%}', 'snap each colour to the closest-looking of the 512 Mega Drive colours (OKLab); over 16, merge the two most alike until 16 remain', 'one pitch for the sheet (6.0-13.0) and a phase per cell and axis, fitted to edge contrast (lines against centres); each virtual pixel votes from its centre; centred on 64x64', 'palette swaps after review'],
+        'md_levels': MD_LEVELS, 'steps': [f'merge colours in rounds of OKLab reach {MERGE_ROUNDS} (most frequent real colour leads), drop specks under {MIN_SHARE:.2%}', 'snap each colour to the closest-looking of the 512 Mega Drive colours (OKLab); over 16, merge the two most alike until 16 remain', 'one pitch for the sheet (6.0-13.0) and a phase per cell and axis, fitted to edge contrast (lines against centres); each virtual pixel votes from its centre', 'framed on 64x64: edge slivers from neighbouring cells dropped, each head centred across the cell, one head height for the whole sheet; ENLARGE speakers grow by repeating the least visible rows and mirrored column pairs until the figure reaches the bottom; every figure lowered onto the bottom edge', 'palette swaps after review'],
         'pillow': __version__, 'cells': cells,
     }
     (folder / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=1) + '\n', encoding='utf-8')
