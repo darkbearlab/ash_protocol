@@ -1,6 +1,7 @@
 import {enemyProjectile,enemyMeleeStyle} from './enemy-visuals.js';
 import {NEST_EFFECT_MS} from './nest-art.js';
 import {actorMoves} from './actor-visuals.js';
+import {killingBlow} from './kia.js';
 // Presentation observes one synchronous turn. Snapshots never roll back rules or RNG.
 const observers=new WeakMap(),activeSteps=new WeakSet();
 export function snapshot(game){
@@ -100,7 +101,8 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const deaths=[...step.after.enemies,...(step.after.allies||[])].filter(e=>e.kind!=='pet'&&e.hp<=0&&[...step.before.enemies,...(step.before.allies||[])].some(b=>b.id===e.id&&b.hp>0));
     if(step.before.player.hp>0&&step.after.player.hp<=0)deaths.push({...step.after.player,type:'player'});
     // A brief impact flash precedes the grey corpse's settling motion.
-    for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0});
+    // 3.174.0: the operative's fall carries the killing blow's direction for the killed-in-action scene (src/kia.js).
+    for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0,...(dead.type==='player'?{blow:killingBlow(step.effects,dead)}:{})});
     const player=step.before.player,settle=reduceMotion?120:DEATH_MS;
     const far=deaths.filter(dead=>dead.type!=='player'&&step.before.enemies.some(b=>b.id===dead.id&&step.before.visible?.(b))&&Math.max(Math.abs(dead.x-player.x),Math.abs(dead.y-player.y))>=KILL_HOLD_REACH);
     for(const dead of far)impacts.push({type:'cameraHold',from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},duration:settle+KILL_HOLD_MS,damage:0});

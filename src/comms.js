@@ -41,6 +41,8 @@ export const COMMS_LINES=Object.freeze({
   boss:['comms.egret.boss.1',{id:'comms.egret.boss.2',expression:'worried'}],
   flank:['comms.egret.flank.1'],
   researcher:['comms.egret.researcher.1','comms.egret.researcher.2'],
+  kia:['comms.egret.kia.1'],                 // 3.174.0: calling the fallen operative (field)
+  lossReport:['comms.egret.lossReport.1'],   // 3.174.0: filing the loss report (results)
  }),
  wren:Object.freeze({
   briefing:['comms.wren.briefing.1',{id:'comms.wren.briefing.2',expression:'grin'},{id:'comms.wren.briefing.3',expression:'wink'}],
@@ -50,13 +52,17 @@ export const COMMS_LINES=Object.freeze({
   boss:['comms.wren.boss.1',{id:'comms.wren.boss.2',expression:'determined'}],
   flank:['comms.wren.flank.1','comms.wren.flank.2'],
   researcher:['comms.wren.researcher.1',{id:'comms.wren.researcher.2',expression:'sigh'}],
+  kia:['comms.wren.kia.1'],
+  lossReport:['comms.wren.lossReport.1'],
  }),
- overseer:Object.freeze({}),   // contact (first enemy on a floor: kill them all) and researcher (kill them), once written
+ // contact (first enemy on a floor: kill them all) and researcher (kill them), once written; for a death he says
+ // nothing but an ellipsis (user, 2026-09-24).
+ overseer:Object.freeze({kia:['comms.overseer.kia.1'],lossReport:['comms.overseer.lossReport.1']}),
 });
 // The face each speaker makes for an event (3.170.0); a line may carry its own ({id, expression}).
 export const COMMS_EXPRESSIONS=Object.freeze({
- egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned'}),
- wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral'}),
+ egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed'}),
+ wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad'}),
 });
 // A message from `speaker` for `event`, or null when that speaker has nothing to say about it.
 export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_LINES,expressions=COMMS_EXPRESSIONS}={}){
@@ -97,8 +103,9 @@ export function commsMarkup(message,{timer=true,context={},speakers=COMMS_SPEAKE
 
 // Starts the hairline of a box already on the page; `done` runs once the box has closed. A timer closes it, not the
 // animation's end event, which a page that is not drawing (a background tab) never delivers; the line only shows it.
-// A tap on the box closes it at once (3.172.0). Returns the close function.
-export function armComms(box,done=()=>{}){
+// A tap on the box closes it at once (3.172.0), unless `tap` is false (3.174.0: the call for a fallen operative plays
+// out). Returns the close function.
+export function armComms(box,done=()=>{},{tap=true}={}){
  const timer=box?.querySelector('.comms-timer');
  if(!timer){done();return ()=>{};}
  const ms=Number(box.dataset?.ms)||commsDuration(box.querySelector('.comms-line')?.textContent||'');
@@ -106,7 +113,7 @@ export function armComms(box,done=()=>{}){
  let open=true,clock=null;
  const close=()=>{if(!open)return;open=false;clearTimeout(clock);box.classList.add('closed');setTimeout(done,COMMS_TUNING.closeMs);};
  clock=setTimeout(close,ms);
- box.addEventListener('click',close);
+ if(tap)box.addEventListener('click',close);else box.classList.add('held');
  return close;
 }
 

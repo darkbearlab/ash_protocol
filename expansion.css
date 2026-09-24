@@ -529,6 +529,9 @@ dialog:not([open]){display:none!important}
 .comms-timer{position:absolute;left:0;right:0;bottom:-4px;height:1px;background:#e8ece4;transform-origin:50% 50%;animation:comms-timer 5s linear forwards}
 @keyframes comms-timer{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 .comms.closed{opacity:0;visibility:hidden}
+/* 3.174.0: the officer's word on an operative killed in action, above the results; like the briefing, the box keeps
+   its space when it closes. */
+.result-comms{margin:0 0 14px}
 /* 3.173.0 (user's pick from the mockups, option B): over the field the box is a slim bar covering the battle header,
    as tall as the header and growing down only for a long line, so the map stays clear. A tap closes it (3.172.0).
    The face is a 43x43 window on the 64x64 face, unscaled. The briefing keeps the full box. */
@@ -544,4 +547,5 @@ html[lang="en"] .comms.compact .comms-who{line-height:15px}
 .comms-who{margin-right:6px;font:500 10px/17px var(--mono);letter-spacing:.06em;color:#c98b55}
 .comms.compact[data-speaker="overseer"] .comms-who{color:#d06a5f}
 .comms.compact .comms-timer{bottom:-1px}
+.comms.held{cursor:default}
 @media (prefers-reduced-motion:reduce){.comms-face,.comms-line::after{animation:none}}

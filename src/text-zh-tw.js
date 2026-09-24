@@ -224,6 +224,12 @@ export default Object.freeze({
  "comms.short.egret":"白鷺",
  "comms.short.wren":"鷦鷯",
  "comms.short.overseer":"監視官",
+ "comms.egret.kia.1":"幹員，請回應。……幹員？聽得到嗎？請回應。",
+ "comms.egret.lossReport.1":"任務失敗。幹員損失報告已提交。",
+ "comms.wren.kia.1":"喂、喂！聽得到嗎？回我一下啊！",
+ "comms.wren.lossReport.1":"……任務失敗。損失報告，我交出去了。",
+ "comms.overseer.kia.1":"……",
+ "comms.overseer.lossReport.1":"……",
  // containerKinds
  "containerKinds.unknown.name":"未識別貨櫃",
  "containerKinds.ammo.name":"彈藥箱",

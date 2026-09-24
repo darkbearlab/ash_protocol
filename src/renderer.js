@@ -29,6 +29,7 @@ import {isDark,floorShading} from './lighting.js';
 import {ArtToneCache} from './art-tone.js';
 import {WALL_ATLAS,drawWall} from './walls.js';
 import {drawTrace} from './traces.js';
+import {drawKiaGround,drawKiaBody,drawKiaAir} from './kia-art.js';
 import {THEMES,themeAt,resolveSprite} from './themes.js';
 import {missionObjects,missionTarget} from './missions.js';
 import {MODULE_TYPES,moduleCells,modulePoint} from './modules.js';
@@ -65,7 +66,7 @@ const itemGlitchKey=i=>`item:${i.type}:${i.x},${i.y}`;
 export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
-    this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.frameRate=FRAME_RATE_DEFAULT;this.time=0;
+    this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.frameRate=FRAME_RATE_DEFAULT;this.time=0;this.kia=null;this.pace=null;this.kiaZoom=1;
     this.shakes=[];this.shakeEnabled=true;this.shift=null;   // screen shake (3.147.0, src/screen-shake.js)
     this.glitches=[];this.objectGlitches=new Map();this.glitchState={};this.glitchEnabled=true;   // signal interference (3.149.0, src/signal-glitch.js)
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.callouts=new CalloutBoard();this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -134,17 +135,20 @@ export class Renderer {
     if(!frameDue(t,this.due??t,tick)){requestAnimationFrame(v=>this.frame(v));return;}
     this.due=nextDue(this.due??t,t,this.frameRate);
     const dt=Math.min((t-this.last)/1000,.1);this.last=t;
-    if(!document.hidden&&!this.isPaused?.()){this.time+=dt*1000;this.onFrame?.(dt*1000);this.updateCamera(dt*1000);if(!this.isCovered?.()){this.shift=this.shakes.length?shakeOffset(this.shakes=liveImpulses(this.shakes,this.time),this.time):null;this.draw(this.time);if(this.glitchEnabled)this.glitchFrame();this.placeTargetCard();}}
+    // 3.174.0: `pace` (the killed-in-action scene, src/kia.js) slows or stops the world's clock — effects, playback and
+    // all — while the camera keeps real time, so it can push in during the freeze.
+    if(!document.hidden&&!this.isPaused?.()){const pace=this.pace?.(),world=dt*1000*(pace?pace.scale:1);this.kiaZoom=pace?pace.zoom:1;this.time+=world;this.onFrame?.(world);this.updateCamera(dt*1000);if(!this.isCovered?.()){this.shift=this.shakes.length?shakeOffset(this.shakes=liveImpulses(this.shakes,this.time),this.time):null;this.draw(this.time);if(this.glitchEnabled)this.glitchFrame();this.placeTargetCard();}}
     requestAnimationFrame(v=>this.frame(v));
   }
   // The frame is recomputed every frame; only the zoom eases (src/camera.js). A new run, a new floor or a resized board
   // starts from the exact framing instead of easing across it.
   updateCamera(dt){
-    const g=this.game,locked=this.targetingEnabled?g.targeted:null,holds=this.effects.filter(e=>e.type==='cameraHold'&&this.time-e.time<e.duration).map(e=>e.to);
-    const frame=cameraFrame(this.visualActor(g.player),locked?this.visualActor(locked):null,this.aim,this.w,this.h,this.zoom,holds);
+    // While the operative falls (3.174.0) the camera looks at nothing else.
+    const g=this.game,fallen=this.kia,locked=!fallen&&this.targetingEnabled?g.targeted:null,holds=fallen?[]:this.effects.filter(e=>e.type==='cameraHold'&&this.time-e.time<e.duration).map(e=>e.to);
+    const frame=cameraFrame(this.visualActor(g.player),locked?this.visualActor(locked):null,fallen?null:this.aim,this.w,this.h,this.zoom,holds);
     const scene=[g.seed,g.floor,this.w,this.h].join(':'),key=[this.zoom,this.mode||'',this.aim?'aim':'',locked?.id??'',holds.length?'hold':''].join('|');
     this.zoomState=zoomStep(scene===this.cameraScene?this.zoomState:null,{key,want:frame.tile,dt,reduceMotion:this.reduceMotion});this.cameraScene=scene;
-    this.camera={x:frame.x,y:frame.y};this.tile=this.zoomState.tile;
+    this.camera={x:frame.x,y:frame.y};this.tile=this.zoomState.tile*(this.kiaZoom||1);
   }
   placeTargetCard(){
     const ui=this.targetUI,target=this.game.targeted;if(!ui)return;
@@ -267,7 +271,8 @@ export class Renderer {
       c.setLineDash([4,3]);this.line(a.x,a.y,b.x,b.y,TONGUE_VISUAL.line,2);c.setLineDash([]);
       this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,TONGUE_VISUAL.fill,TONGUE_VISUAL.edge);this.box(l.x-t*.28,l.y-t*.28,t*.56,t*.56,'#00000000',TONGUE_VISUAL.landing);
     }
-    const pos=this.projectActor(p);if(p.hp<=0)this.corpse(pos,'player',p.character);else this.glitchDraw(pos,'player',()=>this.actor(pos,'player',time,p));
+    if(this.kia)drawKiaGround(this,time);
+    const pos=this.projectActor(p);if(p.hp<=0){if(this.kia)drawKiaBody(this,pos,p.character,time);else this.corpse(pos,'player',p.character);}else this.glitchDraw(pos,'player',()=>this.actor(pos,'player',time,p));
     for(const cover of g.cover){const dx=cover.x-p.x,dy=cover.y-p.y;const x=pos.x+dx*t*(isBarrier(cover)?1:.48),y=pos.y+dy*t*(isBarrier(cover)?1:.48);this.line(x+(dy? -t*.27:0),y+(dx?-t*.27:0),x+(dy?t*.27:0),y+(dx?t*.27:0),cover.type==='wall'?'#8bd2c9':'#c7d896',2);}
     const hiddenEnemies=new Set(g.visibleEnemies.filter(e=>cornerHidden(g,e)));
     for(const e of g.visibleEnemies){const a=this.projectActor(e);this.glitchDraw(a,e.id,()=>this.actor(a,e.type,time,e,hiddenEnemies.has(e)));if(e.keycard&&e.hp>0)this.keyBeam({x:a.x,y:a.y-this.tile*.55},time,.45);/* 3.146.0: carries the keycard */if(missionTarget(g,e))this.text('◇',a.x-this.tile*.35,a.y-8,'#88f3ff',12);}
@@ -330,6 +335,7 @@ export class Renderer {
     }
     this.effects=this.effects.filter(e=>time-e.time<Math.max(700,e.duration||0));
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}
+    if(this.kia)drawKiaAir(this,time);
     // Raised partitions share the wall occlusion layer; footprints remain on ground edges.
     const seenBarriers=g.barriers.filter(b=>edgeCells(b).some(q=>g.seen[q.y]?.[q.x]));
     const barriers=[...seenBarriers.map(b=>({b,y:b.y+(b.axis==='x'?.5:.08)})),...barrierJunctions(seenBarriers).map(j=>({j,y:j.y+.081}))].sort((a,b)=>a.y-b.y);

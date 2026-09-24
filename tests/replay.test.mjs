@@ -77,7 +77,8 @@ test('browser wiring: test mode only, played through act(), no profile writes, o
   assert.match(source,/\$\{TEST_MODE\?`\$\{sec\('測試：操作紀錄'\)\}/);
   assert.match(source,/if\(TEST_MODE\)globalThis\.__ashReplay=/);
   assert.match(source,/act\(op\.type,op\.arg===undefined\?undefined:structuredClone\(op\.arg\)\)/);
-  assert.match(source,/lastStatus=game\.status;if\(!replay\)recordResult\(game\);showResult\(\);/);
+  // 3.174.0: a death holds the results until the killed-in-action scene has played; the result is still recorded at once.
+  assert.match(source,/lastStatus=game\.status;if\(!replay\)recordResult\(game\);if\(kia\)kia\.resultPending=true;else showResult\(true\);/);
   // The replayed game is never connected to the profile, so it cannot grant unlocks or stories.
   const load=source.slice(source.indexOf('function loadReplay'),source.indexOf('function replayTick'));assert.ok(load.includes('game=start.game;'));assert.ok(!load.includes('connectUnlocks'));
 });

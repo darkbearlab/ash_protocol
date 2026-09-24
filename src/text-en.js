@@ -223,6 +223,12 @@ export default Object.freeze({
  "comms.short.egret":"EGRET",
  "comms.short.wren":"WREN",
  "comms.short.overseer":"OVERSEER",
+ "comms.egret.kia.1":"Operative, respond. ...Operative? Can you hear me? Please respond.",
+ "comms.egret.lossReport.1":"Mission failed. Operative loss report submitted.",
+ "comms.wren.kia.1":"Hey, hey! Can you hear me? Say something!",
+ "comms.wren.lossReport.1":"...Mission failed. I've sent in the loss report.",
+ "comms.overseer.kia.1":"...",
+ "comms.overseer.lossReport.1":"...",
  // containerKinds
  "containerKinds.unknown.name":"Unidentified crate",
  "containerKinds.ammo.name":"Ammo crate",
