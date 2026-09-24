@@ -1,0 +1,166 @@
+{
+  "tileSize": 32,
+  "columns": 4,
+  "palette": [
+    16,
+    33,
+    58,
+    82,
+    115,
+    148,
+    181,
+    214,
+    239
+  ],
+  "source_sha256": "33df14f276fbfb470cb2d4d8e9ab31c8200253f02a20f437d2a000442bd4f47b",
+  "melee_v3_sha256": {
+    "berserker": "1254faa6244a4de46296a765400f6c817b732438d8539bf5a3a039069704ce63",
+    "ninja": "4bd657105b585e9c5a914af5e528d350cc02e706cbd6edfdaa19643c93f63be8",
+    "dead-berserker": "04f24d2fb98ca5bce6a00d314d1a0de80ca0ad9d4cff2d9fc5eb5c9e0ef37d6f",
+    "dead-ninja": "04f24d2fb98ca5bce6a00d314d1a0de80ca0ad9d4cff2d9fc5eb5c9e0ef37d6f"
+  },
+  "sprites": {
+    "soldier": {
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "sha256": "a180b8daa021262b3c6cec9e7b2f8e8e7d3fd76fd1ceab1fb4aba9386dc2d70a"
+    },
+    "recon": {
+      "x": 32,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "sha256": "759f0b23749332189b7c2871d9b84fb353ba4d02da994ff29d91585c7280de91"
+    },
+    "engineer": {
+      "x": 64,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "sha256": "a27c0d3a2a5b931c77caaaf5b49ba1de26daa33166fc1f375345ba2c5ca2ffe6"
+    },
+    "druid": {
+      "x": 96,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "sha256": "9b84c34d3010284e2a95ba7a68bff9e6fc8f637a84500e32188169ec55f5da76"
+    },
+    "necromancer": {
+      "x": 0,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "sha256": "b34c5d92b20c15170ec3f84f53cd7b685a213cc92bbd98b94295abe4059ad97c"
+    },
+    "bulwark": {
+      "x": 32,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "sha256": "b98eea71d7717cdc1a2e3c7b2ae6a2d04b2c3f201b20d86ca6e2c42fc018be15"
+    },
+    "berserker": {
+      "x": 64,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "sha256": "a12cf5e72ae5f1dd9c3c822288ab832cdff8d3ac2d78a5452dd9cf3579d4fca0"
+    },
+    "ninja": {
+      "x": 96,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "sha256": "5c541f1770b0031baf16c6fba4cb2f75583bb7927c61f8067d4c006b70800ad8"
+    },
+    "dead-soldier": {
+      "x": 0,
+      "y": 64,
+      "w": 32,
+      "h": 32,
+      "sha256": "addd40b5a3a9b3f031d4fef2c6f2654171db32ffae6c020ccc28b2f2708f6b79"
+    },
+    "dead-recon": {
+      "x": 32,
+      "y": 64,
+      "w": 32,
+      "h": 32,
+      "sha256": "5cf701b1aa7af06c9d9e020d1e6ebdf984798c0b1e1547523210f81451c0608c"
+    },
+    "dead-engineer": {
+      "x": 64,
+      "y": 64,
+      "w": 32,
+      "h": 32,
+      "sha256": "e9d6c19e25761ca6ae2c9d107abd91c639a61ed832de5a2be5046668c85ec1e7"
+    },
+    "dead-druid": {
+      "x": 96,
+      "y": 64,
+      "w": 32,
+      "h": 32,
+      "sha256": "9ecbe9b5a30c4e4f1eeb63f4e0d6f377dc5e0bb8cd2cbbddb4f29a10fa6f217f"
+    },
+    "dead-necromancer": {
+      "x": 0,
+      "y": 96,
+      "w": 32,
+      "h": 32,
+      "sha256": "9cacc9f2f9a966078f3603f7565dac00ab138aafecf5425e53021825a8178523"
+    },
+    "dead-bulwark": {
+      "x": 32,
+      "y": 96,
+      "w": 32,
+      "h": 32,
+      "sha256": "4d29d9d0ca091e48dd8e5097296a8c7d32d771874e77239d6e677e44cf399a6c"
+    },
+    "dead-berserker": {
+      "x": 64,
+      "y": 96,
+      "w": 32,
+      "h": 32,
+      "sha256": "9e16e2cf445b5291f1f15a95aa3184df5962acfe21106e5795d3797d8ee5199c"
+    },
+    "dead-ninja": {
+      "x": 96,
+      "y": 96,
+      "w": 32,
+      "h": 32,
+      "sha256": "1fcbfbdbc2b5441f930d25d18c814dcda8a30235d85de4b7120edda10220fa82"
+    }
+  },
+  "fallen_facing": {
+    "from": "left",
+    "calibrated": "2026-09-24",
+    "flipped": {
+      "soldier": {
+        "before": "852c198002f89c1b4b3f991a7ded2f0fd1b09465f859554f778d8b2e86aa87fb",
+        "after": "addd40b5a3a9b3f031d4fef2c6f2654171db32ffae6c020ccc28b2f2708f6b79"
+      },
+      "recon": {
+        "before": "08cfa45802d0592c42c11e5303fec6b48f821a8ac552b0514c3333b7a9eafe4c",
+        "after": "5cf701b1aa7af06c9d9e020d1e6ebdf984798c0b1e1547523210f81451c0608c"
+      },
+      "engineer": {
+        "before": "e07112807b931c0e999cbadb7ac40bdb3e77a2652be0ec5cc5661c1da29d46b4",
+        "after": "e9d6c19e25761ca6ae2c9d107abd91c639a61ed832de5a2be5046668c85ec1e7"
+      },
+      "druid": {
+        "before": "ff769b19e45a91f8c26917ff5dfc8c1d4fb38fef76feb561b030b4d47df536b9",
+        "after": "9ecbe9b5a30c4e4f1eeb63f4e0d6f377dc5e0bb8cd2cbbddb4f29a10fa6f217f"
+      },
+      "necromancer": {
+        "before": "c4d6b401b2e9e184cc388b7b604086fdfb372f1cdd11562c743b710fd88df7d6",
+        "after": "9cacc9f2f9a966078f3603f7565dac00ab138aafecf5425e53021825a8178523"
+      },
+      "bulwark": {
+        "before": "92a01bf542934a9f94db5b4f590a3d6321bd339198d14b7c152c4eefe81329dc",
+        "after": "4d29d9d0ca091e48dd8e5097296a8c7d32d771874e77239d6e677e44cf399a6c"
+      }
+    }
+  }
+}

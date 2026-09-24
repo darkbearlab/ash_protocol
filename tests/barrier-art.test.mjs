@@ -33,3 +33,15 @@ test('door art is opaque 32px indexed texture with one RGB555 palette and reprod
   }
   const source=readFileSync(new URL('../art/doors-v1/source-atlas.png',import.meta.url));assert.equal(createHash('sha256').update(source).digest('hex'),manifest.source_sha256);
 });
+
+// 3.177.3 (user): the vault closet's sealed walls wear the vault door's steel and show no health bar.
+test('a sealed vault wall is drawn in steel with no health bar; an ordinary partition keeps its bar',()=>{
+  const draw=b=>{
+    const calls=[],ctx={save(){},restore(){},drawImage(){},fillRect(){},fillStyle:''};
+    const r={ctx,tile:32,game:{},terrainImages:new Map(),project:()=>({x:100,y:100}),steel:Renderer.prototype.steel,
+      box:(...args)=>calls.push(['box',args[4],args[5]]),objectHealth:()=>calls.push(['health'])};
+    Renderer.prototype.drawBarrier.call(r,b);return calls;
+  };
+  assert.deepEqual(draw({...edge('x',1.5,1),indestructible:true,vaultWall:true}),[['box','#8fa4b85c','#c8d4de']]);
+  assert.deepEqual(draw(edge('x',1.5,1)),[['health']]);
+});

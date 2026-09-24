@@ -100,8 +100,10 @@ export class Renderer {
     }).filter(o=>o.hit).sort((a,b)=>a.normal-b.normal)[0]?.b;
   }
   // 3.146.0: the vault's steel door, drawn over the ordinary door: grey steel, and a padlock while it is locked.
+  // 3.177.3 (user): the closet's sealed walls get the same steel, and no health bar, since nothing breaks them.
+  steel(boxes){for(const q of boxes)this.box(q.left,q.top,q.width,Math.max(2,q.bottom-q.top),'#8fa4b85c','#c8d4de');}
   vaultDoor(b,boxes){
-    for(const q of boxes)this.box(q.left,q.top,q.width,Math.max(2,q.bottom-q.top),'#8fa4b85c','#c8d4de');
+    this.steel(boxes);
     if(!b.locked)return;
     const q=boxes[0],x=Math.round(q.left+q.width/2),y=Math.round((q.faceTop+q.bottom)/2);
     this.line(x-3,y-3,x-3,y-6,'#e8c95a',2);this.line(x+3,y-3,x+3,y-6,'#e8c95a',2);this.line(x-3,y-7,x+3,y-7,'#e8c95a',2);
@@ -112,7 +114,7 @@ export class Renderer {
     const segment=(a,z,width)=>this.line(p.x+(vertical?0:a),p.y+(vertical?a:0),p.x+(vertical?0:z),p.y+(vertical?z:0),color,width);
     if(b.hp<=0&&b.type==='door'&&mapStyle(this.game)!=='facility'){drawDoor(this.ctx,b,p,scale,this.terrainImages,this.game);return;}
     if(b.hp<=0){segment(-half,-half*.72,3);segment(half*.72,half,3);return;}
-    if(b.type==='low_partition'||b.type==='partition'){const q=drawPartition(this.ctx,b,p,scale,this.terrainImages,this.game);this.objectHealth(b,p.x-7,q.top-4,14);return;}
+    if(b.type==='low_partition'||b.type==='partition'){const q=drawPartition(this.ctx,b,p,scale,this.terrainImages,this.game);if(b.vaultWall){this.steel([q]);return;}this.objectHealth(b,p.x-7,q.top-4,14);return;}
     if(b.type==='door'){const boxes=drawDoor(this.ctx,b,p,scale,this.terrainImages,this.game);if(b.vault){this.vaultDoor(b,boxes);return;}this.objectHealth(b,p.x-7,Math.min(...boxes.map(q=>q.top))-4,14,'#e6bd82');return;}
     if(b.open){segment(-half,-half*.62,5);segment(half*.62,half,5);this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}
     if(this.terrain(b.type,p,b,Math.round(scale),vertical?0:1)){this.objectHealth(b,p.x-7,p.y+half-4,14,'#e6bd82');return;}

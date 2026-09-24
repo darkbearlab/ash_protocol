@@ -1,12 +1,12 @@
 """Rebuild monochrome class sprites. Pillow only; no generation/API calls.
-Run: python tools/pixelize_classes.py
+Run: python tools/pixelize_classes.py   (refuses over a hand-edited atlas unless --force, 3.177.3)
 The generated source has a baked checker; remove only border-connected matte.
 Soldier deliberately preserves the original player and dead-player silhouettes.
 """
 from pathlib import Path
 from collections import deque
 from PIL import Image, ImageDraw
-import hashlib, json
+import hashlib, json, sys
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'assets/pixel/classes-v1'
@@ -54,6 +54,11 @@ def indexed(cell, size=None, gain=1):
     return result
 
 def build():
+    # 3.177.3: the art in the game may be a hand edit (tools/install_class_atlas.py); rebuilding from the sources would
+    # overwrite it. The pre-edit art is archived under art/classes-v1/archive/.
+    meta_path=OUT/'atlas.json'
+    if meta_path.exists() and json.loads(meta_path.read_text(encoding='utf-8')).get('manual_edits') and '--force' not in sys.argv:
+        raise SystemExit('assets/pixel/classes-v1 holds a hand edit (atlas.json manual_edits); pass --force to overwrite it')
     OUT.mkdir(parents=True,exist_ok=True); source=Image.open(SOURCE)
     atlas=Image.new('RGBA',(128,128)); meta={'tileSize':32,'columns':4,'palette':GRAY,'source_sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'melee_v3_sha256':{key:hashlib.sha256(path.read_bytes()).hexdigest() for key,(path,_,_) in MELEE_V3.items()},'sprites':{}}
     for i in range(16):

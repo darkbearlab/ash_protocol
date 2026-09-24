@@ -28,3 +28,16 @@ renderer 的 `classSprite` 依 presentation 中的 player.character 選圖；迷
 ## 3.176.0 倒地圖統一成「被左邊打倒」（Claude，使用者校準）
 
 使用者 2026-09-24 在校準頁 <https://claude.ai/artifact/MMDyJr4CXFAGRNwRoe2oRL> 替八張倒地圖標出「看起來是被哪一邊的攻擊打倒的」：士兵、偵察兵、工程師、德魯伊、死靈法師、重裝兵是被右邊打倒，狂戰士、忍者是被左邊打倒。使用者建議直接改圖：`python tools/normalize_fallen_facing.py` 把前六張左右翻轉（各自的 `dead-*.png` 與 `atlas.png` 裡的格子），`atlas.json` 記下翻轉前後的雜湊（`fallen_facing`），再跑一次不會翻回來。之後八張都是「被左邊打倒」，陣亡演出在致命一擊從右邊來時鏡射（`src/kia-art.js`）。**重跑 `tools/pixelize_classes.py` 會還原成未翻轉的樣子，之後要再跑這支。**
+
+## 3.177.3 使用者手改 atlas
+
+- 使用者 2026-09-24 直接在 atlas 上手改八個職業的站姿與倒地圖（16 階灰：0、17、34……255，加上透明），原檔保留在 [manual/atlas_edit-2026-09-24.png](manual/atlas_edit-2026-09-24.png)。
+- 改動：站姿圖輪廓每張改 15～127 個像素，明暗重新整理；倒地圖只調明暗，輪廓最多差 4 個像素，所以 3.176.0 校準的倒地方向都沒變（使用者確認）。
+- `python tools/install_class_atlas.py art/classes-v1/manual/atlas_edit-2026-09-24.png --label 2026-09-24-before-manual-edit` 做了以下幾件事：
+  - 把當時遊戲裡的 atlas、`atlas.json` 與 16 張單張圖封存到 [archive/2026-09-24-before-manual-edit/](archive/2026-09-24-before-manual-edit/)。
+  - 把手改圖逐位元組放成 `atlas.png`。
+  - 從各格切出 16 張 4-bit 單張圖（索引 0 透明、灰階色盤）。
+  - 在 `atlas.json` 記錄 `manual_edits` 與新雜湊；`fallen_facing` 改記新雜湊。
+- `preview.png` 已經跟著重畫。
+- 之後再手改：把新的 atlas 放進 `manual/`，換一個 `--label` 再跑同一個工具。
+- `tools/pixelize_classes.py` 會從原始生成圖重建，看到 `manual_edits` 就拒絕執行；真的要回到生成版，才加 `--force`。
