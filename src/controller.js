@@ -58,6 +58,7 @@ import {Game,WEAPONS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,protocolSett
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MODE_NOTE,runOptions,FACILITY_OPTIONS,facilityOption} from './deploy-ui.js';
 import {commsMarkup,armComms,commsForLogs,commsLine,dutySpeaker} from './comms.js';
 import {KIA_TUNING,kiaTimes,kiaTimeScale,kiaZoom,kiaSeconds,kiaBurst} from './kia.js';
+import {OUTRO_TUNING,outroPlan} from './outro.js';
 import {GORE_SETTINGS,validGoreSetting,goreLevel} from './gore.js';
 import {commsEvents,commsSnapshot,newCommsMemory} from './comms-events.js';
 import {validDuty} from './duty.js';
@@ -200,8 +201,9 @@ function sayComms(message){commsQueue.push(message);if(commsQueue.length===1)sho
 function showNextComms(){
   const message=commsQueue[0],round=commsRound;if(message===undefined)return;
   commsLayer.innerHTML=commsMarkup(message,{context:{game},compact:true});
-  armComms(commsLayer.querySelector('.comms'),()=>{if(round!==commsRound)return;commsLayer.innerHTML='';commsQueue.shift();showNextComms();},{tap:message?.tap!==false});
+  armComms(commsLayer.querySelector('.comms'),()=>{if(round!==commsRound)return;commsLayer.innerHTML='';commsQueue.shift();message?.then?.();showNextComms();},{tap:message?.tap!==false});
 }
+// A message's `then` runs when its box has closed (3.177.0, the end of a run).
 // Drops whatever is showing or waiting; a box already closing finishes quietly (3.174.0).
 function clearComms(){commsRound++;commsQueue.length=0;commsLayer.innerHTML='';}
 function sayCommsFor(entries){for(const message of commsForLogs(entries))sayComms(message);}
@@ -284,7 +286,7 @@ function update(view=renderer.game) {
   if(playback)return;
   if(view.floor!==previousFloor){previousFloor=view.floor;floorToast();}
   if(entered)persist();
-  if(game.status!=='playing'&&lastStatus==='playing'){lastStatus=game.status;if(!replay)recordResult(game);if(kia)kia.resultPending=true;else showResult(true);}
+  if(game.status!=='playing'&&lastStatus==='playing'){lastStatus=game.status;if(!replay)recordResult(game);if(kia)kia.resultPending=true;else endRun();}
   else if(entered&&isSimulation(game)&&game.status==='playing'&&!$('#modal').open&&promptDue(game,promptLog(game)))showRoomPrompt();
   else if(entered&&game.pendingPerks&&game.status==='playing')showLevelUp();
   else if(entered&&saveWarningDue&&!$('#modal').open)showSaveWarning();
@@ -292,7 +294,7 @@ function update(view=renderer.game) {
 renderer.isPaused=()=>orientationBlocked;
 renderer.frameRate=frameRate(read('ash-frame-rate'));
 // The title and every menu opened from it sit on an opaque backdrop, so the battlefield behind them is not drawn.
-renderer.isCovered=()=>$('#modal').open&&$('#modal').matches('.title,.standalone');
+renderer.isCovered=()=>$('#modal').open&&$('#modal').matches('.title,.standalone,.outro');
 // Rules are resolved before a presentation starts, so skipping only drops frames. A turn that ended the run always plays
 // out, so a death is never covered by the result screen mid-fall; the 120ms double-input lock still applies.
 function skipEnabled(){return skipPresentation&&game.status==='playing';}
@@ -304,7 +306,8 @@ function skipPlayback(){
 // Killed in action (3.174.0, user design; docs/STORY.md 8; timing and burst in src/kia.js). It starts when the
 // operative's fall plays: the world freezes and slows (renderer.pace), the camera pushes in, blood and light burst
 // away from the killing blow. Once the body is down the officer on duty calls for the operative on the header bar —
-// the call cannot be tapped away — and only when it ends do the results come up. The kill house and replays play
+// the call cannot be tapped away — and only when it ends does the run's end go on (src/outro.js: the dark screen, the
+// loss report, then the results). The kill house and replays play
 // the scene without voices. The result itself was recorded when the operative died. (`kia` is declared with the
 // game state at the top.)
 function startKia(fall){
@@ -323,11 +326,41 @@ function kiaTick(){
     if(message){const seconds=kiaSeconds(t(message.line,message.vars));sayComms({...message,seconds,tap:false});kia.resultAt=since+seconds*1000+KIA_TUNING.closeMs;}
     else kia.resultAt=since;
   }
-  if(since>=kia.resultAt&&kia.resultPending&&!playback){kia.shown=true;renderer.pace=null;renderer.kia.frozen=false;showResult(true);}
+  if(since>=kia.resultAt&&kia.resultPending&&!playback){kia.shown=true;renderer.pace=null;renderer.kia.frozen=false;endRun();}
 }
 // A new run, a loaded save or a replay clears the scene; the fallen body and the blood stay until then, so the last
 // battlefield still shows them.
-function resetKia(){kia=null;renderer.kia=null;renderer.pace=null;renderer.gore=[];renderer.splatter.reset();}
+function resetKia(){kia=null;renderer.kia=null;renderer.pace=null;renderer.gore=[];renderer.splatter.reset();endOutro();}
+// The end of a run in three parts (3.177.0, user design; src/outro.js, docs/STORY.md 8): the officer approves the
+// extraction on the header bar (for a death the scene above has played instead), the field fades to dark, she speaks
+// in the middle of the screen — and when the purge review finds the unit deficient the overseer cuts in with a silence
+// — then the results. The result was recorded when the run ended; each part checks that this run's end is still the
+// one playing, so a new run or the results opened another way stop it.
+let outro=null;
+const outroShade=document.createElement('div');outroShade.className='outro-shade';outroShade.setAttribute('aria-hidden','true');outroShade.style.transitionDuration=`${OUTRO_TUNING.darkMs}ms`;document.body.append(outroShade);
+function endOutro(){outro=null;outroShade.classList.remove('on');}
+const ending=()=>Boolean(outro)||Boolean(kia&&!kia.shown);
+function endRun(){
+  if(isSimulation(game)){showResult();return;}
+  const round={plan:outroPlan(game,{voiced:!replay})};outro=round;
+  const darken=()=>{if(outro!==round)return;outroShade.classList.add('on');setTimeout(()=>outroChannel(round,0),OUTRO_TUNING.darkMs);};
+  clearComms();
+  if(round.plan.field)sayComms({...round.plan.field,then:darken});else darken();
+}
+function outroChannel(round,i){
+  if(outro!==round)return;
+  const message=round.plan.channel[i];
+  if(!message){showResult();return;}
+  const speak=()=>{
+    if(outro!==round)return;
+    modal(`<div class="outro-channel">${commsMarkup(message,{context:{game}})}</div>`);
+    const box=$('#modal-content .comms');
+    // The overseer comes in through interference (the level-up transmission's flash, src/signal-glitch.js).
+    if(message.cutIn&&renderer.glitchEnabled&&box){box.classList.add('ui-glitch');setTimeout(()=>box.classList.remove('ui-glitch'),GLITCH_TUNING.transmission.ms);}
+    armComms(box,()=>outroChannel(round,i+1),{tap:message.tap!==false});
+  };
+  if(message.cutIn)setTimeout(speak,OUTRO_TUNING.cutInMs);else speak();
+}
 renderer.onFrame=dt=>{
   kiaTick();
   if(!playback)return;
@@ -406,7 +439,7 @@ function updateAim(view=renderer.game){const blinding=renderer.mode==='blind',la
   if(item){item.classList.toggle('aiming',deploying||flaring);item.querySelector('strong').textContent=deploying?t('controller.interact.cancelSetup'):roping?t('controller.item.cancelLine'):placing?t('controller.item.cancel'):flaring?t('controller.item.cancelFlare'):slotLabel(view,'item');}
   for(const key of ['0,-1','0,1','-1,0','1,0'])$(`[data-move="${key}"]`)?.classList.toggle('aiming',deploying);
 }
-function interact(){if(renderer.mode==='deploy'){cancelAim();return;}if(renderer.mode==='blind'){const reason=blindReason(game,renderer.aim);if(reason){notify(reason+t('controller.period'));return;}act('blindFire',renderer.aim);return;}if(renderer.mode==='launch'){if(renderer.aim)act('launch',renderer.aim);else notify(t('controller.pickSpotFirst'));return;}if(renderer.mode==='pet'){act('commandPet',renderer.aim);return;}if(renderer.mode==='drone'){act('deployUnit',{line:deployLine,x:renderer.aim.x,y:renderer.aim.y});return;}if(game.status!=='playing'){showResult();return;}if(renderer.mode==='grenade'){act('usePrepared',{category:'grenade',target:renderer.aim});return;}if(renderer.mode==='flare'){act('flare',renderer.aim);return;}if(renderer.mode==='place'){act(renderer.placeItem,renderer.aim);return;}if(renderer.mode==='rope'){act('rope',{...renderer.aim,item:renderer.ropeItem});return;}if(renderer.mode==='suppress'){const turn=game.turn;act('usePrepared',{category:'skill',target:renderer.aim});if(game.turn!==turn)cancelAim();return;}
+function interact(){if(renderer.mode==='deploy'){cancelAim();return;}if(renderer.mode==='blind'){const reason=blindReason(game,renderer.aim);if(reason){notify(reason+t('controller.period'));return;}act('blindFire',renderer.aim);return;}if(renderer.mode==='launch'){if(renderer.aim)act('launch',renderer.aim);else notify(t('controller.pickSpotFirst'));return;}if(renderer.mode==='pet'){act('commandPet',renderer.aim);return;}if(renderer.mode==='drone'){act('deployUnit',{line:deployLine,x:renderer.aim.x,y:renderer.aim.y});return;}if(game.status!=='playing'){if(!ending())showResult();return;}if(renderer.mode==='grenade'){act('usePrepared',{category:'grenade',target:renderer.aim});return;}if(renderer.mode==='flare'){act('flare',renderer.aim);return;}if(renderer.mode==='place'){act(renderer.placeItem,renderer.aim);return;}if(renderer.mode==='rope'){act('rope',{...renderer.aim,item:renderer.ropeItem});return;}if(renderer.mode==='suppress'){const turn=game.turn;act('usePrepared',{category:'skill',target:renderer.aim});if(game.turn!==turn)cancelAim();return;}
   const options=interactions();if(options.length>1){modal(t('controller.interact.title')+options.map(o=>`<button class="modal-button secondary" data-context="${o.action}">${o.label}</button>`).join('')+t('controller.interact.back'));return;}
   if(options[0]?.action.startsWith('objective:'))act('recoverObjective',options[0].action.slice(10));
   else if(options[0]?.action.startsWith('case:'))act('openContainer',options[0].action.slice(5));
@@ -475,7 +508,7 @@ function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify(t(
 // one-handed use, and a tabbed menu fills the height so its top does not move when tabs of different heights change.
 // The upgrade pick is the exception (3.97.3, user report): it opens on its own under a thumb that is still tapping, so it
 // is anchored to the top edge and the queued tap lands on the backdrop.
-function modal(html,wide=false,title=false){queueMicrotask(syncMusic);cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('transmission',Boolean($('#modal-content').querySelector('.transmission')));$('#modal').classList.toggle('briefing',Boolean($('#modal-content').querySelector('.briefing')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
+function modal(html,wide=false,title=false){queueMicrotask(syncMusic);cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('transmission',Boolean($('#modal-content').querySelector('.transmission')));$('#modal').classList.toggle('briefing',Boolean($('#modal-content').querySelector('.briefing')));$('#modal').classList.toggle('outro',Boolean($('#modal-content').querySelector('.outro-channel')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
 // Main buttons stay on screen (3.97.0, user request): a menu marks them with .modal-footer; otherwise its final button
 // (or button row) is pinned. When that final button is a secondary back/cancel button, the button just before it (the
 // action) is pinned beside it, back first. Title screens lay themselves out and are left alone.
@@ -966,10 +999,9 @@ ${simulating?'':`${sec(t('settings.dangerSection'))}
 // The result sheet reports on a run that is over, so it belongs to the title flow as well (3.98.1, user request):
 // full screen and back up at the top, not a bottom sheet with the finished battle showing above it. 查看最後戰場
 // is still how you look at the map.
-// `fresh`: the run has just ended. For an operative killed in action the officer on duty files the loss report at the
-// top of the results (3.174.0, user design; docs/STORY.md 8); for one who got out, she confirms the extraction
-// (3.177.0, user request). Once: reopening the results later stays quiet, and a replay has no voices.
-function showResult(fresh=false){titleFlow=true;if(isSimulation(game)){showSimulationResult();return;}const won=game.status==='won',abandoned=game.status==='abandoned',p=game.player,copy=resultCopy(game);const resultEvent={dead:'lossReport',won:'extracted'}[game.status],report=fresh&&resultEvent&&!replay?commsLine(dutySpeaker({game}),resultEvent):null;if(report)report.seconds=kiaSeconds(t(report.line,report.vars));modal(`${report?`<div class="result-comms">${commsMarkup(report,{context:{game}})}</div>`:''}<div class="eyebrow">${copy.eyebrow} / RUN ${game.seed}${game.realMode?' / REAL':''}</div><h2>${copy.title}</h2><p>${copy.body}</p><p>${game.missionSummary}</p>${purgeReportMarkup(game)}${resultStoriesMarkup(game,profile())}${isEndless(game)?`<div class="result-stats"><div><b>${pad(game.floor)}</b>${t('controller.result.depth')}</div><div><b>${pad(p.level)}</b>${t('controller.result.level')}</div><div><b>${p.kills}</b>${t('controller.result.kills')}</div></div>${endlessResult(p,abandoned)}<p>${t('controller.result.turns',{turn:game.turn})}</p>`:`<div class="result-stats"><div><b>${pad(game.deepestFloor)}</b>${t('controller.result.deepest')}</div><div><b>${p.kills}</b>${t('controller.result.kills')}</div><div><b>${game.turn}</b>${t('controller.result.turnCount')}</div></div>`}<p>${t('controller.result.protocolTotal',{v:game.realMode?`${t('controller.result.realProtocol',{v:protocolSettlement(game).base,v2:protocolSettlement(game).bonus})}`:`${t('controller.result.protocol',{earned:game.protocol.earned})}`,v2:profile().protocol.balance})}<br>${t('controller.result.protocolNote')}</p><div class="operator-identity result-identity">${portraitMarkup(p.portrait,game.status)}<p>${characterName(p.character)}<br>${t('controller.result.stats',{damage:p.stats.damage,grenades:p.stats.grenades,loreLength:p.lore.length})}</p></div><div class="modal-footer"><button class="modal-button secondary" data-modal="lastBattle">${t('controller.result.lastBattle')}</button>${game.status==='dead'?t('controller.result.deadButtons'):t('controller.result.redeploy')}</div>`);if(report)armComms($('#modal-content .comms'));}
+// The results are the last part of a run's end (3.177.0, src/outro.js): the officer has already spoken, on the field and
+// on the dark screen. Opening them stops whatever of that is still playing; reopening them later is just the report.
+function showResult(){endOutro();titleFlow=true;if(isSimulation(game)){showSimulationResult();return;}const won=game.status==='won',abandoned=game.status==='abandoned',p=game.player,copy=resultCopy(game);modal(`<div class="eyebrow">${copy.eyebrow} / RUN ${game.seed}${game.realMode?' / REAL':''}</div><h2>${copy.title}</h2><p>${copy.body}</p><p>${game.missionSummary}</p>${purgeReportMarkup(game)}${resultStoriesMarkup(game,profile())}${isEndless(game)?`<div class="result-stats"><div><b>${pad(game.floor)}</b>${t('controller.result.depth')}</div><div><b>${pad(p.level)}</b>${t('controller.result.level')}</div><div><b>${p.kills}</b>${t('controller.result.kills')}</div></div>${endlessResult(p,abandoned)}<p>${t('controller.result.turns',{turn:game.turn})}</p>`:`<div class="result-stats"><div><b>${pad(game.deepestFloor)}</b>${t('controller.result.deepest')}</div><div><b>${p.kills}</b>${t('controller.result.kills')}</div><div><b>${game.turn}</b>${t('controller.result.turnCount')}</div></div>`}<p>${t('controller.result.protocolTotal',{v:game.realMode?`${t('controller.result.realProtocol',{v:protocolSettlement(game).base,v2:protocolSettlement(game).bonus})}`:`${t('controller.result.protocol',{earned:game.protocol.earned})}`,v2:profile().protocol.balance})}<br>${t('controller.result.protocolNote')}</p><div class="operator-identity result-identity">${portraitMarkup(p.portrait,game.status)}<p>${characterName(p.character)}<br>${t('controller.result.stats',{damage:p.stats.damage,grenades:p.stats.grenades,loreLength:p.lore.length})}</p></div><div class="modal-footer"><button class="modal-button secondary" data-modal="lastBattle">${t('controller.result.lastBattle')}</button>${game.status==='dead'?t('controller.result.deadButtons'):t('controller.result.redeploy')}</div>`);}
 // Kill house sessions (docs/KILLHOUSE.md section 10). A simulation replaces the game on screen without abandoning or
 // saving the campaign; leaving puts the stashed campaign back exactly as it was.
 let simulationReturn=null;const simulationResults=new WeakMap();

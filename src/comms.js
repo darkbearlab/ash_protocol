@@ -43,7 +43,8 @@ export const COMMS_LINES=Object.freeze({
   researcher:['comms.egret.researcher.1','comms.egret.researcher.2'],
   kia:['comms.egret.kia.1',{id:'comms.egret.kia.2',expression:'concerned'}],   // 3.174.0: calling the fallen operative (field)
   lossReport:['comms.egret.lossReport.1',{id:'comms.egret.lossReport.2',expression:'sad'},{id:'comms.egret.lossReport.3',expression:'serious'}],   // 3.174.0: the loss report (results)
-  extracted:['comms.egret.extracted.1',{id:'comms.egret.extracted.2',expression:'speaking'},{id:'comms.egret.extracted.3',expression:'gentle'}],   // 3.177.0: the operative is out (results)
+  extractApproved:['comms.egret.extractApproved.1',{id:'comms.egret.extractApproved.2',expression:'serious'},{id:'comms.egret.extractApproved.3',expression:'listening'}],   // 3.177.0: the end of a run, src/outro.js
+  extracted:['comms.egret.extracted.1',{id:'comms.egret.extracted.2',expression:'speaking'},{id:'comms.egret.extracted.3',expression:'gentle'}],
  }),
  wren:Object.freeze({
   briefing:['comms.wren.briefing.1',{id:'comms.wren.briefing.2',expression:'grin'},{id:'comms.wren.briefing.3',expression:'wink'}],
@@ -55,16 +56,17 @@ export const COMMS_LINES=Object.freeze({
   researcher:['comms.wren.researcher.1',{id:'comms.wren.researcher.2',expression:'sigh'}],
   kia:['comms.wren.kia.1',{id:'comms.wren.kia.2',expression:'worried'},{id:'comms.wren.kia.3',expression:'surprised'}],
   lossReport:['comms.wren.lossReport.1','comms.wren.lossReport.2'],
+  extractApproved:['comms.wren.extractApproved.1',{id:'comms.wren.extractApproved.2',expression:'speaking'},{id:'comms.wren.extractApproved.3',expression:'determined'}],
   extracted:['comms.wren.extracted.1',{id:'comms.wren.extracted.2',expression:'wink'},{id:'comms.wren.extracted.3',expression:'sheepish'}],
  }),
  // contact (first enemy on a floor: kill them all) and researcher (kill them), once written; for a death he says
  // nothing but an ellipsis (user, 2026-09-24).
- overseer:Object.freeze({kia:['comms.overseer.kia.1'],lossReport:['comms.overseer.lossReport.1'],extracted:['comms.overseer.extracted.1']}),
+ overseer:Object.freeze({kia:['comms.overseer.kia.1'],lossReport:['comms.overseer.lossReport.1'],extractApproved:['comms.overseer.extractApproved.1'],extracted:['comms.overseer.extracted.1'],executed:['comms.overseer.executed.1']}),
 });
 // The face each speaker makes for an event (3.170.0); a line may carry its own ({id, expression}).
 export const COMMS_EXPRESSIONS=Object.freeze({
- egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed',extracted:'relieved'}),
- wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad',extracted:'grin'}),
+ egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed',extractApproved:'speaking',extracted:'relieved'}),
+ wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad',extractApproved:'grin',extracted:'grin'}),
 });
 // A message from `speaker` for `event`, or null when that speaker has nothing to say about it.
 export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_LINES,expressions=COMMS_EXPRESSIONS}={}){

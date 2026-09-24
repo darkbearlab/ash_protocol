@@ -38,7 +38,8 @@ test('the controller, page and styles wire brightness, colour strength and the q
   assert.ok(css.includes('html.toned :is(.app,.boot-screen,#modal-content){filter:brightness(var(--screen-brightness))}'),'the app, and the dialog content a root filter cannot reach');
   assert.ok(!css.includes('backdrop-filter:brightness')&&!html.includes('tone-layer'),'no backdrop snapshot layer is left');
   const fixed=[...css.matchAll(/([^{}]+)\{[^}]*position:fixed/g)].map(m=>m[1].trim());
-  assert.deepEqual(fixed,['#orientation-guard','body.booting .boot-screen','html.scroll-locked body','html.vhs .vhs-layer'],'a filter re-anchors fixed-position descendants, so nothing fixed may live inside the app or the dialog content');
+  // 3.177.0: the dark shade at the end of a run is appended to <body>, outside the app.
+  assert.deepEqual(fixed,['#orientation-guard','body.booting .boot-screen','html.scroll-locked body','html.vhs .vhs-layer','.outro-shade'],'a filter re-anchors fixed-position descendants, so nothing fixed may live inside the app or the dialog content');
   assert.ok(css.includes('0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.7 -.45'),'dark grain specks');
   assert.ok(css.includes('0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.7 -.75'),'and sparse light ones');
   assert.ok(!css.includes("0 0 0 1.7 -.35'"),'the old all-white grain is gone');

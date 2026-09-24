@@ -45,7 +45,8 @@ test('the renderer skips frames between draws and draws nothing under a full-pag
   // 3.147.0: the screen shake's offset is taken just before the draw; 3.149.0: the signal interference right after.
   assert.ok(renderer.includes('this.updateCamera(dt*1000);if(!this.isCovered?.()){this.shift=this.shakes.length?shakeOffset(this.shakes=liveImpulses(this.shakes,this.time),this.time):null;this.draw(this.time);if(this.glitchEnabled)this.glitchFrame();this.placeTargetCard();}'),'the clock and playback keep running while the battlefield is hidden');
   assert.ok(source.includes("renderer.frameRate=frameRate(read('ash-frame-rate'));"));
-  assert.ok(source.includes("renderer.isCovered=()=>$('#modal').open&&$('#modal').matches('.title,.standalone');"));
+  // 3.177.0: the dark screen at the end of a run (src/outro.js) covers the field too.
+  assert.ok(source.includes("renderer.isCovered=()=>$('#modal').open&&$('#modal').matches('.title,.standalone,.outro');"));
   assert.ok(source.includes("case 'frameRate':renderer.frameRate=nextFrameRate(renderer.frameRate);write('ash-frame-rate',String(renderer.frameRate));settings();break;"));
   // Only menus on an opaque backdrop may stop the drawing; a smaller dialog shows the battlefield behind its veil.
   const css=await read('../expansion.css');

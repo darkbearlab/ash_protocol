@@ -529,9 +529,14 @@ dialog:not([open]){display:none!important}
 .comms-timer{position:absolute;left:0;right:0;bottom:-4px;height:1px;background:#e8ece4;transform-origin:50% 50%;animation:comms-timer 5s linear forwards}
 @keyframes comms-timer{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 .comms.closed{opacity:0;visibility:hidden}
-/* 3.174.0: the officer's word on an operative killed in action, above the results; like the briefing, the box keeps
-   its space when it closes. */
-.result-comms{margin:0 0 14px}
+/* 3.177.0 the end of a run (src/outro.js): the field fades to dark, then the officer speaks alone in the middle of the
+   screen before the results. The shade is on <body>, outside the filtered app; it sits under the dialog (the top
+   layer) and over everything else. */
+#modal.outro:not(.title){margin:auto;width:calc(100% - 32px);max-width:470px;height:fit-content;padding:0;border:0;background:transparent;box-shadow:none;overflow:visible}
+#modal.outro::backdrop{background:#030607}
+#modal.outro .comms.closed{opacity:0;visibility:hidden}
+.outro-shade{position:fixed;inset:0;z-index:2147482000;background:#030607;opacity:0;pointer-events:none;transition:opacity .6s ease}
+.outro-shade.on{opacity:1;pointer-events:auto}
 /* 3.173.0 (user's pick from the mockups, option B): over the field the box is a slim bar covering the battle header,
    as tall as the header and growing down only for a long line, so the map stays clear. A tap closes it (3.172.0).
    The face is a 43x43 window on the 64x64 face, unscaled. The briefing keeps the full box. */
