@@ -5,7 +5,7 @@
 // Placed last in generate(), from hashes of its own, so nothing else on the floor moves. This module imports nothing
 // that imports world.js.
 import {t} from './i18n.js';
-import {barrierBetween,blockedBetween,vaultable} from './barriers.js';
+import {barrierBetween,blockedBetween,vaultable,edgeCells} from './barriers.js';
 import {isBossClass,isNoncombatant,enemyDef} from './enemy-data.js';
 import {WEAPONS} from './data.js';
 import {dropOnlyAffixes,affixAllowed} from './weapons.js';
@@ -51,7 +51,7 @@ function closets(map){
   if([map.start,map.end,...map.enemies,...map.items,...(map.slots||[]).filter(s=>['objective','terminal','weapon'].includes(s.kind))].some(on)||map.props.some(p=>on(p)&&(p.type==='nest'||p.type==='terminal')))continue;
   const fixtures=new Set(map.props.filter(p=>p.type==='module').flatMap(moduleCells).map(key));
   const free=inside.map(k=>{const [x,y]=k.split(',').map(Number);return {x,y};}).filter(q=>!fixtures.has(key(q))&&![...map.props,...map.items,...map.hazards].some(o=>o.x===q.x&&o.y===q.y)).sort((a,b)=>a.y-b.y||a.x-b.x);
-  if(free.length)out.push({door,tile:free[free.length-1]});
+  if(free.length)out.push({door,tile:free[free.length-1],inside:new Set(inside)});
  }return out.sort((a,b)=>a.door.id<b.door.id?-1:a.door.id>b.door.id?1:0);
 }
 export const vaultCapable=map=>Boolean(map?.generation&&closets(map).length&&map.enemies.some(carrierCandidate));
@@ -61,12 +61,32 @@ export function placeVault(map,seed,floor){
  if(fnv(`${seed}:${floor}:vault-v1`)/4294967296>=VAULT_TUNING.chance)return map;
  const options=closets(map),pool=map.enemies.filter(carrierCandidate),elites=pool.filter(e=>e.elite),carriers=elites.length?elites:pool;
  if(!options.length||!carriers.length)return map;
- const {door,tile}=options[fnv(`${seed}:${floor}:vault-door`)%options.length],carrier=carriers[fnv(`${seed}:${floor}:vault-key`)%carriers.length];
+ const {door,tile,inside}=options[fnv(`${seed}:${floor}:vault-door`)%options.length],carrier=carriers[fnv(`${seed}:${floor}:vault-key`)%carriers.length];
  const loot=VAULT_LOOT[fnv(`${seed}:${floor}:vault-loot`)%VAULT_LOOT.length].item(fnv(`${seed}:${floor}:vault-pick`));
  Object.assign(door,{open:false,vault:true,locked:true,indestructible:true});
+ sealCloset(map.barriers,inside);
  carrier.keycard=true;
  map.props.push({id:`case-${floor}-vault`,type:'container',kind:'vault',x:tile.x,y:tile.y,opened:false,indestructible:true,contents:[loot]});
  return map;
+}
+
+// 3.177.2 (user report 2026-09-24): the steel door held, but a shot or a blast could open one of the closet's partitions
+// and walk around it. The closet's walls are sealed the way its door is: `indestructible` (Game.damageProp ignores
+// them), marked `vaultWall`. A wall already broken stays broken.
+function sealCloset(barriers,inside){
+ for(const b of barriers){
+  if(b.type==='door'||b.hp<=0)continue;
+  const [a,c]=edgeCells(b);
+  if(inside.has(key(a))!==inside.has(key(c)))Object.assign(b,{indestructible:true,vaultWall:true});
+ }
+}
+// Saves from before SAVE 72: seal a floor's vault closet (the one on screen or one kept for the way back), found the way
+// placeVault found it, the tiles only its door leads to.
+export function sealVaultWalls(floor){
+ if(!Array.isArray(floor?.barriers)||!Array.isArray(floor.grid)||!floor.start)return;
+ const door=floor.barriers.find(b=>b?.type==='door'&&b.vault===true);if(!door)return;
+ const kept=region(floor,door),inside=new Set([...region(floor,null)].filter(k=>!kept.has(k)));
+ if(inside.size&&inside.size<=VAULT_TUNING.maxTiles)sealCloset(floor.barriers,inside);
 }
 
 // ---- in play --------------------------------------------------------------------------------------------------------
@@ -103,11 +123,13 @@ const validLoot=i=>Boolean(i)&&(i.type==='exo'&&Object.keys(i).length===1||
  i.type==='learning'&&validLearningId(i.learningId)&&Object.keys(i).length===2||
  i.type==='weapon'&&i.weapon===PLASMA&&dropOnlyAffixes(PLASMA).includes(i.affix)&&affixAllowed(i.weapon,i.affix)&&Object.keys(i).length===3);
 export const validVaultCase=c=>c.opened?c.contents.length===0:c.contents.length===1&&validLoot(c.contents[0]);
-// One vault door a floor at most, steel and unbreakable; a locked one is shut. One keycard carrier at most.
+// One vault door a floor at most, steel and unbreakable; a locked one is shut. Sealed walls only around a vault. One
+// keycard carrier at most.
 export function validVaultState(barriers,enemies){
  const doors=barriers.filter(b=>b.vault!==undefined||b.locked!==undefined);
  if(doors.length>1||doors.some(b=>b.type!=='door'||b.vault!==true||b.indestructible!==true||typeof b.locked!=='boolean'||b.locked&&b.open))return false;
- if(barriers.some(b=>b.indestructible!==undefined&&b.vault!==true))return false;
+ if(barriers.some(b=>b.indestructible!==undefined&&b.vault!==true&&b.vaultWall!==true))return false;
+ if(barriers.some(b=>b.vaultWall!==undefined)&&!doors.length)return false;
  const carriers=enemies.filter(e=>e.keycard!==undefined);
  return carriers.length<=1&&carriers.every(e=>e.keycard===true);
 }

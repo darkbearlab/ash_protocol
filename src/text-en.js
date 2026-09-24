@@ -126,6 +126,7 @@ export default Object.freeze({
  // src/barriers.js
  "barriers.vaultDoor":"Vault door",
  "barriers.obstacle":"Obstacle",
+ "barriers.vaultWall":"Vault wall",
  // src/blind-fire.js
  "blind-fire.weaponCannot":"{weapon} cannot blind fire",
  "blind-fire.outOfRange":"Out of range",

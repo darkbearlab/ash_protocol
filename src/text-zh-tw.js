@@ -127,6 +127,7 @@ export default Object.freeze({
  // src/barriers.js
  "barriers.vaultDoor":"保險室鐵門",
  "barriers.obstacle":"障礙物",
+ "barriers.vaultWall":"保險室隔板",
  // src/blind-fire.js
  "blind-fire.weaponCannot":"{weapon}不能盲射",
  "blind-fire.outOfRange":"超出射程",

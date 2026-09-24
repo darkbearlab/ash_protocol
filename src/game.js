@@ -73,7 +73,7 @@ import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlSt
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
 import {coneTargets,shotgunBand,pelletsAt,pelletChance} from './shotgun.js';
 import {lancePath} from './lance.js';
-import {lockedReason,unlockVault,dropKeycard,pickKeycard,vaultContents,floorVaultNote,validKeycards,validVaultState} from './vault.js';
+import {lockedReason,unlockVault,dropKeycard,pickKeycard,vaultContents,floorVaultNote,validKeycards,validVaultState,sealVaultWalls} from './vault.js';
 import {EXO_TUNING,mineAct,decoyReason,throwDecoy,decoyHides,fooled,noticeAttack,damageDecoy,decoyAct,tickDecoy,validDecoy,mineReason,placeMine,detonateMine,checkMines,knownMine,validMines,exoAbsorb,breakExo,wearingExo,validExo,exoReason} from './field-gear.js';
 import {PREPARED_CATALOG,defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns,isWearable,wornEntry,prepareCost,syncWearableTraits} from './prepared.js';
 import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
@@ -1251,6 +1251,8 @@ export class Game {
       // 3.169.0: runs started before the duty rota were Egret's; the officer only picks lines, so a damaged value is not
       // worth losing a run over.
       if(version<71||!validDuty(data.duty))data.duty=DEFAULT_DUTY;
+      // 3.177.2: a vault closet's partitions could be shot open; seal them on this floor and on every archived one.
+      if(version<72)for(const f of [data,...Object.values(data.floorStates||{})])sealVaultWalls(f);
       // 3.113.0: class skills are no longer learnable. Anything still holding one of the retired data items becomes
       // the scrap it would have dismantled for, wherever it is: in the pack, on the ground, or in an unopened case,
       // on this floor and on every archived one. Skills already learned from them are kept.
