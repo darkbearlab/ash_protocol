@@ -43,14 +43,21 @@ test('a new enemy more than 90 degrees from the one you are fighting is a flank,
  assert.deepEqual(types(commsEvents({game:run([front,side,newcomer]),before:commsSnapshot(run([front,side])),memory})),[],'with nothing locked, from the nearest enemy');
 });
 
-test('only Egret has lines yet; the others are hooks that stay quiet',()=>{
+test('Egret and Wren (3.171.0) have lines for every full-support event; the overseer is a hook that stays quiet',()=>{
  for(const event of ['briefing','squadDeploy','squadReady','grenade','boss','flank','researcher']){
-  const message=commsLine('egret',event,{name:'核心守衛'},{random:()=>0});
-  assert.ok(message&&resolveComms(message).text.length>0,event);
-  assert.equal(commsLine('wren',event),null);
+  for(const speaker of ['egret','wren']){
+   const lines=COMMS_LINES[speaker][event];
+   for(let i=0;i<lines.length;i++){
+    const message=commsLine(speaker,event,{name:'核心守衛'},{random:()=>i/lines.length});
+    assert.equal(message.speaker,speaker);
+    assert.ok(resolveComms(message).text.length>0,`${speaker} ${event} ${i+1}`);
+   }
+  }
   assert.equal(commsLine('overseer',event),null);
  }
- assert.equal(commsLine('egret','contact'),null,'contact is the overseer\'s cue');
- assert.match(resolveComms(commsLine('egret','boss',{name:'核心守衛'},{random:()=>0})).text,/核心守衛/);
+ for(const speaker of ['egret','wren']){
+  assert.equal(commsLine(speaker,'contact'),null,'contact is the overseer\'s cue');
+  for(const n of [1,2])assert.match(resolveComms(commsLine(speaker,'boss',{name:'核心守衛'},{random:()=>(n-1)/2})).text,/核心守衛/);
+ }
  assert.deepEqual(Object.keys(COMMS_LINES),['egret','wren','overseer']);
 });

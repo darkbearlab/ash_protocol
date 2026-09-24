@@ -28,8 +28,8 @@ export const DEFAULT_EXPRESSION='neutral';
 export const dutySpeaker=(context={})=>validDuty(context.game?.duty)?context.game.duty:DEFAULT_DUTY;
 
 // What each speaker says, by event (3.169.0; docs/STORY.md 8). One line is picked at random each time. Egret's lines
-// are the user's picks from the review page; Wren and the overseer are hooks with no lines yet, so on their days the
-// field stays quiet and the briefing uses the neutral placeholder.
+// (3.169.0) and Wren's (3.171.0) are the user's picks from their review pages; the overseer is a hook with no lines
+// yet, so on his days the field stays quiet and the briefing uses the neutral placeholder.
 export const COMMS_LINES=Object.freeze({
  egret:Object.freeze({
   briefing:['comms.egret.briefing.1','comms.egret.briefing.2','comms.egret.briefing.3'],
@@ -40,12 +40,21 @@ export const COMMS_LINES=Object.freeze({
   flank:['comms.egret.flank.1'],
   researcher:['comms.egret.researcher.1','comms.egret.researcher.2'],
  }),
- wren:Object.freeze({}),       // same events as Egret once written
+ wren:Object.freeze({
+  briefing:['comms.wren.briefing.1',{id:'comms.wren.briefing.2',expression:'grin'},{id:'comms.wren.briefing.3',expression:'wink'}],
+  squadDeploy:['comms.wren.squadDeploy.1','comms.wren.squadDeploy.2'],
+  squadReady:['comms.wren.squadReady.1',{id:'comms.wren.squadReady.2',expression:'sigh'}],
+  grenade:['comms.wren.grenade.1','comms.wren.grenade.2'],
+  boss:['comms.wren.boss.1',{id:'comms.wren.boss.2',expression:'determined'}],
+  flank:['comms.wren.flank.1','comms.wren.flank.2'],
+  researcher:['comms.wren.researcher.1',{id:'comms.wren.researcher.2',expression:'sigh'}],
+ }),
  overseer:Object.freeze({}),   // contact (first enemy on a floor: kill them all) and researcher (kill them), once written
 });
 // The face each speaker makes for an event (3.170.0); a line may carry its own ({id, expression}).
 export const COMMS_EXPRESSIONS=Object.freeze({
  egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned'}),
+ wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral'}),
 });
 // A message from `speaker` for `event`, or null when that speaker has nothing to say about it.
 export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_LINES,expressions=COMMS_EXPRESSIONS}={}){

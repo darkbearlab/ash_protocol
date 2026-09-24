@@ -69,15 +69,19 @@ test('the drawn speakers have a face for every expression, on a 16-colour Mega D
  assert.equal(COMMS_SPEAKERS.overseer.sheet,undefined);
 });
 
-test('each of Egret\'s events names a face she was drawn with; a line may carry its own',()=>{
- for(const [event,ids] of Object.entries(COMMS_LINES.egret)){
-  assert.ok(Object.hasOwn(COMMS_SPEAKERS.egret.expressions,COMMS_EXPRESSIONS.egret[event]),event);
+test('each of Egret\'s and Wren\'s events names a face she was drawn with; a line may carry its own',()=>{
+ for(const speaker of ['egret','wren'])for(const [event,ids] of Object.entries(COMMS_LINES[speaker])){
+  assert.ok(Object.hasOwn(COMMS_SPEAKERS[speaker].expressions,COMMS_EXPRESSIONS[speaker][event]),`${speaker} ${event}`);
   for(let i=0;i<ids.length;i++){
-   const message=commsLine('egret',event,{name:'核心守衛'},{random:()=>i/ids.length});
-   assert.ok(Object.hasOwn(COMMS_SPEAKERS.egret.expressions,message.expression),`${event} ${i+1}`);
+   const message=commsLine(speaker,event,{name:'核心守衛'},{random:()=>i/ids.length});
+   assert.ok(Object.hasOwn(COMMS_SPEAKERS[speaker].expressions,message.expression),`${speaker} ${event} ${i+1}`);
    assert.equal(typeof message.line,'string');
   }
  }
+ // Wren's faces are the ones the user left on her review page (3.171.0).
+ const wren=(event,r)=>commsLine('wren',event,{name:'甲'},{random:()=>r}).expression;
+ assert.deepEqual([wren('briefing',0),wren('briefing',.5),wren('briefing',.9)],['speaking','grin','wink']);
+ assert.deepEqual([wren('squadReady',.9),wren('boss',0),wren('boss',.9),wren('researcher',0),wren('researcher',.9)],['sigh','surprised','determined','neutral','sigh']);
  assert.equal(commsLine('egret','briefing',{},{random:()=>0}).expression,'speaking');
  assert.equal(commsLine('egret','boss',{name:'甲'},{random:()=>.99}).expression,'worried','the second boss line is her worried face');
  assert.equal(commsLine('egret','boss',{name:'甲'},{random:()=>0}).expression,'serious');
