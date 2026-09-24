@@ -45,8 +45,8 @@ test('a message names its speaker, expression and line; the speaker defaults to 
  assert.match(commsMarkup('x',{context:{game:{duty:'overseer'}}}),/SOUND<\/span><span>ONLY/,'the overseer has no face: the SOUND ONLY plate');
 });
 
-// 3.170.0: Egret and Wren each have a 4x4 sheet of 64x64 faces (art/comms-v1). Hand edits go into the installed
-// sheets, so the check is the format a hand edit must keep, not the file's hash: 256x256 indexed, one palette of at
+// 3.170.0: Egret and Wren each have a 4x4 sheet of 64x64 faces (art/comms-v1); 3.177.4: Egret's is packed to 4x2. Hand edits
+// go into the installed sheets, so the check is the format a hand edit must keep, not the file's hash: 256 wide, indexed, one palette of at
 // most 16 colours, every channel on a Mega Drive level.
 test('the drawn speakers have a face for every expression, on a 16-colour Mega Drive sheet that ships offline',()=>{
  const levels=new Set([0,52,87,116,144,172,206,255]);
@@ -57,10 +57,11 @@ test('the drawn speakers have a face for every expression, on a 16-colour Mega D
   const {sheet,expressions}=COMMS_SPEAKERS[id];
   assert.equal(sheet,`./assets/pixel/comms-v1/${id}.png`);
   assert.ok(sw.includes(sheet),`${id}: cached for offline play`);
-  assert.deepEqual(Object.values(expressions),[...Array(16).keys()],`${id}: sixteen expressions, one per cell`);
-  assert.equal(expressions[DEFAULT_EXPRESSION],0);
-  const png=readFileSync(new URL(`../${sheet}`,import.meta.url));
-  assert.equal(png.readUInt32BE(16),256);assert.equal(png.readUInt32BE(20),256);assert.equal(png[25],3,'indexed colour');
+  const png=readFileSync(new URL(`../${sheet}`,import.meta.url)),rows=png.readUInt32BE(20)/64;
+  assert.equal(png.readUInt32BE(16),256);assert.ok(Number.isInteger(rows)&&rows>=1&&rows<=4,`${id}: whole rows of four faces`);assert.equal(png[25],3,'indexed colour');
+  // 3.177.4: every cell is some expression's face; Egret's packed sheet has eight, and names may share a cell.
+  assert.deepEqual([...new Set(Object.values(expressions))].sort((a,b)=>a-b),[...Array(rows*4).keys()],`${id}: every cell has a name`);
+  assert.equal(expressions[DEFAULT_EXPRESSION]??0,0,'a face she was not drawn with shows the first cell');
   let pos=8,palette=null;
   while(pos<png.length){const len=png.readUInt32BE(pos),type=png.toString('ascii',pos+4,pos+8);if(type==='PLTE')palette=[...png.subarray(pos+8,pos+8+len)];pos+=12+len;}
   assert.ok(palette&&palette.length<=48,`${id}: at most 16 colours`);
@@ -159,7 +160,7 @@ test('the box closes when its time is up, or at once when tapped, and says so on
 test('the slim field box shows a window on the face, the short name and the line, with its time',()=>{
  const box=commsMarkup({speaker:'egret',expression:'alarmed',text:'擲彈預告。'},{compact:true});
  assert.match(box,/class="comms compact"/);
- assert.match(box,/background-position:-203px -75px/,'cell 8 (alarmed) at column 4, row 2, shifted to the face window');
+ assert.match(box,/background-position:-75px -75px/,"alarmed: column 2, row 2 of Egret's packed sheet (3.177.4), shifted to the face window");
  assert.match(box,new RegExp(`<p class="comms-line"><span class="comms-who">${t('comms.short.egret')}</span>擲彈預告。</p>`));
  assert.match(box,new RegExp(`data-ms="${commsDuration('擲彈預告。')}"`),'the time comes from the line, not the name');
  assert.match(commsMarkup({text:'x',seconds:3},{compact:true}),/data-ms="3000"/);
@@ -171,6 +172,6 @@ test('the slim field box shows a window on the face, the short name and the line
  assert.match(overseer,new RegExp(`comms-who">${t('comms.short.overseer')}<`));
  assert.equal(resolveComms({name:'臨時',text:'x'}).short,'臨時','a message with its own name uses it in the slim box too');
  const full=commsMarkup({speaker:'egret',expression:'alarmed',text:'x'});
- assert.match(full,/background-position:-192px -64px/,'the briefing box shows the whole face');
+ assert.match(full,/background-position:-64px -64px/,'the briefing box shows the whole face');
  assert.match(full,/comms-name/);
 });

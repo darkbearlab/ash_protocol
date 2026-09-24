@@ -146,7 +146,7 @@
   - 白鷺的語氣補充（2026-09-24 使用者）：洗腦教育一樣教她除掉研究員，但她只提醒風險，讓她溫柔一點。
 - **3.170.0 臉譜**（2026-09-24 使用者授權以 GPT Image 各產一組 4×4 像素臉譜：「先將相似色統整成單一色，然後壓進 Mega Drive 的色票，然後真像素化」；審稿後白鷺重產一次，鷦鷯只用色盤調淡膚色；「就這樣用吧」）：
   - 素材 `assets/pixel/comms-v1/egret.png`、`wren.png`：256×256，4×4 格、每格 64×64，每人一條 16 色的 Mega Drive 色盤。原圖、提示詞、處理流程與已知取捨在 `art/comms-v1/`（README.md、PROMPT.md），工具 `tools/pixelize_comms_portraits.py`。
-  - 格子順序（由左而右、由上而下）：白鷺 neutral 平靜、smile 淺笑、speaking 說話、listening 聆聽、serious 嚴肅、concerned 關切、worried 擔心、alarmed 警覺、surprised 驚訝、sad 難過、relieved 放心、thinking 思考、closed 閉眼、determined 堅定、flustered 害羞、gentle 真誠的笑；鷦鷯 neutral、grin 咧嘴笑、speaking、wink 眨眼、bored 無聊、annoyed 不耐、serious、alarmed、surprised、sheepish 傻笑、worried、smug 得意、laughing 大笑、sigh 嘆氣、determined、sad。沒畫到的表情用平靜的臉。
+  - 格子順序（由左而右、由上而下）：白鷺 3.177.4 起是使用者手修、縮成 4×2 的 8 格：serious 嚴肅（listening 聆聽共用）、relieved 放心（gentle 真誠的笑共用）、speaking 說話、concerned 關切、worried 擔心、alarmed 警覺、sad 難過、closed 閉眼；沒有台詞用到的平靜、淺笑、驚訝、思考、堅定、害羞連同名稱一起拿掉（使用者：以後真的用到再說），沒畫到的表情用第 1 格。原本 16 格的順序是 neutral 平靜、smile 淺笑、speaking 說話、listening 聆聽、serious 嚴肅、concerned 關切、worried 擔心、alarmed 警覺、surprised 驚訝、sad 難過、relieved 放心、thinking 思考、closed 閉眼、determined 堅定、flustered 害羞、gentle 真誠的笑。鷦鷯 neutral、grin 咧嘴笑、speaking、wink 眨眼、bored 無聊、annoyed 不耐、serious、alarmed、surprised、sheepish 傻笑、worried、smug 得意、laughing 大笑、sigh 嘆氣、determined、sad。沒畫到的表情用平靜的臉。
   - 白鷺各事件的表情（`COMMS_EXPRESSIONS`）：開場 speaking、重部署 serious、已就緒 concerned、投彈 alarmed、頭目 serious（第二句 worried，台詞自帶）、被包抄 alarmed、研究員 concerned。鷦鷯的臉已經能用，台詞寫好時再配表情。
   - 顯示：方框 66px（含 1px 邊框），臉 1:1 不縮放（像素保持方正），上面一層淡掃描線保留通訊的感覺。監視官沒有臉，維持暗紅色的 SOUND ONLY。
   - 使用者手動修像素（2026-09-24 說明）：直接改 `assets/pixel/comms-v1/*.png`，保持 16 色索引、色值在 Mega Drive 八階上（測試會檢查）；改完告訴 Claude。重跑 `--install` 時，被手動改過的檔案會被拒絕覆蓋。

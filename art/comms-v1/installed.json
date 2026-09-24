@@ -1,7 +1,22 @@
 {
  "egret": {
-  "from": "art/comms-v1/egret/sheet.png",
-  "sha256": "66c76b2773135ddb6e9ed022954696d5c4369a83af12a81babd794b39e30c1da"
+  "from": "art/comms-v1/manual/egret_edit-2026-09-25.png",
+  "sha256": "f78a4c4a748e7a99d695fb4be16484d2f03ec8e4c026e55f0be29f6552287f01",
+  "packed": {
+   "label": "2026-09-25-before-manual-edit",
+   "source_sha256": "bb63b9ba6e453943879a7c1147fd4370b8a2a47a937b93bb5de3591559df0f6a",
+   "cells": [
+    5,
+    2,
+    3,
+    6,
+    7,
+    8,
+    10,
+    13
+   ],
+   "archive": "art/comms-v1/archive/2026-09-25-before-manual-edit"
+  }
  },
  "wren": {
   "from": "art/comms-v1/wren/sheet.png",

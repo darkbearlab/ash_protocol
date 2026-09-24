@@ -510,7 +510,7 @@ dialog:not([open]){display:none!important}
 .comms[data-speaker="overseer"] .comms-name{color:#d06a5f}
 /* 3.170.0: a face is one 64x64 cell of the speaker's 4x4 sheet, shown at 1:1 (the plate is 66px with its border) so
    the pixels stay square; faint scanlines keep the transmission look. */
-.comms-portrait{position:relative;display:block;width:64px;height:64px;background-size:256px 256px;background-repeat:no-repeat;image-rendering:pixelated}
+.comms-portrait{position:relative;display:block;width:64px;height:64px;background-size:auto;background-repeat:no-repeat;image-rendering:pixelated}   /* 3.177.4: sheets are not all 4x4 */
 .comms-portrait::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,#0000 0 2px,#0000002e 2px 3px)}
 .comms-body{min-width:0}
 .comms-name{margin:0 0 3px;font:500 9px/1.2 var(--mono);letter-spacing:.18em;color:#c98b55}

@@ -373,6 +373,8 @@ def install(names, force=False):
     for name in names:
         target, sheet = GAME / f'{name}.png', FOLDER / name / 'sheet.png'
         if target.exists() and not force:
+            if record.get(name, {}).get('packed'):
+                raise SystemExit(f'{target.relative_to(ROOT)} is a packed hand edit (tools/pack_comms_sheet.py; src/comms.js maps its cells); keep it, or pass --force')
             current = hashlib.sha256(target.read_bytes()).hexdigest()
             if current != record.get(name, {}).get('sha256'):
                 raise SystemExit(f'{target.relative_to(ROOT)} was edited by hand since the last install; keep it, or pass --force')

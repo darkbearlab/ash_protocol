@@ -20,8 +20,12 @@ export const commsDuration=text=>{
 // top-left corner of the 43x43 window on the face that box shows (unscaled, so the pixels stay square).
 const SHEET=id=>`./assets/pixel/comms-v1/${id}.png`;
 const cells=names=>Object.freeze(Object.fromEntries(names.map((name,i)=>[name,i])));
+// 3.177.4 (user): Egret's hand-retouched sheet keeps only the faces her lines use, eight cells in two rows
+// (tools/pack_comms_sheet.py). Some names share a face: listening was serious one pixel off, relieved and gentle were
+// drawn the same. The six faces no line used are gone with their names; a name she was not drawn with shows cell 0.
+const EGRET_FACES=Object.freeze({serious:0,listening:0,relieved:1,gentle:1,speaking:2,concerned:3,worried:4,alarmed:5,sad:6,closed:7});
 export const COMMS_SPEAKERS=Object.freeze({
- egret:Object.freeze({name:t('comms.speaker.egret'),short:t('comms.short.egret'),sheet:SHEET('egret'),face:[11,11],expressions:cells(['neutral','smile','speaking','listening','serious','concerned','worried','alarmed','surprised','sad','relieved','thinking','closed','determined','flustered','gentle'])}),   // 白鷺
+ egret:Object.freeze({name:t('comms.speaker.egret'),short:t('comms.short.egret'),sheet:SHEET('egret'),face:[11,11],expressions:EGRET_FACES}),   // 白鷺
  wren:Object.freeze({name:t('comms.speaker.wren'),short:t('comms.short.wren'),sheet:SHEET('wren'),face:[11,10],expressions:cells(['neutral','grin','speaking','wink','bored','annoyed','serious','alarmed','surprised','sheepish','worried','smug','laughing','sigh','determined','sad'])}),   // 鷦鷯
  overseer:Object.freeze({name:t('comms.speaker.overseer'),short:t('comms.short.overseer')}),   // 監視官, no face, no name
 });
