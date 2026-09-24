@@ -220,6 +220,9 @@ export default Object.freeze({
  "comms.wren.flank.2":"You're getting boxed in. Another one on your flank.",
  "comms.wren.researcher.1":"Oh, a researcher. Leave them be and they'll run off to get the guards.",
  "comms.wren.researcher.2":"A researcher. ...You know the rules from upstairs. Just saying: once they scream, it gets loud.",
+ "comms.short.egret":"EGRET",
+ "comms.short.wren":"WREN",
+ "comms.short.overseer":"OVERSEER",
  // containerKinds
  "containerKinds.unknown.name":"Unidentified crate",
  "containerKinds.ammo.name":"Ammo crate",

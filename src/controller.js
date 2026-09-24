@@ -188,12 +188,13 @@ const notifyLatest=()=>{sayCommsEvents(game.logs.slice(0,lastActionLogs));const 
 // Comms over the field (3.168.1, user request): new log lines that a hook names make someone speak; the hooks wait
 // for the writing (src/comms.js COMMS_HOOKS). A message names its speaker, expression and line (3.168.2). One box at a
 // time, the rest wait their turn.
-const commsLayer=document.createElement('div');commsLayer.className='comms-layer';commsLayer.setAttribute('aria-live','polite');$('#viewport').append(commsLayer);
+// 3.173.0 (user's pick from the mockups): the slim box covers the battle header, not the field.
+const commsLayer=document.createElement('div');commsLayer.className='comms-layer';commsLayer.setAttribute('aria-live','polite');$('.battle-header').append(commsLayer);
 const commsQueue=[];
 function sayComms(message){commsQueue.push(message);if(commsQueue.length===1)showNextComms();}
 function showNextComms(){
   const message=commsQueue[0];if(message===undefined)return;
-  commsLayer.innerHTML=commsMarkup(message,{context:{game}});
+  commsLayer.innerHTML=commsMarkup(message,{context:{game},compact:true});
   armComms(commsLayer.querySelector('.comms'),()=>{commsLayer.innerHTML='';commsQueue.shift();showNextComms();});
 }
 function sayCommsFor(entries){for(const message of commsForLogs(entries))sayComms(message);}

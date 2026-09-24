@@ -221,6 +221,9 @@ export default Object.freeze({
  "comms.wren.flank.2":"你被包夾了，側後方又來一個。",
  "comms.wren.researcher.1":"有研究員耶。放著不管的話，他會跑去叫警衛喔。",
  "comms.wren.researcher.2":"研究員。……上面的規矩你也知道。我只是提醒，他一叫就會很吵。",
+ "comms.short.egret":"白鷺",
+ "comms.short.wren":"鷦鷯",
+ "comms.short.overseer":"監視官",
  // containerKinds
  "containerKinds.unknown.name":"未識別貨櫃",
  "containerKinds.ammo.name":"彈藥箱",

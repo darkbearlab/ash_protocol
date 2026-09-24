@@ -529,9 +529,19 @@ dialog:not([open]){display:none!important}
 .comms-timer{position:absolute;left:0;right:0;bottom:-4px;height:1px;background:#e8ece4;transform-origin:50% 50%;animation:comms-timer 5s linear forwards}
 @keyframes comms-timer{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 .comms.closed{opacity:0;visibility:hidden}
-/* 3.172.0 (user request, after a playtest): over the field the box sits against the top edge instead of the middle,
-   lets the field show through, and a tap closes it. */
-.comms-layer{position:absolute;left:8px;right:8px;top:6px;z-index:3;pointer-events:none;display:flex;flex-direction:column}
-.comms-layer .comms{pointer-events:auto;cursor:pointer;background:#0d14129e;border-color:#2f3a33b3;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);-webkit-tap-highlight-color:transparent}
-.comms-layer .comms-name,.comms-layer .comms-line{text-shadow:0 1px 2px #000,0 0 1px #000}
+/* 3.173.0 (user's pick from the mockups, option B): over the field the box is a slim bar covering the battle header,
+   as tall as the header and growing down only for a long line, so the map stays clear. A tap closes it (3.172.0).
+   The face is a 43x43 window on the 64x64 face, unscaled. The briefing keeps the full box. */
+.battle-header{position:relative}
+.comms-layer{position:absolute;left:0;right:0;top:0;z-index:6;pointer-events:none}
+.comms.compact{min-height:45px;padding:0;gap:0;align-items:flex-start;border:0;border-bottom:1px solid #384036;background:#0f1714;pointer-events:auto;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.comms.compact .comms-face{width:44px;height:44px;border-width:0 1px 1px 0}
+.comms.compact .comms-portrait{width:43px;height:43px}
+.comms.compact .comms-line{margin:0;padding:5px 9px 4px;min-width:0;font:12px/17px 'IBM Plex Mono','Noto Sans TC',monospace}
+.comms.compact .comms-line::before,.comms.compact .comms-line::after{content:none}
+html[lang="en"] .comms.compact .comms-line{font-size:11px;line-height:15px}
+html[lang="en"] .comms.compact .comms-who{line-height:15px}
+.comms-who{margin-right:6px;font:500 10px/17px var(--mono);letter-spacing:.06em;color:#c98b55}
+.comms.compact[data-speaker="overseer"] .comms-who{color:#d06a5f}
+.comms.compact .comms-timer{bottom:-1px}
 @media (prefers-reduced-motion:reduce){.comms-face,.comms-line::after{animation:none}}

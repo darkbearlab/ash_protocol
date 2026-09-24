@@ -16,13 +16,14 @@ export const commsDuration=text=>{
 // Speakers (3.168.2, user request; names 3.169.0, user's tentative choice; faces 3.170.0): each has a name and, when
 // drawn, a 4x4 sheet of 64x64 faces (art/comms-v1, installed to assets/pixel/comms-v1) with the cell of each
 // expression. No sheet means the SOUND ONLY plate; the overseer never has one. An expression a speaker was not drawn
-// with shows her neutral face.
+// with shows her neutral face. 3.173.0: `short` is the name the slim field box starts the line with, and `face` the
+// top-left corner of the 43x43 window on the face that box shows (unscaled, so the pixels stay square).
 const SHEET=id=>`./assets/pixel/comms-v1/${id}.png`;
 const cells=names=>Object.freeze(Object.fromEntries(names.map((name,i)=>[name,i])));
 export const COMMS_SPEAKERS=Object.freeze({
- egret:Object.freeze({name:t('comms.speaker.egret'),sheet:SHEET('egret'),expressions:cells(['neutral','smile','speaking','listening','serious','concerned','worried','alarmed','surprised','sad','relieved','thinking','closed','determined','flustered','gentle'])}),   // 白鷺
- wren:Object.freeze({name:t('comms.speaker.wren'),sheet:SHEET('wren'),expressions:cells(['neutral','grin','speaking','wink','bored','annoyed','serious','alarmed','surprised','sheepish','worried','smug','laughing','sigh','determined','sad'])}),   // 鷦鷯
- overseer:Object.freeze({name:t('comms.speaker.overseer')}),   // 監視官, no face, no name
+ egret:Object.freeze({name:t('comms.speaker.egret'),short:t('comms.short.egret'),sheet:SHEET('egret'),face:[11,11],expressions:cells(['neutral','smile','speaking','listening','serious','concerned','worried','alarmed','surprised','sad','relieved','thinking','closed','determined','flustered','gentle'])}),   // 白鷺
+ wren:Object.freeze({name:t('comms.speaker.wren'),short:t('comms.short.wren'),sheet:SHEET('wren'),face:[11,10],expressions:cells(['neutral','grin','speaking','wink','bored','annoyed','serious','alarmed','surprised','sheepish','worried','smug','laughing','sigh','determined','sad'])}),   // 鷦鷯
+ overseer:Object.freeze({name:t('comms.speaker.overseer'),short:t('comms.short.overseer')}),   // 監視官, no face, no name
 });
 export const DEFAULT_EXPRESSION='neutral';
 // Who is on duty: the officer saved with the run (src/duty.js picks it at deployment), Egret when there is none.
@@ -79,13 +80,18 @@ export function resolveComms(message,context={},speakers=COMMS_SPEAKERS){
  const speaker=speakers[id]||{name:''},expression=m.expression||DEFAULT_EXPRESSION;
  const cell=speaker.expressions?.[expression]??speaker.expressions?.[DEFAULT_EXPRESSION]??0;
  const ms=Number.isFinite(m.seconds)&&m.seconds>0?Math.round(Math.min(COMMS_TUNING.maxSeconds,m.seconds)*1000):null;
- return {speaker:id,name:m.name??speaker.name,expression,portrait:speaker.sheet?{sheet:speaker.sheet,cell}:null,text:m.text??(m.line?t(m.line,m.vars):''),ms};
+ return {speaker:id,name:m.name??speaker.name,short:m.short??m.name??speaker.short??speaker.name,expression,portrait:speaker.sheet?{sheet:speaker.sheet,cell,face:speaker.face||[0,0]}:null,text:m.text??(m.line?t(m.line,m.vars):''),ms};
 }
 
-export function commsMarkup(message,{timer=true,context={},speakers=COMMS_SPEAKERS}={}){
+// `compact` (3.173.0, user's pick from the mockups): the slim box over the battle header, as tall as the header and
+// growing down only for a long line: the window on the face, then the short name and the line. The briefing keeps
+// the full box.
+export function commsMarkup(message,{timer=true,context={},speakers=COMMS_SPEAKERS,compact=false}={}){
  const c=resolveComms(message,context,speakers);
  // The face is one cell of a 4x4 sheet, shown as a background so the whole sheet loads once per speaker.
- const face=c.portrait?`<span class="comms-portrait" style="background-image:url('${c.portrait.sheet}');background-position:-${c.portrait.cell%4*64}px -${Math.floor(c.portrait.cell/4)*64}px"></span>`:'<span>SOUND</span><span>ONLY</span>';
+ const [fx,fy]=compact&&c.portrait?c.portrait.face:[0,0];
+ const face=c.portrait?`<span class="comms-portrait" style="background-image:url('${c.portrait.sheet}');background-position:-${c.portrait.cell%4*64+fx}px -${Math.floor(c.portrait.cell/4)*64+fy}px"></span>`:'<span>SOUND</span><span>ONLY</span>';
+ if(compact)return `<div class="comms compact" role="group" aria-label="${t('comms.aria')}" data-speaker="${c.speaker}" data-expression="${c.expression}" data-ms="${c.ms??commsDuration(c.text)}"><div class="comms-face" aria-hidden="true">${face}</div><p class="comms-line"><span class="comms-who">${c.short}</span>${c.text}</p>${timer?'<span class="comms-timer" aria-hidden="true"></span>':''}</div>`;
  return `<div class="comms" role="group" aria-label="${t('comms.aria')}" data-speaker="${c.speaker}" data-expression="${c.expression}"${c.ms?` data-ms="${c.ms}"`:''}><div class="comms-face" aria-hidden="true">${face}</div><div class="comms-body"><p class="comms-name">${c.name}</p><p class="comms-line">${c.text}</p></div>${timer?'<span class="comms-timer" aria-hidden="true"></span>':''}</div>`;
 }
 

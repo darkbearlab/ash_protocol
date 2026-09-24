@@ -27,7 +27,7 @@ test('a message names its speaker, expression and line; the speaker defaults to 
  assert.equal(dutySpeaker(),'egret','Egret when no run says otherwise');
  assert.equal(dutySpeaker({game:{duty:'wren'}}),'wren','the officer saved with the run');
  const plain=resolveComms('連線測試。');
- assert.deepEqual(plain,{speaker:'egret',name:t('comms.speaker.egret'),expression:DEFAULT_EXPRESSION,portrait:{sheet:'./assets/pixel/comms-v1/egret.png',cell:0},text:'連線測試。',ms:null});
+ assert.deepEqual(plain,{speaker:'egret',name:t('comms.speaker.egret'),short:t('comms.short.egret'),expression:DEFAULT_EXPRESSION,portrait:{sheet:'./assets/pixel/comms-v1/egret.png',cell:0,face:[11,11]},text:'連線測試。',ms:null});
  const flagged=resolveComms({line:'game.reloaded',vars:{n:2},expression:'worried'});
  assert.equal(flagged.text,t('game.reloaded',{n:2}));
  assert.equal(flagged.expression,'worried');
@@ -36,7 +36,7 @@ test('a message names its speaker, expression and line; the speaker defaults to 
  assert.equal(resolveComms({name:'臨時',text:'x'}).name,'臨時','a message may carry its own name');
  const speakers={egret:COMMS_SPEAKERS.egret,stand_in:{name:'代理',sheet:'./assets/pixel/comms-v1/stand_in.png',expressions:{neutral:0,worried:6}}};
  const stand=resolveComms({speaker:'stand_in',text:'接手。'},{},speakers);
- assert.deepEqual([stand.speaker,stand.name,stand.portrait],['stand_in','代理',{sheet:'./assets/pixel/comms-v1/stand_in.png',cell:0}]);
+ assert.deepEqual([stand.speaker,stand.name,stand.portrait],['stand_in','代理',{sheet:'./assets/pixel/comms-v1/stand_in.png',cell:0,face:[0,0]}]);
  const markup=commsMarkup({speaker:'stand_in',expression:'worried',text:'接手。'},{speakers});
  assert.match(markup,/data-speaker="stand_in"/);
  assert.match(markup,/data-expression="worried"/);
@@ -152,4 +152,25 @@ test('the box closes when its time is up, or at once when tapped, and says so on
  const lined=fakeBox(null,'x'.repeat(20));armComms(lined,()=>done++);
  t.mock.timers.tick(commsDuration('x'.repeat(20))-1);assert.equal(lined.classes.has('closed'),false,'no time given: the line length decides');
  t.mock.timers.tick(1);assert.equal(lined.classes.has('closed'),true);
+});
+
+// 3.173.0 (user's pick from the mockups): over the field the box is slim, covering the battle header; the briefing
+// keeps the full box.
+test('the slim field box shows a window on the face, the short name and the line, with its time',()=>{
+ const box=commsMarkup({speaker:'egret',expression:'alarmed',text:'擲彈預告。'},{compact:true});
+ assert.match(box,/class="comms compact"/);
+ assert.match(box,/background-position:-203px -75px/,'cell 8 (alarmed) at column 4, row 2, shifted to the face window');
+ assert.match(box,new RegExp(`<p class="comms-line"><span class="comms-who">${t('comms.short.egret')}</span>擲彈預告。</p>`));
+ assert.match(box,new RegExp(`data-ms="${commsDuration('擲彈預告。')}"`),'the time comes from the line, not the name');
+ assert.match(commsMarkup({text:'x',seconds:3},{compact:true}),/data-ms="3000"/);
+ assert.doesNotMatch(box,/comms-name/);
+ const wren=commsMarkup({speaker:'wren',expression:'speaking',text:'x'},{compact:true});
+ assert.match(wren,/background-position:-139px -10px/);
+ const overseer=commsMarkup({speaker:'overseer',text:'x'},{compact:true});
+ assert.match(overseer,/SOUND<\/span><span>ONLY/);
+ assert.match(overseer,new RegExp(`comms-who">${t('comms.short.overseer')}<`));
+ assert.equal(resolveComms({name:'臨時',text:'x'}).short,'臨時','a message with its own name uses it in the slim box too');
+ const full=commsMarkup({speaker:'egret',expression:'alarmed',text:'x'});
+ assert.match(full,/background-position:-192px -64px/,'the briefing box shows the whole face');
+ assert.match(full,/comms-name/);
 });
