@@ -76,6 +76,9 @@ test('each officer has a call and a loss report; the overseer only an ellipsis; 
   else assert.ok(Object.hasOwn(COMMS_SPEAKERS[speaker].expressions,message.expression));
  }
  assert.deepEqual(Object.keys(COMMS_LINES.overseer),['kia','lossReport']);
+ // The user's picks on the review page (2026-09-24): Egret 2 calls and 3 reports, Wren 3 calls and 2 reports.
+ assert.deepEqual(['egret','wren'].map(who=>[COMMS_LINES[who].kia.length,COMMS_LINES[who].lossReport.length]),[[2,3],[3,2]]);
+ assert.equal(t('comms.wren.lossReport.1'),'……任務失敗。損失報告，提交。','her revision');
  const text=t('comms.egret.kia.1');
  assert.equal(kiaSeconds(text),Math.round(commsDuration(text)*1.4)/1000);
  const listeners={},classes=new Set();

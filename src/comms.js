@@ -41,8 +41,8 @@ export const COMMS_LINES=Object.freeze({
   boss:['comms.egret.boss.1',{id:'comms.egret.boss.2',expression:'worried'}],
   flank:['comms.egret.flank.1'],
   researcher:['comms.egret.researcher.1','comms.egret.researcher.2'],
-  kia:['comms.egret.kia.1'],                 // 3.174.0: calling the fallen operative (field)
-  lossReport:['comms.egret.lossReport.1'],   // 3.174.0: filing the loss report (results)
+  kia:['comms.egret.kia.1',{id:'comms.egret.kia.2',expression:'concerned'}],   // 3.174.0: calling the fallen operative (field)
+  lossReport:['comms.egret.lossReport.1',{id:'comms.egret.lossReport.2',expression:'sad'},{id:'comms.egret.lossReport.3',expression:'serious'}],   // 3.174.0: the loss report (results)
  }),
  wren:Object.freeze({
   briefing:['comms.wren.briefing.1',{id:'comms.wren.briefing.2',expression:'grin'},{id:'comms.wren.briefing.3',expression:'wink'}],
@@ -52,8 +52,8 @@ export const COMMS_LINES=Object.freeze({
   boss:['comms.wren.boss.1',{id:'comms.wren.boss.2',expression:'determined'}],
   flank:['comms.wren.flank.1','comms.wren.flank.2'],
   researcher:['comms.wren.researcher.1',{id:'comms.wren.researcher.2',expression:'sigh'}],
-  kia:['comms.wren.kia.1'],
-  lossReport:['comms.wren.lossReport.1'],
+  kia:['comms.wren.kia.1',{id:'comms.wren.kia.2',expression:'worried'},{id:'comms.wren.kia.3',expression:'surprised'}],
+  lossReport:['comms.wren.lossReport.1','comms.wren.lossReport.2'],
  }),
  // contact (first enemy on a floor: kill them all) and researcher (kill them), once written; for a death he says
  // nothing but an ellipsis (user, 2026-09-24).
