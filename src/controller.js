@@ -58,6 +58,7 @@ import {Game,WEAPONS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,protocolSett
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MODE_NOTE,runOptions,FACILITY_OPTIONS,facilityOption} from './deploy-ui.js';
 import {commsMarkup,armComms,commsForLogs,commsLine,dutySpeaker} from './comms.js';
 import {KIA_TUNING,kiaTimes,kiaTimeScale,kiaZoom,kiaSeconds,kiaBurst} from './kia.js';
+import {GORE_SETTINGS,validGoreSetting,goreLevel} from './gore.js';
 import {commsEvents,commsSnapshot,newCommsMemory} from './comms-events.js';
 import {validDuty} from './duty.js';
 import {factionDef} from './faction-catalog.js';
@@ -102,6 +103,9 @@ let vhsFilter=read('ash-vhs')==='on';document.documentElement.classList.toggle('
 const shakeSetting=read('ash-shake');renderer.shakeEnabled=shakeSetting?shakeSetting==='on':!renderer.reduceMotion;
 // 3.149.0 (src/signal-glitch.js): the signal interference has its own switch, with the same default.
 const glitchSetting=read('ash-glitch');renderer.glitchEnabled=glitchSetting?glitchSetting==='on':!renderer.reduceMotion;
+// 3.175.0 kill gore (docs/KILL_GORE.md): full by default; reduced motion keeps it at simple.
+let goreChoice=validGoreSetting(read('ash-gore'))?read('ash-gore'):'full';renderer.goreLevel=goreLevel(goreChoice,renderer.reduceMotion);
+const GORE_LABELS={full:()=>t('settings.gore.full'),simple:()=>t('settings.gore.simple'),off:()=>t('settings.gore.off')};
 // A hit on you makes the controls glitch for a moment, a beat after the shot, when the round lands.
 const glitchUI=(ms=280)=>{for(const el of document.querySelectorAll('.tactical-panel,.mobile-status,#mobile-hp,#mobile-plates')){el.classList.remove('ui-glitch');void el.offsetWidth;el.classList.add('ui-glitch');setTimeout(()=>el.classList.remove('ui-glitch'),ms);}};
 renderer.onPlayerHit=()=>setTimeout(()=>glitchUI(),90);
@@ -323,7 +327,7 @@ function kiaTick(){
 }
 // A new run, a loaded save or a replay clears the scene; the fallen body and the blood stay until then, so the last
 // battlefield still shows them.
-function resetKia(){kia=null;renderer.kia=null;renderer.pace=null;}
+function resetKia(){kia=null;renderer.kia=null;renderer.pace=null;renderer.gore=[];renderer.splatter.reset();}
 renderer.onFrame=dt=>{
   kiaTick();
   if(!playback)return;
@@ -934,7 +938,7 @@ ${inRun?t('settings.inRunButtons'):''}
 <p>${t('settings.vhs')}</p>
 <button class="modal-button secondary" data-modal="shake" aria-pressed="${renderer.shakeEnabled}">${t('settings.shakeLabel',{v:renderer.shakeEnabled?t('controller.on'):t('controller.off')})}</button>
 <p>${t('settings.shake')}</p>
-<button class="modal-button secondary" data-modal="glitch" aria-pressed="${renderer.glitchEnabled}">${t('settings.glitchLabel',{v:renderer.glitchEnabled?t('controller.on'):t('controller.off')})}</button>
+<button class="modal-button secondary" data-modal="glitch" aria-pressed="${renderer.glitchEnabled}">${t('settings.glitchLabel',{v:renderer.glitchEnabled?t('controller.on'):t('controller.off')})}</button><button class="modal-button secondary" data-modal="gore">${t('settings.goreLabel',{v:GORE_LABELS[goreChoice]()})}${renderer.reduceMotion&&goreChoice==='full'?t('settings.goreReduced'):''}</button>
 <p>${t('settings.glitch')}</p>
 <p>${t('settings.motion')}</p>
 <div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">${t('settings.layoutLabel',{v:DECK_LAYOUT_LABELS[padLayout]})}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>${t('settings.padLabel',{v:padLayout==='grid'?t('settings.padNotGrid'):`${t('settings.padSize',{v:PAD_LABELS[padCell],padCell})}`})}</button></div>
@@ -1139,6 +1143,7 @@ document.addEventListener('click',e=>{
     case 'padCell':padCell=PAD_SIZES[(PAD_SIZES.indexOf(padCell)+1)%PAD_SIZES.length];write('ash-pad-cell',String(padCell));applyDeck();fitLayout();settings();break;
     case 'audioGrit':{const order=Object.keys(GRIT_LEVELS),next=order[(order.indexOf(audio.grit)+1)%order.length];audio.setGrit(next);write('ash-audio-grit',next);settings();break;}
     case 'shake':renderer.shakeEnabled=!renderer.shakeEnabled;renderer.shakes=[];write('ash-shake',renderer.shakeEnabled?'on':'off');settings();break;
+    case 'gore':goreChoice=GORE_SETTINGS[(GORE_SETTINGS.indexOf(goreChoice)+1)%GORE_SETTINGS.length];renderer.goreLevel=goreLevel(goreChoice,renderer.reduceMotion);if(renderer.goreLevel==='off')renderer.gore=[];write('ash-gore',goreChoice);settings();break;
     case 'glitch':renderer.glitchEnabled=!renderer.glitchEnabled;renderer.glitches=[];renderer.objectGlitches.clear();write('ash-glitch',renderer.glitchEnabled?'on':'off');settings();break;
     case 'reclaimTab':location.reload();return;
     // 3.167.0: the language is chosen when the page loads, so switching saves the choice and reloads (the run is saved).

@@ -30,6 +30,8 @@ import {ArtToneCache} from './art-tone.js';
 import {WALL_ATLAS,drawWall} from './walls.js';
 import {drawTrace} from './traces.js';
 import {drawKiaGround,drawKiaBody,drawKiaAir} from './kia-art.js';
+import {drawBurstAir,Splatter} from './gore-art.js';
+import {enemyBurst,burstLife} from './gore.js';
 import {THEMES,themeAt,resolveSprite} from './themes.js';
 import {missionObjects,missionTarget} from './missions.js';
 import {MODULE_TYPES,moduleCells,modulePoint} from './modules.js';
@@ -66,7 +68,7 @@ const itemGlitchKey=i=>`item:${i.type}:${i.x},${i.y}`;
 export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
-    this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.frameRate=FRAME_RATE_DEFAULT;this.time=0;this.kia=null;this.pace=null;this.kiaZoom=1;
+    this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.frameRate=FRAME_RATE_DEFAULT;this.time=0;this.kia=null;this.pace=null;this.kiaZoom=1;this.gore=[];this.splatter=new Splatter();this.goreLevel='full';
     this.shakes=[];this.shakeEnabled=true;this.shift=null;   // screen shake (3.147.0, src/screen-shake.js)
     this.glitches=[];this.objectGlitches=new Map();this.glitchState={};this.glitchEnabled=true;   // signal interference (3.149.0, src/signal-glitch.js)
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.callouts=new CalloutBoard();this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -271,6 +273,8 @@ export class Renderer {
       c.setLineDash([4,3]);this.line(a.x,a.y,b.x,b.y,TONGUE_VISUAL.line,2);c.setLineDash([]);
       this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,TONGUE_VISUAL.fill,TONGUE_VISUAL.edge);this.box(l.x-t*.28,l.y-t*.28,t*.56,t*.56,'#00000000',TONGUE_VISUAL.landing);
     }
+    // Stains stamped on this floor's layer as drops land (never saved), then the layer; the fallen operative's pool.
+    if(this.splatter){this.splatter.use(`${g.seed}:${g.floor}`);for(const b of this.gore||[])this.splatter.bake(b.burst,b.at,time-b.start);if(this.kia?.burst)this.splatter.bake(this.kia.burst,this.kia.at,time-this.kia.start);this.splatter.draw(c,this.project(0,0),t);}
     if(this.kia)drawKiaGround(this,time);
     const pos=this.projectActor(p);if(p.hp<=0){if(this.kia)drawKiaBody(this,pos,p.character,time);else this.corpse(pos,'player',p.character);}else this.glitchDraw(pos,'player',()=>this.actor(pos,'player',time,p));
     for(const cover of g.cover){const dx=cover.x-p.x,dy=cover.y-p.y;const x=pos.x+dx*t*(isBarrier(cover)?1:.48),y=pos.y+dy*t*(isBarrier(cover)?1:.48);this.line(x+(dy? -t*.27:0),y+(dx?-t*.27:0),x+(dy?t*.27:0),y+(dx?t*.27:0),cover.type==='wall'?'#8bd2c9':'#c7d896',2);}
@@ -335,6 +339,7 @@ export class Renderer {
     }
     this.effects=this.effects.filter(e=>time-e.time<Math.max(700,e.duration||0));
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}
+    if(this.gore?.length){for(const b of this.gore)drawBurstAir(c,t,this.project(b.at.x,b.at.y),b.burst,time-b.start);this.gore=this.gore.filter(b=>time-b.start<b.life);}
     if(this.kia)drawKiaAir(this,time);
     // Raised partitions share the wall occlusion layer; footprints remain on ground edges.
     const seenBarriers=g.barriers.filter(b=>edgeCells(b).some(q=>g.seen[q.y]?.[q.x]));
@@ -614,7 +619,9 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
     for(const cell of cells){c.fillStyle=cell.color;c.fillRect(Math.round(m.x+cell.x-u/2),Math.round(m.y+cell.y-u/2),u,u);}
     c.globalAlpha=alpha;
   }
-  addEffects(effects,elapsed=0){const start=this.time-Math.max(0,elapsed);for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);const kicks=shakeImpulses(effects,this.game.player,start);if(this.shakeEnabled)this.shakes=[...liveImpulses(this.shakes,this.time),...kicks].slice(-24);
+  addEffects(effects,elapsed=0){const start=this.time-Math.max(0,elapsed);
+    // 3.175.0 kill gore (src/gore.js): a kill with a direction bursts on the far side; how much follows the setting.
+    for(const e of effects)if(e.type==='fall'&&e.actorType!=='player'&&e.blow&&this.gore&&this.goreLevel!=='off'){const g=this.game,seed=((g.seed|0)*31+(g.turn|0)*977+e.to.x*57+e.to.y)|0,burst=enemyBurst(seed,e.blow,{kind:e.gore,heavy:e.heavy,level:this.goreLevel});if(burst)this.gore.push({start,at:{x:e.to.x,y:e.to.y},burst,life:burstLife(burst)*1000});}for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);const kicks=shakeImpulses(effects,this.game.player,start);if(this.shakeEnabled)this.shakes=[...liveImpulses(this.shakes,this.time),...kicks].slice(-24);
     if(this.glitchEnabled){const r=effectGlitches(effects,this.game,start,kicks);this.glitches=[...liveGlitches(this.glitches,this.time),...r.screen].slice(-24);for(const o of r.objects)this.objectGlitches.set(o.key,o);if(r.hit)this.onPlayerHit?.();}}
   // 3.149.0 signal interference: the state-driven glitches, then the whole-frame one.
   glitchFrame(){

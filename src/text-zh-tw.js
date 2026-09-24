@@ -1706,6 +1706,11 @@ export default Object.freeze({
  "settings.languageNote":"切換後頁面會重新載入；任務進度已自動儲存。",
  "settings.languageFailed":"無法儲存語言設定。",
  "settings.languageWip":"English 版仍在製作中（work in progress）：故事碎片等少數內容還是中文。",
+ "settings.goreLabel":"擊殺血光：{v}",
+ "settings.gore.full":"完整",
+ "settings.gore.simple":"簡化",
+ "settings.gore.off":"關閉",
+ "settings.goreReduced":"（減少動態：簡化）",
  // src/skills.js
  "skills.warningEvasion":"、它們對你的命中 −{n}",
  "skills.earlyWarning":"免費掃描 {radius} 格內敵人，穿牆顯示當下位置光點，維持至下一次耗回合行動結束，並標定它們 {markTurns} 回合：標定中你對它們命中 +{accuracy}、傷害 +{damage}%{evasion}。不追蹤移動、不提供射線，也不會讓敵人發現你。冷卻 {cooldown} 次耗回合行動。",

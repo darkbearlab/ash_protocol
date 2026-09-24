@@ -5,6 +5,8 @@
 // recorded the moment the operative dies, and this is only how it is shown. The timings are the user's picks from the
 // preview page (2026-09-24).
 import {commsDuration} from './comms.js';
+import {makeBurst,burstReach} from './gore.js';
+export {burstReach};
 
 export const KIA_TUNING=Object.freeze({
   zoom:1.4,          // the push-in, as a multiple of the tile size
@@ -50,12 +52,15 @@ export function kiaZoom(sinceHit,voiceAt,tuning=KIA_TUNING){
 export const kiaSeconds=(text,tuning=KIA_TUNING)=>Math.round(commsDuration(text)*tuning.voiceScale)/1000;
 
 const same=(a,b)=>a&&b&&a.x===b.x&&a.y===b.y;
-// Where the killing blow came from, as a unit vector pointing from the attacker into the operative, or null when the
-// death has no direction (poison, fire, acid...). The last shot that hurt the operative's tile wins; a blast counts
-// from its origin when it went off on another tile.
-export function killingBlow(effects,at){
-  const hits=(effects||[]).filter(e=>e&&e.from&&e.to);
-  const shot=[...hits].reverse().find(e=>e.type==='enemyShot'&&e.damage>0&&same(e.to,at)&&!same(e.from,at));
+// Where the killing blow came from, as a unit vector pointing from the attacker into the body, or null when the death
+// has no direction (poison, fire, acid...). The last shot that hurt the body's tile wins; a blast counts from its origin
+// when it went off on another tile. The operative is hit by `enemyShot`; enemies (3.175.0 kill gore) by the
+// operative's and allies' `shot` and by each other. A shot's own damage may be 0 with the harm on a separate `impact`
+// at the tile (the operative's shots), so a shot that did not miss counts when the tile was hurt that step.
+export const ENEMY_BLOWS=Object.freeze(['shot','enemyShot']);
+export function killingBlow(effects,at,types=['enemyShot']){
+  const hits=(effects||[]).filter(e=>e&&e.from&&e.to),hurt=hits.some(e=>e.damage>0&&same(e.to,at));
+  const shot=[...hits].reverse().find(e=>types.includes(e.type)&&!e.miss&&(e.damage>0||hurt)&&same(e.to,at)&&!same(e.from,at));
   const blast=[...hits].reverse().find(e=>e.type==='blast'&&!same(e.from,at)&&Math.max(Math.abs(e.from.x-at.x),Math.abs(e.from.y-at.y))<=(e.radius??0));
   const from=(shot||blast)?.from;
   if(!from)return null;
@@ -63,21 +68,5 @@ export function killingBlow(effects,at){
   return {dx:dx/l,dy:dy/l};
 }
 
-// The burst, in tile units, the same every time for the same seed and direction. Each piece jumps most of the way
-// out at once (the pop, 1 - drift) and drifts the rest during the slow motion; drops fall and stain the floor.
-function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-export const BLOOD_COLORS=Object.freeze(['#5c0f12','#7d161a','#9c1d20','#c42a2a','#e04a3a']);
-export function kiaBurst(seed,blow,tuning=KIA_TUNING){
-  if(!blow)return null;
-  const r=rng(seed),away=Math.atan2(blow.dy,blow.dx);
-  const drops=[],mist=[],sparks=[];
-  for(let i=0,n=Math.round(46*tuning.blood);i<n;i++){
-    const a=away+(r()-.5)*1.0,D=.44+r()*1.9,z0=.09+r()*.32,vz=.15+r()*.74,g=7.35,land=(vz+Math.sqrt(vz*vz+2*g*z0))/g;
-    drops.push({a,D,z0,vz,g,land,size:.03+Math.floor(r()*4)*.015,color:BLOOD_COLORS[Math.floor(r()*5)],stain:.015+Math.floor(r()*3)*.015});
-  }
-  for(let i=0,n=Math.round(12*tuning.blood);i<n;i++)mist.push({a:away+(r()-.5)*.8,D:.3+r()*1.2,life:.8+r()*.5,r0:.18+r()*.18,grow:1.3+r()*.4});
-  for(let i=0,n=Math.round(16*tuning.light);i<n;i++)sparks.push({a:away+(r()-.5)*1.3,D:.26+r()*.9,v:.9+r()*1.8,life:.25+r()*.25,len:.12+r()*.15,color:r()<.5?'#fff6d8':'#ffc36b'});
-  return {away,pop:1-tuning.drift,light:tuning.light,drops,mist,sparks};
-}
-// Distance out along a piece's path `s` world seconds after the burst: the pop, then an easing drift.
-export const burstReach=(pop,D,s,tau)=>D*(pop+(1-pop)*(1-Math.exp(-Math.max(0,s)/tau)));
+// The burst: the kill-gore burst (src/gore.js) at full strength, in flesh colours.
+export const kiaBurst=(seed,blow,tuning=KIA_TUNING)=>makeBurst(seed,blow,{blood:tuning.blood,light:tuning.light,drift:tuning.drift,kind:'flesh'});
