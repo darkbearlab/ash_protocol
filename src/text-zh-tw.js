@@ -186,9 +186,9 @@ export default Object.freeze({
  "color-picker.tooDark":"（低於 40%：暗房裡可能看不清楚）",
  "color-picker.readout":"色相 {h}° · 彩度 {s}% · 明度 {v}%{v2}",
  // src/comms.js
- "comms.name":"CONTROL · 管制員",
  "comms.aria":"管制員通訊",
  "comms.briefing":"連線確認。本次合約如下，照簡報執行。",
+ "comms.speaker.controller":"CONTROL · 管制員",
  // containerKinds
  "containerKinds.unknown.name":"未識別貨櫃",
  "containerKinds.ammo.name":"彈藥箱",

@@ -185,9 +185,9 @@ export default Object.freeze({
  "color-picker.tooDark":" (under 40%: hard to see in the dark)",
  "color-picker.readout":"H {h}° · S {s}% · B {v}%{v2}",
  // src/comms.js
- "comms.name":"CONTROL",
  "comms.aria":"Controller channel",
  "comms.briefing":"Link confirmed. Your contract is below; follow the briefing.",
+ "comms.speaker.controller":"CONTROL",
  // containerKinds
  "containerKinds.unknown.name":"Unidentified crate",
  "containerKinds.ammo.name":"Ammo crate",

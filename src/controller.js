@@ -183,17 +183,18 @@ function notify(text,{extra=0,danger=false}={}){notice.textContent=text;notice.c
 // A new blueprint is announced with the action's latest line even when later logs would cover it (docs/ENGINEER.md
 // section 7); the latest line keeps its danger colour.
 const notifyLatest=()=>{sayCommsFor(game.logs.slice(0,lastActionLogs));const latest=game.logs[0],blueprint=game.logs.slice(0,Math.max(1,lastActionLogs)).find(l=>isBlueprintLog(l.text));if(latest)notify(blueprint&&blueprint!==latest?`${blueprint.text} ${latest.text}`:latest.text,{extra:lastActionLogs-1,danger:latest.danger});};
-// Controller channel over the field (3.168.1, user request): new log lines that a hook names make her speak; the
-// hooks themselves wait for the writing (src/comms.js COMMS_HOOKS). One box at a time, the rest wait their turn.
+// Comms over the field (3.168.1, user request): new log lines that a hook names make someone speak; the hooks wait
+// for the writing (src/comms.js COMMS_HOOKS). A message names its speaker, expression and line (3.168.2). One box at a
+// time, the rest wait their turn.
 const commsLayer=document.createElement('div');commsLayer.className='comms-layer';commsLayer.setAttribute('aria-live','polite');$('#viewport').append(commsLayer);
 const commsQueue=[];
-function sayComms(line){commsQueue.push(line);if(commsQueue.length===1)showNextComms();}
+function sayComms(message){commsQueue.push(message);if(commsQueue.length===1)showNextComms();}
 function showNextComms(){
-  const line=commsQueue[0];if(line===undefined)return;
-  commsLayer.innerHTML=commsMarkup(line);
-  armComms(commsLayer.querySelector('.comms'),line,()=>{commsLayer.innerHTML='';commsQueue.shift();showNextComms();});
+  const message=commsQueue[0];if(message===undefined)return;
+  commsLayer.innerHTML=commsMarkup(message,{context:{game}});
+  armComms(commsLayer.querySelector('.comms'),()=>{commsLayer.innerHTML='';commsQueue.shift();showNextComms();});
 }
-function sayCommsFor(entries){for(const line of commsForLogs(entries))sayComms(line);}
+function sayCommsFor(entries){for(const message of commsForLogs(entries))sayComms(message);}
 // Half health or less: the battlefield edges pulse red, deeper and faster as health falls (3.43).
 function lowHealth(p){
   const glow=$('#low-health'),ratio=Math.max(0,p.hp)/p.maxHp,on=ratio<=.5;glow.classList.toggle('on',on);if(!on)return;
@@ -568,8 +569,8 @@ function showMission(){if(isSimulation(game)){modal(`<div class="eyebrow">SIMULA
 function showBriefing(){
   const def=missionDefinition(game),difficulty=difficultyOption(game.difficulty).name;
   const rows=[['briefing.objective',sentences(def.text,MISSION_NOTES[game.mission.id])],['briefing.facility',factionDef(game.facilityFaction)?.name||''],['briefing.difficulty',game.realMode?`${difficulty} · ${t('controller.deploy.realMode')}`:difficulty]].filter(([,v])=>v);
-  modal(`<div class="briefing">${commsMarkup(t('comms.briefing'))}<section class="briefing-card" aria-labelledby="briefing-title"><div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2 id="briefing-title">${def.name}</h2><p class="briefing-sector">${floorInfo(game.floor).name}</p><dl class="briefing-rows">${rows.map(([k,v])=>`<dt>${t(k)}</dt><dd>${v}</dd>`).join('')}</dl></section></div><div class="modal-footer"><button class="modal-button" data-modal="close">${t('briefing.start')}</button></div>`);
-  armComms($('#modal-content .comms'),t('comms.briefing'));
+  modal(`<div class="briefing">${commsMarkup({line:'comms.briefing'},{context:{game}})}<section class="briefing-card" aria-labelledby="briefing-title"><div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2 id="briefing-title">${def.name}</h2><p class="briefing-sector">${floorInfo(game.floor).name}</p><dl class="briefing-rows">${rows.map(([k,v])=>`<dt>${t(k)}</dt><dd>${v}</dd>`).join('')}</dl></section></div><div class="modal-footer"><button class="modal-button" data-modal="close">${t('briefing.start')}</button></div>`);
+  armComms($('#modal-content .comms'));
 }
 function showMap(){modal(`<div class="eyebrow">SECTOR ${pad(game.floor)} / ${isSimulation(game)?'KILL HOUSE':floorInfo(game.floor).name}</div><h2>${t('controller.map.title')}</h2>${missionDetails()}<canvas id="overview" width="324" height="324" aria-label="${t('controller.map.aria')}"></canvas><p>${t('controller.map.legend1')}<br>${t('controller.map.legend2')}</p><button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`);renderer.drawMap($('#overview'));}
 
@@ -1271,7 +1272,7 @@ $('#import-replay').addEventListener('change',async e=>{
   try{if(file.size>20000000)throw new Error('檔案超過 20 MB。');loadReplay(await file.text(),replayOptions);}
   catch(error){modal('<h2>無法播放操作紀錄</h2><p>'+escapeHTML(error.message)+'</p><button class="modal-button" data-modal="close">返回</button>');}
 });
-if(TEST_MODE)globalThis.__ashComms={say:line=>sayComms(String(line))};   // preview the field channel before any hook exists
+if(TEST_MODE)globalThis.__ashComms={say:message=>sayComms(message)};   // preview the field channel: text, or {speaker, expression, line|text}
 if(TEST_MODE)globalThis.__ashReplay={load:(raw,options)=>loadReplay(typeof raw==='string'?raw:JSON.stringify(raw),options),
   pause(){if(replay){replay.paused=true;replayBadge();}},resume(){if(replay){replay.paused=false;replayBadge();}},stop:()=>stopReplay(),record:startRecording,hash:()=>stateHash(game),
   get state(){return replay?{index:replay.index,total:replay.log.ops.length,paused:replay.paused,fast:replay.fast,mismatch:replay.mismatch}:{done:replayResult};},
