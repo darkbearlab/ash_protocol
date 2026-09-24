@@ -139,6 +139,11 @@ export default Object.freeze({
  "blind-fire.allyThere":"友軍在那一格",
  // brief
  "brief.tutorial":"六個區域依序訓練。清除目標後走進電梯，模擬程式會提交肅清評估。",
+ // briefing
+ "briefing.objective":"目標",
+ "briefing.facility":"設施",
+ "briefing.difficulty":"難度",
+ "briefing.start":"開始行動 →",
  // src/callout-ui.js
  "callout-ui.empty":"{item}沒了",
  "callout-ui.itemFallback":"道具",
@@ -180,6 +185,10 @@ export default Object.freeze({
  "color-picker.original":"原色：不上色。碰色輪或明度就會改用那個顏色。",
  "color-picker.tooDark":"（低於 40%：暗房裡可能看不清楚）",
  "color-picker.readout":"色相 {h}° · 彩度 {s}% · 明度 {v}%{v2}",
+ // src/comms.js
+ "comms.name":"CONTROL · 管制員",
+ "comms.aria":"管制員通訊",
+ "comms.briefing":"連線確認。本次合約如下，照簡報執行。",
  // containerKinds
  "containerKinds.unknown.name":"未識別貨櫃",
  "containerKinds.ammo.name":"彈藥箱",
@@ -670,6 +679,15 @@ export default Object.freeze({
  "controller.ally.ammoLine":"· {v}彈藥 {ammo}/{v2}",
  "controller.prep.title":"{entryName}：{v}{v2}",
  "controller.floorNoticeFull":"第 {v} 層 · {v2}：{v3}{v4}{v5}",
+ "controller.deckEdit.slotAria":"{n} 號位置：{v}",
+ "controller.deckEdit.empty":"空格",
+ "controller.deckEdit.title":"編輯按鈕位置",
+ "controller.deckEdit.help":"點一格，再點另一格，兩者互換。跟空格互換就是把按鈕搬過去。改完關閉就能看到結果。",
+ "controller.deckEdit.mirror":"左右鏡像",
+ "controller.deckEdit.reset":"還原預設",
+ "controller.deckEdit.back":"← 返回設定",
+ "controller.deckEdit.mirrored":"已左右鏡像。",
+ "controller.deckEdit.restored":"已還原預設。",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // 灰燼協定 // DAILY OPERATION",
  // deckLabels
@@ -727,6 +745,8 @@ export default Object.freeze({
  "enemy-behavior.sniperBlocked":"狙擊彈被門或隔板阻擋。",
  "enemy-behavior.sniperHitsSpot":"狙擊彈擊中你原本的位置。",
  "enemy-behavior.bossBombard":"核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！",
+ "enemy-behavior.munitionLaunch":"{name}放出了浮游彈藥！",
+ "enemy-behavior.hookDetonate":"{name}鉤索貼近，引爆！",
  // src/enemy-visuals.js
  "enemy-visuals.floorTrait":"（第 {floor} 層起：{trait}）",
  "enemy-visuals.elite":"精英",
@@ -1528,6 +1548,21 @@ export default Object.freeze({
  "result.remarks":"備註",
  "result.notSaved":"<p class=\"deploy-warning\">! 無法寫入訓練紀錄，下次部署仍會詢問是否訓練。</p>",
  "result.toDeploy":"前往部署 →",
+ // resultCopy
+ "resultCopy.endlessDeep.title":"高威脅個體已於第 {n} 層消耗。",
+ "resultCopy.endlessDeep.body":"深度紀錄已更新。結果符合協定。",
+ "resultCopy.endlessMid.title":"追蹤於第 {n} 層終止。",
+ "resultCopy.endlessMid.body":"火種訊號仍在更深處。已登錄到達深度。",
+ "resultCopy.endlessShallow.title":"訊號於第 {n} 層中斷。",
+ "resultCopy.endlessShallow.body":"已登錄到達深度。",
+ "resultCopy.excellent.title":"高威脅個體已消耗。",
+ "resultCopy.excellent.body":"該單位戰鬥表現超出預期，於失控前完成消耗。結果符合協定。",
+ "resultCopy.partial.title":"任務部分完成。",
+ "resultCopy.partial.body":"設施防禦已被削弱，戰果已登錄。",
+ "resultCopy.advance.title":"推進中斷。",
+ "resultCopy.advance.body":"設施外圍已受損，剩餘區域移交後續單位。",
+ "resultCopy.none.title":"損耗在預期範圍內。",
+ "resultCopy.none.body":"未取得有效戰果。",
  // src/retreat.js
  "retreat.wave":"撤退增援：本層 {n} 個傳送訊號，兩次行動後抵達；不再追加。",
  "retreat.arrived":"敵方增援傳送抵達。",

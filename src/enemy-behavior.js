@@ -104,7 +104,7 @@ function deployMunition(ctx){
  munition.alert=true;munition.spawnTurn=g.turn;munition.lastKnown={x:p.x,y:p.y};
  g.enemies.push(munition);
  g.effects.push({type:'enemyTelegraph',phase:'flight',from:{x:e.x,y:e.y},to:{x:spot.x,y:spot.y},damage:0});
- g.log(`${enemyName(e)}\u653e\u51fa\u4e86\u6d6e\u6e38\u5f48\u85e5\uff01`,true);
+ g.log(t('enemy-behavior.munitionLaunch',{name:enemyName(e)}),true);
  return true;
 }
 registerAffixBranch({id:'deployer',reveal:'effect',applies:({e})=>e.affixes?.some(a=>a.id==='deployer'),
@@ -119,7 +119,7 @@ function munitionAct(ctx){
  if(distance(e,p)>munitionRange()||!g.sight(e,p))return false;
  const point=pullLanding(g,e,p);
  if(point){e.x=point.x;e.y=point.y;e.moved=true;g.effects.push({type:'enemyTelegraph',phase:'flight',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});}
- g.log(`${enemyName(e)}\u9264\u7d22\u8cbc\u8fd1\uff0c\u5f15\u7206\uff01`,true);
+ g.log(t('enemy-behavior.hookDetonate',{name:enemyName(e)}),true);
  g.hurt(e,e.hp,e);
  return true;
 }

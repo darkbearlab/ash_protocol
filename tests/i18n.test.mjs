@@ -113,3 +113,16 @@ test('English voices answer the same cues as the Chinese ones',()=>{
  assert.deepEqual(gaps,[]);
 });
 
+
+// 3.168.0: Chinese written as escapes (\uXXXX in scripts, \XXXX in CSS, &#...; in HTML) hid the death-screen report,
+// the button layout editor and two enemy logs from every scan in 3.167.0. Nothing the player sees may hide that way.
+test('no Chinese hides behind escapes in what ships',()=>{
+ const shipped={...sources,'index.html':readFileSync(new URL('../index.html',import.meta.url),'utf8'),'style.css':readFileSync(new URL('../style.css',import.meta.url),'utf8'),'expansion.css':readFileSync(new URL('../expansion.css',import.meta.url),'utf8')};
+ const wide=hex=>parseInt(hex,16)>=0x3000,slash=String.fromCharCode(92);
+ const jsEscape=new RegExp(slash+slash+'u'+slash+'{?([0-9a-fA-F]{4,5})'+slash+'}?','g'),cssEscape=new RegExp(slash+slash+'([0-9a-fA-F]{4,6})','g');
+ const hidden=Object.entries(shipped).filter(([file,text])=>
+  [...text.matchAll(jsEscape)].some(m=>wide(m[1]))||
+  (file.endsWith('.css')&&[...text.matchAll(cssEscape)].some(m=>wide(m[1])))||
+  [...text.matchAll(/&#(x?)([0-9a-fA-F]+);/g)].some(m=>parseInt(m[2],m[1]?16:10)>=0x3000)).map(([file])=>file);
+ assert.deepEqual(hidden,[]);
+});

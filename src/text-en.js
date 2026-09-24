@@ -138,6 +138,11 @@ export default Object.freeze({
  "blind-fire.allyThere":"Ally on that tile",
  // brief
  "brief.tutorial":"Six zones in order. Clear the targets, then step into the elevator; the simulation submits a purge evaluation.",
+ // briefing
+ "briefing.objective":"Objective",
+ "briefing.facility":"Facility",
+ "briefing.difficulty":"Difficulty",
+ "briefing.start":"Begin →",
  // src/callout-ui.js
  "callout-ui.empty":"Out of {item}",
  "callout-ui.itemFallback":"items",
@@ -179,6 +184,10 @@ export default Object.freeze({
  "color-picker.original":"Original: no tint. Touch the wheel to pick a color.",
  "color-picker.tooDark":" (under 40%: hard to see in the dark)",
  "color-picker.readout":"H {h}° · S {s}% · B {v}%{v2}",
+ // src/comms.js
+ "comms.name":"CONTROL",
+ "comms.aria":"Controller channel",
+ "comms.briefing":"Link confirmed. Your contract is below; follow the briefing.",
  // containerKinds
  "containerKinds.unknown.name":"Unidentified crate",
  "containerKinds.ammo.name":"Ammo crate",
@@ -669,6 +678,15 @@ export default Object.freeze({
  "controller.ally.ammoLine":"· {v} ammo {ammo}/{v2}",
  "controller.prep.title":"{entryName}: {v}{v2}",
  "controller.floorNoticeFull":"Floor {v} · {v2}: {v3}{v4}{v5}",
+ "controller.deckEdit.slotAria":"Slot {n}: {v}",
+ "controller.deckEdit.empty":"Empty",
+ "controller.deckEdit.title":"Edit button positions",
+ "controller.deckEdit.help":"Tap one cell, then another, to swap them. Swapping with an empty cell moves the button. Close to see the result.",
+ "controller.deckEdit.mirror":"Mirror",
+ "controller.deckEdit.reset":"Reset",
+ "controller.deckEdit.back":"← Back to settings",
+ "controller.deckEdit.mirrored":"Mirrored.",
+ "controller.deckEdit.restored":"Defaults restored.",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // DAILY OPERATION",
  // deckLabels
@@ -726,6 +744,8 @@ export default Object.freeze({
  "enemy-behavior.sniperBlocked":"The sniper round is stopped by a door or partition.",
  "enemy-behavior.sniperHitsSpot":"The sniper round strikes where you were.",
  "enemy-behavior.bossBombard":"The Core Guardian marks a bombardment zone: leave the red tiles and those next to them within two actions!",
+ "enemy-behavior.munitionLaunch":"{name} launches a loitering munition!",
+ "enemy-behavior.hookDetonate":"{name} reels in close and detonates!",
  // src/enemy-visuals.js
  "enemy-visuals.floorTrait":" (F{floor}+: {trait})",
  "enemy-visuals.elite":"Elite",
@@ -1527,6 +1547,21 @@ export default Object.freeze({
  "result.remarks":"Remarks",
  "result.notSaved":"<p class=\"deploy-warning\">! Could not write the training record; the next deployment will ask about training again.</p>",
  "result.toDeploy":"Deploy →",
+ // resultCopy
+ "resultCopy.endlessDeep.title":"High-threat unit expended on floor {n}.",
+ "resultCopy.endlessDeep.body":"Depth record updated. Outcome within protocol.",
+ "resultCopy.endlessMid.title":"Tracking ended on floor {n}.",
+ "resultCopy.endlessMid.body":"The ember signal lies deeper still. Depth reached logged.",
+ "resultCopy.endlessShallow.title":"Signal lost on floor {n}.",
+ "resultCopy.endlessShallow.body":"Depth reached logged.",
+ "resultCopy.excellent.title":"High-threat unit expended.",
+ "resultCopy.excellent.body":"The unit exceeded combat expectations and was expended before it went out of control. Outcome within protocol.",
+ "resultCopy.partial.title":"Mission partly complete.",
+ "resultCopy.partial.body":"Facility defenses weakened. Results logged.",
+ "resultCopy.advance.title":"Advance halted.",
+ "resultCopy.advance.body":"The facility's outer zone is damaged. The remaining areas pass to follow-up units.",
+ "resultCopy.none.title":"Losses within the expected range.",
+ "resultCopy.none.body":"No meaningful results.",
  // src/retreat.js
  "retreat.wave":"Reinforcements: {n} teleport {n|signal|signals} on this floor, arriving in two actions; no more after these.",
  "retreat.arrived":"Enemy reinforcements teleport in.",

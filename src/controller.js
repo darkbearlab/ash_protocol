@@ -56,6 +56,8 @@ import {AMMUNITION,AMMO_IDS,MELEE_TINT,capacity,TERMINAL_AMMO} from './ammunitio
 import {captureAction,planPresentation,Playback} from './presentation.js';
 import {Game,WEAPONS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,protocolSettlement,itemUseReason,deployCoverReason,TERMINAL_ITEMS} from './engine.js';
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MODE_NOTE,runOptions,FACILITY_OPTIONS,facilityOption} from './deploy-ui.js';
+import {commsMarkup} from './comms.js';
+import {factionDef} from './faction-catalog.js';
 import {Renderer} from './render.js';
 import {AudioEngine,AUDIO_TUNING,volumePercent} from './audio.js';
 import {GRIT_LEVELS,gritLevel} from './audio-grit.js';
@@ -411,7 +413,7 @@ function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify(t(
 // one-handed use, and a tabbed menu fills the height so its top does not move when tabs of different heights change.
 // The upgrade pick is the exception (3.97.3, user report): it opens on its own under a thumb that is still tapping, so it
 // is anchored to the top edge and the queued tap lands on the backdrop.
-function modal(html,wide=false,title=false){queueMicrotask(syncMusic);cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('transmission',Boolean($('#modal-content').querySelector('.transmission')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
+function modal(html,wide=false,title=false){queueMicrotask(syncMusic);cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('transmission',Boolean($('#modal-content').querySelector('.transmission')));$('#modal').classList.toggle('briefing',Boolean($('#modal-content').querySelector('.briefing')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
 // Main buttons stay on screen (3.97.0, user request): a menu marks them with .modal-footer; otherwise its final button
 // (or button row) is pinned. When that final button is a secondary back/cancel button, the button just before it (the
 // action) is pinned beside it, back first. Title screens lay themselves out and are left alone.
@@ -549,6 +551,14 @@ function missionDetails(){
   return `<p><strong>${game.missionSummary}</strong><br>${def.text}</p>${targets}`;
 }
 function showMission(){if(isSimulation(game)){modal(`<div class="eyebrow">SIMULATION / KILL HOUSE</div><h2>${simulationLabel(game)}</h2>${missionDetails()}<button class="modal-button" data-modal="close">${t('controller.backToSim')}</button>`);return;}modal(`<div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2>${floorInfo(game.floor).name}</h2>${missionDetails()}<p>${isEndless(game)?endlessRules({intro:false}):t('controller.mission.help')}</p><button class="modal-button" data-modal="close">${t('controller.backToFieldPlain')}</button>`);}
+// Mission briefing (3.168.0, user request): a near full-screen card when a new mission starts, with the controller's
+// channel above it. Resuming a run, the kill house and replays go straight to the field; the mission title still opens
+// the shorter briefing (showMission) at any time.
+function showBriefing(){
+  const def=missionDefinition(game),difficulty=difficultyOption(game.difficulty).name;
+  const rows=[['briefing.objective',sentences(def.text,MISSION_NOTES[game.mission.id])],['briefing.facility',factionDef(game.facilityFaction)?.name||''],['briefing.difficulty',game.realMode?`${difficulty} · ${t('controller.deploy.realMode')}`:difficulty]].filter(([,v])=>v);
+  modal(`<div class="briefing">${commsMarkup(t('comms.briefing'))}<section class="briefing-card" aria-labelledby="briefing-title"><div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2 id="briefing-title">${def.name}</h2><p class="briefing-sector">${floorInfo(game.floor).name}</p><dl class="briefing-rows">${rows.map(([k,v])=>`<dt>${t(k)}</dt><dd>${v}</dd>`).join('')}</dl></section></div><div class="modal-footer"><button class="modal-button" data-modal="close">${t('briefing.start')}</button></div>`);
+}
 function showMap(){modal(`<div class="eyebrow">SECTOR ${pad(game.floor)} / ${isSimulation(game)?'KILL HOUSE':floorInfo(game.floor).name}</div><h2>${t('controller.map.title')}</h2>${missionDetails()}<canvas id="overview" width="324" height="324" aria-label="${t('controller.map.aria')}"></canvas><p>${t('controller.map.legend1')}<br>${t('controller.map.legend2')}</p><button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`);renderer.drawMap($('#overview'));}
 
 function updateOrientation(raise=false){
@@ -928,19 +938,19 @@ function showSimulationResult(){
   if(!simulationResults.has(game))simulationResults.set(game,simulationResultMarkup());
   const html=simulationResults.get(game);if(!html){exitSimulation();showIntro();return;}modal(html);
 }
-function newGame(seed,character,mission,options={facilityFaction:'random'}){if(isSimulation(game))exitSimulation();const portrait=deploymentFaces[character];if(!availableCharacters(profile()).includes(character)||!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify(t('controller.pickValidCharacter'));return;}if(game.status==='playing'&&(entered||resumable)){try{abandonRun(game);}catch(error){backupError(error);return;}}entered=true;resumable=false;game=startCampaign({seed,character,portrait,mission,options});playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();}
+function newGame(seed,character,mission,options={facilityFaction:'random'}){if(isSimulation(game))exitSimulation();const portrait=deploymentFaces[character];if(!availableCharacters(profile()).includes(character)||!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify(t('controller.pickValidCharacter'));return;}if(game.status==='playing'&&(entered||resumable)){try{abandonRun(game);}catch(error){backupError(error);return;}}entered=true;resumable=false;game=startCampaign({seed,character,portrait,mission,options});playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();showBriefing();}
 function exportSave(){const blob=new Blob([game.serialize()],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`ash-protocol-${game.seed}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify(t('controller.saveExported'));}
 function downloadJSON(raw,name){const url=URL.createObjectURL(new Blob([raw],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 // Layout editor (3.102.0, user request): tap one cell then another and they swap, which reaches any arrangement
 // without a function picker. Only 格狀 is editable, because only its cells are interchangeable.
 function showDeckEditor(message=''){
-  const cells=deckLayout.map((id,index)=>`<button class="deck-slot${deckPick===index?' picked':''}${id?'':' empty'}" data-slot="${index}" aria-pressed="${deckPick===index}" aria-label="${index+1} \u865f\u4f4d\u7f6e\uff1a${id?DECK_LABELS[id]:'\u7a7a\u683c'}"><span class="deck-slot-icon" aria-hidden="true">${id?DECK_GLYPHS[id]:'\u00b7'}</span><span>${id?DECK_LABELS[id]:'\u7a7a\u683c'}</span></button>`).join('');
-  modal(`<div class="eyebrow">CONTROL DECK / LAYOUT</div><h2>\u7de8\u8f2f\u6309\u9215\u4f4d\u7f6e</h2>
-<p>\u9ede\u4e00\u683c\uff0c\u518d\u9ede\u53e6\u4e00\u683c\uff0c\u5169\u8005\u4e92\u63db\u3002\u8ddf\u7a7a\u683c\u4e92\u63db\u5c31\u662f\u628a\u6309\u9215\u642c\u904e\u53bb\u3002\u6539\u5b8c\u95dc\u9589\u5c31\u80fd\u770b\u5230\u7d50\u679c\u3002</p>
+  const cells=deckLayout.map((id,index)=>`<button class="deck-slot${deckPick===index?' picked':''}${id?'':' empty'}" data-slot="${index}" aria-pressed="${deckPick===index}" aria-label="${t('controller.deckEdit.slotAria',{n:index+1,v:id?DECK_LABELS[id]:t('controller.deckEdit.empty')})}"><span class="deck-slot-icon" aria-hidden="true">${id?DECK_GLYPHS[id]:'\u00b7'}</span><span>${id?DECK_LABELS[id]:t('controller.deckEdit.empty')}</span></button>`).join('');
+  modal(`<div class="eyebrow">CONTROL DECK / LAYOUT</div><h2>${t('controller.deckEdit.title')}</h2>
+<p>${t('controller.deckEdit.help')}</p>
 <div class="deck-editor">${cells}</div>
 ${message?`<p>${message}</p>`:''}
-<div class="modal-row"><button class="modal-button secondary" data-modal="deckMirror">\u5de6\u53f3\u93e1\u50cf</button><button class="modal-button secondary" data-modal="deckReset">\u9084\u539f\u9810\u8a2d</button></div>
-<button class="modal-button secondary" data-modal="settings">\u2190 \u8fd4\u56de\u8a2d\u5b9a</button>`);
+<div class="modal-row"><button class="modal-button secondary" data-modal="deckMirror">${t('controller.deckEdit.mirror')}</button><button class="modal-button secondary" data-modal="deckReset">${t('controller.deckEdit.reset')}</button></div>
+<button class="modal-button secondary" data-modal="settings">${t('controller.deckEdit.back')}</button>`);
 }
 function saveDeckLayout(){write('ash-deck-layout',JSON.stringify(deckLayout));applyDeck();fitLayout();}
 function pickDeckSlot(index){
@@ -1061,8 +1071,8 @@ document.addEventListener('click',e=>{
     case 'resetConfirm':try{adoptSnapshot(resetProgress(game));notify(t('controller.reset.done'));}catch(error){backupError(error);}break;
     case 'settings':settings();break;
     case 'deckEditor':deckPick=null;showDeckEditor();break;
-    case 'deckMirror':deckLayout=mirrorDeck(deckLayout);deckPick=null;saveDeckLayout();showDeckEditor('\u5df2\u5de6\u53f3\u93e1\u50cf\u3002');break;
-    case 'deckReset':deckLayout=[...DECK_GRID];deckPick=null;saveDeckLayout();showDeckEditor('\u5df2\u9084\u539f\u9810\u8a2d\u3002');break;
+    case 'deckMirror':deckLayout=mirrorDeck(deckLayout);deckPick=null;saveDeckLayout();showDeckEditor(t('controller.deckEdit.mirrored'));break;
+    case 'deckReset':deckLayout=[...DECK_GRID];deckPick=null;saveDeckLayout();showDeckEditor(t('controller.deckEdit.restored'));break;
     case 'padLayout':padLayout=DECK_LAYOUTS[(DECK_LAYOUTS.indexOf(padLayout)+1)%DECK_LAYOUTS.length];write('ash-pad-layout',padLayout);applyDeck();fitLayout();settings();break;
     case 'padCell':padCell=PAD_SIZES[(PAD_SIZES.indexOf(padCell)+1)%PAD_SIZES.length];write('ash-pad-cell',String(padCell));applyDeck();fitLayout();settings();break;
     case 'audioGrit':{const order=Object.keys(GRIT_LEVELS),next=order[(order.indexOf(audio.grit)+1)%order.length];audio.setGrit(next);write('ash-audio-grit',next);settings();break;}

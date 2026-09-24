@@ -51,6 +51,14 @@ for(const facilityFaction of ['legacy','loyalist','rebel','swarm'])for(const cha
 }
 for(const mission of Object.keys(MISSIONS)){const g=quietly(()=>new Scan(3,[],0,'soldier','onyx',mission));if(g){sample(g,`mission ${mission}`);for(const l of g.logs)note('mission log',l.text);}}
 for(const v of [endlessRules(),levelCapRules(),suppressionHelp()])note('rules',v);
+// 3.168.0: the results screen. Its loss report was written as escaped Chinese and no bot run reached it; build finished
+// games at several depths (campaign and endless) and read the report the screen shows.
+const {resultCopy}=await import('../src/result-copy.js');
+for(const [mission,status] of [['extraction','dead'],['endless','dead'],['extraction','won'],['extraction','abandoned']])for(const floor of [1,2,5,8,14]){
+ const g=quietly(()=>new Game(4,[],0,'soldier','onyx',mission));if(!g)continue;
+ g.status=status;g.floor=floor;const copy=quietly(()=>resultCopy(g));
+ if(copy)for(const v of [copy.title,copy.body])note(`result ${mission} ${status} ${floor}`,v);
+}
 const SKIP=new Set(['text-zh-tw.js','voices-zh-tw.js','story-data.js','pet-growth.js','pet-ui.js','material-review.js','materials.js','replay.js','world.js','personality.js','map-recipes-data.js','map-merging.js','killhouse-maps.js','controller.js','main.js','i18n.js']);
 for(const file of readdirSync(new URL('../src/',import.meta.url)).filter(f=>f.endsWith('.js')&&!SKIP.has(f))){
  const mod=await import(`../src/${file}`).catch(()=>null);if(!mod)continue;
