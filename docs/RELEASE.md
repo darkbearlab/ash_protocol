@@ -11,7 +11,7 @@
 1. 將 UI 驗證情境交接給使用者／其他 AI，指定 `?test=1` 隔離頁面並列出未測項目。
 2. 版本號：`npm run bump -- x.y.z`，一次改 `package.json`、`src/version.js`、`sw.js` 的快取名稱（3.44.1 起）。說明頁與設定的 BUILD 字樣讀 `src/version.js`；`tests/release.test.mjs` 會在三者不一致時失敗。
 3. 依變更風險驗證：規則、存檔、生成器或共用模組改動，在本機跑完整 `npm test`；局部 UI／素材改動跑受影響測試與 `npm run build`，完整回歸由既有 CI 執行。同一份未變動程式的通過結果可沿用，只有後續修改、失敗或未解疑點才重跑。所有遊戲發布仍須完整 CI 測試及建置通過。
-4. 更新 CHANGELOG、對應的規格文件與報告，以及驗證紙條最新一段；HANDOFF 只在架構或流程改變時更新。
+4. 更新 CHANGELOG、對應的規格文件與報告，以及驗證紙條「最近推送的檢查重點」加一列（2026-09-25 使用者：推送後沒特別說就是驗證過了，狀態寫「已推送」）；HANDOFF 只在架構或流程改變時更新。
 5. `git status` 確認沒有秘密、暫存檔或未預期檔案。
 6. commit 後推至 origin/main；若用了分支，先正常合併到 main，禁止覆蓋遠端歷史。
 7. 確認 `.github/workflows/pages.yml` 成功；線上 BUILD 與素材載入由接手驗證者確認。

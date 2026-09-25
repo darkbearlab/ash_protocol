@@ -1574,7 +1574,7 @@ export default Object.freeze({
  "purge-review-ui.attrition":"列入損耗",
  "purge-review-ui.aborted":"{unit} 任務中止",
  "purge-review-ui.extracted":"{unit} 已撤離",
- "purge-review-ui.objectiveStatus":"目標狀態",
+ "purge-review-ui.objectiveStatus":"目標",
  "purge-review-ui.achieved":"達成",
  "purge-review-ui.reason":"原因",
  "purge-review-ui.remarks":"備註",

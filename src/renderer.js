@@ -221,7 +221,7 @@ export class Renderer {
       if(g.operatorCorpse?.x===x&&g.operatorCorpse.y===y)this.operatorCorpse(a,g.operatorCorpse,time);
       for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
       for(const prop of g.props)if(!isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
-      for(const weapon of [false,true])for(const item of memo?memo.items:g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.glitchDraw(a,itemGlitchKey(item),()=>this.item(a,item,time));
+      for(const weapon of [false,true])for(const item of memo?memo.items:g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.glitchDraw(a,itemGlitchKey(item),()=>this.groundItem(a,item,time));
       for(const objective of missionObjects(g))if(!objective.done&&objective.x===x&&objective.y===y){this.box(a.x-9,a.y-8,18,16,'#123d46','#82e6ec');this.text('D',a.x,a.y+4,'#b7fcff',12);}
       // 3.134.0: toxic mist is green, spore smoke brown; plain smoke keeps its grey.
       for(const cloud of g.smoke)if(cloud.cells.some(q=>q.x===x&&q.y===y)){const tone=cloud.kind==='toxic'?['#8fbf4a55','#c6e5864a']:cloud.kind==='spore'?['#9c7d5366','#c8ad874a']:['#abc1cd66','#d4dfe84a'];this.box(left+1,top+1,t-2,t-2,tone[0]);for(let n=0;n<3;n++)this.box(left+5+n*7,top+8+(x+y+n)%3*6,11,5,tone[1]);this.text(String(Math.max(1,cloud.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#d3e2ed',8);}
@@ -491,6 +491,12 @@ export class Renderer {
     const beam=c.createLinearGradient(a.x,a.y,a.x,a.y-h);beam.addColorStop(0,`rgba(255,238,170,${.62*pulse})`);beam.addColorStop(.55,`rgba(255,232,150,${.22*pulse})`);beam.addColorStop(1,'rgba(255,232,150,0)');
     c.save();c.globalCompositeOperation='lighter';c.fillStyle=beam;c.fillRect(a.x-w*1.6,a.y-h,w*3.2,h);c.fillRect(a.x-w/2,a.y-h,w,h);c.restore();
     this.glow(a.x,a.y,16*size*pulse+4,'#ffe7a080');c.beginPath();c.arc(a.x,a.y,Math.max(1.5,3.2*size),0,Math.PI*2);c.fillStyle='#fff8dc';c.fill();
+  }
+  // 3.177.6 (user): an item you could not take any of right now is drawn at LOOT_ICON.dim, so after a firefight the
+  // floor shows what is still worth a step. It comes back to full strength as soon as there is room for it.
+  groundItem(a,item,time){
+    if(this.game.canTake?.(item)!==false){this.item(a,item,time);return;}
+    const c=this.ctx;c.save();c.globalAlpha*=LOOT_ICON.dim;this.item(a,item,time);c.restore();
   }
   item(a,item,time){const k=itemScale(this.tile);if(!k)return;const c=this.ctx;if(item.type==='key'){this.keyBeam(a,time,Math.max(.6,k));return;}
     // 3.154.0 (docs/LOOT_ICONS_HANDOFF.md): five classes of ground loot are one pixel icon each, nothing layered on top —

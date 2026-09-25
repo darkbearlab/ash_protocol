@@ -54,7 +54,7 @@ test('the ledger survives a save; older or damaged ledgers never cost the run, o
  const copy=Game.restore(g.serialize());assert.ok(copy);assert.deepEqual(copy.purge,g.purge);
  const raw=JSON.parse(g.serialize());delete raw.data.purge;
  const legacy=Game.restore(JSON.stringify(raw));assert.ok(legacy);assert.equal(legacy.purge,null);
- legacy.status='won';assert.equal(purgeReview(legacy),null);assert.deepEqual(purgeRows(legacy).map(row=>row[0]),['單位','目標狀態']);
+ legacy.status='won';assert.equal(purgeReview(legacy),null);assert.deepEqual(purgeRows(legacy).map(row=>row[0]),['單位','目標']);   // 3.177.6: 目標, leaving 狀態 to the next row
  legacy.status='playing';legacy.floor=3;legacy.loadFloor();assert.equal(legacy.purge,null,'an untracked run stays untracked');
  const partial=JSON.parse(g.serialize());delete partial.data.purge.floors['2'];
  assert.deepEqual(Game.restore(JSON.stringify(partial)).purge,{floors:{'1':g.purge.floors['1']}},'a floor without a record is simply not reviewed');

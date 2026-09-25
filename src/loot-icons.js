@@ -9,7 +9,8 @@ export const LOOT_ATLAS=new URL('../assets/pixel/loot-icons-v1/atlas.png',import
 // size: how wide the icon is drawn on a full-size tile (38px); it shrinks with itemScale like the old icons did.
 // The user tuned both in qa/loot-icon-lab.html on 2026-09-20: 21px, and the atlas itself was re-exported at
 // brightness 0.8, saturate 1.4, contrast 1.09, so nothing is filtered at runtime.
-export const LOOT_ICON=Object.freeze({cell:16,columns:8,rows:2,size:21});
+// dim (3.177.6, user): the opacity of a ground item you could not take any of right now (Game.canTake).
+export const LOOT_ICON=Object.freeze({cell:16,columns:8,rows:2,size:21,dim:.45});
 
 const AMMO_COLUMN=Object.freeze({pistol:0,ammo:1,shell:2,energy:3,ordnance:4});   // ground item type → column
 const WEAPON_COLUMN=Object.freeze({pistol:0,rifle:1,shell:2,energy:3,ordnance:4});   // weapon ammoType → column

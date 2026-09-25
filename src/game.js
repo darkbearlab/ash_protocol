@@ -1144,6 +1144,21 @@ export class Game {
     });
     if(partial||this.items.length<before)this.effects.push({type:'pickup',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});
   }
+  // 3.177.6 (user): whether stepping onto this ground item would take any of it right now, the way pickup() decides:
+  // a full weapon pack, ammo or throwable pouch, item cap or plate carrier, or a wearable already worn takes nothing.
+  // Read by the renderer only, which dims what you could not take.
+  canTake(item){
+    const p=this.player,full=(cap,have)=>cap<=(have||0);
+    if(item.type==='weapon')return p.owned.length<this.weaponCapacity;
+    const utility=grenadeByItem(item.type),ammo=itemAmmo(item.type);
+    if(utility||ammo==='grenade')return !full(this.ammoCapacity('grenade'),grenadeTotal(p));
+    if(ammo)return !full(this.ammoCapacity(ammo),p[AMMUNITION[ammo].key]);
+    if(item.type==='med'||FIELD_ITEMS.includes(item.type))return !full(this.itemCapacity(),p[PREPARED_CATALOG.item[groundItemId(item.type)].resource]);
+    if(item.type==='exo')return !p.wearables.includes('exo')&&!activeTrait(p,'large');
+    if(item.type==='irg'||item.type==='nvg')return !p.wearables.includes(item.type);
+    if(item.type==='armor')return !full(this.plateCapacity,p.plates);
+    return true;
+  }
   registerWeapon(item,roll=false) {
     if(item.slot!==undefined)return item;
     const p=this.player,slot=p.weaponBases.length;
