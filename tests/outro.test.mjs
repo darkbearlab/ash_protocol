@@ -14,6 +14,7 @@ const first=()=>0;
 test('an extraction: the approval on the field, then her line in the middle',()=>{
  const plan=outroPlan(run('won',{alive:3}),{random:first});   // 70% purged: redeployed
  assert.equal(plan.field.line,'comms.egret.extractApproved.1');
+ // 3.177.10 (user): a win keeps the same pace as a death: the same length rule for every line.
  assert.equal(plan.field.seconds,kiaSeconds(t(plan.field.line)));
  assert.equal(plan.field.tap,undefined,'the approval can be tapped away');
  assert.deepEqual(plan.channel.map(m=>m.line),['comms.egret.extracted.1']);
@@ -40,6 +41,7 @@ test('a death has its scene on the field, so only the loss report; an abandoned 
  const dead=outroPlan(run('dead'),{random:first});
  assert.equal(dead.field,null);
  assert.deepEqual(dead.channel.map(m=>m.line),['comms.egret.lossReport.1']);
+ assert.equal(dead.channel[0].seconds,kiaSeconds(t(dead.channel[0].line)),'the same rule as a win');
  assert.deepEqual(outroPlan(run('abandoned'),{random:first}),{field:null,channel:[]});
  assert.deepEqual(outroPlan(run('won',{alive:8}),{voiced:false}),{field:null,channel:[]});
 });

@@ -17,7 +17,8 @@ export const OUTRO_TUNING=Object.freeze({
  overseerSeconds:2    // how long his silence holds
 });
 
-// Every line here stays as long as the killed-in-action lines (kiaSeconds) and can be tapped away.
+// Every line here stays as long as the killed-in-action lines (kiaSeconds) and can be tapped away. A win keeps the same
+// pace as a death (3.177.10, user: the same rhythm), so only the length of the line decides.
 const timed=message=>message&&{...message,seconds:kiaSeconds(t(message.line,message.vars))};
 
 // What each part says: `field` is one message for the header bar or null; `channel` the messages for the middle of the

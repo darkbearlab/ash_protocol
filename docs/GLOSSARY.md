@@ -1,6 +1,6 @@
 # 術語表（第 4 步）
 
-遊戲裡所有名字的中英對照，從語言表產生（3.167.0）。語言表 `src/text-zh-tw.js`、`src/text-en.js` 才是依據；
+遊戲裡所有名字的中英對照，從語言表產生（3.167.0；3.177.10 重新產生並補上之後新增的名字）。語言表 `src/text-zh-tw.js`、`src/text-en.js` 才是依據；
 改名請改表，再重新產生本檔。說明文字與句子不列在這裡。
 
 ## 職業（6）
@@ -63,7 +63,7 @@
 | 滯留研究員 | Stranded Researcher | `enemyTypes.civilian.name` |
 | 毒液噴吐蟲 | Venom Spitter | `enemyTypes.spitter.name` |
 
-## 忠誠者單位名（6）
+## 忠誠者單位名（8）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -73,8 +73,10 @@
 | 破門手 | Breacher | `loyalistNames.gunner.name` |
 | 狙擊手 | Sniper | `loyalistNames.sniper.name` |
 | 軍犬 | Warhound | `loyalistNames.crawler.name` |
+| 步槍兵 | Rifleman | `loyalistNames.rifleman_armored.name` |
+| 突擊兵 | Assault | `loyalistNames.raider_armored.name` |
 
-## 叛軍單位名（7）
+## 叛軍單位名（9）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -85,6 +87,8 @@
 | 叛變破門手 | Rogue Breacher | `rebelNames.gunner.name` |
 | 叛變狙擊手 | Rogue Sniper | `rebelNames.sniper.name` |
 | 叛變軍犬 | Rogue Warhound | `rebelNames.crawler.name` |
+| 叛變突擊兵 | Rogue Assault | `rebelNames.raider_elite.name` |
+| 叛變破門手 | Rogue Breacher | `rebelNames.gunner_elite.name` |
 
 ## 敵人詞條（10）
 
@@ -137,7 +141,7 @@
 | 鉤鎖 | Grapple | `skills.grapple.name` |
 | 光學迷彩 | Optical Camouflage | `skills.camouflage.name` |
 
-## 被動特性（41）
+## 被動特性（42）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -182,6 +186,7 @@
 | 伏擊 | Ambush | `traits.ambush.name` |
 | 單挑 | Duelist | `traits.duelist.name` |
 | 標定 | Marked | `traits.exposed.name` |
+| 近身投擲 | Close throw | `traits.close_throw.name` |
 
 ## 升級（37）
 
@@ -288,10 +293,20 @@
 | 器材箱 | Equipment crate | `containerKinds.field.name` |
 | 保險箱 | Safe | `containerKinds.vault.name` |
 
-## 隔板與障礙（3）
+## 隔板與障礙（5）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
 | 隔離門 | Blast door | `barrierTypes.door.name` |
 | 矮隔板 | Low partition | `barrierTypes.low_partition.name` |
 | 隔板 | Partition | `barrierTypes.partition.name` |
+| 保險室鐵門 | Vault door | `barriers.vaultDoor` |
+| 保險室隔板 | Vault wall | `barriers.vaultWall` |
+
+## 管制員與監視官（3）
+
+| 中文 | English | 代號 |
+| --- | --- | --- |
+| 白鷺 · CONTROL | EGRET · CONTROL | `comms.speaker.egret` |
+| 鷦鷯 · CONTROL | WREN · CONTROL | `comms.speaker.wren` |
+| 監視官 · OVERSEER | OVERSEER | `comms.speaker.overseer` |

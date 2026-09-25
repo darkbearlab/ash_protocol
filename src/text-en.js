@@ -1563,7 +1563,7 @@ export default Object.freeze({
  "purge-review-ui.assetArchive":"Filed as an archived asset",
  "purge-review-ui.purgeExcellent":"Excellent purge performance",
  "purge-review-ui.trainingMaterial":"Combat record added to future training material",
- "purge-review-ui.redeployed":"Redeployed after memory correction",
+ "purge-review-ui.redeployed":"To be redeployed after memory correction",
  "purge-review-ui.purgePass":"Purge performance satisfactory",
  "purge-review-ui.executed":"Executed",
  "purge-review-ui.purgeFail":"Purge performance insufficient",
