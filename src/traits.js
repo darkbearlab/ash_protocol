@@ -38,6 +38,8 @@ export const TRAITS={
   // 3.155.0 (user decision 2026-09-20): the ninja trades the precision rifle for a submachine gun that barely misses up
  // close. Inside POINT_BLANK.range cover and the target's movement stop counting and the aim steadies.
  point_blank:{name:t('traits.point_blank.name'),text:t('traits.point_blank.text')},
+ // 3.177.9 (user): the ninja's own stun grenades and EMPs pass it by, so one at its feet clears the swarm off it.
+ close_throw:{name:t('traits.close_throw.name'),text:t('traits.close_throw.text')},
  sidestep:{name:t('traits.sidestep.name'),text:t('traits.sidestep.text')},
   quick_reload:{name:t('traits.quick_reload.name'),short:t('traits.quick_reload.short'),text:t('traits.quick_reload.text')},
   large:{name:t('traits.large.name'),opposite:'small',text:t('traits.large.text')},

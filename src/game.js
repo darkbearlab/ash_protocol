@@ -968,7 +968,8 @@ export class Game {
       const cells=areaCells(this.grid,pos,2,this.barriers,this),affected=new Set(cells.map(key)),floorCells=cells.filter(q=>this.grid[q.y]?.[q.x]===1);
       this.effects.push({type:'pulse',radius:2,color:def.color,from:{x:pos.x,y:pos.y},to:{x:pos.x,y:pos.y}});
       if(id==='smoke'){this.smoke=[...this.smoke,{cells:floorCells,expires:this.turn+SMOKE_DURATION-1}];this.log(t('game.smokeDeployed'));}
-      else for(const actor of [p,...this.enemies,...this.activeAllies])if(affected.has(key(actor))&&applyDisruption(actor,def.keyword)){
+      // 3.177.9: close throw (the ninja) is not caught by its own stun grenade or EMP.
+      else for(const actor of [p,...this.enemies,...this.activeAllies])if(affected.has(key(actor))&&!(actor===attacker&&activeTrait(actor,'close_throw'))&&applyDisruption(actor,def.keyword)){
         if(actor!==p)actor.alert=true;
         const name=actor===p?null:actor.kind?allyName(actor):enemyName(actor),n=actor.control.disabled;
         this.log(name===null?t('game.disabledYou',{n}):t('game.disabled',{name,n}),actor===p,name===null?t('game.disabledYouReal'):t('game.disabledReal',{name}));
@@ -1358,6 +1359,8 @@ export class Game {
       // Existing trait schema: retrofit the class passive without changing resources or RNG.
       if(p.character==='recon'&&!p.traits.some(t=>t.id==='extended_burst'&&t.source==='character:recon'))grantTrait(p,'extended_burst','character:recon');
       if(p.character==='recon'&&!p.traits.some(t=>t.id==='tactical_supply'&&t.source==='character:recon'))grantTrait(p,'tactical_supply','character:recon');
+      // 3.177.9 (user): the ninja sees through smoke like the recon and is not caught by its own stun grenade or EMP.
+      if(p.character==='ninja')for(const id of ['infrared','close_throw'])if(!p.traits.some(t=>t.id===id&&t.source==='character:ninja'))grantTrait(p,id,'character:ninja');
       // Balance-only passive: existing trait schema, preserve HP/resources and avoid duplicate sources.
       if(['bulwark','necromancer'].includes(p.character)&&!p.traits.some(t=>t.id==='difficult_healing'&&t.source===`character:${p.character}`))grantTrait(p,'difficult_healing',`character:${p.character}`);
       if(version<29)p.battleSpirit=freshSpirit();

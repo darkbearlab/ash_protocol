@@ -1,6 +1,6 @@
 {
   "name": "ash-protocol",
-  "version": "3.177.8",
+  "version": "3.177.9",
   "private": true,
   "type": "module",
   "scripts": {

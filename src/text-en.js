@@ -174,7 +174,7 @@ export default Object.freeze({
  "characters.berserker.label":"Berserker",
  "characters.berserker.text":"A tough melee class. The grapple pulls enemies close, or charges large ones and bosses, and lands a strike; melee heals, kill streaks stack damage reduction, and every melee weapon carried makes it stronger. Worse with guns. Innate rank 1 suppression resistance and rank 1 poison resistance.",
  "characters.ninja.label":"Ninja",
- "characters.ninja.text":"Recon's melee variant. Optical camouflage makes it hard to hit; ambush damage when the target is disabled, either side stands in smoke, the target has not noticed it, or it stands in darkness; harder to hit when only one enemy can see it. The SMG sidearm ignores cover and target movement within 3 tiles, +10 to hit. +2 throwable capacity; starts with four smoke grenades, one stun grenade, and five each of decoys, mines, escape lines and redeploy lines.",
+ "characters.ninja.text":"Recon's melee variant. Optical camouflage makes it hard to hit; ambush damage when the target is disabled, either side stands in smoke, the target has not noticed it, or it stands in darkness; harder to hit when only one enemy can see it. The SMG sidearm ignores cover and target movement within 3 tiles, +10 to hit. +2 throwable capacity; starts with four smoke grenades, one stun grenade, and five each of decoys, mines, escape lines and redeploy lines. Built-in night vision and infrared; its own stun grenades and EMPs do not affect it, so it can throw them at its feet.",
  "characters.nameLine":"{label}",
  // src/civilians.js
  "civilians.scream":"{enemy} screams; the guards nearby are alert.",
@@ -1315,7 +1315,7 @@ export default Object.freeze({
  "manual.class.engineer":"See {allies}.",
  "manual.class.bulwark":"Large and slow, with high health and armor and extra direct damage reduction; difficult to heal, healing halved. Moving into an adjacent enemy attacks it with the chosen melee weapon (the power fist by default) without putting the gun away. Anchor: anchoring and releasing take 1 turn each; while anchored you cannot move, and your own shots and melee strike twice a turn, each spending ammo.",
  "manual.class.berserker":"Bound to the berserker axe. The grapple pulls a locked enemy within {range} tiles next to you, or charges you to large ones and bosses, then strikes; the map previews where you land. Melee damage heals you, melee kills build battle spirit that cuts damage taken, and each extra melee weapon carried raises both attack and damage reduction.",
- "manual.class.ninja":"Bound to the ninjato; starts with smoke, stun, decoys, mines and both kinds of line. Optical camouflage lowers enemy accuracy against you but does not make you invisible. Melee damage ×{ambush} when the target is disabled or has not noticed you, you or the target stand in smoke, or you stand in darkness (ambush). Harder to hit while only one enemy that has noticed you can see you (duelist).",
+ "manual.class.ninja":"Bound to the ninjato; starts with smoke, stun, decoys, mines and both kinds of line. Optical camouflage lowers enemy accuracy against you but does not make you invisible. Melee damage ×{ambush} when the target is disabled or has not noticed you, you or the target stand in smoke, or you stand in darkness (ambush). Harder to hit while only one enemy that has noticed you can see you (duelist). Built-in night vision and infrared, which sees through smoke. Your own stun grenades and EMPs do not affect you, so you can throw them at your feet (close throw).",
  "manual.alliesTitle":"Allies",
  "manual.allies":"The engineer's skill opens the workshop: an empty production line builds a unit for scrap (1 turn); tap an empty tile within 2 steps to deploy a finished unit (1 turn). Deployed units cannot be recalled, but you can repair them from the workshop while standing next to them. A ranged weapon from your pack can be mounted while building; the unit reloads from your ammo and drops the weapon where it is destroyed. Destroying certain enemies gives their blueprints. Moving into any unit except a sentry turret swaps places. When you change floors, allies within {carry} tiles of walkable path come along.",
  "manual.doorsTitle":"Doors and partitions",
@@ -2052,6 +2052,8 @@ export default Object.freeze({
  "traits.label":"{name}{rank}{cancelled}",
  "traits.rank":" rank {n}",
  "traits.cancelled":" (cancelled)",
+ "traits.close_throw.name":"Close throw",
+ "traits.close_throw.text":"Your own stun grenades and EMPs do not affect you, so you can throw them at your feet.",
  // tutorial
  "tutorial.moveTitle":"Movement and cover",
  "tutorial.move":"Move with the direction buttons or tap an adjacent tile. Cover only stops fire from its own side: keep it between you and the enemy.",
