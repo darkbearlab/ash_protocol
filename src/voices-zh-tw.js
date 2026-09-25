@@ -1,5 +1,6 @@
 // Chinese enemy voice lines (moved out of src/callout-ui.js in 3.167.0; docs/TEXT_INVENTORY.md). Each cue lists its
-// variants; callout-ui picks one by hashing the event. The English table (src/voices-en.js) keeps one line per cue.
+// variants; callout-ui picks one by hashing the event. The English table (src/voices-en.js) has the same variants, line
+// for line (3.177.7). 3.177.7 (user): the loyalist advance no longer names a numbered squad (第一班 / First squad).
 const HUMAN={
  // 3.130.0 draft: in place for an ambush. Vague by the user's rule — never says what it is doing.
  lurk:['安靜……','就這裡，等著。'],
@@ -25,7 +26,7 @@ const LOYALIST={
  lurk:['都別出聲。','就位，保持安靜。'],
  grenade:['投擲破片，隱蔽！','手榴彈出手，注意！'],bombard:['請求火力覆蓋！','座標回報，轟炸開始！'],aim:['目標鎖定，待命射擊。','狙擊位就緒。'],attack:['接敵，開火！','前進接戰！'],
  affix_fast:['加速推進！','機動班跟上！'],affix_infrared:['熱源掃描啟動。','紅外線確認目標。'],affix_night_vision:['夜視裝備就位。','暗區無礙，持續搜索。'],affix_suppressor:['壓制火力，掩護推進！','持續壓制！'],affix_grenadier:['擲彈手就位。','準備投擲支援。'],
- move:['第一班，推進！','保持隊形，向前！'],cover:['尋找掩蔽！','就掩體，回報位置！'],hold:['守住陣地！','原地堅守，等待命令！'],reload:['換彈，掩護我！','裝填中！'],flank:['側翼包抄，執行！','從側面迂迴！'],
+ move:['推進，交互掩護！','保持隊形，向前！'],cover:['尋找掩蔽！','就掩體，回報位置！'],hold:['守住陣地！','原地堅守，等待命令！'],reload:['換彈，掩護我！','裝填中！'],flank:['側翼包抄，執行！','從側面迂迴！'],
  hit:['中彈，還能戰鬥！','被擊中，繼續任務！'],wounded:['傷勢加重，請求支援！','負傷，戰力下降！'],critical:['重傷！需要後送！','撐不住了，請求撤離！'],suppressed:['遭到壓制！','火力太強，無法抬頭！'],pinned:['被釘住了，無法移動！','動彈不得，請求掩護！'],
  spotted:['發現敵人，回報位置！','接觸！目標確認！'],lost:['目標脫離視線。','失去接觸，回報最後位置。'],search:['分區搜索，保持聯絡。','搜索前進，注意死角。'],
 };

@@ -103,14 +103,16 @@ test('the English table covers every sentence with the same slots and no Chinese
  assert.deepEqual(Object.keys(EN).filter(id=>!bilingual.has(id)&&cjk.test(EN[id])),[],'English sentences with Chinese in them');
 });
 
-test('English voices answer the same cues as the Chinese ones',()=>{
+// 3.177.7 (user request): and with as many variants, line for line.
+test('English voices answer the same cues as the Chinese ones, with as many variants',()=>{
  const gaps=[];
  for(const [voice,cues] of Object.entries(ZH_VOICES)){
-  for(const cue of Object.keys(cues))if(!EN_VOICES[voice]?.[cue]?.length)gaps.push(`${voice}.${cue}`);
+  for(const [cue,lines] of Object.entries(cues))if(EN_VOICES[voice]?.[cue]?.length!==lines.length)gaps.push(`${voice}.${cue}`);
   for(const cue of Object.keys(EN_VOICES[voice]||{}))if(!cues[cue])gaps.push(`extra ${voice}.${cue}`);
  }
- for(const category of Object.keys(ZH_CREATURE))if(!EN_CREATURE[category]?.length)gaps.push(`creature.${category}`);
+ for(const [category,lines] of Object.entries(ZH_CREATURE))if(EN_CREATURE[category]?.length!==lines.length)gaps.push(`creature.${category}`);
  assert.deepEqual(gaps,[]);
+ assert.ok(!Object.values(ZH_VOICES.loyalist).flat().some(line=>line.includes('第一班'))&&!Object.values(EN_VOICES.loyalist).flat().some(line=>/first squad/i.test(line)),'no numbered squad (user)');
 });
 
 
