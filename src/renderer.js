@@ -24,7 +24,7 @@ import {CLASS_ATLAS,classSpriteRect} from './class-art.js';
 import {DEFAULT_OPERATOR_COLOR,tintedSprite,tintPixels} from './operator-color.js';
 import {connected,droneCells} from './allies.js';
 import {movementBoundaries,boundaryOpacityPercent} from './movement-boundaries.js';
-import {isDark,isBlack,floorShading,seesInDark,flareLightCells,glowstickCells,LIGHT} from './lighting.js';
+import {isDark,isBlack,floorShading,seesInDark,flareLightCells,glowstickCells,LIGHT,isLamp,lampWall} from './lighting.js';
 import {ArtToneCache} from './art-tone.js';
 import {WALL_ATLAS,drawWall} from './walls.js';
 import {drawTrace} from './traces.js';
@@ -91,6 +91,12 @@ export class Renderer {
   visualActor(actor){return actorPosition(actor,actor===this.game.player?'player':actor.id,this.game.floor,this.effects,this.time,this.reduceMotion);}
   projectActor(actor){const p=this.visualActor(actor);return this.project(p.x,p.y);}
   unproject(px,py){return {x:Math.round((px-this.w/2)/this.tile+this.camera.x),y:Math.round((py-this.h/2)/this.tile+this.camera.y)};}
+  // 3.187.0: where a wall lamp is drawn, against its wall; tapping near it locks onto it, the rest of its tile still moves.
+  lampPoint(lamp){const a=this.project(lamp.x,lamp.y),[dx,dy]=lampWall(this.game.grid,lamp);return {x:a.x+dx*this.tile*.38,y:a.y+dy*this.tile*.38};}
+  hitLamp(x,y){
+    const reach=Math.max(12,this.tile*.22);
+    return (this.game.lamps||[]).filter(l=>l.hp>0&&this.game.visible(l)).map(l=>({l,d:Math.hypot(x-this.lampPoint(l).x,y-this.lampPoint(l).y)})).filter(o=>o.d<=reach).sort((a,b)=>a.d-b.d)[0]?.l;
+  }
   hitBarrier(x,y){
     return this.game.barriers.filter(b=>b.hp>0&&this.game.visible(b)).map(b=>{
       const p=this.project(b.x,b.y),normal=Math.abs(b.axis==='x'?x-p.x:y-p.y),along=Math.abs(b.axis==='x'?y-p.y:x-p.x);
@@ -253,7 +259,8 @@ export class Renderer {
       this.glow(a.x,a.y,t*(1+.4*pulse),'#e0c46a2a');this.box(a.x-t*.18,a.y-t*.18,t*.36,t*.36,'#3b3522','#e0c46a');this.text('◎',a.x,a.y+4,'#ffe7a0',11);
       this.text(`${d.hp}·${Math.max(1,d.expires-g.turn)}`,a.x,a.y+t*.42,'#ffe7a0',8);}
     // 3.178.0 (docs/LIGHTING.md): wall lamps glow warm against their wall; a glowstick is a small green bar.
-    for(const lamp of g.lamps||[])if(g.seen?.[lamp.y]?.[lamp.x]){const a=this.project(lamp.x,lamp.y),t=this.tile,w=[[0,-1],[-1,0],[1,0],[0,1]].find(([dx,dy])=>g.grid[lamp.y+dy]?.[lamp.x+dx]!==1)||[0,-1],lx=a.x+w[0]*t*.38,ly=a.y+w[1]*t*.38;this.glow(lx,ly,t*.9,'#ffdca030');this.box(lx-3,ly-3,6,6,'#fff0c8','#8a6a3a');}
+    // 3.187.0: a lamp that has been shot out is a dark fitting.
+    for(const lamp of g.lamps||[])if(g.seen?.[lamp.y]?.[lamp.x]){const {x:lx,y:ly}=this.lampPoint(lamp);if(lamp.hp>0){this.glow(lx,ly,this.tile*.9,'#ffdca030');this.box(lx-3,ly-3,6,6,'#fff0c8','#8a6a3a');}else this.box(lx-3,ly-3,6,6,'#2a2620','#5a4a32');}
     for(const stick of g.glowsticks||[])if(g.seen?.[stick.y]?.[stick.x]){const a=this.project(stick.x,stick.y),t=this.tile;this.glow(a.x,a.y,t*.8,'#9dff8a2a');this.line(a.x-4,a.y+3,a.x+4,a.y-3,'#c8ffb8',3);}
     for(const flare of g.flares||[])if(g.seen?.[flare.y]?.[flare.x]){const a=this.project(flare.x,flare.y),t=this.tile;this.glow(a.x,a.y,t*1.6,'#ffd27a30');this.box(a.x-2,a.y-2,4,4,'#fff1c4');this.text(String(Math.max(1,flare.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#ffe3a8',8);}
     if(this.mode==='launch'&&this.aim)this.markArea(this.aim,1,'#e6a95b33','#eacb84aa','');
@@ -295,7 +302,7 @@ export class Renderer {
     if(this.mode==='drone'&&this.aim){for(const q of droneCells(g)){const a=this.project(q.x,q.y);this.box(a.x-t*.4,a.y-t*.4,t*.8,t*.8,'#7fd8b50f','#7fd8b566');}const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b53a','#9cedca');this.text(tx('renderer.deploy'),a.x,a.y+4,'#a9f3d5',10);}
     // Grapple preview (3.47.1): the tile the berserker or the pulled enemy lands on before the strike.
     const hook=this.targetingEnabled?this.grapplePreview:null;if(hook){const a=this.project(hook.from.x,hook.from.y),b=this.project(hook.point.x,hook.point.y);c.setLineDash([4,4]);this.line(a.x,a.y,b.x,b.y,'#e6c07a99',1.5);c.setLineDash([]);this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,'#e6c07a24','#f0cf8a');this.text(hook.dash?tx('renderer.charge'):tx('renderer.pull'),b.x,b.y+4,'#ffe0a3',10);}
-    const target=this.targetingEnabled?g.targeted:null;if(target){const a=this.projectActor(target),r=t*.43;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(a.x+dx*r,a.y+dy*r,a.x+dx*(r-7),a.y+dy*r,'#f1b07c',1.5);this.line(a.x+dx*r,a.y+dy*r,a.x+dx*r,a.y+dy*(r-7),'#f1b07c',1.5);}}
+    const target=this.targetingEnabled?g.targeted:null;if(target){const lamp=isLamp(target),a=lamp?this.lampPoint(target):this.projectActor(target),r=lamp?Math.max(9,t*.2):t*.43;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(a.x+dx*r,a.y+dy*r,a.x+dx*(r-7),a.y+dy*r,'#f1b07c',1.5);this.line(a.x+dx*r,a.y+dy*r,a.x+dx*r,a.y+dy*(r-7),'#f1b07c',1.5);}}
     for(const fx of this.effects) {
       if(fx.type==='move'||fx.type==='callout'||fx.type==='cameraHold'||fx.type==='pickup')continue;
       const elapsed=time-fx.time-(fx.delay||0),age=elapsed/650;if(age<0||age>1)continue;

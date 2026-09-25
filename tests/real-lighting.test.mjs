@@ -40,11 +40,11 @@ test('the numbers the user set',()=>{
   assert.deepEqual([FLARE_TUNING.range,FLARE_TUNING.radius],[7,3],'a flare is thrown farther, its lit radius unchanged');
   assert.equal(terminalCost('glowstick'),5);assert.equal(BASE_SUPPLIES.glowsticks,2);assert.ok(CAPPED_ITEMS.includes('glowstick'));
   assert.equal(PREPARED_CATALOG.item.glowstick.resource,'glowsticks');assert.equal(PREPARED_CATALOG.item.glowstick.aim,'throw');
-  assert.equal(SAVE_VERSION,75);
+  assert.equal(SAVE_VERSION,76);
 });
 
 test('each source is lit in its core and one level darker per tile past it; the brightest wins, nothing stacks',()=>{
-  const g=arena({lamps:[{id:'lamp-1-0',x:10,y:4}]});
+  const g=arena({lamps:[{id:'lamp-1-0',x:10,y:4,hp:1}]});
   assert.deepEqual([at(g,10,4),at(g,10,6),at(g,10,7),at(g,10,8)],[2,2,1,0],'a lamp: lit within 2, dim at 3');
   assert.deepEqual([at(g,12,4),at(g,11,5),at(g,13,4)],[2,2,1],'distance is counted in steps, like a throw');
   g.glowsticks=[{x:20,y:20},{x:21,y:20}];
@@ -53,7 +53,7 @@ test('each source is lit in its core and one level darker per tile past it; the 
   g.flares=[{x:16,y:16,expires:g.turn+5}];
   assert.deepEqual([at(g,19,16),at(g,20,16),at(g,21,16),at(g,22,16)],[2,1,1,0],'a flare: lit within 3, dim for 2 more');
   // Walls stop light; the lamp beyond this one lights nothing past it.
-  const walled=arena({lamps:[{id:'lamp-1-0',x:10,y:4}],walls:[{x:11,y:4}]});
+  const walled=arena({lamps:[{id:'lamp-1-0',x:10,y:4,hp:1}],walls:[{x:11,y:4}]});
   assert.equal(at(walled,12,4),0,'behind a wall stays black');assert.equal(at(walled,10,5),2);
 });
 

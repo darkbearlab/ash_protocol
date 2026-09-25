@@ -6,7 +6,7 @@ import {factionTag,ELITE_VISUAL,NONCOMBATANT_LABEL,TONGUE_VISUAL} from './enemy-
 import {isNoncombatant} from './enemy-data.js';
 import {suppressionTag} from './suppression-ui.js';
 import {nestStyle,NEST_STYLES} from './runtime-enemies.js';
-import {lightingEffects,enemyFlashlightOn} from './lighting.js';
+import {lightingEffects,enemyFlashlightOn,isLamp} from './lighting.js';
 import {missionTarget} from './missions.js';
 import {isContainer,containerName} from './containers.js';
 import {FURNITURE} from './modules.js';
@@ -58,7 +58,7 @@ export function targetDetails(game){
   // 3.142.0: a gun that spends more than one round a shot says so while the magazine cannot pay for it.
   const short=!melee&&(game.weapon.shotCost||1)>1&&game.player.ammo[game.player.weapon]<game.weapon.shotCost;
   const pellets=pelletLine(game,target),range=distance(game.player,target),withinDistance=range<=game.weapon.range,withinRange=withinDistance&&game.shotClear(game.player,target)&&(!melee||isBarrier(target)||game.canCross(game.player,target));
-  const details={name:(enemy?(missionTarget(game,target)?'◇ ':'')+cardEnemyName(target):null)||(isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target,game.facilityFaction)].name:isContainer(target)?containerName(target):target.type==='barrel'?t('target-card.barrel'):FURNITURE[target.style]?.name||t('target-card.breakableCover')),fullName:enemy?enemyDisplayName(target):'',hp:`${isBarrier(target)?t('target-card.durability'):'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}${enemy?.armor>0?`${t('target-card.armor',{armor:enemy.armor})}`:''}`,
+  const details={name:(enemy?(missionTarget(game,target)?'◇ ':'')+cardEnemyName(target):null)||(isLamp(target)?t('target-card.lamp'):isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target,game.facilityFaction)].name:isContainer(target)?containerName(target):target.type==='barrel'?t('target-card.barrel'):FURNITURE[target.style]?.name||t('target-card.breakableCover')),fullName:enemy?enemyDisplayName(target):'',hp:`${isBarrier(target)||isLamp(target)?t('target-card.durability'):'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}${enemy?.armor>0?`${t('target-card.armor',{armor:enemy.armor})}`:''}`,
     chance:withinRange?(short?t('target-card.magShort',{n:game.weapon.shotCost}):game.weapon.pointTarget?t('target-card.launcherSure'):pellets||t('target-card.hit',{chance:aim.chance})):melee?t('target-card.noMelee'):t('target-card.noShot'),distance:t('target-card.distance',{range,weaponRange:game.weapon.range,band:aim.band?t('target-card.band',{band:bandLabel(aim.band)}):'',burst:game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?t('target-card.single'):t('target-card.double')):''}),
     traits:enemy?[factionTag(target),target.elite?ELITE_VISUAL.label:'',isNoncombatant(target)?NONCOMBATANT_LABEL:'',...traitLabels(target)].filter(Boolean).join(' · '):'',
     order:enemy&&(initiative(displayTarget)!==0||initiative(game.player)!==0)?(initiative(displayTarget)<initiative(game.player)?t('target-card.actsBefore'):initiative(displayTarget)>initiative(game.player)?t('target-card.actsAfter'):t('target-card.actsSame')):'',

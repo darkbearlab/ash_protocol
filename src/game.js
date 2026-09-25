@@ -61,7 +61,7 @@ import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorks
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,skillValues,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
-import {fullLighting,validLighting,lightingEffects,hiddenInDark,validLamps,validGlowsticks,LIGHT_MODEL,recordGunFlashes,validGunFlashes} from './lighting.js';
+import {fullLighting,validLighting,lightingEffects,hiddenInDark,validLamps,validGlowsticks,LIGHT_MODEL,recordGunFlashes,validGunFlashes,isLamp,breakLamp,LIGHT_TUNING} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
 import {addTrace,spentCase,validTraces} from './traces.js';
 import {missionDefinition,missionDepth,returning,exitPoint,exitLabel,exitKind,deepestFloor,newMission,prepareMission,validMission,missionObjects,missionTarget,missionSummary,exitBlocked} from './missions.js';
@@ -186,10 +186,10 @@ export class Game {
   get allyTravelSummary(){const near=carryCandidates(this).length,total=this.activeAllies.length;return total?t('game.allyCarry',{near,left:total-near}):'';}
   get weapon(){return this.weaponAt(this.player.weapon);}
   weaponAt(slot){if(slot===UNARMED_SLOT)return {...UNARMED};return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot],this.player);}
-  fireChance(target){if(this.weapon.melee)return this.meleeAccuracy(this.player,target,this.weapon.hitChance);return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.weapon.closeRange&&distance(this.player,target)<=this.weapon.closeRange?this.weapon.closeAccuracy:0)+actorStat(this.player,'rangedAccuracy')+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)-lightingEffects(this,this.player,target).penalty));}
+  fireChance(target){if(this.weapon.melee)return this.meleeAccuracy(this.player,target,this.weapon.hitChance);return this.enemies.includes(target)?this.accuracy(this.player,target).chance:Math.max(10,Math.min(99,97+(this.weapon.closeRange&&distance(this.player,target)<=this.weapon.closeRange?this.weapon.closeAccuracy:0)+actorStat(this.player,'rangedAccuracy')+(this.player.focus?15:0)+this.weapon.accuracyBonus+bracingBonus(this,this.player,target)-lightingEffects(this,this.player,target).penalty-(isLamp(target)?LIGHT_TUNING.lampHitPenalty:0)));}
   get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.teamVisible(e));}
   // A blind shot (src/blind-fire.js) aims at what stands on its tile, seen or not, only while it resolves.
-  get targeted(){const blind=blindAim(this);if(blind)return blind.target||undefined;return [...this.enemies,...this.props,...this.barriers].find(e=>e.id===this.target&&e.hp>0&&this.teamVisible(e));}
+  get targeted(){const blind=blindAim(this);if(blind)return blind.target||undefined;return [...this.enemies,...this.props,...this.barriers,...(this.lamps||[])].find(e=>e.id===this.target&&e.hp>0&&this.teamVisible(e));}   // lamps: 3.187.0
   get perkChoices(){return ensurePerks(this);}
   get exitPoint(){return exitPoint(this);}
   get exitLabel(){return exitLabel(this);}
@@ -864,6 +864,7 @@ export class Game {
     const blade=attacker===this.player&&!weapon.unarmed;
     if(blade)raw=Math.round(raw*bladeMultiplier(attacker));
     if(attacker===this.player&&weapon.melee&&wearingExo(attacker))raw=Math.round(raw*EXO_TUNING.melee);   // 3.144.0 外骨骼
+    if(isLamp(target)){breakLamp(this,target);return;}   // 3.187.0: any hit puts a wall lamp out
     if(this.props.includes(target)||isBarrier(target)){if(weapon.ammoType==='energy')addTrace(this,target,'scorch');this.damageProp(target,raw,attacker);return;}
     const cover=weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
     let parts=pellets?pellets.map(d=>blade?Math.round(d*bladeMultiplier(attacker)):d):[raw];const scale=f=>{parts=parts.map(d=>d*f);};
@@ -1013,6 +1014,7 @@ export class Game {
     for(const b of hitEdges)this.damageProp(b,damage,attacker);
     // Mark barrels as destroyed before recursion, so chain reactions terminate.
     for(const prop of hitProps)this.damageProp(prop,damage,attacker);
+    for(const lamp of this.lamps||[])if(lamp.hp>0&&affected(lamp))breakLamp(this,lamp);   // 3.187.0
     for(const e of hitEnemies)this.hurt(e,reduceDirectDamage(e,Math.max(1,damage-distance(origin,e)*10)),attacker);
     for(const a of hitAllies)this.damageAlly(a,Math.max(1,damage-distance(origin,a)*10),null,true);
     if(hitPlayer)this.damagePlayer(Math.max(1,damage-distance(origin,this.player)*10),t('game.blastSource'),null,true);
@@ -1474,6 +1476,8 @@ export class Game {
         g.player.reserve*=3;g.player.pistol*=2;
         for(const f of [g,...Object.values(g.floorStates||{})]){for(const i of f.items||[])scale(i);for(const o of f.props||[])for(const i of o.contents||[])scale(i);}
       }
+      // 3.187.0: wall lamps can be shot out; every lamp in an older save is still lit.
+      if(version<76)for(const f of [g,...Object.values(g.floorStates||{})])for(const lamp of f.lamps||[])lamp.hp??=1;
       g.glowsticks??=[];g.gunFlashes??=[];
       if(!Number.isSafeInteger(g.player.glowsticks)||g.player.glowsticks<0||g.player.glowsticks>10000000||typeof g.player.flashlight!=='boolean'||typeof g.player.lightLingers!=='boolean'||!validGlowsticks(g.glowsticks,g.grid)||!validGunFlashes(g.gunFlashes,g.grid)||!(g.lightModel===undefined?g.lamps===undefined:g.lightModel===LIGHT_MODEL&&validLamps(g.lamps,g.grid)))return null;
       if(version<66){g.player.decoys??=0;g.player.mines??=0;g.player.exoPlates??=0;g.decoy??=null;g.mines??=[];g.mineSerial??=0;}

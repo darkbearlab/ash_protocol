@@ -1285,6 +1285,9 @@ $('#battle').addEventListener('pointerup',e=>{
   const ally=game.localAllies.find(a=>distance(a,pos)===0);if(ally){notify(`${t('controller.allyInfo',{v:allyName(ally),v2:ally.status==='reforming'?t('controller.ally.reforming'):ally.status==='arriving'?t('controller.ally.arriving'):ally.status==='destroyed'?t('controller.ally.destroyed'):`HP ${ally.hp}/${ally.maxHp}${repairTargets(game).includes(ally)?t('controller.ally.repairable'):''}${ally.kind==='drone'?(ally.payload?` ${t('controller.ally.payload',{payloadName:GRENADES[ally.payload].name})}`:['unit_bomber','unit_warden','unit_boss'].includes(ally.sourceId)?(ally.primed?(ally.sourceId==='unit_bomber'?t('controller.ally.bomberPrimed'):t('controller.ally.wardenPrimed')):ally.bombard?t('controller.ally.bombardNextAttack'):''):` ${t('controller.ally.ammoLine',{v:Number.isInteger(ally.weapon)?game.weaponAt(ally.weapon).name+' · ':'',ammo:ally.ammo,v2:allyWeapon(ally,game.player).mag})}`):''}`})}`);return;}
   const edge=renderer.hitBarrier(e.clientX-r.left,e.clientY-r.top);
   if(edge){game.target=edge.id;if(!renderer.targetingEnabled)toggleTargeting();else update();return;}
+  // 3.187.0: a wall lamp is picked where it is drawn, against its wall, so the middle of its tile still moves you there.
+  const lamp=renderer.hitLamp(e.clientX-r.left,e.clientY-r.top);
+  if(lamp){game.target=lamp.id;if(!renderer.targetingEnabled)toggleTargeting();else update();return;}
   const target=[...game.visibleEnemies,...game.props.filter(p=>p.hp>0&&game.visible(p))].find(o=>distance(o,pos)===0);
   if(target){game.target=target.id;if(game.enemies.includes(target)&&!renderer.targetingEnabled)toggleTargeting();else update();return;}
   const supply=game.props.find(o=>isContainer(o)&&!o.opened&&distance(o,pos)===0&&game.visible(o));

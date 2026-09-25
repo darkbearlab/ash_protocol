@@ -6,6 +6,7 @@ import {barrierBetween,edgeBlocks} from './barriers.js';
 import {enemyDef,hasEnemyTag} from './enemy-data.js';
 import {ENEMY_TYPES,VOID} from './data.js';
 import {FLARE_TUNING,flareLights} from './flares.js';
+import {t} from './i18n.js';
 
 export const DARK_PENALTY=40;
 export const fullLighting=grid=>grid.map(row=>row.map(()=>1));
@@ -41,9 +42,10 @@ export const LIGHT_TUNING=Object.freeze({
  flareFade:2,                  // beyond a flare's lit radius, 2 more tiles are dim
  glowstickRadius:3,glowstickRange:5,maxGlowsticks:400,
  flashlightCore:3,flashlightFade:1,flashlightHalfAngle:45,  // an enemy's flashlight: a cone toward where it last saw you
- lanternCore:2,lanternFade:1   // the player's (3.182.0, user): all around, lit within 2, dim at 3
+ lanternCore:2,lanternFade:1,  // the player's (3.182.0, user): all around, lit within 2, dim at 3
+ lampHitPenalty:25             // 3.187.0: a wall lamp is a small target (Claude's number)
 });
-const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
+const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],DIRS_DRAWN=[[0,-1],[-1,0],[1,0],[0,1]];
 const fnv=text=>{let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 export const newLighting=game=>game?.lightModel===LIGHT_MODEL;
 
@@ -63,11 +65,21 @@ export function placeLamps(map,seed,floor){
    for(const p of pool){if(picked.some(q=>key(q)===key(p)))continue;const d=Math.min(...picked.map(q=>distance(p,q)));if(d>bestD||d===bestD&&rank(p)<rank(best)){best=p;bestD=d;}}
    if(!best)break;picked.push(best);
   }
-  for(const p of picked)if(lamps.length<LIGHT_TUNING.maxLamps)lamps.push({id:`lamp-${floor}-${lamps.length}`,x:p.x,y:p.y});
+  for(const p of picked)if(lamps.length<LIGHT_TUNING.maxLamps)lamps.push({id:`lamp-${floor}-${lamps.length}`,x:p.x,y:p.y,hp:1});
  });
  map.lamps=lamps;map.lightModel=LIGHT_MODEL;return map;
 }
-export const validLamps=(lamps,grid)=>Array.isArray(lamps)&&lamps.length<=LIGHT_TUNING.maxLamps&&new Set(lamps.map(l=>l?.id)).size===lamps.length&&lamps.every(l=>l&&typeof l.id==='string'&&/^lamp-\d+-\d+$/.test(l.id)&&Object.keys(l).length===3&&grid[l.y]?.[l.x]===1);
+export const validLamps=(lamps,grid)=>Array.isArray(lamps)&&lamps.length<=LIGHT_TUNING.maxLamps&&new Set(lamps.map(l=>l?.id)).size===lamps.length&&lamps.every(l=>l&&typeof l.id==='string'&&/^lamp-\d+-\d+$/.test(l.id)&&Object.keys(l).length===4&&(l.hp===0||l.hp===1)&&grid[l.y]?.[l.x]===1);
+// Shootable lamps (3.187.0, user; decision C6): a lamp hangs on the wall beside its floor tile, can be aimed at and shot
+// out (or caught in a blast), and once broken gives no light, so that patch goes dark. `hp` is 1 lit, 0 broken.
+export const isLamp=o=>typeof o?.id==='string'&&o.id.startsWith('lamp-');
+// The wall it hangs on: the first side of its tile that is not floor (drawing, tapping and the lock marker agree on it).
+export const lampWall=(grid,lamp)=>DIRS_DRAWN.find(([dx,dy])=>grid[lamp.y+dy]?.[lamp.x+dx]!==1)||[0,-1];
+export function breakLamp(game,lamp){
+ if(!(lamp?.hp>0))return false;
+ lamp.hp=0;game.effects.push({type:'impact',from:{x:lamp.x,y:lamp.y},to:{x:lamp.x,y:lamp.y},damage:1,mechanical:true,lamp:true});
+ game.log(t('lighting.lampBroken'));game.reveal();return true;
+}
 export const validGlowsticks=(sticks,grid)=>Array.isArray(sticks)&&sticks.length<=LIGHT_TUNING.maxGlowsticks&&sticks.every(s=>s&&Object.keys(s).length===2&&Number.isInteger(s.x)&&Number.isInteger(s.y)&&grid[s.y]?.[s.x]===1);
 
 // The player's flashlight (3.182.0, user): no direction to manage, it lights all around. Switched off, it keeps burning
@@ -124,7 +136,7 @@ function lightKey(game){
  const stick=(game.glowsticks||[]).at(-1);   // the list is capped, so its length alone can stay the same
  const lantern=playerLightOn(p)?'on':'';
  let lights='';for(const e of game.enemies||[])if(enemyFlashlightOn(game,e))lights+=`${e.id}@${e.x},${e.y}>${enemyFlashlightDirection(e)?.join()};`;
- return `${game.lightModel}|${game.turn}|${game.floor}|${p.x},${p.y}|${lantern}|${b}|${c}|${f}|${(game.flares||[]).length}|${(game.glowsticks||[]).length},${stick?.x},${stick?.y}|${(game.lamps||[]).length}|${m}|${flashes.length}|${lights}`;
+ return `${game.lightModel}|${game.turn}|${game.floor}|${p.x},${p.y}|${lantern}|${b}|${c}|${f}|${(game.flares||[]).length}|${(game.glowsticks||[]).length},${stick?.x},${stick?.y}|${(game.lamps||[]).filter(l=>l.hp>0).length}|${m}|${flashes.length}|${lights}`;
 }
 const CACHE=new WeakMap();
 // How far the light sources reach and how bright, recomputed only when something that casts or blocks light changes.
@@ -164,7 +176,7 @@ function computeSources(game){
  const raise=(x,y,v)=>{if(L[y]?.[x]!==undefined&&L[y][x]<v)L[y][x]=v;};
  const shine=(src,core,reach,accept,cap)=>{for(const c of sourceCells(game,src,{core,reach,accept,cap,floor:L}))raise(c.x,c.y,c.level);};
  for(const fl of game.flares||[])for(const c of flareLightCells(game,fl,false))raise(c.x,c.y,c.level);
- for(const lamp of game.lamps||[])shine(lamp,LIGHT_TUNING.lampCore,LIGHT_TUNING.lampCore+LIGHT_TUNING.lampFade);
+ for(const lamp of game.lamps||[])if(lamp.hp>0)shine(lamp,LIGHT_TUNING.lampCore,LIGHT_TUNING.lampCore+LIGHT_TUNING.lampFade);
  for(const stick of game.glowsticks||[])shine(stick,LIGHT_TUNING.glowstickRadius,LIGHT_TUNING.glowstickRadius,undefined,LIGHT.dim);   // dim within its radius, never lit
  const p=game.player;
  // An enemy's flashlight: a cone either side of its direction, lit 3 and dim at 4; its holder shows (B7).
