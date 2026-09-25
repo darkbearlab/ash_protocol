@@ -8,6 +8,8 @@
 
 3.25：天生命中／迴避從條件被動分離，由 characters.combat 與 actor.combatModifiers 相加；射擊／近戰各兩欄，不變成複合 trait。Soldier 射擊命中 +8、Recon 射擊迴避 +10，所以原側身例子 55%／42% 對 Recon 變成 45%／32%。近戰基礎 99／97 現會再加自己的近戰命中並扣目標近戰迴避。詳見 [CHARACTERS.md](CHARACTERS.md)。
 
+3.178.0 補充（docs/LIGHTING.md）：night_vision 也看得穿全黑；infrared 在全黑裡看得到活物（看不到機械）。3.181.0 起機械（`mechanical`）不必有 infrared，在全黑裡也看得到活物，但不因此看穿煙霧；蟲族在新光照樓層天生看得到全黑。
+
 3.24 補充：night_vision 免暗區命中 −40；infrared 穿煙不穿牆門，兩者獨立且可並存。生物或擁有任一感知被動皆受震撼彈影響，EMP 仍查機械，多條符合不重複失能。Recon 兩條全有，新狙擊手夜視、新封鎖官紅外線。被動來源容量 68、單局 v18；舊 Recon 新增兩條，不刪舊來源。詳見 [LIGHTING.md](LIGHTING.md)。
 
 3.15.0 補充：新增 biological／mechanical，可並存且不互相抵銷，不附帶體型、裝甲或掩體效果。三位玩家均為生物，機械敵人為 drone／warden／boss；其餘敵人為生物。EMP／震撼與玩家電漿增傷依這些標籤判定，詳見 [THROWABLES.md](THROWABLES.md)。失能／恢復免疫用獨立 control 記錄自身行動機會，不用 traits.turns；被動來源容量放寬為 66 以保留舊滿額來源。下方自然生成與保存版本描述為初版歷史。

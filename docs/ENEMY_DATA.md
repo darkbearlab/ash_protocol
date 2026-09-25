@@ -151,6 +151,7 @@
 | `rounds` | 每次射擊的發數 | `ENEMY_WEAPONS` |
 | `attackStyle` | 近戰或射擊命中玩家時的特效：`claw`、`slash`、`plasma`、`bullet` | game.js:595 |
 | `reinforcement` | 行為樹呼叫增援時產生的兵種，例如封鎖官的 `drone` | enemy-behavior.js:38 |
+| `flashlight` | 3.181.0：`'some'` 的人類約三分之一帶手電筒（種子、樓層與編號的雜湊），`'always'` 一定帶（小隊長、督戰官）；感染者與替蟲族作戰的不帶。見 docs/LIGHTING.md | 取代 `e.type==='brute'` 這類名稱判斷 |
 | `loot` | 掉落表，從 `ENEMY_LOOT` 搬進兵種定義 | data.js:11。`ENEMY_LOOT` 可以保留成由定義推導的唯讀檢視，維持相容 |
 
 `startingTraits(type,floor)` 的輸出必須與現在**逐項相同，包含順序**：先放 `traits`，再放符合樓層的 `floorTraits`，最後放生物或機械。被動來源仍是 `enemy:${type}`。
