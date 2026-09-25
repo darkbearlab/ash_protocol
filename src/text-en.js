@@ -1357,7 +1357,7 @@ export default Object.freeze({
  "manual.endlessTitle":"Endless and levels",
  "manual.unlockTitle":"Unlocks",
  "manual.lightTitle":"Light and senses",
- "manual.light":"Light has three levels: lit, dim and black. Powered areas are lit; unpowered rooms get their light from wall lamps, flares, glowsticks, your flashlight and muzzle flashes, darker the farther from the source. Shots at a target in the dim get −40 to hit, stacking with movement and cover, with no extra damage reduction. Anyone standing in the black cannot be seen, even next to you: light them up, blind-fire at the tile, or walk into it (a melee strike at −40 to hit; an enemy groping into you does the same). A lit flashlight or a shot shows you too. Enemies marked by the soldier's Early Warning stand one level brighter to the soldier. Night vision sees into the black and ignores the penalty; infrared sees the living in the black (not machines) and through smoke, but not walls, and has no night vision of its own; the swarm sees in the dark. Recon starts with both; snipers have night vision and wardens infrared. Living targets, or anything with either sense, can be disabled by stun grenades, machines included; several matches still count once.",
+ "manual.light":"Light has three levels: lit, dim and black. Powered areas are lit; unpowered rooms get their light from wall lamps, flares, glowsticks, your flashlight and muzzle flashes, darker the farther from the source. Shots at a target in the dim get −40 to hit, stacking with movement and cover, with no extra damage reduction. Anyone standing in the black cannot be seen, even next to you: light them up, blind-fire at the tile, or walk into it (a melee strike at −40 to hit; an enemy groping into you does the same). A lit flashlight or a shot shows you too. Enemies marked by the soldier's Early Warning stand one level brighter to the soldier. Some human enemies switch on a flashlight once alerted and point it where they last saw you (squad leaders and enforcers always carry one): caught in it, you are seen, and the holder shows too. Night vision sees into the black and ignores the penalty; infrared and machines see the living in the black (not machines); infrared also sees through smoke, but not walls, and has no night vision of its own; the swarm sees in the dark. Recon starts with both; snipers have night vision and wardens infrared. Living targets, or anything with either sense, can be disabled by stun grenades, machines included; several matches still count once.",
  "manual.hitTitle":"Hit chance",
  "manual.hit":"Exposed and still: 97%; moving −22%. Full crate cover −35, wall or partition −42; half cover −18 / −21. Full cover reduces damage 45%, half 22.5%; the same for everyone. The translucent card in the corner shows name, HP, hit chance, distance and cover; it does not block taps.",
  "manual.suppressTitle":"Suppression and training data",
@@ -1936,6 +1936,7 @@ export default Object.freeze({
  "target-card.moving":"Moving",
  "target-card.aboutToAttack":"About to attack",
  "target-card.reached":"{v} {reachedLength} {reachedLength|target|targets}",
+ "target-card.flashlight":"Flashlight on",
  // src/terminal.js
  "terminal.deal":"Bought {got} for {paid}. Credit left: {left}.",
  "terminal.dealSpent":"Bought {got} for {paid}. Credit left: {left} (used up).",

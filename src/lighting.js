@@ -3,7 +3,7 @@ import {activeTrait} from './traits.js';
 import {distance,lineOfSight} from './world.js';
 import {objectSightGrid} from './scenery.js';
 import {barrierBetween,edgeBlocks} from './barriers.js';
-import {enemyDef} from './enemy-data.js';
+import {enemyDef,hasEnemyTag} from './enemy-data.js';
 import {ENEMY_TYPES,VOID} from './data.js';
 import {FLARE_TUNING,flareLights} from './flares.js';
 
@@ -75,6 +75,23 @@ export function flashlightDirection(game){
  if(e&&(e.x!==p.x||e.y!==p.y))return [e.x-p.x,e.y-p.y];
  return Array.isArray(p.facing)&&(p.facing[0]||p.facing[1])?p.facing:[0,1];
 }
+// ---- enemy flashlights (3.181.0; decision C7 and the user: humans switch one on once alert and point it where they last
+// saw you; not everyone carries one, squad leaders and enforcers always do; machines use infrared, the swarm needs none) --
+// Which cards carry one is enemy data (`flashlight: 'some' | 'always'`, src/data.js); the infected and anyone fighting
+// for the swarm never do. Among the 'some', who carries one is read from a hash of the run, the floor and the enemy, so
+// it is never stored and never rolled twice.
+export const ENEMY_FLASHLIGHT=Object.freeze({share:1/3});
+export function carriesFlashlight(game,e){
+ const kind=enemyDef(e)?.flashlight;
+ if(!kind||!e||e.kind||e.faction==='swarm'||hasEnemyTag(e,'infected'))return false;
+ return kind==='always'||fnv(`${game.seed}:${game.floor}:flashlight:${e.id}`)/4294967296<ENEMY_FLASHLIGHT.share;
+}
+export const enemyFlashlightOn=(game,e)=>newLighting(game)&&e.hp>0&&Boolean(e.alert)&&(game.enemies||[]).includes(e)&&carriesFlashlight(game,e);
+// Toward where it last saw you; failing that, the way it last moved; failing that, only the holder shows.
+export function enemyFlashlightDirection(e){
+ const k=e.lastKnown;if(k&&(k.x!==e.x||k.y!==e.y))return [k.x-e.x,k.y-e.y];
+ const m=e.moveDelta;return Array.isArray(m)&&(m[0]||m[1])?m:null;
+}
 // Muzzle flashes (B8): a gun fired lights the tile it was fired from to dim, for the rest of that round and all of the
 // next, so the other side can answer it: this action's shot effects, plus the last round's kept in `gunFlashes`
 // (recordGunFlashes). Melee, claws, spit, thrown grenades and a gun with the flash hider (3.179.0) make none.
@@ -108,7 +125,8 @@ function lightKey(game){
  const flashes=muzzleFlashes(game);for(const x of flashes)m=(Math.imul(m,31)+x.x*97+x.y)|0;
  const stick=(game.glowsticks||[]).at(-1);   // the list is capped, so its length alone can stay the same
  const dir=p.flashlight?flashlightDirection(game).join():'';
- return `${game.lightModel}|${game.turn}|${game.floor}|${p.x},${p.y}|${dir}|${b}|${c}|${f}|${(game.flares||[]).length}|${(game.glowsticks||[]).length},${stick?.x},${stick?.y}|${(game.lamps||[]).length}|${m}|${flashes.length}`;
+ let lights='';for(const e of game.enemies||[])if(enemyFlashlightOn(game,e))lights+=`${e.id}@${e.x},${e.y}>${enemyFlashlightDirection(e)?.join()};`;
+ return `${game.lightModel}|${game.turn}|${game.floor}|${p.x},${p.y}|${dir}|${b}|${c}|${f}|${(game.flares||[]).length}|${(game.glowsticks||[]).length},${stick?.x},${stick?.y}|${(game.lamps||[]).length}|${m}|${flashes.length}|${lights}`;
 }
 const CACHE=new WeakMap();
 // How far the light sources reach and how bright, recomputed only when something that casts or blocks light changes.
@@ -151,11 +169,14 @@ function computeSources(game){
  for(const lamp of game.lamps||[])shine(lamp,LIGHT_TUNING.lampCore,LIGHT_TUNING.lampCore+LIGHT_TUNING.lampFade);
  for(const stick of game.glowsticks||[])shine(stick,LIGHT_TUNING.glowstickRadius,LIGHT_TUNING.glowstickRadius,undefined,LIGHT.dim);   // dim within its radius, never lit
  const p=game.player;
- if(p?.flashlight){
-  const [dx,dy]=flashlightDirection(game),len=Math.hypot(dx,dy)||1,cos=Math.cos(LIGHT_TUNING.flashlightHalfAngle*Math.PI/180)-1e-9;
-  shine(p,LIGHT_TUNING.flashlightCore,LIGHT_TUNING.flashlightCore+LIGHT_TUNING.flashlightFade,pt=>{const vx=pt.x-p.x,vy=pt.y-p.y,n=Math.hypot(vx,vy);return n>0&&(vx*dx+vy*dy)/(n*len)>=cos;});
-  raise(p.x,p.y,LIGHT.dim);   // B7: a lit flashlight gives its holder away
- }
+ // A flashlight: a cone either side of its direction, lit 3 and dim at 4; its holder shows (B7), on either side.
+ const beam=(holder,dir)=>{
+  if(dir){const [dx,dy]=dir,len=Math.hypot(dx,dy)||1,cos=Math.cos(LIGHT_TUNING.flashlightHalfAngle*Math.PI/180)-1e-9;
+   shine(holder,LIGHT_TUNING.flashlightCore,LIGHT_TUNING.flashlightCore+LIGHT_TUNING.flashlightFade,pt=>{const vx=pt.x-holder.x,vy=pt.y-holder.y,n=Math.hypot(vx,vy);return n>0&&(vx*dx+vy*dy)/(n*len)>=cos;});}
+  raise(holder.x,holder.y,LIGHT.dim);
+ };
+ if(p?.flashlight)beam(p,flashlightDirection(game));
+ for(const e of game.enemies||[])if(enemyFlashlightOn(game,e))beam(e,enemyFlashlightDirection(e));
  for(const f of muzzleFlashes(game))raise(f.x,f.y,LIGHT.dim);
  return L;
 }
@@ -187,6 +208,8 @@ const markedFor=(game,observer,target)=>observer===game.player&&Boolean(activeTr
 export function hiddenInDark(game,observer,target){
  if(!newLighting(game)||!observer||!target||observer===target)return false;
  if(!isBlack(game,target)||seesInDark(game,observer)||markedFor(game,observer,target))return false;
+ // 3.181.0 (C7): a machine finds anything warm in the black, as infrared does (it does not see through smoke for it).
+ if(mechanical(observer)&&!mechanical(target))return false;
  return !(activeTrait(observer,'infrared')&&!mechanical(target));
 }
 export function lightingEffects(game,attacker,target){

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {Game,SIZE,makeEnemy,generate} from '../src/engine.js';
 import {makeBarrier} from '../src/barriers.js';
-import {LIGHT,LIGHT_MODEL,LIGHT_TUNING,lightAt,isDark,isBlack,hiddenInDark,seesInDark,recordGunFlashes,placeLamps} from '../src/lighting.js';
+import {LIGHT,LIGHT_MODEL,LIGHT_TUNING,lightAt,isDark,isBlack,hiddenInDark,seesInDark,recordGunFlashes,placeLamps,ENEMY_FLASHLIGHT,carriesFlashlight,enemyFlashlightOn} from '../src/lighting.js';
 import {FLARE_TUNING} from '../src/flares.js';
 import {terminalCost} from '../src/terminal.js';
 import {BASE_SUPPLIES} from '../src/characters.js';
@@ -14,6 +14,7 @@ import {SAVE_VERSION} from '../src/data.js';
 import {resumedFloor} from '../src/retreat.js';
 import {BLIND_TUNING} from '../src/blind-fire.js';
 import {grantTrait} from '../src/traits.js';
+import {targetDetails} from '../src/target-card.js';
 
 // 3.178.0: real lighting, as the user decided on 2026-09-25 (docs/LIGHTING.md 真光照).
 const read=async path=>(await readFile(new URL(path,import.meta.url),'utf8')).replace(/\r\n/g,'\n');
@@ -90,7 +91,8 @@ test('dim shows people at −40 to hit; the flashlight lights a cone toward the 
   assert.equal(at(g,10,13),2,'locked, the beam turns to the target');assert.ok(g.visibleEnemies.includes(south));
   assert.equal(g.sight(south,p),true,'and it sees you in turn');
   const back=Game.restore(g.serialize());assert.equal(back.player.flashlight,true,'kept in the save');
-  assert.ok(g.action('flashlight'));assert.equal(p.flashlight,false);assert.equal(at(g,10,13),0);
+  // Off again; that rifleman, alerted by the light, may be holding one of its own (3.181.0).
+  assert.ok(g.action('flashlight'));assert.equal(p.flashlight,false);assert.equal(at(g,10,13),enemyFlashlightOn(g,south)?1:0);
 });
 
 test('a gun fired lights its tile, dim, through the next round, and a save agrees with the live game',()=>{
@@ -186,6 +188,33 @@ test('an enemy the soldier has marked is one level brighter for the player: lock
   g.glowsticks=[{x:13,y:11}];assert.equal(g.accuracy(p,e).darkPenalty,0,'dim counts as lit');
   const other=foe(g,'rifleman',13,12,'other');assert.equal(g.accuracy(p,other).darkPenalty,40,'an unmarked one keeps the penalty');
   assert.equal(g.sight(e,p),false,'the mark shows it to you, not you to it');
+});
+
+test('enemy flashlights: a third of the humans, squad leaders and enforcers always, none for machines or the swarm (3.181.0)',()=>{
+  const game={seed:77,floor:2,enemies:[]},count=type=>{let n=0;for(let i=0;i<600;i++)n+=carriesFlashlight(game,makeEnemy(type,1,1,`e${i}`))?1:0;return n;};
+  assert.equal(ENEMY_FLASHLIGHT.share,1/3);
+  for(const type of ['squad_leader','enforcer'])assert.equal(count(type),600,type);
+  for(const type of ['drone','crawler','bomber_bot','rifleman_infected'])assert.equal(count(type),0,type);
+  for(const type of ['rifleman','raider','brute'])assert.ok(Math.abs(count(type)/600-1/3)<.06,type);
+  assert.equal(carriesFlashlight(game,makeEnemy('rifleman',1,1,'e0',1,0,'swarm')),false,'nothing that fights for the swarm');
+});
+
+test('an alerted enemy lights its cone toward where it last saw you, and shows itself; asleep it keeps it off (3.181.0)',()=>{
+  const g=arena(),p=g.player,e=foe(g,'enforcer',14,10);
+  assert.equal(enemyFlashlightOn(g,e),false,'not alert');assert.equal(g.visibleEnemies.includes(e),false);
+  Object.assign(e,{alert:true,lastKnown:{x:10,y:10}});g.reveal();
+  assert.ok(enemyFlashlightOn(g,e));
+  assert.deepEqual([at(g,13,10),at(g,11,10),at(g,10,10),at(g,14,10)],[2,2,1,1],'lit 3 toward you, dim at 4, and its own tile');
+  assert.equal(g.sight(e,p),true,'your tile in its beam: it sees you');assert.ok(g.visibleEnemies.includes(e),'and you see it');
+  g.target=e.id;assert.ok(targetDetails(g).state.includes('手電筒開著'),'the target card says so');
+  e.hp=0;assert.equal(at(g,13,10),0,'a dead one drops it');
+});
+
+test('machines find the living in the black, as infrared does; the player still cannot see them (3.181.0)',()=>{
+  const g=arena(),p=g.player,d=foe(g,'drone',12,10);
+  assert.equal(g.sight(d,p),true);assert.equal(g.visibleEnemies.includes(d),false);
+  const legacy=arena();legacy.lightModel=undefined;legacy.lamps=undefined;const e=foe(legacy,'enforcer',14,10);Object.assign(e,{alert:true,lastKnown:{x:10,y:10}});
+  assert.equal(enemyFlashlightOn(legacy,e),false,'no enemy flashlights on floors from before real lighting');
 });
 
 test('the controls: a switch beside the aim switch, the L key, and throwing aims like a decoy',async()=>{
