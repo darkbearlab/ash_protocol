@@ -69,7 +69,7 @@ import {validModules} from './modules.js';
 import {isContainer,containerName,validContainers,rigContainers,isRigged,RIG_TUNING,FIELD_ITEMS} from './containers.js';
 import {BARRIER_TYPES,BARRIER_LIMIT,makeBarrier,vaultable,isBarrier,barrierName,barrierBetween,blockedBetween,edgeBlocks,edgeAdjacent,edgeCells,edgeCover,barrierFace,validBarriers} from './barriers.js';
 import {pickPortrait,portraitForLegacy,validPortrait} from './portraits.js';
-import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,tacticalSight} from './throwables.js';
+import {SMOKE_DURATION,GRENADES,FRAG_DAMAGE,grenadeTotal,grenadeByItem,controlState,validControl,applyDisruption,skipDisabled,areaCells,squareCells,tacticalSight} from './throwables.js';
 import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCarryBonus} from './characters.js';
 import {coneTargets,shotgunBand,pelletsAt,pelletChance} from './shotgun.js';
 import {lancePath} from './lance.js';
@@ -508,7 +508,7 @@ export class Game {
     }
     if(this.floor===floor&&this.status==='playing'&&p.hp>0){
       const due=this.marks.filter(m=>m.due<=this.turn);this.marks=this.marks.filter(m=>m.due>this.turn);
-      for(const m of due){if(p.hp<=0)break;presentStep(this,()=>this.explode(m,m.radius??1,m.damage??scaleEnemy(38,this.floor,'damage',this.difficultySpec)));}
+      for(const m of due){if(p.hp<=0)break;presentStep(this,()=>m.stun?this.enemyStun(m):this.explode(m,m.radius??1,m.damage??scaleEnemy(38,this.floor,'damage',this.difficultySpec)));}
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>resolveRetreatWave(this));
       if(p.hp>0)presentStep(this,()=>this.environmentTurn());
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>tickNests(this));
@@ -983,6 +983,20 @@ export class Game {
     this.effects.push({type:'shot',style:'grenade',color:def.color,from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     this.applyThrowable(id,pos,Math.round((FRAG_DAMAGE+p.blastBonus)*bladeMultiplier(p)),p);
     return true;
+  }
+  // 3.188.0 (user): a grenadier's stun grenade. No damage; everything living its 3×3 reaches is disabled, enemies and
+  // allies too. If you waited this round (braced), you are disabled half as long; the log says so only afterwards.
+  enemyStun(m){
+    // Read before the disable, which drops your guard.
+    const p=this.player,def=GRENADES.stun,reached=new Set(squareCells(this,m).map(key)),braced=p.guard;
+    this.effects.push({type:'pulse',radius:1,color:def.color,from:{x:m.x,y:m.y},to:{x:m.x,y:m.y}});
+    for(const actor of [p,...this.enemies,...this.activeAllies])if(actor.hp>0&&reached.has(key(actor))&&applyDisruption(actor,def.keyword)){
+      if(actor===p&&braced){p.control.disabled=Math.ceil(p.control.disabled/2);this.log(t('game.stunBraced',{n:p.control.disabled}),true,t('game.disabledYouReal'));continue;}
+      if(actor!==p)actor.alert=true;
+      const name=actor===p?null:actor.kind?allyName(actor):enemyName(actor),n=actor.control.disabled;
+      this.log(name===null?t('game.disabledYou',{n}):t('game.disabled',{name,n}),actor===p,name===null?t('game.disabledYouReal'):t('game.disabledReal',{name}));
+    }
+    this.reveal();
   }
   // Resolves a throwable at pos: thrown grenades and, since 3.92.0, loitering munitions (docs/ENGINEER.md 4.1).
   applyThrowable(id,pos,fragDamage,attacker){

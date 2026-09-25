@@ -4,7 +4,8 @@ import {hasEnemyTag,isNoncombatant} from './enemy-data.js';
 import {ENEMY_TYPES} from './data.js';
 import {grantTrait,activeTrait} from './traits.js';
 import {effectiveDepth,curveOf} from './endless.js';
-export const AFFIX_TUNING={chanceCap:.5,additionalFactor:.5,grenadeChance:.2,grenadeRange:5,grenadeRadius:1,grenadeDamage:32,
+// stunShare (3.188.0, user): the share of a grenadier's throws that are stun grenades (docs/ENEMY_AFFIXES.md).
+export const AFFIX_TUNING={chanceCap:.5,additionalFactor:.5,grenadeChance:.2,grenadeRange:5,grenadeRadius:1,grenadeDamage:32,stunShare:1/3,
  // 投放 (3.103.0, user request) rolls on its own stream so the existing affix draws, and every map already
  // generated, stay bit-identical; only enemies that win this extra roll differ.
  deployerPerDepth:.03,deployerCap:.24,deployerRange:7,deployerFire:.35};

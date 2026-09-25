@@ -44,6 +44,12 @@ export function skipDisabled(actor){
   actor.fireChain=null;actor.moved=false;actor.moveDelta=[0,0];
   return true;
 }
+// 3.188.0: a grenadier's stun grenade reaches the 3×3 square around where it lands, shielded as a blast is.
+export function squareCells(game,pos,reach=1){
+  const cells=[];
+  for(let y=pos.y-reach;y<=pos.y+reach;y++)for(let x=pos.x-reach;x<=pos.x+reach;x++)if(game.grid[y]?.[x]!==undefined&&game.grid[y][x]!==0&&lineOfSight(objectSightGrid(game,pos,{x,y}),pos,{x,y},game.barriers||[],'blast'))cells.push({x,y});
+  return cells;
+}
 export function areaCells(grid,pos,radius=2,barriers=[],game=null){
   const cells=[];
   for(let y=pos.y-radius;y<=pos.y+radius;y++)for(let x=pos.x-radius;x<=pos.x+radius;x++)if(distance(pos,{x,y})<=radius&&lineOfSight(game?objectSightGrid(game,pos,{x,y}):grid,pos,{x,y},barriers,'blast'))cells.push({x,y});

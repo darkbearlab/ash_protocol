@@ -10,10 +10,12 @@ import {FACTIONS,factionDef} from './factions.js';
 export const DIFFICULTY_OPTIONS=Object.freeze([
  Object.freeze({id:'easy',name:t('deploy-ui.easy'),curve:'easy',offset:DIFFICULTY_TUNING.defaultOffset}),
  Object.freeze({id:'standard',name:t('deploy-ui.standard'),curve:'standard',offset:DIFFICULTY_TUNING.defaultOffset}),
+ Object.freeze({id:'hard',name:t('deploy-ui.hard'),curve:'hard',offset:DIFFICULTY_TUNING.defaultOffset}),   // 3.188.0
 ]);
 export const DEFAULT_DIFFICULTY='standard';
 export const difficultyOption=id=>DIFFICULTY_OPTIONS.find(d=>d.id===id)||DIFFICULTY_OPTIONS.find(d=>d.id===DEFAULT_DIFFICULTY);
-export const difficultyMeta=d=>{const c=DIFFICULTY_CURVES[d.curve];return t(c.preview?'deploy-ui.affixFromPreview':'deploy-ui.affixFrom',{floor:Math.max(1,c.affixStart-d.offset)});};
+// 3.188.0: elites are named too when they start within a campaign's six floors (hard).
+export const difficultyMeta=d=>{const c=DIFFICULTY_CURVES[d.curve],elite=Math.max(1,c.eliteStart-d.offset);return t(c.preview?'deploy-ui.affixFromPreview':'deploy-ui.affixFrom',{floor:Math.max(1,c.affixStart-d.offset)})+(elite<=6?t('deploy-ui.eliteFrom',{floor:elite}):'');};
 export const realModeMeta=()=>`${t('deploy-ui.realBonus',{protocolPercent:REAL_MODE_TUNING.protocolPercent})}`;
 export const REAL_MODE_NOTE=t('deploy-ui.realNote');
 

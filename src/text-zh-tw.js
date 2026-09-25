@@ -31,6 +31,8 @@ export default Object.freeze({
  // src/affix-ui.js
  "affix-ui.throw":"投擲",
  "affix-ui.blast":"爆炸 {v}",
+ "affix-ui.throwStun":"投擲震撼",
+ "affix-ui.stun":"震撼 {v}",
  // affixes
  "affixes.stable.name":"穩定",
  "affixes.stable.text":"命中 +10；基礎傷害 −10%",
@@ -788,6 +790,8 @@ export default Object.freeze({
  "deploy-ui.randomFacility":"依種子隨機",
  "deploy-ui.randomMeta":"正式版進入設施才知道",
  "deploy-ui.devOnly":"開發用",
+ "deploy-ui.hard":"困難",
+ "deploy-ui.eliteFrom":" · 菁英自第 {floor} 層",
  // disposed
  "disposed.title":"銷毀此庫存",
  "disposed.restart":"重新開始訓練 →",
@@ -822,6 +826,8 @@ export default Object.freeze({
  "enemy-behavior.bossBombard":"核心守衛標記轟炸區：兩次行動內離開紅色格與鄰格！",
  "enemy-behavior.munitionLaunch":"{name}放出了浮游彈藥！",
  "enemy-behavior.hookDetonate":"{name}鉤索貼近，引爆！",
+ "enemy-behavior.stunReady":"{enemy}準備投震撼彈！",
+ "enemy-behavior.stunThrown":"{enemy}已投出震撼彈！",
  // src/enemy-visuals.js
  "enemy-visuals.floorTrait":"（第 {floor} 層起：{trait}）",
  "enemy-visuals.elite":"精英",
@@ -1173,6 +1179,7 @@ export default Object.freeze({
  "game.flashlightOn":"手電筒打開：照亮身邊 2 格，但你自己也會被看見。",
  "game.flashlightOff":"手電筒關閉：這一輪結束才會熄。",
  "game.blindMelee":"看不見對方，憑感覺出手：命中 −{penalty}。",
+ "game.stunBraced":"你事先穩住，失能減半：跳過 {n} 次行動。",
  // gate
  "gate.title":"進入模擬訓練？",
  "gate.body":"新庫存部署前，須先完成 KILL HOUSE 模擬訓練：六個區域、固定士兵配給，不影響戰役與協定點數。",
@@ -1347,7 +1354,7 @@ export default Object.freeze({
  "manual.orderTitle":"行動順序",
  "manual.order":"快速 → 普通 → 緩速，同速玩家先行動。選定有效行動後不能重選；射擊追蹤原目標，目標先移出視線／射程仍向最後確認位置開火落空，消耗彈藥與回合。移動閃避維持到自己的下次行動；狙擊手的蓄勢鎖定仍射向原落點。回合末才結算轟炸與地形。等待（中央鈕）：到你下次行動前，直接傷害減半、被射擊命中 −15；下次射擊命中 +15（最高 99%）。任何有效行動後失效。",
  "manual.grenadeTitle":"手榴彈",
- "manual.grenade":"先在背包的投擲物分頁預備，按投擲物按鈕，點地板選落點，再按右下「確認投擲」；再按一次投擲物按鈕取消。四種投擲物共用容量，效果寫在各自的說明裡。破片會炸到自己；震撼彈也會影響自己，失能時按中央等待恢復。",
+ "manual.grenade":"先在背包的投擲物分頁預備，按投擲物按鈕，點地板選落點，再按右下「確認投擲」；再按一次投擲物按鈕取消。四種投擲物共用容量，效果寫在各自的說明裡。破片會炸到自己；震撼彈也會影響自己，失能時按中央等待恢復。敵方擲彈兵有時丟震撼彈（黃色、3×3 範圍，不造成傷害）：爆開那一回合若原地等待，失能時間減半。",
  "manual.bagTitle":"背包",
  "manual.bag":"按背包鈕打開背包，會回到上次的分頁；武器鈕直接打開武器分頁，長按投擲物、道具或技能鈕則打開對應的分頁。預備投擲物、道具與技能不耗回合，使用才耗。在背包直接點武器換裝，按鈕上寫著要幾回合；交換、拾取、拆解、改裝與補給各 1 回合，比較不耗時。最多帶 {packLimit} 把武器，走上武器時有空格就收下。幹員數值、本局強化與被動規則在右上選單的「幹員狀態」。",
  "manual.supplyTitle":"補給",

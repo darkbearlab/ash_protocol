@@ -27,6 +27,8 @@ export const validDifficultyOffset=n=>Number.isInteger(n)&&n>=DIFFICULTY_TUNING.
 export const DIFFICULTY_CURVES=Object.freeze({
  easy:Object.freeze({hpStep:2,damageStep:1,hpGrowth:.04,damageGrowth:.03,affixStart:7,affixPerDepth:.04,eliteStart:9,deployerStart:8,preview:false}),
  standard:Object.freeze({hpStep:2,damageStep:1,hpGrowth:.04,damageGrowth:.03,affixStart:3,affixPerDepth:.05,eliteStart:7,deployerStart:7,preview:true}),
+ // 3.188.0 (user): hard is standard's numbers with affixes from the first floor and more of them, and elites from floor 4.
+ hard:Object.freeze({hpStep:2,damageStep:1,hpGrowth:.04,damageGrowth:.03,affixStart:1,affixPerDepth:.07,eliteStart:4,deployerStart:7,preview:true}),
  classic:Object.freeze({hpStep:4,damageStep:2,hpGrowth:.07,damageGrowth:.04,affixStart:7,affixPerDepth:.04,eliteStart:9,deployerStart:8,preview:false}),
 });
 export const DEFAULT_CURVE='standard';

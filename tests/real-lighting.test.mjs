@@ -40,7 +40,7 @@ test('the numbers the user set',()=>{
   assert.deepEqual([FLARE_TUNING.range,FLARE_TUNING.radius],[7,3],'a flare is thrown farther, its lit radius unchanged');
   assert.equal(terminalCost('glowstick'),5);assert.equal(BASE_SUPPLIES.glowsticks,2);assert.ok(CAPPED_ITEMS.includes('glowstick'));
   assert.equal(PREPARED_CATALOG.item.glowstick.resource,'glowsticks');assert.equal(PREPARED_CATALOG.item.glowstick.aim,'throw');
-  assert.equal(SAVE_VERSION,76);
+  assert.equal(SAVE_VERSION,77);
 });
 
 test('each source is lit in its core and one level darker per tile past it; the brightest wins, nothing stacks',()=>{

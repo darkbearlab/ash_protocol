@@ -54,8 +54,10 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     // Its own light makes its tile dim, so the tile is judged with the flashlight off.
     const on=p.flashlight,lingers=p.lightLingers;Object.assign(p,{flashlight:false,lightLingers:false});const black=isBlack(g,p);Object.assign(p,{flashlight:on,lightLingers:lingers});
     if(on!==black){act('flashlight');continue;}
-    const marked=g.marks.find(m=>distance(p,m)<=1);
-    if(marked){const step=safeMove(g,n=>distance(n,marked)>distance(p,marked));if(step){act('move',step);continue;}}
+    // 3.188.0: a stun grenade reaches the 3×3 around where it lands: step out of it, or brace (wait) with no way out.
+    const within=(q,m)=>m.stun?Math.max(Math.abs(q.x-m.x),Math.abs(q.y-m.y))<=1:distance(q,m)<=1;
+    const marked=g.marks.find(m=>within(p,m));
+    if(marked){const step=safeMove(g,n=>marked.stun?!within(n,marked):distance(n,marked)>distance(p,marked));if(step){act('move',step);continue;}if(marked.stun){act('wait');continue;}}
     const bomber=g.visibleEnemies.find(e=>e.type==='bomber'&&distance(e,p)<=1);
     if(bomber){act('wait');continue;}
     if(p.hp<=p.maxHp-45&&p.meds>0){act('heal');continue;}

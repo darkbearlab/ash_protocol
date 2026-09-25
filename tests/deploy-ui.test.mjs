@@ -16,7 +16,7 @@ test('run options default to standard, no real mode and a seed-rolled facility',
 
 // 3.137.0 (user decision): 簡單 and 標準, standard by default; the old curve is not offered.
 test('the difficulty list and facility list are valid and read the tuning tables',()=>{
- assert.deepEqual(DIFFICULTY_OPTIONS.map(d=>[d.id,d.name,d.curve]),[['easy','簡單','easy'],['standard','標準','standard']]);
+ assert.deepEqual(DIFFICULTY_OPTIONS.map(d=>[d.id,d.name,d.curve]),[['easy','簡單','easy'],['standard','標準','standard'],['hard','困難','hard']]);   // hard: 3.188.0
  assert.ok(DIFFICULTY_OPTIONS.every(d=>validDifficultyOffset(d.offset)&&DIFFICULTY_CURVES[d.curve]));
  assert.equal(difficultyOption().id,'standard');
  assert.equal(difficultyMeta(difficultyOption()),`詞條自第 ${DIFFICULTY_CURVES.standard.affixStart} 層 · 第 2 層起出現特殊敵人`);

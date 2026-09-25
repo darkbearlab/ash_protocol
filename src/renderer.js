@@ -36,7 +36,7 @@ import {missionObjects,missionTarget} from './missions.js';
 import {MODULE_TYPES,moduleCells,modulePoint} from './modules.js';
 import {isContainer,CONTAINER_KINDS} from './containers.js';
 import {isBarrier,edgeCells} from './barriers.js';
-import {areaCells} from './throwables.js';
+import {areaCells,squareCells} from './throwables.js';
 import {cameraFrame,zoomStep} from './camera.js';
 import {MUZZLE_FLASHES,flashCells,flashUnit,muzzlePoint} from './muzzle-flash.js';
 import {targetCardPlacement,actorObstacle,spriteSize} from './target-card.js';
@@ -625,7 +625,9 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
   // Grenadier telegraphs (3.75.1): amber landing tile and dashed throw line while it can be stopped, red blast once thrown.
   grenadeMarker(m){const c=this.ctx,to=this.project(m.x,m.y),prepare=m.phase==='prepare';
     if(m.line){const from=this.project(m.origin.x,m.origin.y);c.setLineDash(prepare?[5,4]:[2,5]);this.line(from.x,from.y,to.x,to.y,prepare?'#f0c77acc':'#f8996999',prepare?1.5:1);c.setLineDash([]);}
-    this.markArea(m,prepare?0:m.radius,prepare?'#e6b35b2e':'#e969494f',prepare?'#f0c77add':'#f8996977','');}
+    // 3.188.0: a stun grenade is yellow, and once thrown marks the 3×3 it will reach.
+    if(m.stun&&!prepare){const t=this.tile;for(const {x,y} of squareCells(this.game,m)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,'#e8dc6a3a','#f2e88caa');}return;}
+    this.markArea(m,prepare?0:m.radius,prepare?(m.stun?'#e8dc6a2e':'#e6b35b2e'):'#e969494f',prepare?(m.stun?'#f2e88cdd':'#f0c77add'):'#f8996977','');}
   // Drawn after actors: the landing tile is usually the player's, whose sprite would hide a centred tag.
   grenadeLabel(m){const t=this.tile,a=this.project(m.x,m.y),y=a.y-t*.5-3,w=m.label.length*10+8,prepare=m.phase==='prepare';
     this.box(a.x-w/2,y-10,w,13,'#1b1410d9',prepare?'#f0c77a99':'#f8996999');this.text(m.label,a.x,y,prepare?'#ffe0a0':'#ffd3a4',9);}

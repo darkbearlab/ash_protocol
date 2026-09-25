@@ -968,12 +968,12 @@
    "invalid": 1497
   },
   "necromancer:3": {
-   "status": "won",
+   "status": "dead",
    "floor": 6,
-   "turn": 1113,
-   "hp": 106,
-   "kills": 197,
-   "actions": 1206,
+   "turn": 907,
+   "hp": 0,
+   "kills": 166,
+   "actions": 973,
    "invalid": 0
   },
   "soldier:1": {

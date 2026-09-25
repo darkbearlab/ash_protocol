@@ -15,7 +15,7 @@ import {factionDef} from '../src/faction-catalog.js';
 const easy={curve:'easy',offset:0},standard={curve:'standard',offset:0},classic={curve:'classic',offset:0};
 
 test('two curves are offered, standard by default; both grow numbers the same slow way',()=>{
- assert.equal(DEFAULT_CURVE,'standard');assert.deepEqual(DIFFICULTY_OPTIONS.map(d=>d.curve),['easy','standard']);assert.equal(runOptions().difficulty,'standard');
+ assert.equal(DEFAULT_CURVE,'standard');assert.deepEqual(DIFFICULTY_OPTIONS.map(d=>d.curve),['easy','standard','hard']);assert.equal(runOptions().difficulty,'standard');
  for(const key of ['hpStep','damageStep','hpGrowth','damageGrowth'])assert.equal(DIFFICULTY_CURVES.easy[key],DIFFICULTY_CURVES.standard[key],key);
  const hp=(f,d)=>makeEnemy('rifleman',1,1,'x',f,d).maxHp;
  // Riflemen are fragile cards (half the per-floor step); the brute is not.

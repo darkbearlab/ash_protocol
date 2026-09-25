@@ -92,9 +92,12 @@ if(p.hp<before)hits.add(p);
 }
 function grenade(ctx){const {g,e,p,los}=ctx,intent=e.grenadeIntent;
  if(intent){if((intent.targetId&&![g.player,...g.activeAllies].some(a=>(a.id||'player')===intent.targetId&&a.hp>0))||!los||distance(e,intent.origin)>0||distance(e,p)>AFFIX_TUNING.grenadeRange){interruptEnemyIntent(e,'target_lost');return true;}
- g.marks.push({kind:'grenade',phase:'flight',sourceId:e.id,x:intent.x,y:intent.y,origin:{...intent.origin},radius:AFFIX_TUNING.grenadeRadius,damage:scaleEnemy(AFFIX_TUNING.grenadeDamage,g.floor,'damage',g.difficultySpec),due:g.turn+1});delete e.grenadeIntent;
- g.effects.push({type:'enemyTelegraph',phase:'flight',from:{...intent.origin},to:{x:intent.x,y:intent.y},damage:0});g.recordExposure(e,intent);g.log(t('enemy-behavior.grenadeThrown',{enemy:enemyName(e)}),true);return true;}
- e.grenadeIntent={stage:'prepare',targetId:p.id||'player',x:p.x,y:p.y,origin:{x:e.x,y:e.y}};revealEnemyAffix(g,e,'grenadier');g.effects.push({type:'enemyTelegraph',phase:'prepare',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});enemyCallout(g,e,'telegraph',{action:'grenade'});g.log(t('enemy-behavior.grenadeReady',{enemy:enemyName(e)}),true);return true;
+ // 3.188.0 (user): a stun grenade does no damage; it disables what its 3×3 reaches (Game.enemyStun).
+ g.marks.push({kind:'grenade',phase:'flight',sourceId:e.id,x:intent.x,y:intent.y,origin:{...intent.origin},radius:AFFIX_TUNING.grenadeRadius,...(intent.stun?{stun:true,damage:0}:{damage:scaleEnemy(AFFIX_TUNING.grenadeDamage,g.floor,'damage',g.difficultySpec)}),due:g.turn+1});delete e.grenadeIntent;
+ g.effects.push({type:'enemyTelegraph',phase:'flight',from:{...intent.origin},to:{x:intent.x,y:intent.y},damage:0});g.recordExposure(e,intent);g.log(t(intent.stun?'enemy-behavior.stunThrown':'enemy-behavior.grenadeThrown',{enemy:enemyName(e)}),true);return true;}
+ // Which it throws is decided as it gets ready, so the warning already says so.
+ const stun=g.rng()>=1-AFFIX_TUNING.stunShare;   // the top third of the roll
+ e.grenadeIntent={stage:'prepare',targetId:p.id||'player',x:p.x,y:p.y,origin:{x:e.x,y:e.y},...(stun?{stun:true}:{})};revealEnemyAffix(g,e,'grenadier');g.effects.push({type:'enemyTelegraph',phase:'prepare',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});enemyCallout(g,e,'telegraph',{action:'grenade'});g.log(t(stun?'enemy-behavior.stunReady':'enemy-behavior.grenadeReady',{enemy:enemyName(e)}),true);return true;
 }
 registerAffixBranch({id:'grenadier',reveal:'effect',applies:({e})=>e.affixes?.some(a=>a.id==='grenadier'),trigger:({g,e,p,los})=>Boolean(e.grenadeIntent)||(!e.charge&&los&&distance(e,p)<=AFFIX_TUNING.grenadeRange),get chance(){return AFFIX_TUNING.grenadeChance;},pending:({e})=>Boolean(e.grenadeIntent),steps:['prepare','flight','explode'],run:grenade});
 // Loitering munition (3.103.0, user request). The launch puts it exactly at its own strike range from the player and

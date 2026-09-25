@@ -15,7 +15,7 @@ export function cardEnemyName(enemy,limit=CARD_AFFIX_FRAGMENTS){
 // Throw lines start only from a seen thrower or tile, so a grenadier out of sight never gives away where it stands.
 export function grenadeMarkers(g){
  const seen=new Set(g.visibleEnemies.map(e=>e.id));
- return grenadeTelegraphs(g).map(m=>({phase:m.phase,x:m.x,y:m.y,radius:m.radius,origin:m.origin,
+ return grenadeTelegraphs(g).map(m=>({phase:m.phase,x:m.x,y:m.y,radius:m.radius,origin:m.origin,stun:Boolean(m.stun),
   line:seen.has(m.sourceId)||Boolean(g.visible(m.origin)),
-  label:m.phase==='prepare'?t('affix-ui.throw'):`${t('affix-ui.blast',{v:Math.max(1,m.countdown)})}`}));
+  label:m.phase==='prepare'?t(m.stun?'affix-ui.throwStun':'affix-ui.throw'):`${t(m.stun?'affix-ui.stun':'affix-ui.blast',{v:Math.max(1,m.countdown)})}`}));
 }

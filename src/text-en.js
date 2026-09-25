@@ -30,6 +30,8 @@ export default Object.freeze({
  // src/affix-ui.js
  "affix-ui.throw":"Throw",
  "affix-ui.blast":"Blast {v}",
+ "affix-ui.throwStun":"Stun throw",
+ "affix-ui.stun":"Stun {v}",
  // affixes
  "affixes.stable.name":"Stable",
  "affixes.stable.text":"+10 to hit; −10% base damage",
@@ -787,6 +789,8 @@ export default Object.freeze({
  "deploy-ui.randomFacility":"Random by seed",
  "deploy-ui.randomMeta":"Revealed on entering the facility",
  "deploy-ui.devOnly":"Development",
+ "deploy-ui.hard":"Hard",
+ "deploy-ui.eliteFrom":" · elites F{floor}+",
  // disposed
  "disposed.title":"Stock destroyed",
  "disposed.restart":"Restart training →",
@@ -821,6 +825,8 @@ export default Object.freeze({
  "enemy-behavior.bossBombard":"The Core Guardian marks a bombardment zone: leave the red tiles and those next to them within two actions!",
  "enemy-behavior.munitionLaunch":"{name} launches a suicide drone!",
  "enemy-behavior.hookDetonate":"{name} reels in close and detonates!",
+ "enemy-behavior.stunReady":"{enemy} readies a stun grenade!",
+ "enemy-behavior.stunThrown":"{enemy} throws a stun grenade!",
  // src/enemy-visuals.js
  "enemy-visuals.floorTrait":" (F{floor}+: {trait})",
  "enemy-visuals.elite":"Elite",
@@ -1172,6 +1178,7 @@ export default Object.freeze({
  "game.flashlightOn":"Flashlight on: it lights 2 tiles all around you, and shows you to others.",
  "game.flashlightOff":"Flashlight off: it goes dark when this round ends.",
  "game.blindMelee":"You strike at what you cannot see: −{penalty} to hit.",
+ "game.stunBraced":"You braced for it: skipping {n} {n|action|actions} instead.",
  // gate
  "gate.title":"Train first?",
  "gate.body":"New stock must complete the KILL HOUSE simulation before deploying: six zones with a fixed soldier kit. It does not affect the campaign or protocol points.",
@@ -1346,7 +1353,7 @@ export default Object.freeze({
  "manual.orderTitle":"Action order",
  "manual.order":"Fast → normal → slow; at equal speed the player goes first. A valid action cannot be changed once chosen; a shot follows its original target, and if the target leaves your sight or range first, you fire at its last confirmed position and miss, spending the ammo and the turn. Movement evasion lasts until your next action; a sniper's locked wind-up still fires at the original spot. Bombardments and terrain resolve at the end of the round. Wait (center button): until your next action, direct damage is halved and shots against you get −15; your next shot gets +15 (up to 99%). Any valid action ends it.",
  "manual.grenadeTitle":"Grenades",
- "manual.grenade":"Ready a throwable in the pack's throwables tab, tap the throwable button, tap a floor tile to aim, then tap Confirm throw at the bottom right; tap the throwable button again to cancel. All four throwables share one capacity; their effects are in their own descriptions. Frag grenades can hit you; stun grenades affect you too — if disabled, tap the center button to wait it out.",
+ "manual.grenade":"Ready a throwable in the pack's throwables tab, tap the throwable button, tap a floor tile to aim, then tap Confirm throw at the bottom right; tap the throwable button again to cancel. All four throwables share one capacity; their effects are in their own descriptions. Frag grenades can hit you; stun grenades affect you too — if disabled, tap the center button to wait it out. Enemy grenadiers sometimes throw stun grenades (yellow, 3×3, no damage): wait in place on the turn one goes off and you are disabled half as long.",
  "manual.bagTitle":"Pack",
  "manual.bag":"The pack button opens the pack on the tab you last used; the weapons button opens the weapons tab, and a long press on the throwable, item or skill button opens its tab. Readying throwables, items and skills is free; using them costs. Tap a weapon in the pack to switch to it; the button shows how many turns it takes. Swapping, picking up, salvaging, upgrading and resupplying take 1 turn each; comparing is free. You carry up to {packLimit} weapons and pick one up when you walk over it with a free slot. Operative stats, this run's upgrades and passive rules are under Operative status in the top-right menu.",
  "manual.supplyTitle":"Supplies",
