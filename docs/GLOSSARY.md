@@ -25,7 +25,7 @@
 | 電漿步槍 | Plasma Rifle | `weapons.plasma.name` |
 | 榴彈發射器 | Grenade Launcher | `weapons.launcher.name` |
 | 輕機槍 | LMG | `weapons.lmg.name` |
-| 震擊動力拳 | Shock Power Fist | `weapons.powerfist.name` |
+| 動力拳套 | Power Gauntlet | `weapons.powerfist.name` |
 | 爆彈槍 | Blast Rifle | `weapons.thunder.name` |
 | 狂戰斧 | Berserker Axe | `weapons.axe.name` |
 | 忍刀 | Ninjato | `weapons.katana.name` |
