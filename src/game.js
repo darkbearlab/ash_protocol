@@ -135,7 +135,7 @@ export function itemUseReason(g,id){
 }
 // 3.179.0: a shot from a gun with the flash hider makes no muzzle flash (src/lighting.js, src/presentation.js).
 const flashHidden=w=>w.noFlash?{suppressed:true}:{};
-const freshPlayer=()=>({flashlight:false,glowsticks:0,keycards:[],decoys:0,mines:0,exoPlates:0,learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({flashlight:false,lightLingers:false,glowsticks:0,keycards:[],decoys:0,mines:0,exoPlates:0,learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -452,7 +452,8 @@ export class Game {
       else if(type==='surge')return this.surge();
       else if(type==='rope')return presentStep(this,()=>this.fireLine(arg));
       // 3.178.0: the flashlight is free to switch; enemies who can now see you notice at once (reveal).
-      else if(type==='flashlight'){p.flashlight=!p.flashlight;this.log(t(p.flashlight?'game.flashlightOn':'game.flashlightOff'));this.reveal();return true;}
+      // 3.182.0 (user): switching on is instant; switching off lets it burn to the end of this round (src/lighting.js).
+      else if(type==='flashlight'){p.lightLingers=p.flashlight;p.flashlight=!p.flashlight;this.log(t(p.flashlight?'game.flashlightOn':'game.flashlightOff'));this.reveal();return true;}
       else if(type==='setPetOutput'){p.petBond.outputChoice=arg.kind;return true;}
       else if(type==='meleeChoice'){p.meleeSlot=arg;this.log(arg===null?t('game.meleeChoiceDefault'):t('game.meleeChoice',{weapon:this.weaponAt(arg).name}));return true;}
       return true;
@@ -520,6 +521,7 @@ export class Game {
     this.smoke=this.smoke.filter(s=>s.expires>this.turn);
     this.flares=(this.flares||[]).filter(f=>f.expires>this.turn);
     recordGunFlashes(this);   // 3.178.0: this round's muzzle flashes stay lit through the next (src/lighting.js)
+    p.lightLingers=false;   // 3.182.0: a flashlight switched off this round goes dark now
     tickDecoy(this);
     expireExposure([p,...this.enemies,...this.allies],this.turn);
     for(const actor of [p,...this.enemies,...this.activeAllies])tickTraits(actor);
@@ -1232,7 +1234,7 @@ export class Game {
     if(returning(this)&&this.floor>1&&!arrival)return this.fail(t('game.noSafeLanding'));
     this.awardProtocol('floor',this.floor);
     if((returning(this)&&this.floor===1)||(!isEndless(this)&&!missionDefinition(this).returnTrip&&this.floor===missionDepth(this))){this.awardProtocol('extraction','win');this.status='won';this.log(t('game.extracted',{summary:this.missionSummary}));return true;}
-    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;this.decoy=null;this.mines=[];this.gunFlashes=[];for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
+    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;this.decoy=null;this.mines=[];this.gunFlashes=[];p.lightLingers=false;for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
     if(returning(this)){
       if(advanceTurn)this.turn++;
       Object.assign(this,resumedFloor(frame,this.turn));delete this.floorStates[next];this.floor=next;
@@ -1452,8 +1454,9 @@ export class Game {
       // 3.178.0 (docs/LIGHTING.md): real lighting. Saves from before carry no glowsticks and the flashlight off; their floors
       // (this one and any kept for the way back) have no light model, so they keep the old rule until the next floor.
       if(version<73){g.player.glowsticks??=0;g.player.flashlight??=false;}
+      if(version<74)g.player.lightLingers??=false;   // 3.182.0
       g.glowsticks??=[];g.gunFlashes??=[];
-      if(!Number.isSafeInteger(g.player.glowsticks)||g.player.glowsticks<0||g.player.glowsticks>10000000||typeof g.player.flashlight!=='boolean'||!validGlowsticks(g.glowsticks,g.grid)||!validGunFlashes(g.gunFlashes,g.grid)||!(g.lightModel===undefined?g.lamps===undefined:g.lightModel===LIGHT_MODEL&&validLamps(g.lamps,g.grid)))return null;
+      if(!Number.isSafeInteger(g.player.glowsticks)||g.player.glowsticks<0||g.player.glowsticks>10000000||typeof g.player.flashlight!=='boolean'||typeof g.player.lightLingers!=='boolean'||!validGlowsticks(g.glowsticks,g.grid)||!validGunFlashes(g.gunFlashes,g.grid)||!(g.lightModel===undefined?g.lamps===undefined:g.lightModel===LIGHT_MODEL&&validLamps(g.lamps,g.grid)))return null;
       if(version<66){g.player.decoys??=0;g.player.mines??=0;g.player.exoPlates??=0;g.decoy??=null;g.mines??=[];g.mineSerial??=0;}
       if(![0,1].includes(g.player.recovery)||!(g.player.meleeSlot===null||Number.isInteger(g.player.meleeSlot)&&WEAPONS[g.player.weaponBases[g.player.meleeSlot]]?.melee))return null;
       if(!['escapeLines','redeployLines'].every(k=>Number.isSafeInteger(g.player[k])&&g.player[k]>=0&&g.player[k]<=10000000))return null;

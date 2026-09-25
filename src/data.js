@@ -7,7 +7,7 @@ export const SIZE = 27;
 // blasts cross it. seeThrough is what a line of sight may pass over or end on.
 export const VOID = 2;
 export const seeThrough = v => v === 1 || v === VOID;
-export const SAVE_VERSION = 73;   // 73 (3.178.0): real lighting — lamps, glowsticks, the flashlight (src/lighting.js); 72 (3.177.2): a vault closet's walls are sealed (src/vault.js); 71 (3.169.0): the run keeps its comms duty officer (src/duty.js)
+export const SAVE_VERSION = 74;   // 74 (3.182.0): a flashlight switched off burns to the end of the round (player.lightLingers); 73 (3.178.0): real lighting — lamps, glowsticks, the flashlight (src/lighting.js); 72 (3.177.2): a vault closet's walls are sealed (src/vault.js); 71 (3.169.0): the run keeps its comms duty officer (src/duty.js)
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);

@@ -52,7 +52,7 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     // 3.178.0: in the black nobody is seen, not even next to you, so the bot switches its flashlight on there (free) and
     // off again in the light, as a player would; the light gives it away too.
     // Its own light makes its tile dim, so the tile is judged with the flashlight off.
-    const on=p.flashlight;p.flashlight=false;const black=isBlack(g,p);p.flashlight=on;
+    const on=p.flashlight,lingers=p.lightLingers;Object.assign(p,{flashlight:false,lightLingers:false});const black=isBlack(g,p);Object.assign(p,{flashlight:on,lightLingers:lingers});
     if(on!==black){act('flashlight');continue;}
     const marked=g.marks.find(m=>distance(p,m)<=1);
     if(marked){const step=safeMove(g,n=>distance(n,marked)>distance(p,marked));if(step){act('move',step);continue;}}

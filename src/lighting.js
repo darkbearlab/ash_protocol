@@ -40,7 +40,8 @@ export const LIGHT_TUNING=Object.freeze({
  spill:1,                      // light from a powered area reaches 1 tile into an unpowered one, one level down
  flareFade:2,                  // beyond a flare's lit radius, 2 more tiles are dim
  glowstickRadius:3,glowstickRange:5,maxGlowsticks:400,
- flashlightCore:3,flashlightFade:1,flashlightHalfAngle:45   // a cone toward the locked target, else the facing
+ flashlightCore:3,flashlightFade:1,flashlightHalfAngle:45,  // an enemy's flashlight: a cone toward where it last saw you
+ lanternCore:2,lanternFade:1   // the player's (3.182.0, user): all around, lit within 2, dim at 3
 });
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]];
 const fnv=text=>{let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
@@ -69,12 +70,9 @@ export function placeLamps(map,seed,floor){
 export const validLamps=(lamps,grid)=>Array.isArray(lamps)&&lamps.length<=LIGHT_TUNING.maxLamps&&new Set(lamps.map(l=>l?.id)).size===lamps.length&&lamps.every(l=>l&&typeof l.id==='string'&&/^lamp-\d+-\d+$/.test(l.id)&&Object.keys(l).length===3&&grid[l.y]?.[l.x]===1);
 export const validGlowsticks=(sticks,grid)=>Array.isArray(sticks)&&sticks.length<=LIGHT_TUNING.maxGlowsticks&&sticks.every(s=>s&&Object.keys(s).length===2&&Number.isInteger(s.x)&&Number.isInteger(s.y)&&grid[s.y]?.[s.x]===1);
 
-// Where the flashlight points: at the locked enemy if there is one, else the way the operator last faced.
-export function flashlightDirection(game){
- const p=game.player,e=game.target&&(game.enemies||[]).find(x=>x.id===game.target&&x.hp>0);
- if(e&&(e.x!==p.x||e.y!==p.y))return [e.x-p.x,e.y-p.y];
- return Array.isArray(p.facing)&&(p.facing[0]||p.facing[1])?p.facing:[0,1];
-}
+// The player's flashlight (3.182.0, user): no direction to manage, it lights all around. Switched off, it keeps burning
+// to the end of the round (`lightLingers`), so a look around always shows you to the enemies' next moves.
+export const playerLightOn=p=>Boolean(p?.flashlight||p?.lightLingers);
 // ---- enemy flashlights (3.181.0; decision C7 and the user: humans switch one on once alert and point it where they last
 // saw you; not everyone carries one, squad leaders and enforcers always do; machines use infrared, the swarm needs none) --
 // Which cards carry one is enemy data (`flashlight: 'some' | 'always'`, src/data.js); the infected and anyone fighting
@@ -124,9 +122,9 @@ function lightKey(game){
  for(const x of game.flares||[])f=(Math.imul(f,31)+x.x*97+x.y*13+x.expires)|0;
  const flashes=muzzleFlashes(game);for(const x of flashes)m=(Math.imul(m,31)+x.x*97+x.y)|0;
  const stick=(game.glowsticks||[]).at(-1);   // the list is capped, so its length alone can stay the same
- const dir=p.flashlight?flashlightDirection(game).join():'';
+ const lantern=playerLightOn(p)?'on':'';
  let lights='';for(const e of game.enemies||[])if(enemyFlashlightOn(game,e))lights+=`${e.id}@${e.x},${e.y}>${enemyFlashlightDirection(e)?.join()};`;
- return `${game.lightModel}|${game.turn}|${game.floor}|${p.x},${p.y}|${dir}|${b}|${c}|${f}|${(game.flares||[]).length}|${(game.glowsticks||[]).length},${stick?.x},${stick?.y}|${(game.lamps||[]).length}|${m}|${flashes.length}|${lights}`;
+ return `${game.lightModel}|${game.turn}|${game.floor}|${p.x},${p.y}|${lantern}|${b}|${c}|${f}|${(game.flares||[]).length}|${(game.glowsticks||[]).length},${stick?.x},${stick?.y}|${(game.lamps||[]).length}|${m}|${flashes.length}|${lights}`;
 }
 const CACHE=new WeakMap();
 // How far the light sources reach and how bright, recomputed only when something that casts or blocks light changes.
@@ -169,13 +167,13 @@ function computeSources(game){
  for(const lamp of game.lamps||[])shine(lamp,LIGHT_TUNING.lampCore,LIGHT_TUNING.lampCore+LIGHT_TUNING.lampFade);
  for(const stick of game.glowsticks||[])shine(stick,LIGHT_TUNING.glowstickRadius,LIGHT_TUNING.glowstickRadius,undefined,LIGHT.dim);   // dim within its radius, never lit
  const p=game.player;
- // A flashlight: a cone either side of its direction, lit 3 and dim at 4; its holder shows (B7), on either side.
+ // An enemy's flashlight: a cone either side of its direction, lit 3 and dim at 4; its holder shows (B7).
  const beam=(holder,dir)=>{
   if(dir){const [dx,dy]=dir,len=Math.hypot(dx,dy)||1,cos=Math.cos(LIGHT_TUNING.flashlightHalfAngle*Math.PI/180)-1e-9;
    shine(holder,LIGHT_TUNING.flashlightCore,LIGHT_TUNING.flashlightCore+LIGHT_TUNING.flashlightFade,pt=>{const vx=pt.x-holder.x,vy=pt.y-holder.y,n=Math.hypot(vx,vy);return n>0&&(vx*dx+vy*dy)/(n*len)>=cos;});}
   raise(holder.x,holder.y,LIGHT.dim);
  };
- if(p?.flashlight)beam(p,flashlightDirection(game));
+ if(playerLightOn(p))shine(p,LIGHT_TUNING.lanternCore,LIGHT_TUNING.lanternCore+LIGHT_TUNING.lanternFade);   // its holder included
  for(const e of game.enemies||[])if(enemyFlashlightOn(game,e))beam(e,enemyFlashlightDirection(e));
  for(const f of muzzleFlashes(game))raise(f.x,f.y,LIGHT.dim);
  return L;

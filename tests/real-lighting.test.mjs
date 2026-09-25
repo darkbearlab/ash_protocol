@@ -39,7 +39,7 @@ test('the numbers the user set',()=>{
   assert.deepEqual([FLARE_TUNING.range,FLARE_TUNING.radius],[7,3],'a flare is thrown farther, its lit radius unchanged');
   assert.equal(terminalCost('glowstick'),5);assert.equal(BASE_SUPPLIES.glowsticks,2);assert.ok(CAPPED_ITEMS.includes('glowstick'));
   assert.equal(PREPARED_CATALOG.item.glowstick.resource,'glowsticks');assert.equal(PREPARED_CATALOG.item.glowstick.aim,'throw');
-  assert.equal(SAVE_VERSION,73);
+  assert.equal(SAVE_VERSION,74);
 });
 
 test('each source is lit in its core and one level darker per tile past it; the brightest wins, nothing stacks',()=>{
@@ -79,20 +79,29 @@ test('the black hides people, not tiles: next to you, only night vision, infrare
   const recon=arena({character:'recon'}),r=foe(recon,'rifleman',11,10);assert.ok(recon.visibleEnemies.includes(r));
 });
 
-test('dim shows people at −40 to hit; the flashlight lights a cone toward the lock, else the facing, and shows you',()=>{
+test('dim shows people at −40 to hit; the flashlight lights 2 all around you and shows you (3.182.0)',()=>{
   const g=arena(),p=g.player,e=foe(g,'rifleman',14,10);
   g.glowsticks=[{x:14,y:11}];g.reveal();
   assert.ok(g.visibleEnemies.includes(e));assert.equal(g.accuracy(p,e).darkPenalty,40);
-  g.glowsticks=[];const turn=g.turn;assert.ok(g.action('flashlight'));assert.equal(g.turn,turn,'free');assert.equal(p.flashlight,true);
-  assert.deepEqual([at(g,13,10),at(g,14,10),at(g,15,10)],[2,1,0],'facing east: lit 3, dim at 4');
-  assert.equal(at(g,12,11),2,'inside 45°');assert.equal(at(g,11,12),0,'outside it');assert.equal(at(g,10,13),0,'nothing behind or beside');
-  assert.equal(at(g,10,10),1,'the holder is dim: seen');
-  const south=foe(g,'rifleman',10,13,'south');g.target=south.id;g.reveal();
-  assert.equal(at(g,10,13),2,'locked, the beam turns to the target');assert.ok(g.visibleEnemies.includes(south));
-  assert.equal(g.sight(south,p),true,'and it sees you in turn');
+  g.glowsticks=[];e.hp=0;const turn=g.turn;assert.ok(g.action('flashlight'));assert.equal(g.turn,turn,'free');assert.equal(p.flashlight,true);
+  assert.deepEqual([at(g,10,10),at(g,12,10),at(g,13,10),at(g,14,10)],[2,2,1,0],'lit within 2 (you included), dim at 3');
+  assert.deepEqual([at(g,8,10),at(g,10,12),at(g,9,11),at(g,10,7)],[2,2,2,1],'the same every way: no direction to turn');
+  const near=foe(g,'rifleman',10,12,'near');assert.ok(g.visibleEnemies.includes(near));assert.equal(g.accuracy(p,near).darkPenalty,0);
+  assert.equal(g.sight(near,p),true,'and it sees you in turn');
   const back=Game.restore(g.serialize());assert.equal(back.player.flashlight,true,'kept in the save');
-  // Off again; that rifleman, alerted by the light, may be holding one of its own (3.181.0).
-  assert.ok(g.action('flashlight'));assert.equal(p.flashlight,false);assert.equal(at(g,10,13),enemyFlashlightOn(g,south)?1:0);
+});
+
+test('switched off, the flashlight burns to the end of the round: a look around always shows you to that round (3.182.0)',()=>{
+  const g=arena(),p=g.player,e=foe(g,'rifleman',14,10),seen=[];e.alert=true;
+  assert.ok(g.action('flashlight'));assert.ok(g.action('flashlight'),'off again at once, free');
+  assert.deepEqual([p.flashlight,p.lightLingers,at(g,11,10)],[false,true,2],'switched off, still burning');
+  const back=Game.restore(g.serialize());assert.equal(back.player.lightLingers,true,'kept in the save');assert.equal(lightAt(back,{x:11,y:10}),2);
+  Object.defineProperty(g,'enemyAct',{value:x=>seen.push(g.sight(x,p)),configurable:true});
+  assert.ok(g.action('wait'));assert.deepEqual(seen,[true],'the enemies of that round still see you');
+  assert.deepEqual([p.lightLingers,at(g,11,10),at(g,10,10)],[false,0,0],'then it is dark');
+  for(let i=0;i<3;i++)assert.ok(g.action('flashlight'));assert.deepEqual([p.flashlight,p.lightLingers],[true,false],'back on cancels the fade');
+  const raw=JSON.parse(g.serialize());raw.version=73;delete raw.data.player.lightLingers;assert.equal(Game.restore(JSON.stringify(raw)).player.lightLingers,false,'older saves carry no fading light');
+  raw.version=74;raw.data.player.lightLingers='yes';assert.equal(Game.restore(JSON.stringify(raw)),null);
 });
 
 test('a gun fired lights its tile, dim, through the next round, and a save agrees with the live game',()=>{
