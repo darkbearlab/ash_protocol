@@ -18,13 +18,13 @@
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
-| 餘燼突擊步槍 | Ember Assault Rifle | `weapons.rifle.name` |
-| 破門者霰彈槍 | Breacher Shotgun | `weapons.shotgun.name` |
-| 蜂群衝鋒槍 | Swarm SMG | `weapons.smg.name` |
-| 寂靜精準步槍 | Silence Marksman Rifle | `weapons.sniper.name` |
-| 極光電漿步槍 | Aurora Plasma Rifle | `weapons.plasma.name` |
-| 日蝕榴彈發射器 | Eclipse Grenade Launcher | `weapons.launcher.name` |
-| 堡壘輕機槍 | Bastion LMG | `weapons.lmg.name` |
+| 突擊步槍 | Assault Rifle | `weapons.rifle.name` |
+| 霰彈槍 | Shotgun | `weapons.shotgun.name` |
+| 衝鋒槍 | SMG | `weapons.smg.name` |
+| 精準步槍 | Marksman Rifle | `weapons.sniper.name` |
+| 電漿步槍 | Plasma Rifle | `weapons.plasma.name` |
+| 榴彈發射器 | Grenade Launcher | `weapons.launcher.name` |
+| 輕機槍 | LMG | `weapons.lmg.name` |
 | 震擊動力拳 | Shock Power Fist | `weapons.powerfist.name` |
 | 雷鳴爆彈槍 | Thunder Blast Gun | `weapons.thunder.name` |
 | 狂戰斧 | Berserker Axe | `weapons.axe.name` |
@@ -109,7 +109,7 @@
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
-| 現行混合 | Mixed (current) | `factions.legacy.name` |
+| 混合 | Mixed | `factions.legacy.name` |
 | 忠誠者 | Loyalist | `factions.loyalist.name` |
 | 叛軍 | Rebel | `factions.rebel.name` |
 | 蟲族 | Swarm | `factions.swarm.name` |
@@ -133,8 +133,8 @@
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
-| 壓制射擊 | Suppressive Fire | `skills.suppressive_fire.name` |
-| 下錨 | Anchor | `skills.anchor.name` |
+| 壓制射擊 | Suppression Fire | `skills.suppressive_fire.name` |
+| 下錨 | Anchor Down | `skills.anchor.name` |
 | 工坊 | Workshop | `skills.workshop.name` |
 | 預警 | Early Warning | `skills.early_warning.name` |
 | 訊號斷層 | Signal Break | `skills.signal_break.name` |
@@ -152,7 +152,7 @@
 | 抗毒 | Poison Resistance | `traits.poison_resistance.name` |
 | 戰術配給 | Tactical Supply | `traits.tactical_supply.name` |
 | 延伸點射 | Extended Burst | `traits.extended_burst.name` |
-| 難以治療 | Difficult Healing | `traits.difficult_healing.name` |
+| 難以治療 | Hard to Heal | `traits.difficult_healing.name` |
 | 攜行擴充 | Extended Carry | `traits.extended_carry.name` |
 | 夜視 | Night Vision | `traits.night_vision.name` |
 | 外骨骼 | Exoskeleton | `traits.exoskeleton.name` |

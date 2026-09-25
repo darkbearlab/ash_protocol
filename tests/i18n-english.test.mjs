@@ -24,7 +24,7 @@ test('an English run reads English',()=>{
  const out=JSON.parse(r.stdout.trim().split('\n').pop());
  assert.equal(out.language,'en');
  assert.equal(out.reload,'Reloaded 2 rounds.');
- assert.equal(out.rifle,'Ember Assault Rifle');
+ assert.equal(out.rifle,'Assault Rifle');   // 3.177.10: the user dropped the brand names
  assert.ok(out.texts.length>50,'the bots played');
  const chinese=out.texts.filter(text=>/[一-鿿]/.test(text)&&!/^Data decrypted: /.test(text));
  assert.deepEqual(chinese,[]);

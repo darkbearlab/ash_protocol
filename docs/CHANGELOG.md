@@ -1,10 +1,16 @@
 # 更新紀錄
 
-## 3.177.10 — 英文「待重新部署」；術語表重新產生；勝利語音維持與陣亡同一節奏（2026-09-25）
+## 3.177.10 — 武器拿掉品牌名與術語表定稿；英文「待重新部署」；勝利語音維持與陣亡同一節奏（2026-09-25）
 
 - 使用者先說獲勝時管制員的語音太長，想縮到 3/4；後來修正為「時長和失敗時一致，節奏相同即可」。勝利與陣亡本來就用同一套長度規則（一般台詞的 1.4 倍），所以維持不變、沒有另外縮短，並在 docs/STORY.md 寫明兩邊同一節奏。
 - 使用者：肅清審查的 "Redeployed after memory correction" 開頭是 Redeployed，讀起來像已經部署了，原意是記憶校正後才重新部署。英文改成 "To be redeployed after memory correction"，中文不變。
-- 術語表 docs/GLOSSARY.md 從現在的語言表重新產生，補上 3.167.0 之後新增的名字，共 218 個；另開審稿頁讓使用者逐條看。
+- 術語表 docs/GLOSSARY.md 從現在的語言表重新產生，補上 3.167.0 之後新增的名字，共 218 個；另開審稿頁讓使用者逐條看。新工具 `tools/glossary.mjs` 之後改名只要重跑一次。
+- 使用者審完術語表（201 個有決定）：
+  - 武器拿掉品牌名：突擊步槍、霰彈槍、衝鋒槍、精準步槍、電漿步槍、榴彈發射器、輕機槍（英文 Assault Rifle、Shotgun、SMG、Marksman Rifle、Plasma Rifle、Grenade Launcher、LMG）；
+  - 派系「混合」／Mixed；
+  - 英文技能 Suppression Fire、Anchor Down；
+  - 英文特性 Hard to Heal。
+  動力拳、雷鳴爆彈槍、浮游彈藥的名字還在討論；開發期的舊敵人擱置。
 - 「被釘住時加射擊迴避」改列待觀察（使用者）。
 - 1308 個測試通過。報告：qa/results/2026-09-25-claude-3.177.10-win-voice-glossary.md。
 

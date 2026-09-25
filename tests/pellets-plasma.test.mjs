@@ -84,7 +84,7 @@ test('貫穿 and 爆裂 come only on dropped plasma rifles, 15% each, and the or
 
 test('a two-round affix spends two a shot and will not fire on one',()=>{
  const {g,p}=lane(),slot=hold(g,PL,'burst'),e=foe(g,'raider',4,0,'e');g.target=e.id;g.rng=()=>.99;
- assert.equal(g.weapon.name,'爆裂・極光電漿步槍');assert.equal(g.weapon.min,Math.round(52*.85));
+ assert.equal(g.weapon.name,'爆裂・電漿步槍');assert.equal(g.weapon.min,Math.round(52*.85));
  assert.equal(g.action('fire'),true);assert.equal(p.ammo[slot],4);
  p.ammo[slot]=1;const turn=g.turn;assert.equal(g.action('fire'),false);assert.equal(g.turn,turn);assert.equal(g.refusal.cue,'reload_needed');assert.match(g.refusal.text,/彈匣不足 2 發/);   // 3.163.0: spoken, not logged
 });
@@ -136,7 +136,7 @@ test('the shotgun card shows what a pellet really does after armour and cover; �
 });
 
 test('速射: one battery fires three ordinary rounds at half piercing, and a volley that lands suppresses',()=>{
- const w=weaponStats(PL,'rapid');assert.deepEqual([w.name,w.min,w.max,w.pierce,w.burst,w.volleyCost,w.mag],['速射・極光電漿步槍',18,22,.5,3,1,6]);
+ const w=weaponStats(PL,'rapid');assert.deepEqual([w.name,w.min,w.max,w.pierce,w.burst,w.volleyCost,w.mag],['速射・電漿步槍',18,22,.5,3,1,6]);
  assert.deepEqual(AFFIXES.rapid.dropOnly,['plasma']);assert.ok(!affixAllowed(RIFLE,'rapid'));
  const {g,p}=lane(),slot=hold(g,PL,'rapid'),e=foe(g,'raider',3,0,'e');e.hp=e.maxHp=500;g.target=e.id;g.rng=()=>0;
  const shots=p.stats.shots,hp=e.hp;assert.equal(g.action('fire'),true);
