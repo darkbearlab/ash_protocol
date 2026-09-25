@@ -80,7 +80,8 @@ import {enemyGlyph,floorTraitNote} from './enemy-visuals.js';
 import {unitTree} from './behavior-tree.js';
 import {read,write,loadGame,saveGame,storage,profile,recordResult,TEST_MODE,exportBackup,previewBackup,restoreBackup,abandonRun,resetProgress,TAB_ID,claimTab,tabKey} from './storage.js';
 import {DECK_COLUMNS,DECK_LABELS,DECK_GLYPHS,deckPlacement,mirrorDeck,swapSlots,parseDeckLayout,DECK_GRID} from './deck-layout.js';
-import {createReplay,replayLog,stateHash,validReplay,recordReplay} from './replay.js';
+import {replayLog,stateHash,validReplay} from './replay.js';
+import {trackRun,persistRunLog,runLogFor,lastRunLog,runLogName} from './run-log.js';
 
 const $=s=>document.querySelector(s),audio=new AudioEngine();
 const savedGame=loadGame();
@@ -177,7 +178,7 @@ let saveWarned=false,saveWarningDue=false;
 // 3.150.0: the tab opened last owns the save; one that has been overtaken stops saving and says so.
 let tabLost=false;claimTab();
 addEventListener('storage',e=>{if(e.key!==tabKey()||!e.newValue||e.newValue===TAB_ID||tabLost)return;tabLost=true;modal(t('controller.otherTab'));});
-function persist(){if(tabLost)return false;const ok=saveGame(game);$('#save-warning').hidden=ok;if(!ok&&!saveWarned){saveWarned=true;saveWarningDue=true;}return ok;}
+function persist(){if(tabLost)return false;const ok=saveGame(game);persistRunLog(game);$('#save-warning').hidden=ok;if(!ok&&!saveWarned){saveWarned=true;saveWarningDue=true;}return ok;}
 function showSaveWarning(){saveWarningDue=false;modal(t('controller.saveFailed'));}
 // Every line of the run (latest 50), newest first; a new turn starts a new block.
 function showLog(){
@@ -287,6 +288,8 @@ function update(view=renderer.game) {
   updateAim(view);
   if(playback)return;
   if(view.floor!==previousFloor){previousFloor=view.floor;floorToast();}
+  // 3.186.0 (src/run-log.js): the run on screen is recorded, except simulations and test-mode replays.
+  if(!replay&&!isSimulation(game)&&game.status==='playing'&&(entered||resumable))trackRun(game);
   if(entered)persist();
   if(game.status!=='playing'&&lastStatus==='playing'){lastStatus=game.status;if(!replay)recordResult(game);if(kia)kia.resultPending=true;else endRun();}
   else if(entered&&isSimulation(game)&&game.status==='playing'&&!$('#modal').open&&promptDue(game,promptLog(game)))showRoomPrompt();
@@ -962,10 +965,10 @@ ${simulating?'':`${sec(t('settings.runSection'))}<button class="modal-button sec
 <p>${t('settings.languageNote')}<br>${t('settings.languageWip')}</p>
 ${sec(t('settings.saveSection'))}
 <div class="modal-row"><button class="modal-button secondary" data-modal="backupExport">${t('settings.fullBackup')}</button>${simulating?'':t('settings.restore')}</div>
+<div class="modal-row"><button class="modal-button secondary" data-modal="runLog" ${lastRunLog(game)?'':'disabled'}>${t('controller.runLog.download')}</button></div>
 ${read('ash-backup-before-restore')?t('settings.previousBackup'):''}
 ${simulating?t('settings.simBackup'):t('settings.backupBlock')}
 ${TEST_MODE?`${sec('測試：操作紀錄')}<div class="modal-row"><button class="modal-button secondary" data-modal="replayLoad">播放操作紀錄</button><button class="modal-button secondary" data-modal="replayFast">快速播放</button></div>
-<div class="modal-row"><button class="modal-button secondary" data-modal="recordStart" ${runIsLive()&&!simulating?'':'disabled'}>從現在開始記錄</button><button class="modal-button secondary" data-modal="recordDownload" ${recording?.game===game?'':'disabled'}>下載操作紀錄</button></div>
 <p>只在測試模式出現。操作紀錄來自 tools/text-play.mjs 或這裡的記錄；播放時畫面照常演出，每一步都和紀錄的狀態比對，不同就暫停。播放中不接受操作，左下角可以暫停或停止，停止後可以接手玩。</p>`:''}
 ${withRun?'':`${sec(t('settings.records'))}
 <button class="modal-button secondary" data-modal="journal">${t('settings.journal')}</button>`}
@@ -1020,7 +1023,14 @@ function showSettingsTab(id){const withRun=runIsLive()||isSimulation(game);if(!S
 // is still how you look at the map.
 // The results are the last part of a run's end (3.177.0, src/outro.js): the officer has already spoken, on the field and
 // on the dark screen. Opening them stops whatever of that is still playing; reopening them later is just the report.
-function showResult(){endOutro();titleFlow=true;if(isSimulation(game)){showSimulationResult();return;}const won=game.status==='won',abandoned=game.status==='abandoned',p=game.player,copy=resultCopy(game);modal(`<div class="eyebrow">${copy.eyebrow} / RUN ${game.seed}${game.realMode?' / REAL':''}</div><h2>${copy.title}</h2><p>${copy.body}</p><p>${game.missionSummary}</p>${purgeReportMarkup(game)}${resultStoriesMarkup(game,profile())}${isEndless(game)?`<div class="result-stats"><div><b>${pad(game.floor)}</b>${t('controller.result.depth')}</div><div><b>${pad(p.level)}</b>${t('controller.result.level')}</div><div><b>${p.kills}</b>${t('controller.result.kills')}</div></div>${endlessResult(p,abandoned)}<p>${t('controller.result.turns',{turn:game.turn})}</p>`:`<div class="result-stats"><div><b>${pad(game.deepestFloor)}</b>${t('controller.result.deepest')}</div><div><b>${p.kills}</b>${t('controller.result.kills')}</div><div><b>${game.turn}</b>${t('controller.result.turnCount')}</div></div>`}<p>${t('controller.result.protocolTotal',{v:game.realMode?`${t('controller.result.realProtocol',{v:protocolSettlement(game).base,v2:protocolSettlement(game).bonus})}`:`${t('controller.result.protocol',{earned:game.protocol.earned})}`,v2:profile().protocol.balance})}<br>${t('controller.result.protocolNote')}</p><div class="operator-identity result-identity">${portraitMarkup(p.portrait,game.status)}<p>${characterName(p.character)}<br>${t('controller.result.stats',{damage:p.stats.damage,grenades:p.stats.grenades,loreLength:p.lore.length})}</p></div><div class="modal-footer"><button class="modal-button secondary" data-modal="lastBattle">${t('controller.result.lastBattle')}</button>${game.status==='dead'?t('controller.result.deadButtons'):t('controller.result.redeploy')}</div>`);}
+// 3.186.0 (user request): the mode, the seed and the run's operation log (src/run-log.js), so the run can be replayed.
+function runRecordMarkup(g){
+  const log=runLogFor(g),difficulty=DIFFICULTY_OPTIONS.find(o=>o.curve===g.difficulty)?.name??g.difficulty;
+  const line=t('controller.result.record',{mission:MISSIONS[g.mission.id]?.name??g.mission.id,difficulty,real:g.realMode?t('controller.result.recordReal'):'',faction:factionDef(g.facilityFaction)?.name??g.facilityFaction,seed:g.seed,build:VERSION});
+  const note=!log?t('controller.runLog.none'):log.partial?t('controller.runLog.partial',{turn:log.partial}):'';
+  return `<p class="result-record">${escapeHTML(line)}${note?`<br>${escapeHTML(note)}`:''}</p>${log?`<div class="modal-row"><button class="modal-button secondary" data-modal="runLog">${t('controller.runLog.download')}</button></div>`:''}`;
+}
+function showResult(){endOutro();titleFlow=true;if(isSimulation(game)){showSimulationResult();return;}const won=game.status==='won',abandoned=game.status==='abandoned',p=game.player,copy=resultCopy(game);modal(`<div class="eyebrow">${copy.eyebrow} / RUN ${game.seed}${game.realMode?' / REAL':''}</div><h2>${copy.title}</h2><p>${copy.body}</p><p>${game.missionSummary}</p>${purgeReportMarkup(game)}${resultStoriesMarkup(game,profile())}${isEndless(game)?`<div class="result-stats"><div><b>${pad(game.floor)}</b>${t('controller.result.depth')}</div><div><b>${pad(p.level)}</b>${t('controller.result.level')}</div><div><b>${p.kills}</b>${t('controller.result.kills')}</div></div>${endlessResult(p,abandoned)}<p>${t('controller.result.turns',{turn:game.turn})}</p>`:`<div class="result-stats"><div><b>${pad(game.deepestFloor)}</b>${t('controller.result.deepest')}</div><div><b>${p.kills}</b>${t('controller.result.kills')}</div><div><b>${game.turn}</b>${t('controller.result.turnCount')}</div></div>`}<p>${t('controller.result.protocolTotal',{v:game.realMode?`${t('controller.result.realProtocol',{v:protocolSettlement(game).base,v2:protocolSettlement(game).bonus})}`:`${t('controller.result.protocol',{earned:game.protocol.earned})}`,v2:profile().protocol.balance})}<br>${t('controller.result.protocolNote')}</p>${runRecordMarkup(game)}<div class="operator-identity result-identity">${portraitMarkup(p.portrait,game.status)}<p>${characterName(p.character)}<br>${t('controller.result.stats',{damage:p.stats.damage,grenades:p.stats.grenades,loreLength:p.lore.length})}</p></div><div class="modal-footer"><button class="modal-button secondary" data-modal="lastBattle">${t('controller.result.lastBattle')}</button>${game.status==='dead'?t('controller.result.deadButtons'):t('controller.result.redeploy')}</div>`);}
 // Kill house sessions (docs/KILLHOUSE.md section 10). A simulation replaces the game on screen without abandoning or
 // saving the campaign; leaving puts the stashed campaign back exactly as it was.
 let simulationReturn=null;const simulationResults=new WeakMap();
@@ -1212,8 +1222,7 @@ document.addEventListener('click',e=>{
     case 'backupExport':try{downloadJSON(exportBackup(game),'ash-protocol-backup.json');notify(t('controller.backup.exported'));}catch(error){backupError(error);}break;
     case 'backupImport':$('#import-backup').click();break;
     case 'replayLoad':case 'replayFast':replayOptions={fast:b.dataset.modal==='replayFast'};$('#import-replay').click();break;
-    case 'recordStart':startRecording();settings();break;
-    case 'recordDownload':downloadRecording();break;
+    case 'runLog':{const log=lastRunLog(game);if(!log){notify(t('controller.runLog.none'));break;}downloadJSON(JSON.stringify(log),runLogName(log));notify(t('controller.runLog.saved',{n:log.ops.length}));break;}
     case 'backupPrevious':{const raw=read('ash-backup-before-restore');if(raw)downloadJSON(raw,'ash-protocol-before-restore.json');break;}
     case 'backupConfirm':applyBackup();break;case 'backupCancel':pendingBackup=null;settings();break;
     case 'export':exportSave();break;case 'import':$('#import-save').click();break;
@@ -1332,7 +1341,7 @@ document.addEventListener('keydown',e=>{
 // back through act() with the full presentation. Every step is checked against the hash in the log and the first
 // difference pauses the replay. The replayed run is not connected to the profile, and input is ignored while it plays
 // (a stray tap would change the run); the controls pause, resume or stop it, and after stopping you can play on.
-let replay=null,replayOptions={fast:false},replayResult=null,recording=null;
+let replay=null,replayOptions={fast:false},replayResult=null;
 const replayControls=document.createElement('div');replayControls.id='replay-controls';replayControls.hidden=true;
 Object.assign(replayControls.style,{position:'fixed',left:'8px',bottom:'8px',zIndex:60,display:'flex',gap:'6px'});
 replayControls.innerHTML='<button type="button" data-replay="toggle"></button><button type="button" data-replay="stop">■ 停止</button>';
@@ -1344,7 +1353,7 @@ function loadReplay(raw,{from=0,fast=false}={}){
   const start=replayLog(log,{until:Math.max(0,Math.min(Number(from)||0,log.ops.length))});
   if(start.mismatch)throw new Error(`第 ${start.mismatch.step} 步就與紀錄不同，無法播放。`);
   if(isSimulation(game))exitSimulation();
-  stopReplay(false);recording=null;replayResult=null;
+  stopReplay(false);replayResult=null;
   game=start.game;entered=true;resumable=false;playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();resetKia();cancelAim();lastStatus=game.status;previousFloor=game.floor;
   replay={log,index:start.step,fast,paused:false,mismatch:null,timer:setInterval(replayTick,50)};
   $('#modal').close();replayControls.hidden=false;update();replayBadge();floorToast();
@@ -1374,9 +1383,6 @@ function finishReplay(){
 function stopReplay(message=true){if(!replay)return;clearInterval(replay.timer);replay=null;replayControls.hidden=true;if(message)notify('已停止重播，可以從這裡接手操作。');}
 replayControls.addEventListener('click',e=>{const b=e.target.closest('[data-replay]');if(!b||!replay)return;if(b.dataset.replay==='stop')stopReplay();else{replay.paused=!replay.paused;replayBadge();}});
 for(const type of ['pointerdown','pointerup','click','keydown','touchstart'])window.addEventListener(type,e=>{if(replay&&!(e.target instanceof Element&&e.target.closest('#replay-controls'))){e.stopPropagation();if(e.cancelable&&type!=='touchstart')e.preventDefault();}},{capture:true,passive:false});
-// Recording starts from the run on screen as it is now; a new run or a loaded save ends it.
-function startRecording(){const made=createReplay(game,{tool:'browser'});recording={log:made.log,game,...recordReplay(game,made.log)};notify('開始記錄操作；到設定下載操作紀錄。');}
-function downloadRecording(){if(!recording||recording.game!==game){notify('目前沒有記錄中的任務。');return;}recording.flush();downloadJSON(JSON.stringify(recording.log),`ash-replay-${game.seed}-t${game.turn}.json`);notify(`已下載 ${recording.log.ops.length} 步的操作紀錄。`);}
 $('#import-replay').addEventListener('change',async e=>{
   const file=e.target.files[0];e.target.value='';if(!file)return;
   try{if(file.size>20000000)throw new Error('檔案超過 20 MB。');loadReplay(await file.text(),replayOptions);}
@@ -1386,9 +1392,9 @@ $('#import-replay').addEventListener('change',async e=>{
 // have the officer on duty say an event's line.
 if(TEST_MODE)globalThis.__ashComms={say:message=>sayComms(message),duty:id=>{dutyOverride=validDuty(id)?id:null;return dutyOverride;},event:(type,vars={})=>{const message=commsLine(dutySpeaker({game}),type,vars);if(message)sayComms(message);return message;}};
 if(TEST_MODE)globalThis.__ashReplay={load:(raw,options)=>loadReplay(typeof raw==='string'?raw:JSON.stringify(raw),options),
-  pause(){if(replay){replay.paused=true;replayBadge();}},resume(){if(replay){replay.paused=false;replayBadge();}},stop:()=>stopReplay(),record:startRecording,hash:()=>stateHash(game),
+  pause(){if(replay){replay.paused=true;replayBadge();}},resume(){if(replay){replay.paused=false;replayBadge();}},stop:()=>stopReplay(),hash:()=>stateHash(game),
   get state(){return replay?{index:replay.index,total:replay.log.ops.length,paused:replay.paused,fast:replay.fast,mismatch:replay.mismatch}:{done:replayResult};},
-  get recording(){return recording?.game===game?recording.log:null;}};
+  get recording(){return lastRunLog(game);}};   // 3.186.0: every run records itself (src/run-log.js)
 $('#import-save').addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
   try{if(file.size>1000000)throw new Error(t('controller.import.tooLarge'));const imported=Game.restore(await file.text());if(!imported)throw new Error(t('controller.import.incompatible'));const kept=write('ash-save-before-import',game.serialize());game=connectUnlocks(imported);entered=true;resumable=true;game.setCarryLevel(profile().upgrades.carrying);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();resetKia();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify(kept?t('controller.import.done'):t('controller.import.doneNoBackup')); }catch(error){modal(t('controller.import.failedTitle')+escapeHTML(error.message)+t('controller.import.failedClose'));}e.target.value='';
@@ -1399,7 +1405,7 @@ document.addEventListener('contextmenu',e=>{const target=e.target instanceof Ele
 document.addEventListener('touchmove',e=>{if(document.documentElement.classList.contains('scroll-locked')&&!(e.target instanceof Element&&e.target.closest('dialog')))e.preventDefault();},{passive:false});
 // No pinch zoom (3.98.1, user request): iOS Safari ignores user-scalable=no, so block the WebKit gesture events too.
 for(const type of ['gesturestart','gesturechange','gestureend'])document.addEventListener(type,e=>e.preventDefault(),{passive:false});
-window.addEventListener('pagehide',()=>{if(entered)saveGame(game);});update();showIntro();
+window.addEventListener('pagehide',()=>{if(entered){saveGame(game);persistRunLog(game);}});update();showIntro();
 // The title modal is open by now, so revealing the shell cannot flash the battle UI.
 document.body.classList.remove('booting');
 if('serviceWorker'in navigator)navigator.serviceWorker.register(new URL('../sw.js',import.meta.url)).catch(()=>{});

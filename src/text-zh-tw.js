@@ -757,6 +757,12 @@ export default Object.freeze({
  "controller.status.black":"全黑",
  "controller.flashlight.on":"打開手電筒",
  "controller.flashlight.off":"關閉手電筒",
+ "controller.result.record":"紀錄：{mission} · {difficulty}{real} · {faction} · 種子 {seed} · 版本 {build}",
+ "controller.result.recordReal":" · 真實模式",
+ "controller.runLog.download":"下載操作紀錄",
+ "controller.runLog.partial":"操作紀錄從第 {turn} 回合開始。",
+ "controller.runLog.none":"這一局沒有操作紀錄。",
+ "controller.runLog.saved":"已下載操作紀錄（{n} 步）。",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // 灰燼協定 // DAILY OPERATION",
  // deckLabels

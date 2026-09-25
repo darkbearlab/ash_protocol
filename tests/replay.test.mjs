@@ -7,6 +7,7 @@ import {execFileSync} from 'node:child_process';
 import {Game} from '../src/engine.js';
 import {REPLAY_FORMAT,textHash,stateHash,createReplay,startReplay,applyOp,makeOp,replayLog,recordReplay,validReplay} from '../src/replay.js';
 import {play} from '../tools/balance.mjs';
+import {bindUnlocks} from '../src/run-unlocks.js';
 
 // 3.124.0 (user request): one operation log reproduces a run in the text client and in the browser (docs/TEXT_PLAY.md).
 const read=async path=>(await readFile(new URL(path,import.meta.url),'utf8')).replace(/\r\n/g,'\n');
@@ -69,6 +70,14 @@ test('text client: new, commands, verify; the cache resumes and a stale cache fa
     await rm(`${file}.cache`);assert.match(run(file,'e'),/> e：/);assert.match(run('verify',file),/✓ 4 步全部相同/);
     assert.match(run(file,'help'),/go exit/);
   }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+// 3.186.0: the live run is bound to the player's profile; the replay to a copy of the run's own unlocks.
+test('recovering an operative body replays the same, and the replay grants nothing to the real profile',()=>{
+  const g=new Game(4242,[],0,'soldier','onyx','endless',{facilityFaction:'rebel'}),granted=[];g.floor=5;g.loadFloor();if(!g.encounteredCharacters.includes('bulwark'))g.encounteredCharacters.push('bulwark');g.operatorCorpse={x:g.player.x,y:g.player.y,character:'bulwark',recovered:false};
+  bindUnlocks(g,{profile:()=>({unlocks:{characters:[...g.unlockedCharacters],stories:[]}}),grant:id=>{granted.push(id);return true;}});
+  const {log}=createReplay(g,{}),recorder=recordReplay(g,log);assert.ok(g.recoverOperator());recorder.flush();assert.deepEqual(granted,['bulwark']);
+  const played=replayLog(log);assert.equal(played.mismatch,null);assert.equal(played.game.operatorCorpse.recovered,true);assert.deepEqual(granted,['bulwark'],'only the live run granted');
 });
 
 test('browser wiring: test mode only, played through act(), no profile writes, offline file list',async()=>{

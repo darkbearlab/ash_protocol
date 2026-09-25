@@ -9,6 +9,7 @@
 import {Game} from './game.js';
 import {SAVE_VERSION} from './data.js';
 import {VERSION} from './version.js';
+import {bindUnlocks} from './run-unlocks.js';
 
 export const REPLAY_FORMAT='ash-replay',REPLAY_VERSION=1;
 export const REPLAY_OPS=Object.freeze(['action','target','perk','recover']);
@@ -28,7 +29,13 @@ export const stateHash=game=>textHash(canonical(JSON.parse(game.serialize())));
 export function startReplay(start){
  const game=typeof start==='string'?Game.restore(start):null;
  if(!game)throw new Error('操作紀錄的起始存檔無法載入。');
- return game;
+ return sandboxUnlocks(game);
+}
+// 3.186.0: a replay stands a copy of the unlocks the run began with in for the player's profile, so recovering an
+// operative's body in endless plays back the same; nothing reaches the real profile.
+function sandboxUnlocks(g){
+ const p={unlocks:{characters:[...(g.unlockedCharacters||[])],stories:[...(g.unlockedStories||[])]}};
+ return bindUnlocks(g,{profile:()=>p,grant:id=>{if(!p.unlocks.characters.includes(id))p.unlocks.characters.push(id);return true;}});
 }
 export function createReplay(game,params={}){
  const start=game.serialize(),first=startReplay(start);

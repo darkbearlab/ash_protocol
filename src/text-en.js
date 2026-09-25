@@ -756,6 +756,12 @@ export default Object.freeze({
  "controller.status.black":"Black",
  "controller.flashlight.on":"Turn the flashlight on",
  "controller.flashlight.off":"Turn the flashlight off",
+ "controller.result.record":"Record: {mission} · {difficulty}{real} · {faction} · seed {seed} · build {build}",
+ "controller.result.recordReal":" · Real mode",
+ "controller.runLog.download":"Download run log",
+ "controller.runLog.partial":"The run log starts at turn {turn}.",
+ "controller.runLog.none":"No run log for this run.",
+ "controller.runLog.saved":"Run log downloaded ({n} steps).",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // DAILY OPERATION",
  // deckLabels

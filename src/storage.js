@@ -18,6 +18,11 @@ export const backupNamespace=TEST_MODE?'qa':'live';
 export function read(key){try{return localStorage.getItem(storageKey(key));}catch{storage.available=false;return null;}}
 // A later successful write clears an earlier failure (e.g. space was freed), unless a restore is still pending.
 export function write(key,value){try{localStorage.setItem(storageKey(key),value);if(!storage.recoveryPending)storage.available=true;return true;}catch{storage.available=false;return false;}}
+// 3.186.0: keys kept beside the save (the run log, src/run-log.js) that must never decide whether saving works, so a
+// failed read or write here leaves `storage.available` alone.
+export function readExtra(key){try{return localStorage.getItem(storageKey(key));}catch{return null;}}
+export function writeExtra(key,value){try{localStorage.setItem(storageKey(key),value);return true;}catch{return false;}}
+export function removeExtra(key){try{localStorage.removeItem(storageKey(key));}catch{}}
 // 3.150.0: a backup is written each time a save from an older version is loaded, and each is a whole save; kept
 // forever they would fill the browser's storage. Only the newest two stay.
 export function pruneSaveBackups(keep=2){
