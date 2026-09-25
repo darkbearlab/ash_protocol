@@ -5,6 +5,7 @@ import {hasEnemyTag,enemyDef} from './enemy-data.js';
 import {observeEnemy} from './callouts.js';
 import {ENEMY_TYPES} from './data.js';
 import {DIRECTIONS,distance,key} from './world.js';
+import {BLIND_TUNING} from './blind-fire.js';
 import {activeTrait,recordShot} from './traits.js';
 import {pinned,finishSuppression,rapidFireModifiers} from './suppression.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
@@ -46,7 +47,10 @@ function move({g,e,p,def,los,d}){
         const plan=los&&!(def.range===1&&d<=1)?combatStep(g,e,p,{range:band?Math.min(def.range,band[1]):def.range,min:band?band[0]:0,melee:def.range===1,peers:g.enemies.filter(b=>b.hp>0&&b.alert),hold:true}):null;
         // Walking closer would only make a too-close shot worse, so it stays where it is and fires from there.
         const tooClose=Boolean(band&&los&&d<band[0]);
-        const step=pinned(e)||plan?.hold?null:plan?.step||(tooClose?null:destination&&distance(e,destination)>0?g.nextStep(e,destination):null);if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}}
+        const step=pinned(e)||plan?.hold?null:plan?.step||(tooClose?null:destination&&distance(e,destination)>0?g.nextStep(e,destination):null);
+        // 3.180.0: the route stops short of a target's own tile, so walking into an unseen target next to it is caught here.
+        if(!step&&!los&&!pinned(e)&&destination&&key(destination)===key(p)&&distance(e,p)===1&&g.canCross(e,p)){attack({g,e,p,def,blind:true});return;}
+        if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}else if(!los&&key(step)===key(p)&&g.canCross(e,p))attack({g,e,p,def,blind:true});}
 
 }
 function reinforce({g,e,p}){
@@ -57,6 +61,12 @@ function reinforce({g,e,p}){
       }
 
 }
+// 3.180.0 (user): an enemy walking into someone it cannot see (the black) attacks all the same, at the blind −40 — for a
+// gun as a blind shot, which replaces the darkness and distance penalties, for claws and blades off the melee chance.
+function blindChance(ctx,roll){
+ const {e,blind}=ctx;if(!blind)return roll();
+ const before=e.blindShot;e.blindShot=BLIND_TUNING.penalty;try{return roll();}finally{if(before===undefined)delete e.blindShot;else e.blindShot=before;}
+}
 function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold'});const fired=def.range>1,rapid=fired&&activeTrait(e,'rapid_fire'),weapon=enemyWeapon(e),rounds=fired?weapon.rounds:1,hits=new Set();let firedRounds=0,poisonApplied=false;
  const totalDamage=def.expendable?def.damage:scaleEnemy(def.damage+floorDamageBonus(g.floor,g.difficultySpec),g.floor,'damage',g.difficultySpec),baseRounds=fired?(enemyDef(e)?.rounds||1):1;
  for(let n=0;n<rounds&&p.hp>0;n++){const before=p.hp,roundDamage=Math.max(1,Math.floor(totalDamage/baseRounds)+(n%baseRounds<totalDamage%baseRounds?1:0));firedRounds++;if(rapid&&n>=baseRounds)revealEnemyAffix(g,e,'suppressor');
@@ -64,7 +74,7 @@ function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold
         if(unitTree(e).fixedTile&&e.aim&&!g.shotClear(e,e.aim)){const edge=firstBarrierOnRay(g.barriers,e,e.aim);g.log(t('enemy-behavior.sniperBlocked'));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:edge?{x:edge.x,y:edge.y}:{...e.aim},damage:0});if(edge)g.damageProp(edge,roundDamage);}
         else if(unitTree(e).fixedTile&&distance(p,e.aim||p)>0){g.log(t('enemy-behavior.sniperHitsSpot'));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         else {
-          petCombat(g,p);if(fired&&lightingEffects(g,{...e,traits:(e.traits||[]).filter(t=>t.id!=='night_vision')},p).penalty>0)revealEnemyAffix(g,e,'night_vision');const chance=def.range>1?g.accuracy(e,p).chance:g.meleeAccuracy(e,p);
+          petCombat(g,p);if(fired&&lightingEffects(g,{...e,traits:(e.traits||[]).filter(t=>t.id!=='night_vision')},p).penalty>0)revealEnemyAffix(g,e,'night_vision');const chance=blindChance(ctx,()=>def.range>1?g.accuracy(e,p).chance:g.meleeAccuracy(e,p,97-(ctx.blind?BLIND_TUNING.penalty:0)));
           if(g.rng()*100<chance){if(def.venom){g.effects.push({type:'enemyShot',attackerType:e.type,style:'venom',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});poisonHit(g,e,p);}else{if(!poisonApplied)poisonApplied=poisonHit(g,e,p);if(p===g.player)g.damagePlayer(roundDamage,t('enemy-behavior.attackSource',{enemy:enemyName(e)}),e);else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}}
           else {g.log(t('enemy-behavior.miss',{enemy:enemyName(e),chance}),false,t('enemy-behavior.missReal',{enemy:enemyName(e)}));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         }

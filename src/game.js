@@ -1,5 +1,5 @@
 import {t,sentence} from './i18n.js';
-import {blindFire,blindReason,blindAim,silenced,forgetSeenAftermath} from './blind-fire.js';
+import {blindFire,blindReason,blindAim,silenced,forgetSeenAftermath,BLIND_TUNING} from './blind-fire.js';
 import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,recoverOperator,validRunUnlocks,floorCorpseNote} from './run-unlocks.js';
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
@@ -373,7 +373,8 @@ export class Game {
       const ally=this.activeAllies.find(a=>a.x===x&&a.y===y);
       if(pinned(p)&&!this.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))return this.fail(t('game.pinnedCannotMove'),'pinned');
       if(ally){if(skillActive(p,'anchor'))return this.fail(t('game.anchoredRelease'),'anchored');const reason=swapReason(this,ally);return !reason||this.fail(reason,'blocked');}
-      const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;if(!edgeBlocks(edge)&&this.bumpMeleeSlot()!==undefined&&this.visible(e)&&this.shotClear(p,e))return true;return this.fail(t('game.enemyBlocks'),'blocked');}return !skillActive(p,'anchor')||this.fail(t('game.anchoredRelease'),'anchored');
+      // 3.180.0 (user): walking into an enemy you cannot see (the black) swings at it all the same, at a blind −40 (strike).
+      const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;if(!edgeBlocks(edge)&&this.bumpMeleeSlot()!==undefined&&this.shotClear(p,e))return true;return this.fail(t('game.enemyBlocks'),'blocked');}return !skillActive(p,'anchor')||this.fail(t('game.anchoredRelease'),'anchored');
     }
     if(type==='recoverObjective')return this.nearbyObjectives.some(t=>t.id===arg)||this.fail(t('game.noObjectiveNear'));
     if(type==='openContainer')return this.nearbyContainers.some(c=>c.id===arg)||this.fail(t('game.noContainerNear'));
@@ -782,7 +783,8 @@ export class Game {
     return true;
   }
   strike(intent=null,slot=this.player.weapon) {
-    const p=this.player,w=this.weaponAt(slot),target=this.targeted;
+    // 3.180.0: a bump names its enemy, which may stand unseen; the swing then goes in blind (BLIND_TUNING, as a blind shot).
+    const p=this.player,w=this.weaponAt(slot),target=this.targeted||(intent?.id?this.enemies.find(e=>e.id===intent.id&&e.hp>0):undefined);
     if(!w.melee)return false;
     if(!intent&&(!target||distance(p,target)>1))return this.fail(t('game.meleeAdjacent'));
     const valid=target&&distance(p,target)<=1&&this.shotClear(p,target)&&(isBarrier(target)||this.canCross(p,target)),to=valid?target:intent;
@@ -790,7 +792,8 @@ export class Game {
     let landed=false,ambush=false;
     presentStep(this,()=>{
       ambush=!w.unarmed&&Boolean(valid)&&ambushReady(this,target);if(ambush&&!this.shadowBonus)shortenCamo(p);
-      const chance=this.meleeAccuracy(p,target,w.hitChance),hit=Boolean(valid)&&this.rng()*100<chance;
+      const blind=Boolean(valid)&&!isBarrier(target)&&!this.teamVisible(target);if(blind)this.log(t('game.blindMelee',{penalty:BLIND_TUNING.penalty}));
+      const chance=this.meleeAccuracy(p,target,w.hitChance-(blind?BLIND_TUNING.penalty:0)),hit=Boolean(valid)&&this.rng()*100<chance;
       this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:to.x,y:to.y},damage:0,miss:!hit});
       if(!hit){this.log(valid?t('game.meleeMiss',{chance}):t('game.meleeTargetLeft'),false,valid?t('game.meleeMissReal'):t('game.meleeTargetLeft'));return;}
       landed=true;

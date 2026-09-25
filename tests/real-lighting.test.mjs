@@ -12,6 +12,8 @@ import {PREPARED_CATALOG,CAPPED_ITEMS} from '../src/prepared.js';
 import {roomTiles} from '../src/map-geometry.js';
 import {SAVE_VERSION} from '../src/data.js';
 import {resumedFloor} from '../src/retreat.js';
+import {BLIND_TUNING} from '../src/blind-fire.js';
+import {grantTrait} from '../src/traits.js';
 
 // 3.178.0: real lighting, as the user decided on 2026-09-25 (docs/LIGHTING.md 真光照).
 const read=async path=>(await readFile(new URL(path,import.meta.url),'utf8')).replace(/\r\n/g,'\n');
@@ -158,6 +160,32 @@ test('a floor kept for the way back from before 3.178.0 stays on the old rule an
   const back=Game.restore(g.serialize());assert.ok(back,'the save still loads');
   assert.equal(back.floorStates[1].lamps,undefined);
   const resumed=resumedFloor(back.floorStates[1],back.turn);assert.deepEqual([resumed.lightModel,resumed.lamps,resumed.glowsticks],[undefined,undefined,[]]);
+});
+
+test('walking into someone you cannot see is a blind melee at −40, both ways (3.180.0)',()=>{
+  const miss=g=>{g.rng=Object.assign(()=>.99,{state:()=>0});return g;};
+  // The player: the move becomes a swing at the unseen rifleman, one turn, 40 below the usual chance.
+  const g=miss(arena()),p=g.player,e=foe(g,'rifleman',11,10),w=g.weaponAt(g.bumpMeleeSlot());
+  assert.equal(g.visibleEnemies.includes(e),false);
+  const expected=g.meleeAccuracy(p,e,w.hitChance-BLIND_TUNING.penalty),turn=g.turn;
+  assert.ok(g.action('move',[1,0]));assert.equal(g.turn,turn+1);assert.deepEqual([p.x,p.y],[10,10]);
+  assert.ok(g.logs.some(l=>l.text.includes('憑感覺出手')));assert.ok(g.logs.some(l=>l.text.includes(`（${expected}%）`)),'the miss names the blind chance');
+  // An enemy: heading for where it last saw you, its next step is your tile, so it attacks, 40 below its usual chance.
+  // A brute swings (melee off its melee chance); a gunner in the same spot takes a blind shot instead.
+  const h=miss(arena()),brute=makeEnemy('brute',11,10,'b',1,0);Object.assign(brute,{hp:300,maxHp:300,alert:true,lastKnown:{x:10,y:10}});
+  delete h.enemyAct;h.enemies.push(brute);h.reveal();assert.equal(h.sight(brute,h.player),false);
+  assert.ok(h.action('wait'));const chance=h.meleeAccuracy(brute,h.player,97-BLIND_TUNING.penalty);   // read after the wait, whose evasion counts
+  assert.ok(h.logs.some(l=>l.text.includes(`（${chance}%）`)),'it swung blind');assert.deepEqual([brute.x,brute.y],[11,10],'and did not walk through you');
+});
+
+test('an enemy the soldier has marked is one level brighter for the player: lockable in the black, dim counts as lit (3.180.0)',()=>{
+  const g=arena(),p=g.player,e=foe(g,'rifleman',13,10);
+  assert.equal(g.visibleEnemies.includes(e),false);
+  grantTrait(e,'exposed','skill:early_warning',3);g.reveal();
+  assert.ok(g.visibleEnemies.includes(e),'marked, it can be locked in the black');assert.equal(g.accuracy(p,e).darkPenalty,40,'at the dim penalty');
+  g.glowsticks=[{x:13,y:11}];assert.equal(g.accuracy(p,e).darkPenalty,0,'dim counts as lit');
+  const other=foe(g,'rifleman',13,12,'other');assert.equal(g.accuracy(p,other).darkPenalty,40,'an unmarked one keeps the penalty');
+  assert.equal(g.sight(e,p),false,'the mark shows it to you, not you to it');
 });
 
 test('the controls: a switch beside the aim switch, the L key, and throwing aims like a decoy',async()=>{

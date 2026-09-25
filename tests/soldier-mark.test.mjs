@@ -32,8 +32,8 @@ test('the two lines: 標定壓制 deepens damage, 標定弱化 blunts their aim,
  assert.equal(correctionLimit(p),3);assert.equal(CLASS_PERK_TUNING.braced,undefined);assert.ok(!PERKS.some(o=>o.id==='soldier_braced'));assert.ok(PERKS.some(o=>o.id==='soldier_hunter'&&o.characters.includes('soldier')));
 });
 test('the skill text carries the mark and still reads 掃描 N 格 … 冷卻 N 次',()=>{
- const g=arena(),p=g.player;assert.match(skillText(p,'early_warning'),/標定它們 1 回合：標定中你對它們命中 \+10、傷害 \+10%。/);assert.match(SKILLS.early_warning.text,/掃描 8 格.*冷卻 5 次/);
- p.perks.soldier_hunter=2;p.perks.soldier_marked=1;assert.match(skillText(p,'early_warning'),/標定它們 4 回合：標定中你對它們命中 \+10、傷害 \+30%、它們對你的命中 −6。/);
+ const g=arena(),p=g.player;assert.match(skillText(p,'early_warning'),/標定它們 1 回合：標定中你對它們命中 \+10、傷害 \+10%，而且對你來說它們所在處亮一階/);assert.match(SKILLS.early_warning.text,/掃描 8 格.*冷卻 5 次/);
+ p.perks.soldier_hunter=2;p.perks.soldier_marked=1;assert.match(skillText(p,'early_warning'),/標定它們 4 回合：標定中你對它們命中 \+10、傷害 \+30%、它們對你的命中 −6，而且對你來說它們所在處亮一階/);
 });
 test('a v68 save: 架槍精通 ranks become 標定壓制, a pending draft follows, a long fire chain is clamped',()=>{
  assert.equal(SAVE_VERSION,73);

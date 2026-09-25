@@ -181,13 +181,16 @@ export const seesInDark=(game,a)=>Boolean(activeTrait(a,'night_vision')||(newLig
 const mechanical=b=>Boolean(activeTrait(b,'mechanical')||enemyDef(b)?.mechanical);
 // B1, B5: someone standing in the black is hidden, even next to you, from an observer without night vision; infrared
 // still finds anything warm (not machines). Tiles themselves never hide: sight passes through the black.
+// 3.180.0 (user): an enemy the soldier's 預警 has marked counts one level brighter for the player — lockable in the black,
+// dim as lit.
+const markedFor=(game,observer,target)=>observer===game.player&&Boolean(activeTrait(target,'exposed'));
 export function hiddenInDark(game,observer,target){
  if(!newLighting(game)||!observer||!target||observer===target)return false;
- if(!isBlack(game,target)||seesInDark(game,observer))return false;
+ if(!isBlack(game,target)||seesInDark(game,observer)||markedFor(game,observer,target))return false;
  return !(activeTrait(observer,'infrared')&&!mechanical(target));
 }
 export function lightingEffects(game,attacker,target){
-  const level=lightAt(game,target),dark=level<LIGHT.lit,nightVision=seesInDark(game,attacker);
+  const level=Math.min(LIGHT.lit,lightAt(game,target)+(newLighting(game)&&markedFor(game,attacker,target)?1:0)),dark=level<LIGHT.lit,nightVision=seesInDark(game,attacker);
   return {dark,black:level===LIGHT.black,nightVision,penalty:dark&&!nightVision?DARK_PENALTY:0};
 }
 
