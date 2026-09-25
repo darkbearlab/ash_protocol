@@ -940,35 +940,41 @@ function bestiary(){const codexName=id=>enemyName({type:id,faction:game.facility
 // 3.157.0: gear a class starts with beyond medkits and throwables (the ninja's decoys, mines and lines), for the operator list.
 const startingKit=id=>{const s=startingSupplies(id),kit=Object.values(PREPARED_CATALOG.item).filter(e=>e.resource&&e.resource!=='meds'&&s[e.resource]>0);return kit.length?' · '+kit.map(e=>`${e.short} ×${s[e.resource]}`).join(t('controller.slash')):'';};
 function showHelp(){modal(`<div class="eyebrow">FIELD MANUAL / BUILD ${VERSION}</div><h2>${t('manual.title')}</h2><p>${t('manual.intro')}</p><div class="help-grid"><b>${t('manual.directionsTitle')}</b><span>${t('manual.directions')}</span><b>${t('manual.fireTitle')}</b><span>${t('manual.fire')}</span><b>${t('manual.classesTitle')}</b><span>${t('manual.classes')}</span>${['soldier','recon','engineer','bulwark','berserker','ninja'].map(id=>`<b>${CHARACTERS[id].label}</b><span>${t(`manual.class.${id}`,{allies:t('manual.alliesTitle'),range:GRAPPLE_RANGE,ambush:MELEE_TUNING.ambush})}</span>`).join('')}<b>${t('manual.alliesTitle')}</b><span>${t('manual.allies',{carry:CARRY_DISTANCE})}</span><b>${t('manual.doorsTitle')}</b><span>${t('manual.doors')}</span><b>${t('manual.coverTitle')}</b><span>${t('manual.cover')}</span><b>${t('manual.orderTitle')}</b><span>${t('manual.order')}</span><b>${t('manual.endlessTitle')}</b><span>${endlessRules()} ${levelCapRules()}</span><b>${t('manual.unlockTitle')}</b><span>${UNLOCK_HELP}</span><b>${t('manual.lightTitle')}</b><span>${t('manual.light')}</span><b>${t('manual.hitTitle')}</b><span>${t('manual.hit')}</span><b>${t('manual.grenadeTitle')}</b><span>${t('manual.grenade')}</span><b>${t('manual.bagTitle')}</b><span>${t('manual.bag',{packLimit:PACK_LIMIT})}</span><b>${t('manual.supplyTitle')}</b><span>${t('manual.supply',{credit:TERMINAL_TUNING.credit,lineRange:LINE_TUNING.range})}</span><b>${t('manual.pursuitTitle')}</b><span>${t('manual.pursuit')}</span><b>${t('manual.suppressTitle')}</b><span>${suppressionHelp()}</span><b>${t('manual.dangerTitle')}</b><span>${t('manual.danger')}</span><b>${t('manual.exitTitle')}</b><span>${t('manual.exit')}</span><b>${t('manual.saveTitle')}</b><span>${t('manual.save')}</span></div><button class="modal-button" data-modal="close">${t('manual.close')}</button>`,true);}
+// 3.183.0 (user, 2026-09-25): the settings sit in tabs — run (only in a run or a simulation, and where it opens there),
+// general (where it opens from the title menu), display, sound and controls. The last tab is remembered per context on
+// this device, never in a save.
+const SETTINGS_TABS=['run','general','display','sound','controls'];
+const settingsTabLabels=()=>({run:t('settings.tab.run'),general:t('settings.tab.general'),display:t('settings.tab.display'),sound:t('settings.tab.sound'),controls:t('settings.tab.controls')});
+const settingsTabKey=withRun=>withRun?'ash-settings-tab-run':'ash-settings-tab';
+function settingsTab(withRun){const saved=read(settingsTabKey(withRun));return SETTINGS_TABS.includes(saved)&&(withRun||saved!=='run')?saved:withRun?'run':'general';}
 function settings(){
   // 主選單進來只顯示全域設定；局內功能（指南、升級、簡介、放棄、重新部署）留在遊戲中的選單。
-  const simulating=isSimulation(game),inRun=runIsLive(),sec=label=>`<div class="eyebrow settings-section">${label}</div>`;
-  modal(`<div class="eyebrow">SYSTEM / BUILD ${VERSION}</div><h2>${inRun?t('settings.titleRun'):t('settings.titleSystem')}</h2>${inRun?runPerks():''}
-<p>${inRun?`${t('settings.runLine',{v:characterName(game.player.character),v2:simulating?simulationLabel(game):`${t('controller.settings.missionLine',{seed:game.seed,floor:game.floor})}`,turn:game.turn})}`:`${t('settings.protocol',{v:profile().protocol.balance})}`}<br>${simulating?t('settings.simNoSave'):storage.available?t('settings.saved'):t('settings.noStorage')}</p>
-${sec(t('settings.languageSection'))}
+  const simulating=isSimulation(game),inRun=runIsLive(),withRun=inRun||simulating,sec=label=>`<div class="eyebrow settings-section">${label}</div>`;
+  const tab=settingsTab(withRun),tabs=SETTINGS_TABS.filter(id=>withRun||id!=='run');
+  const panels={
+    run:()=>`${inRun?runPerks():''}
+${simulating?`${sec(t('settings.simSection'))}<button class="modal-button secondary" data-modal="mission">${t('settings.simBrief')}</button><button class="modal-button secondary" data-modal="khMenu">${t('settings.endSim')}</button>`:`<button class="modal-button secondary" data-modal="mission">${t('settings.briefing')}</button>`}
+${inRun?t('settings.inRunButtons'):''}
+<button class="modal-button secondary" data-modal="journal">${t('settings.journal')}</button>
+${simulating?'':`${sec(t('settings.runSection'))}<button class="modal-button secondary" data-modal="abandon" ${game.status!=='playing'?'disabled':''}>${t('settings.abandon')}</button><button class="modal-button secondary" data-modal="restart">${t('settings.redeploy')}</button>`}`,
+    general:()=>`${sec(t('settings.languageSection'))}
 <button class="modal-button secondary" data-modal="language" lang="en">${t('settings.languageLabel',{name:LANGUAGE_STATUS[language()]?`${LANGUAGE_NAMES[language()]} (${LANGUAGE_STATUS[language()]})`:LANGUAGE_NAMES[language()]})}</button>
 <p>${t('settings.languageNote')}<br>${t('settings.languageWip')}</p>
-${sec(t('settings.sound'))}
-<button class="modal-button secondary" data-modal="sound" aria-pressed="${audio.enabled}">${t('settings.soundLabel',{v:audio.enabled?t('controller.on'):t('controller.off')})}</button>
-<label class="boundary-opacity" for="music-volume">${t('settings.musicVolume')} <output id="music-volume-value" for="music-volume">${Math.round(audio.musicVolume*100)}%</output><input id="music-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.musicVolume*100)}"></label>
-<label class="boundary-opacity" for="sfx-volume">${t('settings.sfxVolume')} <output id="sfx-volume-value" for="sfx-volume">${Math.round(audio.sfxVolume*100)}%</output><input id="sfx-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.sfxVolume*100)}"></label>
-<p>${t('settings.music')}</p>
-<button class="modal-button secondary" data-modal="audioGrit" aria-pressed="${audio.grit!=='off'}">${t('settings.gritLabel',{v:GRIT_LABELS[audio.grit]})}</button>
-<p>${t('settings.grit')}</p>
-${sec(t('settings.display'))}
-${inRun?t('settings.inRunButtons'):''}
-<button class="modal-button secondary" data-modal="movementBoundaries" aria-pressed="${renderer.movementBoundaries}">${t('settings.boundsLabel',{v:renderer.movementBoundaries?t('controller.on'):t('controller.off')})}</button>
-<p>${t('settings.bounds')}</p>
-<label class="boundary-opacity" for="boundary-opacity">${t('settings.opacityLabel')} <output id="boundary-opacity-value" for="boundary-opacity">${renderer.boundaryOpacity}%</output><input id="boundary-opacity" type="range" min="0" max="100" step="5" value="${renderer.boundaryOpacity}" aria-describedby="boundary-opacity-help"></label>
-<p id="boundary-opacity-help">${t('settings.opacity')}</p>
-<button class="modal-button secondary" data-modal="skipPresentation" aria-pressed="${skipPresentation}">${t('settings.skipLabel',{v:skipPresentation?t('controller.on'):t('controller.off')})}</button>
-<p>${t('settings.skip')}</p>
-<button class="modal-button secondary" data-modal="autoRetarget" aria-pressed="${autoRetarget}">${t('settings.retargetLabel',{v:autoRetarget?t('controller.on'):t('controller.off')})}</button>
-<p>${t('settings.retarget')}</p>
+${sec(t('settings.saveSection'))}
+<div class="modal-row"><button class="modal-button secondary" data-modal="backupExport">${t('settings.fullBackup')}</button>${simulating?'':t('settings.restore')}</div>
+${read('ash-backup-before-restore')?t('settings.previousBackup'):''}
+${simulating?t('settings.simBackup'):t('settings.backupBlock')}
+${TEST_MODE?`${sec('測試：操作紀錄')}<div class="modal-row"><button class="modal-button secondary" data-modal="replayLoad">播放操作紀錄</button><button class="modal-button secondary" data-modal="replayFast">快速播放</button></div>
+<div class="modal-row"><button class="modal-button secondary" data-modal="recordStart" ${runIsLive()&&!simulating?'':'disabled'}>從現在開始記錄</button><button class="modal-button secondary" data-modal="recordDownload" ${recording?.game===game?'':'disabled'}>下載操作紀錄</button></div>
+<p>只在測試模式出現。操作紀錄來自 tools/text-play.mjs 或這裡的記錄；播放時畫面照常演出，每一步都和紀錄的狀態比對，不同就暫停。播放中不接受操作，左下角可以暫停或停止，停止後可以接手玩。</p>`:''}
+${withRun?'':`${sec(t('settings.records'))}
+<button class="modal-button secondary" data-modal="journal">${t('settings.journal')}</button>`}
+${simulating?'':`${sec(t('settings.dangerSection'))}
+<button class="modal-button secondary" data-modal="resetProgress">${t('settings.reset')}</button>`}`,
+    display:()=>`<label class="boundary-opacity" for="screen-brightness">${t('settings.brightnessLabel')} <output id="screen-brightness-value" for="screen-brightness">${screenBrightness}%</output><input id="screen-brightness" type="range" min="${SCREEN_BRIGHTNESS.min}" max="${SCREEN_BRIGHTNESS.max}" step="${SCREEN_BRIGHTNESS.step}" value="${screenBrightness}" aria-describedby="screen-brightness-help"></label>
+<p id="screen-brightness-help">${t('settings.brightness')}</p>
 <button class="modal-button secondary" data-modal="frameRate" aria-pressed="${renderer.frameRate!==60}">${t('settings.fpsLabel',{frameRate:renderer.frameRate})}</button>
 <p>${t('settings.fps')}</p>
-<label class="boundary-opacity" for="screen-brightness">${t('settings.brightnessLabel')} <output id="screen-brightness-value" for="screen-brightness">${screenBrightness}%</output><input id="screen-brightness" type="range" min="${SCREEN_BRIGHTNESS.min}" max="${SCREEN_BRIGHTNESS.max}" step="${SCREEN_BRIGHTNESS.step}" value="${screenBrightness}" aria-describedby="screen-brightness-help"></label>
-<p id="screen-brightness-help">${t('settings.brightness')}</p>
 <button class="modal-button secondary" data-modal="vhs" aria-pressed="${vhsFilter}">${t('settings.vhsLabel',{v:vhsFilter?t('controller.on'):t('controller.off')})}</button>
 <p>${t('settings.vhs')}</p>
 <button class="modal-button secondary" data-modal="shake" aria-pressed="${renderer.shakeEnabled}">${t('settings.shakeLabel',{v:renderer.shakeEnabled?t('controller.on'):t('controller.off')})}</button>
@@ -976,6 +982,17 @@ ${inRun?t('settings.inRunButtons'):''}
 <button class="modal-button secondary" data-modal="glitch" aria-pressed="${renderer.glitchEnabled}">${t('settings.glitchLabel',{v:renderer.glitchEnabled?t('controller.on'):t('controller.off')})}</button><button class="modal-button secondary" data-modal="gore">${t('settings.goreLabel',{v:GORE_LABELS[goreChoice]()})}${renderer.reduceMotion&&goreChoice==='full'?t('settings.goreReduced'):''}</button>
 <p>${t('settings.glitch')}</p>
 <p>${t('settings.motion')}</p>
+<button class="modal-button secondary" data-modal="movementBoundaries" aria-pressed="${renderer.movementBoundaries}">${t('settings.boundsLabel',{v:renderer.movementBoundaries?t('controller.on'):t('controller.off')})}</button>
+<p>${t('settings.bounds')}</p>
+<label class="boundary-opacity" for="boundary-opacity">${t('settings.opacityLabel')} <output id="boundary-opacity-value" for="boundary-opacity">${renderer.boundaryOpacity}%</output><input id="boundary-opacity" type="range" min="0" max="100" step="5" value="${renderer.boundaryOpacity}" aria-describedby="boundary-opacity-help"></label>
+<p id="boundary-opacity-help">${t('settings.opacity')}</p>`,
+    sound:()=>`<button class="modal-button secondary" data-modal="sound" aria-pressed="${audio.enabled}">${t('settings.soundLabel',{v:audio.enabled?t('controller.on'):t('controller.off')})}</button>
+<label class="boundary-opacity" for="music-volume">${t('settings.musicVolume')} <output id="music-volume-value" for="music-volume">${Math.round(audio.musicVolume*100)}%</output><input id="music-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.musicVolume*100)}"></label>
+<label class="boundary-opacity" for="sfx-volume">${t('settings.sfxVolume')} <output id="sfx-volume-value" for="sfx-volume">${Math.round(audio.sfxVolume*100)}%</output><input id="sfx-volume" type="range" min="0" max="100" step="5" value="${Math.round(audio.sfxVolume*100)}"></label>
+<p>${t('settings.music')}</p>
+<button class="modal-button secondary" data-modal="audioGrit" aria-pressed="${audio.grit!=='off'}">${t('settings.gritLabel',{v:GRIT_LABELS[audio.grit]})}</button>
+<p>${t('settings.grit')}</p>`,
+    controls:()=>`${sec(t('settings.layoutSection'))}
 <div class="modal-row"><button class="modal-button secondary" data-modal="padLayout">${t('settings.layoutLabel',{v:DECK_LAYOUT_LABELS[padLayout]})}</button><button class="modal-button secondary" data-modal="padCell" ${padLayout==='grid'?'disabled':''}>${t('settings.padLabel',{v:padLayout==='grid'?t('settings.padNotGrid'):`${t('settings.padSize',{v:PAD_LABELS[padCell],padCell})}`})}</button></div>
 <p>${t('settings.layout')}</p>
 <button class="modal-button secondary" data-modal="deckEditor" ${padLayout==='grid'?'':'disabled'}>${t('settings.editDeck',{v:padLayout==='grid'?'':t('settings.gridOnly')})}</button>
@@ -984,20 +1001,20 @@ ${sec(t('settings.keyboard'))}
 <p>${t('settings.hotkeys')}</p>
 <button class="modal-button secondary" data-modal="hotkeys">${t('settings.hotkeysButton')}</button>
 <p>${t('settings.keymapNote')}</p>
-${sec(t('settings.saveSection'))}
-<div class="modal-row"><button class="modal-button secondary" data-modal="backupExport">${t('settings.fullBackup')}</button>${simulating?'':t('settings.restore')}</div>
-${read('ash-backup-before-restore')?t('settings.previousBackup'):''}
-${simulating?t('settings.simBackup'):t('settings.backupBlock')}
-${TEST_MODE?`${sec('測試：操作紀錄')}<div class="modal-row"><button class="modal-button secondary" data-modal="replayLoad">播放操作紀錄</button><button class="modal-button secondary" data-modal="replayFast">快速播放</button></div>
-<div class="modal-row"><button class="modal-button secondary" data-modal="recordStart" ${runIsLive()&&!simulating?'':'disabled'}>從現在開始記錄</button><button class="modal-button secondary" data-modal="recordDownload" ${recording?.game===game?'':'disabled'}>下載操作紀錄</button></div>
-<p>只在測試模式出現。操作紀錄來自 tools/text-play.mjs 或這裡的記錄；播放時畫面照常演出，每一步都和紀錄的狀態比對，不同就暫停。播放中不接受操作，左下角可以暫停或停止，停止後可以接手玩。</p>`:''}
-${sec(t('settings.records'))}
-<button class="modal-button secondary" data-modal="journal">${t('settings.journal')}</button>
-${simulating?`${sec(t('settings.simSection'))}<button class="modal-button secondary" data-modal="mission">${t('settings.simBrief')}</button><button class="modal-button secondary" data-modal="khMenu">${t('settings.endSim')}</button>`:inRun?`${sec(t('settings.runSection'))}<button class="modal-button secondary" data-modal="mission">${t('settings.briefing')}</button><button class="modal-button secondary" data-modal="abandon" ${game.status!=='playing'?'disabled':''}>${t('settings.abandon')}</button><button class="modal-button secondary" data-modal="restart">${t('settings.redeploy')}</button>`:''}
-${simulating?'':`${sec(t('settings.dangerSection'))}
-<button class="modal-button secondary" data-modal="resetProgress">${t('settings.reset')}</button>`}
+${sec(t('settings.assist'))}
+<button class="modal-button secondary" data-modal="skipPresentation" aria-pressed="${skipPresentation}">${t('settings.skipLabel',{v:skipPresentation?t('controller.on'):t('controller.off')})}</button>
+<p>${t('settings.skip')}</p>
+<button class="modal-button secondary" data-modal="autoRetarget" aria-pressed="${autoRetarget}">${t('settings.retargetLabel',{v:autoRetarget?t('controller.on'):t('controller.off')})}</button>
+<p>${t('settings.retarget')}</p>`,
+  };
+  modal(`<div class="eyebrow">SYSTEM / BUILD ${VERSION}</div><h2>${inRun?t('settings.titleRun'):t('settings.titleSystem')}</h2>
+<p>${inRun?`${t('settings.runLine',{v:characterName(game.player.character),v2:simulating?simulationLabel(game):`${t('controller.settings.missionLine',{seed:game.seed,floor:game.floor})}`,turn:game.turn})}`:`${t('settings.protocol',{v:profile().protocol.balance})}`}<br>${simulating?t('settings.simNoSave'):storage.available?t('settings.saved'):t('settings.noStorage')}</p>
+<div class="inventory-tabs settings-tabs" role="tablist" aria-label="${t('settings.tabs')}" style="--tabs:${tabs.length}">${tabs.map(id=>`<button id="settings-tab-${id}" role="tab" aria-controls="settings-panel" aria-selected="${id===tab}" tabindex="${id===tab?0:-1}" data-settings-tab="${id}">${settingsTabLabels()[id]}</button>`).join('')}</div>
+<section id="settings-panel" class="settings-panel" role="tabpanel" aria-labelledby="settings-tab-${tab}" tabindex="0">${panels[tab]()}</section>
 <button class="modal-button" data-modal="close">${inRun?simulating?t('settings.continueSim'):t('settings.continueRun'):t('controller.backToTitle')}</button>`);
 }
+// A tab button, or ←/→/Home/End on one: remember the tab for this context and redraw.
+function showSettingsTab(id){const withRun=runIsLive()||isSimulation(game);if(!SETTINGS_TABS.includes(id)||(!withRun&&id==='run'))return;write(settingsTabKey(withRun),id);settings();$(`[data-settings-tab="${id}"]`)?.focus({preventScroll:true});}
 // The result sheet reports on a run that is over, so it belongs to the title flow as well (3.98.1, user request):
 // full screen and back up at the top, not a bottom sheet with the finished battle showing above it. 查看最後戰場
 // is still how you look at the map.
@@ -1104,6 +1121,7 @@ document.addEventListener('click',e=>{
   // 3.117.0: pressing a button in a menu is heard (the adopted select sound); the battle controls have their own sounds.
   if(b.closest('#modal'))audio.play('select');
   if(b.dataset.packInfo){const desc=document.getElementById('pack-desc-'+b.dataset.packInfo);if(desc){desc.hidden=!desc.hidden;b.setAttribute('aria-expanded',String(!desc.hidden));}return;}
+  if(b.dataset.settingsTab){showSettingsTab(b.dataset.settingsTab);return;}
   if(b.dataset.inventoryTab){showInventory(b.dataset.inventoryTab);$(`[data-inventory-tab="${inventoryTab}"]`).focus({preventScroll:true});return;}
   if(b.dataset.useItem){const id=b.dataset.useItem,entry=PREPARED_CATALOG.item[id],reason=itemUseReason(game,id);
     if(reason){showInventory('item',reason+t('controller.period'));return;}
@@ -1292,6 +1310,10 @@ document.addEventListener('keydown',e=>{
   // Waiting for a new key in the hotkey settings (3.121.0): the next key press is the binding, whatever it is.
   if(hotkeyCapture&&$('#modal').open){captureHotkey(e);return;}
   hotkeyCapture=null;
+  if(!playback&&!orientationBlocked&&e.target.matches?.('[data-settings-tab]')&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
+    e.preventDefault();const ids=[...document.querySelectorAll('[data-settings-tab]')].map(b=>b.dataset.settingsTab),i=ids.indexOf(e.target.dataset.settingsTab),next=e.key==='Home'?0:e.key==='End'?ids.length-1:(i+(e.key==='ArrowRight'?1:-1)+ids.length)%ids.length;
+    showSettingsTab(ids[next]);return;
+  }
   if(!playback&&!orientationBlocked&&e.target.matches?.('[data-inventory-tab]')&&['ArrowLeft','ArrowRight','Home','End'].includes(e.key)){
     e.preventDefault();const ids=Object.keys(INVENTORY_TABS),i=ids.indexOf(inventoryTab),next=e.key==='Home'?0:e.key==='End'?ids.length-1:(i+(e.key==='ArrowRight'?1:-1)+ids.length)%ids.length;
     showInventory(ids[next]);$(`[data-inventory-tab="${inventoryTab}"]`).focus({preventScroll:true});return;

@@ -360,6 +360,8 @@ dialog .modal-footer .modal-button{margin-top:0}
 @media(prefers-reduced-motion:reduce){.control-deck .action.pressing{animation:none;background-size:100% 100%}}
 dialog .pack-resources{padding:4px 0 8px;gap:8px}
 dialog .inventory-tabs{margin:6px 0 8px}
+/* 3.183.0: the settings tabs — four from the title menu, five in a run. */
+.inventory-tabs.settings-tabs{grid-template-columns:repeat(var(--tabs,5),minmax(0,1fr))}
 .pack-hint{margin:0 0 6px!important;font-size:11px!important;line-height:1.5!important;color:#9fae95}
 .pack-message{margin:0 0 6px!important;font-size:11px!important;line-height:1.5!important;color:#e8ce98!important}
 .pack-rows{display:flex;flex-direction:column;gap:4px}
