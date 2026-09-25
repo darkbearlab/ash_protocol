@@ -2,7 +2,8 @@ import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {Game,SIZE,makeEnemy,generate} from '../src/engine.js';
+import {Game,SIZE,makeEnemy,generate,createKillhouse} from '../src/engine.js';
+import {killhouseMap} from '../src/killhouse-maps.js';
 import {makeBarrier} from '../src/barriers.js';
 import {LIGHT,LIGHT_MODEL,LIGHT_TUNING,lightAt,isDark,isBlack,hiddenInDark,seesInDark,recordGunFlashes,placeLamps,ENEMY_FLASHLIGHT,carriesFlashlight,enemyFlashlightOn} from '../src/lighting.js';
 import {FLARE_TUNING} from '../src/flares.js';
@@ -224,6 +225,16 @@ test('machines find the living in the black, as infrared does; the player still 
   assert.equal(g.sight(d,p),true);assert.equal(g.visibleEnemies.includes(d),false);
   const legacy=arena();legacy.lightModel=undefined;legacy.lamps=undefined;const e=foe(legacy,'enforcer',14,10);Object.assign(e,{alert:true,lastKnown:{x:10,y:10}});
   assert.equal(enemyFlashlightOn(legacy,e),false,'no enemy flashlights on floors from before real lighting');
+});
+
+test('the kill house is on real lighting too: the combat map keeps its unpowered rooms and gets their lamps (3.184.0)',()=>{
+  for(const phase of ['combat','tutorial','armory']){
+    const m=killhouseMap(7,phase,'soldier',{armory:'all'});assert.equal(m.lightModel,LIGHT_MODEL,phase);
+    const unpowered=m.grid.flatMap((row,y)=>row.map((v,x)=>v===1&&m.lighting[y][x]===0)).filter(Boolean).length;
+    assert.equal(m.lamps.length>0,unpowered>0,`${phase}: lamps exactly where there are unpowered rooms`);
+  }
+  const g=createKillhouse({mode:'arcade',seed:7,character:'soldier'});g.floor=2;g.simulation.phase='combat';g.loadFloor();g.reveal();
+  assert.ok(g.grid.some((row,y)=>row.some((v,x)=>v===1&&isBlack(g,{x,y}))),'the black is there to practise in');
 });
 
 test('the controls: a switch beside the aim switch, the L key, and throwing aims like a decoy',async()=>{

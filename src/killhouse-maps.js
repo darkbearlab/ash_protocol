@@ -10,7 +10,7 @@ import {roomInterface} from './map-openings.js';
 import {buildModule} from './map-slots.js';
 import {isBossClass,hasEnemyTag} from './enemy-data.js';
 import {makeBarrier} from './barriers.js';
-import {fullLighting} from './lighting.js';
+import {fullLighting,placeLamps} from './lighting.js';
 // Explicit, isolated recipe pool. It never enters campaign recipe selection or consumes its RNG.
 export const KILLHOUSE_GENERATION={floor:4};
 export const KILLHOUSE_RECIPES={tutorial:{id:'killhouse-tutorial',name:'六區訓練',theme:'security',layout:[['A','A','B'],['D','C','B'],['D','E','F']],openings:{default:[1,1]},doorRatio:0},arcade:MAP_RECIPES};
@@ -51,8 +51,12 @@ export function armoryWeapons(character,selection='all'){
  const owned=CHARACTERS[character].weapons,classes=new Set(owned.map(i=>WEAPONS[i].weaponClass));
  return WEAPONS.flatMap((w,i)=>(!w.locked&&(selection==='all'||classes.has(w.weaponClass)))?[i]:[]);
 }
+// 3.184.0 (user): every simulation map is on real lighting, like a campaign floor (docs/LIGHTING.md). The combat map keeps
+// the campaign's unpowered rooms and gets their wall lamps the same way; the tutorial and the armory are fully powered.
 export function killhouseMap(seed,phase,character,options){
- if(phase==='combat')return arcadeMap(seed);if(phase==='tutorial')return tutorialMap();
+ return placeLamps(phase==='combat'?arcadeMap(seed):phase==='tutorial'?tutorialMap():armoryMap(character,options),seed,KILLHOUSE_GENERATION.floor);
+}
+function armoryMap(character,options){
  const r={id:0,x:10,y:10,w:7,h:7,cx:13,cy:13},grid=Array.from({length:SIZE},()=>Array(SIZE).fill(0)),items=[],cells=[];
  for(let y=10;y<=16;y++)for(let x=10;x<=16;x++){grid[y][x]=1;if(y!==13&&x!==13)cells.push({x,y});}
  for(const weapon of armoryWeapons(character,options.armory))items.push({...cells.shift(),type:'weapon',weapon});
