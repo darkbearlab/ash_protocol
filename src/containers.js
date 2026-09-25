@@ -14,7 +14,7 @@ export const CONTAINER_KINDS={
   // 3.146.0 (src/vault.js): behind the locked door, one item from the high-rarity list.
   vault:{name:t('containerKinds.vault.name'),color:'#e8c95a',symbol:'◆'},
 };
-export const FIELD_ITEMS=['spray','adrenaline','barricade','flare','decoy','mine'];   // decoy, mine: 3.144.0
+export const FIELD_ITEMS=['spray','adrenaline','barricade','flare','decoy','mine','glowstick'];   // decoy, mine: 3.144.0; glowstick: 3.178.0
 const types=new Set(['ammo','pistol','shell','energy','ordnance','grenade','emp','stun','smoke','med','armor','scrap','nvg',...FIELD_ITEMS]);   // nvg: 3.135.0, found in unidentified crates
 export const isContainer=o=>o?.type==='container';
 // Rigged cases (3.100.0, user request): rebel floors leave booby-trapped cases among the real ones. A normal case is

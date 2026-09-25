@@ -106,6 +106,9 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 
 .loadout-bar [data-action="toggleTargeting"]{min-width:52px;padding:0 5px}
 .loadout-bar [data-action="toggleTargeting"][aria-pressed="true"]{border-color:#96cbb7;color:#d0eee1}
+/* 3.178.0: the flashlight switch, an icon only; warm when on. */
+.loadout-bar [data-action="flashlight"]{min-width:40px;padding:0 4px;font-size:15px}
+.loadout-bar [data-action="flashlight"][aria-pressed="true"]{border-color:#e7cf8a;color:#fff0bf;background:#4a4424}
 .loadout-bar .enemy-alert{animation:target-alert 1s ease-in-out infinite}
 @keyframes target-alert{0%,100%{background:#293323;color:#c4d1b3}50%{background:#b46935;color:#fff0cf;border-color:#ffcb80}}
 @media(prefers-reduced-motion:reduce){.loadout-bar .enemy-alert{animation:none;background:#87532b;color:#fff0cf;border-color:#ffcb80}}

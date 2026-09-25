@@ -1,7 +1,7 @@
 import {t} from './i18n.js';
 import {grantTrait} from './traits.js';
 import {PACK_LIMIT,PLATE_CAPACITY} from './data.js';
-export const BASE_SUPPLIES={meds:2,grenades:2,smoke:0,emp:0,stun:0,pistol:24,reserve:48,shell:12,energy:18,ordnance:4};
+export const BASE_SUPPLIES={meds:2,grenades:2,smoke:0,emp:0,stun:0,pistol:24,reserve:48,shell:12,energy:18,ordnance:4,glowsticks:2};   // glowsticks: 3.178.0
 const defaults={hp:100,armor:0,plates:0,weaponCapacity:PACK_LIMIT,plateCapacity:PLATE_CAPACITY};
 // Stable IDs. Starter characters are free; no profile currency is spent.
 export const CHARACTERS={

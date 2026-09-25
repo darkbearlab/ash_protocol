@@ -17,6 +17,7 @@ export const HOTKEY_ACTIONS=Object.freeze([
  {id:'interact',group:t('hotkeyActions.interact.group'),label:t('hotkeyActions.interact.label'),defaults:['e']},
  {id:'cycleTarget',group:t('hotkeyActions.cycleTarget.group'),label:t('hotkeyActions.cycleTarget.label'),defaults:['Tab']},
  {id:'toggleTargeting',group:t('hotkeyActions.toggleTargeting.group'),label:t('hotkeyActions.toggleTargeting.label'),defaults:['q']},
+ {id:'flashlight',group:t('hotkeyActions.flashlight.group'),label:t('hotkeyActions.flashlight.label'),defaults:['l']},   // 3.178.0
  {id:'bag',group:t('hotkeyActions.bag.group'),label:t('hotkeyActions.bag.label'),defaults:['b']},
  {id:'weapons',group:t('hotkeyActions.weapons.group'),label:t('hotkeyActions.weapons.label'),defaults:['i']},
  {id:'map',group:t('hotkeyActions.map.group'),label:t('hotkeyActions.map.label'),defaults:['m']},
@@ -30,7 +31,7 @@ export const HOTKEY_BUTTONS=Object.freeze({
  '[data-move="0,-1"]':'moveUp','[data-move="-1,0"]':'moveLeft','[data-move="0,1"]':'moveDown','[data-move="1,0"]':'moveRight',
  '[data-action="wait"]':'wait','[data-action="fire"]':'fire','[data-action="reload"]':'reload','[data-action="grenade"]':'grenade',
  '[data-action="item"]':'item','[data-action="skill"]':'skill','[data-action="interact"]':'interact',
- '[data-action="cycleTarget"]':'cycleTarget','[data-action="toggleTargeting"]':'toggleTargeting','[data-action="bag"]':'bag','[data-action="weapons"]':'weapons',
+ '[data-action="cycleTarget"]':'cycleTarget','[data-action="toggleTargeting"]':'toggleTargeting','[data-action="flashlight"]':'flashlight','[data-action="bag"]':'bag','[data-action="weapons"]':'weapons',
  '[data-action="map"]':'map','[data-action="center"]':'center','[data-action="zoomIn"]':'zoomIn','[data-action="zoomOut"]':'zoomOut',
  '[data-action="settings"]':'menu',
 });

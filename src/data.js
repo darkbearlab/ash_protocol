@@ -7,7 +7,7 @@ export const SIZE = 27;
 // blasts cross it. seeThrough is what a line of sight may pass over or end on.
 export const VOID = 2;
 export const seeThrough = v => v === 1 || v === VOID;
-export const SAVE_VERSION = 72;   // 72 (3.177.2): a vault closet's walls are sealed (src/vault.js); 71 (3.169.0): the run keeps its comms duty officer (src/duty.js)
+export const SAVE_VERSION = 73;   // 73 (3.178.0): real lighting — lamps, glowsticks, the flashlight (src/lighting.js); 72 (3.177.2): a vault closet's walls are sealed (src/vault.js); 71 (3.169.0): the run keeps its comms duty officer (src/duty.js)
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -150,7 +150,7 @@ export const PERKS = [
   {id:'ninja_ambush',name:t('perks.ninja_ambush.name'),characters:['ninja'],cap:3,effect:'passive',text:t('perks.ninja_ambush.text')},
   {id:'ninja_overload',name:t('perks.ninja_overload.name'),characters:['ninja'],cap:3,effect:'passive',text:t('perks.ninja_overload.text')},
 ];
-export const SUPPLY_NAMES = {ammo:t('supplyNames.ammo'),pistol:t('supplyNames.pistol'),shell:t('supplyNames.shell'),energy:t('supplyNames.energy'),ordnance:t('supplyNames.ordnance'),med:t('supplyNames.med'),armor:t('supplyNames.armor'),grenade:t('supplyNames.grenade'),smoke:t('supplyNames.smoke'),emp:t('supplyNames.emp'),stun:t('supplyNames.stun'),scrap:t('supplyNames.scrap'),weapon:t('supplyNames.weapon'),lore:t('supplyNames.lore'),spray:t('supplyNames.spray'),adrenaline:t('supplyNames.adrenaline'),barricade:t('supplyNames.barricade'),flare:t('supplyNames.flare'),nvg:t('supplyNames.nvg'),escape_line:t('supplyNames.escape_line'),redeploy_line:t('supplyNames.redeploy_line'),decoy:t('supplyNames.decoy'),mine:t('supplyNames.mine'),exo:t('supplyNames.exo'),key:t('supplyNames.key'),irg:t('supplyNames.irg')};
+export const SUPPLY_NAMES = {ammo:t('supplyNames.ammo'),pistol:t('supplyNames.pistol'),shell:t('supplyNames.shell'),energy:t('supplyNames.energy'),ordnance:t('supplyNames.ordnance'),med:t('supplyNames.med'),armor:t('supplyNames.armor'),grenade:t('supplyNames.grenade'),smoke:t('supplyNames.smoke'),emp:t('supplyNames.emp'),stun:t('supplyNames.stun'),scrap:t('supplyNames.scrap'),weapon:t('supplyNames.weapon'),lore:t('supplyNames.lore'),spray:t('supplyNames.spray'),adrenaline:t('supplyNames.adrenaline'),barricade:t('supplyNames.barricade'),flare:t('supplyNames.flare'),nvg:t('supplyNames.nvg'),escape_line:t('supplyNames.escape_line'),redeploy_line:t('supplyNames.redeploy_line'),decoy:t('supplyNames.decoy'),mine:t('supplyNames.mine'),glowstick:t('supplyNames.glowstick'),exo:t('supplyNames.exo'),key:t('supplyNames.key'),irg:t('supplyNames.irg')};
 PERKS.push({id:'ammo_recovery',name:t('perks.ammo_recovery.name'),cap:3,effect:'passive',text:t('perks.ammo_recovery.text')});
 export const LORE = STORIES.map(s=>s.body);
 

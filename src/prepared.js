@@ -28,6 +28,8 @@ export const PREPARED_CATALOG={
    // 3.144.0 (user decisions 2026-09-19, src/field-gear.js, docs/ITEMS.md): a decoy thrown like a flare, a mine laid
    // within three tiles, and the exoskeleton, a wearable with plates of its own.
    decoy:{name:t('preparedCatalog.item.decoy.name'),short:t('preparedCatalog.item.decoy.short'),icon:'◎',resource:'decoys',action:'decoy',aim:'throw',text:t('preparedCatalog.item.decoy.text')},
+   // 3.178.0 (docs/LIGHTING.md): the glowstick, thrown like the decoy; it keeps a small patch dim for good.
+   glowstick:{name:t('preparedCatalog.item.glowstick.name'),short:t('preparedCatalog.item.glowstick.short'),icon:'⌇',resource:'glowsticks',action:'glowstick',aim:'throw',text:t('preparedCatalog.item.glowstick.text')},
    mine:{name:t('preparedCatalog.item.mine.name'),short:t('preparedCatalog.item.mine.short'),icon:'✱',resource:'mines',action:'mine',aim:'throw',text:t('preparedCatalog.item.mine.text')},
    exo:{name:t('preparedCatalog.item.exo.name'),short:t('preparedCatalog.item.exo.short'),icon:'⛨',wear:true,traits:['exoskeleton'],text:t('preparedCatalog.item.exo.text')}},
   skill:SKILLS,
@@ -36,7 +38,7 @@ export const PREPARED_CATALOG={
 // ammunition by half again, the shared throwable pouch by two, each item by two. Grapple lines are rare enough to go
 // uncapped, and goggles are worn, not stocked.
 export const CARRY_TUNING=Object.freeze({items:5,itemBonus:2,ammoBonus:1.5,throwBonus:2});
-export const CAPPED_ITEMS=Object.freeze(['medkit','spray','adrenaline','barricade','flare','decoy','mine']);
+export const CAPPED_ITEMS=Object.freeze(['medkit','spray','adrenaline','barricade','flare','decoy','mine','glowstick']);
 export const itemGroundType=id=>id==='medkit'?'med':id;
 export const groundItemId=type=>type==='med'?'medkit':type;
 export const itemCapacity=player=>CARRY_TUNING.items+(activeTrait(player,'extended_carry')?CARRY_TUNING.itemBonus:0);

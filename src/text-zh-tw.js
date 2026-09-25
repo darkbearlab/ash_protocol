@@ -751,6 +751,10 @@ export default Object.freeze({
  "controller.deckEdit.back":"← 返回設定",
  "controller.deckEdit.mirrored":"已左右鏡像。",
  "controller.deckEdit.restored":"已還原預設。",
+ "controller.item.glowstickHint":"點 {range} 格內看得見的地板丟螢光棒，框起來的格子會變成暗處；按右下確認，再按道具鍵取消。",
+ "controller.status.black":"全黑",
+ "controller.flashlight.on":"打開手電筒",
+ "controller.flashlight.off":"關閉手電筒",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // 灰燼協定 // DAILY OPERATION",
  // deckLabels
@@ -904,6 +908,9 @@ export default Object.freeze({
  "field-gear.mineBlast":"地雷引爆！",
  "field-gear.exoTooLarge":"體型太大，穿不下外骨骼",
  "field-gear.exoBroken":"外骨骼損毀！你被壓制在原地。",
+ "field-gear.noGlowstick":"沒有螢光棒",
+ "field-gear.glowstickPickFloor":"先選擇看得見的地板作為落點",
+ "field-gear.glowstickLit":"螢光棒落地，附近的全黑變成暗處。",
  // src/flares.js
  "flares.noFlare":"沒有照明彈",
  "flares.pickFloor":"先選擇可見地板作為落點",
@@ -1155,6 +1162,8 @@ export default Object.freeze({
  "game.barrierDamaged":"{barrier}耐久剩 {hp}。",
  "game.barrierDestroyed":"{barrier}已摧毀，通道打開。",
  "game.barrierDamagedReal":"{barrier}受損。",
+ "game.flashlightOn":"手電筒打開：照亮前方，但你自己也會被看見。",
+ "game.flashlightOff":"手電筒關閉。",
  // gate
  "gate.title":"進入模擬訓練？",
  "gate.body":"新庫存部署前，須先完成 KILL HOUSE 模擬訓練：六個區域、固定士兵配給，不影響戰役與協定點數。",
@@ -1210,6 +1219,8 @@ export default Object.freeze({
  "hotkeyActions.zoomIn.label":"放大",
  "hotkeyActions.zoomOut.group":"目標與畫面",
  "hotkeyActions.zoomOut.label":"縮小",
+ "hotkeyActions.flashlight.group":"目標與畫面",
+ "hotkeyActions.flashlight.label":"手電筒開關",
  // src/hotkeys.js
  "hotkeys.unusable":"這個按鍵不能用。",
  // index
@@ -1247,6 +1258,7 @@ export default Object.freeze({
  "index.turn":"回合",
  "index.title":"ASH PROTOCOL — 灰燼協定",
  "index.description":"灰燼協定：為觸控打造的科幻回合制戰術 roguelike。每一步，都有代價。",
+ "index.flashlightTitle":"手電筒開關（L），不耗回合",
  // src/killhouse.js
  "killhouse.started":"KILL HOUSE 模擬已啟動。",
  "killhouse.noCrates":"模擬戰場不提供箱內補給。",
@@ -1343,7 +1355,7 @@ export default Object.freeze({
  "manual.endlessTitle":"無盡與等級",
  "manual.unlockTitle":"解鎖",
  "manual.lightTitle":"照明與感知",
- "manual.light":"部分房間停電，目標在暗區時射擊命中 −40 個百分點，可與移動／掩體疊加，不額外減傷。夜視消除此懲罰；紅外線看穿煙霧但不穿牆、不自帶夜視。Recon 起始兩者都有；狙擊手有夜視、封鎖官有紅外線。生物或有任一感知被動者都會被震撼彈失能，機械也不例外；多條符合不重複結算。",
+ "manual.light":"光線分三階：亮、暗、全黑。有電的區域是亮的；停電的房間靠壁燈、照明彈、螢光棒、手電筒與槍口火光照亮，離光源越遠越暗。目標在暗處時射擊命中 −40 個百分點，可與移動／掩體疊加，不額外減傷。站在全黑裡的人看不到，貼身也一樣：先照亮，或對那一格盲射；開著手電筒或開槍，自己也會被看見。夜視看得穿全黑，也不受暗處懲罰；紅外線看得到全黑裡的活物（機械不行），看穿煙霧但不穿牆、不自帶夜視；蟲族天生不怕黑。Recon 起始兩者都有；狙擊手有夜視、封鎖官有紅外線。生物或有任一感知被動者都會被震撼彈失能，機械也不例外；多條符合不重複結算。",
  "manual.hitTitle":"命中率",
  "manual.hit":"暴露且靜止 97%；移動 −22%。完整箱體 −35、牆／隔板 −42 個百分點；半效為 −18／−21。完整減傷 45%、半效 22.5%，敵我規則相同。角落的半透明卡片顯示名稱、HP、命中率、距離與掩體；卡片不攔截觸控。",
  "manual.suppressTitle":"壓制與學習資料",
@@ -1530,7 +1542,7 @@ export default Object.freeze({
  "preparedCatalog.item.barricade.text":"在身邊任一側的邊線架起矮隔板：擋住移動並提供掩體，但不擋視線與射線，任何人都能翻越（翻越者下次被射擊命中 +20）。使用消耗 1 回合。",
  "preparedCatalog.item.flare.name":"照明彈",
  "preparedCatalog.item.flare.short":"照明彈",
- "preparedCatalog.item.flare.text":"射程 5 格、半徑 3 格，持續 8 輪。落點看得到、而且沒有對照明彈取得完整掩體的暗格會被照亮：站在上面的敵我都失去暗區的命中懲罰。",
+ "preparedCatalog.item.flare.text":"射程 7 格、半徑 3 格，持續 8 輪。落點看得到、而且沒有對照明彈取得完整掩體的格子會被照亮：站在上面的敵我都失去暗處的命中懲罰。新光照的樓層上，再往外 2 格會變成暗處。",
  "preparedCatalog.item.escape_line.name":"逃命繩索",
  "preparedCatalog.item.escape_line.short":"逃命繩",
  "preparedCatalog.item.escape_line.text":"不消耗回合。朝 6 格內看得見的地板射出繩索，沿直線把你拉過去；牆、實心物件和其他單位會擋住，幼蟲不會。一條只能用一次。",
@@ -1552,6 +1564,9 @@ export default Object.freeze({
  "preparedCatalog.item.exo.name":"外骨骼",
  "preparedCatalog.item.exo.short":"外骨骼",
  "preparedCatalog.item.exo.text":"射擊命中 +10、近戰傷害 +20%，自帶 50 點護甲板，受傷時先替你吸收（和護甲板一樣吸收一半）。護甲板打光時外骨骼損毀、消失，你直接被壓制 5 層。無法修復；重裝兵穿不下。戴上與脫下各消耗 1 回合。",
+ "preparedCatalog.item.glowstick.name":"螢光棒",
+ "preparedCatalog.item.glowstick.short":"螢光棒",
+ "preparedCatalog.item.glowstick.text":"射程 5 格。落地後一直亮著，3 格內的全黑變成暗處（看得見，射擊命中 −40），但不會更亮；牆與關著的門擋光。沒有時限。",
  // preparedCategories
  "preparedCategories.grenade":"手榴彈",
  "preparedCategories.item":"道具",
@@ -1817,6 +1832,7 @@ export default Object.freeze({
  "supplyNames.exo":"外骨骼",
  "supplyNames.key":"鑰匙卡",
  "supplyNames.irg":"紅外線護目鏡",
+ "supplyNames.glowstick":"螢光棒",
  // src/suppression-ui.js
  "suppression-ui.status":"壓制 {stacks} · 命中 −{penalty} · {turns} 回合",
  "suppression-ui.statusPinned":"壓制 {stacks} · 命中 −{penalty} · 無法移動 · {turns} 回合",

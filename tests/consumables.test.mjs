@@ -63,7 +63,7 @@ test('adrenaline can never be the thing that kills you, and does not stack',()=>
 // must not cap them either, or the two would tell the player different things.
 // 3.136.0 (user decision): the carry cap of five applies; one bought past it waits at your feet.
 test('the terminal sells both up to the carry cap, and old saves migrate to none',()=>{
- assert.equal(SAVE_VERSION,72);   // 3.148.0: perk D
+ assert.equal(SAVE_VERSION,73);   // 3.148.0: perk D
  const g=run(),p=g.player;
  p.sprays=4;p.adrenaline=5;p.scrap=999;g.items=[];
  g.props.push({type:'terminal',x:p.x,y:p.y,used:false});
@@ -86,7 +86,7 @@ test('the terminal sells both up to the carry cap, and old saves migrate to none
 // 3.107.0: the pack greys a 使用 button from this helper, so it has to agree with the turn itself.
 test('itemUseReason names the refusal, and matches what the action would do',()=>{
  const g=run(),p=g.player;
- p.meds=0;p.sprays=0;p.adrenaline=0;
+ p.meds=0;p.sprays=0;p.adrenaline=0;p.glowsticks=0;   // glowsticks: every operator starts with 2 (3.178.0)
  for(const [id,entry] of Object.entries(PREPARED_CATALOG.item)){
   assert.match(itemUseReason(g,id),/沒有/,id);
   assert.equal(g.action(entry.action),false,`${id} refused with none carried`);

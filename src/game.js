@@ -61,7 +61,7 @@ import {buildReason,buildUnit,deployReason,deployUnit,workshopPoint,migrateWorks
 import {archiveFloor,resumedFloor,arrivalCell,scheduleRetreatWave,resolveRetreatWave,validRetreatState} from './retreat.js';
 import {toggleAnchor,validAnchor,SKILLS,skillValues,initialSkillState,skillActive,canUseSkill,tickSkills,endSkillEffects,validSkillState} from './skills.js';
 import {actorStat,meleeChance,validCombatModifiers} from './actor-stats.js';
-import {fullLighting,validLighting,lightingEffects} from './lighting.js';
+import {fullLighting,validLighting,lightingEffects,hiddenInDark,validLamps,validGlowsticks,LIGHT_MODEL,recordGunFlashes,validGunFlashes} from './lighting.js';
 import {bestCover,coverEffects} from './cover.js';
 import {addTrace,spentCase,validTraces} from './traces.js';
 import {missionDefinition,missionDepth,returning,exitPoint,exitLabel,exitKind,deepestFloor,newMission,prepareMission,validMission,missionObjects,missionTarget,missionSummary,exitBlocked} from './missions.js';
@@ -74,7 +74,7 @@ import {CHARACTERS,validCharacter,grantCharacterTraits,startingSupplies,classCar
 import {coneTargets,shotgunBand,pelletsAt,pelletChance} from './shotgun.js';
 import {lancePath} from './lance.js';
 import {lockedReason,unlockVault,dropKeycard,pickKeycard,vaultContents,floorVaultNote,validKeycards,validVaultState,sealVaultWalls} from './vault.js';
-import {EXO_TUNING,mineAct,decoyReason,throwDecoy,decoyHides,fooled,noticeAttack,damageDecoy,decoyAct,tickDecoy,validDecoy,mineReason,placeMine,detonateMine,checkMines,knownMine,validMines,exoAbsorb,breakExo,wearingExo,validExo,exoReason} from './field-gear.js';
+import {EXO_TUNING,mineAct,decoyReason,throwDecoy,glowstickReason,throwGlowstick,decoyHides,fooled,noticeAttack,damageDecoy,decoyAct,tickDecoy,validDecoy,mineReason,placeMine,detonateMine,checkMines,knownMine,validMines,exoAbsorb,breakExo,wearingExo,validExo,exoReason} from './field-gear.js';
 import {PREPARED_CATALOG,defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns,isWearable,wornEntry,prepareCost,syncWearableTraits} from './prepared.js';
 import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix,affixAllowed} from './weapons.js';
@@ -133,7 +133,7 @@ export function itemUseReason(g,id){
  if(entry.action==='surge')return p.control.disabled?t('game.disabledCannotUse'):g.shadowSteps?t('game.freeMovesLeft'):p.hp>SURGE_COST?'':t('game.surgeFatal');
  return '';
 }
-const freshPlayer=()=>({keycards:[],decoys:0,mines:0,exoPlates:0,learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+const freshPlayer=()=>({flashlight:false,glowsticks:0,keycards:[],decoys:0,mines:0,exoPlates:0,learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -166,7 +166,7 @@ export class Game {
   generateFloor(){this.facilityFaction=endlessFaction(this);return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultySpec,this.facilityFaction);}
   loadFloor() {
     endSkillEffects(this.player);this.sensorContacts=[];delete this.blindAftermath;this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
-    Object.assign(this,{swarmWaves:undefined,mapStyle:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.decoy=null;this.mines=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
+    Object.assign(this,{swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.decoy=null;this.mines=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
     prepareMission(this);recruitConscripts(this);postSquads(this);rigContainers(this);populateRunUnlocks(this);registerPurgeFloor(this);
@@ -214,7 +214,9 @@ export class Game {
   revealed(watcher,e){const reach=ENEMY_TYPES[e?.type]?.revealRange;return reach===undefined||distance(watcher,e)<=reach;}
   visible(e){return this.revealed(this.player,e)&&distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e));}
   teamVisible(e){return this.visible(e)||this.activeAllies.some(a=>connected(this,a)&&this.revealed(a,e)&&distance(a,e)<=8&&this.sight(a,e));}
-  sight(a,b){syncPetSenses(this);return !(b===this.player&&a!==this.player&&(skillActive(this.player)||decoyHides(this,a)))&&tacticalSight(this,a,b);}
+  sight(a,b){syncPetSenses(this);return !(b===this.player&&a!==this.player&&(skillActive(this.player)||decoyHides(this,a)))&&!(this.isActor(b)&&hiddenInDark(this,a,b))&&tacticalSight(this,a,b);}
+  // 3.178.0 (docs/LIGHTING.md): the black hides people, not tiles, so sight still passes through it to what lies beyond.
+  isActor(b){return b===this.player||Boolean(b&&typeof b.hp==='number'&&(this.enemies.includes(b)||this.allies.includes(b)));}
   shotClear(a,b){return cornerRay(this,a,b).clear;}
   attackStatus(a,b){return cornerStatus(this,a,b);}
   recordExposure(a,b){recordExposure(this,a,b);}
@@ -332,7 +334,7 @@ export class Game {
   // 3.136.0 (user decision): the melee weapon picked in the pack, else the first one in the pack, else bare hands. Before
   // 3.136.0 only weapons free to switch both ways counted, and every melee weapon was, so the fallback is the old rule.
   bumpMeleeSlot(){const p=this.player,picked=p.meleeSlot;if(Number.isInteger(picked)&&p.owned.includes(picked)&&this.weaponAt(picked).melee)return picked;return p.owned.find(slot=>this.weaponAt(slot).melee)??UNARMED_SLOT;}
-  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning','surge','meleeChoice'].includes(type))return 0;if(type==='rope'&&LINE_ITEMS[arg?.item]?.free)return 0;
+  actionCost(type,arg){if(type==='skill'&&arg==='anchor'&&skillActive(this.player,'anchor')&&classPerkRank(this.player,'bulwark_anchor')===3)return 0;if(['commandPet','setPetOutput','learn','dismantleLearning','surge','meleeChoice','flashlight'].includes(type))return 0;if(type==='rope'&&LINE_ITEMS[arg?.item]?.free)return 0;
     if(type==='prepare')return prepareCost(this.player,arg);return type==='skill'?(SKILLS[arg]?.cost??1):type==='reload'&&activeTrait(this.player,'quick_reload')&&this.weapon.ammoType==='pistol'?0:type==='weapon'?weaponSwitchTurns(this.weaponAt(Number(arg)),this.weapon):1;}
   // Validate the intent before any actor acts: rejected input cannot scout fast enemies.
   validateAction(type,arg){
@@ -382,6 +384,7 @@ export class Game {
     if(type==='flare'){const reason=flareReason(this,arg);return !reason||this.fail(sentence(reason));}
     // 3.144.0 (src/field-gear.js): the decoy is thrown like a flare, the mine laid within three tiles.
     if(type==='decoy'){const reason=decoyReason(this,arg);return !reason||this.fail(sentence(reason));}
+    if(type==='glowstick'){const reason=glowstickReason(this,arg);return !reason||this.fail(sentence(reason));}
     if(type==='mine'){const reason=mineReason(this,arg);return !reason||this.fail(sentence(reason));}
     if(type==='rope'){const reason=lineReason(this,arg);return !reason||this.fail(sentence(reason));}
     if(type==='launch'){const reason=launchReason(this,arg);return !reason||this.fail(sentence(reason),reason===t('game.launchEmpty')?this.emptyCue():null);}
@@ -397,6 +400,7 @@ export class Game {
     if(type==='interact'&&pinned(p))return this.fail(t('game.pinnedNoElevator'),'pinned');
     if(type==='interact'&&skillActive(p,'anchor'))return this.fail(t('game.anchoredNoElevator'),'anchored');
     if(type==='interact')return (this.canTouch(this.exitPoint)&&!this.exitBlocked)||this.fail(this.exitBlocked||t('game.needElevator'));
+    if(type==='flashlight')return arg===undefined;   // 3.178.0: a free switch, always allowed
     return type==='wait';
   }
   action(type,arg){
@@ -444,6 +448,8 @@ export class Game {
       else if(type==='learn'||type==='dismantleLearning')return useLearning(this,arg,type==='dismantleLearning');
       else if(type==='surge')return this.surge();
       else if(type==='rope')return presentStep(this,()=>this.fireLine(arg));
+      // 3.178.0: the flashlight is free to switch; enemies who can now see you notice at once (reveal).
+      else if(type==='flashlight'){p.flashlight=!p.flashlight;this.log(t(p.flashlight?'game.flashlightOn':'game.flashlightOff'));this.reveal();return true;}
       else if(type==='setPetOutput'){p.petBond.outputChoice=arg.kind;return true;}
       else if(type==='meleeChoice'){p.meleeSlot=arg;this.log(arg===null?t('game.meleeChoiceDefault'):t('game.meleeChoice',{weapon:this.weaponAt(arg).name}));return true;}
       return true;
@@ -510,6 +516,7 @@ export class Game {
     tickSpirit(this);tickSkills(p);if(!skillActive(p,'early_warning'))this.sensorContacts=[];
     this.smoke=this.smoke.filter(s=>s.expires>this.turn);
     this.flares=(this.flares||[]).filter(f=>f.expires>this.turn);
+    recordGunFlashes(this);   // 3.178.0: this round's muzzle flashes stay lit through the next (src/lighting.js)
     tickDecoy(this);
     expireExposure([p,...this.enemies,...this.allies],this.turn);
     for(const actor of [p,...this.enemies,...this.activeAllies])tickTraits(actor);
@@ -609,6 +616,7 @@ export class Game {
       case 'grenade': success=presentStep(this,()=>this.throwGrenade(arg||this.targeted));break;
       case 'flare': success=presentStep(this,()=>this.throwFlare(arg));break;
       case 'decoy': success=presentStep(this,()=>throwDecoy(this,arg));break;
+      case 'glowstick': success=presentStep(this,()=>throwGlowstick(this,arg));break;
       case 'mine': success=presentStep(this,()=>placeMine(this,arg));break;
       case 'rope': success=presentStep(this,()=>this.fireLine(arg));break;
       case 'weapon': {
@@ -1219,7 +1227,7 @@ export class Game {
     if(returning(this)&&this.floor>1&&!arrival)return this.fail(t('game.noSafeLanding'));
     this.awardProtocol('floor',this.floor);
     if((returning(this)&&this.floor===1)||(!isEndless(this)&&!missionDefinition(this).returnTrip&&this.floor===missionDepth(this))){this.awardProtocol('extraction','win');this.status='won';this.log(t('game.extracted',{summary:this.missionSummary}));return true;}
-    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;this.decoy=null;this.mines=[];for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
+    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;this.decoy=null;this.mines=[];this.gunFlashes=[];for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
     if(returning(this)){
       if(advanceTurn)this.turn++;
       Object.assign(this,resumedFloor(frame,this.turn));delete this.floorStates[next];this.floor=next;
@@ -1436,6 +1444,11 @@ export class Game {
       // 3.144.0: decoys, mines and the exoskeleton; older saves carry none and have none out.
       // 3.146.0: keycards; older saves hold none (and their floors have no vaults).
       if(version<67)g.player.keycards??=[];
+      // 3.178.0 (docs/LIGHTING.md): real lighting. Saves from before carry no glowsticks and the flashlight off; their floors
+      // (this one and any kept for the way back) have no light model, so they keep the old rule until the next floor.
+      if(version<73){g.player.glowsticks??=0;g.player.flashlight??=false;}
+      g.glowsticks??=[];g.gunFlashes??=[];
+      if(!Number.isSafeInteger(g.player.glowsticks)||g.player.glowsticks<0||g.player.glowsticks>10000000||typeof g.player.flashlight!=='boolean'||!validGlowsticks(g.glowsticks,g.grid)||!validGunFlashes(g.gunFlashes,g.grid)||!(g.lightModel===undefined?g.lamps===undefined:g.lightModel===LIGHT_MODEL&&validLamps(g.lamps,g.grid)))return null;
       if(version<66){g.player.decoys??=0;g.player.mines??=0;g.player.exoPlates??=0;g.decoy??=null;g.mines??=[];g.mineSerial??=0;}
       if(![0,1].includes(g.player.recovery)||!(g.player.meleeSlot===null||Number.isInteger(g.player.meleeSlot)&&WEAPONS[g.player.weaponBases[g.player.meleeSlot]]?.melee))return null;
       if(!['escapeLines','redeployLines'].every(k=>Number.isSafeInteger(g.player[k])&&g.player[k]>=0&&g.player[k]<=10000000))return null;
@@ -1455,7 +1468,8 @@ export class Game {
       if(version<35&&!migratePetBond(g))return null;
       if(version<36&&!migratePetNodes(g,version===35))return null;
       if(!validAllies(g)||!validPetBond(g)||!validWorkshop(g))return null;
-      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,swarmWaves:undefined,mapStyle:undefined,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,traits:p.traits.filter(t=>t.source!=='pet:vision'),battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
+      // 3.178.0: a kept floor from before real lighting has no lamps, light model or glowsticks; it must not borrow this floor's.
+      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,traits:p.traits.filter(t=>t.source!=='pet:vision'),battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
       // Weapon slots belong to the run, including weapons left on archived floors.
       for(const frame of Object.values(g.floorStates))for(const item of frame.items)if(item.type==='weapon'){
         if(locations.has(item.slot))return null;locations.add(item.slot);

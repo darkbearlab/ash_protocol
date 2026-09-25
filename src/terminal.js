@@ -30,6 +30,7 @@ export const TERMINAL_ITEMS={
  irg:{cost:40,wear:'irg',sold:false},   // 3.148.0: found on squad leaders, never sold; traded in like the goggles
  barricade:{cost:25,resource:'barricades'},
  flare:{cost:15,resource:'flares'},
+ glowstick:{cost:5,resource:'glowsticks'},   // 3.178.0 (user): cheap, and a floor's worth is never enough to light everything
  // 3.144.0 (src/field-gear.js): the decoy and mine; the exoskeleton, which like armour plates cannot be traded back in
  // (it cannot be repaired either, so a worn-down one would otherwise sell for new).
  decoy:{cost:15,resource:'decoys'},

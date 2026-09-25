@@ -12,13 +12,13 @@ import {makeEnemy} from '../src/world.js';
 // 3.123.0: flares, as the user decided on 2026-09-17 (docs/ITEMS.md 照明彈).
 const read=async path=>(await readFile(new URL(path,import.meta.url),'utf8')).replace(/\r\n/g,'\n');
 function darkArena(){
-  const g=new Game(42);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.map(()=>0));
+  const g=new Game(42);g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.map(()=>0));g.lamps=[];   // 3.178.0: an unpowered floor with no lamps is black
   Object.assign(g.player,{x:10,y:10,flares:3});g.enemies=[];g.props=[];g.items=[];g.hazards=[];g.marks=[];g.flares=[];g.reveal();return g;
 }
 const lit=(g,x,y)=>!isDark(g,{x,y});
 
-test('the numbers the user set: thrown 5, radius 3, and 8 rounds',()=>{
-  assert.deepEqual([FLARE_TUNING.range,FLARE_TUNING.radius,FLARE_TUNING.duration],[5,3,8]);
+test('the numbers the user set: thrown 7 (5 before 3.178.0), radius 3, and 8 rounds',()=>{
+  assert.deepEqual([FLARE_TUNING.range,FLARE_TUNING.radius,FLARE_TUNING.duration],[7,3,8]);
 });
 
 test('light reaches the radius the flare can see; walls cast shadows and full cover stays dark, half cover does not',()=>{
@@ -26,7 +26,8 @@ test('light reaches the radius the flare can see; walls cast shadows and full co
   assert.ok(lit(g,12,10)&&lit(g,15,10)&&lit(g,12,13),'three tiles away is lit');
   assert.ok(!lit(g,16,10)&&!lit(g,13,13),'four is not');
   assert.equal(flareCells(g,{x:12,y:10}).length,25,'a radius-3 diamond in the open');
-  g.grid[10][13]=0;assert.ok(!lit(g,15,10),'behind a wall, not next to it');g.grid[10][13]=1;
+  // The terrain never changes in place during play, so the light is cached against it: the wall goes into a fresh arena.
+  const walled=darkArena();walled.flares=g.flares;walled.grid[10][13]=0;assert.ok(!lit(walled,15,10),'behind a wall, not next to it');
   g.props=[{id:'crate',type:'cover',x:12,y:12,hp:65,maxHp:65}];
   assert.ok(!lit(g,12,13),'straight behind a crate is full cover');
   g.props=[{id:'crate',type:'cover',x:12,y:11,hp:65,maxHp:65}];
@@ -50,7 +51,7 @@ test('on a lit tile both sides lose the dark penalty; outside the light it still
 
 test('throwing: from the pack or the prepared slot, one turn, range and sight checked, and it burns for 8 rounds',()=>{
   const g=darkArena(),p=g.player;
-  for(const pos of [{x:16,y:10},null,{x:10.5,y:10}]){const turn=g.turn;assert.equal(g.action('flare',pos),false);assert.equal(p.flares,3);assert.equal(g.turn,turn);}
+  for(const pos of [{x:18,y:10},null,{x:10.5,y:10}]){const turn=g.turn;assert.equal(g.action('flare',pos),false);assert.equal(p.flares,3);assert.equal(g.turn,turn);}
   const turn=g.turn;assert.ok(g.action('flare',{x:13,y:10}));
   // The round has already advanced when the flare lands, as with smoke, so it expires on the turn it now shows plus 7.
   assert.deepEqual([p.flares,g.turn,g.flares],[2,turn+1,[{x:13,y:10,expires:g.turn+FLARE_TUNING.duration-1}]]);
@@ -97,8 +98,9 @@ test('the aim shows the tiles it would light and the item button confirms or can
   assert.ok(source.includes("if(entry.aim==='throw'){startThrowAim(game.player.prepared.item);return;}"));
   assert.ok(source.includes("if(entry.aim==='throw'){close();startThrowAim(id);return;}"),'the pack’s use button aims too');
   // 3.144.0: the decoy and the mine are placed through startPlaceAim.
-  assert.ok(source.includes("function startThrowAim(id){const action=PREPARED_CATALOG.item[id]?.action;if(action==='rope')startRopeAim(id);else if(action==='decoy'||action==='mine')startPlaceAim(action);else startFlareAim();}"));
+  assert.ok(source.includes("function startThrowAim(id){const action=PREPARED_CATALOG.item[id]?.action;if(action==='rope')startRopeAim(id);else if(action==='decoy'||action==='mine'||action==='glowstick')startPlaceAim(action);else startFlareAim();}"));
   assert.ok(source.includes("if(renderer.mode==='flare'){act('flare',renderer.aim);return;}"),'confirmed as a flare whatever is prepared');
-  assert.ok(renderer.includes("if(this.mode==='flare'&&this.aim){const t=this.tile;for(const {x,y} of flareCells(g,this.aim))"));
+  // 3.178.0: the preview comes from the light model and shows the dim ring too.
+  assert.ok(renderer.includes("if(this.mode==='flare'&&this.aim){const t=this.tile;for(const {x,y,level} of flareLightCells(g,this.aim))"));
   assert.ok(renderer.includes('for(const flare of g.flares||[])if(g.seen?.[flare.y]?.[flare.x])'));
 });

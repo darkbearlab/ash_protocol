@@ -14,7 +14,9 @@ import {normalizeProfile} from '../src/progression.js';
 
 test('empty recipe pool preserves 24 pre-refactor v1 maps byte-for-byte, including the entrance scout',()=>{
   const fixtures=JSON.parse(readFileSync(new URL('./fixtures/mapgen-v1.json',import.meta.url)));
-  for(const {seed,floor,hash}of fixtures){const map=generateWithRecipes(seed,floor,[],[]);for(const e of map.enemies)e.traits=e.traits.filter(t=>t.id!=='suppression_resistance');assert.equal(createHash('sha256').update(JSON.stringify(map)).digest('hex'),hash);assert.ok(map.enemies.some(e=>roomContains(map.rooms[map.startRoom],e)));}
+  // Later additions are taken back out before hashing: the suppression trait, and 3.178.0's wall lamps, light model and
+  // the glowsticks in the armour room's case (docs/LIGHTING.md), so everything else is still byte-for-byte the old map.
+  for(const {seed,floor,hash}of fixtures){const map=generateWithRecipes(seed,floor,[],[]);for(const e of map.enemies)e.traits=e.traits.filter(t=>t.id!=='suppression_resistance');delete map.lamps;delete map.lightModel;for(const o of map.props)if(o.contents)o.contents=o.contents.filter(i=>i.type!=='glowstick');assert.equal(createHash('sha256').update(JSON.stringify(map)).digest('hex'),hash);assert.ok(map.enemies.some(e=>roomContains(map.rooms[map.startRoom],e)));}
 });
 
 test('lattice adjacency and collapsed room graph do not depend on room IDs or nine rooms',()=>{

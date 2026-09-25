@@ -12,7 +12,9 @@ import {coverEffects} from './cover.js';
 // - it does not get FULL cover from the flare (under 45°, docs/COVER_RULES.md). Half cover is lit, and what kind of
 //   cover it is does not matter (user decision).
 // Cover is judged live, so a destroyed crate or an opened door lets the light in at once.
-export const FLARE_TUNING=Object.freeze({range:5,radius:3,duration:8,maxActive:16});
+// 3.178.0 (user): a flare is bright, so it throws farther (5 → 7); its lit radius stays 3 and src/lighting.js adds a
+// dim ring of 2 tiles beyond it on floors with real lighting.
+export const FLARE_TUNING=Object.freeze({range:7,radius:3,duration:8,maxActive:16});
 
 export function flareLights(game,flare,point){
   if(!flare||!point||distance(flare,point)>FLARE_TUNING.radius)return false;

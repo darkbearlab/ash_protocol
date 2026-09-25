@@ -15,7 +15,7 @@ export const LOOT_ICON=Object.freeze({cell:16,columns:8,rows:2,size:21,dim:.45})
 const AMMO_COLUMN=Object.freeze({pistol:0,ammo:1,shell:2,energy:3,ordnance:4});   // ground item type → column
 const WEAPON_COLUMN=Object.freeze({pistol:0,rifle:1,shell:2,energy:3,ordnance:4});   // weapon ammoType → column
 const THROWN=Object.freeze(['grenade','smoke','emp','stun']);
-const GEAR=Object.freeze(['med','armor','spray','adrenaline','barricade','flare','escape_line','redeploy_line','irg','nvg','decoy','mine','exo']);
+const GEAR=Object.freeze(['med','armor','spray','adrenaline','barricade','flare','escape_line','redeploy_line','irg','nvg','decoy','mine','exo','glowstick']);
 // Keep their own marks (handoff, 接入範圍 4): the keycard has its beam, the data and the learning chips their own glow.
 export const SPECIAL_LOOT=Object.freeze(['key','lore','learning']);
 

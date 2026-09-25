@@ -750,6 +750,10 @@ export default Object.freeze({
  "controller.deckEdit.back":"← Back to settings",
  "controller.deckEdit.mirrored":"Mirrored.",
  "controller.deckEdit.restored":"Defaults restored.",
+ "controller.item.glowstickHint":"Tap a visible floor tile within {range} to throw the glowstick; the framed tiles turn dim. Confirm at the bottom right, or tap the item button again to cancel.",
+ "controller.status.black":"Black",
+ "controller.flashlight.on":"Turn the flashlight on",
+ "controller.flashlight.off":"Turn the flashlight off",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // DAILY OPERATION",
  // deckLabels
@@ -903,6 +907,9 @@ export default Object.freeze({
  "field-gear.mineBlast":"The mine goes off!",
  "field-gear.exoTooLarge":"Too large to fit an exoskeleton",
  "field-gear.exoBroken":"The exoskeleton breaks! You are pinned in place.",
+ "field-gear.noGlowstick":"No glowstick",
+ "field-gear.glowstickPickFloor":"Pick a visible floor tile as the landing spot first",
+ "field-gear.glowstickLit":"The glowstick lands; the black around it turns dim.",
  // src/flares.js
  "flares.noFlare":"No flares",
  "flares.pickFloor":"Pick a visible floor tile as the landing spot first",
@@ -1154,6 +1161,8 @@ export default Object.freeze({
  "game.barrierDamaged":"{barrier}: {hp} durability left.",
  "game.barrierDestroyed":"{barrier} destroyed; the way is open.",
  "game.barrierDamagedReal":"{barrier} damaged.",
+ "game.flashlightOn":"Flashlight on: it lights the way ahead, and shows you to others.",
+ "game.flashlightOff":"Flashlight off.",
  // gate
  "gate.title":"Train first?",
  "gate.body":"New stock must complete the KILL HOUSE simulation before deploying: six zones with a fixed soldier kit. It does not affect the campaign or protocol points.",
@@ -1209,6 +1218,8 @@ export default Object.freeze({
  "hotkeyActions.zoomIn.label":"Zoom in",
  "hotkeyActions.zoomOut.group":"Targeting and view",
  "hotkeyActions.zoomOut.label":"Zoom out",
+ "hotkeyActions.flashlight.group":"Targeting and view",
+ "hotkeyActions.flashlight.label":"Flashlight",
  // src/hotkeys.js
  "hotkeys.unusable":"That key cannot be used.",
  // index
@@ -1246,6 +1257,7 @@ export default Object.freeze({
  "index.turn":"Turn",
  "index.title":"ASH PROTOCOL",
  "index.description":"ASH PROTOCOL: a sci-fi turn-based tactical roguelike built for touch. Every step has a price.",
+ "index.flashlightTitle":"Flashlight on/off (L), free",
  // src/killhouse.js
  "killhouse.started":"KILL HOUSE simulation started.",
  "killhouse.noCrates":"The simulated battlefield has no crate supplies.",
@@ -1342,7 +1354,7 @@ export default Object.freeze({
  "manual.endlessTitle":"Endless and levels",
  "manual.unlockTitle":"Unlocks",
  "manual.lightTitle":"Light and senses",
- "manual.light":"Some rooms have no power: shots at a target in the dark get −40 to hit, stacking with movement and cover, with no extra damage reduction. Night vision removes the penalty; infrared sees through smoke but not walls and has no night vision of its own. Recon starts with both; snipers have night vision and wardens infrared. Living targets, or anything with either sense, can be disabled by stun grenades, machines included; several matches still count once.",
+ "manual.light":"Light has three levels: lit, dim and black. Powered areas are lit; unpowered rooms get their light from wall lamps, flares, glowsticks, your flashlight and muzzle flashes, darker the farther from the source. Shots at a target in the dim get −40 to hit, stacking with movement and cover, with no extra damage reduction. Anyone standing in the black cannot be seen, even next to you: light them up, or blind-fire at the tile. A lit flashlight or a shot shows you too. Night vision sees into the black and ignores the penalty; infrared sees the living in the black (not machines) and through smoke, but not walls, and has no night vision of its own; the swarm sees in the dark. Recon starts with both; snipers have night vision and wardens infrared. Living targets, or anything with either sense, can be disabled by stun grenades, machines included; several matches still count once.",
  "manual.hitTitle":"Hit chance",
  "manual.hit":"Exposed and still: 97%; moving −22%. Full crate cover −35, wall or partition −42; half cover −18 / −21. Full cover reduces damage 45%, half 22.5%; the same for everyone. The translucent card in the corner shows name, HP, hit chance, distance and cover; it does not block taps.",
  "manual.suppressTitle":"Suppression and training data",
@@ -1529,7 +1541,7 @@ export default Object.freeze({
  "preparedCatalog.item.barricade.text":"Sets up a low partition on any edge next to you: blocks movement and gives cover but not sight or fire; anyone can climb over it (the climber is +20 to be hit next time). Takes 1 turn.",
  "preparedCatalog.item.flare.name":"Flare",
  "preparedCatalog.item.flare.short":"Flare",
- "preparedCatalog.item.flare.text":"Range 5, radius 3, lasts 8 rounds. Dark tiles in sight of the landing spot, and not fully covered from it, light up: anyone standing there loses the darkness penalty.",
+ "preparedCatalog.item.flare.text":"Range 7, radius 3, lasts 8 rounds. Tiles in sight of the landing spot, and not fully covered from it, light up: anyone standing there loses the darkness penalty. On floors with the new lighting, 2 more tiles beyond turn dim.",
  "preparedCatalog.item.escape_line.name":"Escape line",
  "preparedCatalog.item.escape_line.short":"Escape",
  "preparedCatalog.item.escape_line.text":"Free. Shoots a line at a visible floor tile within 6 tiles and pulls you there in a straight line; walls, solid objects and other units block it, larvae do not. Single use.",
@@ -1551,6 +1563,9 @@ export default Object.freeze({
  "preparedCatalog.item.exo.name":"Exoskeleton",
  "preparedCatalog.item.exo.short":"Exo",
  "preparedCatalog.item.exo.text":"+10 to hit and +20% melee damage, with 50 points of its own plate that absorb damage first (half of each hit, like armor plate). When the plate runs out the exoskeleton breaks and is gone, leaving you at 5 suppression. Cannot be repaired; the bulwark cannot wear it. Putting on and taking off take 1 turn each.",
+ "preparedCatalog.item.glowstick.name":"Glowstick",
+ "preparedCatalog.item.glowstick.short":"Glowstick",
+ "preparedCatalog.item.glowstick.text":"Range 5. Once down it glows for good: black tiles within 3 become dim (visible, −40 to hit), never brighter. Walls and closed doors block it. No time limit.",
  // preparedCategories
  "preparedCategories.grenade":"Grenades",
  "preparedCategories.item":"Items",
@@ -1816,6 +1831,7 @@ export default Object.freeze({
  "supplyNames.exo":"Exoskeleton",
  "supplyNames.key":"Keycard",
  "supplyNames.irg":"Infrared goggles",
+ "supplyNames.glowstick":"Glowstick",
  // src/suppression-ui.js
  "suppression-ui.status":"Suppr. {stacks} · hit −{penalty} · {turns}t",
  "suppression-ui.statusPinned":"Suppr. {stacks} · hit −{penalty} · pinned · {turns}t",

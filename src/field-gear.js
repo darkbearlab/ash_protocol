@@ -21,6 +21,7 @@ import {activeTrait} from './traits.js';
 import {syncWearableTraits} from './prepared.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 import {EXO_ACCURACY} from './actor-stats.js';
+import {LIGHT_TUNING} from './lighting.js';
 
 export const DECOY_TUNING=Object.freeze({range:5,radius:6,duration:4,hp:30,hit:85});
 export const MINE_TUNING=Object.freeze({range:3,radius:1,damage:60,max:3,hit:85});
@@ -86,9 +87,26 @@ export const validDecoy=g=>g.decoy===null||Boolean(g.decoy)&&floorTile(g,g.decoy
 // mine, so it starts on the first tile that would be accepted: the enemy you have locked, the tile in front of you, any
 // tile beside you; only when none is does it fall back to your own tile (the confirm then says why).
 export function placeStart(g,id){
- const p=g.player,reason=id==='mine'?mineReason:decoyReason,t=g.targeted,f=p.facing||[0,0];
+ const p=g.player,reason=id==='mine'?mineReason:id==='glowstick'?glowstickReason:decoyReason,t=g.targeted,f=p.facing||[0,0];
  const options=[...(t&&!isBarrier(t)?[{x:t.x,y:t.y}]:[]),{x:p.x+f[0],y:p.y+f[1]},...DIRECTIONS.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy}))];
  return options.find(q=>!reason(g,q))||{x:p.x,y:p.y};
+}
+// ---- 螢光棒 (3.178.0, user decisions 2026-09-25; docs/LIGHTING.md) -------------------------------------------------
+// Thrown like a decoy, it lies where it lands and keeps a small patch dim for good: it never makes anything lit, so any
+// number of them only lets you see, not shoot straight.
+export function glowstickReason(g,pos){
+ const p=g.player;
+ if(!(p.glowsticks>0))return t('field-gear.noGlowstick');
+ if(!floorTile(g,pos))return t('field-gear.glowstickPickFloor');
+ if(distance(p,pos)>LIGHT_TUNING.glowstickRange||!g.visible(pos))return t('common.landingRange',{range:LIGHT_TUNING.glowstickRange});
+ return '';
+}
+export function throwGlowstick(g,pos){
+ const p=g.player;p.glowsticks--;p.facing=[Math.sign(pos.x-p.x),Math.sign(pos.y-p.y)];
+ g.glowsticks=[...(g.glowsticks||[]),{x:pos.x,y:pos.y}].slice(-LIGHT_TUNING.maxGlowsticks);
+ g.effects.push({type:'shot',style:'grenade',color:'#9dff8a',from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
+ g.log(t('field-gear.glowstickLit'));
+ return true;
 }
 export const mineAt=(g,x,y)=>(g.mines||[]).find(m=>m.x===x&&m.y===y)||null;
 // Pathing asks this with the walker: an enemy that watched the mine go down walks around it.

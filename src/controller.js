@@ -24,7 +24,7 @@ import {boundaryOpacityPercent} from './movement-boundaries.js';
 import {SCREEN_BRIGHTNESS,screenBrightnessPercent} from './screen-tone.js';
 import {drawTinyText,TINY_TEXT} from './pixel-text.js';
 import {actorStat,clampHit,combatStatSummary} from './actor-stats.js';
-import {isDark} from './lighting.js';
+import {isDark,isBlack,LIGHT_TUNING} from './lighting.js';
 import {missionDepth,returning,MISSIONS,CAMPAIGN_MISSION_IDS,OFFERED_MISSION_IDS,offeredMission,validMissionId,missionDefinition,missionProgress} from './missions.js';
 import {isContainer,containerName} from './containers.js';
 import {ammoName,magazineLabel,salvageValue} from './weapons.js';
@@ -258,11 +258,13 @@ function update(view=renderer.game) {
   $('#quick-weapon').textContent=w.melee?`${w.code} · ∞`:`${w.code} · ${p.ammo[p.weapon]} / ${reserve}`;$('#quick-weapon').title=w.melee?w.desc:`${t('controller.weaponTitle',{v:ammoName(w),reserve,v2:view.ammoCapacity(w.ammoType)})}`;
   const threats=view.visibleEnemies.filter(e=>!isNoncombatant(e)&&ENEMY_TYPES[e.type].range>1&&distance(e,p)<=ENEMY_TYPES[e.type].range&&(view.sight(e,p)||(unitTree(e).fixedTile&&e.charge&&e.aim&&distance(e.aim,p)===0)));
   const exposed=threats.filter(e=>!view.protectingCover(p,e)).length;
-  $('#status-effects').textContent=[view.pursuit?t('controller.status.pursuit'):'',p.wearables?.includes('exo')?`${t('controller.status.exo',{exoPlates:p.exoPlates,plates:EXO_TUNING.plates})}`:'',view.decoy?`${t('controller.status.decoy',{hp:view.decoy.hp,v:Math.max(1,view.decoy.expires-view.turn)})}`:'',...timedStatuses(view),view.weapon?.aimPenalty&&!p.focus?`${t('controller.status.unaimed',{aimPenalty:view.weapon.aimPenalty})}`:'',suppressionStatus(p),...meleeStatus(view),p.recovery?t('controller.status.chainsaw'):'',skillActive(p,'anchor')?t('controller.status.anchor'):'',p.vaultExposed?t('controller.status.vault'):'',skillActive(p,'early_warning')?t('controller.status.warning'):'',isDark(view,p)?t('controller.status.dark'):'',exposed?`${t('controller.status.exposed',{exposed})}`:threats.length?(threats.some(e=>view.accuracy(e,p).coverEfficiency===.5)?t('controller.status.halfCover'):t('controller.status.cover')):view.cover.length?t('controller.status.byWall'):'',p.moved?t('controller.status.moved'):'',threats.some(e=>view.accuracy(e,p).sidePenalty)?`${t('controller.status.sidestep',{v:threats.filter(e=>view.accuracy(e,p).sidePenalty).length})}`:'',p.guard?t('controller.status.guard'):'',p.plates?`${t('controller.status.plates',{plates:p.plates})}`:'',p.focus?t('controller.status.focus'):'',p.evasive?t('controller.status.evasive'):'',initiative(p)<0?t('controller.status.fast'):initiative(p)>0?t('controller.status.slow'):''].filter(Boolean).join(' · ');
+  $('#status-effects').textContent=[view.pursuit?t('controller.status.pursuit'):'',p.wearables?.includes('exo')?`${t('controller.status.exo',{exoPlates:p.exoPlates,plates:EXO_TUNING.plates})}`:'',view.decoy?`${t('controller.status.decoy',{hp:view.decoy.hp,v:Math.max(1,view.decoy.expires-view.turn)})}`:'',...timedStatuses(view),view.weapon?.aimPenalty&&!p.focus?`${t('controller.status.unaimed',{aimPenalty:view.weapon.aimPenalty})}`:'',suppressionStatus(p),...meleeStatus(view),p.recovery?t('controller.status.chainsaw'):'',skillActive(p,'anchor')?t('controller.status.anchor'):'',p.vaultExposed?t('controller.status.vault'):'',skillActive(p,'early_warning')?t('controller.status.warning'):'',isBlack(view,p)?t('controller.status.black'):isDark(view,p)?t('controller.status.dark'):'',exposed?`${t('controller.status.exposed',{exposed})}`:threats.length?(threats.some(e=>view.accuracy(e,p).coverEfficiency===.5)?t('controller.status.halfCover'):t('controller.status.cover')):view.cover.length?t('controller.status.byWall'):'',p.moved?t('controller.status.moved'):'',threats.some(e=>view.accuracy(e,p).sidePenalty)?`${t('controller.status.sidestep',{v:threats.filter(e=>view.accuracy(e,p).sidePenalty).length})}`:'',p.guard?t('controller.status.guard'):'',p.plates?`${t('controller.status.plates',{plates:p.plates})}`:'',p.focus?t('controller.status.focus'):'',p.evasive?t('controller.status.evasive'):'',initiative(p)<0?t('controller.status.fast'):initiative(p)>0?t('controller.status.slow'):''].filter(Boolean).join(' · ');
   $('#status-effects').style.color=exposed?'#f3a182':'#b6d5b0';$('#status-effects').title=exposed?`${t('controller.status.exposedTitle',{exposed})}`:t('controller.status.coverTitle');
   // Grapple preview: only while the hook is ready and the locked target is a legal pull or dash.
   renderer.grapplePreview=null;
   if(p.prepared.skill==='grapple'&&!p.skillState.grapple?.cooldown&&!p.control.disabled&&view.status==='playing'){const plan=view.grapplePlan();if(!plan.reason)renderer.grapplePreview={from:{x:plan.mover.x,y:plan.mover.y},point:plan.point,dash:plan.dash};}
+  // 3.178.0: the flashlight switch shows whether it is on.
+  const lightButton=$('[data-action="flashlight"]');if(lightButton){lightButton.setAttribute('aria-pressed',String(Boolean(p.flashlight)));lightButton.setAttribute('aria-label',p.flashlight?t('controller.flashlight.off'):t('controller.flashlight.on'));}
   const aimingButton=$('[data-action="toggleTargeting"]');
   aimingButton.setAttribute('aria-pressed',String(renderer.targetingEnabled));
   aimingButton.setAttribute('aria-label',renderer.targetingEnabled?t('controller.aim.off'):t('controller.aim.on'));
@@ -396,7 +398,7 @@ function act(type,arg) {
     }
   }
   if(!playback&&game.logs[0]!==oldLog){lastActionLogs=freshLogs(oldLog);notifyLatest();}
-  if(success||(type!=='grenade'&&type!=='launch'&&type!=='blindFire'&&type!=='deployCover'&&type!=='flare'&&type!=='rope'&&type!=='decoy'&&type!=='mine'&&!(type==='usePrepared'&&arg?.category==='grenade')))cancelAim();update();return success;
+  if(success||(type!=='grenade'&&type!=='launch'&&type!=='blindFire'&&type!=='deployCover'&&type!=='flare'&&type!=='rope'&&type!=='decoy'&&type!=='mine'&&type!=='glowstick'&&!(type==='usePrepared'&&arg?.category==='grenade')))cancelAim();update();return success;
 }
 function move(dx,dy){if(renderer.mode==='deploy'){act('deployCover',[dx,dy]);return;}if(renderer.mode==='launch'||renderer.mode==='rope'){const from=renderer.aim||game.player;setAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='blind'){const from=renderer.aim||game.player;setBlindAim({x:from.x+dx,y:from.y+dy});return;}if(renderer.mode==='pet'){setPetAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='drone'){setDroneAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});return;}if(renderer.mode==='grenade'||renderer.mode==='flare'||renderer.mode==='place'){const pos={x:renderer.aim.x+dx,y:renderer.aim.y+dy};setAim(pos);}else if(renderer.mode==='suppress'){setSuppressAim({x:renderer.aim.x+dx,y:renderer.aim.y+dy});}else act('move',[dx,dy]);}
 function floorToast(){if(isSimulation(game))return;if(isEndless(game)){const growth=growthLabel(game.floor,game.difficultySpec);notify(`${t('controller.floorNoticeFull',{v:depthLabel(game.floor),v2:floorInfo(game.floor).name,v3:growth?growth+t('controller.period'):'',v4:endlessFloorText(game.floor),v5:operatorSignal(game)})}`);return;}notify(`${t('controller.floorNotice',{floor:game.floor,v:floorInfo(game.floor).name,v2:returning(game)?game.missionSummary:game.floor===missionDepth(game)?missionDefinition(game).text:floorInfo(game.floor).text})}`);}
@@ -412,7 +414,7 @@ function setBlindAim(pos){const reason=blindReason(game,pos);if(reason){notify(r
 function startSuppressAim(){const p=game.player,reason=suppressivePreview(game,{x:p.x,y:p.y}).reason;if(reason){notify(reason);return;}const pick=[game.targeted,...game.visibleEnemies].find(e=>e&&game.enemies.includes(e)&&!suppressivePreview(game,{x:e.x,y:e.y}).reason);renderer.mode='suppress';renderer.aim=pick?{x:pick.x,y:pick.y}:{x:p.x,y:p.y};notify(`${t('controller.suppressHint',{range:game.weapon.range})}`);updateAim();}
 function setSuppressAim(pos){const reason=suppressivePreview(game,pos).reason;if(reason){notify(reason);return;}renderer.aim=pos;updateAim();}
 function setAim(pos){const launch=renderer.mode==='launch'||renderer.mode==='rope',placing=renderer.mode==='place',range=renderer.mode==='rope'?LINE_TUNING.range:launch?game.weapon.range:placing?placeRange():5;if(distance(pos,game.player)<=range&&game.grid[pos.y]?.[pos.x]===1&&game.visible(pos)){renderer.aim=pos;updateAim();}else notify(launch||placing?`${t('controller.landingRange',{range})}`:t('controller.throwRange'));}
-const placeRange=()=>renderer.placeItem==='mine'?MINE_TUNING.range:DECOY_TUNING.range;
+const placeRange=()=>renderer.placeItem==='mine'?MINE_TUNING.range:renderer.placeItem==='glowstick'?LIGHT_TUNING.glowstickRange:DECOY_TUNING.range;
 // 3.111.0 (user request): a point-target launcher is aimed like a thrown grenade — pick a tile, confirm with 互動 —
 // so the fire key opens that mode instead of shooting the locked enemy. Pressing fire again cancels.
 function fireWeapon(){
@@ -462,13 +464,13 @@ function useItem(){if(renderer.mode==='deploy'||renderer.mode==='flare'||rendere
   if(entry.aim==='throw'){startThrowAim(game.player.prepared.item);return;}
   act('usePrepared',{category:'item'});}
 // 3.135.0: a grapple line is aimed like a flare — pick the landing tile, confirm with 互動, press 道具 again to cancel.
-function startThrowAim(id){const action=PREPARED_CATALOG.item[id]?.action;if(action==='rope')startRopeAim(id);else if(action==='decoy'||action==='mine')startPlaceAim(action);else startFlareAim();}
+function startThrowAim(id){const action=PREPARED_CATALOG.item[id]?.action;if(action==='rope')startRopeAim(id);else if(action==='decoy'||action==='mine'||action==='glowstick')startPlaceAim(action);else startFlareAim();}
 // 3.144.0 (src/field-gear.js): a decoy or a mine is placed like a flare — pick the tile, confirm with 互動, press 道具 to cancel.
 function startPlaceAim(id){
   const p=game.player,entry=PREPARED_CATALOG.item[id];if(!(p[entry.resource]>0)){sayLine('empty',{item:entry.name});return;}
   // 3.148.1 (user report): the pad and swipes move this aim like a flare's, and it starts on a tile that would be accepted.
   renderer.mode='place';renderer.placeItem=id;renderer.aim=placeStart(game,id);updateAim();
-  notify(id==='mine'?`${t('controller.item.mineHint',{range:MINE_TUNING.range})}`:`${t('controller.item.decoyHint',{range:DECOY_TUNING.range})}`);
+  notify(id==='mine'?`${t('controller.item.mineHint',{range:MINE_TUNING.range})}`:id==='glowstick'?t('controller.item.glowstickHint',{range:LIGHT_TUNING.glowstickRange}):`${t('controller.item.decoyHint',{range:DECOY_TUNING.range})}`);
 }
 function startRopeAim(id){
   const p=game.player,entry=PREPARED_CATALOG.item[id];if(!(p[entry.resource]>0)){sayLine('empty',{item:entry.name});return;}
@@ -681,7 +683,7 @@ const HOTKEY_RUN={moveUp:()=>move(0,-1),moveLeft:()=>move(-1,0),moveDown:()=>mov
   fire:()=>fireWeapon(),reload:()=>act('reload'),grenade:()=>grenade(),item:()=>useItem(),skill:()=>{if(!$('[data-action="skill"]')?.disabled)skill();},interact:()=>interact(),
   // 3.162.0 (user decision): a button straight to the weapon tab — the bag button opens the last tab, and switching
   // weapons is frequent. No gesture switches weapons directly: that costs a turn, and the tab shows the cost.
-  cycleTarget:()=>cycleTarget(),toggleTargeting:()=>toggleTargeting(),bag:()=>showInventory(),weapons:()=>showInventory('weapon'),map:()=>showMap(),center:()=>centerCamera(),zoomIn:()=>zoomBy(.15),zoomOut:()=>zoomBy(-.15)};
+  cycleTarget:()=>cycleTarget(),toggleTargeting:()=>toggleTargeting(),flashlight:()=>act('flashlight'),bag:()=>showInventory(),weapons:()=>showInventory('weapon'),map:()=>showMap(),center:()=>centerCamera(),zoomIn:()=>zoomBy(.15),zoomOut:()=>zoomBy(-.15)};
 function zoomBy(step){renderer.zoom=Math.max(.65,Math.min(1.6,renderer.zoom+step));renderer.resize();}
 function centerCamera(){renderer.zoom=1;renderer.resize();renderer.camera={x:game.player.x,y:game.player.y};}
 // The hint is an attribute drawn by CSS, so buttons whose label the game rewrites keep it.
@@ -1224,7 +1226,7 @@ document.addEventListener('click',e=>{
   switch(b.dataset.action){
     case 'mission':showMission();break;case 'interact':interact();break;case 'result':showResult();break;case 'map':showMap();break;case 'game':$('#battle').focus();break;case 'help':showHelp();break;case 'settings':settings();break;case 'bag':showInventory();break;case 'weapons':showInventory('weapon');break;case 'terminal':showTerminal();break;
     case 'item':useItem();break;case 'skill':skill();break;case 'saveWarning':showSaveWarning();break;
-    case 'toggleTargeting':toggleTargeting();break;case 'cycleTarget':cycleTarget();break;case 'grenade':grenade();break;case 'cancelAim':cancelAim();break;case 'fire':fireWeapon();break;
+    case 'toggleTargeting':toggleTargeting();break;case 'flashlight':act('flashlight');break;case 'cycleTarget':cycleTarget();break;case 'grenade':grenade();break;case 'cancelAim':cancelAim();break;case 'fire':fireWeapon();break;
     case 'zoomIn':zoomBy(.15);break;
     case 'zoomOut':zoomBy(-.15);break;
     case 'center':centerCamera();break;

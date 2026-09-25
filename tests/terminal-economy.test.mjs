@@ -74,7 +74,7 @@ test('modifications: any weapon in the pack, only at a terminal, up to +3; each 
 });
 
 test('the credit: 60 a terminal, shown as it drops, worn out below the cheapest price, and old saves keep their state',()=>{
-  assert.equal(TERMINAL_TUNING.credit,60);assert.equal(TERMINAL_MIN_PRICE,10);
+  assert.equal(TERMINAL_TUNING.credit,60);assert.equal(TERMINAL_MIN_PRICE,5);   // 3.178.0: a glowstick costs 5
   const g=arena(),p=g.player,t=g.props[0];p.scrap=500;p.pistol=0;p.reserve=0;
   assert.equal(terminalRemaining(t),60);
   for(const id of ['rifle','rifle','pistol','pistol','pistol'])assert.ok(g.action('terminal',id));

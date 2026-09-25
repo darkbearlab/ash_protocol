@@ -212,7 +212,8 @@ test('through smoke the leader calls out your tile: blind shots at −40 that re
   assert.ok(g.logs.some(l=>l.text.includes('依小隊長回報的位置')),'somebody fired at the called-out tile');
   assert.ok(g.player.hp<=hp);
   // The number: −40, and in the dark it replaces the darkness penalty instead of adding to it.
-  const shooter=squad[0];g.smoke=[];g.lighting=g.grid.map(r=>r.map(()=>0));g.reveal();
+  // Dim, not black (3.178.0): the old light rule, where an unpowered tile is dim and nobody is hidden.
+  const shooter=squad[0];g.smoke=[];g.lighting=g.grid.map(r=>r.map(()=>0));g.lightModel=undefined;g.lamps=undefined;g.reveal();
   const dark=g.accuracy(shooter,g.player);
   shooter.blindShot=SQUAD_TUNING.blindPenalty;const blind=g.accuracy(shooter,g.player);delete shooter.blindShot;
   assert.ok(dark.darkPenalty>0);assert.equal(blind.darkPenalty,0);
@@ -265,7 +266,7 @@ test('a squad standing on your only way to the lift never advances and never los
 test('squad orders survive a save, and a tampered order is refused',()=>{
   const {g}=scene({members:2});
   turns(g,SQUAD_TUNING.deployTurns+2);
-  assert.equal(SAVE_VERSION,72);
+  assert.equal(SAVE_VERSION,73);
   const restored=Game.restore(g.serialize());
   assert.ok(restored);
   assert.equal(restored.enemies.find(e=>isSquadLeader(e)).squad.state,'ready');

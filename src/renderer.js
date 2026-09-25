@@ -6,7 +6,6 @@ import {shakeImpulses,shakeOffset,liveImpulses} from './screen-shake.js';
 import {effectGlitches,stateGlitches,screenStrength,drawGlitched,screenGlitch,liveGlitches,drawGlitchedBox,bubbleGlitch} from './signal-glitch.js';
 import {FRAME_RATE_DEFAULT,frameDue,nextDue} from './frame-rate.js';
 import {terminalRemaining,TERMINAL_TUNING} from './terminal.js';
-import {flareCells} from './flares.js';
 import {lineReason} from './lines.js';
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
@@ -16,7 +15,7 @@ import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './
 import {NEST_ATLAS,drawNest,drawNestEffect,drawNestSprite} from './nest-art.js';
 import {DECAL_ATLAS,FactionDecals} from './faction-decals.js';
 import {blindReason} from './blind-fire.js';
-import {DECOY_TUNING,decoyReason,mineReason} from './field-gear.js';
+import {DECOY_TUNING,decoyReason,mineReason,glowstickReason} from './field-gear.js';
 import {isNoncombatant} from './enemy-data.js';
 import {SCENERY_ATLAS} from './scenery.js';
 import {drawPartition,partitionGeometry,DOOR_ATLAS,drawDoor,doorGeometry,drawJunction,barrierJunctions} from './barrier-art.js';
@@ -25,7 +24,7 @@ import {CLASS_ATLAS,classSpriteRect} from './class-art.js';
 import {DEFAULT_OPERATOR_COLOR,tintedSprite,tintPixels} from './operator-color.js';
 import {connected,droneCells} from './allies.js';
 import {movementBoundaries,boundaryOpacityPercent} from './movement-boundaries.js';
-import {isDark,floorShading} from './lighting.js';
+import {isDark,isBlack,floorShading,seesInDark,flareLightCells,glowstickCells,LIGHT} from './lighting.js';
 import {ArtToneCache} from './art-tone.js';
 import {WALL_ATLAS,drawWall} from './walls.js';
 import {drawTrace} from './traces.js';
@@ -54,8 +53,8 @@ const RANGE_FLASH=Object.freeze({ms:90,gap:70,alpha:.45,width:1});
 const BREATH_DROP=2,BREATH_PERIOD=2400;
 // Ground item colours and symbols. 3.136.1: the grapple lines and goggles (3.135.0) had none, so their tiles printed
 // "undefined"; tests/item-symbols.test.mjs now checks every ground item type, and a missing one shows '?'.
-export const ITEM_COLORS=Object.freeze({smoke:'#a9bbcb',emp:'#81dce9',stun:'#eee0a0',armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db',learning:'#b9a2e6',spray:'#b6a2d6',adrenaline:'#e0a7c4',barricade:'#c9b48c',flare:'#e7c46e',nvg:'#9fd0a8',escape_line:'#d7b27a',redeploy_line:'#a9c3d6',decoy:'#e0c46a',mine:'#d9785a',exo:'#9fb3c8',key:'#ffe9a0',irg:'#e07a6a'});
-export const ITEM_SYMBOLS=Object.freeze({smoke:'≋',emp:'E',stun:'✦',armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D',spray:'▣',adrenaline:'⚡',barricade:'▬',flare:'✺',nvg:'◉',escape_line:'↟',redeploy_line:'⇢',decoy:'◎',mine:'✱',exo:'⛨',key:'✧',irg:'◍'});
+export const ITEM_COLORS=Object.freeze({smoke:'#a9bbcb',emp:'#81dce9',stun:'#eee0a0',armor:'#92c4df',med:'#b9d2a2',ammo:'#c4ad70',pistol:'#b2c998',shell:'#dca186',energy:'#82cfc5',ordnance:'#ca9971',grenade:'#9eba87',scrap:'#c5a171',weapon:'#e9bd77',lore:'#c2a9db',learning:'#b9a2e6',spray:'#b6a2d6',adrenaline:'#e0a7c4',barricade:'#c9b48c',flare:'#e7c46e',glowstick:'#9dff8a',nvg:'#9fd0a8',escape_line:'#d7b27a',redeploy_line:'#a9c3d6',decoy:'#e0c46a',mine:'#d9785a',exo:'#9fb3c8',key:'#ffe9a0',irg:'#e07a6a'});
+export const ITEM_SYMBOLS=Object.freeze({smoke:'≋',emp:'E',stun:'✦',armor:'▣',med:'+',ammo:'R',pistol:'P',shell:'S',energy:'ϟ',ordnance:'•',grenade:'G',scrap:'◇',weapon:'W',lore:'D',spray:'▣',adrenaline:'⚡',barricade:'▬',flare:'✺',glowstick:'⌇',nvg:'◉',escape_line:'↟',redeploy_line:'⇢',decoy:'◎',mine:'✱',exo:'⛨',key:'✧',irg:'◍'});
 // 3.136.2 (user request): ground items shrink with the map the way units do — full size at the default tile, never
 // larger — and are hidden once the tile is so small they would only be clutter. With the zoom buttons that is the
 // smallest step (0.65 → 24.7 px); wide framing for a far target can hide them too. At full size nothing is transformed,
@@ -217,11 +216,13 @@ export class Renderer {
       if(distance(p,{x,y})===1&&g.passable(x,y)&&!g.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))this.box(left+3,top+3,t-6,t-6,'#b0ba8010','#b1c48a3b');
       const room=g.rooms?.find(r=>r.supply&&r.cx===x&&r.cy===y);if(room){const sign=SUPPLY_ROOMS[room.supply];if(sign)this.text(sign.code,a.x,a.y-this.tile*.4,sign.color,9);}
       if(g.exitPoint.x===x&&g.exitPoint.y===y)this.exit(a,time);
-      for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y&&(!memo||memo.dead.includes(dead.id)))this.corpse(a,dead.type,undefined,dead);
+      // 3.178.0: what lies in the black, bodies and items, is not seen unless you see in the dark.
+      const shown=!isBlack(g,{x,y})||seesInDark(g,p);
+      if(shown)for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y&&(!memo||memo.dead.includes(dead.id)))this.corpse(a,dead.type,undefined,dead);
       if(g.operatorCorpse?.x===x&&g.operatorCorpse.y===y)this.operatorCorpse(a,g.operatorCorpse,time);
       for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
       for(const prop of g.props)if(!isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
-      for(const weapon of [false,true])for(const item of memo?memo.items:g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.glitchDraw(a,itemGlitchKey(item),()=>this.groundItem(a,item,time));
+      if(shown)for(const weapon of [false,true])for(const item of memo?memo.items:g.items)if((item.type==='weapon')===weapon&&item.x===x&&item.y===y)this.glitchDraw(a,itemGlitchKey(item),()=>this.groundItem(a,item,time));
       for(const objective of missionObjects(g))if(!objective.done&&objective.x===x&&objective.y===y){this.box(a.x-9,a.y-8,18,16,'#123d46','#82e6ec');this.text('D',a.x,a.y+4,'#b7fcff',12);}
       // 3.134.0: toxic mist is green, spore smoke brown; plain smoke keeps its grey.
       for(const cloud of g.smoke)if(cloud.cells.some(q=>q.x===x&&q.y===y)){const tone=cloud.kind==='toxic'?['#8fbf4a55','#c6e5864a']:cloud.kind==='spore'?['#9c7d5366','#c8ad874a']:['#abc1cd66','#d4dfe84a'];this.box(left+1,top+1,t-2,t-2,tone[0]);for(let n=0;n<3;n++)this.box(left+5+n*7,top+8+(x+y+n)%3*6,11,5,tone[1]);this.text(String(Math.max(1,cloud.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#d3e2ed',8);}
@@ -237,19 +238,23 @@ export class Renderer {
     // 3.123.0: a flare's aim shows exactly the tiles it would light now (shadows and full cover stay unmarked).
     // 3.135.0: a grapple line's aim — the straight pull and its landing, green when it can go, red when it cannot.
     if(this.mode==='rope'&&this.aim){const t=this.tile,ok=!lineReason(g,{...this.aim,item:this.ropeItem}),from=this.project(g.player.x,g.player.y),a=this.project(this.aim.x,this.aim.y);this.line(from.x,from.y,a.x,a.y,ok?'#9ee6a0aa':'#e8756aaa',2);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,ok?'#9ee6a033':'#e8756a33',ok?'#9ee6a0':'#e8756a');}
-    if(this.mode==='flare'&&this.aim){const t=this.tile;for(const {x,y} of flareCells(g,this.aim)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,'#ffd27a26','#ffe0a066');}const a=this.project(this.aim.x,this.aim.y);this.text('✺',a.x,a.y+5,'#ffe3a8',15);}
+    if(this.mode==='flare'&&this.aim){const t=this.tile;for(const {x,y,level} of flareLightCells(g,this.aim)){const a=this.project(x,y);if(level===LIGHT.lit)this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,'#ffd27a26','#ffe0a066');else this.box(a.x-t/2+4,a.y-t/2+4,t-8,t-8,'#ffd27a10','#ffe0a033');}const a=this.project(this.aim.x,this.aim.y);this.text('✺',a.x,a.y+5,'#ffe3a8',15);}
     // 3.144.0 (src/field-gear.js): placing a decoy or a mine shows the tile, and the decoy marks the enemies it would draw.
     if(this.mode==='blind'&&this.aim){const t=this.tile,ok=!blindReason(g,this.aim),from=this.project(g.player.x,g.player.y),a=this.project(this.aim.x,this.aim.y),tone=ok?'#e8c46acc':'#e8756aaa';
       c.save();c.setLineDash([4,4]);this.line(from.x,from.y,a.x,a.y,ok?'#e8c46a66':'#e8756a66',1.5);c.restore();this.box(a.x-t/2+3,a.y-t/2+3,t-6,t-6,ok?'#e8c46a1a':'#e8756a1a',tone);
       this.line(a.x-t*.32,a.y,a.x-t*.12,a.y,tone,2);this.line(a.x+t*.12,a.y,a.x+t*.32,a.y,tone,2);this.line(a.x,a.y-t*.32,a.x,a.y-t*.12,tone,2);this.line(a.x,a.y+t*.12,a.x,a.y+t*.32,tone,2);this.text('?',a.x,a.y+4,tone,11);}
-    if(this.mode==='place'&&this.aim){const t=this.tile,ok=!(this.placeItem==='mine'?mineReason(g,this.aim):decoyReason(g,this.aim)),a=this.project(this.aim.x,this.aim.y);
+    if(this.mode==='place'&&this.aim){const t=this.tile,ok=!(this.placeItem==='mine'?mineReason(g,this.aim):this.placeItem==='glowstick'?glowstickReason(g,this.aim):decoyReason(g,this.aim)),a=this.project(this.aim.x,this.aim.y);
+      if(this.placeItem==='glowstick')for(const {x,y} of glowstickCells(g,this.aim)){const q=this.project(x,y);this.box(q.x-t/2+4,q.y-t/2+4,t-8,t-8,'#9dff8a10','#9dff8a40');}
       if(this.placeItem==='decoy')for(const e of g.visibleEnemies.filter(e=>distance(e,this.aim)<=DECOY_TUNING.radius&&!isNoncombatant(e))){const q=this.project(e.x,e.y);this.box(q.x-t/2+3,q.y-t/2+3,t-6,t-6,'#e0c46a1f','#e0c46a99');}
-      this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,ok?'#e0c46a33':'#e8756a33',ok?'#e0c46a':'#e8756a');this.text(this.placeItem==='mine'?'✱':'◎',a.x,a.y+5,ok?'#ffe3a8':'#f3a79c',15);}
+      this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,ok?'#e0c46a33':'#e8756a33',ok?'#e0c46a':'#e8756a');this.text(this.placeItem==='mine'?'✱':this.placeItem==='glowstick'?'⌇':'◎',a.x,a.y+5,ok?'#ffe3a8':'#f3a79c',15);}
     // Your mines (only you know where they are) and a live decoy with its hit points and turns left.
     for(const m of g.mines||[])if(g.seen?.[m.y]?.[m.x]){const a=this.project(m.x,m.y),t=this.tile;this.box(a.x-t*.16,a.y-t*.12,t*.32,t*.24,'#2a2f2c','#8c7a5a');this.box(a.x-1.5,a.y-1.5,3,3,'#ff5a4a');}
     if(g.decoy&&g.seen?.[g.decoy.y]?.[g.decoy.x]){const d=g.decoy,a=this.project(d.x,d.y),t=this.tile,pulse=this.reduceMotion?.5:.5+.5*Math.sin(time/180);
       this.glow(a.x,a.y,t*(1+.4*pulse),'#e0c46a2a');this.box(a.x-t*.18,a.y-t*.18,t*.36,t*.36,'#3b3522','#e0c46a');this.text('◎',a.x,a.y+4,'#ffe7a0',11);
       this.text(`${d.hp}·${Math.max(1,d.expires-g.turn)}`,a.x,a.y+t*.42,'#ffe7a0',8);}
+    // 3.178.0 (docs/LIGHTING.md): wall lamps glow warm against their wall; a glowstick is a small green bar.
+    for(const lamp of g.lamps||[])if(g.seen?.[lamp.y]?.[lamp.x]){const a=this.project(lamp.x,lamp.y),t=this.tile,w=[[0,-1],[-1,0],[1,0],[0,1]].find(([dx,dy])=>g.grid[lamp.y+dy]?.[lamp.x+dx]!==1)||[0,-1],lx=a.x+w[0]*t*.38,ly=a.y+w[1]*t*.38;this.glow(lx,ly,t*.9,'#ffdca030');this.box(lx-3,ly-3,6,6,'#fff0c8','#8a6a3a');}
+    for(const stick of g.glowsticks||[])if(g.seen?.[stick.y]?.[stick.x]){const a=this.project(stick.x,stick.y),t=this.tile;this.glow(a.x,a.y,t*.8,'#9dff8a2a');this.line(a.x-4,a.y+3,a.x+4,a.y-3,'#c8ffb8',3);}
     for(const flare of g.flares||[])if(g.seen?.[flare.y]?.[flare.x]){const a=this.project(flare.x,flare.y),t=this.tile;this.glow(a.x,a.y,t*1.6,'#ffd27a30');this.box(a.x-2,a.y-2,4,4,'#fff1c4');this.text(String(Math.max(1,flare.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#ffe3a8',8);}
     if(this.mode==='launch'&&this.aim)this.markArea(this.aim,1,'#e6a95b33','#eacb84aa','');
     // 3.112.0: the shotgun's cone, faint on the floor and firm on everyone one shell will reach; red for a friend.

@@ -7,6 +7,7 @@ import {AMMUNITION,itemAmmo,TERMINAL_AMMO} from '../src/ammunition.js';
 import {Game,distance,terminalReason} from '../src/engine.js';
 import {terminalRemaining,terminalSells,upgradeCost,TERMINAL_TUNING} from '../src/terminal.js';
 import {pathToFileURL} from 'node:url';
+import {isBlack} from '../src/lighting.js';
 
 export function route(game,goal,{ignoreEnemies=false}={}) {
   const p=game.player,queue=[{x:p.x,y:p.y,first:null}],seen=new Set([`${p.x},${p.y}`]);
@@ -48,13 +49,19 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     // Do not oscillate forever between a quiet silhouette and a supply detour. Commit to advancing.
     if(visits.get(position)>4){detourUntil=g.turn+30;visits.clear();navigation.tactics=null;}
     if(g.pendingPerks){const rank={damage:70,armor:60,health:p.hp<70?100:50,med:p.meds<2?85:35,hazmat:15,blast:10,medic:35,scavenger:20,plate_rack:60,mod_mastery:45,skirmish:40,steady:25,plating:30};/* 3.150.0: the 升級 D perks too */g.choosePerk([...g.perkChoices].sort((a,b)=>rank[b.id]-rank[a.id])[0].id);continue;}
+    // 3.178.0: in the black nobody is seen, not even next to you, so the bot switches its flashlight on there (free) and
+    // off again in the light, as a player would; the light gives it away too.
+    // Its own light makes its tile dim, so the tile is judged with the flashlight off.
+    const on=p.flashlight;p.flashlight=false;const black=isBlack(g,p);p.flashlight=on;
+    if(on!==black){act('flashlight');continue;}
     const marked=g.marks.find(m=>distance(p,m)<=1);
     if(marked){const step=safeMove(g,n=>distance(n,marked)>distance(p,marked));if(step){act('move',step);continue;}}
     const bomber=g.visibleEnemies.find(e=>e.type==='bomber'&&distance(e,p)<=1);
     if(bomber){act('wait');continue;}
     if(p.hp<=p.maxHp-45&&p.meds>0){act('heal');continue;}
     const targets=g.visibleEnemies.filter(e=>distance(p,e)<=g.weapon.range&&g.shotClear(p,e)).sort((a,b)=>Number(b.charge)-Number(a.charge)||distance(a,p)-distance(b,p));
-    const grenade=targets.find(e=>distance(p,e)>2&&distance(p,e)<=5&&(e.hp>=75||g.visibleEnemies.filter(o=>distance(o,e)<=2).length>=2));
+    // A grenade lands on floor only: a drone hovering over a pit (3.164.0) is not a landing spot.
+    const grenade=targets.find(e=>g.grid[e.y]?.[e.x]===1&&distance(p,e)>2&&distance(p,e)<=5&&(e.hp>=75||g.visibleEnemies.filter(o=>distance(o,e)<=2).length>=2));
     if(grenade&&p.grenades>0){if(p.prepared.grenade!=='frag')act('prepare',{category:'grenade',id:'frag'});act('grenade',grenade);continue;}
     // 3.141.0: a drop-only affix can spend two rounds a shot; with fewer loaded the gun counts as empty.
     const loaded=p.ammo[p.weapon]>=(g.weapon.shotCost||1);

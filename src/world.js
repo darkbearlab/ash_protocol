@@ -15,7 +15,7 @@ import {OPENING_RECIPES,addOpenings} from './map-openings.js';
 import {ANNEX_RECIPES,addAnnexes,addRequestedAnnexes} from './map-annexes.js';
 import {placePopulation,reservationPosts} from './map-population.js';
 import {extraEnemies,scaleEnemy,floorHpBonus,curveOf} from './endless.js';
-import {createLighting} from './lighting.js';
+import {createLighting,placeLamps} from './lighting.js';
 import {selectSupplyStations,addLivingModules,moduleCells} from './modules.js';
 import {floorTerminalKinds,KIND_ROOMS} from './terminal-kinds.js';
 import {packSupplies} from './containers.js';
@@ -74,7 +74,7 @@ export function previewSpecial(map,seed,floor,difficulty,faction){
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor);}
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeLamps(placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor),seed,floor);}   // lamps: 3.178.0, after everything else stands
 // 3.135.0 (user decision, docs/ITEMS.md): once everything else stands, each of the floor's two terminals takes its kind
 // and moves to the supply room of that kind. Done last, so nothing else on the floor shifts; the room's reserved console
 // corner is tried first, and a terminal that finds no free tile there that keeps the floor safe stays put, still typed.
@@ -201,6 +201,8 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
     // 3.144.0: a decoy beside the armour room's flare and a mine in the ammunition room's case, on the spray's tile;
     // placed, not rolled, so the rest of the floor draws the same numbers.
     if(r.supply==='armor')items.push({x:r.cx,y:r.cy,type:'decoy',amount:1,cache:true});
+    // 3.178.0 (docs/LIGHTING.md): two or three glowsticks with the flare, the number from a hash of its own, not rolled.
+    if(r.supply==='armor')items.push({x:r.cx,y:r.cy,type:'glowstick',amount:2+(Math.imul(seed^Math.imul(floor,40503),2654435761)>>>31),cache:true});
     if(r.supply==='ammo')items.push({x:r.cx,y:r.cy,type:'mine',amount:1,cache:true});
   });
   // Guaranteed weapon discoveries, placed off the critical path so full packs never block progress.

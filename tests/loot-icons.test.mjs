@@ -23,7 +23,7 @@ test('the pack decides the classes: its throwables are one column, its items ano
  for(const entry of Object.values(PREPARED_CATALOG.grenade))
   assert.deepEqual(lootCell({type:entry.item},null),{col:5,row:0},`${entry.item} is a throwable in the pack`);
  const gear={medkit:'med',spray:'spray',adrenaline:'adrenaline',barricade:'barricade',flare:'flare',escape_line:'escape_line',
-  redeploy_line:'redeploy_line',irg:'irg',nvg:'nvg',decoy:'decoy',mine:'mine',exo:'exo'};
+  redeploy_line:'redeploy_line',irg:'irg',nvg:'nvg',decoy:'decoy',glowstick:'glowstick',mine:'mine',exo:'exo'};
  assert.deepEqual(Object.keys(gear),Object.keys(PREPARED_CATALOG.item),'the pack item list and this table agree');
  for(const type of Object.values(gear))assert.deepEqual(lootCell({type},null),{col:6,row:0},`${type} is gear`);
  assert.deepEqual(lootCell({type:'armor'},null),{col:6,row:0},'armour plates are gear too');
