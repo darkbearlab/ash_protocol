@@ -17,9 +17,9 @@ test('rank 0: the scan marks what it reaches for one turn; the soldier hits and 
  const plain=g.accuracy(p,near);assert.equal(plain.markBonus,0);
  assert.ok(g.action('skill','early_warning'));assert.ok(activeTrait(near,'exposed'));assert.ok(!activeTrait(far,'exposed'),'nine tiles away is outside the scan');
  const aim=g.accuracy(p,near);assert.equal(aim.markBonus,10);assert.equal(aim.chance,plain.chance+10);assert.equal(g.accuracy(near,p).specialEvasion,0,'no debuff at rank 0');
- const hp=near.hp,turn=g.turn;assert.ok(g.action('fire'));assert.equal(g.turn,turn+1);assert.equal(hp-near.hp,Math.round(22*1.1),'the rifle\'s minimum roll, one tenth deeper');
+ const hp=near.hp,turn=g.turn;assert.ok(g.action('fire'));assert.equal(g.turn,turn+1);assert.equal(hp-near.hp,3*Math.round(11*1.1*.8),'three rounds at the rifle\'s minimum roll, one tenth deeper, a fifth lost through no armor (3.185.0)');
  assert.ok(!activeTrait(near,'exposed'),'one turn, then gone');
- const h=arena(),e=enemy(h,13,10);const base=e.hp;assert.ok(h.action('fire'));assert.equal(base-e.hp,22,'unmarked: the plain roll');
+ const h=arena(),e=enemy(h,13,10);const base=e.hp;assert.ok(h.action('fire'));assert.equal(base-e.hp,3*Math.round(11*.8),'unmarked: the plain roll');
 });
 test('the two lines: 標定壓制 deepens damage, 標定弱化 blunts their aim, each rank adds a turn, five at most',()=>{
  const g=arena(),p=g.player,e=enemy(g,12,10);
@@ -27,7 +27,7 @@ test('the two lines: 標定壓制 deepens damage, 標定弱化 blunts their aim,
  p.perks.soldier_marked=1;assert.deepEqual(markValues(p),{duration:4,accuracy:10,damage:.3,evasion:6});
  p.perks.soldier_hunter=3;p.perks.soldier_marked=3;assert.deepEqual(markValues(p),{duration:5,accuracy:10,damage:.4,evasion:18});
  assert.ok(g.action('skill','early_warning'));assert.equal(e.traits.find(t=>t.id==='exposed').turns,5);assert.equal(g.accuracy(e,p).specialEvasion,18);
- const hp=e.hp;assert.ok(g.action('fire'));assert.equal(hp-e.hp,Math.round(22*1.4));assert.ok(activeTrait(e,'exposed'),'four turns left');
+ const hp=e.hp;assert.ok(g.action('fire'));assert.equal(hp-e.hp,3*Math.round(11*1.4*.8));assert.ok(activeTrait(e,'exposed'),'four turns left');
  assert.ok(g.action('skill','early_warning')===false,'still cooling down');
  assert.equal(correctionLimit(p),3);assert.equal(CLASS_PERK_TUNING.braced,undefined);assert.ok(!PERKS.some(o=>o.id==='soldier_braced'));assert.ok(PERKS.some(o=>o.id==='soldier_hunter'&&o.characters.includes('soldier')));
 });
@@ -36,7 +36,7 @@ test('the skill text carries the mark and still reads 掃描 N 格 … 冷卻 N 
  p.perks.soldier_hunter=2;p.perks.soldier_marked=1;assert.match(skillText(p,'early_warning'),/標定它們 4 回合：標定中你對它們命中 \+10、傷害 \+30%、它們對你的命中 −6，而且對你來說它們所在處亮一階/);
 });
 test('a v68 save: 架槍精通 ranks become 標定壓制, a pending draft follows, a long fire chain is clamped',()=>{
- assert.equal(SAVE_VERSION,74);
+ assert.equal(SAVE_VERSION,75);
  const g=arena();enemy(g,13,10);g.player.level=6;g.perkPicks=2;g.pendingPerks=1;g.player.perks={soldier_hunter:2};const drawn=g.perkChoices.map(o=>o.id);assert.ok(drawn.length>=2,'a real draft');
  // The old id stands where the draft offers the new line (a v68 draft could hold one or the other, never both).
  const raw=JSON.parse(g.serialize());raw.version=68;raw.data.player.perks={soldier_braced:2};const at=Math.max(0,raw.data.perkDraft.ids.indexOf('soldier_hunter'));raw.data.perkDraft.ids[at]='soldier_braced';

@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -20,7 +21,7 @@ test('opening is one paid action, keeps position, clears waiting, and moves cont
 });
 test('walking over a closed case does not open or collect it, and opening on top uses the facing cell',()=>{
   const g=arena(),c=box(g);assert.ok(g.action('move',[1,0]));assert.equal(c.opened,false);assert.equal(g.items.length,0);
-  g.action('openContainer',c.id);assert.deepEqual(g.items.map(i=>[i.x,i.y]),[[12,10]]);assert.equal(g.player.reserve,48);
+  g.action('openContainer',c.id);assert.deepEqual(g.items.map(i=>[i.x,i.y]),[[12,10]]);assert.equal(g.player.reserve,144);
 });
 test('closed doors prevent remote opening and loot never appears across a blocked edge',()=>{
   const g=arena(),c=box(g),door=makeBarrier('door',g.player,c,'edge-case');g.barriers=[door];
@@ -32,7 +33,7 @@ test('closed doors prevent remote opening and loot never appears across a blocke
 test('occupied/hazardous drop cells fall back to the player without losing or auto-collecting supplies',()=>{
   const g=arena(),c=box(g);g.enemies=[makeEnemy('rifleman',11,10,'occupant')];
   g.hazards=[{x:11,y:9,type:'fire'},{x:12,y:10,type:'acid'},{x:11,y:11,type:'fire'}];
-  g.openContainer(c.id);assert.deepEqual(g.items,[{type:'ammo',amount:20,x:10,y:10}]);assert.equal(g.player.reserve,48);assert.match(g.logs[0].text,/腳下/);
+  g.openContainer(c.id);assert.deepEqual(g.items,[{type:'ammo',amount:20,x:10,y:10}]);assert.equal(g.player.reserve,144);assert.match(g.logs[0].text,/腳下/);
 });
 test('existing loose items are preserved and grouped contents may stack at one safe landing tile',()=>{
   const g=arena(),c=box(g,11,10,[{type:'ammo',amount:20},{type:'med',amount:1}]);g.items=[{type:'weapon',weapon:2,x:11,y:10}];
@@ -82,7 +83,7 @@ test('all generated cases remain reachable and contain unchanged classified rewa
 test('save and full backup preserve opened cases and ground loot; v13 does not convert current-floor supplies',()=>{
   const g=arena(),c=box(g),other=box(g,10,11,[{type:'smoke',amount:1}]);g.action('openContainer',c.id);
   const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(restored.props,g.props);assert.deepEqual(restored.items,g.items);assert.equal(restored.action('openContainer',c.id),false);assert.equal(restored.props.find(p=>p.id===other.id).contents.length,1);
-  const legacy=arena();legacy.items=[{x:11,y:10,type:'med'}];const raw=JSON.parse(legacy.serialize());raw.version=13;
+  const legacy=arena();legacy.items=[{x:11,y:10,type:'med'}];const raw=JSON.parse(legacy.serialize());raw.version=13;oldScaleAmmo(raw.data);
   const old=Game.restore(JSON.stringify(raw));assert.ok(old);assert.deepEqual(old.items,legacy.items);assert.deepEqual(old.props,[]);assert.deepEqual(old.player,legacy.player);
 });
 test('malformed container IDs, contents and states are rejected before a save can replace progress',()=>{

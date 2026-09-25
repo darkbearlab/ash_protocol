@@ -7,7 +7,7 @@ export const SIZE = 27;
 // blasts cross it. seeThrough is what a line of sight may pass over or end on.
 export const VOID = 2;
 export const seeThrough = v => v === 1 || v === VOID;
-export const SAVE_VERSION = 74;   // 74 (3.182.0): a flashlight switched off burns to the end of the round (player.lightLingers); 73 (3.178.0): real lighting — lamps, glowsticks, the flashlight (src/lighting.js); 72 (3.177.2): a vault closet's walls are sealed (src/vault.js); 71 (3.169.0): the run keeps its comms duty officer (src/duty.js)
+export const SAVE_VERSION = 75;   // 75 (3.185.0): rifle rounds x3 and pistol rounds x2 in every run (plan C, docs/WEAPONS.md); 74 (3.182.0): a flashlight switched off burns to the end of the round (player.lightLingers); 73 (3.178.0): real lighting — lamps, glowsticks, the flashlight (src/lighting.js); 72 (3.177.2): a vault closet's walls are sealed (src/vault.js); 71 (3.169.0): the run keeps its comms duty officer (src/duty.js)
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -18,22 +18,22 @@ export const PLATE_CAPACITY = 30;
 export const SUPPLY_ROOMS={ammo:{code:'AMMO',color:'#d9bd7b'},medical:{code:'MEDICAL',color:'#a9d9ac'},armor:{code:'ARMOR',color:'#92c4df'}};
 export const RARE_ARMORY={weapon:8,minFloor:3,chance:.2};
 export const WEAPONS = [
-  { id:'rifle', weaponClass:'rifle', name:t('weapons.rifle.name'), type:'ASSAULT RIFLE', code:'AR–09', min:22, max:28, range:7, mag:8, file:'rifle', ammoType:'rifle', desc:t('weapons.rifle.desc') },
+  { id:'rifle', weaponClass:'rifle', name:t('weapons.rifle.name'), type:'ASSAULT RIFLE', code:'AR–09', min:11, max:14, range:7, mag:30, file:'rifle', ammoType:'rifle', burst:3, desc:t('weapons.rifle.desc') },
   // 3.112.0 (user request): range 6 and a 60 degree cone. Close and middle bands keep their numbers; 5-6 tiles is new and weak.
   // splash stays for the paths that still fire it at one target: mounted drones and suppressive fire.
   // 3.141.0 (user decisions 2026-09-19, docs/WEAPONS.md): the player's cone fires pellets. pellets[d-1] land-rolls at d
   // tiles, each pelletMin-pelletMax and a flat pelletHit%; armour counts against every pellet and cover cuts pelletCover.
   // The bands above stay for doors, cover, barrels, mounted drones and suppressive fire.
-  { id:'shotgun', weaponClass:'shotgun', name:t('weapons.shotgun.name'), type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, closeRange:2, closeMin:60, closeMax:72, closeAccuracy:15, farFrom:5, farMin:21, farMax:27, cone:30, range:6, mag:4, file:'shotgun', ammoType:'shell', splash:1,
+  { id:'shotgun', weaponClass:'shotgun', name:t('weapons.shotgun.name'), type:'COMBAT SHOTGUN', code:'SG–12', min:42, max:54, closeRange:2, closeMin:60, closeMax:72, closeAccuracy:15, farFrom:5, farMin:21, farMax:27, cone:30, range:6, mag:6, file:'shotgun', ammoType:'shell', splash:1,
     pellets:[6,6,5,4,3,2], pelletMin:10, pelletMax:12, pelletHit:95, pelletCover:.6,
     desc:t('weapons.shotgun.desc') },
-  { id:'smg', weaponClass:'smg', name:t('weapons.smg.name'), type:'SUBMACHINE GUN', code:'SM–24', min:13, max:17, range:5, mag:18, file:'smg', ammoType:'pistol', burst:2, desc:t('weapons.smg.desc') },
-  { id:'sniper', weaponClass:'sniper', name:t('weapons.sniper.name'), type:'PRECISION RIFLE', code:'SR–07', min:52, max:66, range:10, mag:3, file:'sniper', ammoType:'rifle', pierce:0.7, aimPenalty:40, desc:t('weapons.sniper.desc') },
+  { id:'smg', weaponClass:'smg', name:t('weapons.smg.name'), type:'SUBMACHINE GUN', code:'SM–24', min:7, max:9, range:5, mag:30, file:'smg', ammoType:'pistol', burst:4, desc:t('weapons.smg.desc') },
+  { id:'sniper', weaponClass:'sniper', name:t('weapons.sniper.name'), type:'PRECISION RIFLE', code:'SR–07', min:52, max:66, range:10, mag:5, file:'sniper', ammoType:'rifle', pierce:0.7, aimPenalty:40, desc:t('weapons.sniper.desc') },
   // 3.141.0 (user decisions 2026-09-19): a precision rifle's hit without the aiming, full piercing, the rifle's range. It is
   // strong because batteries are short: a reserve for the big fights that still takes a weapon slot.
   { id:'plasma', weaponClass:'plasma', name:t('weapons.plasma.name'), type:'PLASMA CARBINE', code:'PL–08', min:52, max:66, range:7, mag:6, file:'plasma', ammoType:'energy', pierce:1, desc:t('weapons.plasma.desc') },
   { id:'launcher', weaponClass:'launcher', name:t('weapons.launcher.name'), type:'GRENADE LAUNCHER', code:'GL–03', min:54, max:64, range:6, mag:2, file:'launcher', ammoType:'ordnance', explosive:true, pointTarget:true, desc:t('weapons.launcher.desc') },
-  {id:'lmg',weaponClass:'lmg',name:t('weapons.lmg.name'),type:'LIGHT MACHINE GUN',code:'LM–30',min:18,max:22,range:7,mag:30,file:'lmg',ammoType:'rifle',burst:3,desc:t('weapons.lmg.desc')},
+  {id:'lmg',weaponClass:'lmg',name:t('weapons.lmg.name'),type:'LIGHT MACHINE GUN',code:'LM–30',min:11,max:14,range:7,mag:100,file:'lmg',ammoType:'rifle',burst:5,desc:t('weapons.lmg.desc')},
   {id:'powerfist',weaponClass:'melee',name:t('weapons.powerfist.name'),type:'POWER GAUNTLET',code:'PF–01',min:70,max:90,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,hitChance:99,pierce:.5,desc:t('weapons.powerfist.desc')},
   {id:'thunder',weaponClass:'burst_launcher',name:t('weapons.thunder.name'),type:'BURST GRENADE RIFLE',code:'TB–09',min:24,max:30,range:6,mag:9,file:'thunder',ammoType:'ordnance',burst:3,explosive:true,lootOnly:true,desc:t('weapons.thunder.desc')},
   {id:'axe',weaponClass:'melee',name:t('weapons.axe.name'),type:'BOUND AXE',code:'AX–01',min:44,max:54,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,locked:true,integrated:true,boundCharacter:'berserker',hitChance:92,pierce:.3,desc:t('weapons.axe.desc')},
@@ -64,8 +64,10 @@ export const ENEMY_TYPES = {
   fodder:{sprite:{key:'rifleman',size:.8},projectile:'melee',voice:'creature',tags:[],traits:['slow','no_cover'],behavior:'fodder',rounds:1,attackStyle:'bullet',name:t('enemyTypes.fodder.name'),hp:6,damage:2,range:1,armor:0,color:'#a0a184',xp:0,expendable:true,role:t('enemyTypes.fodder.role')},
   brood:{sprite:{key:'crawler',size:.65},projectile:'melee',voice:'creature',tags:[],traits:['fast','no_cover','underfoot'],behavior:'brood',rounds:1,attackStyle:'bullet',name:t('enemyTypes.brood.name'),hp:6,damage:4,range:1,armor:0,color:'#cfac7c',xp:0,expendable:true,role:t('enemyTypes.brood.role')},
   // flashlight (3.181.0, src/lighting.js): 'some' humans carry one (a third, by hash), 'always' ones always do.
-  rifleman:{projectile:'rifle',casing:'rifle',tags:['armed'],flashlight:'some',traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:0,chance:.20,ammo:'ammo'},name:t('enemyTypes.rifleman.name'),hp:22,damage:17,range:7,armor:0,color:'#9fba81',xp:1,fragile:true,rapid:true,seekCover:true,role:t('enemyTypes.rifleman.role')},
-  raider:{projectile:'smg',casing:'pistol',tags:['armed'],flashlight:'some',traits:[],rounds:2,attackStyle:'bullet',loot:{weapon:2,chance:.18,ammo:'pistol'},name:t('enemyTypes.raider.name'),hp:18,damage:21,range:5,armor:0,color:'#d4b185',xp:1,fragile:true,rapid:true,seekCover:true,role:t('enemyTypes.raider.role')},
+  // 3.185.0 (user, plan C; docs/WEAPONS.md): an enemy gun fires its weapon's burst — the rifle 3, the SMG 4 — with the
+  // attack's damage (unchanged) split over the rounds, each rolled on its own.
+  rifleman:{projectile:'rifle',casing:'rifle',tags:['armed'],flashlight:'some',traits:[],rounds:3,attackStyle:'bullet',loot:{weapon:0,chance:.20,ammo:'ammo'},name:t('enemyTypes.rifleman.name'),hp:22,damage:17,range:7,armor:0,color:'#9fba81',xp:1,fragile:true,rapid:true,seekCover:true,role:t('enemyTypes.rifleman.role')},
+  raider:{projectile:'smg',casing:'pistol',tags:['armed'],flashlight:'some',traits:[],rounds:4,attackStyle:'bullet',loot:{weapon:2,chance:.18,ammo:'pistol'},name:t('enemyTypes.raider.name'),hp:18,damage:21,range:5,armor:0,color:'#d4b185',xp:1,fragile:true,rapid:true,seekCover:true,role:t('enemyTypes.raider.role')},
   crawler:{drawing:{shape:'critter',color:'#ba966d'},projectile:'melee',voice:'creature',tags:['breaker'],traits:[],floorTraits:[{id:'fast',minFloor:4}],rounds:1,attackStyle:'claw', name:t('enemyTypes.crawler.name'), hp:32, damage:9, range:1, armor:0, color:'#bd9667', xp:1, role:t('enemyTypes.crawler.role') },
   gunner:{sprite:{key:'rifleman'},projectile:'shotgun',casing:'shell',tags:['armed'],flashlight:'some',traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:1,chance:.14,ammo:'shell'}, name:t('enemyTypes.gunner.name'), hp:42, damage:11, range:6, armor:0, color:'#92a480', xp:1, role:t('enemyTypes.gunner.role') },
   drone:{drawing:{shape:'drone'},projectile:'plasma',glyph:'◇',tags:['flying'],traits:['no_cover'],rounds:1,attackStyle:'plasma',loot:{ammo:'energy'}, name:t('enemyTypes.drone.name'), hp:28, damage:9, range:5, armor:0, color:'#85c4c0', xp:1, mechanical:true, role:t('enemyTypes.drone.role') },
@@ -90,11 +92,11 @@ for(const base of ['rifleman','raider'])ENEMY_TYPES[`${base}_armored`]=variantCa
 ENEMY_TYPES.giant_bug={sprite:{key:'crawler',size:1.3,scale:1.3,tint:'#9a7a52'},drawing:{shape:'critter',color:'#9a7a52'},projectile:'melee',voice:'creature',tags:['breaker'],traits:['large','suppression_resistance'],rounds:1,attackStyle:'claw',name:t('enemyTypes.giant_bug.name'),hp:150,damage:22,range:1,armor:0,color:'#9a7a52',xp:3,role:t('enemyTypes.giant_bug.role')};
 ENEMY_TYPES.hive_beast={...ENEMY_TYPES.giant_bug,sprite:{key:'crawler',size:1.55,scale:1.55,tint:'#80603f'},drawing:{shape:'critter',color:'#80603f'},tags:['boss','breaker'],name:t('enemyTypes.hive_beast.name'),hp:420,damage:26,xp:4,role:t('enemyTypes.hive_beast.role')};
 ENEMY_TYPES.hive_matriarch={...ENEMY_TYPES.hive_beast,sprite:{key:'crawler',size:1.7,scale:1.7,tint:'#6e4a5a'},drawing:{shape:'critter',color:'#6e4a5a'},name:t('enemyTypes.hive_matriarch.name'),hp:600,damage:30,xp:5,role:t('enemyTypes.hive_matriarch.role')};
-for(const [base,rounds,ammo,tint,name] of [['rifleman',3,'ammo','#8fa06a',t('enemyTypes.rifleman_infected.name')],['raider',4,'pistol','#a0925e',t('enemyTypes.raider_infected.name')]])
- ENEMY_TYPES[`${base}_infected`]=variantCard(base,{name,rounds,combat:{rangedAccuracy:-35},loot:{ammo},voice:'infected',sprite:{key:base,tint},role:t('enemyTypes.infected.role')});
+for(const [base,rounds,ammo,tint,name] of [['rifleman',5,'ammo','#8fa06a',t('enemyTypes.rifleman_infected.name')],['raider',6,'pistol','#a0925e',t('enemyTypes.raider_infected.name')]])
+ ENEMY_TYPES[`${base}_infected`]=variantCard(base,{name,rounds,combat:{rangedAccuracy:-35},loot:{ammo},voice:'infected',sprite:{key:base,tint},role:t('enemyTypes.infected.role')});   // 3.185.0: two rounds past their base's burst, which also clears the suppression threshold
 // Squad leader (3.125.0, user design): support first, rifle second. It identifies the player's weapon, sends the squad
 // to positions that answer it, and spends its own action keeping them 已就緒, so it is the unit to shoot first.
-ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],flashlight:'always',traits:['suppression_resistance','night_vision','infrared'],dropsInfrared:true,rounds:1,attackStyle:'bullet',behavior:'squad_leader',loot:{weapon:0,chance:.2,ammo:'ammo'},name:t('enemyTypes.squad_leader.name'),hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:t('enemyTypes.squad_leader.role')};
+ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],flashlight:'always',traits:['suppression_resistance','night_vision','infrared'],dropsInfrared:true,rounds:3,attackStyle:'bullet',behavior:'squad_leader',loot:{weapon:0,chance:.2,ammo:'ammo'},name:t('enemyTypes.squad_leader.name'),hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:t('enemyTypes.squad_leader.role')};
 // Enforcer (3.127.0, user design, docs/REBELS.md): slow, with a long and hopeless gun; its real work is executing the
 // rebels who hide, which throws the whole unit back into the fight. Two a floor, three from floor 7.
 ENEMY_TYPES.enforcer={sprite:{key:'rifleman',tint:'#8a3a34'},drawing:{shape:'humanoid',color:'#8a3a34'},projectile:'rifle',casing:'pistol',tags:['armed'],flashlight:'always',traits:['slow'],rounds:1,attackStyle:'bullet',behavior:'enforcer',speaksAs:'enforcer',maxPerFloor:2,maxPerFloorDeep:3,combat:{rangedAccuracy:-40},loot:{weapon:2,chance:.18,ammo:'pistol'},name:t('enemyTypes.enforcer.name'),hp:40,damage:10,range:10,armor:1,color:'#8a3a34',xp:2,role:t('enemyTypes.enforcer.role')};

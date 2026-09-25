@@ -20,7 +20,7 @@ import {enemyCallout,validEnemyIntent,validEnemyMarks} from './enemy-intents.js'
 import {enemyDisplayName,rollEnemyAffixes,migrateEnemyAffixes,validEnemyAffixes} from './enemy-affixes.js';
 import {migrateResistance} from './suppression.js';
 import {DIFFICULTY_TUNING,validDifficultyOffset,DEFAULT_CURVE,validCurve} from './endless.js';
-import {shotDamageAllowed,pinned,tickSuppression,finishSuppression,migrateSuppression} from './suppression.js';
+import {shotDamageAllowed,pinned,tickSuppression,finishSuppression,migrateSuppression,SUPPRESSION_TUNING} from './suppression.js';
 import {suppressiveReason,suppressiveFire} from './suppressive-fire.js';
 import {learningReason,useLearning,validLearningInventory} from './learning.js';
 import {validLearningId,LEARNING_ITEMS,LEARNING_SCRAP,RETIRED_LEARNING} from './learning-data.js';
@@ -78,7 +78,7 @@ import {EXO_TUNING,mineAct,decoyReason,throwDecoy,glowstickReason,throwGlowstick
 import {PREPARED_CATALOG,defaultPrepared,validPrepared,canPrepare,preparedEntry,weaponSwitchTurns,isWearable,wornEntry,prepareCost,syncWearableTraits} from './prepared.js';
 import {grantTrait,removeTraitSource,activeTrait,bodyKeyword,startingTraits,validTraits,tickTraits,initiativeQueue,recordShot,validCombatMemory,reduceDirectDamage} from './traits.js';
 import {AFFIXES,weaponStats,rollAffix,affixAllowed} from './weapons.js';
-import {AMMUNITION,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds} from './ammunition.js';
+import {AMMUNITION,capacity,carryLevels,validCarryLevels,itemAmmo,splitLegacyRounds,ammoMultiplier,PROJECTILE_AMMO,OVERPENETRATION} from './ammunition.js';
 import {presentStep} from './presentation.js';
 import {registerPurgeFloor,notePurgeDeparture,validPurge} from './purge-review.js';
 import {SIZE,SAVE_VERSION,RARE_ARMORY,WEAPONS,FLOORS,floorInfo,ENEMY_TYPES,PERK_D,LEGACY_SAVE_VERSIONS,VOID,seeThrough} from './data.js';
@@ -323,8 +323,8 @@ export class Game {
   supplyPack(amounts){for(const [type,amount]of Object.entries(amounts))this.receiveAmmo(type,amount);}
   // 3.141.0: the shotgun's pellets at this target's distance, each with an even share of the per-attack bonuses (upgrades,
   // the damage perk), rounded up like a burst's.
-  pelletDamage(index,target){const w=this.weaponAt(index),count=pelletsAt(w,distance(this.player,target)),raw=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5,bonus=count?Math.ceil(raw/count):0;return {count,min:w.pelletMin+bonus,max:w.pelletMax+bonus};}
-  weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index);if(w.unarmed)return {min:w.min,max:w.max};const band=target?shotgunBand(w,distance(this.player,target)):{min:w.min,max:w.max},raw=this.player.bonus+Math.ceil(this.player.perkWeaponBonus/(w.burst||1))+(this.player.upgrades[index]||0)*5,bonus=w.hits?Math.ceil(raw/w.hits):raw;return {min:band.min+bonus,max:band.max+bonus};}
+  pelletDamage(index,target){const w=this.weaponAt(index),count=pelletsAt(w,distance(this.player,target)),raw=Math.ceil((this.player.bonus+this.player.perkWeaponBonus+(this.player.upgrades[index]||0)*5)/(w.burst||1)),bonus=count?Math.ceil(raw/count):0;return {count,min:w.pelletMin+bonus,max:w.pelletMax+bonus};}
+  weaponDamage(index=this.player.weapon,target=null){const w=this.weaponAt(index);if(w.unarmed)return {min:w.min,max:w.max};const band=target?shotgunBand(w,distance(this.player,target)):{min:w.min,max:w.max},raw=Math.ceil((this.player.bonus+this.player.perkWeaponBonus+(this.player.upgrades[index]||0)*5)/(w.burst||1)),bonus=w.hits?Math.ceil(raw/w.hits):raw;return {min:band.min+bonus,max:band.max+bonus};}
   // 3.163.0 (user decision): an invalid input the operator says out loud (src/callout-ui.js PLAYER_LINES) stays off the
   // combat log — nothing happened in the rules — and is handed to the interface as `refusal`. Others log as before.
   fail(text,cue=null,detail=null){if(cue){this.refusal={cue,text,...(detail||{})};return false;}this.log(text);return false;}
@@ -746,7 +746,7 @@ export class Game {
         if(!hit){this.log(`${t('game.shotMiss',{chance})}`,false,t('game.shotMissReal'));if(w.explosive)this.log(t('game.grenadeStray'));return;}
         hits.add(e);const before=this.enemies.map(o=>[o,o.hp]);
         if(w.explosive)this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p);
-        else this.hitTarget(e,damage,p,w.pierce||0);
+        else{this.hitTarget(e,damage,p,w.pierce||0);if(w.ammoType==='rifle'&&!(ENEMY_TYPES[e.type]?.armor>0)&&this.enemies.includes(e))this.overpenetrate(e,damage,w);}
         if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p,w.pierce||0);
         // 3.141.0 爆裂 (drop-only plasma affix): the hit bursts where it lands. The target already took the hit; everything
         // one tile away, you and your allies too, takes half of it (an explosion loses 10 a tile), plus 爆破專家.
@@ -754,7 +754,7 @@ export class Game {
         for(const [other,hp] of before)if(other.hp<hp)hits.add(other);
       });
     }
-    finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),rounds,0,this);
+    finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),w.suppressive?Math.max(rounds,SUPPRESSION_TUNING.weaponRounds):rounds,0,this);   // 3.185.0: 速射 keeps its suppression
     if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
     return true;
   }
@@ -762,6 +762,14 @@ export class Game {
   // whatever stopped the beam past it takes the hit. 3.142.1 (user, after the playtest): every unit rolls against the
   // chance of the shot the player aimed, the locked target's, so darkness or cover further down the beam cannot turn the
   // line into misses.
+  // 3.185.0 (user, plan C): a rifle round through an armorless target flies on along the line (the lance's path) and
+  // may hit the next unit — an ally too — at half damage, rolled at the chance of the shot you aimed.
+  overpenetrate(e,damage,w){
+    const p=this.player,{units}=lancePath(this,p,e,w.range),next=units[units.indexOf(e)+1];
+    if(!next||this.rng()*100>=this.fireChance(e))return;
+    const d=Math.round(damage*OVERPENETRATION);
+    if(this.activeAllies.includes(next))this.damageAlly(next,d,p);else this.hitTarget(next,d,p,w.pierce||0);
+  }
   fireLance(e){
     const p=this.player,w=this.weapon,cost=w.shotCost||1,{units,stop,end}=lancePath(this,p,e,w.range),hits=new Set();
     p.facing=[Math.sign(e.x-p.x),Math.sign(e.y-p.y)];
@@ -863,7 +871,9 @@ export class Game {
     // 3.142.0: the absorption line only when cover took something off; a fully piercing plasma shot goes straight through.
     if(cover){const effect=coverEffects(cover,target,attacker),cut=(pellets?weapon.pelletCover*effect.efficiency:effect.reduction)*(1-pierce);scale(1-cut);if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);if(cut>0)this.log(t('game.enemyCoverAbsorbs'));}
     if(toxicShot(this,attacker,target,attacker===this.player||!attacker?.type?weapon:this.actorWeapon(attacker)))scale(.5);   // 3.134.0 mist
-    let damage=parts.reduce((sum,d)=>sum+Math.max(1,Math.round(d-armor*(1-pierce))),0);
+    // 3.185.0 (plan C): a gun's round meets armor by its ammunition's curve (src/ammunition.js); blades and blasts subtract.
+    const mult=weapon.melee||weapon.explosive?null:ammoMultiplier(weapon.ammoType,armor,pierce);
+    let damage=parts.reduce((sum,d)=>sum+Math.max(1,Math.round(mult===null?d-armor*(1-pierce):d*mult)),0);
     if(weapon.ammoType==='energy'&&activeTrait(target,'mechanical'))damage=Math.round(damage*1.2);
     if(weapon.ammoType==='energy')addTrace(this,target,'scorch');
     const before=target.hp;this.hurt(target,reduceDirectDamage(target,damage),attacker);
@@ -900,7 +910,7 @@ export class Game {
     const loot=enemyDef(e)?.loot;
     if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.dropEnemyWeapon(e,loot.weapon);
     if(this.floor>=RARE_ARMORY.minFloor&&loot?.rareWeapon!==undefined&&this.rng()<loot.rareChance)this.dropEnemyWeapon(e,loot.rareWeapon);
-    if(this.rng()<ammoDropChance(this.player)){const type=loot?.ammo||'ammo';this.items.push({...this.enemyDropPoint(e),type,amount:type==='energy'?9:type==='ordnance'?2:type==='pistol'?18:type==='shell'?8:10});}
+    if(this.rng()<ammoDropChance(this.player)){const type=loot?.ammo||'ammo';this.items.push({...this.enemyDropPoint(e),type,amount:type==='energy'?9:type==='ordnance'?2:type==='pistol'?36:type==='shell'?8:30});}
     if(this.rng()<.06)this.items.push({...this.enemyDropPoint(e),type:'med'});
     const plate=plateDrop(this.player,(ENEMY_TYPES[e.type]?.armor||0)>0);
     if(plate.chance>0&&this.rng()<plate.chance)this.items.push({...this.enemyDropPoint(e),type:'armor',amount:plate.amount});
@@ -1015,7 +1025,9 @@ export class Game {
     let damage=raw;
     if(cover){damage*=1-coverEffects(cover,p,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);}
     if(!blast&&attacker&&toxicShot(this,attacker,p,this.actorWeapon(attacker)))damage*=.5;   // 3.134.0 mist
-    damage=reduceDirectDamage(p,meleeDefense(p,Math.max(1,Math.round(damage-p.armor))));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
+    // 3.185.0 (plan C): an enemy's gun meets your armor by its ammunition's curve too; claws, blades and blasts subtract.
+    const ammo=attacker&&!blast?PROJECTILE_AMMO[ENEMY_TYPES[attacker.type]?.projectile]:null,mult=ammo?ammoMultiplier(ammo,p.armor):null;
+    damage=reduceDirectDamage(p,meleeDefense(p,Math.max(1,Math.round(mult===null?damage-p.armor:damage*mult))));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
     // 3.144.0: a worn exoskeleton's plates take their share of the hit (half of it) before your own plates do.
     const half=Math.floor(damage/2),frame=exoAbsorb(this,half),absorbed=Math.min(p.plates||0,half-frame);p.plates=(p.plates||0)-absorbed;damage-=frame+absorbed;
     p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');const coverNote=cover?t('game.noteCover'):'';
@@ -1244,7 +1256,7 @@ export class Game {
     }
     if(missionDefinition(this).returnTrip)this.floorStates[this.floor]=archiveFloor(this);
     this.floor++;if(advanceTurn)this.turn++;const recovered=healActor(p,25);
-    this.loadFloor();arriveAllies(this,companions);this.reveal();this.supplyPack({rifle:20,pistol:24,shell:12,energy:15,ordnance:2});this.log(t('game.enterFloor',{floor:floorInfo(this.floor).name,hp:recovered}));return true;
+    this.loadFloor();arriveAllies(this,companions);this.reveal();this.supplyPack({rifle:60,pistol:48,shell:12,energy:15,ordnance:2});this.log(t('game.enterFloor',{floor:floorInfo(this.floor).name,hp:recovered}));return true;
   }
   choosePerk(id) {
     if(this.status!=='playing'||!this.pendingPerks||this.perkPicks>=perkLimit(this.player.level)||this.perkPicks+this.pendingPerks>perkLimit(this.player.level))return false;
@@ -1455,6 +1467,13 @@ export class Game {
       // (this one and any kept for the way back) have no light model, so they keep the old rule until the next floor.
       if(version<73){g.player.glowsticks??=0;g.player.flashlight??=false;}
       if(version<74)g.player.lightLingers??=false;   // 3.182.0
+      // 3.185.0 (plan C): rifle rounds x3 and pistol rounds x2 wherever the run holds them — your reserves and every amount
+      // lying on a floor or in a case, this one and any kept for the way back — so the triggers you can pull stay the same.
+      if(version<75){
+        const scale=o=>{if(!Number.isSafeInteger(o?.amount))return;if(o.type==='ammo')o.amount*=3;else if(o.type==='pistol')o.amount*=2;};
+        g.player.reserve*=3;g.player.pistol*=2;
+        for(const f of [g,...Object.values(g.floorStates||{})]){for(const i of f.items||[])scale(i);for(const o of f.props||[])for(const i of o.contents||[])scale(i);}
+      }
       g.glowsticks??=[];g.gunFlashes??=[];
       if(!Number.isSafeInteger(g.player.glowsticks)||g.player.glowsticks<0||g.player.glowsticks>10000000||typeof g.player.flashlight!=='boolean'||typeof g.player.lightLingers!=='boolean'||!validGlowsticks(g.glowsticks,g.grid)||!validGunFlashes(g.gunFlashes,g.grid)||!(g.lightModel===undefined?g.lamps===undefined:g.lightModel===LIGHT_MODEL&&validLamps(g.lamps,g.grid)))return null;
       if(version<66){g.player.decoys??=0;g.player.mines??=0;g.player.exoPlates??=0;g.decoy??=null;g.mines??=[];g.mineSerial??=0;}

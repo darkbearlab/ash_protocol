@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
@@ -68,7 +69,7 @@ test('recovered data and tracked deaths survive reload and complete backups with
 });
 test('v15 migrates to original extraction without regenerating current map, even on final floor',()=>{
   const g=finalFloor('extraction'),raw=JSON.parse(g.serialize());raw.version=15;delete raw.data.mission;g.hurt(g.enemies[0],5);
-  const migrated=Game.restore(JSON.stringify(raw));assert.ok(migrated);assert.deepEqual(migrated.mission,newMission());for(const key of ['grid','barriers','props','items','enemies','player'])assert.deepEqual(migrated[key],raw.data[key]);assert.ok(migrated.exitBlocked);
+  const migrated=Game.restore(oldSaveText(raw));assert.ok(migrated);assert.deepEqual(migrated.mission,newMission());for(const key of ['grid','barriers','props','items','enemies','player'])assert.deepEqual(migrated[key],raw.data[key]);assert.ok(migrated.exitBlocked);
 });
 test('malformed and missing mission objectives are rejected instead of silently granting completion',()=>{
   for(const mutate of [m=>m.id='unknown',m=>m.targets.pop(),m=>m.targets.push({...m.targets[0]}),m=>m.targets[0].done=1,m=>m.targets[0].x=-1,m=>m.targets[0].id='other',m=>Object.assign(m.targets[1],m.targets[0])]){const raw=JSON.parse(finalFloor('archive').serialize());mutate(raw.data.mission);assert.equal(Game.restore(JSON.stringify(raw)),null);}

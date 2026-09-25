@@ -13,7 +13,7 @@ function enemy(g,x=14,y=10,id='target'){const e=makeEnemy('rifleman',x,y,id);e.h
 function coverTarget(g){g.props=[{id:'shield',type:'cover',x:13,y:10,hp:10000,maxHp:10000}];}
 
 test('Soldier and Recon have separate passives and starting kits, with distinct innate stats and initial utility supplies',()=>{
-  const soldier=arena(),recon=arena('recon');assert.equal(soldier.player.character,'soldier');assert.deepEqual(soldier.player.owned,[0,1]);assert.deepEqual(recon.player.owned,[2,1]);assert.equal(recon.player.weapon,2);assert.equal(recon.player.ammo[2],18);assert.equal(recon.player.ammo[0],0);
+  const soldier=arena(),recon=arena('recon');assert.equal(soldier.player.character,'soldier');assert.deepEqual(soldier.player.owned,[0,1]);assert.deepEqual(recon.player.owned,[2,1]);assert.equal(recon.player.weapon,2);assert.equal(recon.player.ammo[2],30);assert.equal(recon.player.ammo[0],0);
   assert.deepEqual(soldier.player.traits.map(t=>t.id),CHARACTERS.soldier.traits);assert.deepEqual(recon.player.traits.map(t=>t.id),CHARACTERS.recon.traits);
   for(const key of ['hp','maxHp','meds','pistol','shell','reserve','armor','scrap'])assert.equal(soldier.player[key],recon.player[key],key);
   assert.equal(soldier.player.grenades,2);assert.equal(recon.player.grenades,0);assert.equal(recon.player.smoke,2);assert.equal(recon.player.emp,0);assert.equal(recon.player.stun,2);assert.equal(recon.ammoCapacity('grenade'),6);assert.equal(recon.player.prepared.grenade,'smoke');assert.equal(recon.protocol.earned,0);assert.match(characterName('recon'),/Recon/);assert.throws(()=>arena('unknown'));
@@ -46,14 +46,14 @@ test('SMG bursts build only one correction step and free quick reload keeps it',
   const g=arena('recon'),e=enemy(g);grantTrait(g.player,'correction','test');coverTarget(g);
   for(const bonus of [0,8]){
     const {steps}=captureAction(g,()=>g.action('fire')),shots=steps.filter(s=>s.effects.some(f=>f.type==='shot'));
-    assert.equal(shots.length,2);for(const s of shots)assert.equal(s.before.accuracy(s.before.player,s.before.enemies[0]).trackingBonus,bonus);
+    assert.equal(shots.length,4);for(const s of shots)assert.equal(s.before.accuracy(s.before.player,s.before.enemies[0]).trackingBonus,bonus);
   }
   assert.equal(g.player.fireChain.count,2);const turn=g.turn;g.action('reload');assert.equal(g.turn,turn);assert.equal(g.accuracy(g.player,e).trackingBonus,16);
 });
 class EscapeGame extends Game{executeEnemy(e){e.y=12;e.moved=true;}}
 test('lost-target committed shots still build correction without revealing or hitting the target',()=>{
   const g=arena('soldier',EscapeGame),e=enemy(g);grantTrait(e,'fast','test');for(let x=0;x<SIZE;x++)g.grid[11][x]=0;
-  g.action('fire');assert.equal(g.player.ammo[0],7);assert.equal(e.hp,1000);assert.equal(g.player.fireChain.targetId,e.id);assert.equal(g.player.fireChain.count,1);
+  g.action('fire');assert.equal(g.player.ammo[0],27);assert.equal(e.hp,1000);assert.equal(g.player.fireChain.targetId,e.id);assert.equal(g.player.fireChain.count,1);
 });
 test('sidestep is relative to each shooter, excludes forward/backward and exact diagonal, and stacks with agile',()=>{
   const g=arena('recon'),east=enemy(g),south=enemy(g,10,14,'south');g.player.moved=true;g.player.moveDelta=[0,1];
@@ -70,8 +70,8 @@ test('movement history follows actual cardinal movement and ends at the next pai
 test('sideways movement changes actual hit rolls independently for crossing enemy fire',()=>{
   const g=arena('recon');enemy(g,14,10,'east');enemy(g,10,14,'south');g.rng=()=>.6;
   const {steps}=captureAction(g,()=>g.action('move',[0,1]));
-  const shots=steps.flatMap(s=>s.effects).filter(e=>e.type==='enemyShot');assert.equal(shots.length,2);
-  assert.equal(shots[0].miss,true);assert.equal(shots[1].miss,undefined);assert.equal(g.player.hp,82);   // 3.137.0: floor-1 enemy damage +1 a floor
+  const shots=steps.flatMap(s=>s.effects).filter(e=>e.type==='enemyShot');assert.equal(shots.length,6);   // 3.185.0: three rounds each
+  assert.ok(shots.slice(0,3).every(s=>s.miss===true));assert.ok(shots.slice(3).every(s=>s.miss===undefined));assert.equal(g.player.hp,85);   // 3.137.0: floor-1 enemy damage +1 a floor; 3.185.0: rifle rounds lose a fifth through no armor
 });
 test('quick reload transfers only missing pistol ammunition and preserves fast enemies, environment and all bonuses',()=>{
   const g=arena('recon'),e=enemy(g);grantTrait(e,'fast','test',2);grantTrait(g.player,'slow','test',2);Object.assign(g.player,{ammo:[0,4,16,0,0,0],pistol:1,guard:true,focus:true,evasive:true,moved:true,moveDelta:[0,1],poison:3});g.hazards=[{x:10,y:10,type:'fire'}];g.marks=[{x:10,y:10,due:1}];
@@ -79,7 +79,7 @@ test('quick reload transfers only missing pistol ammunition and preserves fast e
   // 3.163.0: the only thing presented is the operator's 最後一個彈匣 (this reload spends the last pistol round).
   assert.deepEqual(steps.flatMap(s=>s.effects).map(e=>`${e.type}:${e.cue}`),['callout:last_magazine']);
   const after=JSON.parse(g.serialize());before.data.player.ammo[2]=17;before.data.player.pistol=0;before.data.logs=after.data.logs;assert.deepEqual(after,before);assert.equal(g.action('reload'),false);
-  g.player.pistol=10;g.player.ammo[2]=18;assert.equal(g.action('reload'),false);assert.equal(g.turn,1);assert.equal(g.player.pistol,10);
+  g.player.pistol=10;g.player.ammo[2]=30;assert.equal(g.action('reload'),false);assert.equal(g.turn,1);assert.equal(g.player.pistol,10);
 });
 test('quick reload does not apply to other ammunition or Soldier; normal reload can be interrupted by fast death',()=>{
   const g=arena('recon');g.player.weapon=1;g.player.ammo[1]=1;assert.equal(g.actionCost('reload'),1);assert.equal(g.action('reload'),true);assert.equal(g.turn,2);

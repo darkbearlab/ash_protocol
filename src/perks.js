@@ -59,7 +59,7 @@ export function applyPerk(g,o){
  case 'weapon':p.perkWeaponBonus+=o.amount;break;
  case 'health':p.maxHp+=o.amount;healActor(p,o.heal);break;
  case 'stat':p[o.stat]+=o.amount;break;
- case 'supply':g.receiveItem('medkit',2);g.supplyPack({grenade:2,rifle:24,pistol:24,shell:12});break;
+ case 'supply':g.receiveItem('medkit',2);g.supplyPack({grenade:2,rifle:72,pistol:48,shell:12});break;
  case 'scavenger':p.scavenger+=o.amount;p.scrap+=15;break;
  case 'medic':p.healBonus+=o.amount;g.receiveItem('medkit',1);break;
  case 'hazmat':p.hazmat+=o.amount;clearPoison(p);break;

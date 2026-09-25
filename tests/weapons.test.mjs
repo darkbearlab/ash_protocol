@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {fullLighting} from '../src/lighting.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,10 +18,10 @@ test('eight tradeoffs change real stats; launchers never roll meaningless penetr
   // 3.141.0: plus the drop-only plasma affixes (tests/pellets-plasma.test.mjs; 速射 since 3.142.0). 3.155.0 adds 短管,
   // the seventh ordinary tradeoff; 3.179.0 消焰 the eighth (tests/flash-hider.test.mjs), so a dropped gun picks from eight.
   assert.equal(Object.keys(AFFIXES).length,11);assert.equal(Object.keys(AFFIXES).filter(id=>!AFFIXES[id].dropOnly).length,8);
-  assert.equal(weaponStats(0,'stable').min,20);assert.equal(weaponStats(0,'stable').accuracyBonus,10);
-  assert.equal(weaponStats(3,'piercing').pierce,.95);assert.equal(weaponStats(3,'piercing').mag,2);
-  assert.equal(weaponStats(0,'extended').mag,12);assert.equal(weaponStats(0,'extended').accuracyBonus,-8);
-  assert.equal(weaponStats(0,'powerful').min,25);assert.equal(weaponStats(0,'powerful').mag,6);
+  assert.equal(weaponStats(0,'stable').min,10);assert.equal(weaponStats(0,'stable').accuracyBonus,10);
+  assert.equal(weaponStats(3,'piercing').pierce,.95);assert.equal(weaponStats(3,'piercing').mag,3);
+  assert.equal(weaponStats(0,'extended').mag,45);assert.equal(weaponStats(0,'extended').accuracyBonus,-8);
+  assert.equal(weaponStats(0,'powerful').min,13);assert.equal(weaponStats(0,'powerful').mag,22);
   assert.equal(weaponStats(1,'longbarrel').range,8,'3.112.0: the shotgun is range 6, and longbarrel still adds 2');assert.equal(weaponStats(1,'longbarrel').min,38);
   assert.equal(weaponStats(0,'tracking').tracking,12);
   // 3.155.0 短管: reach and both band edges come in by two, the damage drops a tenth, and it comes up like a sidearm.
@@ -43,8 +44,8 @@ test('ground rolls persist across inspection, collecting and reloading without c
 test('duplicates have independent magazines and tuning, never become scrap automatically',()=>{
   const g=arena(),slot=loot(g);assert.equal(g.action('takeWeapon',slot),true);assert.deepEqual(g.player.owned,[0,1,slot]);
   g.player.ammo[0]=2;g.player.scrap=100;g.action('weapon',slot);g.props.push({id:'term',x:11,y:10,type:'terminal',used:false});g.action('terminal',`upgrade:${slot}`);
-  assert.equal(g.player.upgrades[0],0);assert.equal(g.player.upgrades[slot],1);assert.equal(g.weaponDamage().min,25);
-  assert.equal(g.player.ammo[0],2);assert.equal(g.player.ammo[slot],8);
+  assert.equal(g.player.upgrades[0],0);assert.equal(g.player.upgrades[slot],1);assert.equal(g.weaponDamage().min,12);   // 3.185.0: +5 a trigger is +2 a round
+  assert.equal(g.player.ammo[0],2);assert.equal(g.player.ammo[slot],30);
   const other=loot(g,0,'powerful');g.items.find(o=>o.slot===other).x=10;const scrap=g.player.scrap;g.pickup();
   assert.ok(g.items.some(o=>o.slot===other));assert.equal(g.player.scrap,scrap);
 });
@@ -60,7 +61,7 @@ test('full pack exchange costs one turn and preserves both guns including active
 test('exchanging a spare keeps the current gun; stale pickup and swap cannot duplicate loot',()=>{
   const g=arena(),slot=loot(g);assert.equal(g.action('replaceWeapon',{take:slot,leave:1}),true);assert.equal(g.player.weapon,0);
   const turn=g.turn;assert.equal(g.action('takeWeapon',slot),false);assert.equal(g.action('replaceWeapon',{take:slot,leave:0}),false);assert.equal(g.turn,turn);
-  assert.equal(g.items[0].slot,1);assert.equal(g.player.ammo[1],4);
+  assert.equal(g.items[0].slot,1);assert.equal(g.player.ammo[1],6);
 });
 test('affix accuracy applies to player shots and target card, never enemy shots',()=>{
   const g=arena(),e=makeEnemy('rifleman',13,10,'target');g.enemies=[e];g.target=e.id;g.player.affixes[0]='tracking';e.moved=true;
@@ -72,8 +73,8 @@ test('affix accuracy applies to player shots and target card, never enemy shots'
 });
 test('extended magazine reload and salvage conserve capped ammunition',()=>{
   const g=arena(),slot=loot(g,0,'extended');g.takeWeapon(slot);g.player.weapon=slot;g.player.ammo[slot]=1;
-  assert.equal(g.action('reload'),true);assert.equal(g.player.ammo[slot],12);assert.equal(g.player.reserve,37);
-  g.player.reserve=72;assert.equal(g.action('salvage',slot),true);assert.equal(g.player.reserve,72);assert.equal(g.items.find(o=>o.type==='ammo').amount,12);
+  assert.equal(g.action('reload'),true);assert.equal(g.player.ammo[slot],45);assert.equal(g.player.reserve,100);
+  g.player.reserve=216;assert.equal(g.action('salvage',slot),true);assert.equal(g.player.reserve,216);assert.equal(g.items.find(o=>o.type==='ammo').amount,45);
   assert.equal(g.player.ammo[slot],0);assert.equal(g.action('salvage',slot),false);
 });
 test('penetration and longer range affect actual attacks; visuals retain gun family',()=>{
@@ -86,7 +87,7 @@ test('v4 migration preserves old guns, ground weapons, ammo, currency and RNG ex
   const g=new Game(12),old=JSON.parse(g.serialize());old.version=4;old.data.carryLevel=0;const p=old.data.player;
   p.weapon=1;p.ammo=[3,2,0,0,0,0];p.upgrades=[2,1,0,0,0,0];delete p.weaponBases;delete p.affixes;
   for(const item of old.data.items)delete item.slot;
-  const restored=Game.restore(JSON.stringify(old));assert.ok(restored);assert.deepEqual(restored.player.ammo.slice(0,6),p.ammo);assert.deepEqual(restored.player.upgrades.slice(0,6),p.upgrades);
+  const restored=Game.restore(oldSaveText(old));assert.ok(restored);assert.deepEqual(restored.player.ammo.slice(0,6),p.ammo);assert.deepEqual(restored.player.upgrades.slice(0,6),p.upgrades);
   assert.equal(restored.player.weapon,1);assert.deepEqual(restored.player.owned,p.owned);assert.ok(restored.player.affixes.every(a=>a===null));
   assert.equal(restored.rng.state(),old.rngState);assert.deepEqual(restored.protocol,old.data.protocol);assert.equal(restored.turn,old.data.turn);
   assert.deepEqual(restored.items.map(({slot,...item})=>item),old.data.items);
@@ -101,7 +102,7 @@ test('save validation rejects aliased weapon ownership, missing slots and invali
 test('complete backups and combat snapshots keep weapon instances independently',()=>{
   const g=arena(),slot=loot(g,0,'powerful');g.action('takeWeapon',slot);g.action('weapon',slot);
   const e=makeEnemy('brute',14,10,'e');g.enemies=[e];g.target=e.id;
-  const captured=captureAction(g,()=>g.action('fire'));assert.equal(captured.success,true);assert.equal(captured.steps[0].before.weapon.affix,'powerful');assert.equal(captured.steps[0].before.player.ammo[slot],6);assert.equal(captured.steps[0].after.player.ammo[slot],5);assert.equal(captured.steps[0].before.player.ammo[0],8);
+  const captured=captureAction(g,()=>g.action('fire'));assert.equal(captured.success,true);assert.equal(captured.steps[0].before.weapon.affix,'powerful');assert.equal(captured.steps[0].before.player.ammo[slot],22);assert.equal(captured.steps.at(-1).after.player.ammo[slot],19);assert.equal(captured.steps[0].before.player.ammo[0],30);
   const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;
   assert.deepEqual(restored.player,g.player);assert.equal(restored.weapon.name,`強擊・${WEAPONS[0].name}`);
 });

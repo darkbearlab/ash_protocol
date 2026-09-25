@@ -16,7 +16,9 @@ test('empty recipe pool preserves 24 pre-refactor v1 maps byte-for-byte, includi
   const fixtures=JSON.parse(readFileSync(new URL('./fixtures/mapgen-v1.json',import.meta.url)));
   // Later additions are taken back out before hashing: the suppression trait, and 3.178.0's wall lamps, light model and
   // the glowsticks in the armour room's case (docs/LIGHTING.md), so everything else is still byte-for-byte the old map.
-  for(const {seed,floor,hash}of fixtures){const map=generateWithRecipes(seed,floor,[],[]);for(const e of map.enemies)e.traits=e.traits.filter(t=>t.id!=='suppression_resistance');delete map.lamps;delete map.lightModel;for(const o of map.props)if(o.contents)o.contents=o.contents.filter(i=>i.type!=='glowstick');assert.equal(createHash('sha256').update(JSON.stringify(map)).digest('hex'),hash);assert.ok(map.enemies.some(e=>roomContains(map.rooms[map.startRoom],e)));}
+  // 3.185.0's ammunition room holds 60 rifle and 48 pistol rounds where it held 20 and 24; those go back too.
+  const oldCache=i=>{if(i.cache&&i.type==='ammo'&&i.amount===60)i.amount=20;if(i.cache&&i.type==='pistol'&&i.amount===48)i.amount=24;};
+  for(const {seed,floor,hash}of fixtures){const map=generateWithRecipes(seed,floor,[],[]);for(const e of map.enemies)e.traits=e.traits.filter(t=>t.id!=='suppression_resistance');delete map.lamps;delete map.lightModel;for(const o of map.props)if(o.contents)o.contents=o.contents.filter(i=>i.type!=='glowstick');for(const i of [...map.items,...map.props.flatMap(o=>o.contents||[])])oldCache(i);assert.equal(createHash('sha256').update(JSON.stringify(map)).digest('hex'),hash);assert.ok(map.enemies.some(e=>roomContains(map.rooms[map.startRoom],e)));}
 });
 
 test('lattice adjacency and collapsed room graph do not depend on room IDs or nine rooms',()=>{

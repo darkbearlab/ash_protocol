@@ -266,7 +266,7 @@ test('a squad standing on your only way to the lift never advances and never los
 test('squad orders survive a save, and a tampered order is refused',()=>{
   const {g}=scene({members:2});
   turns(g,SQUAD_TUNING.deployTurns+2);
-  assert.equal(SAVE_VERSION,74);
+  assert.equal(SAVE_VERSION,75);
   const restored=Game.restore(g.serialize());
   assert.ok(restored);
   assert.equal(restored.enemies.find(e=>isSquadLeader(e)).squad.state,'ready');

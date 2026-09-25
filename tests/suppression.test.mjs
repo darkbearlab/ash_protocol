@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
@@ -20,16 +21,16 @@ const arm=(g,slot)=>{g.player.owned=[slot];g.player.weapon=slot;g.player.ammo[sl
 const skill=g=>{g.player.skills.push('suppressive_fire');g.player.skillState.suppressive_fire={remaining:0,cooldown:0};g.player.prepared.skill='suppressive_fire';};
 test('suppression caps at five, penalizes both channels, wears off when tickSuppression runs (after the unit’s own turn since 3.145.0); machines immune and bosses subtract once',()=>{
  const g=arena(),e=foe(g);applySuppression(e,9);assert.equal(e.suppression,5);assert.ok(pinned(e));assert.equal(actorStat(e,'rangedAccuracy'),-40);assert.equal(actorStat(e,'meleeAccuracy'),-40);for(const n of [3,2,1,0]){tickSuppression(e);assert.equal(e.suppression,n,'3.145.0: halve rounding up, one goes to zero');}
- for(const type of ['boss','warden']){const b=foe(g,type);b.traits=b.traits.filter(t=>t.id!=='mechanical');finishSuppression([b],new Set([b]),3,1);assert.equal(b.suppression,1);applySuppression(b,1);assert.equal(b.suppression,1);}
+ for(const type of ['boss','warden']){const b=foe(g,type);b.traits=b.traits.filter(t=>t.id!=='mechanical');finishSuppression([b],new Set([b]),5,1);assert.equal(b.suppression,1);applySuppression(b,1);assert.equal(b.suppression,1);}
  const m=foe(g,'drone');applySuppression(m,5);assert.equal(m.suppression,0);assert.ok(suppressionState(m).immune);
 });
 test('two single-stack sources sustain immobilization after first turn',()=>{const e={hp:100,type:'rifleman'};const values=[];for(let i=0;i<5;i++){applySuppression(e,1);applySuppression(e,1);values.push(e.suppression);tickSuppression(e);}assert.deepEqual(values,[2,3,4,4,4]);});
 test('weapon passive uses rounds actually fired, at least one hit, once per attack; no melee or grenade source',()=>{
- const g=arena(),e=foe(g);arm(g,6);sure(g);g.fire();assert.equal(e.suppression,1);assert.equal(g.player.ammo[6],27);delete e.suppression;g.player.ammo[6]=2;g.fire();assert.equal(e.suppression,undefined);
+ const g=arena(),e=foe(g);arm(g,6);sure(g);g.fire();assert.equal(e.suppression,1);assert.equal(g.player.ammo[6],95);delete e.suppression;g.player.ammo[6]=2;g.fire();assert.equal(e.suppression,undefined);   // 3.185.0: a five-round LMG burst
  g.player.ammo[6]=30;g.rng=Object.assign(()=>.999,{state:()=>1});g.fire();assert.equal(e.suppression,undefined);
 });
 test('rapid fire extends bursts and recon long-range single shots, lowers all firearm accuracy, includes launchers',()=>{
- const g=arena('recon');grantTrait(g.player,'rapid_fire','qa');assert.equal(volleyAt(g.weapon,5),3);assert.equal(volleyAt(g.weapon,6),2);assert.equal(g.weapon.accuracyBonus,-10);g.player.affixes[2]='longbarrel';assert.equal(volleyAt(g.weapon,7),3);assert.equal(volleyAt(g.weapon,8),2);arm(g,5);assert.equal(volleyAt(g.weapon,3),2);assert.equal(g.weapon.accuracyBonus,-10);arm(g,9);assert.equal(g.weapon.accuracyBonus,0);
+ const g=arena('recon');grantTrait(g.player,'rapid_fire','qa');assert.equal(volleyAt(g.weapon,5),5);assert.equal(volleyAt(g.weapon,6),2);assert.equal(g.weapon.accuracyBonus,-10);g.player.affixes[2]='longbarrel';assert.equal(volleyAt(g.weapon,7),5);assert.equal(volleyAt(g.weapon,8),2);arm(g,5);assert.equal(volleyAt(g.weapon,3),2);assert.equal(g.weapon.accuracyBonus,-10);arm(g,9);assert.equal(g.weapon.accuracyBonus,0);
 });
 test('suppressed player can shoot, reload, wait, bump melee and open doors, but cannot walk, swap or shadowstep',()=>{
  const g=arena(),e=foe(g,'rifleman',11);g.player.suppression=3;const turn=g.turn;assert.equal(g.action('move',[0,1]),false);assert.equal(g.turn,turn);sure(g);assert.ok(g.action('move',[1,0]));assert.equal(g.player.x,10);assert.ok(e.hp<500);assert.equal(g.player.suppression,2);
@@ -45,24 +46,24 @@ test('area skill validates before paying, runs through prepared entry, adds hit 
  const g=arena(),e=foe(g);skill(g);sure(g);const t=g.turn;g.player.ammo[0]=2;assert.equal(g.action('usePrepared',{category:'skill',target:{x:14,y:10}}),false);assert.equal(g.turn,t);g.player.ammo[0]=8;g.enemyAct=()=>{};assert.ok(g.action('usePrepared',{category:'skill',target:{x:14,y:10}}));assert.equal(g.player.ammo[0],5);assert.equal(e.suppression,1,'2 aggregate then world half');assert.equal(g.player.skillState.suppressive_fire.cooldown,0);
 });
 test('area skill distributes actual rounds and suppresses missed/corner-hidden targets without damage',()=>{
- const g=arena(),a=foe(g),b=foe(g,'rifleman',14,11);skill(g);sure(g);g.shotClear=(actor,target)=>target!==b;const before=b.hp;suppressiveFire(g,{x:14,y:10});assert.ok(a.hp<500);assert.equal(b.hp,before);assert.equal(a.suppression,2);assert.equal(b.suppression,1);assert.equal(g.player.ammo[0],5);assert.equal(suppressiveArea(g,{x:14,y:10}).length,5);
+ const g=arena(),a=foe(g),b=foe(g,'rifleman',14,11);skill(g);sure(g);g.shotClear=(actor,target)=>target!==b;const before=b.hp;suppressiveFire(g,{x:14,y:10});assert.ok(a.hp<500);assert.equal(b.hp,before);assert.equal(a.suppression,2);assert.equal(b.suppression,1);assert.equal(g.player.ammo[0],27);assert.equal(suppressiveArea(g,{x:14,y:10}).length,5);
  const h=arena(),e=foe(h);skill(h);h.rng=Object.assign(()=>.999,{state:()=>1});suppressiveFire(h,e);assert.equal(e.hp,500);assert.equal(e.suppression,1);
 });
 test('explosive skill and barrel chains cannot damage hidden enemies',()=>{
  const g=arena(),a=foe(g),b=foe(g,'rifleman',14,11);skill(g);arm(g,8);sure(g);g.shotClear=(actor,target)=>target!==b;g.props.push({id:'barrel',type:'barrel',x:15,y:10,hp:1,maxHp:1});suppressiveFire(g,a);assert.equal(b.hp,500);assert.equal(b.suppression,1);
 });
 test('committed skill fires into its fixed area after targets leave the ray; rapid fire consumes four',()=>{
- const g=arena();skill(g);grantTrait(g.player,'rapid_fire','qa');g.shotClear=()=>false;const e=foe(g);suppressiveFire(g,e);assert.equal(e.hp,500);assert.equal(e.suppression,1);assert.equal(g.player.ammo[0],4);
+ const g=arena();skill(g);grantTrait(g.player,'rapid_fire','qa');g.shotClear=()=>false;const e=foe(g);suppressiveFire(g,e);assert.equal(e.hp,500);assert.equal(e.suppression,1);assert.equal(g.player.ammo[0],26);
 });
 test('current saves reject malformed suppression and inventory; v36 migrates away old pet effect without changing resources',()=>{
  const g=arena(),e=foe(g);e.suppression=4;assert.ok(Game.restore(g.serialize()));for(const value of [-1,6,.5,'2']){const raw=JSON.parse(g.serialize());raw.data.enemies[0].suppression=value;assert.equal(Game.restore(JSON.stringify(raw)),null);}
- const raw=JSON.parse(g.serialize());raw.version=36;delete raw.data.player.learningItems;raw.data.enemies[0].petSuppressed=15;const copy=Game.restore(JSON.stringify(raw));assert.ok(copy);assert.equal(copy.enemies[0].petSuppressed,undefined);assert.deepEqual(copy.player.learningItems,{});assert.equal(copy.player.reserve,g.player.reserve);
+ const raw=JSON.parse(g.serialize());raw.version=36;oldScaleAmmo(raw.data);delete raw.data.player.learningItems;raw.data.enemies[0].petSuppressed=15;const copy=Game.restore(JSON.stringify(raw));assert.ok(copy);assert.equal(copy.enemies[0].petSuppressed,undefined);assert.deepEqual(copy.player.learningItems,{});assert.equal(copy.player.reserve,g.player.reserve);
  const bad=JSON.parse(g.serialize());delete bad.data.player.learningItems;assert.equal(Game.restore(JSON.stringify(bad)),null);
 });
 test('real corner geometry admits guaranteed area suppression while blocking bullet damage',()=>{
  const g=arena();Object.assign(g.player,{x:12,y:11});for(let y=1;y<=10;y++)g.grid[y][10]=0;
  const e=foe(g,'rifleman',9,10);skill(g);sure(g);assert.ok(g.visible(e));assert.equal(g.shotClear(g.player,e),false);
- assert.ok(g.action('usePrepared',{category:'skill',target:{x:9,y:10}}));assert.equal(e.hp,500);assert.equal(g.player.ammo[0],5);
+ assert.ok(g.action('usePrepared',{category:'skill',target:{x:9,y:10}}));assert.equal(e.hp,500);assert.equal(g.player.ammo[0],27);
  assert.equal(e.suppression,0,'one guaranteed stack halves to zero after affecting enemy opportunity');
 });
 test('ammo recovery has three capped tiers and excluded enemies still drop nothing',()=>{
@@ -75,5 +76,5 @@ test('ammo recovery has three capped tiers and excluded enemies still drop nothi
 });
 test('learned anchor fires suppression skill at normal and slow phases; each volley pays separately',()=>{
  const g=arena(),e=foe(g);skill(g);g.player.skills.push('anchor');g.player.skillState.anchor={remaining:1,cooldown:0};grantTrait(g.player,'clumsy','skill:anchor');sure(g);g.enemyAct=()=>{};
- assert.ok(g.action('usePrepared',{category:'skill',target:{x:e.x,y:e.y}}));assert.equal(g.player.ammo[0],2);assert.equal(e.suppression,3,'two stacks, halved when its own turn between the volleys ends, then two more (3.145.0)');
+ assert.ok(g.action('usePrepared',{category:'skill',target:{x:e.x,y:e.y}}));assert.equal(g.player.ammo[0],24);assert.equal(e.suppression,3,'two stacks, halved when its own turn between the volleys ends, then two more (3.145.0)');
 });

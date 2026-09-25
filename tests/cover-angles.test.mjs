@@ -37,21 +37,23 @@ test('strongest real protection wins over old terrain priority and retains objec
   const twin={...c,hp:65};c.hp=65;assert.equal(bestCover([c,twin],p,a),c);
   g.grid[11][10]=0;c.x=11;c.y=10;assert.equal(g.protectingCover(p,a).type,'wall');
 });
+// 3.185.0: an energy weapon has no armor curve, so these measure the cover alone.
+const flat=g=>({...g.weapon,ammoType:'energy'});
 test('player and enemy receive the same angular hit penalties and direct damage reduction',()=>{
   for(const [dx,dy,penalty,damage]of [[3,1,35,22],[1,1,18,31],[2,3,18,31],[1,2,0,40]]){
     const g=arena(),a={x:10+dx,y:10+dy},c=crate(11,10);g.props=[c];
     const enemy=makeEnemy('rifleman',10,10,'qa-angle');Object.assign(enemy,{hp:500,maxHp:500,traits:[]});g.enemies=[enemy];
     assert.equal(g.accuracy(a,g.player).coverPenalty,penalty);assert.equal(g.accuracy(a,enemy).coverPenalty,penalty);
-    g.damagePlayer(40,'QA',a);g.hitTarget(enemy,40,a);assert.equal(500-g.player.hp,damage);assert.equal(500-enemy.hp,damage);
+    g.damagePlayer(40,'QA',a);g.hitTarget(enemy,40,a,0,flat(g));assert.equal(500-g.player.hp,damage);assert.equal(500-enemy.hp,damage);
   }
 });
 test('penetration scales half reduction and only selected destructible cover takes durability damage',()=>{
   const g=arena(),e=makeEnemy('rifleman',10,10,'qa-angle');Object.assign(e,{hp:500,maxHp:500,traits:[]});g.enemies=[e];
-  const c=crate(11,10);g.props=[c];g.hitTarget(e,80,{x:12,y:13},.5);
+  const c=crate(11,10);g.props=[c];g.hitTarget(e,80,{x:12,y:13},.5,flat(g));
   assert.equal(e.hp,429);assert.equal(c.hp,37);
   const south=crate(10,11);south.id='cover-south';g.props.push(south);c.hp=1;
-  g.hitTarget(e,40,{x:12,y:13});assert.equal(c.hp,1);assert.equal(south.hp,51);
-  south.hp=1;g.hitTarget(e,40,{x:12,y:13});assert.ok(south.hp<=0);assert.equal(g.protectingCover(e,{x:12,y:13}),c);
+  g.hitTarget(e,40,{x:12,y:13},0,flat(g));assert.equal(c.hp,1);assert.equal(south.hp,51);
+  south.hp=1;g.hitTarget(e,40,{x:12,y:13},0,flat(g));assert.ok(south.hp<=0);assert.equal(g.protectingCover(e,{x:12,y:13}),c);
 });
 test('parallel wall and partition endpoints give no protection while corner leaning stays reciprocal',()=>{
   const g=arena(),p=g.player,a={x:10,y:13};g.grid[10][11]=0;

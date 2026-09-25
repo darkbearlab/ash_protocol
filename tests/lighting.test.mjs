@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -38,8 +39,8 @@ test('darkness checks the target cell, combines with half cover and movement, an
   g.props=[{id:'cover',type:'cover',x:13,y:10,hp:65,maxHp:65}];g.player.y=9; // (4,1): full crate
   assert.equal(g.accuracy(g.player,e).chance,22);g.player.x=13; // (1,1): half crate
   assert.equal(g.accuracy(g.player,e).chance,35);   // 3.152.0 有效距離: two tiles is one short of the rifle's band, −4
-  g.props=[];g.hitTarget(e,40,g.player);assert.equal(e.hp,460);
-  g.lighting[10][10]=0;g.player.x=10;g.player.y=10;g.damagePlayer(40,'QA',e);assert.equal(g.player.hp,460);
+  g.props=[];g.hitTarget(e,40,g.player);assert.equal(e.hp,468);   // 3.185.0: a rifle round loses a fifth through an unarmored body
+  g.lighting[10][10]=0;g.player.x=10;g.player.y=10;g.damagePlayer(40,'QA',e);assert.equal(g.player.hp,468);
 });
 test('night vision is shooter-specific for biological, mechanical and unclassified units',()=>{
   for(const body of ['biological','mechanical',null]){
@@ -110,7 +111,7 @@ test('lighting survives saves, backups and presentation without changing RNG; ma
 });
 test('v17 Recon migration adds exactly two senses and keeps old floor lit, resources and RNG intact',()=>{
   const g=arena('recon');g.lighting[10][10]=0;const old=JSON.parse(g.serialize());old.version=17;delete old.data.lighting;old.data.player.traits=old.data.player.traits.filter(t=>!['night_vision','infrared'].includes(t.id));
-  const before=structuredClone(old.data.player),restored=Game.restore(JSON.stringify(old));assert.ok(restored);for(const id of ['night_vision','infrared'])assert.ok(activeTrait(restored.player,id));
+  const before=structuredClone(old.data.player),restored=Game.restore(oldSaveText(old));assert.ok(restored);for(const id of ['night_vision','infrared'])assert.ok(activeTrait(restored.player,id));
   const after={...restored.player,traits:restored.player.traits.filter(t=>!['night_vision','infrared'].includes(t.id))};assert.deepEqual(after,before);assert.equal(restored.rng.state(),old.rngState);assert.deepEqual(restored.lighting,fullLighting(g.grid));
   assert.deepEqual(Game.restore(restored.serialize()).player,restored.player);
   old.data.player.traits=Array.from({length:66},(_,i)=>({id:'fast',source:'legacy:'+i}));const full=Game.restore(JSON.stringify(old));assert.ok(full);assert.equal(full.player.traits.length,68);assert.ok(activeTrait(full.player,'infrared'));

@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -62,7 +63,7 @@ test('the pet chases up to nine tiles from the player while survivors keep the s
 });
 test('no ally may be packed in a save; a v25 save loads unchanged and its first local read is kept verbatim',async()=>{
  const g=arena('necromancer'),s=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:11,y:10}}),raw=JSON.parse(g.serialize());raw.data.allies[0].status='packed';assert.equal(Game.restore(JSON.stringify(raw)),null);
- const d=arena('druid'),a=pet(d);a.hp=37;const old=JSON.parse(d.serialize());old.version=25;const text=JSON.stringify(old),memory=new Map([['qa-ash-save',text],['ash-save','untouched']]);
+ const d=arena('druid'),a=pet(d);a.hp=37;const old=JSON.parse(d.serialize());old.version=25;oldScaleAmmo(old.data);const text=JSON.stringify(old),memory=new Map([['qa-ash-save',text],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
  const storage=await import('../src/storage.js?pet337'),restored=storage.loadGame();assert.ok(restored);assert.deepEqual(restored.allies,d.allies);assert.deepEqual(restored.player,d.player);assert.equal(restored.rng.state(),d.rng.state());assert.equal(memory.get('qa-ash-save-v25-backup'),text);assert.equal(memory.get('ash-save'),'untouched');
 });
@@ -121,7 +122,7 @@ test('complete backups preserve active, downed and left-behind units without dup
  const result=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa');assert.deepEqual(result.game.allies,g.allies);assert.equal(result.game.allySerial,g.allySerial);
 });
 test('v22 migration adds empty allies without gifting units or changing player resources/RNG',()=>{
- const g=arena('soldier'),old=JSON.parse(g.serialize());old.version=22;delete old.data.allies;delete old.data.allySerial;const restored=Game.restore(JSON.stringify(old));assert.ok(restored);assert.deepEqual(restored.player,g.player);assert.deepEqual(restored.allies,[]);assert.equal(restored.rng.state(),g.rng.state());
+ const g=arena('soldier'),old=JSON.parse(g.serialize());old.version=22;oldScaleAmmo(old.data);delete old.data.allies;delete old.data.allySerial;const restored=Game.restore(JSON.stringify(old));assert.ok(restored);assert.deepEqual(restored.player,g.player);assert.deepEqual(restored.allies,[]);assert.equal(restored.rng.state(),g.rng.state());
 });
 test('malformed ally state cannot fabricate duplicate bodies, negative ammo, invalid orders or bad affiliation',()=>{
  const g=arena(),a=drone(g);for(const change of [d=>d.allies.push({...d.allies[0]}),d=>d.allies[0].ammo=-1,d=>d.allies[0].kind='enemy',d=>d.allies[0].status='packed-bad',d=>d.allies[0].x=d.player.x,d=>d.allies[0].sourceId='raise_dead',d=>d.allies[0].order={x:100,y:1},d=>delete d.allies,d=>d.allySerial=0]){const raw=JSON.parse(g.serialize());change(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);}
@@ -231,9 +232,9 @@ test('the placed sentry takes cover and plating while the hovering follow drone 
  assert.equal(s.armor,SENTRY_ARMOR);assert.ok(g.protectingCover(s,e));s.sourceId='drone_follow';fitDrone(s);assert.equal(s.armor,0);assert.equal(g.protectingCover(s,e),null);
 });
 test('v26 saves refit drones: follow pistol rounds are handed back, 45 HP chassis widen to 90 without healing, sentries gain plating and cover',async()=>{
- const g=arena(),a=drone(g);a.ammo=7;a.maxHp=45;a.hp=30;const old=JSON.parse(g.serialize());old.version=26;const restored=Game.restore(JSON.stringify(old));
- assert.ok(restored);assert.equal(restored.player.pistol,g.player.pistol+7);const d=restored.allies[0];assert.deepEqual([d.ammo,d.hp,d.maxHp],[0,30,DRONE_HP]);
- const s=arena(),b=drone(s,{x:11,y:10},'active','drone_sentry');b.armor=0;b.traits.push({id:'no_cover',source:'ally:drone'});b.ammo=5;const o2=JSON.parse(s.serialize());o2.version=26;const r2=Game.restore(JSON.stringify(o2));
+ const g=arena(),a=drone(g);a.ammo=7;a.maxHp=45;a.hp=30;const old=JSON.parse(g.serialize());old.version=26;oldScaleAmmo(old.data);const restored=Game.restore(JSON.stringify(old));
+ assert.ok(restored);assert.equal(restored.player.pistol,g.player.pistol+7);const d=restored.allies[0];assert.deepEqual([d.ammo,d.hp,d.maxHp],[0,30,DRONE_HP]);   // a unit's magazine comes back as it was; only reserves are rescaled (3.185.0)
+ const s=arena(),b=drone(s,{x:11,y:10},'active','drone_sentry');b.armor=0;b.traits.push({id:'no_cover',source:'ally:drone'});b.ammo=5;const o2=JSON.parse(s.serialize());o2.version=26;oldScaleAmmo(o2.data);const r2=Game.restore(JSON.stringify(o2));
  assert.equal(r2.allies[0].armor,SENTRY_ARMOR);assert.ok(!r2.allies[0].traits.some(t=>t.id==='no_cover'));assert.equal(r2.allies[0].ammo,0);assert.equal(r2.player.reserve,s.player.reserve+5);assert.equal(r2.player.pistol,s.player.pistol);
  const text=JSON.stringify(old),memory=new Map([['qa-ash-save',text],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
@@ -301,7 +302,7 @@ test('a pet whose hold tile is taken fights from where it stands instead of idli
  const g=arena('druid'),a=pet(g,{x:12,y:10}),e=enemy(g,13,10);e.hp=500;a.order={x:13,y:10};g.enemyAct=()=>{};zero(g);g.reveal();g.action('wait');assert.ok(e.hp<500);assert.deepEqual([a.x,a.y],[12,10]);
 });
 test('v23 original local save is backed up verbatim; a destroyed follow drone hands its pistol rounds back and resources survive migration',async()=>{
- const g=arena(),a=drone(g);a.ammo=5;g.damageAlly(a,999);const old=JSON.parse(g.serialize());old.version=23;const raw=JSON.stringify(old),memory=new Map([['qa-ash-save',raw],['ash-save','untouched']]);
+ const g=arena(),a=drone(g);a.ammo=5;g.damageAlly(a,999);const old=JSON.parse(g.serialize());old.version=23;oldScaleAmmo(old.data);const raw=JSON.stringify(old),memory=new Map([['qa-ash-save',raw],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
  const storage=await import('../src/storage.js?repair331'),restored=storage.loadGame();assert.ok(restored);
  assert.deepEqual(restored.allies,[]);
@@ -325,14 +326,14 @@ test('deploy refuses a half-given tile and a full ally list with nothing to prun
 });
 // 3.91.0 engineer workshop (docs/ENGINEER.md phase 1): saves move the old chassis into workshop state.
 test('v45 saves turn the drone skills into the workshop: packed chassis into a line, wrecks dropped, deployed units kept, magazines handed back',()=>{
- const old=setup=>{const g=arena();g.player.productionLines=[];setup(g);const raw=JSON.parse(g.serialize());raw.version=45;const p=raw.data.player;p.skills=['drone_follow','drone_sentry'];p.skillState={drone_follow:{remaining:0,cooldown:0},drone_sentry:{remaining:0,cooldown:0}};p.prepared.skill='drone_sentry';delete p.productionLines;return {g,raw};};
+ const old=setup=>{const g=arena();g.player.productionLines=[];setup(g);const raw=JSON.parse(g.serialize());raw.version=45;oldScaleAmmo(raw.data);const p=raw.data.player;p.skills=['drone_follow','drone_sentry'];p.skillState={drone_follow:{remaining:0,cooldown:0},drone_sentry:{remaining:0,cooldown:0}};p.prepared.skill='drone_sentry';delete p.productionLines;return {g,raw};};
  const packed=old(g=>{drone(g,{x:11,y:10}).ammo=5;});packed.raw.data.allies[0].status='packed';const r1=Game.restore(JSON.stringify(packed.raw));
  assert.ok(r1);assert.deepEqual(r1.allies,[]);assert.deepEqual(r1.player.productionLines,[{blueprint:'drone_follow'}]);assert.equal(r1.player.reserve,packed.g.player.reserve+5);
  assert.deepEqual(r1.player.skills,['workshop']);assert.equal(r1.player.prepared.skill,'workshop');assert.deepEqual(Object.keys(r1.player.skillState),['workshop']);assert.ok(Game.restore(r1.serialize()));
  const wreck=old(g=>{g.damageAlly(drone(g),999);});const r2=Game.restore(JSON.stringify(wreck.raw));assert.ok(r2);assert.deepEqual(r2.allies,[]);assert.deepEqual(r2.player.productionLines,[]);
  const active=old(g=>{drone(g,{x:11,y:10},'active','drone_sentry').ammo=3;});const r3=Game.restore(JSON.stringify(active.raw));
  assert.ok(r3);assert.equal(r3.allies[0].status,'active');assert.equal(r3.allies[0].ammo,0);assert.equal(r3.player.reserve,active.g.player.reserve+3);assert.ok(Game.restore(r3.serialize()));
- const soldier=arena('soldier'),raw=JSON.parse(soldier.serialize());raw.version=45;delete raw.data.player.productionLines;const r4=Game.restore(JSON.stringify(raw));assert.ok(r4);assert.deepEqual(r4.player,soldier.player);
+ const soldier=arena('soldier'),raw=JSON.parse(soldier.serialize());raw.version=45;oldScaleAmmo(raw.data);delete raw.data.player.productionLines;const r4=Game.restore(JSON.stringify(raw));assert.ok(r4);assert.deepEqual(r4.player,soldier.player);
 });
 test('malformed production lines cannot fabricate units, exceed the line limit or exist without the workshop',()=>{
  const g=arena();assert.ok(Game.restore(g.serialize()));

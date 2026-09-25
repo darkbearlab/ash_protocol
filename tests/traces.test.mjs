@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
@@ -49,7 +50,7 @@ test('persistent stains appear after projectile travel and playback never adds t
 });
 test('save and complete backup retain traces; legacy v16 starts clean and descending discards only old-floor traces',()=>{
   const g=arena();addTrace(g,g.player,'oil');const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(restored.traces,g.traces);
-  const old=JSON.parse(g.serialize());old.version=16;delete old.data.traces;const migrated=Game.restore(JSON.stringify(old));assert.deepEqual(migrated.traces,[]);assert.deepEqual(migrated.player,g.player);
+  const old=JSON.parse(g.serialize());old.version=16;oldScaleAmmo(old.data);delete old.data.traces;const migrated=Game.restore(JSON.stringify(old));assert.deepEqual(migrated.traces,[]);assert.deepEqual(migrated.player,g.player);
   Object.assign(g.player,g.end);g.descend();assert.equal(g.floor,2);assert.deepEqual(g.traces,[]);
 });
 test('malformed trace data is rejected, and rendering decorations cannot change the game',()=>{

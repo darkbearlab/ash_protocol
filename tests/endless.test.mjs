@@ -87,7 +87,7 @@ test('daily and quick pools remain the original six missions',()=>{
 });
 test('actual ranged and melee enemy attacks use deep-floor growth before defenses',()=>{
  for(const type of ['rifleman','brute','boss']){
-  const g=run(18);g.grid=g.grid.map(r=>r.map(()=>1));g.lighting=g.grid.map(r=>r.map(()=>1));g.props=[];g.barriers=[];g.allies=[];g.hazards=[];Object.assign(g.player,{x:10,y:10});const e=makeEnemy(type,10,11,'attack',18);Object.assign(e,{alert:true,charge:true,windup:1,aim:{x:10,y:10}});g.enemies=[e];g.reveal();g.rng=()=>0;let raw;g.damagePlayer=n=>{raw=n;};g.executeEnemy(e);assert.equal(raw,Math.round((ENEMY_TYPES[type].damage+18)*1.03**12));   // 3.137.0 standard: +1 a floor, ×1.03
+  const g=run(18);g.grid=g.grid.map(r=>r.map(()=>1));g.lighting=g.grid.map(r=>r.map(()=>1));g.props=[];g.barriers=[];g.allies=[];g.hazards=[];Object.assign(g.player,{x:10,y:10});const e=makeEnemy(type,10,11,'attack',18);Object.assign(e,{alert:true,charge:true,windup:1,aim:{x:10,y:10}});g.enemies=[e];g.reveal();g.rng=()=>0;let raw=0;g.damagePlayer=n=>{raw+=n;};g.executeEnemy(e);assert.equal(raw,Math.round((ENEMY_TYPES[type].damage+18)*1.03**12));   // 3.137.0 standard: +1 a floor, ×1.03
  }
 });
 test('all modes limit a full level progression to nineteen choices',()=>{

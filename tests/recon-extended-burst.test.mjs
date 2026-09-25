@@ -24,20 +24,20 @@ test('only SMG receives the passive range extension; longbarrel shifts both zone
   }
   for(const id of ['engineer','necromancer','soldier','ninja'])assert.equal(weaponStats(2,null,new Game(1,[],0,id).player).range,5);
 });
-test('actual public fire consumes and animates 2/1 rounds at standard and longbarrel boundaries; out-of-range is free',()=>{
-  for(const [affix,cases]of [[null,[[4,2],[5,2],[6,1],[7,1],[8,0]]],['longbarrel',[[6,2],[7,2],[8,1],[9,1],[10,0]]]])for(const [range,count]of cases){
+test('actual public fire consumes and animates 4/1 rounds at standard and longbarrel boundaries; out-of-range is free',()=>{
+  for(const [affix,cases]of [[null,[[4,4],[5,4],[6,1],[7,1],[8,0]]],['longbarrel',[[6,4],[7,4],[8,1],[9,1],[10,0]]]])for(const [range,count]of cases){
     const g=arena(range,affix),ammo=g.player.ammo[2],turn=g.turn,damage=g.weaponDamage(2,g.enemies[0]);g.rng=()=>0;
-    assert.equal(damage.min,(affix?12:13)+6,'per-volley perk division still uses two rounds');
+    assert.equal(damage.min,(affix?6:7)+3,'per-volley perk division uses the four-round burst (3.185.0)');
     const result=captureAction(g,()=>g.action('fire'));assert.equal(result.success,count>0);assert.equal(g.player.ammo[2],ammo-count);assert.equal(g.turn,turn+(count?1:0));
     const shots=result.steps.flatMap(s=>s.effects).filter(e=>e.type==='shot');assert.equal(shots.length,count);
     if(count===1){assert.ok(shots[0].singleShot);assert.equal(projectileVisuals(shots[0]).length,1);}
-    if(count===2)assert.equal(projectileVisuals(shots[0]).length,3,'near burst keeps existing cosmetic shots');
+    if(count===4)assert.equal(projectileVisuals(shots[0]).length,1,'each round of the near burst is drawn once (3.185.0)');
   }
   const g=arena(5);g.player.ammo[2]=1;g.rng=()=>0;assert.ok(g.action('fire'));assert.equal(g.player.ammo[2],0);
 });
 test('fast enemy crossing the boundary changes volley at resolution, never retargets; lost target still spends far ammunition',()=>{
   class MovingGame extends Game{enemyAct(e){if(e.id==='target'){e.x=this.destination;this.reveal();}}}
-  for(const [before,after,count]of [[5,6,1],[6,5,2]]){
+  for(const [before,after,count]of [[5,6,1],[6,5,4]]){
     const g=arena(before,null,MovingGame),e=g.enemies[0];e.control.disabled=0;e.alert=true;grantTrait(e,'fast','qa');g.destination=10+after;g.rng=()=>0;
     const ammo=g.player.ammo[2];assert.ok(g.action('fire'));assert.equal(ammo-g.player.ammo[2],count);assert.ok(g.effects.filter(s=>s.type==='shot').every(s=>s.to.x===10+after));
   }

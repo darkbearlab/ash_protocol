@@ -37,7 +37,7 @@ export const TERMINAL_ITEMS={
  mine:{cost:15,resource:'mines'},
  exo:{cost:45,wear:'exo',noTrade:true},
 };
-export const TERMINAL_PACK=Object.freeze({rifle:24,pistol:24,shell:12,energy:18,ordnance:3});
+export const TERMINAL_PACK=Object.freeze({rifle:72,pistol:48,shell:12,energy:18,ordnance:3});
 export const upgradeCost=level=>T.upgradeBase+level*T.upgradeStep;
 const upgradeSlot=option=>typeof option==='string'&&/^upgrade:\d+$/.test(option)?Number(option.slice(8)):null;
 

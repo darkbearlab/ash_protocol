@@ -6,7 +6,7 @@ export const ENDLESS_MAX_FLOOR=999;
 // Display only (user call, 3.49.1): the UI shows endless runs as "of 666 floors". Not a rule; ENDLESS_MAX_FLOOR is the limit.
 export const ENDLESS_DISPLAY_FLOORS=666;
 export const PROTOCOL_EVENT_LIMIT=4096;
-export const CAP_SUPPLY={meds:2,grenade:2,rifle:24,pistol:24,shell:12};
+export const CAP_SUPPLY={meds:2,grenade:2,rifle:72,pistol:48,shell:12};   // rifle x3, pistol x2: 3.185.0
 // Player-facing contents of one cap supply (3.49.1, Claude); names kept local so this module stays import-free.
 const SUPPLY_NAMES={meds:t('supplyNames.med'),grenade:t('ammunition.grenade.name'),rifle:t('supplyNames.ammo'),pistol:t('supplyNames.pistol'),shell:t('supplyNames.shell'),energy:t('supplyNames.energy'),ordnance:t('ammunition.ordnance.name')};
 export const capSupplyText=(times=1)=>Object.entries(CAP_SUPPLY).map(([id,n])=>`${SUPPLY_NAMES[id]||id} +${n*times}`).join(t('common.listSeparator'));

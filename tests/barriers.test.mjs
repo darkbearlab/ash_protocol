@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -55,13 +56,13 @@ test('edge sight is symmetric for randomized integer and leaning rays',()=>{
 test('edge cover has wall strength, respects direction/no-cover, and disappears when opened or destroyed',()=>{
   const g=arena(),e=enemy(g,'rifleman',12,9),b=gate(g);g.player.traits=[];
   assert.equal(g.protectingCover(g.player,e),b);assert.equal(g.accuracy(e,g.player).coverPenalty,42);assert.equal(edgeCover(g.barriers,g.player,{x:8,y:10}),null);
-  g.damagePlayer(20,'test',e);assert.equal(g.player.hp,489);assert.equal(b.hp,53);
+  g.damagePlayer(20,'test',e);assert.equal(g.player.hp,491);assert.equal(b.hp,53);   // 3.185.0: a rifle round loses a fifth through no armor
   grantTrait(g.player,'no_cover','test');assert.equal(g.protectingCover(g.player,e),null);assert.equal(g.canCross(g.player,{x:11,y:10}),false);
   g.player.traits=[];b.open=true;assert.equal(Boolean(g.protectingCover(g.player,e)),false);b.open=false;b.hp=0;assert.equal(Boolean(g.protectingCover(g.player,e)),false);
 });
 test('barriers can be locked, shot and punched without receiving enemy XP or drops',()=>{
   const g=arena(true),b=gate(g);g.target=b.id;const kills=g.player.kills;assert.equal(targetDetails(g).name,'隔離門');assert.match(targetDetails(g).hp,/耐久/);
-  assert.ok(g.action('fire'));assert.ok(b.hp<60);assert.equal(g.player.ammo[0],7);assert.equal(g.player.kills,kills);assert.equal(g.items.length,0);
+  assert.ok(g.action('fire'));assert.ok(b.hp<60);assert.equal(g.player.ammo[0],27);assert.equal(g.player.kills,kills);assert.equal(g.items.length,0);
   const f=arena(true,'bulwark'),wall=gate(f,'partition');f.player.weapon=7;f.target=wall.id;assert.ok(f.action('fire'));assert.ok(wall.hp<90);assert.equal(f.player.ammo[7],0);
   f.damageProp(wall,200);assert.equal(wall.hp,0);assert.ok(f.canCross(f.player,{x:11,y:10}));assert.equal(f.action('door',{id:wall.id,open:true}),false);
 });
@@ -103,7 +104,7 @@ test('first-step path planning can approach doors but never path through a fixed
 test('save and full backup retain edges; v12 maps receive no newly inserted doors; malformed edges are rejected',()=>{
   const g=arena(true),b=gate(g);b.hp=33;b.open=true;
   const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(restored.barriers,g.barriers);
-  const old=JSON.parse(g.serialize());old.version=12;delete old.data.barriers;const migrated=Game.restore(JSON.stringify(old));assert.ok(migrated);assert.deepEqual(migrated.barriers,[]);assert.deepEqual(migrated.grid,g.grid);assert.deepEqual(migrated.player,g.player);
+  const old=JSON.parse(g.serialize());old.version=12;oldScaleAmmo(old.data);delete old.data.barriers;const migrated=Game.restore(JSON.stringify(old));assert.ok(migrated);assert.deepEqual(migrated.barriers,[]);assert.deepEqual(migrated.grid,g.grid);assert.deepEqual(migrated.player,g.player);
   for(const mutate of [d=>delete d.barriers,d=>d.barriers.push({...d.barriers[0],id:'edge-duplicate'}),d=>d.barriers[0].x=10,d=>d.barriers[0].hp=-1,d=>d.barriers[0].open='yes',d=>d.barriers[0].id='enemy',d=>d.barriers[0].type='glass']){const raw=JSON.parse(g.serialize());mutate(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);}
 });
 test('generation preserves floor reachability and unique valid edges across seeds and all six floors',()=>{

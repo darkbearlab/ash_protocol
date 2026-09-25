@@ -37,7 +37,8 @@ export function suppressiveFire(g,point){
   for(const [e,hp] of before)if(e.hp<hp)hits.add(e);
   recordShot(p,target.id,g.turn);
  });
- finishSuppression(targets,hits,rounds,T.skillStacks,g);for(const e of targets){g.noticeAttack(e);e.alert=true;e.lastKnown={x:p.x,y:p.y};}g.log(t('suppressive-fire.fired',{n:rounds}));return true;
+ // 3.185.0: the skill's rounds are a suppressive volley however few, as they were before the five-round threshold.
+ finishSuppression(targets,hits,Math.max(rounds,T.weaponRounds),T.skillStacks,g);for(const e of targets){g.noticeAttack(e);e.alert=true;e.lastKnown={x:p.x,y:p.y};}g.log(t('suppressive-fire.fired',{n:rounds}));return true;
 }
 
 export const suppressivePreview=(g,point)=>({range:g.weapon.range,minimumRounds:T.skillRounds,rounds:Math.min(T.skillRounds+(g.weapon.extraRounds||0),g.player.ammo[g.player.weapon]),accuracyPenalty:T.skillAccuracy,reason:suppressiveReason(g,point),cells:point&&Number.isInteger(point.x)&&Number.isInteger(point.y)?suppressiveArea(g,point):[]});

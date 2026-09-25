@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,PERKS} from '../src/engine.js';
@@ -38,9 +39,9 @@ test('all permanent ranks capped; only supply remains and repeated resource rewa
  assert.deepEqual(g.perkChoices.map(o=>o.id),['med']);const meds=g.player.meds;assert.ok(g.choosePerk('med'));assert.ok(g.choosePerk('med'));assert.equal(g.player.meds,Math.min(g.itemCapacity(),meds+4));   // 3.136.0: carry cap
  g.pendingPerks=1;g.perkDraft={index:g.perkPicks,ids:['damage']};assert.equal(g.choosePerk('damage'),false);
 });
-test('new damage bonus is shared by burst while old per-bullet bonuses remain intact',()=>{
+test('the damage bonus is shared by the burst, and since 3.185.0 so is the older flat bonus',()=>{
  const g=ready();g.player.bonus=12;const before=[0,2,6,7,8].map(i=>g.weaponDamage(i).min);assert.ok(offer(g,'damage'));
- assert.deepEqual([0,2,6,7,8].map((i,n)=>g.weaponDamage(i).min-before[n]),[4,2,2,4,2]);assert.equal(g.player.bonus,12);   // 3.138.0: +4, shared by burst (rounded up)
+ assert.deepEqual([0,2,6,7,8].map((i,n)=>g.weaponDamage(i).min-before[n]),[2,1,1,4,2]);assert.equal(g.player.bonus,12);   // 3.138.0: +4, shared by burst (rounded up); 3.185.0: 16 and 12 over bursts of 3/4/5
 });
 test('health and armor are separate; melee changes only melee; max rank hazard protection reaches immunity',()=>{
  const g=ready(),p=g.player;const armor=p.armor,hp=p.maxHp;offer(g,'health');assert.equal(p.maxHp,hp+20);assert.equal(p.armor,armor);
@@ -49,7 +50,7 @@ test('health and armor are separate; melee changes only melee; max rank hazard p
 });
 test('v27 migration infers exact historical ranks without replaying rewards, clamps neither stats nor over-cap history',()=>{
  const g=ready();Object.assign(g.player,{level:12,bonus:24,maxHp:150,hp:73,armor:3,blastBonus:18});
- const raw=JSON.parse(g.serialize());raw.version=27;delete raw.data.player.perks;delete raw.data.player.perkWeaponBonus;delete raw.data.perkPicks;delete raw.data.perkDraft;
+ const raw=JSON.parse(g.serialize());raw.version=27;oldScaleAmmo(raw.data);delete raw.data.player.perks;delete raw.data.player.perkWeaponBonus;delete raw.data.perkPicks;delete raw.data.perkDraft;
  const h=Game.restore(JSON.stringify(raw));assert.ok(h);assert.deepEqual(h.player.perks,{damage:4,health:2,armor:1,blast:1});assert.equal(h.perkPicks,9);
  for(const k of ['bonus','maxHp','hp','armor','blastBonus','meds','scrap','reserve'])assert.equal(h.player[k],g.player[k]);
  assert.equal(h.rng.state(),g.rng.state());assert.equal(h.player.perkWeaponBonus,0);assert.ok(!h.perkChoices.some(o=>o.id==='damage'));

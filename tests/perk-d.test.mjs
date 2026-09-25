@@ -57,8 +57,8 @@ test('改裝精通: only with a regular affix; the upside grows a quarter a rank
  const R=WEAPONS.findIndex(x=>x.id==='rifle'),PL=WEAPONS.findIndex(x=>x.id==='plasma'),me={perks:{mod_mastery:3}};
  assert.equal(weaponStats(R,'longbarrel',me).range,WEAPONS[R].range+3,'range +2 → +3, rounded down');
  assert.equal(weaponStats(R,'tracking',me).tracking,21,'moving penalty 22 → 1');
- assert.equal(weaponStats(R,'extended',me).mag,15);assert.equal(weaponStats(R,'extended',me).accuracyBonus,-8);
- assert.equal(weaponStats(R,'powerful',me).min,28);assert.equal(weaponStats(R,'powerful',me).mag,6,'彈匣 −25% unchanged');
+ assert.equal(weaponStats(R,'extended',me).mag,56);assert.equal(weaponStats(R,'extended',me).accuracyBonus,-8);
+ assert.equal(weaponStats(R,'powerful',me).min,14);assert.equal(weaponStats(R,'powerful',me).mag,22,'彈匣 −25% unchanged');
  assert.deepEqual(weaponStats(PL,'lance',me),weaponStats(PL,'lance'),'drop-only untouched');
 });
 

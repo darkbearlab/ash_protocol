@@ -32,9 +32,9 @@ test('wall protection is directional and cannot be damaged',()=>{
   assert.equal(g.accuracy(from,g.player).chance,55);g.damagePlayer(40,'test',from);assert.equal(g.player.hp,78);
   assert.equal(JSON.stringify(g.grid),before);assert.equal(g.protectingCover(g.player,{x:6,y:10}),undefined);
 });
-test('a miss consumes a bullet and a turn, creates MISS feedback, and deals no damage',()=>{
+test('a miss consumes the burst and a turn, creates MISS feedback, and deals no damage',()=>{
   const g=arena(),e=makeEnemy('brute',14,10,'e');g.enemies=[e];g.target=e.id;g.rng=()=>.999;
-  assert.equal(g.action('fire'),true);assert.equal(g.player.ammo[0],7);assert.equal(g.turn,2);assert.equal(e.hp,e.maxHp);assert.ok(g.effects.some(e=>e.miss));
+  assert.equal(g.action('fire'),true);assert.equal(g.player.ammo[0],27);assert.equal(g.turn,2);assert.equal(e.hp,e.maxHp);assert.ok(g.effects.some(e=>e.miss));
 });
 test('enemy movement lasts until its next action, player movement only during current enemy phase',()=>{
   const g=arena();const enemy=makeEnemy('crawler',15,10,'e');g.enemies=[enemy];g.reveal();g.action('move',[0,-1]);

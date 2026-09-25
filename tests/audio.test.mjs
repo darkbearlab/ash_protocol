@@ -23,7 +23,7 @@ test('a shot is heard once per actual shot, with its weapon family, from the pla
   const g=arena(),e=makeEnemy('brute',13,10,'b');e.hp=900;e.maxHp=900;g.enemies.push(e);g.reveal();
   g.rng=Object.assign(()=>.99,{state:()=>0});      // every roll misses, so only the firing sound is in play
   g.target='b';
-  assert.deepEqual(allSounds(planPresentation(captureAction(g,()=>g.action('fire')).steps)).filter(c=>c==='rifle'),['rifle'],'three cosmetic rounds, one rifle shot, and a player miss is silent');
+  assert.deepEqual(allSounds(planPresentation(captureAction(g,()=>g.action('fire')).steps)).filter(c=>c==='rifle'),['rifle','rifle','rifle'],'a three-round burst is three rifle shots, and a player miss is silent');
   const shotgun=[0,1,2,3,4,5].map(i=>({type:'shot',weaponId:'shotgun',from:{x:1,y:1},to:{x:5,y:i},primary:true}));
   assert.deepEqual(eventSounds(shotgun),['shotgun'],'a cone sends one trace per target but is one blast');
   assert.deepEqual(eventSounds([{type:'enemyShot',attackerType:'raider',from:{x:3,y:3},primary:true},{type:'enemyShot',attackerType:'raider',from:{x:3,y:3},primary:false}]),['smg']);

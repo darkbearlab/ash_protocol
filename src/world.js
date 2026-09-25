@@ -193,7 +193,7 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
     if(i===2||i===7)items.push({x:r.x+2,y:r.y+r.h-2,type:'scrap',amount:18});
     if(floor<=6&&i===rewardRooms[0])items.push({x:r.cx,y:r.cy-1,type:'lore',floor});
     if(info.hazard&&i!==startRoom&&i%2===1)hazards.push({x:r.x+r.w-2,y:r.y+2,type:info.hazard});
-    if(r.supply==='ammo'){items.push({x:r.cx-1,y:r.cy,type:'ammo',amount:20,cache:true},{x:r.cx,y:r.cy,type:'spray',amount:1,cache:true},{x:r.cx+1,y:r.cy,type:'barricade',amount:1,cache:true},{x:r.cx-1,y:r.cy+1,type:'pistol',amount:24,cache:true},{x:r.cx+1,y:r.cy+1,type:'shell',amount:12,cache:true});}
+    if(r.supply==='ammo'){items.push({x:r.cx-1,y:r.cy,type:'ammo',amount:60,cache:true},{x:r.cx,y:r.cy,type:'spray',amount:1,cache:true},{x:r.cx+1,y:r.cy,type:'barricade',amount:1,cache:true},{x:r.cx-1,y:r.cy+1,type:'pistol',amount:48,cache:true},{x:r.cx+1,y:r.cy+1,type:'shell',amount:12,cache:true});}
     if(r.supply)items.push({x:r.cx,y:r.cy+1,type:{ammo:'emp',medical:'stun',armor:'smoke'}[r.supply],amount:1,cache:true});
     if(r.supply==='medical')items.push({x:r.cx,y:r.cy,type:'med',amount:1,cache:true});
     // 3.123.0: one flare in the armour room's case, next to the smoke; placed on an existing supply tile, no RNG.

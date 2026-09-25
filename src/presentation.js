@@ -1,3 +1,4 @@
+import {WEAPONS} from './data.js';
 import {enemyProjectile,enemyMeleeStyle} from './enemy-visuals.js';
 import {NEST_EFFECT_MS} from './nest-art.js';
 import {actorMoves} from './actor-visuals.js';
@@ -29,18 +30,19 @@ export function captureAction(game,action){
 }
 // Cosmetic projectiles per resolved shot; these never affect ammunition or damage.
 // flash (3.116.0): the muzzle flash family from src/muzzle-flash.js; thrown grenades, melee and venom have none.
+const SHOTGUN_PELLETS=WEAPONS.find(w=>w.id==='shotgun')?.pellets||[6];
 export const WEAPON_VISUALS={
   // Semantic style only; the venom trail drawing is handed to Claude.
   venom:{count:1,flight:130,stagger:0,spread:0,style:'venom'},
   pet_turret:{count:1,stagger:0,spread:0,flight:85,style:'bullet',flash:'rifle'},
   thunder:{count:1,flight:100,stagger:0,spread:0,style:'grenade',flash:'launcher'},
-  lmg:{count:2,flight:60,stagger:15,spread:.07,style:'bullet',flash:'smg'},
+  lmg:{count:1,flight:60,stagger:0,spread:0,style:'bullet',flash:'smg'},   // 3.185.0: one drawn round a round fired
   powerfist:{count:1,flight:100,stagger:0,spread:0,style:'slash'},
   // 3.136.0: ten quick cuts, one step each, run together like a burst.
   chainsaw:{count:1,flight:45,stagger:0,spread:0,style:'slash'},
-  rifle:{count:3,flight:85,stagger:20,spread:.04,style:'bullet',flash:'rifle'},
+  rifle:{count:1,flight:85,stagger:0,spread:0,style:'bullet',flash:'rifle'},
   shotgun:{count:6,flight:95,stagger:0,spread:.5,style:'pellet',flash:'shotgun'},
-  smg:{count:3,flight:60,stagger:15,spread:.07,style:'bullet',flash:'smg'},
+  smg:{count:1,flight:60,stagger:0,spread:0,style:'bullet',flash:'smg'},
   sniper:{count:1,flight:110,stagger:0,spread:0,style:'tracer',flash:'sniper'},
   plasma:{count:1,flight:130,stagger:0,spread:0,style:'plasma',flash:'plasma'},
   launcher:{count:1,flight:170,stagger:0,spread:0,style:'grenade',flash:'launcher'},
@@ -48,6 +50,8 @@ export const WEAPON_VISUALS={
   melee:{count:1,flight:80,stagger:0,spread:0}
 };
 export const FLIGHT_MS=125,IMPACT_MS=130,DEATH_MS=220;
+// 3.185.0: the rifle joins the weapons whose rounds follow each other quickly; ROUND_GAP_MS spaces an enemy's rounds.
+const BURST_WEAPONS=['rifle','smg','lmg','thunder','chainsaw'],ROUND_GAP_MS=40;
 // Kill confirmation (3.115.0, user request): a kill far enough away that the camera had to zoom out for it keeps that
 // tile framed through the fall and a short beat, and the turn waits for it. Closer kills never moved the camera, so they
 // get no beat and a swarm fight does not slow down. KILL_HOLD_REACH is where cameraFrame starts zooming out.
@@ -56,7 +60,9 @@ export function projectileVisuals(effect,reduceMotion=false){
   // 3.136.0: a melee weapon with no visuals of its own swings like the power fist. Before, the axe and katana fell
   // through to the rifle and were drawn as three bullets with a muzzle flash.
   const id=effect.style==='grenade'?'grenade':effect.weaponId==='unarmed'?'melee':effect.style==='slash'&&!WEAPON_VISUALS[effect.weaponId]?'powerfist':effect.weaponId||enemyProjectile(effect.attackerType)||'rifle';
-  const base=WEAPON_VISUALS[id]||WEAPON_VISUALS.rifle,spec=effect.singleShot?{...base,count:1,spread:0}:base;
+  // 3.185.0: buckshot draws as many pellets as that distance throws (6/6/5/4/3/2), the same for an enemy's shotgun.
+  const base=WEAPON_VISUALS[id]||WEAPON_VISUALS.rifle,pellets=base.style==='pellet'?SHOTGUN_PELLETS[Math.min(SHOTGUN_PELLETS.length,Math.max(1,Math.abs(effect.to.x-effect.from.x)+Math.abs(effect.to.y-effect.from.y)))-1]:0;
+  const spec=effect.singleShot?{...base,count:1,spread:0}:pellets?{...base,count:pellets}:base;
   // A launched grenade flies like a thrown one but still leaves the launcher's flash. A spread shot (the shotgun's pellets)
   // flashes once; a staggered burst flashes with every round.
   const flash=(WEAPON_VISUALS[effect.weaponId]||base).flash||null;
@@ -103,7 +109,8 @@ export function planPresentation(steps,{reduceMotion=false}={}){
   for(const [index,step]of steps.entries()){
     const moves=reduceMotion?[]:actorMoves(step.before,step.after);
     const flights=step.effects.filter(e=>e.type==='shot'||e.type==='enemyShot');
-    const visuals=flights.flatMap(e=>projectileVisuals(e,reduceMotion));
+    // 3.185.0: an enemy fires its whole burst in one step, a shot effect a round; its rounds leave one after another.
+    const fired=new Map(),visuals=flights.flatMap(e=>{const from=`${e.from?.x},${e.from?.y}`,n=fired.get(from)||0;fired.set(from,n+1);return projectileVisuals(e,reduceMotion).map(v=>n&&!reduceMotion?{...v,delay:v.delay+n*ROUND_GAP_MS}:v);});
     const rewards=step.effects.filter(e=>e.type==='capSupply');
     // A pickup (3.118.0) only cues a sound when the step lands; like a callout it takes no time of its own.
     const announcements=step.effects.filter(e=>e.type==='callout'||e.type==='pickup');
@@ -129,7 +136,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const prior=rewards[0]?.beforeSupply;
     const impactState=prior?Object.assign(Object.create(Object.getPrototypeOf(step.after)),step.after,{player:{...step.after.player,...prior.resources},items:prior.items,logs:prior.logs}):step.after;
     events.push({time,state:impactState,effects:[...impacts.map(e=>({...e,quiet:reduceMotion})),...announcements]});
-    const burstContinues=flights.some(e=>['smg','lmg','thunder','chainsaw'].includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&['smg','lmg','thunder','chainsaw'].includes(e.weaponId));
+    const burstContinues=flights.some(e=>BURST_WEAPONS.includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&BURST_WEAPONS.includes(e.weaponId));
     time+=!flights.length&&!impacts.length&&!rewards.length?0:reduceMotion?120:impacts.some(e=>e.type==='nestCollapse'||e.type==='nestSpawn')?NEST_EFFECT_MS:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
     if(far.length)time+=KILL_HOLD_MS;
     if(rewards.length){events.push({time,state:step.after,effects:rewards.map(({beforeSupply,...e})=>e)});time+=reduceMotion?60:IMPACT_MS;}

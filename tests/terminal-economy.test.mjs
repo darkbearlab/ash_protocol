@@ -15,12 +15,12 @@ function arena(character='soldier'){
 const row=(g,id)=>tradeHoldings(g).find(r=>r.id===id);
 
 test('trade-in values: ammunition in whole-scrap lots at 60%, dismantle values, a cheap medkit, and no armour plates',()=>{
-  assert.deepEqual(['rifle','pistol','shell','energy','ordnance'].map(id=>ammoLot(id)),[{lot:4,value:1},{lot:6,value:1},{lot:8,value:3},{lot:5,value:2},{lot:5,value:12}]);
+  assert.deepEqual(['rifle','pistol','shell','energy','ordnance'].map(id=>ammoLot(id)),[{lot:12,value:1},{lot:12,value:1},{lot:8,value:3},{lot:5,value:2},{lot:5,value:12}]);
   const g=arena(),p=g.player;
-  Object.assign(p,{reserve:50,pistol:0,shell:12,grenades:2,smoke:1,emp:1,stun:1,meds:3,sprays:1,adrenaline:1,barricades:1,plates:20});
+  Object.assign(p,{reserve:150,pistol:0,shell:12,grenades:2,smoke:1,emp:1,stun:1,meds:3,sprays:1,adrenaline:1,barricades:1,plates:20});
   p.wearables=['nvg'];p.learningItems={trait_braced:2};
   const value=id=>row(g,id)?.value;
-  assert.equal(value('ammo:rifle'),1);assert.equal(row(g,'ammo:rifle').max,12,'50 rounds are twelve lots of four');
+  assert.equal(value('ammo:rifle'),1);assert.equal(row(g,'ammo:rifle').max,12,'150 rounds are twelve lots of twelve');
   assert.equal(row(g,'ammo:pistol').max,0);
   assert.deepEqual(['throw:frag','throw:smoke','throw:emp','throw:stun'].map(value),[7,7,9,9]);   // 3.150.0: the frag is priced like the smoke
   assert.equal(value('med'),10,'low on purpose: medkits pile up (user decision)');
@@ -40,14 +40,14 @@ test('the engineer dismantles for half again as much, everywhere the value is us
 });
 
 test('a deal: trade-ins first, scrap for the rest, overpaying is lost, and it must add up',()=>{
-  const g=arena(),p=g.player;Object.assign(p,{scrap:3,reserve:0,pistol:60,meds:2});
+  const g=arena(),p=g.player;Object.assign(p,{scrap:3,reserve:0,pistol:120,meds:2});
   let deal=terminalDeal(g,'rifle',{});assert.equal(deal.reason,'終端需要 10 廢料。');
   deal=terminalDeal(g,'rifle',{'ammo:pistol':7});assert.deepEqual([deal.pool,deal.scrap,deal.waste,deal.reason],[7,3,0,'']);
   deal=terminalDeal(g,'rifle',{'ammo:pistol':5});assert.equal(deal.reason,'還差 2 廢料。');
   deal=terminalDeal(g,'rifle',{'med':2});assert.deepEqual([deal.pool,deal.scrap,deal.waste,deal.reason],[20,0,10,''],'overpaying is lost, never change');
   for(const trade of [{'ammo:pistol':11},{'med':-1},{'med':1.5},{'nonsense':1},[],null])assert.ok(terminalDeal(g,'rifle',trade).reason,JSON.stringify(trade));
   const turn=g.turn;assert.ok(g.action('terminal',{buy:'rifle',trade:{'ammo:pistol':7}}));
-  assert.deepEqual([p.scrap,p.pistol,p.reserve,g.turn],[0,18,24,turn+1],'42 pistol rounds and all 3 scrap for 24 rifle rounds, one turn');
+  assert.deepEqual([p.scrap,p.pistol,p.reserve,g.turn],[0,36,72,turn+1],'84 pistol rounds and all 3 scrap for 72 rifle rounds, one turn');
   assert.equal(g.props[0].spent,10,'the credit is spent by the price, however it was paid');
 });
 

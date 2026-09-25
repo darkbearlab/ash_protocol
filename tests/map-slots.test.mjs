@@ -79,7 +79,7 @@ test('full parts stop blasts and infrared cannot bypass physical occlusion; low 
 test('shots target one part through existing fire entry; all vehicle parts remain independently targetable',()=>{
   const g=arena();g.player.x=10;g.player.y=10;const c=g.props.find(p=>p.style==='rover_2');g.target=c.id;g.reveal();
   const untouched=g.props.filter(p=>p.hp>0&&p!==c).map(p=>[p.id,p.hp]);const turn=g.turn,ammo=g.player.ammo[g.player.weapon];g.rng=Object.assign(()=>0,{state:()=>1});
-  assert.ok(g.action('fire'));assert.equal(g.turn,turn+1);assert.equal(g.player.ammo[g.player.weapon],ammo-1);assert.ok(c.hp<c.maxHp);
+  assert.ok(g.action('fire'));assert.equal(g.turn,turn+1);assert.equal(g.player.ammo[g.player.weapon],ammo-3);assert.ok(c.hp<c.maxHp);   // 3.185.0: a three-round burst
   assert.deepEqual(g.props.filter(p=>p.hp>0&&p!==c).map(p=>[p.id,p.hp]),untouched);
 });
 

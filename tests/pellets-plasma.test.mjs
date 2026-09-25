@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,makeEnemy,ENEMY_TYPES} from '../src/engine.js';
 import {WEAPONS} from '../src/data.js';
+import {ammoMultiplier} from '../src/ammunition.js';
 import {AFFIXES,weaponStats,rollAffix,affixAllowed,DROP_ONLY_CHANCE} from '../src/weapons.js';
 import {pelletsAt,pelletChance} from '../src/shotgun.js';
 import {lancePath} from '../src/lance.js';
@@ -19,7 +20,8 @@ function lane(){
 }
 const hold=(g,base,affix=null)=>{const p=g.player,item=g.registerWeapon({type:'weapon',weapon:base});p.affixes[item.slot]=affix;p.ammo[item.slot]=weaponStats(base,affix).mag;p.owned=[item.slot];p.weapon=item.slot;return item.slot;};
 const foe=(g,type,dx,dy,id)=>{const e=makeEnemy(type,g.player.x+dx,g.player.y+dy,id,1);e.alert=false;g.enemies.push(e);g.reveal();return e;};
-const pellet=(armor,cover=0)=>Math.max(1,Math.round(10*(1-cover)-armor));
+// 3.185.0: buckshot meets armor by the shell curve (src/ammunition.js) instead of losing a flat amount.
+const pellet=(armor,cover=0)=>Math.max(1,Math.round(10*(1-cover)*ammoMultiplier('shell',armor)));
 
 test('pellets by distance, a flat 95% each; only the weapon\'s own affix and toxic mist change it',()=>{
  const w=weaponStats(SG);
@@ -143,14 +145,14 @@ test('速射: one battery fires three ordinary rounds at half piercing, and a vo
  const {g,p}=lane(),slot=hold(g,PL,'rapid'),e=foe(g,'raider',3,0,'e');e.hp=e.maxHp=500;g.target=e.id;g.rng=()=>0;
  const shots=p.stats.shots,hp=e.hp;assert.equal(g.action('fire'),true);
  assert.equal(p.ammo[slot],5,'one battery for the volley');assert.equal(p.stats.shots-shots,3,'three rounds');
- assert.equal(hp-e.hp,3*Math.max(1,Math.round(18-ENEMY_TYPES.raider.armor*.5)));
+ assert.equal(hp-e.hp,3*18,'plasma has no armor curve');
  // Suppression lands with the volley and the enemy's own turn then halves it, so look before that turn (fire, not action).
  for(const [affix,suppressed] of [['rapid',true],[null,false]]){
   const s=lane();hold(s.g,PL,affix);const t=foe(s.g,'raider',3,0,'t');t.hp=t.maxHp=500;s.g.target=t.id;s.g.rng=()=>0;
   s.g.fire();assert.equal((t.suppression||0)>=1,suppressed,affix?'the three-round volley suppresses':'a single plasma shot does not');
  }
  const b=lane();hold(b.g,PL,'rapid');const brute=foe(b.g,'brute',3,0,'b');brute.hp=brute.maxHp=500;b.g.target=brute.id;b.g.rng=()=>0;const bhp=brute.hp;
- b.g.action('fire');assert.equal(bhp-brute.hp,3*Math.max(1,Math.round(18-ENEMY_TYPES.brute.armor*.5)),'armour 7 takes 3.5 off each round');
+ b.g.action('fire');assert.equal(bhp-brute.hp,3*18,'armor 7 does not blunt plasma (3.185.0)');
  p.ammo[slot]=0;assert.equal(g.action('fire'),false,'empty is empty');
 });
 

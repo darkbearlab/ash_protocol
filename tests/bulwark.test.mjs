@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy,WEAPONS} from '../src/engine.js';
@@ -14,7 +15,7 @@ function add(g,x=11,y=10){const e=makeEnemy('rifleman',x,y,'enemy');Object.assig
 
 test('Bulwark starts with independent large, clumsy, slow and armor traits and the two new weapons',()=>{
   const g=arena();assert.equal(g.player.hp,200);assert.equal(g.player.maxHp,200);assert.equal(g.player.armor,6);assert.equal(g.player.plates,30);
-  assert.deepEqual(g.player.owned,[6,7]);assert.equal(g.player.ammo[6],30);assert.equal(g.player.ammo[7],0);assert.equal(g.weapon.ammoType,'rifle');
+  assert.deepEqual(g.player.owned,[6,7]);assert.equal(g.player.ammo[6],100);assert.equal(g.player.ammo[7],0);assert.equal(g.weapon.ammoType,'rifle');
   for(const trait of ['large','clumsy','slow','heavy_armor'])assert.equal(activeTrait(g.player,trait),true);
   assert.equal(initiative(g.player),1);const e=add(g,14);assert.equal(g.accuracy(e,g.player).chance,99);
   g.player.moved=true;assert.equal(g.accuracy(e,g.player).movePenalty,9);
@@ -65,27 +66,27 @@ test('heavy armor reduces direct damage after flat armor; plates and wait stack,
 });
 test('LMG spends rifle rounds per real shot, handles partial bursts and reloads from the capped reserve',()=>{
   const g=arena(),e=add(g,14);g.player.ammo[6]=2;
-  const {steps}=captureAction(g,()=>g.action('fire'));assert.equal(g.player.ammo[6],0);assert.equal(g.player.stats.shots,2);assert.equal(e.hp,964);
+  const {steps}=captureAction(g,()=>g.action('fire'));assert.equal(g.player.ammo[6],0);assert.equal(g.player.stats.shots,2);assert.equal(e.hp,982,'two rounds of 11, a fifth lost through an unarmored body (3.185.0)');
   const bullets=steps.flatMap(s=>s.effects).filter(e=>e.type==='shot');assert.equal(bullets.length,2);
   assert.ok(planPresentation(steps).events.flatMap(e=>e.effects).some(e=>e.weaponId==='lmg'));
   g.player.reserve=7;assert.equal(g.action('reload'),true);assert.equal(g.player.ammo[6],7);assert.equal(g.player.reserve,0);
 });
 test('normal enemies act before Bulwark and can kill before its committed attack',()=>{
-  const g=arena();add(g);g.player.hp=1;g.player.plates=0;g.action('fire');assert.equal(g.status,'dead');assert.equal(g.player.ammo[6],30);
+  const g=arena();add(g);g.player.hp=1;g.player.plates=0;g.action('fire');assert.equal(g.status,'dead');assert.equal(g.player.ammo[6],100);
 });
-test('fist impact and death appear after swing completion; LMG has a three-shot burst',()=>{
+test('fist impact and death appear after swing completion; LMG has a five-shot burst',()=>{
   const g=arena(),e=add(g);e.hp=1;g.action('weapon',7);
   const {steps}=captureAction(g,()=>g.action('fire'));const plan=planPresentation(steps);
   const swing=plan.events.find(ev=>ev.effects.some(f=>f.weaponId==='powerfist'));
   const fall=plan.events.find(ev=>ev.effects.some(f=>f.type==='fall'));
   assert.ok(fall.time>swing.time);assert.equal(swing.state.enemies[0].hp,1);assert.ok(fall.state.enemies[0].hp<=0);
-  const h=arena();add(h,14);h.action('fire');assert.equal(h.player.stats.shots,3);assert.equal(h.player.ammo[6],27);
+  const h=arena();add(h,14);h.action('fire');assert.equal(h.player.stats.shots,5);assert.equal(h.player.ammo[6],95);
 });
 test('new character and fixed fist survive save, floor and backup; malformed or removable fist saves are rejected',()=>{
   const g=arena();g.player.upgrades[7]=2;g.action('weapon',7);const p=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game.player;assert.deepEqual(p,g.player);
   g.floor=2;g.loadFloor();assert.equal(g.player.character,'bulwark');assert.equal(g.player.weapon,7);assert.equal(g.player.upgrades[7],2);
   for(const mutate of [p=>p.owned=[6],p=>p.ammo[7]=1,p=>p.affixes[7]='extended']){const raw=JSON.parse(g.serialize());mutate(raw.data.player);assert.equal(Game.restore(JSON.stringify(raw)),null);}
-  const old=new Game(314,[],0,'recon');old.player.smoke=0;old.player.emp=0;old.player.stun=0;const raw=JSON.parse(old.serialize());raw.version=10;const restored=Game.restore(JSON.stringify(raw));assert.deepEqual(restored.player,old.player);assert.equal(restored.rng.state(),old.rng.state());
+  const old=new Game(314,[],0,'recon');old.player.smoke=0;old.player.emp=0;old.player.stun=0;const raw=JSON.parse(old.serialize());raw.version=10;oldScaleAmmo(raw.data);const restored=Game.restore(JSON.stringify(raw));assert.deepEqual(restored.player,old.player);assert.equal(restored.rng.state(),old.rng.state());
 });
 test('v10 migration saves an untouched QA original and Bulwark result history is valid in a complete backup',async()=>{
   const memory=new Map();globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};

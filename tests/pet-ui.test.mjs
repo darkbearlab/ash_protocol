@@ -14,7 +14,7 @@ function druid(){
 }
 
 test('feeding view groups every quote into fuel, growth and heal, with quote-driven labels',()=>{
- const {g}=druid();g.player.reserve=24;
+ const {g}=druid();g.player.reserve=72;
  const {gate,groups}=feedingView(petFeedingState(g),{weaponName:slot=>g.weaponAt(slot).name});
  assert.equal(gate,null);
  const [fuel,growth,heal]=groups;
@@ -23,7 +23,7 @@ test('feeding view groups every quote into fuel, growth and heal, with quote-dri
  assert.equal(growth.options.length,2+g.player.owned.length+4);
  assert.equal(heal.options.length,1);
  const rifle=fuel.options.find(o=>o.id==='ammo:rifle');
- assert.equal(rifle.allowed,true);assert.equal(rifle.title,'步槍彈');assert.match(rifle.detail,/12 發 → 燃料 \+5$/);
+ assert.equal(rifle.allowed,true);assert.equal(rifle.title,'步槍彈');assert.match(rifle.detail,/36 發 → 燃料 \+5$/);   // 3.185.0: three times the rounds, the same fuel
  const weapon=growth.options.find(o=>o.id==='weapon');assert.equal(weapon.title,g.weaponAt(weapon.weaponSlot).name);
  assert.equal(heal.options[0].allowed,false,'a full-health pet cannot take a medkit');assert.ok(heal.options[0].detail.length>0);
 });

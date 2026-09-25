@@ -1,11 +1,11 @@
 import {t} from './i18n.js';
 import {grantTrait} from './traits.js';
 import {PACK_LIMIT,PLATE_CAPACITY} from './data.js';
-export const BASE_SUPPLIES={meds:2,grenades:2,smoke:0,emp:0,stun:0,pistol:24,reserve:48,shell:12,energy:18,ordnance:4,glowsticks:2};   // glowsticks: 3.178.0
+export const BASE_SUPPLIES={meds:2,grenades:2,smoke:0,emp:0,stun:0,pistol:48,reserve:144,shell:12,energy:18,ordnance:4,glowsticks:2};   // glowsticks: 3.178.0
 const defaults={hp:100,armor:0,plates:0,weaponCapacity:PACK_LIMIT,plateCapacity:PLATE_CAPACITY};
 // Stable IDs. Starter characters are free; no profile currency is spent.
 export const CHARACTERS={
-  engineer:{...defaults,plates:10,name:'Engineer',label:t('characters.engineer.label'),text:t('characters.engineer.text'),traits:['biological'],weapons:[2,1],skills:['workshop'],prepared:{skill:'workshop'},supplies:{pistol:72,reserve:0}},
+  engineer:{...defaults,plates:10,name:'Engineer',label:t('characters.engineer.label'),text:t('characters.engineer.text'),traits:['biological'],weapons:[2,1],skills:['workshop'],prepared:{skill:'workshop'},supplies:{pistol:144,reserve:0}},
   druid:{...defaults,name:'Druid',label:'德魯伊',text:'與伴生獵獸同行。免費指揮位置；相鄰餵養獵獸，投資資源使其成長；死亡後自動重生，換層必定同行。',traits:['biological'],weapons:[0,1],skills:['pet_command'],prepared:{skill:'pet_command'}},
   necromancer:{...defaults,name:'Necromancer',label:'死靈法師',text:'本層倒下過的非機械敵人會定期自動起身為召喚物；技能免費集結，把牠們叫回身邊。',traits:['biological','difficult_healing'],weapons:[2,1],skills:['raise_dead'],prepared:{skill:'raise_dead'}},
   soldier:{...defaults,skills:['early_warning'],prepared:{skill:'early_warning'},combat:{rangedAccuracy:8},plates:10,name:'Soldier',label:t('characters.soldier.label'),text:t('characters.soldier.text'),traits:['biological','braced','correction'],weapons:[0,1]},

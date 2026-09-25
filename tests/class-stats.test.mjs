@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -54,7 +55,7 @@ test('new Recon receives smoke and stun, prepares smoke and can immediately thro
   }
 });
 test('Recon extra carrying adds to grenade upgrades only, retains overflow and rejects a full purchase',()=>{
-  const g=arena('recon');for(let level=0;level<=3;level++){g.setCarryLevel({grenade:level});assert.equal(g.ammoCapacity('grenade'),6);assert.equal(g.ammoCapacity('rifle'),72);}
+  const g=arena('recon');for(let level=0;level<=3;level++){g.setCarryLevel({grenade:level});assert.equal(g.ammoCapacity('grenade'),6);assert.equal(g.ammoCapacity('rifle'),216);}
   g.receiveGrenade('frag',5);assert.equal(g.player.grenades,2);g.setCarryLevel({grenade:0});
   assert.equal(g.player.grenades+g.player.smoke+g.player.emp+g.player.stun,6);
   assert.equal(g.items.reduce((n,i)=>n+(i.amount||0),0),3);
@@ -63,7 +64,7 @@ test('Recon extra carrying adds to grenade upgrades only, retains overflow and r
 });
 test('v18 migration and repeated restore preserve live health, supplies, prepared selection and random state',()=>{
   const g=arena('recon');Object.assign(g.player,{hp:63,maxHp:125,armor:3,grenades:1,smoke:0,emp:1,meds:1});g.player.prepared.grenade='emp';
-  const old=JSON.parse(g.serialize());old.version=18;const restored=Game.restore(JSON.stringify(old));assert.ok(restored);
+  const old=JSON.parse(g.serialize());old.version=18;oldScaleAmmo(old.data);const restored=Game.restore(JSON.stringify(old));assert.ok(restored);
   assert.deepEqual(restored.player,g.player);assert.equal(actorStat(restored.player,'rangedEvasion'),10);assert.equal(restored.ammoCapacity('grenade'),6);assert.equal(restored.rng.state(),g.rng.state());
   const again=Game.restore(restored.serialize());assert.deepEqual(again.player,g.player);
   Object.assign(again.player,again.end);again.action('interact');assert.equal(again.player.smoke,0);assert.equal(again.player.emp,1);assert.equal(again.player.prepared.grenade,'emp');

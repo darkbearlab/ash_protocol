@@ -20,10 +20,12 @@ test('lethal shot is saved immediately, but living target and HP remain until pr
   const plan=planPresentation(steps);let view,fx;
   const playback=new Playback(plan,event=>{view=event.state;fx=event.effects;});playback.advance(0);
   assert.equal(view.targeted.hp,1);assert.equal(view.pendingPerks,0);assert.equal(fx[0].type,'shot');
-  advance(playback,FLIGHT_MS-1);assert.equal(view.targeted.hp,1);assert.equal(playback.done,false);
+  // 3.185.0: the rifle's first round is one drawn bullet, so the kill lands when that bullet does.
+  const arrival=plan.events[1].time;assert.ok(arrival>0);
+  advance(playback,arrival-1);assert.equal(view.targeted.hp,1);assert.equal(playback.done,false);
   playback.advance(1);assert.ok(view.enemies[0].hp<=0);assert.equal(view.targeted,undefined);assert.equal(view.pendingPerks,1);
   assert.equal(playback.done,false,'death must remain visible before the upgrade modal is permitted');
-  advance(playback,plan.duration-FLIGHT_MS);assert.equal(playback.done,true);
+  advance(playback,plan.duration-arrival);assert.equal(playback.done,true);
   view.player.hp=1;assert.equal(g.player.hp,100,'render snapshots never mutate authoritative saves');
 });
 
@@ -89,17 +91,18 @@ test('capturing a turn preserves RNG, saves, combat rules and rejected actions',
 });
 
 test('weapon classes have distinct cosmetic projectile counts and every projectile arrives before damage',()=>{
-  for(const [weapon,count]of [[0,3],[1,6],[2,6],[3,1],[4,1],[5,1]]){
+  // 3.185.0: a drawn round a round fired (the shotgun's pellets by distance: five at three tiles).
+  for(const [weapon,count,spent]of [[0,3,3],[1,5,1],[2,4,4],[3,1,1],[4,1,1],[5,1,1]]){
     const g=arena();enemy(g,'brute',1000,13,10);g.player.weapon=weapon;
     if(!g.player.owned.includes(weapon))g.player.owned.push(weapon);g.player.ammo[weapon]=10;
     const {steps}=captureAction(g,()=>g.action('fire')),plan=planPresentation(steps.filter(s=>s.effects.some(e=>e.type!=='callout')));
     const visuals=plan.events.flatMap(e=>e.effects).filter(e=>e.type==='shot');assert.equal(visuals.length,count);
-    assert.equal(g.player.ammo[weapon],weapon===2?8:9,'cosmetic tracers never consume ammunition');
+    assert.equal(g.player.ammo[weapon],10-spent,'every drawn bullet is a round spent; pellets are one shell');
     for(let i=0;i<plan.events.length;i+=2){const launch=plan.events[i],impact=plan.events[i+1];
       for(const fx of launch.effects)assert.ok(launch.time+fx.delay+fx.travel<=impact.time);
     }
     if(weapon===1){assert.ok(visuals.some(e=>e.spread<0));assert.ok(visuals.some(e=>e.spread>0));}
-    if(weapon===2)assert.ok(plan.duration<400,'SMG is a short burst, not two slow independent attacks');
+    if(weapon===2)assert.ok(plan.duration<600,'SMG is a short burst, not four slow independent attacks (four rounds since 3.185.0)');
   }
 });
 
@@ -107,14 +110,14 @@ test('single remaining SMG round and first-shot kills never invent another damag
   for(const hp of [1,1000]){
     const g=arena();enemy(g,'brute',hp);Object.assign(g.player,{weapon:2,owned:[0,1,2]});g.player.ammo[2]=hp===1?2:1;
     const plan=planPresentation(captureAction(g,()=>g.action('fire')).steps);
-    assert.equal(g.player.stats.shots,1);assert.equal(plan.events[0].effects.length,3);
+    assert.equal(g.player.stats.shots,1);assert.equal(plan.events[0].effects.length,1);
     // The brute stands 4 tiles away, so the kill is held in frame for a beat (3.115.0).
     if(hp===1){assert.ok(plan.events[1].effects.some(e=>e.type==='fall'));assert.equal(plan.duration-plan.events[1].time,DEATH_MS+KILL_HOLD_MS);}
   }
 });
 
 test('enemy weapons and reduced motion use the same visual profiles without multiplying hit labels',()=>{
-  for(const [type,count]of [['rifleman',3],['raider',3],['gunner',6],['sniper',1],['drone',1],['brute',1]]){
+  for(const [type,count]of [['rifleman',1],['raider',1],['gunner',2],['sniper',1],['drone',1],['brute',1]]){   // 3.185.0: one per round; buckshot at six tiles is two pellets
     const effect={type:'enemyShot',attackerType:type,damage:19,miss:true,from:{x:1,y:1},to:{x:4,y:4}};
     const visuals=projectileVisuals(effect);assert.equal(visuals.length,count);
     assert.ok(visuals.every(e=>e.damage===0&&e.miss===false&&e.missPath));

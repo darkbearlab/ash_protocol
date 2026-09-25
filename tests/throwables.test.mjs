@@ -63,7 +63,7 @@ test('disruption prevents execution, but smoke before the player phase still spe
   const g=arena(),e=enemy(g);grantTrait(e,'fast','test');const mag=g.player.ammo[0];g.enemyAct=()=>applyDisruption(g.player,'biological');
   assert.ok(g.action('fire'));assert.equal(g.player.ammo[0],mag);assert.equal(g.turn,2);assert.equal(g.player.control.disabled,DISRUPT_TURNS-1);
   const fog=arena(),hider=enemy(fog);grantTrait(hider,'fast','test');fog.enemyAct=()=>{fog.smoke=[{cells:areaCells(fog.grid,{x:12,y:10}),expires:fog.turn+2}];};
-  const ammo=fog.player.ammo[0];assert.ok(fog.action('fire'));assert.equal(fog.player.ammo[0],ammo-1);assert.equal(hider.hp,500);assert.ok(fog.effects.some(f=>f.type==='shot'&&f.miss));
+  const ammo=fog.player.ammo[0];assert.ok(fog.action('fire'));assert.equal(fog.player.ammo[0],ammo-3);assert.equal(hider.hp,500);assert.ok(fog.effects.some(f=>f.type==='shot'&&f.miss));
 });
 test('blast footprints respect walls, with no disable or smoke leaking through a solid partition',()=>{
   const g=arena(),e=enemy(g,'drone',14,10);for(let y=0;y<SIZE;y++)g.grid[y][13]=0;equip(g,'emp');g.reveal();assert.ok(toss(g,12,10));assert.equal(e.control.disabled,0);

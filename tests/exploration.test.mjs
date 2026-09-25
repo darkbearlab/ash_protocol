@@ -28,7 +28,8 @@ test('routes vary entrances, exits and connections; reward rooms remain reachabl
 test('classified caches carry the floor-one rounds, medical supplies, armor plates and field kit',()=>{
   const g=arena();g.items=allSupplies(generate(21,1)).filter(i=>i.cache).map(i=>({...i,x:10,y:10}));g.pickup();
   // 3.115.0: the cache's shells doubled (6 -> 12), which exactly fills the 24-round pouch on top of the starting 12.
-  assert.equal(g.player.pistol,48);assert.equal(g.player.shell,24);assert.equal(g.player.reserve,68);assert.equal(g.player.energy,18);assert.equal(g.player.ordnance,4);
+  // 3.185.0: 48 pistol and 60 rifle rounds on top of the starting 48 and 144.
+  assert.equal(g.player.pistol,96);assert.equal(g.player.shell,24);assert.equal(g.player.reserve,204);assert.equal(g.player.energy,18);assert.equal(g.player.ordnance,4);
   assert.equal(g.player.meds,3);assert.equal(g.player.plates,30);   // 3.155.0: ten from the soldier's kit plus twenty from the cacheassert.equal(g.player.barricades,1);assert.equal(g.player.sprays,1);
 });
 

@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -28,7 +29,7 @@ test('rifle loot uses 20% threshold, logs the exact weapon, and retreat enemies 
 test('shotgun close range changes previews, real damage and affixes without changing distant profile',()=>{
  const g=arena(),p=g.player,e=enemy(g,12);p.weapon=1;p.traits=[];p.combatModifiers={rangedAccuracy:-8};e.moved=true;g.reveal();zero(g);
  assert.equal(g.accuracy(p,e).chance,90);assert.equal(g.accuracy(p,e).closeBonus,15);assert.deepEqual(g.weaponDamage(1,e),{min:60,max:72});
- g.target=e.id;assert.equal(g.action('fire'),true);assert.equal(e.hp,440);assert.equal(p.ammo[1],3);
+ g.target=e.id;assert.equal(g.action('fire'),true);assert.equal(e.hp,428);assert.equal(p.ammo[1],5);   // 3.185.0: buckshot bites 15% deeper into no armor; six shells
  e.x=13;e.y=10;assert.equal(g.accuracy(p,e).closeBonus,0);   // 3.152.0: the rifleman backed out of its band, so put it back on the rowassert.deepEqual(g.weaponDamage(1,e),{min:42,max:54});
  p.affixes[1]='powerful';p.upgrades[1]=2;p.bonus=3;e.x=12;e.y=10;assert.deepEqual(g.weaponDamage(1,e),{min:82,max:96});e.x=13;assert.deepEqual(g.weaponDamage(1,e),{min:61,max:75});
 });
@@ -46,9 +47,9 @@ test('warning floor changes clear dots while preserving paid cooldown',()=>{
  const g=arena();enemy(g);g.action('skill','early_warning');Object.assign(g.player,g.end);g.action('interact');assert.equal(g.floor,2);assert.deepEqual(g.sensorContacts,[]);assert.equal(g.player.skillState.early_warning.cooldown,4);
 });
 test('v21 Soldier migration grants warning, preserves resources and archived floors, rejects corrupt new state',()=>{
- const g=new Game(329,[],0,'soldier','onyx','roundtrip');Object.assign(g.player,g.exitPoint);g.descend();const old=JSON.parse(g.serialize());old.version=21;const p=old.data.player;p.skills=[];p.skillState={};p.prepared.skill=null;p.hp=27;p.reserve=7;delete p.vaultExposed;delete old.data.sensorContacts;
+ const g=new Game(329,[],0,'soldier','onyx','roundtrip');Object.assign(g.player,g.exitPoint);g.descend();const old=JSON.parse(g.serialize());old.version=21;const p=old.data.player;p.skills=[];p.skillState={};p.prepared.skill=null;p.hp=27;p.reserve=21;delete p.vaultExposed;delete old.data.sensorContacts;
  for(const e of [...old.data.enemies,...old.data.floorStates[1].enemies])delete e.vaultExposed;
- const restored=Game.restore(JSON.stringify(old));assert.ok(restored);assert.equal(restored.player.hp,27);assert.equal(restored.player.reserve,7);assert.equal(restored.player.prepared.skill,'early_warning');assert.equal(restored.rng.state(),g.rng.state());assert.ok(restored.floorStates[1].enemies.every(e=>e.vaultExposed===false));
+ const restored=Game.restore(oldSaveText(old));assert.ok(restored);assert.equal(restored.player.hp,27);assert.equal(restored.player.reserve,21);assert.equal(restored.player.prepared.skill,'early_warning');assert.equal(restored.rng.state(),g.rng.state());assert.ok(restored.floorStates[1].enemies.every(e=>e.vaultExposed===false));
  for(const change of [d=>d.player.vaultExposed=1,d=>d.sensorContacts=[{x:10,y:10}],d=>d.sensorContacts=[{x:-1,y:0}],d=>delete d.sensorContacts]){const bad=JSON.parse(restored.serialize());change(bad.data);assert.equal(Game.restore(JSON.stringify(bad)),null);}
 });
 test('low rail shares geometry, permits sight shot blast, and gives low directional cover',()=>{

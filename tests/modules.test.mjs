@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -60,7 +61,7 @@ test('module identity, destroyed furniture and station usage survive saves and c
   const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(restored.props,g.props);assert.deepEqual(restored.barriers,g.barriers);assert.ok(restored.passable(f.x,f.y));
 });
 test('legacy v14 floor is preserved without reducing its stations or adding modules',()=>{
-  const g=arena();g.props=Array.from({length:9},(_,i)=>({id:`1-console-${i}`,type:'terminal',x:2+i*2,y:2,used:i===0}));g.items=[{type:'ammo',amount:17,x:10,y:10}];const value=JSON.parse(g.serialize());value.version=14;
+  const g=arena();g.props=Array.from({length:9},(_,i)=>({id:`1-console-${i}`,type:'terminal',x:2+i*2,y:2,used:i===0}));g.items=[{type:'ammo',amount:51,x:10,y:10}];const value=JSON.parse(g.serialize());value.version=14;oldScaleAmmo(value.data);
   const restored=Game.restore(JSON.stringify(value));assert.ok(restored);assert.deepEqual(restored.props,g.props);assert.deepEqual(restored.items,g.items);assert.deepEqual(restored.player,g.player);
 });
 test('invalid module layouts, themes, styles, ownership and durability fail import validation',()=>{

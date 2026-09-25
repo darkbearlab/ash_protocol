@@ -7,9 +7,9 @@ import {projectileVisuals} from '../src/presentation.js';
 // 3.116.0 (user request): muzzle flashes drawn in code, one look per weapon family, only for a shooter the player can see.
 const shot=(extra,reduceMotion=false)=>projectileVisuals({from:{x:0,y:0},to:{x:4,y:0},...extra},reduceMotion).map(v=>v.flash);
 
-test('each weapon family gets its flash; a spread shot flashes once and a staggered burst with every round',()=>{
-  assert.deepEqual(shot({type:'shot',weaponId:'shotgun'}),['shotgun',null,null,null,null,null]);
-  assert.deepEqual(shot({type:'shot',weaponId:'smg'}),['smg','smg','smg']);
+test('each weapon family gets its flash; a spread shot flashes once and every round fired flashes on its own',()=>{
+  assert.deepEqual(shot({type:'shot',weaponId:'shotgun'}),['shotgun',null,null,null],'four tiles out, four pellets');
+  assert.deepEqual(shot({type:'shot',weaponId:'smg'}),['smg'],'3.185.0: a burst is one shot effect a round');
   assert.deepEqual(shot({type:'shot',weaponId:'sniper'}),['sniper']);
   assert.deepEqual(shot({type:'shot',weaponId:'plasma'}),['plasma']);
   assert.deepEqual(shot({type:'shot',weaponId:'launcher',style:'grenade'}),['launcher'],'a launched grenade still leaves the launcher flash');

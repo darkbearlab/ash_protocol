@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -122,9 +123,9 @@ test('current save and full backup preserve active timers and intentionally empt
 
 test('v19 Recon migration adds a ready prepared skill without refilling or changing RNG',()=>{
   for(const character of ['soldier','recon','bulwark']){
-    const g=arena(character);Object.assign(g.player,{hp:43,meds:0,emp:0,smoke:0,reserve:7});
+    const g=arena(character);Object.assign(g.player,{hp:43,meds:0,emp:0,smoke:0,reserve:21});
     const legacy=JSON.parse(g.serialize());legacy.version=19;const p=legacy.data.player;p.skills=[];p.prepared.skill=null;delete p.skillState;
-    const restored=Game.restore(JSON.stringify(legacy));assert.ok(restored);assert.equal(restored.rng.state(),g.rng.state());
+    const restored=Game.restore(oldSaveText(legacy));assert.ok(restored);assert.equal(restored.rng.state(),g.rng.state());
     const expected=structuredClone(p);const id=character==='recon'?'signal_break':character==='soldier'?'early_warning':'anchor';expected.skills=id?[id]:[];expected.prepared.skill=id;
     expected.skillState=id?{[id]:{remaining:0,cooldown:0}}:{};assert.deepEqual(restored.player,expected);
   }

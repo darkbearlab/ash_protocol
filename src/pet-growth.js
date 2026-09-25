@@ -12,7 +12,7 @@ export const PET_FEEDING_TUNING={fuelScale:72,capacity:30,capacityPerRank:10,dis
  scanRadius:4,scanInterval:6,scanDuration:1,scanAlerts:false,criticalFraction:.3,guardianRange:5,
  shotCost:2,outputCost:12,outputIntervals:[24,24,16,16,10,10],reviveTurns:8,reviveFraction:.25,advancedReviveTurns:6,advancedReviveFraction:.4,medkitFraction:.5,
  lifePortion:5,lifeFloor:25,lifeFloorFraction:.4,platePortion:5,hungerPerRank:.25,
- ammoPortions:{pistol:18,rifle:12,shell:4,energy:6,ordnance:1},
+ ammoPortions:{pistol:36,rifle:36,shell:4,energy:6,ordnance:1},
  turret:[{range:3,min:8,max:12},{range:3,min:8,max:12},{range:7,min:20,max:24},{range:7,min:20,max:24},{range:7,min:26,max:30},{range:7,min:26,max:30}],accuracy:-22,advancedAccuracy:-12};
 const T=PET_FEEDING_TUNING;
 export const petActor=g=>g.allies.find(a=>a.kind==='pet');

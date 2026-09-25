@@ -32,7 +32,7 @@ test('every ammunition and grenade pickup respects capacity and preserves a part
 test('salvage recovers the correct magazine and places overflow on the ground',()=>{
   const g=arena();g.player.shell=capacity('shell')-1;const total=g.player.shell+g.player.ammo[1];
   assert.equal(g.action('salvage',1),true);assert.equal(g.player.shell,capacity('shell'));
-  assert.equal(stock(g,'shell'),total);assert.equal(g.player.ammo[1],0);assert.equal(g.player.reserve,48);
+  assert.equal(stock(g,'shell'),total);assert.equal(g.player.ammo[1],0);assert.equal(g.player.reserve,144);
 });
 
 test('terminal purchases reject full stock without spending and preserve paid overflow',()=>{
@@ -66,7 +66,10 @@ test('v3 campaigns migrate held and ground rounds once, preserve overflow and re
   const g=arena();g.player.owned=[0,1,2];g.player.reserve=301;g.player.energy=80;g.player.ordnance=20;g.player.grenades=9;g.items=[{x:10,y:10,type:'ammo',amount:47}];
   const old=JSON.parse(g.serialize());old.version=3;delete old.data.player.pistol;delete old.data.player.shell;delete old.data.carryLevel;
   const restored=Game.restore(JSON.stringify(old));assert.ok(restored);
-  assert.equal(['rifle','pistol','shell'].reduce((sum,id)=>sum+stock(restored,id),0),348);
+  // 3.185.0: the split rounds are then counted at today's scale, rifle rounds three to one and pistol rounds two to one.
+  const scale={rifle:3,pistol:2,shell:1},split=n=>splitLegacyRounds(n,[0,1,2].map(i=>WEAPONS[i]),WEAPONS[g.player.weapon].ammoType);
+  const total=[301,47].reduce((sum,n)=>sum+Object.entries(split(n)).reduce((s,[id,k])=>s+k*scale[id],0),0);
+  assert.equal(['rifle','pistol','shell'].reduce((sum,id)=>sum+stock(restored,id),0),total);
   for(const [type,total]of [['energy',80],['ordnance',20],['grenade',9]])assert.equal(stock(restored,type),total);
   for(const [type,info]of Object.entries(AMMUNITION))assert.ok(restored.player[info.key]<=restored.ammoCapacity(type));
   const again=Game.restore(restored.serialize());assert.deepEqual(again.player,restored.player);assert.deepEqual(again.items,restored.items);

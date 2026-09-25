@@ -46,7 +46,7 @@ test('floor 2 on standard previews exactly one special enemy in place of an ordi
 });
 
 test('enemy damage follows the curve; allies never do',()=>{
- const shot=d=>{const g=new Game(9,[],0,'soldier','onyx','extraction',{difficulty:d.curve});g.enemies=[];g.floor=4;const e=makeEnemy('rifleman',g.player.x,g.player.y+1,'a',4,g.difficultySpec);Object.assign(e,{alert:true,charge:true,windup:1,aim:{x:g.player.x,y:g.player.y}});g.enemies=[e];g.rng=()=>0;let raw;g.damagePlayer=n=>{raw=n;};g.executeEnemy(e);return raw;};
+ const shot=d=>{const g=new Game(9,[],0,'soldier','onyx','extraction',{difficulty:d.curve});g.enemies=[];g.floor=4;const e=makeEnemy('rifleman',g.player.x,g.player.y+1,'a',4,g.difficultySpec);Object.assign(e,{alert:true,charge:true,windup:1,aim:{x:g.player.x,y:g.player.y}});g.enemies=[e];g.rng=()=>0;let raw=0;g.damagePlayer=n=>{raw+=n;};g.executeEnemy(e);return raw;};   // 3.185.0: the attack's rounds add up to it
  assert.equal(shot(standard),ENEMY_TYPES.rifleman.damage+4);assert.equal(shot(easy),ENEMY_TYPES.rifleman.damage+4);assert.equal(shot(classic),ENEMY_TYPES.rifleman.damage+8);
  const ally=d=>{const g=new Game(9,[],0,'soldier','onyx','extraction',{difficulty:d.curve});g.floor=6;g.allies=[];const p=g.player,spot=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).find(q=>g.passable(q.x,q.y)&&!g.enemies.some(e=>e.x===q.x&&e.y===q.y));return addAlly(g,'survivor','rifleman',{point:spot}).maxHp;};
  assert.equal(ally(standard),ally(classic));assert.equal(ally(easy),ally(classic));

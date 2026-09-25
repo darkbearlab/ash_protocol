@@ -6,6 +6,13 @@ import {observeEnemy} from './callouts.js';
 import {ENEMY_TYPES} from './data.js';
 import {DIRECTIONS,distance,key} from './world.js';
 import {BLIND_TUNING} from './blind-fire.js';
+import {lancePath} from './lance.js';
+import {OVERPENETRATION} from './ammunition.js';
+// 3.185.0 (plan C): an enemy's rifle round through an armorless you flies on to an ally of yours behind you, at half damage.
+function enemyOverpen(g,e,p,damage,chance){
+ const near=distance(e,p),next=lancePath(g,e,p,ENEMY_TYPES[e.type]?.range||1).units.filter(u=>distance(e,u)>near).sort((a,b)=>distance(e,a)-distance(e,b))[0];
+ if(next&&g.activeAllies.includes(next)&&g.rng()*100<chance)g.damageAlly(next,Math.round(damage*OVERPENETRATION),e);
+}
 import {activeTrait,recordShot} from './traits.js';
 import {pinned,finishSuppression,rapidFireModifiers} from './suppression.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
@@ -75,7 +82,7 @@ function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold
         else if(unitTree(e).fixedTile&&distance(p,e.aim||p)>0){g.log(t('enemy-behavior.sniperHitsSpot'));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         else {
           petCombat(g,p);if(fired&&lightingEffects(g,{...e,traits:(e.traits||[]).filter(t=>t.id!=='night_vision')},p).penalty>0)revealEnemyAffix(g,e,'night_vision');const chance=blindChance(ctx,()=>def.range>1?g.accuracy(e,p).chance:g.meleeAccuracy(e,p,97-(ctx.blind?BLIND_TUNING.penalty:0)));
-          if(g.rng()*100<chance){if(def.venom){g.effects.push({type:'enemyShot',attackerType:e.type,style:'venom',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});poisonHit(g,e,p);}else{if(!poisonApplied)poisonApplied=poisonHit(g,e,p);if(p===g.player)g.damagePlayer(roundDamage,t('enemy-behavior.attackSource',{enemy:enemyName(e)}),e);else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}}
+          if(g.rng()*100<chance){if(def.venom){g.effects.push({type:'enemyShot',attackerType:e.type,style:'venom',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});poisonHit(g,e,p);}else{if(!poisonApplied)poisonApplied=poisonHit(g,e,p);if(p===g.player){g.damagePlayer(roundDamage,t('enemy-behavior.attackSource',{enemy:enemyName(e)}),e);if(['rifle','sniper'].includes(def.projectile)&&!(p.armor>0))enemyOverpen(g,e,p,roundDamage,chance);}else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}}
           else {g.log(t('enemy-behavior.miss',{enemy:enemyName(e),chance}),false,t('enemy-behavior.missReal',{enemy:enemyName(e)}));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         }
 if(p.hp<before)hits.add(p);

@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {STORIES} from '../src/story-data.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -41,8 +42,8 @@ test('purchase transaction is copy-on-success and demo gates all purchases',()=>
  const p=normalizeProfile();p.protocol={balance:150,earned:150};const next=grantUnlock(p,'ninja','purchase');assert.equal(next.protocol.balance,50);assert.equal(p.protocol.balance,150);   // 3.156.0: every operator costs 100assert.equal(grantUnlock(next,'ninja','purchase'),false);assert.equal(grantUnlock(next,'druid','purchase'),false);assert.equal(grantUnlock(p,'ninja','purchase',{simulation:true}),false);assert.equal(grantUnlock(p,'ninja','purchase',{settings:{demo:true}}),false);assert.deepEqual(availableCharacters(next,{demo:true}),STARTING_CHARACTERS);
 });
 test('locked ongoing character survives migration; old carrying spills without losing rounds',()=>{
- const g=new Game(33,[],0,'ninja'),raw=JSON.parse(g.serialize());raw.version=44;raw.data.carryLevel=carryLevels(3);raw.data.player.reserve=120;
- const h=Game.restore(JSON.stringify(raw));assert.ok(h);assert.equal(h.player.character,'ninja');assert.equal(h.carryLevel.rifle,0);assert.equal(h.player.reserve,72);assert.ok(h.items.some(i=>i.type==='ammo'&&i.x===h.player.x&&i.y===h.player.y&&i.amount===48));assert.deepEqual(Game.restore(h.serialize()).items,h.items);
+ const g=new Game(33,[],0,'ninja'),raw=JSON.parse(g.serialize());raw.version=44;oldScaleAmmo(raw.data);raw.data.carryLevel=carryLevels(3);raw.data.player.reserve=120;
+ const h=Game.restore(JSON.stringify(raw));assert.ok(h);assert.equal(h.player.character,'ninja');assert.equal(h.carryLevel.rifle,0);assert.equal(h.player.reserve,216);assert.ok(h.items.some(i=>i.type==='ammo'&&i.x===h.player.x&&i.y===h.player.y&&i.amount===144));assert.deepEqual(Game.restore(h.serialize()).items,h.items);   // 120 old rounds are 360 today
 });
 test('endless factions and corpse positions are deterministic; encounters never repeat, no lore or demo corpses',()=>{
  const a=new Game(1,[],0,'soldier','onyx','endless'),b=new Game(1,[],0,'soldier','onyx','endless'),factions=new Set();

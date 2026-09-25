@@ -26,7 +26,8 @@ export const AFFIXES={
   burst:{name:t('affixes.burst.name'),text:t('affixes.burst.text'),damage:.85,shotCost:2,blast:.5,dropOnly:['plasma']},
   // 3.142.0 (user proposal 2026-09-19): one battery fires a three-round volley of ordinary rounds at half piercing; a volley
   // of three that lands suppresses (src/suppression.js), as the light machine gun's does.
-  rapid:{name:t('affixes.rapid.name'),text:t('affixes.rapid.text'),damage:.34,pierce:-.5,burst:3,volleyCost:1,dropOnly:['plasma']},
+  // suppressive (3.185.0): its three rounds suppress on a hit, though the threshold is now five (src/suppression.js).
+  rapid:{name:t('affixes.rapid.name'),text:t('affixes.rapid.text'),suppressive:true,damage:.34,pierce:-.5,burst:3,volleyCost:1,dropOnly:['plasma']},
 };
 // How often a dropped weapon that can carry a drop-only affix gets each one. Its own hash, so every other roll is as before.
 export const DROP_ONLY_CHANCE=.15;
@@ -57,7 +58,7 @@ export function weaponStats(base,affix=null,actor=null){
     shotCost:a.shotCost||1,affixAccuracy:a.accuracy||0,...(a.burst?{burst:a.burst}:{}),...(a.volleyCost?{volleyCost:a.volleyCost}:{}),...(a.lance?{lance:true}:{}),...(a.blast?{blast:a.blast}:{}),
     mag:Math.max(1,Math.floor(w.mag*(a.mag||1))),range:Math.max(1,burstRange+(extended?2:0)),...(extended?{burstRange}:{}),
     // 3.152.0 有效距離: the long barrel and the extended burst push the far edge out; the near edge never moves.
-    band:shiftedBand(WEAPON_BANDS[w.id],(a.range||0)+(extended?2:0),a.nearEdge||0),...(a.quickSwap?{quickSwap:true}:{}),...(a.noFlash?{noFlash:true}:{}),
+    band:shiftedBand(WEAPON_BANDS[w.id],(a.range||0)+(extended?2:0),a.nearEdge||0),...(a.quickSwap?{quickSwap:true}:{}),...(a.suppressive?{suppressive:true}:{}),...(a.noFlash?{noFlash:true}:{}),
     pierce:Math.max(0,Math.min(1,(w.pierce||0)+(a.pierce||0))),extraRounds:rapidFireModifiers(actor).extraRounds,accuracyBonus:(a.accuracy||0)+rapidFireModifiers(actor).accuracyBonus,tracking:a.tracking||0};
 }
 // Do not change weapon.burst: it also divides per-volley perk damage bonuses.

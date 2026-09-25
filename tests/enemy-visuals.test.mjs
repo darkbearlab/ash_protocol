@@ -52,6 +52,6 @@ test('appearance data only names atlas cells, shapes and projectiles that exist'
 test('enemy projectiles keep their visuals and the crawler still claws',()=>{
  const shot=type=>({type:'enemyShot',attackerType:type,from:{x:0,y:0},to:{x:3,y:0},damage:0});
  assert.equal(projectileVisuals(shot('crawler'))[0].style,'claw');assert.equal(projectileVisuals(shot('brute'))[0].style,'slash');
- assert.equal(projectileVisuals(shot('gunner')).length,WEAPON_VISUALS.shotgun.count);
+ assert.equal(projectileVisuals(shot('gunner')).length,5,'three tiles out, buckshot throws five pellets (3.185.0)');
  assert.equal(projectileVisuals(shot('bomber')).length,WEAPON_VISUALS.rifle.count,'a type without a projectile falls back to the rifle');
 });

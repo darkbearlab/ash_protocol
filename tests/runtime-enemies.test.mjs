@@ -27,7 +27,7 @@ test('virtual unarmed bump uses no slot/ammo and excludes weapon damage bonuses 
 });
 test('first expendable kill costs full turn, next arbitrary attack is free; invalid fire preserves credit',()=>{
  class Counting extends Game{enemyAct(e){e.qaActs=(e.qaActs||0)+1;}}
- const g=arena('soldier',Counting),first=enemy(g,'fodder',12),other=enemy(g,'rifleman',14);other.hp=1;other.alert=true;grantTrait(other,'fast','qa');g.target=first.id;
+ const g=arena('soldier',Counting),first=enemy(g,'fodder',12),other=enemy(g,'rifleman',14,12);other.hp=1;other.alert=true;grantTrait(other,'fast','qa');g.target=first.id;   // off the firing line: a rifle round goes through fodder (3.185.0)
  const turn=g.turn,xp=g.player.xp,scrap=g.player.scrap;assert.ok(g.action('fire'));assert.equal(g.turn,turn+1);assert.equal(other.qaActs,1);assert.equal(g.pursuit,1);assert.equal(g.player.xp,xp);assert.equal(g.player.scrap,scrap);assert.equal(g.items.length,0);
  g.target=other.id;const ammo=g.player.ammo[0];g.player.ammo[0]=0;assert.equal(g.action('fire'),false);assert.equal(g.pursuit,1);g.player.ammo[0]=ammo;
  assert.ok(g.action('fire'));assert.equal(g.turn,turn+1);assert.equal(other.qaActs,1);assert.equal(g.pursuit,0);assert.ok(g.player.xp>xp);
@@ -74,7 +74,7 @@ test('pursuit and nest state survive saves/archives, old v32 credit defaults to 
 test('free preparation retains pursuit, grenade/grapple spend it, anchored free attack is one attack',()=>{
  const g=arena('recon');g.pursuit=1;assert.ok(g.action('prepare',{category:'grenade',id:'stun'}));assert.equal(g.pursuit,1);const turn=g.turn;enemy(g,'rifleman',14);assert.ok(g.action('grenade',{x:14,y:10}));assert.equal(g.turn,turn);assert.equal(g.player.stun,1);assert.equal(g.pursuit,0);
  const b=arena('berserker');b.pursuit=1;const e=enemy(b,'brute',13);e.hp=200;const t=b.turn;assert.ok(b.action('usePrepared',{category:'skill'}));assert.equal(b.turn,t);assert.equal(b.pursuit,0);assert.ok(b.player.skillState.grapple.cooldown>0);assert.equal(b.player.moved,true);
- const h=arena('bulwark');h.player.skillState.anchor.remaining=1;h.pursuit=1;const a=enemy(h,'rifleman',13);a.hp=500;const ammo=h.player.ammo[6],before=h.turn;assert.ok(h.action('fire'));assert.equal(h.turn,before);assert.equal(h.player.ammo[6],ammo-3);
+ const h=arena('bulwark');h.player.skillState.anchor.remaining=1;h.pursuit=1;const a=enemy(h,'rifleman',13);a.hp=500;const ammo=h.player.ammo[6],before=h.turn;assert.ok(h.action('fire'));assert.equal(h.turn,before);assert.equal(h.player.ammo[6],ammo-5);
 });
 
 import {nestStyle} from '../src/runtime-enemies.js';

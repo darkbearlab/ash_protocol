@@ -39,9 +39,9 @@ test('a deployed unit fires its mounted weapon with the weapon stats, upgrades a
  a.ammo=0;a.bornTurn=1;const shells=p.shell,pistol=p.pistol;allyAct(g,a);assert.equal(a.ammo,WEAPONS[SHOTGUN].mag);assert.equal(p.shell,shells-WEAPONS[SHOTGUN].mag);assert.equal(p.pistol,pistol);
 });
 
-test('an SMG unit fires its two-round burst, and a shotgun unit uses close-range damage and splash',()=>{
+test('an SMG unit fires its four-round burst, and a shotgun unit uses close-range damage and splash',()=>{
  const g=arena();mounted(g,SMG);assert.ok(g.action('deployUnit',{line:0,x:11,y:10}));const a=g.allies[0];a.bornTurn=1;const e=enemy(g,13,10);zero(g);g.reveal();
- allyAct(g,a);assert.equal(a.ammo,WEAPONS[SMG].mag-2);assert.ok(e.hp<500);
+ allyAct(g,a);assert.equal(a.ammo,WEAPONS[SMG].mag-4);assert.ok(e.hp<500);
  const h=arena();mounted(h,SHOTGUN);assert.ok(h.action('deployUnit',{line:0,x:11,y:10}));const b=h.allies[0];b.bornTurn=1;const near=enemy(h,12,10),beside=enemy(h,13,10);zero(h);h.reveal();
  allyAct(h,b);assert.equal(b.ammo,WEAPONS[SHOTGUN].mag-1);assert.ok(500-near.hp>=WEAPONS[SHOTGUN].closeMin-5);assert.ok(beside.hp<500);
 });

@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -29,12 +30,14 @@ test('size and mobility modify player and enemy hit chance equally, with opposit
   trait(e,'small');trait(e,'clumsy');assert.equal(g.accuracy(g.player,e).chance,75);
   g.player.affixes[0]='tracking';assert.equal(g.accuracy(g.player,e).chance,87);traitLabels(e);
 });
+// 3.185.0: an energy weapon has no armor curve, so the cover alone is measured.
+const flat=g=>({...g.weapon,ammoType:'energy'});
 test('no-cover removes both hit protection and damage reduction for either side, but walls remain opaque',()=>{
   const g=arena(),e=enemy(g,'e',14,10,'gunner');g.props=[{id:'box',type:'cover',x:13,y:10,hp:100,maxHp:100}];
-  assert.equal(g.accuracy(g.player,e).chance,62);g.hitTarget(e,20,g.player);assert.equal(e.hp,489);
-  trait(e,'no_cover');assert.equal(g.accuracy(g.player,e).chance,97);g.hitTarget(e,20,g.player);assert.equal(e.hp,469);
-  g.props=[{id:'shield',type:'cover',x:11,y:10,hp:100,maxHp:100}];g.damagePlayer(20,'test',e);assert.equal(g.player.hp,89);
-  trait(g.player,'no_cover');g.damagePlayer(20,'test',e);assert.equal(g.player.hp,69);assert.equal(g.cover.length,0);
+  assert.equal(g.accuracy(g.player,e).chance,62);g.hitTarget(e,20,g.player,0,flat(g));assert.equal(e.hp,489);
+  trait(e,'no_cover');assert.equal(g.accuracy(g.player,e).chance,97);g.hitTarget(e,20,g.player,0,flat(g));assert.equal(e.hp,469);
+  g.props=[{id:'shield',type:'cover',x:11,y:10,hp:100,maxHp:100}];g.damagePlayer(20,'test',e);assert.equal(g.player.hp,87);   // 3.185.0: the gunner's buckshot bites 15% deeper into no armor
+  trait(g.player,'no_cover');g.damagePlayer(20,'test',e);assert.equal(g.player.hp,64);assert.equal(g.cover.length,0);
   for(let y=0;y<SIZE;y++)g.grid[y][12]=0;assert.equal(combatSight(g.grid,g.player,e),false);assert.equal(g.visible(e),false);
 });
 test('all speed combinations use stable order and each actor acts once; equal speed favors player',()=>{
@@ -59,7 +62,7 @@ class EscapeGame extends Game{enemyAct(e){if(e.id==='escape'){e.x=this.escape.x;
 test('a fast moving target keeps its identity; bullets use the new position and the actual movement penalty',()=>{
   const g=arena(EscapeGame),e=enemy(g,'escape');trait(e,'fast');g.escape={x:15,y:10};enemy(g,'other',13,11);g.target=e.id;
   const {steps}=captureAction(g,()=>g.action('fire')),shot=steps.find(s=>s.effects.some(f=>f.type==='shot'));
-  assert.equal(g.player.ammo[0],7);assert.equal(g.player.stats.shots,1);assert.equal(shot.effects[0].to.x,15);assert.equal(shot.before.targeted.id,'escape');assert.equal(shot.before.accuracy(shot.before.player,shot.before.targeted).chance,75);
+  assert.equal(g.player.ammo[0],27);assert.equal(g.player.stats.shots,3);assert.equal(shot.effects[0].to.x,15);assert.equal(shot.before.targeted.id,'escape');assert.equal(shot.before.accuracy(shot.before.player,shot.before.targeted).chance,75);
   assert.equal(steps[0].before.enemies[0].x,14);assert.equal(steps[0].after.enemies[0].x,15);assert.equal(steps[0].effects.length,0,'quiet fast movement gets its own presentation step');
   assert.ok(planPresentation(steps).events.find(e=>e.effects.some(f=>f.type==='shot')).time>0);
 });
@@ -67,18 +70,18 @@ test('target fleeing range or sight consumes committed ammunition without replac
   for(const hidden of [false,true]){
     const g=arena(EscapeGame),e=enemy(g,'escape');trait(e,'fast');enemy(g,'other',11,10);g.target=e.id;g.escape=hidden?{x:14,y:12}:{x:18,y:10};
     if(hidden)for(let x=0;x<SIZE;x++)g.grid[11][x]=0;
-    assert.equal(g.action('fire'),true);assert.equal(g.turn,2);assert.equal(g.player.ammo[0],7);assert.equal(g.player.stats.shots,1);assert.equal(g.enemies[1].hp,500);assert.equal(e.hp,500);
+    assert.equal(g.action('fire'),true);assert.equal(g.turn,2);assert.equal(g.player.ammo[0],27);assert.equal(g.player.stats.shots,3);assert.equal(g.enemies[1].hp,500);assert.equal(e.hp,500);
     const shot=g.effects.find(f=>f.type==='shot');assert.equal(shot.miss,true);assert.deepEqual(shot.to,{x:14,y:10});
     assert.ok(g.logs.some(l=>l.text.includes('開火落空')));
   }
 });
 test('if the original target dies before player action, no other target is shot',()=>{
   const g=arena(),e=enemy(g,'bomber',11,10,'bomber');trait(e,'fast');e.charge=true;e.windup=1;enemy(g,'other',14,10);g.target=e.id;
-  assert.equal(g.action('fire'),true);assert.ok(e.hp<=0);assert.equal(g.player.stats.shots,1);assert.equal(g.player.ammo[0],7);assert.equal(g.player.kills,1);assert.equal(g.enemies[1].hp,500);
+  assert.equal(g.action('fire'),true);assert.ok(e.hp<=0);assert.equal(g.player.stats.shots,3);assert.equal(g.player.ammo[0],27);assert.equal(g.player.kills,1);assert.equal(g.enemies[1].hp,500);
 });
 test('fast lethal attack cancels the player action and all later actors; replay starts with enemy damage',()=>{
   const g=arena(),e=enemy(g,'fast');trait(e,'fast');e.charge=true;e.windup=1;enemy(g,'later',14,11);g.player.hp=1;g.target=e.id;
-  const {steps}=captureAction(g,()=>g.action('fire'));assert.equal(g.status,'dead');assert.equal(g.player.ammo[0],8);assert.equal(g.turn,2);assert.equal(g.effects.filter(e=>e.type==='enemyShot').length,1);assert.equal(steps.flatMap(s=>s.effects).find(e=>e.type!=='callout').type,'enemyShot');
+  const {steps}=captureAction(g,()=>g.action('fire'));assert.equal(g.status,'dead');assert.equal(g.player.ammo[0],30);assert.equal(g.turn,2);assert.equal(g.effects.filter(e=>e.type==='enemyShot').length,1);assert.equal(steps.flatMap(s=>s.effects).find(e=>e.type!=='callout').type,'enemyShot');
   const plan=planPresentation(steps);assert.equal(plan.events[0].state.player.hp,1);assert.ok(plan.events.some(e=>e.effects.some(f=>f.type==='fall'&&f.actorType==='player')));
 });
 test('a fast enemy can block committed movement; the player stays put and the turn is spent',()=>{
@@ -91,9 +94,9 @@ test('ordinary enemy fire follows the new player position, while thrown grenades
   assert.deepEqual(grenade.effects.find(f=>f.style==='grenade').to,{x:14,y:10});assert.equal(flee.hp,500);assert.equal(grenade.player.grenades,1);
 });
 test('previous waiting protection lasts until player acts, and a new wait cannot protect against earlier fast fire',()=>{
-  const g=arena(),e=enemy(g,'fast');trait(e,'fast');e.charge=true;e.windup=1;g.action('wait');assert.equal(g.player.hp,82,'first fast shot happens before wait protection');/* 3.137.0: floor-1 damage +1 a floor */
-  e.charge=true;g.action('reload');assert.equal(g.player.hp,82,'invalid reload cannot advance a fast enemy');
-  g.action('wait');assert.equal(g.player.hp,73,'previous wait still halves the next fast shot before player renewal');/* 3.137.0: 18 halved is 9 */
+  const g=arena(),e=enemy(g,'fast');trait(e,'fast');e.charge=true;e.windup=1;g.action('wait');assert.equal(g.player.hp,85,'first fast shot happens before wait protection');/* 3.137.0: floor-1 damage +1 a floor; 3.185.0: three rifle rounds, each losing a fifth through no armor */
+  e.charge=true;g.action('reload');assert.equal(g.player.hp,85,'invalid reload cannot advance a fast enemy');
+  g.action('wait');assert.equal(g.player.hp,76,'previous wait still halves the next fast shot before player renewal');/* 3.137.0: 18 halved is 9; 3.185.0: three rounds, each 5 through no armor, now take 9 in all */
 });
 test('temporary opposites expire after one whole committed round and survive saves',()=>{
   const g=arena(),e=enemy(g,'e');trait(e,'fast');trait(e,'slow',1);const restored=Game.restore(g.serialize());assert.ok(restored);assert.equal(initiative(restored.enemies[0]),0);
@@ -102,7 +105,7 @@ test('temporary opposites expire after one whole committed round and survive sav
 });
 test('fast attackers act before elevators, normal and slow old-floor enemies never follow downstairs',()=>{
   const g=arena(),fast=enemy(g,'fast');trait(fast,'fast');fast.charge=true;fast.windup=1;const later=enemy(g,'later',14,11);later.charge=true;later.windup=1;g.end={x:10,y:10};
-  assert.equal(g.action('interact'),true);assert.equal(g.floor,2);assert.equal(g.turn,2);assert.equal(g.effects.filter(e=>e.type==='enemyShot').length,1);
+  assert.equal(g.action('interact'),true);assert.equal(g.floor,2);assert.equal(g.turn,2);assert.equal(g.effects.filter(e=>e.type==='enemyShot').length,3);
 });
 test('bombardment and environment resolve once after slow actions, not once per speed phase',()=>{
   const g=arena();trait(g.player,'slow');enemy(g,'normal');g.marks=[{x:10,y:10,due:2}];g.hazards=[{x:10,y:10,type:'fire'}];
@@ -111,8 +114,8 @@ test('bombardment and environment resolve once after slow actions, not once per 
 test('save migration and full backups preserve trait sources, timers and unrelated weapon progress',()=>{
   const g=arena();trait(g.player,'small');trait(g.player,'slow',2);const e=enemy(g,'e');trait(e,'agile');g.player.upgrades[0]=2;
   const restored=decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game;assert.deepEqual(restored.player,g.player);assert.deepEqual(restored.enemies,g.enemies);
-  const old=JSON.parse(g.serialize());old.version=6;delete old.data.player.traits;for(const e of old.data.enemies)delete e.traits;
-  const migrated=Game.restore(JSON.stringify(old));assert.ok(migrated);assert.deepEqual(migrated.player.traits.map(t=>t.id),['biological','braced','correction']);assert.equal(migrated.player.upgrades[0],2);assert.equal(migrated.player.ammo[0],8);
+  const old=JSON.parse(g.serialize());old.version=6;oldScaleAmmo(old.data);delete old.data.player.traits;for(const e of old.data.enemies)delete e.traits;
+  const migrated=Game.restore(JSON.stringify(old));assert.ok(migrated);assert.deepEqual(migrated.player.traits.map(t=>t.id),['biological','braced','correction']);assert.equal(migrated.player.upgrades[0],2);assert.equal(migrated.player.ammo[0],30);
   const bad=JSON.parse(g.serialize());bad.data.player.traits=[{id:'fast',source:'test',turns:0}];assert.equal(Game.restore(JSON.stringify(bad)),null);
 });
 test('target cards explain effective order and cancelled traits; spawn defaults stay small in scope',()=>{
@@ -124,7 +127,7 @@ test('target cards explain effective order and cancelled traits; spawn defaults 
 // 3.111.0: GL-03 is no longer in this list. It fires at a tile, not at an enemy, so a target that slips away does not
 // make it miss — see the launcher test right after this one.
 test('lost-target commitment respects every weapon ammunition cost, burst remainder and replay',()=>{
-  for(const [slot,ammo,spent] of [[0,8,1],[1,4,1],[2,18,2],[2,1,1],[3,3,1],[4,5,1],[6,30,3],[8,9,3],[8,2,2]]){
+  for(const [slot,ammo,spent] of [[0,8,3],[1,4,1],[2,18,4],[2,1,1],[3,3,1],[4,5,1],[6,30,5],[8,9,3],[8,2,2]]){
     const g=arena(EscapeGame),e=enemy(g,'escape');trait(e,'fast');g.escape={x:14,y:12};g.target=e.id;
     for(let x=0;x<SIZE;x++)g.grid[11][x]=0;
     g.player.owned=[slot];g.player.weapon=slot;g.player.ammo[slot]=ammo;

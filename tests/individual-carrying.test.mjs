@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {PROFILE_VERSION} from '../src/progression.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -36,7 +37,7 @@ test('failed migration write keeps the old profile and blocks unlock purchase un
 test('loading a v5 campaign refunds profile upgrades and preserves excess stock on the ground',async()=>{
   const {storage:s,memory}=await storageHarness(),g=new Game(39,[],3);
   for(const [id,info] of Object.entries(AMMUNITION))g.player[info.key]=capacity(id,3);
-  const raw=JSON.parse(g.serialize());raw.version=5;raw.data.carryLevel=3;memory.set('qa-ash-save',JSON.stringify(raw));memory.set('qa-ash-profile',JSON.stringify(legacyProfile()));
+  const raw=JSON.parse(g.serialize());raw.version=5;oldScaleAmmo(raw.data);raw.data.carryLevel=3;memory.set('qa-ash-save',JSON.stringify(raw));memory.set('qa-ash-profile',JSON.stringify(legacyProfile()));
   const restored=s.loadGame();assert.ok(restored);assert.equal(s.profile().protocol.balance,200);assert.deepEqual(restored.carryLevel,carryLevels(0));
   for(const [id,info] of Object.entries(AMMUNITION)){
     assert.equal(restored.player[info.key],info.base);
@@ -51,7 +52,7 @@ test('old full backups refund group spending; new backups preserve independent l
   const old=decodeBackup(JSON.stringify(original),'qa');assert.equal(old.snapshot.profile.protocol.balance,200);assert.deepEqual(old.game.carryLevel,carryLevels(0));
   const next=old.snapshot;next.profile.version=6;next.profile.upgrades.carrying.rifle=1;next.profile.upgrades.carrying.grenade=2;next.profile.protocol.balance=120;
   for(const carry of [3,{rifle:1},{...carryLevels(0),grenade:-1}]){const bad=JSON.parse(new Game(9).serialize());bad.data.carryLevel=carry;assert.equal(Game.restore(JSON.stringify(bad)),null);}
-  const restored=decodeBackup(JSON.stringify(next),'qa');assert.equal(restored.game.ammoCapacity('rifle'),72);assert.equal(restored.game.ammoCapacity('grenade'),4);assert.equal(restored.game.ammoCapacity('shell'),24);
+  const restored=decodeBackup(JSON.stringify(next),'qa');assert.equal(restored.game.ammoCapacity('rifle'),216);assert.equal(restored.game.ammoCapacity('grenade'),4);assert.equal(restored.game.ammoCapacity('shell'),24);
   for(const mutate of [p=>delete p.upgrades.carrying.shell,p=>p.upgrades.carrying.shell=4,p=>p.upgrades.carrying.rifle='1',p=>p.upgrades.carrying.extra=1,p=>p.protocol.balance=200]){
     const invalid=structuredClone(next);mutate(invalid.profile);assert.throws(()=>decodeBackup(JSON.stringify(invalid),'qa'));
   }

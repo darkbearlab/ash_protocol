@@ -33,7 +33,7 @@ test('anchor blocks movement, vaulting and either floor-change API without spend
 test('two real LMG bursts bracket normal enemies; all units and environment otherwise act once',()=>{
  const g=anchored(),p=g.player,fast=foe(g,{speed:-1}),normal=foe(g,{x:15}),slow=foe(g,{x:16,speed:1}),order=[];g.target=normal.id;
  g.rng=Object.assign(()=>0,{state:()=>0});g.enemyAct=e=>order.push([e.id,p.stats.shots]);let environment=0;g.environmentTurn=()=>environment++;
- const t=g.turn;assert.ok(g.action('fire'));assert.equal(g.turn,t+1);assert.equal(p.ammo[6],24);assert.equal(p.stats.shots,6);assert.deepEqual(order,[[fast.id,0],[normal.id,3],[slow.id,6]]);assert.equal(environment,1);
+ const t=g.turn;assert.ok(g.action('fire'));assert.equal(g.turn,t+1);assert.equal(p.ammo[6],90);assert.equal(p.stats.shots,10);assert.deepEqual(order,[[fast.id,0],[normal.id,5],[slow.id,10]]);assert.equal(environment,1);   // 3.185.0: a five-round LMG burst
 });
 test('partial magazines never create ammunition and each attack uses independent hit rolls',()=>{
  const g=anchored(),p=g.player,e=foe(g);g.enemyAct=()=>{};p.ammo[6]=4;let n=0;
@@ -44,13 +44,13 @@ test('second shot follows the same moving target, and escaped or killed targets 
  for(const outcome of ['move','escape','death']){
   const g=anchored(),p=g.player,e=foe(g),other=foe(g,{x:13,y:11});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>0});
   g.enemyAct=actor=>{if(actor!==e)return;if(outcome==='move')e.y=11;else if(outcome==='escape')e.x=25;else e.hp=0;g.reveal();};
-  assert.ok(g.action('fire'));assert.equal(p.ammo[6],24);assert.equal(other.hp,1000);
-  const shots=g.effects.filter(e=>e.type==='shot');assert.equal(shots.length,6);assert.deepEqual(shots.at(-1).to,outcome==='move'?{x:14,y:11}:{x:14,y:10});
+  assert.ok(g.action('fire'));assert.equal(p.ammo[6],90);assert.equal(other.hp,1000);
+  const shots=g.effects.filter(e=>e.type==='shot');assert.equal(shots.length,10);assert.deepEqual(shots.at(-1).to,outcome==='move'?{x:14,y:11}:{x:14,y:10});
  }
 });
 test('a first burst kill does not redirect the second burst into another visible enemy',()=>{
  const g=anchored(),e=foe(g),other=foe(g,{x:13,y:11});e.hp=1;g.target=e.id;g.enemyAct=()=>{};g.rng=Object.assign(()=>0,{state:()=>0});
- assert.ok(g.action('fire'));assert.equal(g.player.stats.shots,4);assert.equal(g.player.kills,1);assert.equal(other.hp,1000);assert.equal(g.player.ammo[6],26);
+ assert.ok(g.action('fire'));assert.equal(g.player.stats.shots,6);assert.equal(g.player.kills,1);assert.equal(other.hp,1000);assert.equal(g.player.ammo[6],94);
 });
 test('both equipped melee and integrated bump strikes repeat with independent hit checks',()=>{
  for(const bump of [false,true]){const g=anchored(),e=foe(g,{x:11});g.enemyAct=()=>{};if(!bump)g.action('weapon',7);const ammo=[...g.player.ammo];let n=0;g.rng=Object.assign(()=>n++===0?.999:0,{state:()=>0});
@@ -69,14 +69,14 @@ test('anchor leaves all four throwable types at one use in the original slow pha
  const g=anchored();g.player.grenades=1;assert.ok(g.action('grenade',{x:14,y:10}));assert.equal(g.player.grenades,0);assert.equal(g.player.stats.grenades,1);
 });
 test('normal enemy lethal damage interrupts the second attack; fast lethal damage prevents both',()=>{
- for(const speed of [0,-1]){const g=anchored();foe(g,{speed});g.enemyAct=()=>{g.player.hp=0;};assert.ok(g.action('fire'));assert.equal(g.status,'dead');assert.equal(g.player.stats.shots,speed===0?3:0);}
+ for(const speed of [0,-1]){const g=anchored();foe(g,{speed});g.enemyAct=()=>{g.player.hp=0;};assert.ok(g.action('fire'));assert.equal(g.status,'dead');assert.equal(g.player.stats.shots,speed===0?5:0);}
 });
 test('disability skips both attacks but counts one lost round, and immunity decrements once',()=>{
  const g=anchored(),p=g.player;foe(g);g.enemyAct=()=>{};p.control.disabled=1;assert.ok(g.action('fire'));assert.equal(p.stats.shots,0);assert.deepEqual(p.control,{disabled:0,immune:2});
- g.action('fire');assert.equal(p.stats.shots,6);assert.equal(p.control.immune,1);assert.ok(skillActive(p,'anchor'));
+ g.action('fire');assert.equal(p.stats.shots,10);assert.equal(p.control.immune,1);assert.ok(skillActive(p,'anchor'));
 });
 test('mid-round disruption cancels the slow attack without clearing anchor, and a single self-stun grenade retains normal disability timing',()=>{
- const g=anchored(),p=g.player;foe(g);g.enemyAct=()=>applyDisruption(p,'biological');assert.ok(g.action('fire'));assert.equal(p.stats.shots,3);assert.equal(p.control.disabled,DISRUPT_TURNS-1);assert.ok(skillActive(p,'anchor'));
+ const g=anchored(),p=g.player;foe(g);g.enemyAct=()=>applyDisruption(p,'biological');assert.ok(g.action('fire'));assert.equal(p.stats.shots,5);assert.equal(p.control.disabled,DISRUPT_TURNS-1);assert.ok(skillActive(p,'anchor'));
  const h=anchored();h.player.stun=2;h.action('prepare',{category:'grenade',id:'stun'});h.action('grenade',{x:11,y:10});assert.equal(h.player.stun,1);assert.equal(h.player.control.disabled,DISRUPT_TURNS);
 });
 test('anchor does not duplicate allies, healing, reload, waits or free weapon swaps and cannot be disabled by unpreparing',()=>{
@@ -87,7 +87,7 @@ test('anchor does not duplicate allies, healing, reload, waits or free weapon sw
 });
 test('continuous correction advances once per turn, not once per extra burst',()=>{
  const g=anchored(),p=g.player,e=foe(g);g.enemyAct=()=>{};grantTrait(p,'correction','test:anchor');p.fireChain={targetId:e.id,turn:g.turn,count:2};
- const values=[],original=g.fireChance.bind(g);g.fireChance=t=>{values.push(p.fireChain?.count);return original(t);};g.rng=Object.assign(()=>.5,{state:()=>0});g.action('fire');assert.deepEqual(values,[2,2,2,2,2,2]);assert.equal(p.fireChain.count,3);
+ const values=[],original=g.fireChance.bind(g);g.fireChance=t=>{values.push(p.fireChain?.count);return original(t);};g.rng=Object.assign(()=>.5,{state:()=>0});g.action('fire');assert.deepEqual(values,Array(10).fill(2));assert.equal(p.fireChain.count,3);
 });
 test('toggle state and skill-sourced clumsy roundtrip, remain through time and backup, and reject contradictory saves',()=>{
  const g=anchored();g.action('wait');g.action('prepare',{category:'skill',id:null});const copy=Game.restore(g.serialize());assert.ok(copy);assert.ok(skillActive(copy.player,'anchor'));assert.equal(copy.player.prepared.skill,null);

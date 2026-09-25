@@ -1,3 +1,4 @@
+import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game} from '../src/game.js';
@@ -146,7 +147,7 @@ test('missing, forged, duplicated or malformed archived state is rejected before
 
 test('v20 migration preserves active smoke expiry and Recon skill counters without adding archived floors',()=>{
   const g=new Game(51,[],0,'recon');g.action('usePrepared',{category:'skill'});g.smoke=[{cells:[{...g.start}],expires:g.turn+2}];
-  const raw=JSON.parse(g.serialize());raw.version=20;delete raw.data.floorStates;delete raw.data.reinforcements;
+  const raw=JSON.parse(g.serialize());raw.version=20;oldScaleAmmo(raw.data);delete raw.data.floorStates;delete raw.data.reinforcements;
   const r=Game.restore(JSON.stringify(raw));assert.ok(r);assert.deepEqual(r.player,g.player);assert.deepEqual(r.smoke,g.smoke);assert.deepEqual(r.floorStates,{});assert.deepEqual(r.reinforcements,[]);
 });
 
