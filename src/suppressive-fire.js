@@ -26,7 +26,7 @@ export function suppressiveFire(g,point){
   const target=available.length?available[cursor++%available.length]:null,to=target||point;
   p.facing=[Math.sign(to.x-p.x),Math.sign(to.y-p.y)];g.recordExposure(p,to);p.ammo[p.weapon]--;p.stats.shots++;rounds++;spentCase(g,p,w.ammoType);
   const chance=target?Math.max(10,g.fireChance(target)-T.skillAccuracy):0,hit=Boolean(target&&g.rng()*100<chance);
-  g.effects.push({type:'shot',weaponId:w.id,singleShot:true,from:{x:p.x,y:p.y},to:{x:to.x,y:to.y},miss:!hit,damage:0});
+  g.effects.push({type:'shot',weaponId:w.id,singleShot:true,...(w.noFlash?{suppressed:true}:{}),from:{x:p.x,y:p.y},to:{x:to.x,y:to.y},miss:!hit,damage:0});   // the flash hider still hides it (3.179.0)
   if(!hit)return;
   hits.add(target);const range=g.weaponDamage(p.weapon,target),damage=range.min+Math.floor(g.rng()*(range.max-range.min+1));
   // Even explosive/splash weapons must not damage corner-hidden targets in this skill.

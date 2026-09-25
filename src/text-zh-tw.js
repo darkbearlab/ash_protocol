@@ -52,6 +52,8 @@ export default Object.freeze({
  "affixes.burst.text":"命中後在目標處爆炸，相鄰一格受到命中傷害的一半（會波及自己與友軍、引爆油桶）；每次射擊耗 2 發；基礎傷害 −15%",
  "affixes.rapid.name":"速射",
  "affixes.rapid.text":"一次射擊只耗 1 發，連射 3 發，每發 18–22、穿透 50%；命中會造成壓制（機械免疫）",
+ "affixes.flashhider.name":"消焰",
+ "affixes.flashhider.text":"開槍沒有槍口火光：在全黑裡開槍不會照亮自己那一格；基礎傷害 −15%",
  // src/allies.js
  "allies.noRoom":"{ally}無落腳空格，留在原層。",
  "allies.miss":"{ally}射擊／攻擊落空。",

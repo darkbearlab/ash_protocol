@@ -13,10 +13,10 @@ function arena(){const g=new Game(42);g.barriers=[];g.grid=Array.from({length:SI
 function loot(g,base=0,affix='stable'){
   const item=g.registerWeapon({type:'weapon',weapon:base,x:11,y:10});g.player.affixes[item.slot]=affix;g.player.ammo[item.slot]=g.weaponAt(item.slot).mag;g.items.push(item);return item.slot;
 }
-test('seven tradeoffs change real stats; launchers never roll meaningless penetration',()=>{
+test('eight tradeoffs change real stats; launchers never roll meaningless penetration',()=>{
   // 3.141.0: plus the drop-only plasma affixes (tests/pellets-plasma.test.mjs; 速射 since 3.142.0). 3.155.0 adds 短管,
-  // the seventh ordinary tradeoff, so a dropped gun now picks from seven.
-  assert.equal(Object.keys(AFFIXES).length,10);assert.equal(Object.keys(AFFIXES).filter(id=>!AFFIXES[id].dropOnly).length,7);
+  // the seventh ordinary tradeoff; 3.179.0 消焰 the eighth (tests/flash-hider.test.mjs), so a dropped gun picks from eight.
+  assert.equal(Object.keys(AFFIXES).length,11);assert.equal(Object.keys(AFFIXES).filter(id=>!AFFIXES[id].dropOnly).length,8);
   assert.equal(weaponStats(0,'stable').min,20);assert.equal(weaponStats(0,'stable').accuracyBonus,10);
   assert.equal(weaponStats(3,'piercing').pierce,.95);assert.equal(weaponStats(3,'piercing').mag,2);
   assert.equal(weaponStats(0,'extended').mag,12);assert.equal(weaponStats(0,'extended').accuracyBonus,-8);
@@ -31,7 +31,7 @@ test('seven tradeoffs change real stats; launchers never roll meaningless penetr
   const smg=weaponStats(2,'shortbarrel');assert.deepEqual(smg.band,[1,2],'a near edge never drops below one tile');
   assert.equal(weaponStats(0,'shortbarrel',{perks:{mod_mastery:3}}).range,plain.range-2,'mastery never moves distances');
   const seen=new Set();for(let seed=0;seed<1000;seed++){seen.add(rollAffix(0,seed));assert.notEqual(rollAffix(5,seed),'piercing');}
-  assert.equal(seen.size,8,'seven tradeoffs and the plain gun');
+  assert.equal(seen.size,9,'eight tradeoffs and the plain gun');
 });
 test('ground rolls persist across inspection, collecting and reloading without combat RNG consumption',()=>{
   const a=new Game(65),b=new Game(65);assert.deepEqual(a.player.affixes,b.player.affixes);

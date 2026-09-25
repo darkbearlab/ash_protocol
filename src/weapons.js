@@ -17,6 +17,9 @@ export const AFFIXES={
   shortbarrel:{name:t('affixes.shortbarrel.name'),text:t('affixes.shortbarrel.text'),range:-2,nearEdge:-2,quickSwap:true,damage:.9},
   // 3.141.1 (user, 2026-09-19): no longer rolled on the shotgun, whose pellets ignore movement anyway (rollAffix).
   tracking:{name:t('affixes.tracking.name'),text:t('affixes.tracking.text'),tracking:12,damage:.9,notOn:['shotgun']},
+  // 3.179.0 (user request 2026-09-25): a flash hider. Its shots make no muzzle flash, so firing from the black does not
+  // light your tile (docs/LIGHTING.md); weaker for it. Not on the shotgun or the plasma rifle (user).
+  flashhider:{name:t('affixes.flashhider.name'),text:t('affixes.flashhider.text'),damage:.85,noFlash:true,notOn:['shotgun','plasma']},
   // 3.141.0 (user decisions 2026-09-19, docs/WEAPONS.md): drop-only affixes, plasma rifles for now. Never sold, never
   // installed: they come only with a plasma rifle found on a floor, in a case or on a body (rollAffix below).
   lance:{name:t('affixes.lance.name'),text:t('affixes.lance.text'),damage:.85,shotCost:2,lance:true,dropOnly:['plasma']},
@@ -54,7 +57,7 @@ export function weaponStats(base,affix=null,actor=null){
     shotCost:a.shotCost||1,affixAccuracy:a.accuracy||0,...(a.burst?{burst:a.burst}:{}),...(a.volleyCost?{volleyCost:a.volleyCost}:{}),...(a.lance?{lance:true}:{}),...(a.blast?{blast:a.blast}:{}),
     mag:Math.max(1,Math.floor(w.mag*(a.mag||1))),range:Math.max(1,burstRange+(extended?2:0)),...(extended?{burstRange}:{}),
     // 3.152.0 有效距離: the long barrel and the extended burst push the far edge out; the near edge never moves.
-    band:shiftedBand(WEAPON_BANDS[w.id],(a.range||0)+(extended?2:0),a.nearEdge||0),...(a.quickSwap?{quickSwap:true}:{}),
+    band:shiftedBand(WEAPON_BANDS[w.id],(a.range||0)+(extended?2:0),a.nearEdge||0),...(a.quickSwap?{quickSwap:true}:{}),...(a.noFlash?{noFlash:true}:{}),
     pierce:Math.max(0,Math.min(1,(w.pierce||0)+(a.pierce||0))),extraRounds:rapidFireModifiers(actor).extraRounds,accuracyBonus:(a.accuracy||0)+rapidFireModifiers(actor).accuracyBonus,tracking:a.tracking||0};
 }
 // Do not change weapon.burst: it also divides per-volley perk damage bonuses.

@@ -59,20 +59,22 @@ test('the plasma rifle hits like a precision rifle without aiming, over the rifl
  assert.equal(hp-e.hp,ENEMY_TYPES.brute.mechanical?72:60,'neither armour 7 nor the crate takes anything off');
 });
 
-// 3.155.0: 短管 joins the ordinary pool, so which tradeoff a gun carries is drawn from seven instead of six. How often a
-// gun carries one at all, and the drop-only rolls, are untouched — that is what this pins now.
-test('貫穿 and 爆裂 come only on dropped plasma rifles, 15% each, and the ordinary pool is the seven tradeoffs',()=>{
+// 3.155.0: 短管 joins the ordinary pool, so which tradeoff a gun carries is drawn from seven instead of six; 3.179.0: 消焰
+// makes it eight. How often a gun carries one at all, and the drop-only rolls, are untouched — that is what this pins now.
+test('貫穿 and 爆裂 come only on dropped plasma rifles, 15% each, and the ordinary pool is the eight tradeoffs',()=>{
  for(const id of ['lance','burst']){assert.deepEqual(AFFIXES[id].dropOnly,['plasma']);assert.equal(AFFIXES[id].shotCost,2);assert.equal(AFFIXES[id].damage,.85);}
  assert.ok(affixAllowed(PL,'lance')&&!affixAllowed(RIFLE,'lance')&&!affixAllowed(SG,'burst')&&affixAllowed(RIFLE,'stable')&&affixAllowed(RIFLE,null));
  // The rolls before 3.141.0, for comparison.
  const fnv=seed=>{let h=2166136261;for(const c of String(seed)){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
- const old=(base,seed)=>{const h=fnv(seed);if(h%100>=65)return null;const ids=['stable','piercing','extended','powerful','longbarrel','shortbarrel','tracking'].filter(id=>id!=='piercing'||!WEAPONS[base].explosive);return ids[Math.floor(h/100)%ids.length];};
+ const old=(base,seed)=>{const h=fnv(seed);if(h%100>=65)return null;const ids=['stable','piercing','extended','powerful','longbarrel','shortbarrel','tracking','flashhider'].filter(id=>id!=='piercing'||!WEAPONS[base].explosive);return ids[Math.floor(h/100)%ids.length];};
  const count={lance:0,burst:0,rapid:0};let same=0,plain=0;   // 3.142.0: 速射 joins them
  for(let seed=0;seed<4000;seed++){
   assert.equal(rollAffix(RIFLE,seed),old(RIFLE,seed));
-  // 3.141.1: a shotgun that would have rolled 追獵 re-picks one of the other five; every other shotgun roll is the old one.
-  if(old(SG,seed)==='tracking')assert.ok(['stable','piercing','extended','powerful','longbarrel','shortbarrel'].includes(rollAffix(SG,seed)));else assert.equal(rollAffix(SG,seed),old(SG,seed));
-  const a=rollAffix(PL,seed);if(a in count)count[a]++;else{plain++;same+=a===old(PL,seed);}
+  // 3.141.1: a shotgun that would have rolled 追獵 (or, from 3.179.0, 消焰) re-picks one of the others; every other
+  // shotgun roll is the pool's. The plasma rifle re-picks 消焰 the same way.
+  const others=['stable','piercing','extended','powerful','longbarrel','shortbarrel'];
+  if(['tracking','flashhider'].includes(old(SG,seed)))assert.ok(others.includes(rollAffix(SG,seed)));else assert.equal(rollAffix(SG,seed),old(SG,seed));
+  const a=rollAffix(PL,seed);if(a in count)count[a]++;else if(old(PL,seed)==='flashhider')assert.ok([...others,'tracking'].includes(a));else{plain++;same+=a===old(PL,seed);}
  }
  assert.equal(same,plain,'a plasma rifle that rolls neither keeps its old roll');
  for(const n of Object.values(count))assert.ok(Math.abs(n/4000-DROP_ONLY_CHANCE)<.02,String(n));

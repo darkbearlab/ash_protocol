@@ -133,6 +133,8 @@ export function itemUseReason(g,id){
  if(entry.action==='surge')return p.control.disabled?t('game.disabledCannotUse'):g.shadowSteps?t('game.freeMovesLeft'):p.hp>SURGE_COST?'':t('game.surgeFatal');
  return '';
 }
+// 3.179.0: a shot from a gun with the flash hider makes no muzzle flash (src/lighting.js, src/presentation.js).
+const flashHidden=w=>w.noFlash?{suppressed:true}:{};
 const freshPlayer=()=>({flashlight:false,glowsticks:0,keycards:[],decoys:0,mines:0,exoPlates:0,learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
@@ -664,7 +666,7 @@ export class Game {
     p.facing=[Math.sign(pos.x-p.x),Math.sign(pos.y-p.y)];
     this.recordExposure(p,pos);p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
     const range=this.weaponDamage(p.weapon),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
-    this.effects.push({type:'shot',weaponId:w.id,style:'grenade',from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
+    this.effects.push({type:'shot',weaponId:w.id,style:'grenade',...flashHidden(w),from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     const before=this.enemies.map(o=>[o,o.hp]);
     this.explode(pos,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p);
     const hits=new Set(before.filter(([o,hp])=>o.hp<hp).map(([o])=>o));
@@ -683,14 +685,14 @@ export class Game {
     presentStep(this,()=>{
       this.recordExposure(p,aim);p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
       if(!targets.length){
-        this.effects.push({type:'shot',weaponId:w.id,style:'bullet',from:{x:p.x,y:p.y},to:{x:aim.x,y:aim.y},damage:0,miss:true});
+        this.effects.push({type:'shot',weaponId:w.id,style:'bullet',...flashHidden(w),from:{x:p.x,y:p.y},to:{x:aim.x,y:aim.y},damage:0,miss:true});
         this.log(t('game.shellsMissedAll'),false,t('game.shellsMissed'));return;
       }
       for(const o of targets){
         if(this.enemies.includes(o))noticeAttack(this,o);
         const {count,min,max}=this.pelletDamage(p.weapon,o),chance=pelletChance(w,toxicShot(this,p,o,w)),landed=[];
         for(let i=0;i<count;i++)if(this.rng()*100<chance)landed.push(min+Math.floor(this.rng()*(max-min+1)));
-        this.effects.push({type:'shot',weaponId:w.id,style:'bullet',from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!landed.length});
+        this.effects.push({type:'shot',weaponId:w.id,style:'bullet',...flashHidden(w),from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!landed.length});
         const foe=this.enemies.includes(o),name=foe?enemyName(o):t('common.ally');
         this.log(landed.length?t('game.pelletsHit',{hit:landed.length,count,target:name}):t('game.pelletsMissed',{count}),false,landed.length?t('game.pelletsHitReal',{target:name}):t('game.pelletsMissedReal'));
         if(!landed.length)continue;
@@ -713,7 +715,7 @@ export class Game {
       const cost=w.shotCost||1,singleShot=singleShotAt(w,distance(p,e||intent)),shots=volleyShots(w,distance(p,e||intent),p.ammo[p.weapon]);
       for(let i=0;i<shots;i++)presentStep(this,()=>{
         this.recordExposure(p,intent);p.ammo[p.weapon]-=roundCost(w,i);p.stats.shots++;spentCase(this,p,w.ammoType);
-        this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:intent.x,y:intent.y},damage:0,miss:true,color:w.ammoType==='energy'?'#8ae9da':null});
+        this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',...flashHidden(w),from:{x:p.x,y:p.y},to:{x:intent.x,y:intent.y},damage:0,miss:true,color:w.ammoType==='energy'?'#8ae9da':null});
       });
       if(this.enemies.some(e=>e.id===intent.id))recordShot(p,intent.id,this.turn);else p.fireChain=null;
       this.log(t('game.lostLine',{n:w.volleyCost?w.volleyCost:shots*cost}));
@@ -737,7 +739,7 @@ export class Game {
         const range=this.weaponDamage(p.weapon,e),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
         const chance=this.fireChance(e);
         const hit=this.rng()*100<chance;
-        this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
+        this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',...flashHidden(w),from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
         if(!hit){this.log(`${t('game.shotMiss',{chance})}`,false,t('game.shotMissReal'));if(w.explosive)this.log(t('game.grenadeStray'));return;}
         hits.add(e);const before=this.enemies.map(o=>[o,o.hp]);
         if(w.explosive)this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p);

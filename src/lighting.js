@@ -77,10 +77,10 @@ export function flashlightDirection(game){
 }
 // Muzzle flashes (B8): a gun fired lights the tile it was fired from to dim, for the rest of that round and all of the
 // next, so the other side can answer it: this action's shot effects, plus the last round's kept in `gunFlashes`
-// (recordGunFlashes). Melee, claws, spit and thrown grenades make none.
+// (recordGunFlashes). Melee, claws, spit, thrown grenades and a gun with the flash hider (3.179.0) make none.
 const GUN_STYLES=new Set(['bullet','plasma','grenade']);
 export const MAX_GUN_FLASHES=64;
-const gunFlash=e=>(e.type==='shot'&&e.weaponId!==undefined&&GUN_STYLES.has(e.style||'bullet')||e.type==='enemyShot'&&['bullet','plasma'].includes(e.style||'bullet')&&(ENEMY_TYPES[e.attackerType]?.range??1)>1)&&Number.isInteger(e.from?.x)&&Number.isInteger(e.from?.y)?e.from:null;
+const gunFlash=e=>(e.type==='shot'&&e.weaponId!==undefined&&!e.suppressed&&GUN_STYLES.has(e.style||'bullet')||e.type==='enemyShot'&&['bullet','plasma'].includes(e.style||'bullet')&&(ENEMY_TYPES[e.attackerType]?.range??1)>1)&&Number.isInteger(e.from?.x)&&Number.isInteger(e.from?.y)?e.from:null;
 export function muzzleFlashes(game){
  const out=[...(game.gunFlashes||[])];
  // A shot already kept in gunFlashes is skipped, so a live game and one restored from its save agree.

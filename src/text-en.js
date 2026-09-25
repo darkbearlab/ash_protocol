@@ -51,6 +51,8 @@ export default Object.freeze({
  "affixes.burst.text":"Explodes at the target on a hit; adjacent tiles take half the hit's damage (you, allies and barrels included); 2 rounds per shot; −15% base damage",
  "affixes.rapid.name":"Rapid",
  "affixes.rapid.text":"One shot spends 1 round and fires 3, 18–22 each with 50% penetration; hits suppress (machines are immune)",
+ "affixes.flashhider.name":"Flash-hider",
+ "affixes.flashhider.text":"No muzzle flash: firing from the black does not light your tile; −15% base damage",
  // src/allies.js
  "allies.noRoom":"No room for {ally}; it stays on this floor.",
  "allies.miss":"{ally} misses.",
