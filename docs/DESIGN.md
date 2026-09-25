@@ -66,7 +66,7 @@
 | 門與隔板 | [BARRIERS.md](BARRIERS.md) | 格間障礙物、門、矮隔板翻越、斜角開關門；玩家可架設的摺疊掩體 | 3.109.0 |
 | 補給箱 | [CONTAINERS.md](CONTAINERS.md) | 開箱、內容固定、落地拾取 | 3.110.0 |
 | 生活模組與補給站 | [LIVING_MODULES.md](LIVING_MODULES.md) | 衛浴、門禁、哨站，補給站分布 | 3.18.0 |
-| 任務 | [MISSIONS.md](MISSIONS.md) | 五種合約與目標 | 3.28.0 |
+| 任務 | [MISSIONS.md](MISSIONS.md) | 任務與目標；3.177.11 起只開放撤離與無盡，其餘封存 | 3.177.11 |
 | 原路回收 | [RETREAT.md](RETREAT.md) | 三層往返、樓層保存、撤退增援 | 3.28.0 |
 | 協定點數與解鎖 | [PROGRESSION.md](PROGRESSION.md) | 跨局點數、解鎖接口（主選單 UPGRADES 尚未接實際解鎖） | 3.33.0 |
 | 備份與還原 | [PROFILE_BACKUP.md](PROFILE_BACKUP.md) | 完整備份、還原、重置 | 3.9.0 |

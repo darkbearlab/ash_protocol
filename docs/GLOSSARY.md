@@ -26,7 +26,7 @@
 | 榴彈發射器 | Grenade Launcher | `weapons.launcher.name` |
 | 輕機槍 | LMG | `weapons.lmg.name` |
 | 震擊動力拳 | Shock Power Fist | `weapons.powerfist.name` |
-| 雷鳴爆彈槍 | Thunder Blast Gun | `weapons.thunder.name` |
+| 爆彈槍 | Blast Rifle | `weapons.thunder.name` |
 | 狂戰斧 | Berserker Axe | `weapons.axe.name` |
 | 忍刀 | Ninjato | `weapons.katana.name` |
 | 求生小刀 | Survival Knife | `weapons.knife.name` |
@@ -59,7 +59,7 @@
 | 被感染突擊兵 | Infected Raider | `enemyTypes.raider_infected.name` |
 | 小隊長 | Squad Leader | `enemyTypes.squad_leader.name` |
 | 督戰官 | Enforcer | `enemyTypes.enforcer.name` |
-| 浮游彈藥 | Loitering Munition | `enemyTypes.munition.name` |
+| 浮游彈藥 | Suicide Drone | `enemyTypes.munition.name` |
 | 滯留研究員 | Stranded Researcher | `enemyTypes.civilian.name` |
 | 毒液噴吐蟲 | Venom Spitter | `enemyTypes.spitter.name` |
 
@@ -273,7 +273,7 @@
 | --- | --- | --- |
 | 追隨無人機 | Follower drone | `unit.drone_follow.name` |
 | 定點砲台 | Sentry turret | `unit.drone_sentry.name` |
-| 浮游彈藥 | Loitering munition | `unit.drone_munition.name` |
+| 浮游彈藥 | Suicide drone | `unit.drone_munition.name` |
 | 改造無人機 | Converted drone | `unit.unit_drone.name` |
 | 改造自爆機器人 | Converted bomb bot | `unit.unit_bomber.name` |
 | 改造封鎖官 | Converted warden | `unit.unit_warden.name` |

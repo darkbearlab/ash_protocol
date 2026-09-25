@@ -16,6 +16,13 @@ export const MISSIONS={
   endless:{name:t('missions.endless.name'),kind:'endless',count:0,depth:ENDLESS_MAX_FLOOR,text:t('missions.endless.text',{max:MAX_LEVEL})}
 };
 export const RANDOM_MISSION_IDS=Object.keys(MISSIONS).filter(id=>id!=='endless');
+// 3.177.11 (user): besides extraction, the campaign missions play too much alike to be worth a choice, so they are
+// shelved, like the druid and necromancer. They stay in MISSIONS, so a run or a record that has one still loads and plays;
+// they are only no longer offered, rolled for a quick or daily game, or redeployed. Endless is its own mode and stays.
+export const SHELVED_MISSIONS=Object.freeze(['hunt','sweep','retrieval','roundtrip','archive']);
+export const OFFERED_MISSION_IDS=Object.freeze(Object.keys(MISSIONS).filter(id=>!SHELVED_MISSIONS.includes(id)));
+export const CAMPAIGN_MISSION_IDS=Object.freeze(RANDOM_MISSION_IDS.filter(id=>!SHELVED_MISSIONS.includes(id)));
+export const offeredMission=id=>OFFERED_MISSION_IDS.includes(id)?id:'extraction';
 export const validMissionId=id=>typeof id==='string'&&Object.hasOwn(MISSIONS,id);
 export function newMission(id='extraction'){
   if(!validMissionId(id))throw new Error(t('missions.unknown'));

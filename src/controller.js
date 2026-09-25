@@ -25,7 +25,7 @@ import {SCREEN_BRIGHTNESS,screenBrightnessPercent} from './screen-tone.js';
 import {drawTinyText,TINY_TEXT} from './pixel-text.js';
 import {actorStat,clampHit,combatStatSummary} from './actor-stats.js';
 import {isDark} from './lighting.js';
-import {missionDepth,returning,MISSIONS,RANDOM_MISSION_IDS,validMissionId,missionDefinition,missionProgress} from './missions.js';
+import {missionDepth,returning,MISSIONS,CAMPAIGN_MISSION_IDS,OFFERED_MISSION_IDS,offeredMission,validMissionId,missionDefinition,missionProgress} from './missions.js';
 import {isContainer,containerName} from './containers.js';
 import {ammoName,magazineLabel,salvageValue} from './weapons.js';
 import {pelletChance} from './shotgun.js';
@@ -553,7 +553,7 @@ function showIntro(){
 // Deployment is a three-step flow. The draft carries the mission and seed
 // between screens; newGame() itself is unchanged.
 let deployDraft={mode:null,mission:null,seed:undefined};
-const MISSION_IDS=RANDOM_MISSION_IDS;
+const MISSION_IDS=CAMPAIGN_MISSION_IDS;   // 3.177.11: quick and daily games roll only what is still offered
 const orderedCharacters=()=>[...OPERATOR_ORDER.filter(id=>CHARACTERS[id]),...Object.keys(CHARACTERS).filter(id=>!OPERATOR_ORDER.includes(id))].filter(id=>availableCharacters(profile()).includes(id));
 const lockedCharacters=()=>CHARACTER_IDS.filter(id=>CHARACTERS[id]&&!shelvedCharacter(id)&&!orderedCharacters().includes(id));
 const randomSeed=()=>Math.floor(Math.random()*1000000000);
@@ -591,10 +591,10 @@ ${row('deployQuick','QUICK GAME',t('controller.deploy.quick'))}
 }
 
 function showDeployMission(){
-  const selected=game.mission.id;
+  const selected=offeredMission(game.mission.id),offered=OFFERED_MISSION_IDS.map(id=>[id,MISSIONS[id]]);
   modal(`<div class="eyebrow">DEPLOYMENT / 1 OF 3</div><h2>${t('controller.deploy.pickMission')}</h2>${deployNotice()}
-<fieldset class="term-list mission-list"><legend>SELECT MISSION</legend>${Object.entries(MISSIONS).map(([id,m])=>`<div class="term-row"><label class="term-pick"><input type="radio" name="mission" value="${id}" ${id===selected?'checked':''}><span class="term-caret" aria-hidden="true">&gt;</span><span class="term-body"><span class="term-name">${m.name}</span><span class="term-meta">${id==='endless'?ENDLESS_DISPLAY_FLOORS:(m.depth||6)}F</span></span></label></div>`).join('')}</fieldset>
-<div class="mission-brief" aria-live="polite">${Object.entries(MISSIONS).map(([id,m])=>`<p data-mission="${id}"${id===selected?' class="active"':''}>${sentences(m.text,MISSION_NOTES[id])}</p>`).join('')}</div>
+<fieldset class="term-list mission-list"><legend>SELECT MISSION</legend>${offered.map(([id,m])=>`<div class="term-row"><label class="term-pick"><input type="radio" name="mission" value="${id}" ${id===selected?'checked':''}><span class="term-caret" aria-hidden="true">&gt;</span><span class="term-body"><span class="term-name">${m.name}</span><span class="term-meta">${id==='endless'?ENDLESS_DISPLAY_FLOORS:(m.depth||6)}F</span></span></label></div>`).join('')}</fieldset>
+<div class="mission-brief" aria-live="polite">${offered.map(([id,m])=>`<p data-mission="${id}"${id===selected?' class="active"':''}>${sentences(m.text,MISSION_NOTES[id])}</p>`).join('')}</div>
 <details class="term-detail seed-advanced"><summary>${t('controller.deploy.advanced')}</summary><label class="seed-field">${t('controller.deploy.seedLabel')}<input id="new-seed" type="number" min="0" max="999999999" placeholder="${t('controller.deploy.seedExample')}" inputmode="numeric"></label></details>
 <div class="modal-footer"><button class="modal-button secondary" data-modal="deploy">${t('controller.back')}</button><button class="modal-button" data-modal="deployOperator">${t('controller.deploy.nextOperator')}</button></div>`,true);
 }
@@ -1158,7 +1158,7 @@ document.addEventListener('click',e=>{
     case 'unlocks':showUnlocks();break;
     case 'result':showResult();break;
     // 3.114.0 (user request): after a loss, the same mission, seed and options with only the operative chosen again.
-    case 'redeploySame':{const plan=retryPlan(game);deploymentFaces=deploymentPortraits(Object.keys(CHARACTERS));deployDraft={mode:'retry',mission:plan.mission,seed:plan.seed,character:plan.character,retry:plan.options};showDeployOperator();break;}
+    case 'redeploySame':{const plan=retryPlan(game);deploymentFaces=deploymentPortraits(Object.keys(CHARACTERS));deployDraft={mode:'retry',mission:offeredMission(plan.mission),seed:plan.seed,character:plan.character,retry:plan.options};showDeployOperator();break;}
     case 'retryStart':{const character=$('input[name="character"]:checked')?.value,color=$('input[name="operator-color"]:checked')?.value;
       if(!validCharacter(character)){notify(t('controller.pickValidOperator'));return;}
       if(validOperatorColor(color)){renderer.operatorColor=color;write('ash-operator-color',color);}

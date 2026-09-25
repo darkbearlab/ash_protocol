@@ -2163,7 +2163,7 @@ export default Object.freeze({
  "weapons.lmg.desc":"使用步槍彈，每次三連發，適合持續壓制。",
  "weapons.powerfist.name":"震擊動力拳",
  "weapons.powerfist.desc":"相鄰一格近戰，命中 99%，無限使用、無須裝填。無視掩體，穿透 50% 裝甲。裝甲內建，雙向切換免費；不能拆解或交換，可改裝至 +3。",
- "weapons.thunder.name":"雷鳴爆彈槍",
+ "weapons.thunder.name":"爆彈槍",
  "weapons.thunder.desc":"三連發爆彈，每發命中後爆炸半徑 1 格；會自傷及引爆油桶。使用榴彈彈藥，僅能探索拾取。",
  "weapons.axe.name":"狂戰斧",
  "weapons.axe.desc":"狂戰士綁定近戰武器，不能拆解或交換。相鄰一格，命中 92%，穿透 30% 裝甲，無限使用。",
