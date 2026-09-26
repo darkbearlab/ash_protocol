@@ -71,7 +71,7 @@ test('no rule reads Chinese text to decide what to do',()=>{
  // Comparing a sentence's characters breaks the moment the sentence is translated (3.166.0 removed seven of these).
  const cjk='[\\u4e00-\\u9fff\\u3000-\\u303f\\uff00-\\uffef]';
  const pattern=new RegExp(`(===|!==)\\s*'[^']*${cjk}[^']*'|'[^']*${cjk}[^']*'\\s*(===|!==)|\\.(startsWith|endsWith|includes|indexOf)\\(\\s*'[^']*${cjk}`,'g');
- const shelved=new Set(['pet-growth.js','pet-ui.js','material-review.js']);
+ const shelved=new Set(['pet-growth.js','pet-ui.js']);
  const found=[];
  for(const [file,src] of Object.entries(sources)){
   if(shelved.has(file))continue;

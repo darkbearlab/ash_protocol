@@ -41,6 +41,7 @@ export default Object.freeze({
  "about.credits.fonts":"字型：Barlow Condensed、IBM Plex Mono、Noto Sans TC，經 Google Fonts 載入，採用 SIL Open Font License 1.1。",
  "about.credits.fiction":"遊戲中的企業、派系、人物與事件皆為虛構，如有雷同純屬巧合。",
  "about.rights.home":"itch.io 頁面：{link}",
+ "about.rights.privacy":"進度與設定只存在這台瀏覽器，不會回傳給任何人；只有字型從 Google Fonts 載入。",
  // src/actor-stats.js
  "actor-stats.none":"無額外命中／迴避修正",
  // src/affix-ui.js
@@ -799,6 +800,7 @@ export default Object.freeze({
  "controller.map.survivalLegend":"目標點：青色安全、紅色被佔、灰色失守；琥珀色框表示有增援正要過來。",
  "controller.effects.title":"目前狀態",
  "controller.effects.none":"沒有特殊狀態。",
+ "controller.errorNotice":"發生錯誤。請到結算畫面或「設定 → 一般」下載操作紀錄，連同版本號回報。",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // 灰燼協定 // DAILY OPERATION",
  // deckLabels
@@ -1372,7 +1374,7 @@ export default Object.freeze({
  "loyalistNames.sniper.name":"狙擊手",
  "loyalistNames.crawler.name":"軍犬",
  // 操作指南（src/controller.js）
- "manual.intro":"部署時選擇要六層深入、三層往返或無盡深入。點上方任務標題查詢進度。",
+ "manual.intro":"部署時選擇任務：六層深入的撤離、單層的生存（試驗中），或無盡深入。點上方任務標題查詢進度。",
  "manual.classesTitle":"職業",
  "manual.classes":"每個職業的數值與起始裝備寫在部署畫面；本局的被動與強化在右上選單的「幹員狀態」。",
  "manual.class.soldier":"自己有掩體時命中提高，連續射擊同一個敵人越打越準。技能「預警」掃描附近的敵人並標定它們，標定中你對它們更準、傷害更高。",
@@ -1390,7 +1392,7 @@ export default Object.freeze({
  "manual.grenadeTitle":"手榴彈",
  "manual.grenade":"先在背包的投擲物分頁預備，按投擲物按鈕，點地板選落點，再按右下「確認投擲」；再按一次投擲物按鈕取消。四種投擲物共用容量，效果寫在各自的說明裡。破片會炸到自己；震撼彈也會影響自己，失能時按中央等待恢復。敵方擲彈兵有時丟震撼彈（黃色、3×3 範圍，不造成傷害）：爆開那一回合若原地等待，失能時間減半。",
  "manual.bagTitle":"背包",
- "manual.bag":"按背包鈕打開背包，會回到上次的分頁；武器鈕直接打開武器分頁，長按投擲物、道具或技能鈕則打開對應的分頁。預備投擲物、道具與技能不耗回合，使用才耗。在背包直接點武器換裝，按鈕上寫著要幾回合；交換、拾取、拆解、改裝與補給各 1 回合，比較不耗時。最多帶 {packLimit} 把武器，走上武器時有空格就收下。幹員數值、本局強化與被動規則在右上選單的「幹員狀態」。",
+ "manual.bag":"按背包圖示鈕打開背包，會回到上次的分頁；列表圖示鈕直接打開武器分頁，長按投擲物、道具或技能鈕則打開對應的分頁。預備投擲物、道具與技能不耗回合，使用才耗。在背包直接點武器換裝，按鈕上寫著要幾回合；交換、拾取、拆解、改裝與補給各 1 回合，比較不耗時。最多帶 {packLimit} 把武器，走上武器時有空格就收下。操作列左邊的狀態圖示點一下會往上展開文字說明，再點一下收回。幹員數值、本局強化與被動規則在右上選單的「幹員狀態」。",
  "manual.supplyTitle":"補給",
  "manual.supply":"低矮補給箱可以走過、不提供掩體。靠近後按右下互動開箱（1 回合），內容落在地上，走上去拾取。每層有彈藥庫、醫療室與裝甲庫，地圖上可以查看已發現的補給。彈藥、投擲物與道具各有攜帶上限，多出的留在地上。護甲板吸收直接傷害的至多一半，不擋毒液與高熱。終端一次交易一項、1 回合：付廢料，或拿身上的東西抵價；每台有 {credit} 額度，只賣自己那一類（軍械彈藥、治療、道具）。逃命繩索與重部署鉤索從背包或道具鈕使用，點 {lineRange} 格內看得見的地板，沿直線把你拉過去。拆解武器回收備彈與廢料；改裝最多 +3。",
  "manual.pursuitTitle":"雜兵與追擊",
@@ -1398,7 +1400,7 @@ export default Object.freeze({
  "manual.directionsTitle":"四方向",
  "manual.directions":"↑ ↓ ← → 就是畫面上的上下左右。用方向鈕或點相鄰格移動。每個按鈕都有對應的鍵盤按鍵，可以在設定的「鍵盤」段更改，也能讓按鈕左上角顯示按鍵。",
  "manual.fireTitle":"射擊",
- "manual.fire":"點敵人、掩體或油桶鎖定，再按開火。目標鈕輪換敵人。目標在射程外時，地圖會用黃框閃兩下標出你現在打得到的範圍；設定可開啟「超出射程時自動改鎖最近的敵人」。瞄準鈕收起或顯示浮卡、鎖定框及目標取景，關閉時仍可開火，視野如同沒有鎖定目標；點擊敵人會重新開啟瞄準。有敵人時會閃爍提醒。",
+ "manual.fire":"點敵人、掩體或油桶鎖定，再按開火。準星鈕輪換敵人。目標在射程外時，地圖會用黃框閃兩下標出你現在打得到的範圍；設定可開啟「超出射程時自動改鎖最近的敵人」。眼睛鈕收起或顯示浮卡、鎖定框及目標取景，關閉時眼睛變暗、仍可開火，視野如同沒有鎖定目標；點擊敵人會重新開啟瞄準。有敵人時會閃爍提醒。",
  "manual.exitTitle":"撤離",
  "manual.exit":"到綠色電梯鄰格，按電梯按鈕。本層頭目或最終任務要求未完成時電梯鎖定。",
  "manual.title":"每一步，都有代價。",
@@ -1470,8 +1472,8 @@ export default Object.freeze({
  "missions.recoverThenUp":"回收機密後，從本層入口上樓。",
  "missions.extractLocked":"頭目仍存活，撤離鎖定。",
  "missions.survival.name":"生存",
- "missions.survival.text":"守住每個房間的目標點，撐到撤離點開放再撤離。增援會先預告再抵達：一組去佔目標點、一組來找你。敵人站在點上就會扣完整性，你站上去就能擋住。",
- "missions.survivalMeta":"{turns} 回合",
+ "missions.survival.text":"守住每個房間的目標點，撐到撤離點開放再撤離。增援會先預告再抵達，兩種輪流：獵殺波全部來找你，佔點波去打不同的目標點。敵人站在點上就會扣完整性，你站上去就能擋住。",
+ "missions.survivalMeta":"{turns} 回合 · 試驗中",
  "missions.summarySurvival":"{mission} · 完整性 {integrity} · {state}",
  // moduleTypes
  "moduleTypes.restroom.name":"衛浴間",
@@ -2152,13 +2154,13 @@ export default Object.freeze({
  "traits.close_throw.text":"自己丟的震撼彈與 EMP 不會影響自己，可以丟在腳下。",
  // tutorial
  "tutorial.moveTitle":"移動與掩體",
- "tutorial.move":"用方向鈕或點相鄰格移動。掩體只擋從它那一側射來的攻擊：讓掩體夾在你和敵人之間才有效。",
+ "tutorial.move":"用方向鈕或點相鄰格移動；走上物品就會撿起。掩體只擋從它那一側射來的攻擊：讓掩體夾在你和敵人之間才有效。",
  "tutorial.fireTitle":"射擊",
- "tutorial.fire":"點敵人鎖定，浮卡會顯示命中率，再按開火。距離、目標的掩體與暗處都會壓低命中。",
+ "tutorial.fire":"點敵人鎖定，浮卡會顯示命中率，再按開火；彈匣空了按裝填。距離、目標的掩體與暗處都會壓低命中。操作列上：準星鈕換目標、眼睛鈕開關瞄準資訊、◐ 是手電筒；點左邊的狀態圖示會展開說明。",
  "tutorial.windupTitle":"蓄勢預告",
  "tutorial.windup":"敵人頭上出現「!」，代表下一次行動會射向鎖定的位置。離開那一格，或按等待進入防禦待機，直接傷害減半。",
  "tutorial.doorsTitle":"門與投擲物",
- "tutorial.doors":"朝關著的門移動，會花 1 回合把門打開。門後有 2 個目標：預備手榴彈後按投擲選落點，爆炸不吃掩體減傷。",
+ "tutorial.doors":"朝關著的門移動，會花 1 回合把門打開。門後有 2 個目標：按破片彈鈕，點門後的地板選落點，再按右下「確認投擲」；別丟在自己腳下。爆炸不吃掩體減傷。",
  "tutorial.civiliansTitle":"非戰鬥人員",
  "tutorial.civilians":"本區有研究員。非戰鬥人員同樣列入肅清評估，不要手下留情。",
  "tutorial.finalTitle":"綜合交戰",

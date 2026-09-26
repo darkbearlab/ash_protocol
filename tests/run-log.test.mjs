@@ -7,7 +7,7 @@ import {readFile} from 'node:fs/promises';
 const memory=new Map();
 globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,String(v)),removeItem:k=>memory.delete(k),key:i=>[...memory.keys()][i]??null,get length(){return memory.size;}};
 const {saveGame,loadGame,startCampaign,storage}=await import('../src/storage.js');
-const {trackRun,persistRunLog,runLogFor,lastRunLog,runLogName,storedRunLog,runParams,RUN_LOG_KEY}=await import('../src/run-log.js');
+const {trackRun,persistRunLog,runLogFor,lastRunLog,runLogName,storedRunLog,runParams,RUN_LOG_KEY,noteRunError}=await import('../src/run-log.js');
 const {replayLog,stateHash}=await import('../src/replay.js');
 const {VERSION}=await import('../src/version.js');
 const read=path=>readFile(new URL(path,import.meta.url),'utf8');
@@ -65,4 +65,18 @@ test('controller wiring: every live campaign records, never a simulation or repl
   const result=source.slice(source.indexOf('function showResult'),source.indexOf('function showResult')+3000);assert.ok(result.includes('${runRecordMarkup(game)}'));
   assert.match(source,/data-modal="runLog" \$\{lastRunLog\(game\)\?'':'disabled'\}/);
   assert.ok(source.includes("case 'runLog':"));assert.ok(!source.includes('recordStart'),'the manual test-mode recorder gave way');
+});
+
+// 3.197.0 (freeze audit): an unexpected error is noted in the log a tester sends (the last five, cut short), the replay
+// still plays, and the controller shows a notice once instead of a silently stuck screen.
+test('errors ride along in the run log without breaking its replay; the page reports them',async()=>{
+  memory.clear();const g=startCampaign({seed:43,character:'soldier',mission:'extraction',options:{facilityFaction:'swarm'}});
+  trackRun(g);play(g,4);
+  for(let i=0;i<7;i++)assert.ok(noteRunError(`TypeError: boom ${i}
+${'x'.repeat(600)}`));
+  const log=storedRunLog();assert.equal(log.errors.length,5);assert.equal(log.errors[4].turn,g.turn);assert.ok(log.errors[0].message.startsWith('TypeError: boom 2'));assert.ok(log.errors.every(e=>e.message.length<=400));
+  const played=replayLog(log);assert.equal(played.mismatch,null);assert.equal(stateHash(played.game),stateHash(g));
+  const controller=await read('../src/controller.js');
+  assert.match(controller,/addEventListener\('error',e=>\{if\(e\.error\|\|e\.message\)reportError\(e\.error\|\|e\.message\);\}\);/);
+  assert.match(controller,/addEventListener\('unhandledrejection',e=>reportError\(e\.reason\)\);/);
 });

@@ -40,6 +40,7 @@ export default Object.freeze({
  "about.credits.fonts":"Fonts: Barlow Condensed, IBM Plex Mono and Noto Sans TC, loaded from Google Fonts under the SIL Open Font License 1.1.",
  "about.credits.fiction":"All companies, factions, characters and events in the game are fictional; any resemblance is coincidental.",
  "about.rights.home":"On itch.io: {link}",
+ "about.rights.privacy":"Your progress and settings stay in this browser and are sent nowhere; only the fonts load from Google Fonts.",
  // src/actor-stats.js
  "actor-stats.none":"No extra hit or evasion modifiers",
  // src/affix-ui.js
@@ -798,6 +799,7 @@ export default Object.freeze({
  "controller.map.survivalLegend":"Points: cyan is safe, red is being held, grey has fallen; an amber frame means a group is on its way.",
  "controller.effects.title":"Current effects",
  "controller.effects.none":"No effects right now.",
+ "controller.errorNotice":"Something went wrong. Please download the run log (results screen, or Settings → General) and send it with the build number.",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // DAILY OPERATION",
  // deckLabels
@@ -1371,7 +1373,7 @@ export default Object.freeze({
  "loyalistNames.sniper.name":"Sniper",
  "loyalistNames.crawler.name":"Warhound",
  // 操作指南（src/controller.js）
- "manual.intro":"Choose a mission when you deploy: six floors deep, a three-floor round trip, or the endless descent. Tap the mission title at the top to check your progress.",
+ "manual.intro":"Choose a mission when you deploy: the six-floor extraction, the one-floor survival (experimental), or the endless descent. Tap the mission title at the top to check your progress.",
  "manual.classesTitle":"Classes",
  "manual.classes":"Each class's stats and starting gear are on the deploy screen; this run's passives and upgrades are under Operative status in the top-right menu.",
  "manual.class.soldier":"More accurate from cover, and more accurate the longer it keeps firing at the same enemy. Early Warning scans nearby enemies and marks them: you hit marked enemies more often and harder.",
@@ -1389,7 +1391,7 @@ export default Object.freeze({
  "manual.grenadeTitle":"Grenades",
  "manual.grenade":"Ready a throwable in the pack's throwables tab, tap the throwable button, tap a floor tile to aim, then tap Confirm throw at the bottom right; tap the throwable button again to cancel. All four throwables share one capacity; their effects are in their own descriptions. Frag grenades can hit you; stun grenades affect you too — if disabled, tap the center button to wait it out. Enemy grenadiers sometimes throw stun grenades (yellow, 3×3, no damage): wait in place on the turn one goes off and you are disabled half as long.",
  "manual.bagTitle":"Pack",
- "manual.bag":"The pack button opens the pack on the tab you last used; the weapons button opens the weapons tab, and a long press on the throwable, item or skill button opens its tab. Readying throwables, items and skills is free; using them costs. Tap a weapon in the pack to switch to it; the button shows how many turns it takes. Swapping, picking up, salvaging, upgrading and resupplying take 1 turn each; comparing is free. You carry up to {packLimit} weapons and pick one up when you walk over it with a free slot. Operative stats, this run's upgrades and passive rules are under Operative status in the top-right menu.",
+ "manual.bag":"The pack button (the backpack icon) opens the pack on the tab you last used; the weapons button (the list icon) opens the weapons tab, and a long press on the throwable, item or skill button opens its tab. Readying throwables, items and skills is free; using them costs. Tap a weapon in the pack to switch to it; the button shows how many turns it takes. Swapping, picking up, salvaging, upgrading and resupplying take 1 turn each; comparing is free. You carry up to {packLimit} weapons and pick one up when you walk over it with a free slot. Tap the status icons at the left of the bar to unfold them in words; tap again to fold them. Operative stats, this run's upgrades and passive rules are under Operative status in the top-right menu.",
  "manual.supplyTitle":"Supplies",
  "manual.supply":"Low supply crates can be walked over and give no cover. Open one with the interact button at the bottom right (1 turn); the contents land on the floor, walk over them to pick them up. Every floor has an ammo depot, a medical room and an armor depot; the map shows the supplies you have found. Ammo, throwables and items each have a carry limit; the excess stays on the floor. Armor plate absorbs up to half of each direct hit but not venom or heat. A terminal trades one item per turn: pay scrap, or trade in things you carry; each terminal has {credit} credit and sells only its own kind (arms and ammo, medical, gear). Use escape lines and redeploy lines from the pack or the item button: tap a visible floor tile within {lineRange} tiles and the line pulls you straight there. Salvaging a weapon returns ammo and scrap; upgrades go up to +3.",
  "manual.pursuitTitle":"Fodder and pursuit",
@@ -1397,7 +1399,7 @@ export default Object.freeze({
  "manual.directionsTitle":"Four directions",
  "manual.directions":"↑ ↓ ← → are up, down, left and right on the screen. Move with the direction buttons or tap an adjacent tile. Every button has a keyboard key, which you can change in the Keyboard section of the settings and show in each button's top-left corner.",
  "manual.fireTitle":"Shooting",
- "manual.fire":"Tap an enemy, cover or a barrel to lock it, then tap Fire. The target button cycles enemies. When the target is out of range, the map flashes a yellow outline twice around what you can hit right now; the settings can turn on Auto-retarget when out of range. The aim button hides or shows the floating card, the lock frame and the target framing; you can still fire with it off, and the view acts as if nothing were locked; tapping an enemy turns aiming back on. It blinks while enemies are around.",
+ "manual.fire":"Tap an enemy, cover or a barrel to lock it, then tap Fire. The crosshair button cycles enemies. When the target is out of range, the map flashes a yellow outline twice around what you can hit right now; the settings can turn on Auto-retarget when out of range. The eye button hides or shows the floating card, the lock frame and the target framing, and dims when off; you can still fire with it off, and the view acts as if nothing were locked; tapping an enemy turns aiming back on. It blinks while enemies are around.",
  "manual.exitTitle":"Extraction",
  "manual.exit":"Stand next to the green elevator and tap the elevator button. The elevator stays locked while this floor's boss or the final objective is unfinished.",
  "manual.title":"Every step has a price.",
@@ -1469,8 +1471,8 @@ export default Object.freeze({
  "missions.recoverThenUp":"Recover the data, then go up at this floor's entrance.",
  "missions.extractLocked":"The boss is still alive; extraction is locked.",
  "missions.survival.name":"Survival",
- "missions.survival.text":"Hold the point in every room until the exit opens, then get out. Each wave is announced before it arrives: some go for the points, some come for you. An enemy standing on a point drains the facility; stand on it yourself to stop that.",
- "missions.survivalMeta":"{turns} turns",
+ "missions.survival.text":"Hold the point in every room until the exit opens, then get out. Each wave is announced before it arrives, and two kinds take turns: a hunt comes for you, a strike goes for different points. An enemy standing on a point drains the facility; stand on it yourself to stop that.",
+ "missions.survivalMeta":"{turns} turns · experimental",
  "missions.summarySurvival":"{mission} · integrity {integrity} · {state}",
  // moduleTypes
  "moduleTypes.restroom.name":"Restroom",
@@ -2151,15 +2153,15 @@ export default Object.freeze({
  "traits.close_throw.text":"Your own stun grenades and EMPs do not affect you, so you can throw them at your feet.",
  // tutorial
  "tutorial.moveTitle":"Movement and cover",
- "tutorial.move":"Move with the direction buttons or tap an adjacent tile. Cover only stops fire from its own side: keep it between you and the enemy.",
+ "tutorial.move":"Move with the direction buttons or tap an adjacent tile; walking onto an item picks it up. Cover only stops fire from its own side: keep it between you and the enemy.",
  "tutorial.fireTitle":"Shooting",
- "tutorial.fire":"Tap an enemy to lock it; the floating card shows the hit chance. Then tap Fire. Distance, the target's cover and darkness all lower the hit chance.",
+ "tutorial.fire":"Tap an enemy to lock it; the floating card shows the hit chance. Then tap Fire, and Reload when the magazine runs dry. Distance, the target's cover and darkness all lower the hit chance. On the bar: the crosshair changes target, the eye shows or hides aim info, ◐ is the flashlight; tap the status icons at the left to unfold them in words.",
  "tutorial.windupTitle":"Wind-up warnings",
  "tutorial.windup":"A “!” over an enemy means its next action fires at the locked spot. Leave that tile, or wait to go on guard and halve direct damage.",
  "tutorial.doorsTitle":"Doors and throwables",
- "tutorial.doors":"Moving into a closed door spends 1 turn opening it. There are 2 targets behind the door: ready a grenade, tap throw and pick a spot; blasts ignore cover reduction.",
+ "tutorial.doors":"Moving into a closed door spends 1 turn opening it. There are 2 targets behind the door: tap the Frag button, tap the floor behind the door, then Confirm throw at the bottom right; don't drop it at your own feet. Blasts ignore cover reduction.",
  "tutorial.civiliansTitle":"Non-combatants",
- "tutorial.civilians":"This zone has researchers. Non-combatants count toward the purge evaluation too; show no mercy.",
+ "tutorial.civilians":"This zone has a researcher. Non-combatants count toward the purge evaluation too; show no mercy.",
  "tutorial.finalTitle":"Combined engagement",
  "tutorial.final":"Clear the remaining targets, then step into the elevator. The simulation submits the purge evaluation at the exit.",
  // src/unarmed.js

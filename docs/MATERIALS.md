@@ -26,7 +26,7 @@ src/art-tone.js 的 ART_TONES 按**目前用途**處理：
 - src/materials.js 的白名單只含上述 20 個不透明方形材質，不允許任意 URL／路徑／家具圖。resolveSprite('floor') 與 drawWall 都經同一清單，停用可覆蓋舊 room.wallStyle 偏好。
 - 原偏好仍在該用途清單就保留；被停用時採該清單第一張。因此「准許」不等於「每局必定出現」。房間可用 wallStyle.face/cap 指定固定 ID 或沿用舊英文字名；最後仍受批准清單約束。
 - `npm run materials` 檢查並產生 src/material-selection.js；`npm run build` 也會先編譯，然後帶入模組共同雜湊。設定檔與生成模組一起提交。錯誤設定會阻止建置，不默默換回其他圖。
-- material-review.html 是獨立審核頁。瀏覽器只編輯記憶體草稿，提供匯入／下載 JSON；不碰 localStorage、正式／QA 任務、後端或 Git。刷新前要下載。下載設定仍須交付並發布才會影響正式遊戲。
+- tools/material-review.html 是獨立審核頁（3.197.0 從根目錄移到 tools/，不再發布，本機開啟）。瀏覽器只編輯記憶體草稿，提供匯入／下載 JSON；不碰 localStorage、正式／QA 任務、後端或 Git。刷新前要下載。下載設定仍須交付並發布才會影響正式遊戲。
 - 預覽使用同一 tone cache／drawWall，草稿清單直接傳入繪圖；因此 W03 當地板、T01 當頂板可立即查看。遊戲載入兩張 atlas，跨類別不增加圖片請求。
 - 本機 server 補上審核頁及 terrain-v1／walls-v1／portraits 路徑；仍限制公開副檔名與目錄，不開放任意 art／docs／工作區檔案。
 

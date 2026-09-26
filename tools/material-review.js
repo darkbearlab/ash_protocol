@@ -1,6 +1,7 @@
-import {MATERIALS,MATERIAL_SELECTION,validateSelection,materialSprite,TERRAIN_ATLAS} from './materials.js';
-import {ArtToneCache} from './art-tone.js';
-import {drawWall} from './walls.js';
+// 3.197.0: a development page, kept out of the published build (tools/ is never copied); open tools/material-review.html locally.
+import {MATERIALS,MATERIAL_SELECTION,validateSelection,materialSprite,TERRAIN_ATLAS} from '../src/materials.js';
+import {ArtToneCache} from '../src/art-tone.js';
+import {drawWall} from '../src/walls.js';
 const $=id=>document.getElementById(id),roles=['floor','face','cap'],labels={floor:'地板',face:'立面',cap:'頂板'},images=new Map(),tones=new ArtToneCache();
 let draft=structuredClone(MATERIAL_SELECTION),dirty=false,ready=false;
 function status(message){$('status').textContent=message;}

@@ -83,7 +83,7 @@ import {unitTree} from './behavior-tree.js';
 import {read,write,loadGame,saveGame,storage,profile,recordResult,TEST_MODE,exportBackup,previewBackup,restoreBackup,abandonRun,resetProgress,TAB_ID,claimTab,tabKey} from './storage.js';
 import {DECK_COLUMNS,DECK_LABELS,DECK_GLYPHS,deckPlacement,mirrorDeck,swapSlots,parseDeckLayout,DECK_GRID} from './deck-layout.js';
 import {replayLog,stateHash,validReplay} from './replay.js';
-import {trackRun,persistRunLog,runLogFor,lastRunLog,runLogName} from './run-log.js';
+import {trackRun,persistRunLog,runLogFor,lastRunLog,runLogName,noteRunError} from './run-log.js';
 import {turnsLeft,SURVIVAL_TUNING} from './survival.js';
 
 const $=s=>document.querySelector(s),audio=new AudioEngine();
@@ -202,6 +202,15 @@ function renderEffects(){
 }
 
 function notify(text,{extra=0,danger=false}={}){notice.textContent=text;notice.classList.remove('resting');notice.classList.add('show');notice.classList.toggle('danger',danger);logButton.textContent=extra>0?`+${extra}`:'';logButton.classList.toggle('more',extra>0);clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice.classList.remove('show');noticeTimer=setTimeout(restNotice,600);},2700);}
+// 3.197.0 (freeze audit): an unexpected script error shows a quiet notice once a session, asking for the run log, and is
+// noted in that log, instead of leaving a tester with a silently stuck screen. The browser's resize-loop warning is noise.
+let errorNoticed=false;
+function reportError(error){
+  const text=String(error?.stack||error?.message||error||'');if(/ResizeObserver loop/.test(text))return;
+  noteRunError(text);if(errorNoticed)return;errorNoticed=true;notify(t('controller.errorNotice'),{danger:true});
+}
+addEventListener('error',e=>{if(e.error||e.message)reportError(e.error||e.message);});
+addEventListener('unhandledrejection',e=>reportError(e.reason));
 // A new blueprint is announced with the action's latest line even when later logs would cover it (docs/ENGINEER.md
 // section 7); the latest line keeps its danger colour.
 const notifyLatest=()=>{sayCommsEvents(game.logs.slice(0,lastActionLogs));const latest=game.logs[0],blueprint=game.logs.slice(0,Math.max(1,lastActionLogs)).find(l=>isBlueprintLog(l.text));if(latest)notify(blueprint&&blueprint!==latest?`${blueprint.text} ${latest.text}`:latest.text,{extra:lastActionLogs-1,danger:latest.danger});};

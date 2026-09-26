@@ -42,4 +42,10 @@ export function runLogFor(g){
  const stored=storedRunLog();return g?.runId&&stored?.runId===g.runId?stored:null;
 }
 export const lastRunLog=g=>runLogFor(g)||storedRunLog();
+// 3.197.0 (freeze audit): an unexpected error is noted in the log being recorded (the last few, cut short), so a tester's
+// report carries it. Replay ignores the field.
+export function noteRunError(message){
+ if(!current)return false;
+ current.log.errors=[...(current.log.errors||[]).slice(-4),{turn:current.game.turn,message:String(message).slice(0,400)}];return keep();
+}
 export const runLogName=log=>`ash-run-${log.params?.seed??'x'}-${log.result?.status||'playing'}-${log.build}.json`;

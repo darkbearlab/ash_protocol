@@ -7,7 +7,7 @@ import {VERSION} from './version.js';
 // three Google Fonts; the audio is synthesized by the project's own generators (art/audio).
 // The AI note is the user's own wording (2026-09-26); the English follows it.
 export const ABOUT_AI=['about.ai.wish','about.ai.made','about.ai.hope'];
-export const ABOUT_RIGHTS=['about.rights.owner','about.rights.use','about.rights.source'];
+export const ABOUT_RIGHTS=['about.rights.owner','about.rights.use','about.rights.source','about.rights.privacy'];   // privacy: 3.197.0
 export const ABOUT_CREDITS=['about.credits.fonts','about.credits.fiction'];
 export const ITCH_URL='https://slothmagegames.itch.io/';   // the user's itch.io account, Sloth Mage Games
 

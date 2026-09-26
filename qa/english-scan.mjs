@@ -59,7 +59,7 @@ for(const [mission,status] of [['extraction','dead'],['endless','dead'],['extrac
  g.status=status;g.floor=floor;const copy=quietly(()=>resultCopy(g));
  if(copy)for(const v of [copy.title,copy.body])note(`result ${mission} ${status} ${floor}`,v);
 }
-const SKIP=new Set(['text-zh-tw.js','voices-zh-tw.js','pet-growth.js','pet-ui.js','material-review.js','materials.js','replay.js','world.js','personality.js','map-recipes-data.js','map-merging.js','killhouse-maps.js','controller.js','main.js','i18n.js']);
+const SKIP=new Set(['text-zh-tw.js','voices-zh-tw.js','pet-growth.js','pet-ui.js','materials.js','replay.js','world.js','personality.js','map-recipes-data.js','map-merging.js','killhouse-maps.js','controller.js','main.js','i18n.js']);
 for(const file of readdirSync(new URL('../src/',import.meta.url)).filter(f=>f.endsWith('.js')&&!SKIP.has(f))){
  const mod=await import(`../src/${file}`).catch(()=>null);if(!mod)continue;
  for(const [name,value] of Object.entries(mod)){if(typeof value==='function')continue;let text;try{text=JSON.stringify(value);}catch{continue;}
