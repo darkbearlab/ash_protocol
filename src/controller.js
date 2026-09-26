@@ -15,9 +15,10 @@ import {feedingView,petStatusLine,petOutputLine,fuelLabel,fuelPercent,lineProgre
 import {learningInventory} from './learning.js';
 import {LEARNING_ITEMS,LEARNING_SCRAP} from './learning-data.js';
 import {suppressivePreview} from './suppressive-fire.js';
-import {suppressionStatus,learningEntries,suppressionHelp,traitRuleLines} from './suppression-ui.js';
+import {suppressionChip,learningEntries,suppressionHelp,traitRuleLines} from './suppression-ui.js';
 import {SKILLS,skillActive,skillStatus,canUseSkill,skillText} from './skills.js';
-import {timedStatuses} from './status-timers.js';
+import {timedStatusChips} from './status-timers.js';
+import {iconSvg} from './ui-icons.js';
 import {blindReason,BLIND_TUNING} from './blind-fire.js';
 import {weaponBand,bandLabel} from './range-band.js';
 import {boundaryOpacityPercent} from './movement-boundaries.js';
@@ -38,7 +39,7 @@ import {resultCopy,retryPlan} from './result-copy.js';
 import {isBarrier,barrierFace} from './barriers.js';
 import {GRENADES,grenadeTotal} from './throwables.js';
 import {MELEE_TUNING,GRAPPLE_RANGE} from './melee-classes.js';
-import {grappleLabel,meleeSummary,meleeStatus} from './melee-ui.js';
+import {grappleLabel,meleeSummary,meleeChips} from './melee-ui.js';
 import {DEFAULT_OPERATOR_COLOR,validOperatorColor,tintedSprite} from './operator-color.js';
 import {colorPickerMarkup,mountColorPicker} from './color-picker.js';
 import {classSpriteRect} from './class-art.js';
@@ -189,6 +190,16 @@ function showLog(){
 }
 const pad=n=>String(n).padStart(2,'0');
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// 3.193.0 (user): the loadout bar is pixel icons only (src/ui-icons.js); the aim and flashlight switches read on/off by
+// brightness (expansion.css). Tapping the status line unfolds the effects in words above the bar, over the edge of the
+// field, and a second tap folds them away (no dialog).
+let effectChips=[],effectNote='',effectsOpen=false;
+for(const [action,icon] of [['weapons','list'],['cycleTarget','target'],['toggleTargeting','eye'],['bag','pack']]){const button=$(`.loadout-bar [data-action="${action}"]`);if(button)button.innerHTML=iconSvg(icon);}
+function renderEffects(){
+  const panel=$('#effects-panel'),toggle=$('.loadout-status');if(!panel)return;
+  panel.hidden=!effectsOpen;toggle?.setAttribute('aria-expanded',String(effectsOpen));if(!effectsOpen)return;
+  panel.innerHTML=`<div class="effects-inner">${effectChips.length?effectChips.map(c=>`<p class="fx-row${c.tone?` ${c.tone}`:''}">${iconSvg(c.icon)}<span>${escapeHTML(c.text)}</span></p>`).join(''):`<p class="fx-row">${t('controller.effects.none')}</p>`}<p class="fx-note">${escapeHTML(effectNote)}</p></div>`;
+}
 
 function notify(text,{extra=0,danger=false}={}){notice.textContent=text;notice.classList.remove('resting');notice.classList.add('show');notice.classList.toggle('danger',danger);logButton.textContent=extra>0?`+${extra}`:'';logButton.classList.toggle('more',extra>0);clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice.classList.remove('show');noticeTimer=setTimeout(restNotice,600);},2700);}
 // A new blueprint is announced with the action's latest line even when later logs would cover it (docs/ENGINEER.md
@@ -261,8 +272,14 @@ function update(view=renderer.game) {
   $('#quick-weapon').textContent=w.melee?`${w.code} · ∞`:`${w.code} · ${p.ammo[p.weapon]} / ${reserve}`;$('#quick-weapon').title=w.melee?w.desc:`${t('controller.weaponTitle',{v:ammoName(w),reserve,v2:view.ammoCapacity(w.ammoType)})}`;
   const threats=view.visibleEnemies.filter(e=>!isNoncombatant(e)&&ENEMY_TYPES[e.type].range>1&&distance(e,p)<=ENEMY_TYPES[e.type].range&&(view.sight(e,p)||(unitTree(e).fixedTile&&e.charge&&e.aim&&distance(e.aim,p)===0)));
   const exposed=threats.filter(e=>!view.protectingCover(p,e)).length;
-  $('#status-effects').textContent=[view.pursuit?t('controller.status.pursuit'):'',p.wearables?.includes('exo')?`${t('controller.status.exo',{exoPlates:p.exoPlates,plates:EXO_TUNING.plates})}`:'',view.decoy?`${t('controller.status.decoy',{hp:view.decoy.hp,v:Math.max(1,view.decoy.expires-view.turn)})}`:'',...timedStatuses(view),view.weapon?.aimPenalty&&!p.focus?`${t('controller.status.unaimed',{aimPenalty:view.weapon.aimPenalty})}`:'',suppressionStatus(p),...meleeStatus(view),p.recovery?t('controller.status.chainsaw'):'',skillActive(p,'anchor')?t('controller.status.anchor'):'',p.vaultExposed?t('controller.status.vault'):'',skillActive(p,'early_warning')?t('controller.status.warning'):'',isBlack(view,p)?t('controller.status.black'):isDark(view,p)?t('controller.status.dark'):'',exposed?`${t('controller.status.exposed',{exposed})}`:threats.length?(threats.some(e=>view.accuracy(e,p).coverEfficiency===.5)?t('controller.status.halfCover'):t('controller.status.cover')):view.cover.length?t('controller.status.byWall'):'',p.moved?t('controller.status.moved'):'',threats.some(e=>view.accuracy(e,p).sidePenalty)?`${t('controller.status.sidestep',{v:threats.filter(e=>view.accuracy(e,p).sidePenalty).length})}`:'',p.guard?t('controller.status.guard'):'',p.plates?`${t('controller.status.plates',{plates:p.plates})}`:'',p.focus?t('controller.status.focus'):'',p.evasive?t('controller.status.evasive'):'',initiative(p)<0?t('controller.status.fast'):initiative(p)>0?t('controller.status.slow'):''].filter(Boolean).join(' · ');
-  $('#status-effects').style.color=exposed?'#f3a182':'#b6d5b0';$('#status-effects').title=exposed?`${t('controller.status.exposedTitle',{exposed})}`:t('controller.status.coverTitle');
+  // 3.193.0 (user): the status line is icons and numbers (src/ui-icons.js), the same in every language; each chip keeps its
+  // text as a label, and tapping the line unfolds them in words (renderEffects).
+  const chip=(icon,n,tone,text)=>({icon,n,tone,text}),sidestep=threats.filter(e=>view.accuracy(e,p).sidePenalty).length;
+  effectChips=[view.pursuit&&chip('chevrons','','good',t('controller.status.pursuit')),p.wearables?.includes('exo')&&chip('exo',`${p.exoPlates}/${EXO_TUNING.plates}`,'',t('controller.status.exo',{exoPlates:p.exoPlates,plates:EXO_TUNING.plates})),view.decoy&&chip('decoy',Math.max(1,view.decoy.expires-view.turn),'',t('controller.status.decoy',{hp:view.decoy.hp,v:Math.max(1,view.decoy.expires-view.turn)})),...timedStatusChips(view),view.weapon?.aimPenalty&&!p.focus&&chip('reticle',`−${view.weapon.aimPenalty}`,'bad',t('controller.status.unaimed',{aimPenalty:view.weapon.aimPenalty})),suppressionChip(p),...meleeChips(view),p.recovery&&chip('skip','','bad',t('controller.status.chainsaw')),skillActive(p,'anchor')&&chip('anchor','','',t('controller.status.anchor')),p.vaultExposed&&chip('hurdle','+20','bad',t('controller.status.vault')),skillActive(p,'early_warning')&&chip('radar','','good',t('controller.status.warning')),isBlack(view,p)?chip('dark','','',t('controller.status.black')):isDark(view,p)&&chip('moon','','',t('controller.status.dark')),exposed?chip('alert',exposed,'bad',t('controller.status.exposed',{exposed})):threats.length?(threats.some(e=>view.accuracy(e,p).coverEfficiency===.5)?chip('halfWall','','',t('controller.status.halfCover')):chip('wall','','good',t('controller.status.cover'))):view.cover.length&&chip('wall','','dim',t('controller.status.byWall')),p.moved&&chip('arrow','','',t('controller.status.moved')),sidestep&&chip('swap',sidestep,'good',t('controller.status.sidestep',{v:sidestep})),p.guard&&chip('shield','50%','good',t('controller.status.guard')),p.plates&&chip('plates',p.plates,'good',t('controller.status.plates',{plates:p.plates})),p.focus&&chip('reticle','+15','good',t('controller.status.focus')),p.evasive&&chip('dodge','+15','good',t('controller.status.evasive')),initiative(p)<0?chip('up','','good',t('controller.status.fast')):initiative(p)>0&&chip('down','','bad',t('controller.status.slow'))].filter(Boolean);
+  effectNote=exposed?t('controller.status.exposedTitle',{exposed}):t('controller.status.coverTitle');
+  $('#status-effects').innerHTML=effectChips.map(c=>`<span class="fx${c.tone?` ${c.tone}`:''}" title="${escapeHTML(c.text)}">${iconSvg(c.icon)}${c.n===''?'':`<b>${escapeHTML(String(c.n))}</b>`}</span>`).join('');
+  $('#status-effects').setAttribute('aria-label',effectChips.map(c=>c.text).join(t('common.listSeparator'))||t('controller.effects.none'));
+  renderEffects();
   // Grapple preview: only while the hook is ready and the locked target is a legal pull or dash.
   renderer.grapplePreview=null;
   if(p.prepared.skill==='grapple'&&!p.skillState.grapple?.cooldown&&!p.control.disabled&&view.status==='playing'){const plan=view.grapplePlan();if(!plan.reason)renderer.grapplePreview={from:{x:plan.mover.x,y:plan.mover.y},point:plan.point,dash:plan.dash};}
@@ -271,7 +288,6 @@ function update(view=renderer.game) {
   const aimingButton=$('[data-action="toggleTargeting"]');
   aimingButton.setAttribute('aria-pressed',String(renderer.targetingEnabled));
   aimingButton.setAttribute('aria-label',renderer.targetingEnabled?t('controller.aim.off'):t('controller.aim.on'));
-  aimingButton.textContent=renderer.targetingEnabled?t('controller.aim.labelOn'):t('controller.aim.labelOff');
   aimingButton.classList.toggle('enemy-alert',!renderer.targetingEnabled&&view.visibleEnemies.length>0&&view.status==='playing');
   const details=renderer.targetingEnabled?targetDetails(view):null,card=$('#target-card');card.hidden=!details;
   if(details){$('#target-name').textContent=details.name;$('#target-name').setAttribute('aria-label',details.fullName||details.name);$('#target-detail').textContent=details.hp;$('#target-range').textContent=details.chance;$('#target-distance').textContent=details.distance;$('#target-cover').textContent=details.cover;$('#target-state').textContent=details.state;$('#target-traits').textContent=details.traits;$('#target-order').textContent=details.order;card.classList.toggle('out-of-range',!details.withinRange);}
@@ -1131,6 +1147,7 @@ document.addEventListener('click',e=>{
   // Settling the animation may raise a menu (level-up, room prompt); then this press was only the skip.
   if(b&&!b.disabled&&skipPlayback()&&$('#modal').open)return;
   if(playback||orientationBlocked||!b||b.disabled)return;
+  if(b.dataset.effects!==undefined){effectsOpen=!effectsOpen;renderEffects();return;}   // 3.193.0: the effects strip
   // 3.117.0: pressing a button in a menu is heard (the adopted select sound); the battle controls have their own sounds.
   if(b.closest('#modal'))audio.play('select');
   if(b.dataset.packInfo){const desc=document.getElementById('pack-desc-'+b.dataset.packInfo);if(desc){desc.hidden=!desc.hidden;b.setAttribute('aria-expanded',String(!desc.hidden));}return;}

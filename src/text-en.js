@@ -359,8 +359,6 @@ export default Object.freeze({
  "controller.status.coverTitle":"Cover is directional; watch your flanks.",
  "controller.aim.off":"Hide aim info",
  "controller.aim.on":"Show aim info",
- "controller.aim.labelOn":"Aim on",
- "controller.aim.labelOff":"Aim off",
  "controller.fire.punch":"Strike",
  "controller.fire.label":"Fire",
  "controller.floorNotice":"Floor {floor} · {v}: {v2}",
@@ -794,6 +792,8 @@ export default Object.freeze({
  "controller.hud.survivalOpen":"Integrity {integrity} · exit open",
  "controller.title.about":"Rights · a note on AI",
  "controller.map.survivalLegend":"Points: cyan is safe, red is being held, grey has fallen; an amber frame means a group is on its way.",
+ "controller.effects.title":"Current effects",
+ "controller.effects.none":"No effects right now.",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // DAILY OPERATION",
  // deckLabels
@@ -1295,10 +1295,6 @@ export default Object.freeze({
  "index.hp":"HP",
  "index.plates":"Plate",
  "index.notSaved":"⚠ Not saved",
- "index.weapons":"▤ Weapons",
- "index.target":"⌖ Target",
- "index.aim":"Aim",
- "index.pack":"▣ Pack",
  "index.elevator":"Elevator",
  "index.rotateTitle":"Rotate to portrait",
  "index.rotateKept":"Your turn and menus are kept.",

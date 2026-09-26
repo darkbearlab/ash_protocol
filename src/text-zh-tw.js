@@ -360,8 +360,6 @@ export default Object.freeze({
  "controller.status.coverTitle":"掩體有方向性，注意側翼。",
  "controller.aim.off":"關閉瞄準資訊",
  "controller.aim.on":"開啟瞄準資訊",
- "controller.aim.labelOn":"瞄準 開",
- "controller.aim.labelOff":"瞄準 關",
  "controller.fire.punch":"揮拳",
  "controller.fire.label":"開火",
  "controller.floorNotice":"第 {floor} 層 · {v}：{v2}",
@@ -795,6 +793,8 @@ export default Object.freeze({
  "controller.hud.survivalOpen":"完整性 {integrity} · 撤離開放",
  "controller.title.about":"版權 · AI 使用聲明",
  "controller.map.survivalLegend":"目標點：青色安全、紅色被佔、灰色失守；琥珀色框表示有增援正要過來。",
+ "controller.effects.title":"目前狀態",
+ "controller.effects.none":"沒有特殊狀態。",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // 灰燼協定 // DAILY OPERATION",
  // deckLabels
@@ -1296,10 +1296,6 @@ export default Object.freeze({
  "index.hp":"生命",
  "index.plates":"護甲",
  "index.notSaved":"⚠ 未存檔",
- "index.weapons":"▤ 武器",
- "index.target":"⌖ 目標",
- "index.aim":"瞄準",
- "index.pack":"▣ 背包",
  "index.elevator":"電梯",
  "index.rotateTitle":"請轉回直向遊玩",
  "index.rotateKept":"目前回合與選單已保留。",

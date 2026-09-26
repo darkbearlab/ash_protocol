@@ -11,9 +11,11 @@ export function suppressionTag(actor){
  const s=suppressionState(actor);
  return s.immune||!s.stacks?'':t(s.immobile?'suppression-ui.tagPinned':'suppression-ui.tag',{stacks:s.stacks,max:s.max,penalty:s.accuracyPenalty});
 }
-export function suppressionStatus(actor){
- const s=suppressionState(actor);
- return s.immune||!s.stacks?'':t(s.immobile?'suppression-ui.statusPinned':'suppression-ui.status',{stacks:s.stacks,penalty:s.accuracyPenalty,turns:suppressionTurns(actor)});
+export function suppressionStatus(actor){return suppressionChip(actor)?.text||'';}
+// 3.193.0: the same as an icon chip for the loadout bar (src/ui-icons.js); pinned shows its own mark.
+export function suppressionChip(actor){
+ const s=suppressionState(actor);if(s.immune||!s.stacks)return null;
+ return {icon:s.immobile?'pin':'suppress',n:s.stacks,tone:'bad',text:t(s.immobile?'suppression-ui.statusPinned':'suppression-ui.status',{stacks:s.stacks,penalty:s.accuracyPenalty,turns:suppressionTurns(actor)})};
 }
 
 // Active skills first, then passives; reasons come straight from learningInventory.

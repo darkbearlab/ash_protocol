@@ -16,11 +16,13 @@ export function spiritFadeIn(view){
   return next<spiritDelay?s.lastKill+spiritDelay-view.turn:(next-spiritDelay)%spiritInterval===0?1:spiritInterval;
 }
 // Status-line entries. The controller puts them first so a narrow screen does not cut them.
-export function meleeStatus(view){
+export function meleeStatus(view){return meleeChips(view).map(chip=>chip.text);}
+// 3.193.0: the same as icon chips for the loadout bar (src/ui-icons.js).
+export function meleeChips(view){
   const p=view.player,out=[];
-  if(p.battleSpirit?.stacks)out.push(t('melee-ui.spiritFade',{stacks:p.battleSpirit.stacks,turns:spiritFadeIn(view)}));
-  if(view.targeted&&ambushReady(view,view.targeted))out.push(`${t('melee-ui.ambush',{ambush:MELEE_TUNING.ambush})}`);
-  if(duelActive(view))out.push(`${t('melee-ui.duelist',{duelist:MELEE_TUNING.duelist})}`);
+  if(p.battleSpirit?.stacks)out.push({icon:'flame',n:p.battleSpirit.stacks,tone:'good',text:t('melee-ui.spiritFade',{stacks:p.battleSpirit.stacks,turns:spiritFadeIn(view)})});
+  if(view.targeted&&ambushReady(view,view.targeted))out.push({icon:'fang',n:`×${MELEE_TUNING.ambush}`,tone:'good',text:t('melee-ui.ambush',{ambush:MELEE_TUNING.ambush})});
+  if(duelActive(view))out.push({icon:'duel',n:`+${MELEE_TUNING.duelist}`,tone:'good',text:t('melee-ui.duelist',{duelist:MELEE_TUNING.duelist})});
   return out;
 }
 // Bag header lines: what the blade stash and battle spirit are worth right now.

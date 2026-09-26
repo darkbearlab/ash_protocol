@@ -104,10 +104,10 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 .control-deck .action[data-action="skill"]:disabled{opacity:.38;cursor:default}
 .target-card.compact{padding:3px 1px;gap:0;font-size:9px;line-height:1.1}.target-card.compact strong{font-size:10px}.target-card.compact .target-state{font-size:8px}
 
-.loadout-bar [data-action="toggleTargeting"]{min-width:52px;padding:0 5px}
+.loadout-bar [data-action="toggleTargeting"]{min-width:44px;padding:0}
 .loadout-bar [data-action="toggleTargeting"][aria-pressed="true"]{border-color:#96cbb7;color:#d0eee1}
 /* 3.178.0: the flashlight switch, an icon only; warm when on. */
-.loadout-bar [data-action="flashlight"]{min-width:40px;padding:0 4px;font-size:15px}
+.loadout-bar [data-action="flashlight"]{min-width:44px;padding:0;font-size:22px;line-height:1}
 .loadout-bar [data-action="flashlight"][aria-pressed="true"]{border-color:#e7cf8a;color:#fff0bf;background:#4a4424}
 .loadout-bar .enemy-alert{animation:target-alert 1s ease-in-out infinite}
 @keyframes target-alert{0%,100%{background:#293323;color:#c4d1b3}50%{background:#b46935;color:#fff0cf;border-color:#ffcb80}}
@@ -568,3 +568,20 @@ html[lang="en"] .comms.compact .comms-who{line-height:15px}
 .comms.compact .comms-timer{bottom:-1px}
 .comms.held{cursor:default}
 @media (prefers-reduced-motion:reduce){.comms-face,.comms-line::after{animation:none}}
+/* 3.193.0 (user): the loadout bar is icons only, the same in every language (src/ui-icons.js). The status line is icon
+   chips; tapping it lists them in words. The aim and flashlight switches read on/off by brightness alone. */
+.loadout-bar .loadout-status{display:flex;justify-content:center;flex-direction:column;align-items:flex-start;gap:3px;flex:1;min-width:0;min-height:44px;padding:0 4px 0 0;border:0;background:none;color:inherit;text-align:left;white-space:normal;font:inherit;cursor:pointer}
+.loadout-bar [data-action="weapons"],.loadout-bar [data-action="cycleTarget"],.loadout-bar [data-action="bag"]{min-width:44px;padding:0;display:flex;align-items:center;justify-content:center}
+.loadout-bar [data-action="toggleTargeting"]{display:flex;align-items:center;justify-content:center}
+.loadout-bar .px-icon{display:block}
+.loadout-bar [data-action="toggleTargeting"][aria-pressed="false"],.loadout-bar [data-action="flashlight"][aria-pressed="false"]{color:#5d6a57;border-color:#34412e;background:#1e2a1b}
+#status-effects{display:flex;align-items:center;gap:7px;min-height:14px;width:100%}
+#status-effects .fx{display:inline-flex;align-items:center;gap:2px;flex:none;color:#b8cda6}
+#status-effects .fx b{font:600 10px var(--mono)}
+#status-effects .fx.good{color:#bfe0a8}#status-effects .fx.bad{color:#f3a182}#status-effects .fx.dim{color:#7d8a78}
+.effects-panel{grid-area:loadout;align-self:start;height:0;position:relative;z-index:6}   /* no height of its own: the strip hangs upward over the field */
+.effects-panel .effects-inner{position:absolute;left:0;right:0;bottom:0;max-height:42vh;overflow:auto;padding:6px 10px;background:#121a15b3;border:1px solid #45583b;border-bottom:0;text-shadow:0 1px 1px #000}   /* user: the field shows through */
+.effects-panel[hidden]{display:none}
+.effects-panel .fx-row{display:flex;align-items:center;gap:10px;margin:4px 0;font-size:12px;color:#c9d6bf}.effects-panel .fx-row.good{color:#bfe0a8}.effects-panel .fx-row.bad{color:#f3a182}.effects-panel .fx-row.dim{color:#8d9a88}
+.effects-panel .fx-note{margin:6px 0 0;color:var(--muted);font-size:11px}
+.loadout-bar .loadout-status[aria-expanded="true"]{background:#223120}
