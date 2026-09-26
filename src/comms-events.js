@@ -7,13 +7,25 @@
 //   boss                     once per boss, the first time it is seen
 //   researcher               once per floor
 //   contact                  once per floor, the first enemy seen (the overseer's cue)
+//   survivalWave             3.191.0: a survival wave announced, naming the points it goes for
+//   survivalPressed          an enemy stands on a point (at most every few turns); survivalLost: a point falls
 // Which speaker says what is src/comms.js COMMS_LINES; an event nobody has a line for passes silently.
 import {logSlots} from './comms.js';
 import {isBossClass,isNoncombatant} from './enemy-data.js';
 import {enemyDisplayName} from './enemy-affixes.js';
+import {t} from './i18n.js';
+import {pointName} from './survival.js';
 
-export const COMMS_EVENT_TUNING=Object.freeze({squadDeploy:Object.freeze({cooldown:6}),squadReady:Object.freeze({cooldown:6})});
-const LOG_EVENTS=Object.freeze([['squadDeploy','squad.identified'],['squadReady','squad.ready'],['grenade','enemy-behavior.grenadeReady']]);
+export const COMMS_EVENT_TUNING=Object.freeze({squadDeploy:Object.freeze({cooldown:6}),squadReady:Object.freeze({cooldown:6}),survivalPressed:Object.freeze({cooldown:4})});
+// The points the newest announced survival wave goes for, and how soon it arrives.
+function waveVars(game){
+ const s=game.survival,last=s?Math.max(-1,...s.incoming.map(i=>i.wave)):-1,groups=s?s.incoming.filter(i=>i.wave===last):[];
+ const points=[...new Set(groups.map(i=>i.target).filter(Boolean))].map(id=>s.points.find(p=>p.id===id)).filter(Boolean);
+ return {points:points.map(pointName).join(t('common.listSeparator')),n:groups.length?Math.max(0,groups[0].due-game.turn):0};
+}
+// [event, log sentence, vars from the log's slots and the game]
+const LOG_EVENTS=Object.freeze([['squadDeploy','squad.identified'],['squadReady','squad.ready'],['grenade','enemy-behavior.grenadeReady'],
+ ['survivalWave','survival.warning',(slots,game)=>waveVars(game)],['survivalPressed','survival.pointPressed',slots=>({point:slots.point})],['survivalLost','survival.pointLost',slots=>({point:slots.point})]]);
 
 export const newCommsMemory=runId=>({runId,until:{},bosses:[],researcherFloors:[],contactFloors:[]});
 // What the caller notes just before an action: the ids of the enemies in sight and the locked target.
@@ -30,9 +42,9 @@ export function commsEvents({game,before=null,logs=[],memory}){
  const turn=game.turn,floor=game.floor,ready=type=>!(memory.until[type]>turn);
  const push=(type,vars={})=>{events.push({type,vars});const cooldown=COMMS_EVENT_TUNING[type]?.cooldown;if(cooldown)memory.until[type]=turn+cooldown;};
  const seen=new Set();
- for(const entry of [...logs].reverse())for(const [type,sentence] of LOG_EVENTS){
-  if(seen.has(type)||!ready(type)||!logSlots(entry?.text,sentence))continue;
-  seen.add(type);push(type);
+ for(const entry of [...logs].reverse())for(const [type,sentence,vars] of LOG_EVENTS){
+  const slots=seen.has(type)||!ready(type)?null:logSlots(entry?.text,sentence);if(!slots)continue;
+  seen.add(type);push(type,vars?vars(slots,game):{});
  }
  const visible=(game.visibleEnemies||[]).filter(e=>e.hp>0),hostile=visible.filter(e=>!isNoncombatant(e));
  if(hostile.length&&!memory.contactFloors.includes(floor)){memory.contactFloors.push(floor);push('contact');}

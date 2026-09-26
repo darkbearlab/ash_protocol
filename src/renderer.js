@@ -37,7 +37,9 @@ import {MODULE_TYPES,moduleCells,modulePoint} from './modules.js';
 import {isContainer,CONTAINER_KINDS} from './containers.js';
 import {isBarrier,edgeCells} from './barriers.js';
 import {areaCells,squareCells} from './throwables.js';
-import {pointLetter,SURVIVAL_TUNING} from './survival.js';
+import {pointLetter,pointStatus,SURVIVAL_TUNING} from './survival.js';
+// 3.191.0: how a survival point shows, on the field and the floor map: quiet, targeted (a group is on its way), held, fallen.
+const POINT_COLORS=Object.freeze({quiet:'#6fd3d6',targeted:'#f0a24a',pressed:'#ff5a44',fallen:'#6b6b6b'});
 import {cameraFrame,zoomStep} from './camera.js';
 import {MUZZLE_FLASHES,flashCells,flashUnit,muzzlePoint} from './muzzle-flash.js';
 import {targetCardPlacement,actorObstacle,spriteSize} from './target-card.js';
@@ -189,10 +191,10 @@ export class Renderer {
     const minX=Math.max(0,Math.floor(this.camera.x-this.w/t/2-1)),maxX=Math.min(SIZE-1,Math.ceil(this.camera.x+this.w/t/2+1));
     const minY=Math.max(0,Math.floor(this.camera.y-this.h/t/2-1)),maxY=Math.min(SIZE-1,Math.ceil(this.camera.y+this.h/t/2+2));
     for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++) {
-      const a=this.project(x,y),left=a.x-half,top=a.y-half,seen=g.seen[y][x];
+      const a=this.project(x,y),left=a.x-half,top=a.y-half,seen=g.mapped(x,y);   // 3.191.0: survival maps everything
       if(g.grid[y][x]===VOID)continue;   // 3.164.0 pits: no floor at all (user decision)
       if(g.grid[y][x]!==1) {
-        if([[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.grid[y+dy]?.[x+dx]===1&&g.seen[y+dy]?.[x+dx])){this.box(left,top,t,t,'#202e2b');wallCells.push({a,x,y});}
+        if([[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.grid[y+dy]?.[x+dx]===1&&g.mapped(x+dx,y+dy))){this.box(left,top,t,t,'#202e2b');wallCells.push({a,x,y});}
         else this.box(left,top,t,t,'#12201a10','#6685790c');continue;
       }
       if(!seen)continue;
@@ -215,8 +217,10 @@ export class Renderer {
       c.globalAlpha=g.visibleTiles?.has(x+','+y)?1:.36;
       // 3.151.0 blind fire: until the tile is seen again it keeps what it showed before the shot (src/blind-fire.js).
       const memo=g.visibleTiles?.has(x+','+y)?null:g.blindAftermath?.get(x+','+y);
-      for(const trace of memo?memo.traces:traceCells.get(x+','+y)||[])drawTrace(c,trace,a.x,a.y,t);
-      const hazard=g.hazards.find(h=>h.x===x&&h.y===y);if(hazard)this.hazard(a,hazard,time);
+      // 3.191.0: on a mapped but never-seen tile (survival) traces, hazards, bodies and drops stay unknown.
+      const looked=g.seen[y][x];
+      if(looked)for(const trace of memo?memo.traces:traceCells.get(x+','+y)||[])drawTrace(c,trace,a.x,a.y,t);
+      const hazard=looked&&g.hazards.find(h=>h.x===x&&h.y===y);if(hazard)this.hazard(a,hazard,time);
       // Swarm invasion point (3.85.1): a burrow appears once the surge wakes up and turns to rubble when it is spent.
       // It is not a prop, so it never blocks, takes damage or shows a health bar (docs/SWARM.md 9.1).
       if(g.swarmWaves?.active&&g.swarmWaves.origin.x===x&&g.swarmWaves.origin.y===y)drawNestSprite(c,this.terrainImages?.get(NEST_ATLAS),a,t,'burrow',g.swarmWaves.remaining>0?'active':'ruins');
@@ -224,7 +228,7 @@ export class Renderer {
       const room=g.rooms?.find(r=>r.supply&&r.cx===x&&r.cy===y);if(room){const sign=SUPPLY_ROOMS[room.supply];if(sign)this.text(sign.code,a.x,a.y-this.tile*.4,sign.color,9);}
       if(g.exitPoint.x===x&&g.exitPoint.y===y)this.exit(a,time);
       // 3.178.0: what lies in the black, bodies and items, is not seen unless you see in the dark.
-      const shown=!isBlack(g,{x,y})||seesInDark(g,p);
+      const shown=looked&&(!isBlack(g,{x,y})||seesInDark(g,p));
       if(shown)for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y&&(!memo||memo.dead.includes(dead.id)))this.corpse(a,dead.type,undefined,dead);
       if(g.operatorCorpse?.x===x&&g.operatorCorpse.y===y)this.operatorCorpse(a,g.operatorCorpse,time);
       for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
@@ -238,6 +242,9 @@ export class Renderer {
 
     // Swarm waves arrive unannounced (user decision, 3.85.2); only retreat reinforcements keep their countdown marker.
     for(const spawn of g.reinforcements||[])if(g.visible(spawn))this.markArea(spawn,0,'#70dce833','#94f0eeaa','+'+Math.max(1,spawn.due-g.turn));
+    // 3.191.0: announced survival groups show where they will come in, seen or not: the point's letter (orange) or a red
+    // mark for those coming for you, and the turns left.
+    for(const i of g.survival?.incoming||[]){const n=Math.max(1,i.due-g.turn),pt=g.survival.points.find(p=>p.id===i.target);this.markArea(i,0,pt?'#f0a24a2e':'#ff5a4430',pt?'#f0a24acc':'#ff5a44cc',pt?`${pointLetter(Number(pt.id.slice(6)))}+${n}`:`!+${n}`);}
     // Allied bombardment marks (3.95.0) are amber, so the player can tell them from enemy marks; both still hurt the player.
     for(const m of g.marks)if(m.kind!=='grenade')this.markArea(m,1,m.kind==='ally'?'#e9a2494f':'#e969494f',m.kind==='ally'?'#f8c46977':'#f8996977',String(Math.max(1,m.due-g.turn)));
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);
@@ -262,8 +269,9 @@ export class Renderer {
     // 3.178.0 (docs/LIGHTING.md): wall lamps glow warm against their wall; a glowstick is a small green bar.
     // 3.187.0: a lamp that has been shot out is a dark fitting.
     for(const lamp of g.lamps||[])if(g.seen?.[lamp.y]?.[lamp.x]){const {x:lx,y:ly}=this.lampPoint(lamp);if(lamp.hp>0){this.glow(lx,ly,this.tile*.9,'#ffdca030');this.box(lx-3,ly-3,6,6,'#fff0c8','#8a6a3a');}else this.box(lx-3,ly-3,6,6,'#2a2620','#5a4a32');}
-    // 3.189.0 (docs/SURVIVAL.md): survival points, shown seen or not: letter and life; red while held, grey once fallen.
-    for(const [i,pt] of (g.survival?.points||[]).entries()){const a=this.project(pt.x,pt.y),t=this.tile,fallen=pt.hp<=0,color=fallen?'#6b6b6b':pt.pressed?'#e2553f':'#6fd3d6';if(!fallen)this.glow(a.x,a.y,t*.9,pt.pressed?'#ff503c38':'#6fd3d630');this.box(a.x-t*.28,a.y-t*.28,t*.56,t*.56,color+'40',color);this.text(pointLetter(i),a.x,a.y+4,color,11);if(!fallen){const w=t*.6;this.box(a.x-w/2,a.y+t*.34,w,3,'#000000aa');this.box(a.x-w/2,a.y+t*.34,w*pt.hp/SURVIVAL_TUNING.pointHp,3,color);}}
+    // 3.189.0 (docs/SURVIVAL.md): survival points, shown seen or not: letter and life; red while held, grey once fallen;
+    // 3.191.0: orange while a group is on its way to it.
+    for(const [i,pt] of (g.survival?.points||[]).entries()){const a=this.project(pt.x,pt.y),t=this.tile,status=pointStatus(g,pt),fallen=status==='fallen',color=POINT_COLORS[status];if(!fallen)this.glow(a.x,a.y,t*.9,color+'38');this.box(a.x-t*.28,a.y-t*.28,t*.56,t*.56,color+'40',color);this.text(pointLetter(i),a.x,a.y+4,color,11);if(!fallen){const w=t*.6;this.box(a.x-w/2,a.y+t*.34,w,3,'#000000aa');this.box(a.x-w/2,a.y+t*.34,w*pt.hp/SURVIVAL_TUNING.pointHp,3,color);}}
     for(const stick of g.glowsticks||[])if(g.seen?.[stick.y]?.[stick.x]){const a=this.project(stick.x,stick.y),t=this.tile;this.glow(a.x,a.y,t*.8,'#9dff8a2a');this.line(a.x-4,a.y+3,a.x+4,a.y-3,'#c8ffb8',3);}
     for(const flare of g.flares||[])if(g.seen?.[flare.y]?.[flare.x]){const a=this.project(flare.x,flare.y),t=this.tile;this.glow(a.x,a.y,t*1.6,'#ffd27a30');this.box(a.x-2,a.y-2,4,4,'#fff1c4');this.text(String(Math.max(1,flare.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#ffe3a8',8);}
     if(this.mode==='launch'&&this.aim)this.markArea(this.aim,1,'#e6a95b33','#eacb84aa','');
@@ -361,7 +369,7 @@ export class Renderer {
     if(this.gore?.length){for(const b of this.gore)drawBurstAir(c,t,this.project(b.at.x,b.at.y),b.burst,time-b.start,false,(dx,dy)=>goreShade(b.at.x+dx,b.at.y+dy));this.gore=this.gore.filter(b=>time-b.start<b.life);}
     if(this.kia)drawKiaAir(this,time);
     // Raised partitions share the wall occlusion layer; footprints remain on ground edges.
-    const seenBarriers=g.barriers.filter(b=>edgeCells(b).some(q=>g.seen[q.y]?.[q.x]));
+    const seenBarriers=g.barriers.filter(b=>edgeCells(b).some(q=>g.mapped(q.x,q.y)));
     const barriers=[...seenBarriers.map(b=>({b,y:b.y+(b.axis==='x'?.5:.08)})),...barrierJunctions(seenBarriers).map(j=>({j,y:j.y+.081}))].sort((a,b)=>a.y-b.y);
     for(const {b,j}of barriers){c.globalAlpha=(b?g.visible(b):j.edges.some(e=>g.visible(e)))?1:.35;if(b)this.drawBarrier(b);else drawJunction(c,j,this.project(j.x,j.y),this.tile,this.terrainImages,g);c.globalAlpha=1;}
     // Walls occlude all world-space content, including actors, traces and transient effects.
@@ -635,7 +643,9 @@ if((p.hp>0||p.type==='terminal')&&this.sprite(p.type,a,32)){this.objectHealth(p,
   grenadeLabel(m){const t=this.tile,a=this.project(m.x,m.y),y=a.y-t*.5-3,w=m.label.length*10+8,prepare=m.phase==='prepare';
     this.box(a.x-w/2,y-10,w,13,'#1b1410d9',prepare?'#f0c77a99':'#f8996999');this.text(m.label,a.x,y,prepare?'#ffe0a0':'#ffd3a4',9);}
   markArea(center,radius,fill,stroke,label){const g=this.game,t=this.tile;for(const {x,y} of areaCells(g.grid,center,radius,g.barriers,g)){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}if(label){const a=this.project(center.x,center.y);this.text(label,a.x,a.y+5,'#ffd3a4',17);}}
-  drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===VOID&&g.seen[y][x]){c.fillStyle='#07090a';c.fillRect(x*k+1,y*k+1,k-2,k-2);c.strokeStyle='#b8392c99';c.lineWidth=1;c.strokeRect(x*k+1.5,y*k+1.5,k-3,k-3);}for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.seen[y][x]){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?(isDark(g,{x,y})?'#343e62':'#809672'):(isDark(g,{x,y})?'#232a40':'#384b3a');c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const m of g.props.filter(p=>p.type==='module'))for(const q of moduleCells(m))if(g.seen[q.y]?.[q.x]){c.strokeStyle=MODULE_TYPES[m.theme].color+'88';c.lineWidth=1;c.strokeRect(q.x*k+1,q.y*k+1,k-2,k-2);}for(const station of g.props.filter(p=>p.type==='terminal'&&g.seen[p.y]?.[p.x])){c.fillStyle=station.used?'#526c62':'#a3e3c0';c.fillRect(station.x*k+3,station.y*k+3,k-6,k-6);}for(const b of g.barriers)if(b.hp>0&&edgeCells(b).some(p=>g.seen[p.y]?.[p.x])){const x=(b.x+.5)*k,y=(b.y+.5)*k;c.strokeStyle=b.open?'#8ad2bb':b.type==='door'?'#dec184':'#bdc7bd';c.lineWidth=2;c.beginPath();c.moveTo(x-(b.axis==='y'?k/2:0),y-(b.axis==='x'?k/2:0));c.lineTo(x+(b.axis==='y'?k/2:0),y+(b.axis==='x'?k/2:0));c.stroke();}for(const box of g.props.filter(o=>isContainer(o)&&!o.opened&&g.seen[o.y]?.[o.x])){c.strokeStyle=CONTAINER_KINDS[box.kind].color;c.lineWidth=2;c.strokeRect(box.x*k+3,box.y*k+3,Math.max(3,k-6),Math.max(3,k-6));}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.exitPoint,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),...(g.localAllies||[]).map(a=>[a,a.hp>0?'#83efd1':'#b5a774']),[g.player,'#ffcb8c']])if(g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}for(const o of [...missionObjects(g).filter(t=>!t.done),...g.visibleEnemies.filter(e=>missionTarget(g,e))])if(g.seen[o.y]?.[o.x]){c.strokeStyle='#88f3ff';c.lineWidth=2;c.strokeRect(o.x*k+1,o.y*k+1,k-2,k-2);}for(const pt of g.survival?.points||[]){c.strokeStyle=pt.hp<=0?'#6b6b6b':pt.pressed?'#ff5a44':'#6fd3d6';c.lineWidth=2;c.strokeRect(pt.x*k+1,pt.y*k+1,k-2,k-2);}   // survival: 3.189.0
+  drawMap(canvas){const c=canvas.getContext('2d'),g=this.game,k=canvas.width/SIZE;c.fillStyle='#10191a';c.fillRect(0,0,canvas.width,canvas.height);for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===VOID&&g.mapped(x,y)){c.fillStyle='#07090a';c.fillRect(x*k+1,y*k+1,k-2,k-2);c.strokeStyle='#b8392c99';c.lineWidth=1;c.strokeRect(x*k+1.5,y*k+1.5,k-3,k-3);}for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(g.grid[y][x]===1&&g.mapped(x,y)){c.fillStyle=g.visibleTiles.has(`${x},${y}`)?(isDark(g,{x,y})?'#343e62':'#809672'):(isDark(g,{x,y})?'#232a40':'#384b3a');c.fillRect(x*k+1,y*k+1,k-2,k-2);}for(const m of g.props.filter(p=>p.type==='module'))for(const q of moduleCells(m))if(g.mapped(q.x,q.y)){c.strokeStyle=MODULE_TYPES[m.theme].color+'88';c.lineWidth=1;c.strokeRect(q.x*k+1,q.y*k+1,k-2,k-2);}for(const station of g.props.filter(p=>p.type==='terminal'&&g.mapped(p.x,p.y))){c.fillStyle=station.used?'#526c62':'#a3e3c0';c.fillRect(station.x*k+3,station.y*k+3,k-6,k-6);}for(const b of g.barriers)if(b.hp>0&&edgeCells(b).some(p=>g.mapped(p.x,p.y))){const x=(b.x+.5)*k,y=(b.y+.5)*k;c.strokeStyle=b.open?'#8ad2bb':b.type==='door'?'#dec184':'#bdc7bd';c.lineWidth=2;c.beginPath();c.moveTo(x-(b.axis==='y'?k/2:0),y-(b.axis==='x'?k/2:0));c.lineTo(x+(b.axis==='y'?k/2:0),y+(b.axis==='x'?k/2:0));c.stroke();}for(const box of g.props.filter(o=>isContainer(o)&&!o.opened&&g.mapped(o.x,o.y))){c.strokeStyle=CONTAINER_KINDS[box.kind].color;c.lineWidth=2;c.strokeRect(box.x*k+3,box.y*k+3,Math.max(3,k-6),Math.max(3,k-6));}for(const item of g.items)if(g.seen[item.y]?.[item.x]){c.fillStyle='#d9bd7b';c.fillRect(item.x*k+4,item.y*k+4,Math.max(2,k-8),Math.max(2,k-8));}for(const [o,color]of[[g.exitPoint,'#9ee3bf'],...g.visibleEnemies.map(e=>[e,'#e29a78']),...(g.localAllies||[]).map(a=>[a,a.hp>0?'#83efd1':'#b5a774']),[g.player,'#ffcb8c']])if(o===g.exitPoint?g.mapped(o.x,o.y):g.seen[o.y]?.[o.x]){c.fillStyle=color;c.fillRect(o.x*k+2,o.y*k+2,k-4,k-4);}for(const o of [...missionObjects(g).filter(t=>!t.done),...g.visibleEnemies.filter(e=>missionTarget(g,e))])if(g.seen[o.y]?.[o.x]){c.strokeStyle='#88f3ff';c.lineWidth=2;c.strokeRect(o.x*k+1,o.y*k+1,k-2,k-2);}for(const i of g.survival?.incoming||[]){c.strokeStyle=i.target?'#f0a24a':'#ff5a44';c.lineWidth=1.5;c.beginPath();c.arc((i.x+.5)*k,(i.y+.5)*k,k*.9,0,Math.PI*2);c.stroke();}   // 3.191.0: announced entries
+    // 3.191.0 (user): the floor map shows every point big and filled, by status: red while held, orange while targeted.
+    for(const [n,pt] of (g.survival?.points||[]).entries()){const color=POINT_COLORS[pointStatus(g,pt)],r=k*1.3,cx=(pt.x+.5)*k,cy=(pt.y+.5)*k;c.fillStyle=color;c.fillRect(cx-r,cy-r,r*2,r*2);c.strokeStyle='#0a0f10';c.lineWidth=1;c.strokeRect(cx-r,cy-r,r*2,r*2);c.fillStyle='#0a0f10';c.font=`bold ${Math.round(r*1.5)}px monospace`;c.textAlign='center';c.textBaseline='middle';c.fillText(pointLetter(n),cx,cy+.5);}
 const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ffd9a0';c.strokeRect(target.x*k+.5,target.y*k+.5,k-1,k-1);}}
   // Callouts go to the bubble board, timed from the moment playback reaches them; everything else is a short effect.
   // Pixel cells laid along the barrel (src/muzzle-flash.js), over the shooter's sprite. In a dark room the first frames

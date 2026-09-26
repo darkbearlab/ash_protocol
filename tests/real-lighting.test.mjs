@@ -40,7 +40,7 @@ test('the numbers the user set',()=>{
   assert.deepEqual([FLARE_TUNING.range,FLARE_TUNING.radius],[7,3],'a flare is thrown farther, its lit radius unchanged');
   assert.equal(terminalCost('glowstick'),5);assert.equal(BASE_SUPPLIES.glowsticks,2);assert.ok(CAPPED_ITEMS.includes('glowstick'));
   assert.equal(PREPARED_CATALOG.item.glowstick.resource,'glowsticks');assert.equal(PREPARED_CATALOG.item.glowstick.aim,'throw');
-  assert.equal(SAVE_VERSION,78);
+  assert.equal(SAVE_VERSION,79);
 });
 
 test('each source is lit in its core and one level darker per tile past it; the brightest wins, nothing stacks',()=>{
@@ -243,6 +243,6 @@ test('the controls: a switch beside the aim switch, the L key, and throwing aims
   assert.ok(keys.includes("{id:'flashlight',group:t('hotkeyActions.flashlight.group'),label:t('hotkeyActions.flashlight.label'),defaults:['l']}"));
   assert.ok(source.includes("else if(action==='decoy'||action==='mine'||action==='glowstick')startPlaceAim(action);"));
   assert.ok(source.includes("case 'flashlight':act('flashlight');break;"));
-  assert.ok(renderer.includes("const shown=!isBlack(g,{x,y})||seesInDark(g,p);"),'what lies in the black is not drawn');
+  assert.ok(renderer.includes("const shown=looked&&(!isBlack(g,{x,y})||seesInDark(g,p));"),'what lies in the black is not drawn (3.191.0: nor on a mapped tile never seen)');
   assert.ok(renderer.includes("if(shown)for(const weapon of [false,true])")&&renderer.includes("if(shown)for(const dead of g.enemies)"));
 });

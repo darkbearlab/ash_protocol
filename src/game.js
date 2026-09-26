@@ -4,7 +4,7 @@ import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,reco
 import {UNLOCK_SETTINGS} from './unlock-catalog.js';
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
-import {isSurvival,setupSurvival,tickSurvival,validSurvival,survivalAction,holdsPoint} from './survival.js';
+import {isSurvival,setupSurvival,tickSurvival,validSurvival,survivalAction,holdsPoint,pointBlocks} from './survival.js';
 import {validSquad,postSquads} from './squad.js';
 import {recruitConscripts,rebelMorale,witnessDeath,isEnforcer,validRebels,soundAlarm,tickAlarms} from './rebels.js';
 import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
@@ -266,7 +266,10 @@ export class Game {
   accuracy(attacker,target){return shotChance(this,attacker,target);}
   solid(x,y){return this.props.find(o=>o.x===x&&o.y===y&&o.hp>0&&(o.type==='cover'||o.type==='barrel'||o.type==='nest'));}
   // 3.164.0: a flyer may hover over a pit (src/pits.js); everyone else keeps to the floor.
-  passable(x,y,actor){const v=this.grid[y]?.[x];return (v===1||v===VOID&&hasEnemyTag(actor,'flying'))&&(!this.solid(x,y)||hasEnemyTag(actor,'flying'))&&!knownMine(this,actor,x,y);}
+  passable(x,y,actor){const v=this.grid[y]?.[x];return (v===1||v===VOID&&hasEnemyTag(actor,'flying'))&&(!this.solid(x,y)||hasEnemyTag(actor,'flying'))&&!knownMine(this,actor,x,y)&&!pointBlocks(this,actor,x,y);}   // 3.191.0: survival points
+  // 3.191.0 (user): a survival floor's layout is known from the start. The renderer draws the floor, walls, doors, crates,
+  // terminals and the exit where a tile is mapped; what lies loose (drops, bodies, traces) still needs `seen`.
+  mapped(x,y){return Boolean(this.seen[y]?.[x]||this.survival&&this.grid[y]?.[x]!==undefined);}
   // `warnings:false` (restore only): a loaded save redraws what is seen but raises no new alarm; the next look in play does.
   reveal({warnings=true}={}) {
     syncPetSenses(this);
@@ -1498,6 +1501,8 @@ export class Game {
       }
       // 3.187.0: wall lamps can be shot out; every lamp in an older save is still lit.
       if(version<76)for(const f of [g,...Object.values(g.floorStates||{})])for(const lamp of f.lamps||[])lamp.hp??=1;
+      // 3.191.0: survival waves are announced ahead; a run from 3.189–3.190 has none waiting yet.
+      if(version<79&&g.survival&&!Array.isArray(g.survival.incoming))g.survival.incoming=[];
       g.glowsticks??=[];g.gunFlashes??=[];
       if(!Number.isSafeInteger(g.player.glowsticks)||g.player.glowsticks<0||g.player.glowsticks>10000000||typeof g.player.flashlight!=='boolean'||typeof g.player.lightLingers!=='boolean'||!validGlowsticks(g.glowsticks,g.grid)||!validGunFlashes(g.gunFlashes,g.grid)||!(g.lightModel===undefined?g.lamps===undefined:g.lightModel===LIGHT_MODEL&&validLamps(g.lamps,g.grid)))return null;
       if(version<66){g.player.decoys??=0;g.player.mines??=0;g.player.exoPlates??=0;g.decoy??=null;g.mines??=[];g.mineSerial??=0;}

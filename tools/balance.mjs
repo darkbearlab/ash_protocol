@@ -38,7 +38,8 @@ function blastSpot(g,priority){
 }
 // 3.189.0 survival (docs/SURVIVAL.md): until the exit opens the bot answers a point that is held or has a group on its way,
 // nearest first, before any supply detour; with nothing threatened it waits by the nearest standing point.
-function survivalThreat(g){const s=g.survival;if(!s||s.open)return null;const p=g.player,pts=s.points.filter(pt=>pt.hp>0&&(pt.pressed||g.enemies.some(e=>e.hp>0&&e.survival?.target===pt.id)));return pts.sort((a,b)=>distance(p,a)-distance(p,b))[0]||null;}
+// 3.191.0: a group on its way includes an announced one, and the bot defends by standing on the point.
+function survivalThreat(g){const s=g.survival;if(!s||s.open)return null;const p=g.player,pts=s.points.filter(pt=>pt.hp>0&&(pt.pressed||s.incoming.some(i=>i.target===pt.id)||g.enemies.some(e=>e.hp>0&&e.survival?.target===pt.id)));return pts.sort((a,b)=>(b.pressed-a.pressed)||distance(p,a)-distance(p,b))[0]||null;}
 function survivalRest(g){const s=g.survival;if(!s||s.open)return null;const p=g.player;return s.points.filter(pt=>pt.hp>0).sort((a,b)=>distance(p,a)-distance(p,b))[0]||null;}
 export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
   const g=new GameType(seed,[],0,character),visited=new Set();let invalid=0,actions=0,huntingBossFloor=null,progress='',detourUntil=0,navigation=null;const visits=new Map();
@@ -65,6 +66,10 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     const bomber=g.visibleEnemies.find(e=>e.type==='bomber'&&distance(e,p)<=1);
     if(bomber){act('wait');continue;}
     if(p.hp<=p.maxHp-45&&p.meds>0){act('heal');continue;}
+    // 3.191.0 survival: a threatened point is held by standing on it, so the bot heads there before trading shots on the
+    // way, unless something is already next to it.
+    const hold=survivalThreat(g);
+    if(hold&&(p.x!==hold.x||p.y!==hold.y)&&!g.visibleEnemies.some(e=>distance(e,p)<=1)){const step=route(g,hold);if(step){act('move',step);continue;}}
     const targets=g.visibleEnemies.filter(e=>distance(p,e)<=g.weapon.range&&g.shotClear(p,e)).sort((a,b)=>Number(b.charge)-Number(a.charge)||distance(a,p)-distance(b,p));
     // A grenade lands on floor only: a drone hovering over a pit (3.164.0) is not a landing spot.
     const grenade=targets.find(e=>g.grid[e.y]?.[e.x]===1&&distance(p,e)>2&&distance(p,e)<=5&&(e.hp>=75||g.visibleEnemies.filter(o=>distance(o,e)<=2).length>=2));
@@ -116,6 +121,7 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     const committed=g.turn<detourUntil;
     const step=(committed?null:route(g,goal))||(next&&(!g.canCross(p,next)||!g.enemies.some(e=>e.hp>0&&distance(e,next)===0))?approach:null);
     if(step)act('move',step);
+    else if(threat&&p.x===threat.x&&p.y===threat.y)act('wait');   // 3.191.0: holding the point is the defence
     else if(g.visibleEnemies.length){const e=g.visibleEnemies[0],near=[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>route(g,n));if(near)act('move',route(g,near));else act('wait');}
     else act('wait');
   }

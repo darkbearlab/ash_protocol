@@ -230,17 +230,19 @@ export function lightingEffects(game,attacker,target){
 }
 
 // Three small pixel bands inside known tiles; never paint hidden terrain.
+// 3.191.0: a survival floor is mapped from the start (Game.mapped); plain objects in tests fall back to `seen`.
+const known=(game,x,y)=>game.mapped?game.mapped(x,y):Boolean(game.seen[y]?.[x]);
 export function floorShading(game,x,y){
-  if(!game.seen[y]?.[x])return [];
+  if(!known(game,x,y))return [];
   const directions=[[0,-1],[1,0],[0,1],[-1,0]],bands=[];
   // 3.178.0: the black is nearly black, keeping only the remembered outline, unless you see in the dark.
   if(isBlack(game,{x,y})&&!seesInDark(game,game.player)){
-    const edges=directions.map(([dx,dy])=>game.seen[y+dy]?.[x+dx]&&game.grid[y+dy]?.[x+dx]===1&&!isBlack(game,{x:x+dx,y:y+dy}));
+    const edges=directions.map(([dx,dy])=>known(game,x+dx,y+dy)&&game.grid[y+dy]?.[x+dx]===1&&!isBlack(game,{x:x+dx,y:y+dy}));
     bands.push({x:0,y:0,w:1,h:1,color:'#020409c8'});
     if(!edges.some(Boolean))bands.push({x:0,y:0,w:1,h:1,color:'#02040966'});
     else for(let i=0;i<3;i++){const n=(i+1)*.1,l=edges[3]?n:0,r=edges[1]?n:0,u=edges[0]?n:0,d=edges[2]?n:0;bands.push({x:l,y:u,w:1-l-r,h:1-u-d,color:'#02040938'});}
   }else if(isDark(game,{x,y})){
-    const edges=directions.map(([dx,dy])=>game.seen[y+dy]?.[x+dx]&&game.grid[y+dy]?.[x+dx]===1&&!isDark(game,{x:x+dx,y:y+dy}));
+    const edges=directions.map(([dx,dy])=>known(game,x+dx,y+dy)&&game.grid[y+dy]?.[x+dx]===1&&!isDark(game,{x:x+dx,y:y+dy}));
     if(!edges.some(Boolean))bands.push({x:0,y:0,w:1,h:1,color:'#060c22a6'});
     else for(let i=0;i<4;i++){const n=i*.06,l=edges[3]?n:0,r=edges[1]?n:0,u=edges[0]?n:0,d=edges[2]?n:0;bands.push({x:l,y:u,w:1-l-r,h:1-u-d,color:i?'#060c222e':'#060c225c'});}
   }

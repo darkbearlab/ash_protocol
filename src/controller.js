@@ -83,7 +83,7 @@ import {read,write,loadGame,saveGame,storage,profile,recordResult,TEST_MODE,expo
 import {DECK_COLUMNS,DECK_LABELS,DECK_GLYPHS,deckPlacement,mirrorDeck,swapSlots,parseDeckLayout,DECK_GRID} from './deck-layout.js';
 import {replayLog,stateHash,validReplay} from './replay.js';
 import {trackRun,persistRunLog,runLogFor,lastRunLog,runLogName} from './run-log.js';
-import {turnsLeft,SURVIVAL_TUNING} from './survival.js';
+import {turnsLeft,nextArrival,SURVIVAL_TUNING} from './survival.js';
 
 const $=s=>document.querySelector(s),audio=new AudioEngine();
 const savedGame=loadGame();
@@ -235,7 +235,7 @@ function skillLabel(view,id){
 function update(view=renderer.game) {
   syncMusic();
   const p=view.player,w=view.weapon,reserve=p[view.reserveKey()]??0;
-  const sectorLabel=isSimulation(view)?t('controller.hud.simulation'):view.survival?(view.survival.open?t('controller.hud.survivalOpen',{integrity:view.survival.integrity}):t('controller.hud.survival',{integrity:view.survival.integrity,turns:turnsLeft(view)})):isEndless(view)?depthLabel(view.floor):`${t('controller.hud.floors',{v:pad(view.floor)})}`;
+  const sectorLabel=isSimulation(view)?t('controller.hud.simulation'):view.survival?(view.survival.open?t('controller.hud.survivalOpen',{integrity:view.survival.integrity,wave:nextArrival(view)}):t('controller.hud.survival',{integrity:view.survival.integrity,turns:turnsLeft(view),wave:nextArrival(view)})):isEndless(view)?depthLabel(view.floor):`${t('controller.hud.floors',{v:pad(view.floor)})}`;
   if(notice.classList.contains('resting'))restNotice();
   // The mission summary moved into the ☰ menu (3.104.0, user request): most runs just push deeper, and the row
   // it used to occupy is worth more as the message bar.
@@ -663,7 +663,7 @@ function showBriefing(){
   modal(`<div class="briefing">${commsMarkup(commsLine(dutySpeaker({game}),'briefing')||{line:'comms.briefing'},{context:{game}})}<section class="briefing-card" aria-labelledby="briefing-title"><div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2 id="briefing-title">${def.name}</h2><p class="briefing-sector">${floorInfo(game.floor).name}</p><dl class="briefing-rows">${rows.map(([k,v])=>`<dt>${t(k)}</dt><dd>${v}</dd>`).join('')}</dl></section></div><div class="modal-footer"><button class="modal-button" data-modal="close">${t('briefing.start')}</button></div>`);
   armComms($('#modal-content .comms'));
 }
-function showMap(){modal(`<div class="eyebrow">SECTOR ${pad(game.floor)} / ${isSimulation(game)?'KILL HOUSE':floorInfo(game.floor).name}</div><h2>${t('controller.map.title')}</h2>${missionDetails()}<canvas id="overview" width="324" height="324" aria-label="${t('controller.map.aria')}"></canvas><p>${t('controller.map.legend1')}<br>${t('controller.map.legend2')}</p><button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`);renderer.drawMap($('#overview'));}
+function showMap(){modal(`<div class="eyebrow">SECTOR ${pad(game.floor)} / ${isSimulation(game)?'KILL HOUSE':floorInfo(game.floor).name}</div><h2>${t('controller.map.title')}</h2>${missionDetails()}<canvas id="overview" width="324" height="324" aria-label="${t('controller.map.aria')}"></canvas><p>${t('controller.map.legend1')}<br>${t('controller.map.legend2')}${game.survival?`<br>${t('controller.map.survivalLegend')}`:''}</p><button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`);renderer.drawMap($('#overview'));}
 
 function updateOrientation(raise=false){
   // Primary pointer, not any pointer: a touch laptop has a touchscreen but cannot rotate (3.44).
