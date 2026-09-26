@@ -338,7 +338,7 @@ dialog .perk .perk-next{color:var(--orange);font-weight:900}
 .story-entry .lore-entry{margin:0 0 12px}
 .story-list.wip{position:relative}
 /* 3.190.0: the About page on the main menu. */
-.about-page section{margin:14px 0}.about-page h3{margin:0 0 6px;color:var(--orange)}.about-page p{margin:0 0 10px;line-height:1.75}.about-page .about-small{font-size:11px;line-height:1.6;color:var(--muted)}
+.about-page section{margin:14px 0}.about-page h3{margin:0 0 6px;color:var(--orange)}.about-page p{margin:0 0 10px;line-height:1.75}.about-page .about-small{font-size:11px;line-height:1.6;color:var(--muted)}.about-page a{color:var(--orange)}
 /* 3.190.0: the stamp over the records while the stories are rewritten; it rides along as the list scrolls. */
 .story-stamp{position:sticky;top:34%;height:0;z-index:2;display:flex;align-items:flex-start;justify-content:center;pointer-events:none}
 .story-stamp span{display:inline-block;margin-top:36px;padding:8px 18px;transform:rotate(-10deg);border:3px double var(--orange);color:#f6b484;background:#2a1d12e0;font:900 22px/1.15 monospace;letter-spacing:3px;text-align:center;text-shadow:1px 1px #3a220f;white-space:nowrap}

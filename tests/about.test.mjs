@@ -11,6 +11,8 @@ test('the About page carries the AI note, the rights, the font licence and a way
  assert.ok(page.includes(`BUILD ${VERSION}`));
  for(const id of [...ABOUT_AI,'about.ai.tools',...ABOUT_RIGHTS,...ABOUT_CREDITS])assert.ok(page.includes(t(id)),id);
  assert.match(page,/SIL Open Font License 1\.1/);
+ assert.match(page,/Sloth Mage Games/);assert.match(page,/<a href="https:\/\/slothmagegames\.itch\.io\/" target="_blank" rel="noopener">slothmagegames\.itch\.io<\/a>/);
+ assert.equal(ABOUT_AI.length,3,'the three paragraphs the user wrote');
  assert.match(page,/data-modal="intro"/);
  const controller=readFileSync(new URL('../src/controller.js',import.meta.url),'utf8');
  assert.match(controller,/entry\('about','ABOUT',t\('controller\.title\.about'\)\)/,'the title menu lists it');

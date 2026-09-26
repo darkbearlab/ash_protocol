@@ -28,19 +28,18 @@ export default Object.freeze({
  // src/about.js
  "about.title":"About",
  "about.aiTitle":"A note on AI",
- "about.ai.wish":"ASH PROTOCOL is my wishlist game: everything I wanted to play, gathered into one.",
- "about.ai.made":"It was made with a lot of AI. Every line of code and every first draft of the art was done by AI for me; even the music and sound effects were synthesized, note by note, by programs an AI wrote.",
- "about.ai.real":"But it is also because of AI that I could finally make real what I had imagined. The dim facilities, the firefights fought one step at a time, the corners your flashlight cannot reach, the voice on the other end of the radio: I saw them in my head first, then kept telling the AI \"not yet, darker\" and \"more tension here\" until they became what you see now. Some of the pictures I also fixed by hand, pixel by pixel.",
- "about.ai.hands":"So this is not a game AI made on its own. Every rule, every class and the feel of every line came from what I pictured; AI was the pair of hands that finally brought them to the screen.",
+ "about.ai.wish":"ASH PROTOCOL is my wishlist game: the stories I want to tell and the things I want to play, put into it one by one.",
+ "about.ai.made":"This project used a great, great deal of AI. All of the code, the first drafts of the art and the sound effects were made by AI for me. But it is also because of AI that I could truly bring to life everything I imagined. So this is not a game that AI made on its own. How every story, every rule, every class and every line should feel came from the pictures in my head; AI is the pair of hands that brought them onto your screen.",
  "about.ai.hope":"I love this game. I hope you will too.",
  "about.ai.tools":"AI used: code written with Claude (Anthropic) and Codex (OpenAI); art drafts made with OpenAI image generation, then pixelated and retouched by hand.",
  "about.rightsTitle":"Copyright",
- "about.rights.owner":"© 2026 DarkBearLab. All rights reserved for the code, art, music, sound and text of ASH PROTOCOL.",
+ "about.rights.owner":"© 2026 DarkBearLab / Sloth Mage Games. All rights reserved for the code, art, music, sound and text of ASH PROTOCOL.",
  "about.rights.use":"You are welcome to play it, share the link, record it and stream it. Please do not redistribute, repost, modify and republish, or sell the game or any of its assets without permission.",
  "about.rights.source":"The source code is public on GitHub for reference; public does not mean openly licensed.",
  "about.creditsTitle":"Third-party material",
  "about.credits.fonts":"Fonts: Barlow Condensed, IBM Plex Mono and Noto Sans TC, loaded from Google Fonts under the SIL Open Font License 1.1.",
  "about.credits.fiction":"All companies, factions, characters and events in the game are fictional; any resemblance is coincidental.",
+ "about.rights.home":"On itch.io: {link}",
  // src/actor-stats.js
  "actor-stats.none":"No extra hit or evasion modifiers",
  // src/affix-ui.js

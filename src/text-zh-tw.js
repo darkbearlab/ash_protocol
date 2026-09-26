@@ -29,19 +29,18 @@ export default Object.freeze({
  // src/about.js
  "about.title":"關於",
  "about.aiTitle":"關於 AI",
- "about.ai.wish":"ASH PROTOCOL 是我的「願望清單遊戲」：我想玩的東西，一樣一樣放進同一款遊戲裡。",
- "about.ai.made":"這個專案用了非常、非常多的 AI。所有的程式，還有美術資產的原型，都是 AI 替我完成的；就連音樂和音效，也是 AI 寫的程式一個音一個音合成出來的。",
- "about.ai.real":"但也正因為有 AI，我才能把想像中的一切真正做出來。幽暗的設施、一格一步的交火、手電筒照不到的轉角、無線電另一頭的聲音——都是我先在腦袋裡看見，再一次又一次告訴 AI「還不對，再暗一點」「這裡要更緊張」，慢慢磨成現在的樣子。有些圖，我也自己一格一格修過。",
- "about.ai.hands":"所以這不是一款「AI 自己做出來」的遊戲。每一條規則、每一個職業、每一句台詞該是什麼感覺，都來自我腦袋裡描繪的畫面；AI 是讓它們終於走到螢幕上的那雙手。",
+ "about.ai.wish":"ASH PROTOCOL 是我的「願望清單遊戲」，我將我想說的故事、想玩的東西，一樣一樣放進這款遊戲裡。",
+ "about.ai.made":"這個專案用了非常非常多的 AI。所有的程式，還有美術資產的原型和音效，都是 AI 替我完成的。但也正因為有 AI，我才能把想像中的一切真正做出來。所以這不是一款「AI 自己做出來」的遊戲。每一段故事、每一條規則、每一個職業、每一句台詞該是什麼感覺，都來自我腦袋裡描繪的畫面，AI 是讓它們走到各位螢幕上的那雙手。",
  "about.ai.hope":"我很喜歡這個遊戲。希望你也會喜歡。",
  "about.ai.tools":"使用的 AI：程式由 Claude（Anthropic）與 Codex（OpenAI）撰寫；美術原型由 OpenAI 的圖像生成製作，再經過像素化與手工修整。",
  "about.rightsTitle":"版權聲明",
- "about.rights.owner":"© 2026 DarkBearLab。ASH PROTOCOL（灰燼協定）的程式、美術、音樂、音效與文字保留一切權利。",
+ "about.rights.owner":"© 2026 DarkBearLab / Sloth Mage Games。ASH PROTOCOL（灰燼協定）的程式、美術、音樂、音效與文字保留一切權利。",
  "about.rights.use":"歡迎遊玩，也歡迎分享遊戲網址、錄影與直播。未經同意，請不要重新發布、轉載、修改後發布或販售遊戲本體與其中的素材。",
  "about.rights.source":"原始碼公開在 GitHub 供參考；公開不代表開放授權。",
  "about.creditsTitle":"第三方素材",
  "about.credits.fonts":"字型：Barlow Condensed、IBM Plex Mono、Noto Sans TC，經 Google Fonts 載入，採用 SIL Open Font License 1.1。",
  "about.credits.fiction":"遊戲中的企業、派系、人物與事件皆為虛構，如有雷同純屬巧合。",
+ "about.rights.home":"itch.io 頁面：{link}",
  // src/actor-stats.js
  "actor-stats.none":"無額外命中／迴避修正",
  // src/affix-ui.js
