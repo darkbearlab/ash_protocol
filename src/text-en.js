@@ -764,6 +764,8 @@ export default Object.freeze({
  "controller.runLog.partial":"The run log starts at turn {turn}.",
  "controller.runLog.none":"No run log for this run.",
  "controller.runLog.saved":"Run log downloaded ({n} steps).",
+ "controller.hud.survival":"Integrity {integrity} · exit {turns}",
+ "controller.hud.survivalOpen":"Integrity {integrity} · exit open",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // DAILY OPERATION",
  // deckLabels
@@ -897,6 +899,9 @@ export default Object.freeze({
  "factions.swarm.overrides.fodder.name":"Infected",
  "factions.swarm.overrides.brood.name":"Swarm Larva",
  "factions.swarm.overrides.crawler.name":"Hunter Bug",
+ // failCopy
+ "failCopy.title":"Facility lost",
+ "failCopy.body":"The points fell one by one, and the facility did not hold until the exit opened.",
  // src/field-gear.js
  "field-gear.decoyFooled":"Decoy active: {n} {n|enemy is|enemies are} drawn off and lose sight of you.",
  "field-gear.decoyHit":"{enemy} attacks the decoy ({damage}).",
@@ -1434,6 +1439,10 @@ export default Object.freeze({
  "missions.deepestReached":"You have reached the deepest floor supported so far; you can keep fighting.",
  "missions.recoverThenUp":"Recover the data, then go up at this floor's entrance.",
  "missions.extractLocked":"The boss is still alive; extraction is locked.",
+ "missions.survival.name":"Survival",
+ "missions.survival.text":"Hold the point in every room until the exit opens, then get out. Reinforcements arrive on a schedule: some go for the points, some come for you.",
+ "missions.survivalMeta":"{turns} turns",
+ "missions.summarySurvival":"{mission} · integrity {integrity} · {state}",
  // moduleTypes
  "moduleTypes.restroom.name":"Restroom",
  "moduleTypes.checkpoint.name":"Access counter",
@@ -1610,6 +1619,7 @@ export default Object.freeze({
  "purge-review-ui.achieved":"Achieved",
  "purge-review-ui.reason":"Reason",
  "purge-review-ui.remarks":"Remarks",
+ "purge-review-ui.facilityLost":"{unit} failed to hold the facility",
  // src/range-band.js
  "range-band.any":"Any",
  // rebelNames
@@ -1878,6 +1888,18 @@ export default Object.freeze({
  "suppressive-fire.needsGun":"Suppressive fire needs a firearm.",
  "suppressive-fire.pickFloor":"Pick a visible floor tile within weapon range.",
  "suppressive-fire.magShort":"Not enough in the magazine; suppressive fire did not happen.",
+ // src/survival.js
+ "survival.stateLeft":"exit in {n}",
+ "survival.stateOpen":"exit open",
+ "survival.pointName":"Point {letter}",
+ "survival.groupPoint":"{n} heading for {point}",
+ "survival.groupHunter":"{n} hunting you",
+ "survival.wave":"Wave {wave}: {groups}.",
+ "survival.pointPressed":"{point} is being held!",
+ "survival.pointLost":"{point} has fallen: integrity −{loss}.",
+ "survival.failed":"Facility integrity is gone. Mission failed.",
+ "survival.open":"The exit is open; the points and integrity are locked. Get out.",
+ "survival.exitLocked":"The exit is not open yet: hold out {n} more {n|turn|turns}.",
  // src/swarm.js
  "swarm.venomImmune":"Venom hits you but does nothing.",
  "swarm.venomPoisoned":"Venom gets into your suit; you are poisoned.",

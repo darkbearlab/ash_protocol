@@ -3,6 +3,7 @@ import {blindFire,blindReason,blindAim,silenced,forgetSeenAftermath,BLIND_TUNING
 import {initializeRunUnlocks,populateRunUnlocks,endlessFaction,collectStory,recoverOperator,validRunUnlocks,floorCorpseNote} from './run-unlocks.js';
 import {isSimulation,simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {tickSwarmWaves,validSwarmWaves} from './swarm-waves.js';
+import {isSurvival,setupSurvival,tickSurvival,validSurvival,survivalAction,holdsPoint} from './survival.js';
 import {validSquad,postSquads} from './squad.js';
 import {recruitConscripts,rebelMorale,witnessDeath,isEnforcer,validRebels,soundAlarm,tickAlarms} from './rebels.js';
 import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
@@ -171,7 +172,7 @@ export class Game {
     Object.assign(this,{swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.decoy=null;this.mines=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
-    prepareMission(this);recruitConscripts(this);postSquads(this);rigContainers(this);populateRunUnlocks(this);registerPurgeFloor(this);
+    prepareMission(this);recruitConscripts(this);postSquads(this);rigContainers(this);populateRunUnlocks(this);if(isSurvival(this))setupSurvival(this);registerPurgeFloor(this);
     this.seen=Array.from({length:SIZE},()=>Array(SIZE).fill(false));this.target=null;this.reveal();floorVaultNote(this);floorCorpseNote(this);
   }
   get petSensorContacts(){return petScanContacts(this);}
@@ -205,6 +206,9 @@ export class Game {
     if(missionDefinition(this).returnTrip){this.mission.returning=true;scheduleRetreatWave(this);this.log(t('game.objectiveReturn'),true);}
     this.log(t('game.objectiveRecovered',{summary:this.missionSummary}));return true;
   }
+  // 3.189.0 survival hooks for the enemy tree (src/enemy-behavior.js), which does not import src/survival.js itself.
+  survivalAction(ctx,move){return survivalAction(ctx,move);}
+  holdsPoint(e){return holdsPoint(this,e);}
   get bossAlive(){return this.enemies.some(e=>isBossClass(e)&&e.hp>0);}
   get nearbyTerminal(){return this.props.find(o=>o.type==='terminal'&&!o.used&&this.canTouch(o));}
   get groundWeapon(){return this.items.find(o=>o.type==='weapon'&&this.canTouch(o));}
@@ -513,6 +517,7 @@ export class Game {
       if(p.hp>0)presentStep(this,()=>this.environmentTurn());
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>tickNests(this));
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>tickSwarmWaves(this));
+      if(p.hp>0&&isSurvival(this))presentStep(this,()=>tickSurvival(this));   // 3.189.0
     }
     if(this.status==='playing'&&p.hp>0)presentStep(this,()=>{if(tickPetBond(this))this.reveal();});
     // Summons rise before skills tick, so the interval counts the rising turn like the old cast did.
@@ -1503,7 +1508,7 @@ export class Game {
       if(!['decoys','mines'].every(k=>Number.isSafeInteger(g.player[k])&&g.player[k]>=0&&g.player[k]<=10000000)||!validExo(g.player)||!validDecoy(g)||!validMines(g)||!validKeycards(g.player)||!validVaultState(g.barriers,g.enemies))return null;
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
-      if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
+      if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
       if(version<32)g.shadowSteps=0;
       // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
       // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run

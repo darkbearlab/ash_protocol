@@ -15,7 +15,7 @@ function ended({mission='extraction',floor=1,status='dead',tier=null,deepest=flo
 }
 
 test('the report never consoles: eyebrows are clinical and a win does not promise the unit\'s fate',()=>{
- assert.deepEqual(RESULT_EYEBROWS,{abandoned:'MISSION ABANDONED',won:'PURGE COMPLETE',dead:'UNIT EXPENDED'});
+ assert.deepEqual(RESULT_EYEBROWS,{abandoned:'MISSION ABANDONED',won:'PURGE COMPLETE',dead:'UNIT EXPENDED',failed:'FACILITY LOST'});   // failed: 3.189.0
  const win=resultCopy(ended({status:'won'}));
  assert.equal(win.title,'火種已熄滅。');
  assert.doesNotMatch(win.body,/回收|撤離電梯|重新部署|處決/,'the purge verdict below decides what happens to the unit');

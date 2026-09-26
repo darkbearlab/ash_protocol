@@ -41,6 +41,7 @@ export const ENEMY_WEAPONS=Object.freeze(Object.fromEntries(Object.entries(ENEMY
 export function enemyWeapon(e){const rapid=rapidFireModifiers(e);return {range:ENEMY_TYPES[e.type]?.range||1,band:enemyBand(e.type),...rapid,rounds:(enemyDef(e)?.rounds||1)+rapid.extraRounds};}
 function revealSenses(g,e,p){if(!g.sight(e,p))return;if(e.affixes?.some(a=>a.id==='infrared'&&!a.revealed)&&!tacticalSight(g,{...e,traits:e.traits.filter(t=>t.id!=='infrared')},p))revealEnemyAffix(g,e,'infrared');}
 function seekCover({g,e,p,def,los}){
+      if(g.survival&&g.holdsPoint(e))return false;   // 3.189.0: a survival point group stays on its point
       if(!pinned(e)&&def.seekCover&&los&&!e.charge&&!g.protectingCover(e,p)){
         const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>g.passable(n.x,n.y,e)&&g.canCross(e,n)&&distance(n,p)>1&&!occupied(g,n,e)&&!g.hazards.some(h=>distance(h,n)===0)&&distance(n,p)<=def.range&&inBand(enemyBand(e.type),distance(n,p))&&g.sight({...e,...n},p)&&g.shotClear({...e,...n},p)&&g.protectingCover({...e,...n},p));
         if(spot){e.x=spot.x;e.y=spot.y;e.moved=true;enemyCallout(g,e,'state',{state:'cover'});return true;}
@@ -49,6 +50,7 @@ function seekCover({g,e,p,def,los}){
 return false;
 }
 function move({g,e,p,def,los,d}){
+        if(g.survival&&g.holdsPoint(e))return;
         const destination=los?p:e.lastKnown,band=def.range>1?enemyBand(e.type):null;
         // 3.152.0 有效距離: a shooter looks for a tile inside its band, so it also backs off when it stands too close.
         const plan=los&&!(def.range===1&&d<=1)?combatStep(g,e,p,{range:band?Math.min(def.range,band[1]):def.range,min:band?band[0]:0,melee:def.range===1,peers:g.enemies.filter(b=>b.hp>0&&b.alert),hold:true}):null;
@@ -176,7 +178,8 @@ registerUnitTree('brood',{});
 export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);}
 export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
- if(tongueAction(ctx)||pounceAction(ctx)||lobAction(ctx)||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
+ // 3.189.0 survival hooks go through the game (src/game.js), so this module does not import src/survival.js.
+ if(tongueAction(ctx)||pounceAction(ctx)||lobAction(ctx)||(g.survival&&g.survivalAction(ctx,move))||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};if(d>16)return;
  // 3.130.0 orders (docs/ORDERS.md): a committed order acts before the affix branches; 'fire' goes straight to the attack.
  selfOrders(ctx);const order=runOrder(ctx);if(order===true)return;
  if(order!=='fire'&&(runAffixBranches(ctx)||seekCover(ctx)))return;

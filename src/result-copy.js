@@ -7,9 +7,11 @@ import {rollFacilityFaction} from './faction-catalog.js';
 // graded by how far the unit got, and a unit whose purge record was excellent is reported as a threat that has been
 // used up. The purge verdict below the heading still decides what happens to a unit that came back, so the win copy
 // never promises its fate.
-export const RESULT_EYEBROWS=Object.freeze({abandoned:'MISSION ABANDONED',won:'PURGE COMPLETE',dead:'UNIT EXPENDED'});
+export const RESULT_EYEBROWS=Object.freeze({abandoned:'MISSION ABANDONED',won:'PURGE COMPLETE',dead:'UNIT EXPENDED',failed:'FACILITY LOST'});
 export const WIN_COPY=Object.freeze({title:t('winCopy.title'),body:t('winCopy.body')});
 export const ABANDON_COPY=Object.freeze({title:t('abandonCopy.title'),body:t('abandonCopy.body')});
+// 3.189.0: a survival run whose facility integrity ran out (docs/SURVIVAL.md).
+export const FAIL_COPY=Object.freeze({title:t('failCopy.title'),body:t('failCopy.body')});
 // Endless depth bands, and the share of a finite mission's depth that counts as "partly complete".
 export const RESULT_TUNING=Object.freeze({endlessDeep:13,endlessMid:7,partialShare:2/3});
 
@@ -31,8 +33,8 @@ export function lossCopy(g){
 }
 
 export function resultCopy(g){
-  const status=g.status==='abandoned'?'abandoned':g.status==='won'?'won':'dead';
-  const copy=status==='abandoned'?ABANDON_COPY:status==='won'?WIN_COPY:lossCopy(g);
+  const status=g.status==='abandoned'?'abandoned':g.status==='won'?'won':g.status==='failed'?'failed':'dead';
+  const copy=status==='abandoned'?ABANDON_COPY:status==='won'?WIN_COPY:status==='failed'?FAIL_COPY:lossCopy(g);
   return {eyebrow:RESULT_EYEBROWS[status],...copy};
 }
 

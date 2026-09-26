@@ -36,7 +36,7 @@ test('the skill text carries the mark and still reads 掃描 N 格 … 冷卻 N 
  p.perks.soldier_hunter=2;p.perks.soldier_marked=1;assert.match(skillText(p,'early_warning'),/標定它們 4 回合：標定中你對它們命中 \+10、傷害 \+30%、它們對你的命中 −6，而且對你來說它們所在處亮一階/);
 });
 test('a v68 save: 架槍精通 ranks become 標定壓制, a pending draft follows, a long fire chain is clamped',()=>{
- assert.equal(SAVE_VERSION,77);
+ assert.equal(SAVE_VERSION,78);
  const g=arena();enemy(g,13,10);g.player.level=6;g.perkPicks=2;g.pendingPerks=1;g.player.perks={soldier_hunter:2};const drawn=g.perkChoices.map(o=>o.id);assert.ok(drawn.length>=2,'a real draft');
  // The old id stands where the draft offers the new line (a v68 draft could hold one or the other, never both).
  const raw=JSON.parse(g.serialize());raw.version=68;raw.data.player.perks={soldier_braced:2};const at=Math.max(0,raw.data.perkDraft.ids.indexOf('soldier_hunter'));raw.data.perkDraft.ids[at]='soldier_braced';

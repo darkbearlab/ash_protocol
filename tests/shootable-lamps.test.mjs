@@ -41,7 +41,7 @@ test('a blast breaks the lamps it reaches, walls and doors shielding the rest',(
 
 test('lamps save their state; older saves keep every lamp lit; a bad state is refused',()=>{
   const g=arena();g.lamps[0].hp=0;const copy=Game.restore(g.serialize());assert.ok(copy);assert.equal(copy.lamps[0].hp,0);
-  assert.equal(SAVE_VERSION,77);
+  assert.equal(SAVE_VERSION,78);
   const live=new Game(3);live.descend?.();const raw=JSON.parse(live.serialize());raw.version=75;
   for(const f of [raw.data,...Object.values(raw.data.floorStates||{})])for(const l of f.lamps||[])delete l.hp;
   const old=Game.restore(JSON.stringify(raw));assert.ok(old);assert.ok(old.lamps.length&&old.lamps.every(l=>l.hp===1));

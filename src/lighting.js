@@ -43,7 +43,8 @@ export const LIGHT_TUNING=Object.freeze({
  glowstickRadius:3,glowstickRange:5,maxGlowsticks:400,
  flashlightCore:3,flashlightFade:1,flashlightHalfAngle:45,  // an enemy's flashlight: a cone toward where it last saw you
  lanternCore:2,lanternFade:1,  // the player's (3.182.0, user): all around, lit within 2, dim at 3
- lampHitPenalty:25             // 3.187.0: a wall lamp is a small target (Claude's number)
+ lampHitPenalty:25,            // 3.187.0: a wall lamp is a small target (Claude's number)
+ pointCore:1,pointFade:1       // 3.189.0: a survival point's own light, which nothing puts out
 });
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],DIRS_DRAWN=[[0,-1],[-1,0],[1,0],[0,1]];
 const fnv=text=>{let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
@@ -177,6 +178,7 @@ function computeSources(game){
  const shine=(src,core,reach,accept,cap)=>{for(const c of sourceCells(game,src,{core,reach,accept,cap,floor:L}))raise(c.x,c.y,c.level);};
  for(const fl of game.flares||[])for(const c of flareLightCells(game,fl,false))raise(c.x,c.y,c.level);
  for(const lamp of game.lamps||[])if(lamp.hp>0)shine(lamp,LIGHT_TUNING.lampCore,LIGHT_TUNING.lampCore+LIGHT_TUNING.lampFade);
+ for(const pt of game.survival?.points||[])shine(pt,LIGHT_TUNING.pointCore,LIGHT_TUNING.pointCore+LIGHT_TUNING.pointFade);
  for(const stick of game.glowsticks||[])shine(stick,LIGHT_TUNING.glowstickRadius,LIGHT_TUNING.glowstickRadius,undefined,LIGHT.dim);   // dim within its radius, never lit
  const p=game.player;
  // An enemy's flashlight: a cone either side of its direction, lit 3 and dim at 4; its holder shows (B7).

@@ -201,7 +201,7 @@ test('floor caps: at most two enforcers a floor, three from floor 7',()=>{
 });
 
 test('rebel state survives a save, and tampered state is refused',()=>{
-  assert.equal(SAVE_VERSION,77);
+  assert.equal(SAVE_VERSION,78);
   const g=arena(),e=add(g,'rifleman',8,10,'r'),enforcer=add(g,'enforcer',10,6,'E'),c=add(g,'rifleman',12,10,'c',{conscript:true});
   cower(g,e);enforcer.executeIntent={id:'r'};
   const back=Game.restore(g.serialize());assert.ok(back);

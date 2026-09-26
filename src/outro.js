@@ -27,7 +27,7 @@ export function outroPlan(game,{voiced=true,random=Math.random}={}){
  if(!voiced)return {field:null,channel:[]};
  const speaker=dutySpeaker({game});
  const field=game.status==='won'?timed(commsLine(speaker,'extractApproved',{},{random})):null;
- const event={won:'extracted',dead:'lossReport'}[game.status];
+ const event={won:'extracted',dead:'lossReport',failed:'lossReport'}[game.status];   // failed: 3.189.0 survival
  const channel=event?[timed(commsLine(speaker,event,{},{random}))].filter(Boolean):[];
  if(game.status==='won'&&speaker!=='overseer'&&purgeReview(game)?.tier==='deficient'){
   const silence=commsLine('overseer','executed',{},{random});

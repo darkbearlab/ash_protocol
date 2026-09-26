@@ -12,6 +12,7 @@ export function purgeRows(g){
   const unit=cloneDesignation(g.runId);
   if(g.status==='dead')return [[t('purge-review-ui.unit'),`${t('purge-review-ui.signalLost',{unit})}`],[t('purge-review-ui.status'),t('purge-review-ui.attrition')]];
   if(g.status==='abandoned')return [[t('purge-review-ui.unit'),`${t('purge-review-ui.aborted',{unit})}`],[t('purge-review-ui.status'),t('purge-review-ui.attrition')]];
+  if(g.status==='failed')return [[t('purge-review-ui.unit'),`${t('purge-review-ui.facilityLost',{unit})}`],[t('purge-review-ui.status'),t('purge-review-ui.attrition')]];   // 3.189.0
   if(g.status!=='won')return [];
   const rows=[[t('purge-review-ui.unit'),`${t('purge-review-ui.extracted',{unit})}`],[t('purge-review-ui.objectiveStatus'),t('purge-review-ui.achieved')]],review=purgeReview(g);
   if(!review)return rows;

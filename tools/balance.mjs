@@ -36,6 +36,10 @@ function blastSpot(g,priority){
   }
   return best;
 }
+// 3.189.0 survival (docs/SURVIVAL.md): until the exit opens the bot answers a point that is held or has a group on its way,
+// nearest first, before any supply detour; with nothing threatened it waits by the nearest standing point.
+function survivalThreat(g){const s=g.survival;if(!s||s.open)return null;const p=g.player,pts=s.points.filter(pt=>pt.hp>0&&(pt.pressed||g.enemies.some(e=>e.hp>0&&e.survival?.target===pt.id)));return pts.sort((a,b)=>distance(p,a)-distance(p,b))[0]||null;}
+function survivalRest(g){const s=g.survival;if(!s||s.open)return null;const p=g.player;return s.points.filter(pt=>pt.hp>0).sort((a,b)=>distance(p,a)-distance(p,b))[0]||null;}
 export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
   const g=new GameType(seed,[],0,character),visited=new Set();let invalid=0,actions=0,huntingBossFloor=null,progress='',detourUntil=0,navigation=null;const visits=new Map();
   // A refused action changes nothing, so the bot would ask for it again forever (3.148.0: swapping with a summon across a
@@ -81,7 +85,7 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     const memory=!g.visibleEnemies.length&&navigation.tactics?.until>=g.turn?navigation.tactics.target:null;
     const sheltered=g.visibleEnemies.find(e=>!g.shotClear(p,e))||memory;
     if(sheltered&&loaded&&g.turn>=detourUntil){const plan=combatStep(g,navigation,sheltered,{range:g.weapon.range,melee:g.weapon.melee,investigate:sheltered===memory});if(plan?.step){act('move',[plan.step.x-p.x,plan.step.y-p.y]);continue;}}
-    if(g.canTouch(g.end)&&!g.bossAlive){act('interact');continue;}
+    if(g.canTouch(g.end)&&!g.bossAlive&&!(g.survival&&!g.survival.open)){act('interact');continue;}
     // 3.120.0: terminals keep a credit instead of serving once, and weapon modifications are bought there (scrap only; the
     // bot never trades anything in).
     if(g.nearbyTerminal){if(p.hp<p.maxHp-55&&!terminalReason(g,'heal')){act('terminal','heal');continue;}if(!g.visibleEnemies.length&&!terminalReason(g,`upgrade:${p.weapon}`)){act('terminal',`upgrade:${p.weapon}`);continue;}const offer=TERMINAL_AMMO[g.weapon.ammoType];if(offer&&!terminalReason(g,g.weapon.ammoType)&&p[g.reserveKey()]<Math.min(g.ammoCapacity(g.weapon.ammoType),g.weapon.mag*2)){act('terminal',g.weapon.ammoType);continue;}
@@ -97,7 +101,8 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
     const desks=g.props.filter(t=>t.type==='terminal'&&!t.used&&worth(t)).flatMap(t=>[[1,0],[0,1],[-1,0],[0,-1]].map(([dx,dy])=>({x:t.x+dx,y:t.y+dy})));
     const needs=[...g.items.filter(needed),...crates,...desks].sort((a,b)=>distance(p,a)-distance(p,b));
     const boss=g.enemies.find(e=>(e.type==='boss'||e.type==='warden')&&e.hp>0);
-    let goal=g.turn<detourUntil?g.end:needs.find(n=>route(g,n))||g.end;
+    const threat=survivalThreat(g);
+    let goal=g.turn<detourUntil?g.end:threat||needs.find(n=>route(g,n))||survivalRest(g)||g.end;
     // A detour can leave the five-tile trigger radius. Keep pursuing that boss
     // instead of alternating the exit route and boss route on consecutive turns.
     if(boss&&distance(p,g.end)<=5)huntingBossFloor=g.floor;

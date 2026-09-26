@@ -6,8 +6,8 @@ import {readFileSync} from 'node:fs';
 import {Game} from '../src/engine.js';
 import {MISSIONS,SHELVED_MISSIONS,OFFERED_MISSION_IDS,CAMPAIGN_MISSION_IDS,offeredMission,validMissionId} from '../src/missions.js';
 
-test('only extraction and endless are offered; quick and daily games roll extraction',()=>{
- assert.deepEqual(OFFERED_MISSION_IDS,['extraction','endless']);
+test('only extraction, survival and endless are offered; quick and daily games roll extraction',()=>{
+ assert.deepEqual(OFFERED_MISSION_IDS,['extraction','survival','endless']);   // survival: 3.189.0
  assert.deepEqual(CAMPAIGN_MISSION_IDS,['extraction']);
  assert.deepEqual([...SHELVED_MISSIONS].sort(),['archive','hunt','retrieval','roundtrip','sweep']);
  for(const id of SHELVED_MISSIONS)assert.equal(offeredMission(id),'extraction',`${id} redeploys as extraction`);

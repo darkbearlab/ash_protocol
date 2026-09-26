@@ -765,6 +765,8 @@ export default Object.freeze({
  "controller.runLog.partial":"操作紀錄從第 {turn} 回合開始。",
  "controller.runLog.none":"這一局沒有操作紀錄。",
  "controller.runLog.saved":"已下載操作紀錄（{n} 步）。",
+ "controller.hud.survival":"完整性 {integrity} · 撤離 {turns}",
+ "controller.hud.survivalOpen":"完整性 {integrity} · 撤離開放",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // 灰燼協定 // DAILY OPERATION",
  // deckLabels
@@ -898,6 +900,9 @@ export default Object.freeze({
  "factions.swarm.overrides.fodder.name":"被感染者",
  "factions.swarm.overrides.brood.name":"蟲群幼體",
  "factions.swarm.overrides.crawler.name":"獵殺蟲",
+ // failCopy
+ "failCopy.title":"設施失守",
+ "failCopy.body":"目標點一個個被佔，設施完整性沒能撐到撤離點開放。",
  // src/field-gear.js
  "field-gear.decoyFooled":"誘餌啟動：{n} 名敵人被引開，看不到你。",
  "field-gear.decoyHit":"{enemy}攻擊誘餌（{damage}）。",
@@ -1435,6 +1440,10 @@ export default Object.freeze({
  "missions.deepestReached":"已達目前支援的最深層，仍可繼續戰鬥。",
  "missions.recoverThenUp":"回收機密後，從本層入口上樓。",
  "missions.extractLocked":"頭目仍存活，撤離鎖定。",
+ "missions.survival.name":"生存",
+ "missions.survival.text":"守住每個房間的目標點，撐到撤離點開放再撤離。增援依回合抵達：一組去佔目標點、一組來找你。",
+ "missions.survivalMeta":"{turns} 回合",
+ "missions.summarySurvival":"{mission} · 完整性 {integrity} · {state}",
  // moduleTypes
  "moduleTypes.restroom.name":"衛浴間",
  "moduleTypes.checkpoint.name":"門禁櫃檯",
@@ -1611,6 +1620,7 @@ export default Object.freeze({
  "purge-review-ui.achieved":"達成",
  "purge-review-ui.reason":"原因",
  "purge-review-ui.remarks":"備註",
+ "purge-review-ui.facilityLost":"{unit} 未能守住設施",
  // src/range-band.js
  "range-band.any":"不限",
  // rebelNames
@@ -1879,6 +1889,18 @@ export default Object.freeze({
  "suppressive-fire.needsGun":"壓制射擊需要槍械。",
  "suppressive-fire.pickFloor":"請選擇武器射程內看得見的地板。",
  "suppressive-fire.magShort":"彈匣不足，壓制射擊未完成。",
+ // src/survival.js
+ "survival.stateLeft":"撤離倒數 {n}",
+ "survival.stateOpen":"撤離點開放",
+ "survival.pointName":"目標點 {letter}",
+ "survival.groupPoint":"{n} 人前往{point}",
+ "survival.groupHunter":"{n} 人在找你",
+ "survival.wave":"第 {wave} 波增援：{groups}。",
+ "survival.pointPressed":"{point} 遭到佔據！",
+ "survival.pointLost":"{point} 失守，完整性 −{loss}。",
+ "survival.failed":"設施完整性歸零，任務失敗。",
+ "survival.open":"撤離點已開放，目標點與完整性不再下降。前往撤離。",
+ "survival.exitLocked":"撤離點還沒開放：再撐 {n} 回合。",
  // src/swarm.js
  "swarm.venomImmune":"毒液打在你身上，但對你無效。",
  "swarm.venomPoisoned":"毒液侵入防護服，你中毒了。",

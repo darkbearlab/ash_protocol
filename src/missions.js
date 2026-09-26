@@ -4,6 +4,7 @@ import {REQUIRED_TARGET_ROOMS,eligibleMissionEnemy} from './map-population.js';
 import {isEndless,ENDLESS_MAX_FLOOR,ENDLESS_DISPLAY_FLOORS,MAX_LEVEL} from './endless.js';
 import {FLOORS,SIZE} from './data.js';
 import {reachable,key,distance} from './world.js';
+import {turnsLeft,SURVIVAL_TUNING} from './survival.js';
 
 // Stable contract IDs are persisted. Mission placement never consumes combat RNG.
 export const MISSIONS={
@@ -13,9 +14,11 @@ export const MISSIONS={
   retrieval:{name:t('missions.retrieval.name'),kind:'recover',count:1,text:t('missions.retrieval.text')},
   roundtrip:{name:t('missions.roundtrip.name'),kind:'recover',count:1,depth:3,returnTrip:true,text:t('missions.roundtrip.text')},
   archive:{name:t('missions.archive.name'),kind:'recover',count:REQUIRED_TARGET_ROOMS,text:t('missions.archive.text')},
+  // 3.189.0 (user design; docs/SURVIVAL.md): one floor, hold the rooms' points until the exit opens.
+  survival:{name:t('missions.survival.name'),kind:'survival',count:0,depth:1,text:t('missions.survival.text')},
   endless:{name:t('missions.endless.name'),kind:'endless',count:0,depth:ENDLESS_MAX_FLOOR,text:t('missions.endless.text',{max:MAX_LEVEL})}
 };
-export const RANDOM_MISSION_IDS=Object.keys(MISSIONS).filter(id=>id!=='endless');
+export const RANDOM_MISSION_IDS=Object.keys(MISSIONS).filter(id=>id!=='endless'&&id!=='survival');   // survival: its own mode, never rolled
 // 3.177.11 (user): besides extraction, the campaign missions play too much alike to be worth a choice, so they are
 // shelved, like the druid and necromancer. They stay in MISSIONS, so a run or a record that has one still loads and plays;
 // they are only no longer offered, rolled for a quick or daily game, or redeployed. Endless is its own mode and stays.
@@ -63,9 +66,11 @@ export const missionObjects=g=>g.floor===missionDepth(g)&&missionDefinition(g).k
 export function missionProgress(g){
   const def=missionDefinition(g);
   if(def.kind==='extraction')return {done:g.floor===missionDepth(g)&&!g.bossAlive?1:0,total:1};
+  if(def.kind==='survival')return {done:g.survival?.open?1:0,total:1};
   return {done:g.mission.targets.filter(t=>def.kind==='recover'?t.done:g.enemies.some(e=>e.id===t.id&&e.hp<=0)).length,total:def.count};
 }
 export function exitBlocked(g){
+  if(missionDefinition(g).kind==='survival')return g.survival?.open?'':t('survival.exitLocked',{n:turnsLeft(g)});
   if(isEndless(g))return g.bossAlive?t('missions.bossLocked'):g.floor>=ENDLESS_MAX_FLOOR?t('missions.deepestReached'):'';
   if(missionDefinition(g).returnTrip){
     if(g.bossAlive)return t('missions.bossLocked');
@@ -78,6 +83,7 @@ export function exitBlocked(g){
 export function missionSummary(g){
   const def=missionDefinition(g),{done,total}=missionProgress(g);
   if(isEndless(g))return t('missions.summaryEndless',{mission:def.name,floor:g.floor,total:ENDLESS_DISPLAY_FLOORS});
+  if(def.kind==='survival')return t('missions.summarySurvival',{mission:def.name,integrity:g.survival?.integrity??0,state:g.survival?.open?t('survival.stateOpen'):t('survival.stateLeft',{n:turnsLeft(g)})});
   if(returning(g))return t(g.floor===1?'missions.summaryReturnExit':'missions.summaryReturnUp',{mission:def.name,floor:g.floor});
   if(g.floor<missionDepth(g))return t('missions.summaryDepth',{mission:def.name,depth:missionDepth(g)});
   return t('missions.summaryProgress',{mission:def.name,done,total,goal:t(done===total?'missions.goalExit':def.kind==='recover'?'missions.goalRecover':def.kind==='hunt'?'missions.goalHunt':'missions.goalBoss')});
