@@ -41,8 +41,9 @@ import {pointLetter,pointStatus,pointTargeted,SURVIVAL_TUNING} from './survival.
 // How a survival point shows, on the field and the floor map: quiet, held (3.191.0) or fallen; 3.192.0 (user): a point a
 // group is after wears a terminal-style amber frame (four corner brackets) instead of a colour of its own.
 const POINT_COLORS=Object.freeze({quiet:'#6fd3d6',pressed:'#ff5a44',fallen:'#6b6b6b'}),POINT_FRAME='#ffc861';
-// 3.194.0: the extraction beam's phases, in ms: thin, swelling, full (the operative vanishes during it), narrowing away.
-export const EXTRACTION_BEAM=Object.freeze({thin:450,swell:450,hold:350,fade:550,vanish:800,get total(){return this.thin+this.swell+this.hold+this.fade;}});
+// The extraction beam's phases, in ms (3.195.0, user's timing): a hair-thin beam comes slowly down, splits into the beam and
+// its halo and widens to one tile, holds (the operative is gone halfway), narrows back to a hair, and breaks into motes.
+export const EXTRACTION_BEAM=Object.freeze({descend:800,expand:400,hold:600,contract:400,dissolve:800,thin:1.5,get vanish(){return this.descend+this.expand+this.hold/2;},get total(){return this.descend+this.expand+this.hold+this.contract+this.dissolve;}});
 function pointFrame(c,cx,cy,half,arm,width,color){c.strokeStyle=color;c.lineWidth=width;c.beginPath();for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){const x=cx+sx*half,y=cy+sy*half;c.moveTo(x-sx*arm,y);c.lineTo(x,y);c.lineTo(x,y-sy*arm);}c.stroke();}
 import {cameraFrame,zoomStep} from './camera.js';
 import {MUZZLE_FLASHES,flashCells,flashUnit,muzzlePoint} from './muzzle-flash.js';
@@ -510,19 +511,36 @@ export class Renderer {
 
   hazard(a,h,time){const t=this.tile,l=a.x-t*.43,top=a.y-t*.43;this.box(l,top,t*.86,t*.86,h.type==='acid'?'#709a4855':'#cf672c55');for(let i=0;i<4;i++){const n=(i*13)%25;this.box(l+5+n,top+5+(i*7)%23,4,3,h.type==='acid'?'#b8d47388':'#efa65a99');}this.glow(a.x,a.y,t*.7,h.type==='acid'?'#b4cd5312':'#f99a381a');}
   exit(a,time){const t=this.tile;this.box(a.x-t*.44,a.y-t*.44,t*.88,t*.88,'#284b40','#8fca9b');this.box(a.x-t*.32,a.y-t*.32,t*.64,t*.64,'#2e5b4a','#a1d3a655');for(let i=-1;i<=1;i++)this.line(a.x+i*9,a.y-8,a.x+i*9,a.y+6,'#102e24',2);this.text(this.game.exitBlocked?'LOCK':this.game.exitKind==='up'?'UP':this.game.exitKind==='down'?'DOWN':'EXIT',a.x,a.y+16,'#ceebbb',8);this.glow(a.x,a.y,t*.8,'#9de0aa1c');}
-  // 3.194.0 (user): extraction. A thin beam of the keycard's light (keyBeam) comes down on the operative, swells and
-  // throws light around, the operative is gone, and the beam narrows away. controller.endRun sets `extraction`
-  // ({start, at}) and darkens the screen only after EXTRACTION_BEAM.total.
+  // 3.194.0 (user): extraction, in the keycard's light (keyBeam). 3.195.0 (user): a hair-thin beam comes slowly down on the
+  // operative; only when it lands does it split into the beam and a halo that is always a little wider; the beam opens to
+  // exactly one tile, holds while the operative goes, closes back to a hair and then breaks into motes that go out one
+  // after another. controller.endRun sets `extraction` ({start, at}) and darkens only after EXTRACTION_BEAM.total.
   extractedAt(time){return Boolean(this.extraction&&time-this.extraction.start>=EXTRACTION_BEAM.vanish);}
   extractionBeam(time){
     const x=this.extraction,T=EXTRACTION_BEAM,el=time-x.start;if(el<0||el>T.total)return;
-    const c=this.ctx,t=this.tile,a=this.project(x.at.x,x.at.y),clamp=v=>Math.max(0,Math.min(1,v));
-    const appear=clamp(el/T.thin),swell=clamp((el-T.thin)/T.swell),fade=clamp((el-T.thin-T.swell-T.hold)/T.fade);
-    const width=(1.5+swell*t*.55)*(1-fade)+fade*1.5,alpha=appear*(1-clamp((fade-.6)/.4)),foot=a.y+t*.25;
-    const beam=c.createLinearGradient(a.x,0,a.x,foot);beam.addColorStop(0,`rgba(255,232,150,${.08*alpha})`);beam.addColorStop(.7,`rgba(255,238,170,${.45*alpha})`);beam.addColorStop(1,`rgba(255,248,220,${.85*alpha})`);
-    c.save();c.globalCompositeOperation='lighter';c.fillStyle=beam;c.fillRect(a.x-width*1.8,0,width*3.6,foot);c.fillRect(a.x-width/2,0,width,foot);
-    const flare=swell*(1-fade);
-    if(flare>0){this.glow(a.x,a.y,t*(.5+1.1*flare),`rgba(255,231,160,${.55*flare})`);c.fillStyle=`rgba(255,244,205,${.8*flare})`;for(let i=0;i<10;i++){const angle=i*.628+el/400,r=t*(.3+.8*flare);c.fillRect(Math.round(a.x+Math.cos(angle)*r),Math.round(a.y+Math.sin(angle)*r*.6),2,2);}}
+    const c=this.ctx,t=this.tile,a=this.project(x.at.x,x.at.y),foot=a.y+t*.3,clamp=v=>Math.max(0,Math.min(1,v)),ease=v=>v*v*(3-2*v);
+    const landed=T.descend,opened=landed+T.expand,held=opened+T.hold,closed=held+T.contract;
+    c.save();c.globalCompositeOperation='lighter';
+    if(el<closed){
+      const bottom=el<landed?foot*ease(clamp(el/landed)):foot;
+      const main=el<landed?T.thin:el<opened?T.thin+(t-T.thin)*ease((el-landed)/T.expand):el<held?t:t-(t-T.thin)*ease((el-held)/T.contract);
+      const split=el<landed?0:clamp(Math.min((el-landed)/120,(closed-el)/120)),halo=main+2+Math.max(3,main*.3);
+      if(split>0){const h=c.createLinearGradient(a.x,0,a.x,bottom);h.addColorStop(0,`rgba(255,232,150,${.03*split})`);h.addColorStop(1,`rgba(255,236,170,${.28*split})`);c.fillStyle=h;c.fillRect(a.x-halo/2,0,halo,bottom);}
+      const m=c.createLinearGradient(a.x,0,a.x,bottom);m.addColorStop(0,'rgba(255,238,170,.18)');m.addColorStop(.75,'rgba(255,242,190,.6)');m.addColorStop(1,'rgba(255,250,228,.95)');c.fillStyle=m;c.fillRect(a.x-main/2,0,main,bottom);
+      if(el<landed)this.glow(a.x,bottom,5,'rgba(255,246,210,.9)');
+      else{const pool=(main-T.thin)/(t-T.thin);this.glow(a.x,foot,t*(.25+.45*pool)+3,`rgba(255,236,170,${.25+.3*pool})`);}
+    }else{
+      // The hair breaks into motes, unevenly (user: the unevenness is the point): uneven gaps and sizes, a loose
+      // bottom-first order, each drifting and going out at its own pace. Hashed from the mote's index, so no RNG.
+      const u=clamp((el-closed)/T.dissolve),hash=(i,k)=>((Math.imul(i+1,2654435761)^Math.imul(k+7,40503))>>>0)/4294967296;
+      for(let i=0,y=foot;y>0;i++){
+        const w=1+Math.floor(hash(i,2)*2.4),h=w+(hash(i,9)<.35?Math.floor(hash(i,10)*7):0);   // some motes are short streaks
+        const start=clamp((foot-y)/foot*.5+hash(i,3)*.42),life=.1+hash(i,4)*.4,local=clamp((u-start)/life);
+        if(local<1){const drift=local*(3+hash(i,6)*14),dx=(hash(i,7)-.5)*(1.5+local*7),glow=.3+.7*hash(i,5);
+          c.fillStyle=`rgba(255,244,205,${glow*(1-local)})`;c.fillRect(Math.round(a.x+dx-w/2),Math.round(y-drift-h),w,h);}
+        y-=h+1+Math.pow(hash(i,1),2.5)*24;   // mostly tight, now and then a long gap
+      }
+    }
     c.restore();
   }
   // 3.146.0 (user idea): the keycard is a point of light with a beam standing up from it, no box. A trial of a new way

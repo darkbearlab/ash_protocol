@@ -368,9 +368,10 @@ function endRun(){
   const round={plan:outroPlan(game,{voiced:!replay})};outro=round;
   const darken=()=>{if(outro!==round)return;outroShade.classList.add('on');setTimeout(()=>outroChannel(round,0),OUTRO_TUNING.darkMs);};
   // 3.194.0 (user): a won run is lifted out in a beam of light first (renderer.extractionBeam); the dark waits for it.
-  const beamEnds=performance.now()+(game.status==='won'?EXTRACTION_BEAM.total:0);
+  // 3.195.0: on the beam's own clock (the renderer's world time), so a slow or stalled frame never cuts it short; a
+  // stalled page (hidden) still moves on after a few seconds.
   if(game.status==='won')renderer.extraction={start:renderer.time,at:{x:game.player.x,y:game.player.y}};
-  const afterBeam=()=>setTimeout(darken,Math.max(0,beamEnds-performance.now()));
+  const began=performance.now(),afterBeam=()=>{const x=renderer.extraction;if(outro!==round)return;if(!x||renderer.time-x.start>=EXTRACTION_BEAM.total||performance.now()-began>EXTRACTION_BEAM.total+5000)darken();else setTimeout(afterBeam,80);};
   clearComms();
   if(round.plan.field)sayComms({...round.plan.field,then:afterBeam});else afterBeam();
 }
