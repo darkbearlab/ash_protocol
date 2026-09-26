@@ -282,6 +282,10 @@ export default Object.freeze({
  "comms.wren.survivalPressed.2":"Hey, hey, someone just sat down on {point}.",
  "comms.wren.survivalLost.1":"{point}'s gone... It's fine, just hold the next one!",
  "comms.wren.survivalLost.2":"Argh, we lost {point}!",
+ "comms.egret.survivalHunt.1":"The next wave arrives in {n} turns, and all of it is coming for you. Plan your way out; don't get pinned in a corner.",
+ "comms.egret.survivalHunt.2":"Several groups are closing in on your position... Hold out, then get back to the points.",
+ "comms.wren.survivalHunt.1":"This one's coming for you! {n} turns out. Don't get boxed into a corner!",
+ "comms.wren.survivalHunt.2":"They're coming at you from every side... Move, move!",
  // containerKinds
  "containerKinds.unknown.name":"Unidentified crate",
  "containerKinds.ammo.name":"Ammo crate",
@@ -1926,6 +1930,7 @@ export default Object.freeze({
  "survival.open":"The exit is open; the points and integrity are locked. Get out.",
  "survival.exitLocked":"The exit is not open yet: hold out {n} more {n|turn|turns}.",
  "survival.warning":"Wave {wave} arrives in {n} turns: {groups}.",
+ "survival.groupHunters":"{n} coming for you from {groups} sides",
  // src/swarm.js
  "swarm.venomImmune":"Venom hits you but does nothing.",
  "swarm.venomPoisoned":"Venom gets into your suit; you are poisoned.",

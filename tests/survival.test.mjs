@@ -59,33 +59,33 @@ test('integrity at 0 fails the mission: its own result, no death; so does losing
  assert.ok(h.action('wait'));assert.equal(h.status,'failed','every point fallen ends it, integrity or not');
 });
 
-test('a wave is announced lead turns ahead with its targets and entries, arrives on schedule whoever is left, never too close',()=>{
- const g=survival(21),s=g.survival;
+test('the waves alternate: a hunt from the points\' side, then a strike on different points from further off; on schedule, never too close',()=>{
+ const g=survival(21),s=g.survival,mid=()=>{const pts=s.points.filter(p=>p.hp>0);return {x:pts.reduce((a,p)=>a+p.x,0)/pts.length,y:pts.reduce((a,p)=>a+p.y,0)/pts.length};};
  while(g.turn<T.firstWave-T.lead)g.action('wait');
- assert.equal(s.wave,1);assert.ok(s.incoming.length>=2);assert.ok(s.incoming.every(i=>i.due===T.firstWave));
- assert.ok(s.incoming.some(i=>i.role==='point')&&s.incoming.some(i=>i.role==='hunter'));
- assert.ok(!g.enemies.some(e=>e.survival),'nobody yet');
- const target=s.points.find(p=>p.id===s.incoming.find(i=>i.role==='point').target);assert.ok(pointTargeted(g,target),'framed while a group is after it');assert.equal(pointStatus(g,target),'quiet');assert.ok(s.points.filter(p=>!s.incoming.some(i=>i.target===p.id)).every(p=>!pointTargeted(g,p)));
- assert.ok(g.logs.some(l=>l.text.startsWith(t('survival.warning',{wave:1,n:T.lead,groups:''}).slice(0,-1))&&l.text.includes(t('survival.pointName',{letter:String.fromCharCode(65+Number(target.id.slice(6)))}))));
- for(const i of s.incoming){const to=i.role==='point'?s.points.find(p=>p.id===i.target):g.player,d=walk(g,to).get(`${i.x},${i.y}`);assert.ok(d>=T.spawnDistance&&d<=T.spawnDistance+T.spawnBand);if(i.role==='point')assert.ok(!roomContains(g.rooms.find(r=>roomContains(r,to)),i));}
- const entries=s.incoming.map(i=>({...i}));
+ assert.equal(s.wave,1);assert.ok(s.incoming.length>=2);assert.ok(s.incoming.every(i=>i.due===T.firstWave&&i.role==='hunter'),'the first wave is a hunt');
+ assert.ok(!g.enemies.some(e=>e.survival),'nobody yet');assert.ok(s.points.every(p=>!pointTargeted(g,p)),'a hunt frames no point');
+ assert.ok(g.logs.some(l=>l.text===t('survival.warning',{wave:1,n:T.lead,groups:t('survival.groupHunters',{n:s.incoming.length*2,groups:s.incoming.length})})));
+ const m=mid(),gap=Math.hypot(g.player.x-m.x,g.player.y-m.y);
+ for(const i of s.incoming){const d=walk(g,g.player).get(`${i.x},${i.y}`);assert.ok(d>=T.spawnDistance&&d<=T.spawnDistance+T.spawnBand);assert.ok(Math.hypot(i.x-m.x,i.y-m.y)<gap,'from the points\' side');}
+ assert.ok(Math.abs(s.incoming[0].x-s.incoming[1].x)+Math.abs(s.incoming[0].y-s.incoming[1].y)>=6,'a pincer');
+ const hunt=s.incoming.map(i=>({...i}));
  while(g.turn<T.firstWave)g.action('wait');
- const arrived=g.enemies.filter(e=>e.survival);assert.ok(arrived.length>=4);assert.deepEqual(s.incoming,[]);
+ const hunters=g.enemies.filter(e=>e.survival);assert.ok(hunters.length>=4&&hunters.every(e=>e.survival.role==='hunter'));assert.deepEqual(s.incoming,[]);
  assert.ok(g.logs.some(l=>l.text.startsWith(t('survival.wave',{wave:1,groups:''}).slice(0,-1))));
- for(const e of arrived){
-  const entry=entries.find(i=>i.role===e.survival.role&&(i.target??null)===(e.survival.target??null));assert.ok(entry);assert.ok(walk(g,entry).get(`${e.x},${e.y}`)<=3,'comes in at its entry');
-  const fromYou=walk(g,g.player).get(`${e.x},${e.y}`)??99;assert.ok(fromYou>=(e.survival.role==='hunter'?T.spawnDistance:T.pointClearance));
-  assert.ok(s.points.filter(p=>p.hp>0).every(p=>Math.abs(p.x-e.x)+Math.abs(p.y-e.y)>2),'never holding a point on arrival');
-  if(e.survival.role==='point'){const pt=s.points.find(p=>p.id===e.survival.target);assert.ok(walk(g,pt).get(`${e.x},${e.y}`)>=T.spawnDistance);assert.ok(!roomContains(g.rooms.find(r=>roomContains(r,pt)),e));}
- }
- while(g.turn<T.firstWave+T.waveInterval-T.lead)g.action('wait');assert.equal(s.wave,2,'the next one is announced on time');
+ for(const e of hunters){assert.ok(hunt.some(i=>walk(g,i).get(`${e.x},${e.y}`)<=3),'comes in at its entry');assert.ok((walk(g,g.player).get(`${e.x},${e.y}`)??99)>=T.spawnDistance);assert.ok(s.points.filter(p=>p.hp>0).every(p=>Math.abs(p.x-e.x)+Math.abs(p.y-e.y)>2));}
+ while(g.turn<T.firstWave+T.waveInterval-T.lead)g.action('wait');
+ assert.equal(s.wave,2,'the strike is announced on time');assert.ok(s.incoming.length>=2&&s.incoming.every(i=>i.role==='point'));
+ const targets=s.incoming.map(i=>i.target);assert.equal(new Set(targets).size,targets.length,'different points');
+ for(const i of s.incoming){const pt=s.points.find(p=>p.id===i.target),d=walk(g,pt).get(`${i.x},${i.y}`);assert.ok(d>=T.pointSpawnDistance&&d<=T.pointSpawnDistance+T.pointSpawnBand||d>=T.spawnDistance&&d<=T.spawnDistance+T.spawnBand);assert.ok(!roomContains(g.rooms.find(r=>roomContains(r,pt)),i));assert.ok(pointTargeted(g,pt));assert.equal(pointStatus(g,pt),'quiet');}
+ assert.ok(s.incoming.some(i=>walk(g,s.points.find(p=>p.id===i.target)).get(`${i.x},${i.y}`)>=T.pointSpawnDistance),'further off than a hunt');
+ assert.ok(g.logs.some(l=>l.text.startsWith(t('survival.warning',{wave:2,n:T.lead,groups:''}).slice(0,-1))&&l.text.includes(s.points.find(p=>p.id===targets[0])&&t('survival.pointName',{letter:String.fromCharCode(65+Number(targets[0].slice(6)))}))));
  while(g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)).length<T.liveLimit){const p=[...walk(g,g.player).keys()].map(k=>k.split(',').map(Number)).find(([x,y])=>!g.enemies.some(e=>e.x===x&&e.y===y)&&!(x===g.player.x&&y===g.player.y)&&!s.points.some(pt=>pt.x===x&&pt.y===y));foe(g,p[0],p[1]);}
  const full=g.enemies.length;while(g.turn<T.firstWave+T.waveInterval)g.action('wait');assert.equal(g.enemies.length,full,'the cap holds');
 });
 
-test('point groups of one wave go for different points; a group whose point fell meanwhile picks another',()=>{
+test('a strike sends every group to a different point; a group whose point fell meanwhile picks another',()=>{
  const g=survival(21),s=g.survival;s.wave=5;s.nextWave=g.turn+T.lead;g.action('wait');
- const targets=s.incoming.filter(i=>i.role==='point').map(i=>i.target);assert.equal(targets.length,2);assert.notEqual(targets[0],targets[1]);
+ const targets=s.incoming.map(i=>i.target);assert.ok(s.incoming.every(i=>i.role==='point'));assert.equal(targets.length,3);assert.equal(new Set(targets).size,3);
  const doomed=s.points.find(p=>p.id===targets[0]);doomed.hp=0;s.nextWave=1e6;
  while(s.incoming.length)g.action('wait');
  const sent=g.enemies.filter(e=>e.survival?.role==='point').map(e=>e.survival.target);assert.ok(sent.length);assert.ok(!sent.includes(doomed.id));
@@ -120,15 +120,17 @@ test('a point group stands on its point, the next one guards beside it; you on t
  assert.ok(Math.abs(hunter.x-k.player.x)+Math.abs(hunter.y-k.player.y)<d0,'closing in');
 });
 
-test('the controller names the targets of a wave, a point being held and a point lost',()=>{
+test('the controller warns of a hunt, names the targets of a strike, a point being held and a point lost',()=>{
  const g=survival(21),s=g.survival,memory=newCommsMemory(g.runId);
  while(g.turn<T.firstWave-T.lead)g.action('wait');
+ const hunt=commsEvents({game:g,logs:g.logs.slice(0,3),memory}).find(e=>e.type==='survivalHunt');assert.ok(hunt);assert.equal(hunt.vars.n,T.lead);
+ s.incoming=[];s.nextWave=g.turn+T.lead+1;g.action('wait');
  const wave=commsEvents({game:g,logs:g.logs.slice(0,3),memory}).find(e=>e.type==='survivalWave');assert.ok(wave);
- const aimed=s.points.find(p=>p.id===s.incoming.find(i=>i.role==='point').target);assert.ok(wave.vars.points.includes(t('survival.pointName',{letter:String.fromCharCode(65+Number(aimed.id.slice(6)))})));assert.equal(wave.vars.n,T.lead);
+ const aimed=s.points.find(p=>p.id===s.incoming[0].target);assert.ok(wave.vars.points.includes(t('survival.pointName',{letter:String.fromCharCode(65+Number(aimed.id.slice(6)))})));assert.equal(wave.vars.n,T.lead);
  s.incoming=[];s.nextWave=1e6;const pt=s.points[1];foe(g,pt.x,pt.y);g.action('wait');
  const held=commsEvents({game:g,logs:g.logs.slice(0,2),memory}).find(e=>e.type==='survivalPressed');assert.equal(held.vars.point,t('survival.pointName',{letter:'B'}));
  pt.hp=1;g.action('wait');const lost=commsEvents({game:g,logs:g.logs.slice(0,3),memory}).find(e=>e.type==='survivalLost');assert.equal(lost.vars.point,t('survival.pointName',{letter:'B'}));
- for(const speaker of ['egret','wren'])for(const event of ['survivalWave','survivalPressed','survivalLost'])assert.ok(commsLine(speaker,event,{})?.line,`${speaker} ${event}`);
+ for(const speaker of ['egret','wren'])for(const event of ['survivalWave','survivalHunt','survivalPressed','survivalLost'])assert.ok(commsLine(speaker,event,{})?.line,`${speaker} ${event}`);
 });
 
 test('when the turns are up the exit opens and the points lock; leaving wins',()=>{
@@ -142,7 +144,7 @@ test('saves keep a survival run and its announced waves; bad state is refused; a
  const g=survival(21);while(g.turn<T.firstWave-T.lead)g.action('wait');const copy=Game.restore(g.serialize());assert.ok(copy);assert.deepEqual(copy.survival,g.survival);assert.ok(copy.survival.incoming.length);
  for(const bad of [d=>d.survival.integrity=T.integrity+1,d=>d.survival.points[0].id='point-9',d=>d.survival.points[0].hp=T.pointHp+1,d=>d.survival.turns=0,d=>d.survival.incoming[0].target='point-99',d=>d.survival.incoming[0].role='boss',d=>d.survival.incoming[0].extra=1,d=>d.survival.incoming=null]){const raw=JSON.parse(g.serialize());bad(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);}
  while(g.turn<T.firstWave+1)g.action('wait');
- for(const bad of [d=>d.enemies.find(e=>e.survival?.role==='point').survival.target='point-99',d=>d.enemies.find(e=>e.survival).survival.role='boss']){const raw=JSON.parse(g.serialize());bad(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);}
+ for(const bad of [d=>d.enemies.find(e=>e.survival?.role==='hunter').survival.target='point-99',d=>Object.assign(d.enemies.find(e=>e.survival).survival,{role:'point',target:'point-99'}),d=>d.enemies.find(e=>e.survival).survival.role='boss']){const raw=JSON.parse(g.serialize());bad(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);}
  const other=JSON.parse(new Game(4).serialize());other.data.survival=structuredClone(g.survival);assert.equal(Game.restore(JSON.stringify(other)),null);
  const old=JSON.parse(g.serialize());old.version=78;delete old.data.survival.incoming;const back=Game.restore(JSON.stringify(old));assert.ok(back);assert.deepEqual(back.survival.incoming,[]);
 });

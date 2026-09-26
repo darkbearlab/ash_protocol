@@ -22,6 +22,7 @@ export const SURVIVAL_TUNING=Object.freeze({
  firstWave:30,waveInterval:35,             // when each wave arrives (3.194.0, user: room to lay traps; 3.192.0 had 15 and 30)
  lead:12,                                  // 3.191.0: turns between a wave's announcement and its arrival
  liveLimit:40,spawnDistance:8,spawnBand:8, // user: at most 40 at once, at least 8 turns' walk from the target
+ pointSpawnDistance:14,pointSpawnBand:8,   // 3.196.0 (user): a strike on the points comes from further off
  pointClearance:3,                         // a point group never arrives closer than this to you (hunters: spawnDistance)
  groupsMax:4,groupGrowth:5,sizeBase:2,sizeGrowth:4,sizeMax:5,depthGrowth:3,depthMax:9,
  kitWeapons:3,startLevel:5,                // 3.194.0 (user): the starting kit
@@ -39,6 +40,12 @@ export const pressedBy=(g,pt)=>g.enemies.some(e=>combatant(e)&&e.x===pt.x&&e.y==
 // The run keeps its own length (set when it starts), so a later change to the tuning leaves a run in progress alone.
 export const turnsLeft=g=>Math.max(0,(g.survival?.turns??T.turns)-g.turn);
 const groupSize=n=>Math.min(T.sizeMax,T.sizeBase+Math.floor(n/T.sizeGrowth));
+// A wave's groups in words: point groups one by one, the hunters together ("4 coming for you from 2 sides").
+function describeGroups(groups){
+ const hunters=groups.filter(x=>x.role==='hunter'),points=groups.filter(x=>x.role==='point').map(x=>t('survival.groupPoint',{n:x.n,point:x.point}));
+ const total=hunters.reduce((sum,x)=>sum+x.n,0),hunt=!hunters.length?[]:[hunters.length>1?t('survival.groupHunters',{n:total,groups:hunters.length}):t('survival.groupHunter',{n:total})];
+ return [...points,...hunt].join(t('common.listSeparator'));
+}
 // How a point shows (main map and floor map): fallen, held or quiet; 3.192.0 (user): a point a group is after (announced
 // or on its way) wears a terminal-style frame instead of a colour, and the entries are not shown at all.
 export function pointStatus(g,pt){if(pt.hp<=0)return 'fallen';if(g.survival.open)return 'quiet';return pt.pressed?'pressed':'quiet';}
@@ -94,34 +101,51 @@ function survivalKit(g,taken){
  g.settleLevels();
 }
 
-// Where a group comes in: 8–16 turns' walk from its target, outside the target's room, clear of you (hunters by
-// spawnDistance, point groups by pointClearance) and of every standing point; out of sight if it can be.
-function entryRules(g,role,target){
+// Where a group comes in: 8–16 turns' walk from its target (3.196.0: a point group 14–22, falling back to 8–16 on a
+// cramped floor), outside the target's room, clear of you (hunters by spawnDistance, point groups by pointClearance)
+// and of every standing point; out of sight if it can be.
+const BANDS=Object.freeze({hunter:[[T.spawnDistance,T.spawnBand]],point:[[T.pointSpawnDistance,T.pointSpawnBand],[T.spawnDistance,T.spawnBand]]});
+function entryRules(g,role,target,[near,band]=BANDS[role][0]){
  const home=role==='point'?g.rooms.find(r=>roomContains(r,target)):null,fromTarget=walk(g,target),fromPlayer=walk(g,g.player);
  const clearance=role==='hunter'?T.spawnDistance:T.pointClearance,points=standing(g);
- return {fromTarget,ok:p=>{const d=fromTarget.get(key(p));return d!==undefined&&d>=T.spawnDistance&&d<=T.spawnDistance+T.spawnBand&&!(home&&roomContains(home,p))&&(fromPlayer.get(key(p))??99)>=clearance&&points.every(q=>distance(q,p)>2);}};
+ return {fromTarget,ok:p=>{const d=fromTarget.get(key(p));return d!==undefined&&d>=near&&d<=near+band&&!(home&&roomContains(home,p))&&(fromPlayer.get(key(p))??99)>=clearance&&points.every(q=>distance(q,p)>2);}};
 }
 function entrySpots(g,role,target){
- const {fromTarget,ok}=entryRules(g,role,target),pick=unseen=>[...fromTarget.keys()].map(at).filter(p=>ok(p)&&free(g,p)&&(!unseen||!g.visible(p)));
- const hidden=pick(true);return hidden.length?hidden:pick(false);
+ for(const band of BANDS[role]){
+  const {fromTarget,ok}=entryRules(g,role,target,band),pick=unseen=>[...fromTarget.keys()].map(at).filter(p=>ok(p)&&free(g,p)&&(!unseen||!g.visible(p)));
+  const hidden=pick(true),spots=hidden.length?hidden:pick(false);if(spots.length)return spots;
+ }
+ return [];
 }
 // An announced entry still stands at arrival while its distances hold; someone standing on it only moves the spawns aside.
-const entryValid=(g,entry,target)=>entryRules(g,entry.role,target).ok(entry);
+const entryValid=(g,entry,target)=>BANDS[entry.role].some(band=>entryRules(g,entry.role,target,band).ok(entry));
+// 3.196.0 (user): a hunt drives you into a corner. Its groups come in from the side of the standing points (nearer their
+// middle than you are), so you give ground away from them, and the second group keeps apart from the first (a pincer).
+function herdingSpots(g,spots,anchors){
+ const pts=standing(g);if(!pts.length)return spots;
+ const mid={x:pts.reduce((sum,pt)=>sum+pt.x,0)/pts.length,y:pts.reduce((sum,pt)=>sum+pt.y,0)/pts.length},gap=Math.hypot(g.player.x-mid.x,g.player.y-mid.y);
+ const inside=spots.filter(q=>Math.hypot(q.x-mid.x,q.y-mid.y)<gap),pool=inside.length?inside:spots;
+ const apart=pool.filter(q=>anchors.every(a=>distance(a,q)>=6));return apart.length?apart:pool;
+}
 
-// The announcement (lead turns ahead): groups alternate between holding a point and hunting you and grow with the waves;
-// point groups go for different points while there are enough. Each gets its entry now, shown on the map until it arrives.
+// The announcement (lead turns ahead). 3.196.0 (user): the waves alternate instead of splitting in two: a hunt (every
+// group comes for you, first at turn 30), then a strike on the points (every group goes for a different point where it
+// can), each at the full size a whole wave used to have, so the force over time is as before. The groups and their
+// size still grow with the wave number. Each group gets its entry now; its target point shows its frame until it is over.
+export const waveKind=n=>n%2===0?'hunt':'strike';
 function announceWave(g){
- const s=g.survival,n=s.wave,groups=Math.min(T.groupsMax,2+Math.floor(n/T.groupGrowth)),due=Math.max(s.nextWave,g.turn+T.lead),told=[],chosen=new Set();
+ const s=g.survival,n=s.wave,groups=Math.min(T.groupsMax,2+Math.floor(n/T.groupGrowth)),due=Math.max(s.nextWave,g.turn+T.lead),told=[],chosen=new Set(),anchors=[];
  for(let group=0;group<groups;group++){
-  const rng=birthRandom(g.seed,g.floor,`wave-${n}-${group}`,'survival-v2'),left=standing(g),hunter=group%2===1||!left.length;
+  const rng=birthRandom(g.seed,g.floor,`wave-${n}-${group}`,'survival-v2'),left=standing(g),hunter=waveKind(n)==='hunt'||!left.length;
   const fresh=left.filter(pt=>!chosen.has(pt.id)),pool=fresh.length?fresh:left;
-  const target=hunter?g.player:pool[Math.floor(rng()*pool.length)],spots=entrySpots(g,hunter?'hunter':'point',target);
+  const target=hunter?g.player:pool[Math.floor(rng()*pool.length)];
+  let spots=entrySpots(g,hunter?'hunter':'point',target);if(hunter)spots=herdingSpots(g,spots,anchors);
   if(!spots.length)continue;
-  const entry=spots[Math.floor(rng()*spots.length)];if(!hunter)chosen.add(target.id);
+  const entry=spots[Math.floor(rng()*spots.length)];anchors.push(entry);if(!hunter)chosen.add(target.id);
   s.incoming.push({wave:n,group,due,role:hunter?'hunter':'point',target:hunter?null:target.id,x:entry.x,y:entry.y});
-  told.push(hunter?t('survival.groupHunter',{n:groupSize(n)}):t('survival.groupPoint',{n:groupSize(n),point:pointName(target)}));
+  told.push({role:hunter?'hunter':'point',n:groupSize(n),point:hunter?null:pointName(target)});
  }
- if(told.length)g.log(t('survival.warning',{wave:n+1,n:due-g.turn,groups:told.join(t('common.listSeparator'))}),true);
+ if(told.length)g.log(t('survival.warning',{wave:n+1,n:due-g.turn,groups:describeGroups(told)}),true);
  s.wave++;s.nextWave=due+T.waveInterval;
 }
 
@@ -147,7 +171,7 @@ function arriveGroup(g,entry,room){
   g.enemies.push(e);made++;
   g.effects.push({type:'portalSpawn',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});   // 3.194.0: out of the rift portal
  }
- return {made,text:made?(role==='hunter'?t('survival.groupHunter',{n:made}):t('survival.groupPoint',{n:made,point:pointName(target)})):''};
+ return {made,group:{role,n:made,point:role==='hunter'?null:pointName(target)}};
 }
 
 // End of each round (after the enemies have moved): count the held points, then announce and bring in the waves due,
@@ -169,8 +193,8 @@ export function tickSurvival(g){
  const arriving=s.incoming.filter(i=>i.due<=g.turn);
  if(arriving.length){
   s.incoming=s.incoming.filter(i=>i.due>g.turn);const byWave=new Map();
-  for(const entry of arriving){const room=T.liveLimit-g.enemies.filter(combatant).length;if(room<=0)break;const r=arriveGroup(g,entry,room);if(r.made){if(!byWave.has(entry.wave))byWave.set(entry.wave,[]);byWave.get(entry.wave).push(r.text);}}
-  for(const [wave,texts] of byWave)g.log(t('survival.wave',{wave:wave+1,groups:texts.join(t('common.listSeparator'))}),true);
+  for(const entry of arriving){const room=T.liveLimit-g.enemies.filter(combatant).length;if(room<=0)break;const r=arriveGroup(g,entry,room);if(r.made){if(!byWave.has(entry.wave))byWave.set(entry.wave,[]);byWave.get(entry.wave).push(r.group);}}
+  for(const [wave,groups] of byWave)g.log(t('survival.wave',{wave:wave+1,groups:describeGroups(groups)}),true);
  }
  while(g.turn>=s.nextWave-T.lead)announceWave(g);
  for(const e of g.enemies)if(combatant(e)&&e.survival?.role==='hunter'){e.alert=true;e.lastKnown={x:g.player.x,y:g.player.y};}

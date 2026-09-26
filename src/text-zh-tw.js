@@ -283,6 +283,10 @@ export default Object.freeze({
  "comms.wren.survivalPressed.2":"喂喂，{point} 有人坐上去了。",
  "comms.wren.survivalLost.1":"{point} 沒了……沒關係，下一個守住就好！",
  "comms.wren.survivalLost.2":"啊——{point} 掉了！",
+ "comms.egret.survivalHunt.1":"下一波 {n} 回合後抵達，這次全部衝著你來。先想好退路，別被逼進死角。",
+ "comms.egret.survivalHunt.2":"偵測到多路增援往你的位置包過來……撐過去，之後還要趕回目標點。",
+ "comms.wren.survivalHunt.1":"這波是衝著你來的！{n} 回合後到，別被堵死在角落！",
+ "comms.wren.survivalHunt.2":"好幾路人要夾你了……跑位跑位！",
  // containerKinds
  "containerKinds.unknown.name":"未識別貨櫃",
  "containerKinds.ammo.name":"彈藥箱",
@@ -1927,6 +1931,7 @@ export default Object.freeze({
  "survival.open":"撤離點已開放，目標點與完整性不再下降。前往撤離。",
  "survival.exitLocked":"撤離點還沒開放：再撐 {n} 回合。",
  "survival.warning":"第 {wave} 波增援 {n} 回合後抵達：{groups}。",
+ "survival.groupHunters":"{n} 人分 {groups} 路來找你",
  // src/swarm.js
  "swarm.venomImmune":"毒液打在你身上，但對你無效。",
  "swarm.venomPoisoned":"毒液侵入防護服，你中毒了。",

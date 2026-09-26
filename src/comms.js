@@ -51,6 +51,7 @@ export const COMMS_LINES=Object.freeze({
   extracted:['comms.egret.extracted.1',{id:'comms.egret.extracted.2',expression:'speaking'},{id:'comms.egret.extracted.3',expression:'gentle'}],
   // 3.191.0 survival (Claude's lines; the user asked Claude to write them directly)
   survivalWave:['comms.egret.survivalWave.1','comms.egret.survivalWave.2'],
+  survivalHunt:['comms.egret.survivalHunt.1',{id:'comms.egret.survivalHunt.2',expression:'worried'}],
   survivalPressed:['comms.egret.survivalPressed.1',{id:'comms.egret.survivalPressed.2',expression:'serious'}],
   survivalLost:['comms.egret.survivalLost.1',{id:'comms.egret.survivalLost.2',expression:'sad'}],
  }),
@@ -67,6 +68,7 @@ export const COMMS_LINES=Object.freeze({
   extractApproved:['comms.wren.extractApproved.1',{id:'comms.wren.extractApproved.2',expression:'speaking'},{id:'comms.wren.extractApproved.3',expression:'determined'}],
   extracted:['comms.wren.extracted.1',{id:'comms.wren.extracted.2',expression:'wink'},{id:'comms.wren.extracted.3',expression:'sheepish'}],
   survivalWave:['comms.wren.survivalWave.1',{id:'comms.wren.survivalWave.2',expression:'smug'}],
+  survivalHunt:['comms.wren.survivalHunt.1',{id:'comms.wren.survivalHunt.2',expression:'alarmed'}],
   survivalPressed:['comms.wren.survivalPressed.1',{id:'comms.wren.survivalPressed.2',expression:'annoyed'}],
   survivalLost:[{id:'comms.wren.survivalLost.1',expression:'sheepish'},'comms.wren.survivalLost.2'],
  }),
@@ -76,8 +78,8 @@ export const COMMS_LINES=Object.freeze({
 });
 // The face each speaker makes for an event (3.170.0); a line may carry its own ({id, expression}).
 export const COMMS_EXPRESSIONS=Object.freeze({
- egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed',extractApproved:'speaking',extracted:'relieved',survivalWave:'serious',survivalPressed:'alarmed',survivalLost:'worried'}),
- wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad',extractApproved:'grin',extracted:'grin',survivalWave:'determined',survivalPressed:'alarmed',survivalLost:'sad'}),
+ egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed',extractApproved:'speaking',extracted:'relieved',survivalWave:'serious',survivalHunt:'serious',survivalPressed:'alarmed',survivalLost:'worried'}),
+ wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad',extractApproved:'grin',extracted:'grin',survivalWave:'determined',survivalHunt:'determined',survivalPressed:'alarmed',survivalLost:'sad'}),
 });
 // A message from `speaker` for `event`, or null when that speaker has nothing to say about it.
 export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_LINES,expressions=COMMS_EXPRESSIONS}={}){

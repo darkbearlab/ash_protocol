@@ -7,7 +7,8 @@
 //   boss                     once per boss, the first time it is seen
 //   researcher               once per floor
 //   contact                  once per floor, the first enemy seen (the overseer's cue)
-//   survivalWave             3.191.0: a survival wave announced, naming the points it goes for
+//   survivalWave             3.191.0: a survival wave announced, naming the points it goes for; survivalHunt (3.196.0)
+//                            when the whole wave comes for you
 //   survivalPressed          an enemy stands on a point (at most every few turns); survivalLost: a point falls
 // Which speaker says what is src/comms.js COMMS_LINES; an event nobody has a line for passes silently.
 import {logSlots} from './comms.js';
@@ -44,7 +45,8 @@ export function commsEvents({game,before=null,logs=[],memory}){
  const seen=new Set();
  for(const entry of [...logs].reverse())for(const [type,sentence,vars] of LOG_EVENTS){
   const slots=seen.has(type)||!ready(type)?null:logSlots(entry?.text,sentence);if(!slots)continue;
-  seen.add(type);push(type,vars?vars(slots,game):{});
+  const values=vars?vars(slots,game):{},kind=type==='survivalWave'&&!values.points?'survivalHunt':type;   // 3.196.0: a hunt names no point
+  seen.add(type);push(kind,values);
  }
  const visible=(game.visibleEnemies||[]).filter(e=>e.hp>0),hostile=visible.filter(e=>!isNoncombatant(e));
  if(hostile.length&&!memory.contactFloors.includes(floor)){memory.contactFloors.push(floor);push('contact');}
