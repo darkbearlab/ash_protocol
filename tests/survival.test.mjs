@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,makeEnemy} from '../src/engine.js';
-import {SURVIVAL_TUNING as T,isSurvival,turnsLeft,pointBlocks,pointStatus,nextArrival} from '../src/survival.js';
+import {SURVIVAL_TUNING as T,isSurvival,turnsLeft,pointBlocks,pointStatus,pointTargeted} from '../src/survival.js';
 import {MISSIONS,RANDOM_MISSION_IDS,OFFERED_MISSION_IDS,exitBlocked} from '../src/missions.js';
 import {roomContains} from '../src/map-geometry.js';
 import {isNoncombatant} from '../src/enemy-data.js';
@@ -60,8 +60,8 @@ test('a wave is announced lead turns ahead with its targets and entries, arrives
  while(g.turn<T.firstWave-T.lead)g.action('wait');
  assert.equal(s.wave,1);assert.ok(s.incoming.length>=2);assert.ok(s.incoming.every(i=>i.due===T.firstWave));
  assert.ok(s.incoming.some(i=>i.role==='point')&&s.incoming.some(i=>i.role==='hunter'));
- assert.ok(!g.enemies.some(e=>e.survival),'nobody yet');assert.equal(nextArrival(g),T.firstWave-g.turn);
- const target=s.points.find(p=>p.id===s.incoming.find(i=>i.role==='point').target);assert.equal(pointStatus(g,target),'targeted');
+ assert.ok(!g.enemies.some(e=>e.survival),'nobody yet');
+ const target=s.points.find(p=>p.id===s.incoming.find(i=>i.role==='point').target);assert.ok(pointTargeted(g,target),'framed while a group is after it');assert.equal(pointStatus(g,target),'quiet');assert.ok(s.points.filter(p=>!s.incoming.some(i=>i.target===p.id)).every(p=>!pointTargeted(g,p)));
  assert.ok(g.logs.some(l=>l.text.startsWith(t('survival.warning',{wave:1,n:T.lead,groups:''}).slice(0,-1))&&l.text.includes(t('survival.pointName',{letter:String.fromCharCode(65+Number(target.id.slice(6)))}))));
  for(const i of s.incoming){const to=i.role==='point'?s.points.find(p=>p.id===i.target):g.player,d=walk(g,to).get(`${i.x},${i.y}`);assert.ok(d>=T.spawnDistance&&d<=T.spawnDistance+T.spawnBand);if(i.role==='point')assert.ok(!roomContains(g.rooms.find(r=>roomContains(r,to)),i));}
  const entries=s.incoming.map(i=>({...i}));

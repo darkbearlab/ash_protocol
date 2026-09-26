@@ -16,7 +16,7 @@ import {isNoncombatant} from './enemy-data.js';
 export const SURVIVAL_TUNING=Object.freeze({
  integrity:250,pointHp:15,pointLoss:20,   // user, to test with
  turns:240,                                // the exit opens at this turn (user: well over 150; docs/SURVIVAL.md 試跑)
- firstWave:15,waveInterval:20,             // when each wave arrives (Claude's numbers, from the bot runs)
+ firstWave:15,waveInterval:30,             // when each wave arrives (3.192.0, user: 20 was far too many enemies at once)
  lead:12,                                  // 3.191.0: turns between a wave's announcement and its arrival
  liveLimit:40,spawnDistance:8,spawnBand:8, // user: at most 40 at once, at least 8 turns' walk from the target
  pointClearance:3,                         // a point group never arrives closer than this to you (hunters: spawnDistance)
@@ -33,12 +33,12 @@ export const pressedBy=(g,pt)=>g.enemies.some(e=>combatant(e)&&e.x===pt.x&&e.y==
 // The run keeps its own length (set when it starts), so a later change to the tuning leaves a run in progress alone.
 export const turnsLeft=g=>Math.max(0,(g.survival?.turns??T.turns)-g.turn);
 const groupSize=n=>Math.min(T.sizeMax,T.sizeBase+Math.floor(n/T.sizeGrowth));
-// Turns until the next wave arrives, announced or not (the HUD).
-export const nextArrival=g=>{const s=g.survival;if(!s)return null;return Math.max(0,Math.min(s.nextWave,...s.incoming.map(i=>i.due))-g.turn);};
-// How a point shows (main map and floor map): fallen, held, targeted (an announced or walking group is after it) or quiet.
-export function pointStatus(g,pt){
- const s=g.survival;if(pt.hp<=0)return 'fallen';if(s.open)return 'quiet';if(pt.pressed)return 'pressed';
- return s.incoming.some(i=>i.target===pt.id)||g.enemies.some(e=>combatant(e)&&e.survival?.target===pt.id)?'targeted':'quiet';
+// How a point shows (main map and floor map): fallen, held or quiet; 3.192.0 (user): a point a group is after (announced
+// or on its way) wears a terminal-style frame instead of a colour, and the entries are not shown at all.
+export function pointStatus(g,pt){if(pt.hp<=0)return 'fallen';if(g.survival.open)return 'quiet';return pt.pressed?'pressed':'quiet';}
+export function pointTargeted(g,pt){
+ const s=g.survival;if(pt.hp<=0||s.open)return false;
+ return s.incoming.some(i=>i.target===pt.id)||g.enemies.some(e=>combatant(e)&&e.survival?.target===pt.id);
 }
 // 3.191.0 (user): enemies walk around the points, all but the one their group is sent to hold (src/game.js passable).
 export function pointBlocks(g,actor,x,y){

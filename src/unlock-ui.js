@@ -73,7 +73,7 @@ export function resultStoriesMarkup(game,profile){
   const pending=game.pendingStories||[];if(!pending.length)return '';
   const title=id=>escapeHTML(STORIES.find(s=>s.id===id)?.title||t('unlock-ui.archivedRecord'));
   if(game.status==='won'){const saved=pending.filter(id=>profile.unlocks.stories?.includes(id));
-    return `<section class="result-unlocks"><h3>${t('unlock-ui.storiesUnlocked',{savedLength:saved.length})}</h3><p>${saved.length?`${saved.map(title).join(t('common.listSeparator'))}<br>${t('unlock-ui.storiesWhere')}`:t('unlock-ui.storiesNotSaved')}</p></section>`;}
+    return `<section class="result-unlocks"><h3>${t('unlock-ui.storiesUnlocked',{savedLength:saved.length})}</h3><p>${saved.length?saved.map(title).join(t('common.listSeparator')):t('unlock-ui.storiesNotSaved')}</p></section>`;}
   return `<section class="result-unlocks lost"><h3>${t('unlock-ui.storiesLost',{pendingLength:pending.length})}</h3><p>${t('unlock-ui.noExtraction',{v:pending.map(title).join(t('common.listSeparator'))})}</p></section>`;
 }
 
