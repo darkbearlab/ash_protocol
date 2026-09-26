@@ -1,14 +1,8 @@
 ---
 id: rift-catalogue
-title: 異界樣本目錄
+title: ENCRYPTED
 faction: any
 floors: 5
 order: 401
 ---
-樣本 N-2：自裂隙另一端取回。對死者有反應。
-
-樣本 D-5：自裂隙另一端取回。所到之處，植物生長異常。
-
-兩者的來處都不在任何星圖上。
-
-【歸檔註記】樣本已移交我方兵團。移交時，沒有人問它們從哪裡來。
+TO BE DECRYPTED

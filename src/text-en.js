@@ -25,6 +25,22 @@ export default Object.freeze({
  // abandonCopy
  "abandonCopy.title":"Mission abandoned.",
  "abandonCopy.body":"Points and unlocks are kept.",
+ // src/about.js
+ "about.title":"About",
+ "about.aiTitle":"A note on AI",
+ "about.ai.wish":"ASH PROTOCOL is my wishlist game: everything I wanted to play, gathered into one.",
+ "about.ai.made":"It was made with a lot of AI. Every line of code and every first draft of the art was done by AI for me; even the music and sound effects were synthesized, note by note, by programs an AI wrote.",
+ "about.ai.real":"But it is also because of AI that I could finally make real what I had imagined. The dim facilities, the firefights fought one step at a time, the corners your flashlight cannot reach, the voice on the other end of the radio: I saw them in my head first, then kept telling the AI \"not yet, darker\" and \"more tension here\" until they became what you see now. Some of the pictures I also fixed by hand, pixel by pixel.",
+ "about.ai.hands":"So this is not a game AI made on its own. Every rule, every class and the feel of every line came from what I pictured; AI was the pair of hands that finally brought them to the screen.",
+ "about.ai.hope":"I love this game. I hope you will too.",
+ "about.ai.tools":"AI used: code written with Claude (Anthropic) and Codex (OpenAI); art drafts made with OpenAI image generation, then pixelated and retouched by hand.",
+ "about.rightsTitle":"Copyright",
+ "about.rights.owner":"© 2026 DarkBearLab. All rights reserved for the code, art, music, sound and text of ASH PROTOCOL.",
+ "about.rights.use":"You are welcome to play it, share the link, record it and stream it. Please do not redistribute, repost, modify and republish, or sell the game or any of its assets without permission.",
+ "about.rights.source":"The source code is public on GitHub for reference; public does not mean openly licensed.",
+ "about.creditsTitle":"Third-party material",
+ "about.credits.fonts":"Fonts: Barlow Condensed, IBM Plex Mono and Noto Sans TC, loaded from Google Fonts under the SIL Open Font License 1.1.",
+ "about.credits.fiction":"All companies, factions, characters and events in the game are fictional; any resemblance is coincidental.",
  // src/actor-stats.js
  "actor-stats.none":"No extra hit or evasion modifiers",
  // src/affix-ui.js
@@ -766,6 +782,7 @@ export default Object.freeze({
  "controller.runLog.saved":"Run log downloaded ({n} steps).",
  "controller.hud.survival":"Integrity {integrity} · exit {turns}",
  "controller.hud.survivalOpen":"Integrity {integrity} · exit open",
+ "controller.title.about":"Rights · a note on AI",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // DAILY OPERATION",
  // deckLabels
@@ -1184,6 +1201,7 @@ export default Object.freeze({
  "game.flashlightOff":"Flashlight off: it goes dark when this round ends.",
  "game.blindMelee":"You strike at what you cannot see: −{penalty} to hit.",
  "game.stunBraced":"You braced for it: skipping {n} {n|action|actions} instead.",
+ "game.storyEncrypted":"Encrypted facility record recovered; extract to keep it.",
  // gate
  "gate.title":"Train first?",
  "gate.body":"New stock must complete the KILL HOUSE simulation before deploying: six zones with a fixed soldier kit. It does not affect the campaign or protocol points.",
@@ -1761,7 +1779,7 @@ export default Object.freeze({
  "settings.languageLabel":"Language / 語言: {name}",
  "settings.languageNote":"Reloads the page; progress is kept.",
  "settings.languageFailed":"Could not save the language setting.",
- "settings.languageWip":"English is a work in progress: story fragments and a few other texts are still in Chinese.",
+ "settings.languageWip":"English is a work in progress: the translation has not been proofread yet.",
  "settings.goreLabel":"Kill gore: {v}",
  "settings.gore.full":"Full",
  "settings.gore.simple":"Simple",
@@ -2156,7 +2174,7 @@ export default Object.freeze({
  "unlock-ui.tabClasses":"Classes",
  "unlock-ui.tabStories":"Facility records",
  "unlock-ui.corpseHint":"Find its body in Endless Descent (floor 5+) to unlock it.",
- "unlock-ui.help":"UNLOCKS on the main menu spends protocol points on classes and facility records. From floor 5 of the endless descent, a floor may hold the body of a missing operative (always within 5 floors); entering the floor announces a life signal and a beam of light marks the body. Walk up and tap interact at the bottom right to recover it: free, unlocked at once, and kept even if you die this run. Leave the floor without it and that class will not appear again this run. Campaign data objects bring back a facility record, unlocked only when you extract; dying or abandoning loses it.",
+ "unlock-ui.help":"UNLOCKS on the main menu spends protocol points on classes. From floor 5 of the endless descent, a floor may hold the body of a missing operative (always within 5 floors); entering the floor announces a life signal and a beam of light marks the body. Walk up and tap interact at the bottom right to recover it: free, unlocked at once, and kept even if you die this run. Leave the floor without it and that class will not appear again this run. Campaign data objects bring back a facility record (encrypted for now: the stories are still being written), unlocked only when you extract; dying or abandoning loses it.",
  "unlock-ui.storySource":"Campaign · {v} · {v2} data; unlocks on extraction.",
  "unlock-ui.lifeSignal":" Missing operative's signal detected.",
  "unlock-ui.demoLocked":"Not in the demo",
@@ -2174,7 +2192,7 @@ export default Object.freeze({
  "unlock-ui.protocol":"Protocol points",
  "unlock-ui.summary":"· classes {v}/{classesLength} · records {v2}/{storiesLength}",
  "unlock-ui.demoNote":"Demo: starting classes only.",
- "unlock-ui.note":"Points build up during missions and are kept on death. Classes can also be recovered deep in the endless descent, and facility records brought back by extracting from the campaign.",
+ "unlock-ui.note":"Points build up during missions and are kept on death. Classes can also be recovered deep in the endless descent; facility records come back when you extract from the campaign.",
  "unlock-ui.storyName":"facility record “{v}”",
  "unlock-ui.className":"class “{v}”",
  "unlock-ui.confirmTitle":"Unlock {name}?",
@@ -2194,6 +2212,8 @@ export default Object.freeze({
  "unlock-ui.noExtraction":"No extraction, so this data stays locked: {v}.",
  "unlock-ui.fullRelease":"In the full release.",
  "unlock-ui.unlock":"Unlock",
+ "unlock-ui.storiesWip":"Not yet available",
+ "unlock-ui.storiesWipNote":"The stories are still being written, so the facility records stay encrypted until a later version. Records you bring back by extracting are kept; they cannot be bought with points meanwhile.",
  // src/vault.js
  "vault.locked":"The vault door is locked; it needs this floor's keycard",
  "vault.opened":"The keycard opens the vault door.",

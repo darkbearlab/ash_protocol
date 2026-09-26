@@ -26,6 +26,22 @@ export default Object.freeze({
  // abandonCopy
  "abandonCopy.title":"任務已放棄。",
  "abandonCopy.body":"已賺取的協定點數與解鎖保留，這次任務已結束。",
+ // src/about.js
+ "about.title":"關於",
+ "about.aiTitle":"關於 AI",
+ "about.ai.wish":"ASH PROTOCOL 是我的「願望清單遊戲」：我想玩的東西，一樣一樣放進同一款遊戲裡。",
+ "about.ai.made":"這個專案用了非常、非常多的 AI。所有的程式，還有美術資產的原型，都是 AI 替我完成的；就連音樂和音效，也是 AI 寫的程式一個音一個音合成出來的。",
+ "about.ai.real":"但也正因為有 AI，我才能把想像中的一切真正做出來。幽暗的設施、一格一步的交火、手電筒照不到的轉角、無線電另一頭的聲音——都是我先在腦袋裡看見，再一次又一次告訴 AI「還不對，再暗一點」「這裡要更緊張」，慢慢磨成現在的樣子。有些圖，我也自己一格一格修過。",
+ "about.ai.hands":"所以這不是一款「AI 自己做出來」的遊戲。每一條規則、每一個職業、每一句台詞該是什麼感覺，都來自我腦袋裡描繪的畫面；AI 是讓它們終於走到螢幕上的那雙手。",
+ "about.ai.hope":"我很喜歡這個遊戲。希望你也會喜歡。",
+ "about.ai.tools":"使用的 AI：程式由 Claude（Anthropic）與 Codex（OpenAI）撰寫；美術原型由 OpenAI 的圖像生成製作，再經過像素化與手工修整。",
+ "about.rightsTitle":"版權聲明",
+ "about.rights.owner":"© 2026 DarkBearLab。ASH PROTOCOL（灰燼協定）的程式、美術、音樂、音效與文字保留一切權利。",
+ "about.rights.use":"歡迎遊玩，也歡迎分享遊戲網址、錄影與直播。未經同意，請不要重新發布、轉載、修改後發布或販售遊戲本體與其中的素材。",
+ "about.rights.source":"原始碼公開在 GitHub 供參考；公開不代表開放授權。",
+ "about.creditsTitle":"第三方素材",
+ "about.credits.fonts":"字型：Barlow Condensed、IBM Plex Mono、Noto Sans TC，經 Google Fonts 載入，採用 SIL Open Font License 1.1。",
+ "about.credits.fiction":"遊戲中的企業、派系、人物與事件皆為虛構，如有雷同純屬巧合。",
  // src/actor-stats.js
  "actor-stats.none":"無額外命中／迴避修正",
  // src/affix-ui.js
@@ -767,6 +783,7 @@ export default Object.freeze({
  "controller.runLog.saved":"已下載操作紀錄（{n} 步）。",
  "controller.hud.survival":"完整性 {integrity} · 撤離 {turns}",
  "controller.hud.survivalOpen":"完整性 {integrity} · 撤離開放",
+ "controller.title.about":"版權 · AI 使用聲明",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // 灰燼協定 // DAILY OPERATION",
  // deckLabels
@@ -1185,6 +1202,7 @@ export default Object.freeze({
  "game.flashlightOff":"手電筒關閉：這一輪結束才會熄。",
  "game.blindMelee":"看不見對方，憑感覺出手：命中 −{penalty}。",
  "game.stunBraced":"你事先穩住，失能減半：跳過 {n} 次行動。",
+ "game.storyEncrypted":"取得加密的設施紀錄，撤離後保存。",
  // gate
  "gate.title":"進入模擬訓練？",
  "gate.body":"新庫存部署前，須先完成 KILL HOUSE 模擬訓練：六個區域、固定士兵配給，不影響戰役與協定點數。",
@@ -1762,7 +1780,7 @@ export default Object.freeze({
  "settings.languageLabel":"語言 / Language：{name}",
  "settings.languageNote":"切換後頁面會重新載入；任務進度已自動儲存。",
  "settings.languageFailed":"無法儲存語言設定。",
- "settings.languageWip":"English 版仍在製作中（work in progress）：故事碎片等少數內容還是中文。",
+ "settings.languageWip":"English 版仍在製作中（work in progress）：譯文還沒有經過校對。",
  "settings.goreLabel":"擊殺血光：{v}",
  "settings.gore.full":"完整",
  "settings.gore.simple":"簡化",
@@ -2157,7 +2175,7 @@ export default Object.freeze({
  "unlock-ui.tabClasses":"職業",
  "unlock-ui.tabStories":"設施紀錄",
  "unlock-ui.corpseHint":"無盡第 5 層起可能發現遺體，回收即解鎖。",
- "unlock-ui.help":"主選單 UNLOCKS 用協定點數解鎖職業與設施紀錄。無盡模式第 5 層起，樓層可能有失聯幹員的遺體（連續 4 層沒有時，下一層必定有），進入樓層時會提示生命訊號，遺體上方有光柱；靠近後按右下互動回收，不耗回合，立即解鎖，這局陣亡也會保留。沒回收就換層，這一局不會再出現同一個職業。戰役的資料物件會帶回一份設施紀錄，成功撤離才解鎖，陣亡或放棄就遺失。",
+ "unlock-ui.help":"主選單 UNLOCKS 用協定點數解鎖職業。無盡模式第 5 層起，樓層可能有失聯幹員的遺體（連續 4 層沒有時，下一層必定有），進入樓層時會提示生命訊號，遺體上方有光柱；靠近後按右下互動回收，不耗回合，立即解鎖，這局陣亡也會保留。沒回收就換層，這一局不會再出現同一個職業。戰役的資料物件會帶回一份設施紀錄（故事還在撰寫，紀錄暫時加密），成功撤離才解鎖，陣亡或放棄就遺失。",
  "unlock-ui.storySource":"戰役 · {v} · {v2}的資料物件，撤離後解鎖。",
  "unlock-ui.lifeSignal":" 偵測到失聯幹員的生命訊號。",
  "unlock-ui.demoLocked":"試玩版不開放購買",
@@ -2175,7 +2193,7 @@ export default Object.freeze({
  "unlock-ui.protocol":"協定點數",
  "unlock-ui.summary":"· 職業 {v}/{classesLength} · 紀錄 {v2}/{storiesLength}",
  "unlock-ui.demoNote":"試玩版只開放起始三個職業。",
- "unlock-ui.note":"點數在任務中累積，陣亡也保留。職業也能在無盡深處回收，設施紀錄也能從戰役撤離帶回。",
+ "unlock-ui.note":"點數在任務中累積，陣亡也保留。職業也能在無盡深處回收；設施紀錄從戰役撤離帶回。",
  "unlock-ui.storyName":"設施紀錄「{v}」",
  "unlock-ui.className":"職業「{v}」",
  "unlock-ui.confirmTitle":"解鎖{name}？",
@@ -2195,6 +2213,8 @@ export default Object.freeze({
  "unlock-ui.noExtraction":"沒有撤離，這次帶著的資料沒有解鎖：{v}。",
  "unlock-ui.fullRelease":"正式版開放。",
  "unlock-ui.unlock":"解鎖",
+ "unlock-ui.storiesWip":"尚未開放",
+ "unlock-ui.storiesWipNote":"故事還在撰寫，設施紀錄暫時加密，之後的版本解密。撤離帶回的紀錄會保留；撰寫期間不能用點數購買。",
  // src/vault.js
  "vault.locked":"保險室的鐵門鎖著，需要這一層的鑰匙卡",
  "vault.opened":"用鑰匙卡打開了保險室的鐵門。",

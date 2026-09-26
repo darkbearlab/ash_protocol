@@ -4,7 +4,7 @@ export const RETIRED_STORY_IDS=["core-response","evacuation-cancelled","final-pr
 export const STORIES=[
   {
     "id": "loyalist-standby",
-    "title": "待命命令",
+    "title": "ENCRYPTED",
     "faction": "loyalist",
     "floors": [
       1,
@@ -12,11 +12,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 101,
-    "body": "本站維持待命。總部最後一道命令：保持運轉，保持封鎖，等待喚醒訊號。\n\n命令沒有期限。\n\n【歸檔註記】命令來源已確認為總部，位置無法回溯。與搜尋目標無關，建議降級。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "loyalist-survey",
-    "title": "勘測回報",
+    "title": "ENCRYPTED",
     "faction": "loyalist",
     "floors": [
       2,
@@ -24,11 +24,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 102,
-    "body": "第三勘測隊回報：座標和上一季相同，地形不同。\n\n原定路線作廢，改用舊地圖。舊地圖是對的。\n\n【歸檔註記】勘測隊通訊格式與總部相符，追查中。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "loyalist-manifest",
-    "title": "樣本運送單",
+    "title": "ENCRYPTED",
     "faction": "loyalist",
     "floors": [
       3,
@@ -36,11 +36,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 103,
-    "body": "運送物：樣本十四件。恆溫，禁止開箱。\n\n收件單位：遮蔽。\n\n備註：樣本在途中若發出聲音，照常運送。\n\n【歸檔註記】收件單位代碼在總部名錄中不存在。建議降級。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "loyalist-batch",
-    "title": "出廠紀錄",
+    "title": "ENCRYPTED",
     "faction": "loyalist",
     "floors": [
       4,
@@ -48,11 +48,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 104,
-    "body": "AR 系列第九批次出廠。記憶清除完成，服從度合格。\n\n原定配屬勘測隊。戰況吃緊，改編入前線。\n\n【歸檔註記】此批次已由我方收容並重新部署。與本案無關。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "loyalist-sealed",
-    "title": "封存區",
+    "title": "ENCRYPTED",
     "faction": "loyalist",
     "floors": [
       5,
@@ -60,11 +60,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 105,
-    "body": "實驗區 C 自封存日起不得開啟。\n\n持有鑰匙者，開啟前請確認自己仍記得開啟的理由。\n\n【歸檔註記】封存理由欄位空白。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "loyalist-wake",
-    "title": "喚醒訊號",
+    "title": "ENCRYPTED",
     "faction": "loyalist",
     "floors": [
       6,
@@ -72,11 +72,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 106,
-    "body": "喚醒訊號已收到。\n\n訊號來源：不是總部。\n\n【歸檔註記】訊號來源無法定位。與總部位置——"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "rebel-takeover",
-    "title": "接管公告",
+    "title": "ENCRYPTED",
     "faction": "rebel",
     "floors": [
       1,
@@ -84,11 +84,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 201,
-    "body": "自即日起，本站由工人委員會接管。原管理層已拘押。\n\n任何人不得再進入下層。\n\n【歸檔註記】戰敗設施的內部權力鬥爭。與總部無關。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "rebel-missing",
-    "title": "失蹤名單",
+    "title": "ENCRYPTED",
     "faction": "rebel",
     "floors": [
       2,
@@ -96,11 +96,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 202,
-    "body": "本月失蹤：清潔班三人、維修班五人、研究員兩人。\n\n共同點：都被排進了「下層輪值」。沒有人記得是誰排的班。\n\n【歸檔註記】人員流失常見於戰敗設施。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "rebel-articles",
-    "title": "督戰條例",
+    "title": "ENCRYPTED",
     "faction": "rebel",
     "floors": [
       3,
@@ -108,11 +108,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 203,
-    "body": "臨陣脫逃者，處決。\n\n散布下層傳言者，處決。\n\n擅自打開貨櫃者，處決。第三條優先。\n\n【歸檔註記】「貨櫃」內容物不明，已調閱。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "rebel-roster",
-    "title": "強徵名冊",
+    "title": "ENCRYPTED",
     "faction": "rebel",
     "floors": [
       4,
@@ -120,11 +120,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 204,
-    "body": "補充人員十二名，全數來自原研究部門。\n\n他們知道的比我們多，但不肯說。發槍，讓他們站最前面。\n\n【歸檔註記】研究部門證詞與另一設施的樣本運送單吻合。升級處理。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "rebel-interrogation",
-    "title": "審訊紀錄",
+    "title": "ENCRYPTED",
     "faction": "rebel",
     "floors": [
       5,
@@ -132,11 +132,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 205,
-    "body": "問：你們在找什麼？\n\n答：一開始，是在找一個種族。後來，是牠們在找我們。\n\n【歸檔註記】列為機密。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "rebel-last-call",
-    "title": "最後通訊",
+    "title": "ENCRYPTED",
     "faction": "rebel",
     "floors": [
       6,
@@ -144,11 +144,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 206,
-    "body": "下層的門開了。\n\n不是我們開的。\n\n【歸檔註記】（無）"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "swarm-culture-first",
-    "title": "培養紀錄一",
+    "title": "ENCRYPTED",
     "faction": "swarm",
     "floors": [
       1,
@@ -156,11 +156,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 301,
-    "body": "依殘片上的配方重建第一代胚體。存活率百分之三。\n\n存活個體對任何生命反應都極度興奮。\n\n【歸檔註記】生物武器研究。與總部位置無關。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "swarm-culture-seventh",
-    "title": "培養紀錄七",
+    "title": "ENCRYPTED",
     "faction": "swarm",
     "floors": [
       2,
@@ -168,11 +168,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 302,
-    "body": "胚體不需要餵食指令。牠們天生知道該往哪裡去。\n\n往生命多的地方去。\n\n【歸檔註記】建議所有部隊配發防護服。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "swarm-fragment",
-    "title": "殘片翻譯",
+    "title": "ENCRYPTED",
     "faction": "swarm",
     "floors": [
       3,
@@ -180,11 +180,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 303,
-    "body": "第十二片：「我們養育牠們，不是為了自己。」\n\n其餘文字無法辨識。\n\n【歸檔註記】殘片出處不明，追查中。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "swarm-breach",
-    "title": "隔離失敗",
+    "title": "ENCRYPTED",
     "faction": "swarm",
     "floors": [
       4,
@@ -192,11 +192,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 304,
-    "body": "第四培養區失去控制。防護服無效。\n\n宿主在十分鐘內仍能說話。之後不能，但還會走。\n\n【歸檔註記】被感染者仍會使用武器。已通報各部隊。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "swarm-sample-b7",
-    "title": "樣本 B-7",
+    "title": "ENCRYPTED",
     "faction": "swarm",
     "floors": [
       5,
@@ -204,11 +204,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 305,
-    "body": "從裂隙另一端回收的樣本 B-7，暴露在培養區後沒有死。\n\n牠開始癒合。牠癒合的方式，和胚體吞食獵物的方式一模一樣。\n\n【歸檔註記】樣本 B-7 已移交我方兵團。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "swarm-notes",
-    "title": "主任筆記",
+    "title": "ENCRYPTED",
     "faction": "swarm",
     "floors": [
       6,
@@ -216,11 +216,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 306,
-    "body": "我們以為自己重新發現了一種生物。\n\n其實是重新打開了一份契約。\n\n【歸檔註記】（空白）"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "infiltrator-roster",
-    "title": "滲透名冊",
+    "title": "ENCRYPTED",
     "faction": "any",
     "floors": [
       3,
@@ -228,11 +228,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 350,
-    "body": "滲透單位不列入兵團編號。\n\n他們沒有號碼，因為從來不需要被找回來。\n\n【歸檔註記】名冊中有一人仍在活動。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "rift-catalogue",
-    "title": "異界樣本目錄",
+    "title": "ENCRYPTED",
     "faction": "any",
     "floors": [
       5,
@@ -240,11 +240,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 401,
-    "body": "樣本 N-2：自裂隙另一端取回。對死者有反應。\n\n樣本 D-5：自裂隙另一端取回。所到之處，植物生長異常。\n\n兩者的來處都不在任何星圖上。\n\n【歸檔註記】樣本已移交我方兵團。移交時，沒有人問它們從哪裡來。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "rift-inscription",
-    "title": "刻文",
+    "title": "ENCRYPTED",
     "faction": "any",
     "floors": [
       6,
@@ -252,11 +252,11 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 402,
-    "body": "它從任何地方打開，也從任何地方闔上。\n\n它要的東西只有一種。我們給了它。\n\n【歸檔註記】翻譯者申請調離。"
+    "body": "TO BE DECRYPTED"
   },
   {
     "id": "rift-last-inscription",
-    "title": "最後的刻文",
+    "title": "ENCRYPTED",
     "faction": "any",
     "floors": [
       6,
@@ -264,6 +264,6 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 403,
-    "body": "我們餵飽了它。\n\n之後，輪到我們成為食物。\n\n【歸檔註記】本案升級為最高機密。總部搜尋任務持續。"
+    "body": "TO BE DECRYPTED"
   }
 ];

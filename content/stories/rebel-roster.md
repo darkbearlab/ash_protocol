@@ -1,12 +1,8 @@
 ---
 id: rebel-roster
-title: 強徵名冊
+title: ENCRYPTED
 faction: rebel
 floors: 4
 order: 204
 ---
-補充人員十二名，全數來自原研究部門。
-
-他們知道的比我們多，但不肯說。發槍，讓他們站最前面。
-
-【歸檔註記】研究部門證詞與另一設施的樣本運送單吻合。升級處理。
+TO BE DECRYPTED

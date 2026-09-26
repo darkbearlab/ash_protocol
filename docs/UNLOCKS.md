@@ -107,6 +107,8 @@
 
 ## 5.2 故事片段的內容檔（使用者自己維護）
 
+> **3.190.0（使用者，凍結版本前）**：故事還在改寫，原文搬到 `content/story-drafts/`，`content/stories/` 是同 `id` 的 ENCRYPTED／TO BE DECRYPTED 佔位。`UNLOCK_SETTINGS.storiesWip` 開著時：解鎖頁蓋 DECRYPTION IN PROGRESS 章、紀錄不能購買（`grantUnlock` 也拒絕），撤離帶回照常；撿到資料的紀錄寫「取得加密的設施紀錄」。放回的步驟見 content/story-drafts/README.md。
+
 - **目的**：使用者在本機用編輯器增刪修改故事片段，不需要透過 Claude 或 Codex（使用者決定）。
 - **位置與格式**：放在 `content/stories/`，一段故事一個 Markdown 檔，檔名就是 ID。
 

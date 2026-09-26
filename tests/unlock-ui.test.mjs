@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {normalizeProfile} from '../src/progression.js';
 import {STORIES} from '../src/story-data.js';
-import {UNLOCK_CATALOG} from '../src/unlock-catalog.js';
+import {UNLOCK_CATALOG,UNLOCK_SETTINGS} from '../src/unlock-catalog.js';
 import {unlockPageMarkup,purchaseReason,purchaseConfirmMarkup,resultStoriesMarkup,lockedOperatorRow,operatorSignal,operatorRecoveredMarkup} from '../src/unlock-ui.js';
 import {killhouseMenuMarkup} from '../src/killhouse-ui.js';
 
@@ -21,7 +21,7 @@ test('unlock page shows prices, refusal reasons and hints; story text is escaped
     const poor=normalizeProfile();poor.protocol={balance:40,earned:40};
     assert.match(unlockPageMarkup(poor,{tab:'characters'}),/data-unlock-buy="ninja" disabled>還差 60 點<\/button>/);
     assert.doesNotMatch(classes,/data-unlock-buy="soldier"/);assert.match(classes,/起始職業/);assert.match(classes,/無盡第 5 層起/);
-    const stories=unlockPageMarkup(p,{tab:'stories'});
+    const stories=unlockPageMarkup(p,{tab:'stories',settings:{...UNLOCK_SETTINGS,storiesWip:false}});   // 3.190.0: buying as it works once the stories return
     assert.match(stories,/&lt;b&gt;QA&lt;\/b&gt;/);assert.doesNotMatch(stories,/<b>QA/);assert.match(stories,/叛軍 · 第 2–4 層/);
     assert.match(stories,/data-unlock-buy="qa-ui-story">100 點解鎖<\/button>/);assert.doesNotMatch(stories,/first line/);
     p.unlocks.stories.push('qa-ui-story');

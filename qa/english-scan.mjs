@@ -23,15 +23,15 @@ const {calloutLine,playerLine}=await import('../src/callout-ui.js');
 const CJK=/[一-鿿　-〿＀-￯]/;
 // Shelved classes and save-upgrade notices are not translated (docs/TEXT_INVENTORY.md 4).
 const SHELVED=/德魯伊|死靈|獵獸|寵物|召喚物|伴生|飽食|飢餓|共生|群葬|速葬|亡者|餵|排出|起身|集結|^指揮$|存檔已升級|戰術更新|備彈已分類|武器已升級為獨立|語言/;
-// Story fragments wait for the user's rewrite (docs/TEXT_INVENTORY.md 3): their text and titles stay Chinese for now.
-const STORY_EXPORTS=/^export (data\.js:LORE|engine\.js:LORE|story-data\.js|engine\.js:UNLOCK_CATALOG|unlock-catalog\.js)/;
+// 3.190.0: the story fragments are ENCRYPTED placeholders in both languages while the user rewrites them
+// (content/story-drafts), so they are scanned like everything else. Put the exceptions back only if Chinese-only
+// stories return (content/story-drafts/README.md).
 const found=new Map();
-const STORY_LOG=/^Data decrypted: /;
 // Chinese joins sentences with nothing between them; English needs a space. A sentence end glued to the next word
 // ("yet.Arcade") means two table sentences were concatenated in code.
 const GLUED=/[a-z)\]][.!?;:][A-Z]/;
 const glued=new Map();
-const note=(where,text)=>{if(typeof text!=='string')return;if(GLUED.test(text.replace(/<[^>]*>/g,' '))&&!glued.has(text.slice(0,120)))glued.set(text.slice(0,120),where);if(!CJK.test(text)||SHELVED.test(text)||STORY_EXPORTS.test(where)||STORY_LOG.test(text))return;const key=text.slice(0,120);if(!found.has(key))found.set(key,where);};
+const note=(where,text)=>{if(typeof text!=='string')return;if(GLUED.test(text.replace(/<[^>]*>/g,' '))&&!glued.has(text.slice(0,120)))glued.set(text.slice(0,120),where);if(!CJK.test(text)||SHELVED.test(text))return;const key=text.slice(0,120);if(!found.has(key))found.set(key,where);};
 const quietly=fn=>{try{return fn();}catch{return null;}};
 function sample(g,where){
  const p=g.player;
@@ -54,12 +54,12 @@ for(const v of [endlessRules(),levelCapRules(),suppressionHelp()])note('rules',v
 // 3.168.0: the results screen. Its loss report was written as escaped Chinese and no bot run reached it; build finished
 // games at several depths (campaign and endless) and read the report the screen shows.
 const {resultCopy}=await import('../src/result-copy.js');
-for(const [mission,status] of [['extraction','dead'],['endless','dead'],['extraction','won'],['extraction','abandoned']])for(const floor of [1,2,5,8,14]){
+for(const [mission,status] of [['extraction','dead'],['endless','dead'],['extraction','won'],['extraction','abandoned'],['survival','failed']])for(const floor of [1,2,5,8,14]){
  const g=quietly(()=>new Game(4,[],0,'soldier','onyx',mission));if(!g)continue;
  g.status=status;g.floor=floor;const copy=quietly(()=>resultCopy(g));
  if(copy)for(const v of [copy.title,copy.body])note(`result ${mission} ${status} ${floor}`,v);
 }
-const SKIP=new Set(['text-zh-tw.js','voices-zh-tw.js','story-data.js','pet-growth.js','pet-ui.js','material-review.js','materials.js','replay.js','world.js','personality.js','map-recipes-data.js','map-merging.js','killhouse-maps.js','controller.js','main.js','i18n.js']);
+const SKIP=new Set(['text-zh-tw.js','voices-zh-tw.js','pet-growth.js','pet-ui.js','material-review.js','materials.js','replay.js','world.js','personality.js','map-recipes-data.js','map-merging.js','killhouse-maps.js','controller.js','main.js','i18n.js']);
 for(const file of readdirSync(new URL('../src/',import.meta.url)).filter(f=>f.endsWith('.js')&&!SKIP.has(f))){
  const mod=await import(`../src/${file}`).catch(()=>null);if(!mod)continue;
  for(const [name,value] of Object.entries(mod)){if(typeof value==='function')continue;let text;try{text=JSON.stringify(value);}catch{continue;}

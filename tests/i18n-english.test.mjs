@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 
 // 3.167.0: a short English run in a child process (the language is chosen when modules load). What the player reads
-// must hold no Chinese, apart from the story fragments and the shelved classes, which are not translated yet.
+// must hold no Chinese, apart from the shelved classes, which are not translated yet. 3.190.0: the story fragments are
+// ENCRYPTED placeholders in both languages, so a data pickup reads English too.
 const script=`
 import {Game} from './src/engine.js';
 import {play} from './tools/balance.mjs';
@@ -26,6 +27,6 @@ test('an English run reads English',()=>{
  assert.equal(out.reload,'Reloaded 2 rounds.');
  assert.equal(out.rifle,'Assault Rifle');   // 3.177.10: the user dropped the brand names
  assert.ok(out.texts.length>50,'the bots played');
- const chinese=out.texts.filter(text=>/[一-鿿]/.test(text)&&!/^Data decrypted: /.test(text));
+ const chinese=out.texts.filter(text=>/[一-鿿]/.test(text));
  assert.deepEqual(chinese,[]);
 });

@@ -85,7 +85,7 @@ test('storage atomically purchases, retries corpse writes and grants stories onl
 test('a v7 profile rewritten by a 3.89 tab keeps its unlocks; refunds never exceed spending',()=>{
  const fixture={id:'qa-ledger-story',title:'QA',body:'QA',faction:'any',floors:[1,6],price:100,kind:'story',sources:['extraction']};STORIES.push(fixture);UNLOCK_CATALOG.push(fixture);try{
  const p=normalizeProfile();p.protocol={balance:1200,earned:1200};
- const bought=grantUnlock(grantUnlock(p,'ninja','purchase'),'qa-ledger-story','purchase');
+ const bought=grantUnlock(grantUnlock(p,'ninja','purchase'),'qa-ledger-story','purchase',{settings:{...UNLOCK_SETTINGS,storiesWip:false}});   // 3.190.0: records are for sale again once the stories return
  assert.deepEqual(bought.unlockLedger,{characters:[...STARTING_CHARACTERS,'ninja'],stories:['qa-ledger-story']});
  // The 3.89 normalizeProfile writes version 6 and rebuilds unlocks without stories, but keeps unknown top-level fields.
  const downgraded={...JSON.parse(JSON.stringify(bought)),version:6,unlocks:{weapons:[],characters:['operator',...bought.unlocks.characters]}};

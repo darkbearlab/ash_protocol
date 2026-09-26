@@ -24,6 +24,7 @@ export const operatorSignal=g=>g.operatorCorpse&&!g.operatorCorpse.recovered?t('
 export function purchaseReason(profile,entry,{settings=UNLOCK_SETTINGS,available=true}={}){
   if(settings.demo)return t('unlock-ui.demoLocked');
   if(entry.retired)return t('unlock-ui.archived');
+  if(settings.storiesWip&&entry.kind==='story'&&!unlocked(profile,entry.id))return t('unlock-ui.storiesWip');   // 3.190.0
   if(unlocked(profile,entry.id))return t('unlock-ui.unlocked');
   if(!available)return t('unlock-ui.noStorage');
   if(profile.protocol.balance<entry.price)return `${t('unlock-ui.shortBy',{v:entry.price-profile.protocol.balance})}`;
@@ -47,7 +48,7 @@ export function unlockPageMarkup(profile,{tab='characters',message='',settings=U
   const archived=RETIRED_STORY_IDS.filter(id=>profile.unlocks.stories?.includes(id));
   const tabs=`<div class="inventory-tabs unlock-tabs" role="tablist" aria-label="${t('unlock-ui.tabsAria')}">${Object.entries(UNLOCK_TABS).map(([id,label])=>`<button role="tab" aria-selected="${id===tab}" data-unlock-tab="${id}">${label}</button>`).join('')}</div>`;
   const panel=tab==='stories'
-    ?`<div class="story-list">${stories.map(s=>storyEntry(profile,s,options)).join('')}${archived.map(()=>t('unlock-ui.archivedEntry')).join('')}${stories.length||archived.length?'':t('unlock-ui.noStories')}</div>`
+    ?`${settings.storiesWip?`<p class="story-wip-note">${t('unlock-ui.storiesWipNote')}</p>`:''}<div class="story-list${settings.storiesWip?' wip':''}">${settings.storiesWip?'<div class="story-stamp" aria-hidden="true"><span>DECRYPTION<br>IN PROGRESS</span></div>':''}${stories.map(s=>storyEntry(profile,s,options)).join('')}${archived.map(()=>t('unlock-ui.archivedEntry')).join('')}${stories.length||archived.length?'':t('unlock-ui.noStories')}</div>`
     :`<div class="upgrade-grid unlock-grid">${classes.map(id=>characterCard(profile,id,options)).join('')}</div>`;
   return `<div class="eyebrow">PROTOCOL / UNLOCKS</div><h2>${t('unlock-ui.title')}</h2>
 <p>${t('unlock-ui.protocol')} <b>${profile.protocol.balance}</b> ${t('unlock-ui.summary',{v:classes.filter(id=>unlocked(profile,id)).length,classesLength:classes.length,v2:stories.filter(s=>unlocked(profile,s.id)).length,storiesLength:stories.length})}<br>${settings.demo?t('unlock-ui.demoNote'):t('unlock-ui.note')}</p>

@@ -51,6 +51,7 @@ import {exitStep,nextPrompt,promptDue,roomPromptMarkup,tutorialGateMarkup,killho
 import {PACK_LIMIT} from './data.js';
 import {dailySeed,dailyMission} from './daily.js';
 import {VERSION} from './version.js';
+import {aboutMarkup} from './about.js';
 import {TRAITS,traitLabels,startingTraits,initiative} from './traits.js';
 import {AMMUNITION,AMMO_IDS,MELEE_TINT,capacity,TERMINAL_AMMO} from './ammunition.js';
 import {captureAction,planPresentation,Playback} from './presentation.js';
@@ -552,6 +553,7 @@ function showIntro(){
       ${simulating?'':entry('unlocks','UNLOCKS',`${t('controller.title.unlocks',{v:profile().protocol.balance})}`)}
       ${entry('help','MANUAL',t('controller.title.manual'))}
       ${entry('settings','SETTING',t('controller.title.settings'))}
+      ${entry('about','ABOUT',t('controller.title.about'))}
     </nav>
     ${storage.available?'':t('controller.title.storageWarning')}
   </div>`,false,true);
@@ -1185,7 +1187,7 @@ document.addEventListener('click',e=>{
   if(b.dataset.terminalConfirm!==undefined&&terminalDraft){const {buy,trade}=terminalDraft;terminalDraft=null;modalAction('terminal',{buy,trade});return;}
   if(b.dataset.terminalBack!==undefined){showTerminal();return;}
   if(b.dataset.modal){switch(b.dataset.modal){
-    case 'lastBattle':$('#modal').close();break;case 'enter':entered=true;$('#modal').close();update();floorToast();break;case 'intro':showIntro();break;case 'mission':showMission();break;case 'close':close();break;case 'bag':showInventory();break;case 'journal':showJournal();break;case 'bestiary':bestiary();break;case 'help':showHelp();break;case 'log':showLog();break;
+    case 'lastBattle':$('#modal').close();break;case 'enter':entered=true;$('#modal').close();update();floorToast();break;case 'intro':showIntro();break;case 'mission':showMission();break;case 'close':close();break;case 'bag':showInventory();break;case 'journal':showJournal();break;case 'bestiary':bestiary();break;case 'help':showHelp();break;case 'about':modal(aboutMarkup(),true);break;case 'log':showLog();break;
     case 'unlocks':showUnlocks();break;
     case 'result':showResult();break;
     // 3.114.0 (user request): after a loss, the same mission, seed and options with only the operative chosen again.
@@ -1252,7 +1254,7 @@ document.addEventListener('click',e=>{
       newGame(deployDraft.seed,character,deployDraft.mission,options);break;}
   }return;}
   switch(b.dataset.action){
-    case 'mission':showMission();break;case 'interact':interact();break;case 'result':showResult();break;case 'map':showMap();break;case 'game':$('#battle').focus();break;case 'help':showHelp();break;case 'settings':settings();break;case 'bag':showInventory();break;case 'weapons':showInventory('weapon');break;case 'terminal':showTerminal();break;
+    case 'mission':showMission();break;case 'interact':interact();break;case 'result':showResult();break;case 'map':showMap();break;case 'game':$('#battle').focus();break;case 'help':showHelp();break;case 'about':modal(aboutMarkup(),true);break;case 'settings':settings();break;case 'bag':showInventory();break;case 'weapons':showInventory('weapon');break;case 'terminal':showTerminal();break;
     case 'item':useItem();break;case 'skill':skill();break;case 'saveWarning':showSaveWarning();break;
     case 'toggleTargeting':toggleTargeting();break;case 'flashlight':act('flashlight');break;case 'cycleTarget':cycleTarget();break;case 'grenade':grenade();break;case 'cancelAim':cancelAim();break;case 'fire':fireWeapon();break;
     case 'zoomIn':zoomBy(.15);break;

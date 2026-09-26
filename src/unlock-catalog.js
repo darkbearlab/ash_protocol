@@ -1,5 +1,8 @@
 import {STORIES,RETIRED_STORY_IDS} from './story-data.js';
-export const UNLOCK_SETTINGS={demo:false,consecutiveFactions:true,fixedFactionOverride:true,corpseStart:5,corpseStep:.1,corpseMax:.5,corpsePity:4};
+// 3.190.0 (user, before the version freeze): the stories are being rewritten, so content/stories holds ENCRYPTED
+// placeholders (the drafts wait in content/story-drafts). While storiesWip is on, records cannot be bought (points
+// would buy a placeholder); extraction still brings them back, and they keep their ids for when the text returns.
+export const UNLOCK_SETTINGS={demo:false,storiesWip:true,consecutiveFactions:true,fixedFactionOverride:true,corpseStart:5,corpseStep:.1,corpseMax:.5,corpsePity:4};
 export const STARTING_CHARACTERS=['soldier','recon','engineer'];
 export const CHARACTER_IDS=[...STARTING_CHARACTERS,'necromancer','druid','bulwark','berserker','ninja'];
 // 3.156.0 (user decision 2026-09-20): the druid and the necromancer are shelved until their redesigns are done — no
@@ -16,7 +19,7 @@ export const validStoryId=id=>STORIES.some(s=>s.id===id)||RETIRED_STORY_IDS.incl
 // Pure transaction preparation. The storage adapter publishes this copy with one write.
 export function grantUnlock(p,id,source,{simulation=false,settings=UNLOCK_SETTINGS}={}){
  const e=unlockEntry(id);if(simulation||!e||unlocked(p,id)||(settings.demo&&(source==='purchase'||e.kind==='character'))||!['purchase',...e.sources].includes(source))return false;
- if(source==='purchase'&&(e.retired||p.protocol.balance<e.price))return false;
+ if(source==='purchase'&&(e.retired||(settings.storiesWip&&e.kind==='story')||p.protocol.balance<e.price))return false;
  const next=structuredClone(p),key=e.kind==='character'?'characters':'stories';
  next.unlocks[key]??=[];next.unlocks[key].push(id);if(source==='purchase')next.protocol.balance-=e.price;
  next.unlockLedger={characters:[...(next.unlocks.characters||[])],stories:[...(next.unlocks.stories||[])]};return next;
