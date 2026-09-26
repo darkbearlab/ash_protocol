@@ -65,7 +65,7 @@ import {GORE_SETTINGS,validGoreSetting,goreLevel} from './gore.js';
 import {commsEvents,commsSnapshot,newCommsMemory} from './comms-events.js';
 import {validDuty} from './duty.js';
 import {factionDef} from './faction-catalog.js';
-import {Renderer} from './render.js';
+import {Renderer,EXTRACTION_BEAM} from './render.js';
 import {AudioEngine,AUDIO_TUNING,volumePercent} from './audio.js';
 import {GRIT_LEVELS,gritLevel} from './audio-grit.js';
 import {frameRate,nextFrameRate} from './frame-rate.js';
@@ -361,14 +361,18 @@ function resetKia(){kia=null;renderer.kia=null;renderer.pace=null;renderer.gore=
 // one playing, so a new run or the results opened another way stop it.
 let outro=null;
 const outroShade=document.createElement('div');outroShade.className='outro-shade';outroShade.setAttribute('aria-hidden','true');outroShade.style.transitionDuration=`${OUTRO_TUNING.darkMs}ms`;document.body.append(outroShade);
-function endOutro(){outro=null;outroShade.classList.remove('on');}
+function endOutro(){outro=null;outroShade.classList.remove('on');renderer.extraction=null;}
 const ending=()=>Boolean(outro)||Boolean(kia&&!kia.shown);
 function endRun(){
   if(isSimulation(game)){showResult();return;}
   const round={plan:outroPlan(game,{voiced:!replay})};outro=round;
   const darken=()=>{if(outro!==round)return;outroShade.classList.add('on');setTimeout(()=>outroChannel(round,0),OUTRO_TUNING.darkMs);};
+  // 3.194.0 (user): a won run is lifted out in a beam of light first (renderer.extractionBeam); the dark waits for it.
+  const beamEnds=performance.now()+(game.status==='won'?EXTRACTION_BEAM.total:0);
+  if(game.status==='won')renderer.extraction={start:renderer.time,at:{x:game.player.x,y:game.player.y}};
+  const afterBeam=()=>setTimeout(darken,Math.max(0,beamEnds-performance.now()));
   clearComms();
-  if(round.plan.field)sayComms({...round.plan.field,then:darken});else darken();
+  if(round.plan.field)sayComms({...round.plan.field,then:afterBeam});else afterBeam();
 }
 function outroChannel(round,i){
   if(outro!==round)return;

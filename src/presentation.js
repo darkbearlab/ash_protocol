@@ -1,6 +1,6 @@
 import {WEAPONS} from './data.js';
 import {enemyProjectile,enemyMeleeStyle} from './enemy-visuals.js';
-import {NEST_EFFECT_MS} from './nest-art.js';
+import {NEST_EFFECT_MS,PORTAL_EFFECT_MS} from './nest-art.js';
 import {actorMoves} from './actor-visuals.js';
 import {killingBlow,ENEMY_BLOWS} from './kia.js';
 import {goreKind,goreSize,goreForce} from './gore.js';
@@ -137,7 +137,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const impactState=prior?Object.assign(Object.create(Object.getPrototypeOf(step.after)),step.after,{player:{...step.after.player,...prior.resources},items:prior.items,logs:prior.logs}):step.after;
     events.push({time,state:impactState,effects:[...impacts.map(e=>({...e,quiet:reduceMotion})),...announcements]});
     const burstContinues=flights.some(e=>BURST_WEAPONS.includes(e.weaponId))&&steps[index+1]?.effects.some(e=>e.type==='shot'&&BURST_WEAPONS.includes(e.weaponId));
-    time+=!flights.length&&!impacts.length&&!rewards.length?0:reduceMotion?120:impacts.some(e=>e.type==='nestCollapse'||e.type==='nestSpawn')?NEST_EFFECT_MS:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
+    time+=!flights.length&&!impacts.length&&!rewards.length?0:reduceMotion?120:impacts.some(e=>e.type==='portalSpawn')?PORTAL_EFFECT_MS:impacts.some(e=>e.type==='nestCollapse'||e.type==='nestSpawn')?NEST_EFFECT_MS:deaths.length?DEATH_MS:burstContinues?40:IMPACT_MS;
     if(far.length)time+=KILL_HOLD_MS;
     if(rewards.length){events.push({time,state:step.after,effects:rewards.map(({beforeSupply,...e})=>e)});time+=reduceMotion?60:IMPACT_MS;}
   }

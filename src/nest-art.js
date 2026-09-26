@@ -1,6 +1,18 @@
 import {nestStyle,NEST_STYLES} from './runtime-enemies.js';
 export const NEST_ATLAS=new URL('../assets/pixel/nests-v1/atlas.png',import.meta.url).href;
 export const NEST_EFFECT_MS=280;
+// 3.194.0 (user): survival reinforcements step out of the rift portal (row 2 of the nest atlas): it opens, holds while
+// the enemy appears inside it, and collapses away. No RNG; the motes are placed by angle.
+export const PORTAL_EFFECT_MS=600;
+export function drawPortalEffect(c,image,a,tile,elapsed){
+ if(elapsed<0||elapsed>=PORTAL_EFFECT_MS)return;
+ const u=elapsed/PORTAL_EFFECT_MS,open=Math.min(1,u/.3),closing=u>.7?(u-.7)/.3:0,size=tile*1.3*(.35+.65*open)*(1-.35*closing);
+ c.save();c.globalAlpha=1-closing*.9;
+ if(!drawNestSprite(c,image,a,size,'rift',closing?'collapse':'active')){c.fillStyle='#b06cff';c.fillRect(a.x-size*.2,a.y-size*.3,size*.4,size*.6);}
+ c.fillStyle='#d9b3ff';
+ for(let i=0;i<8;i++){const angle=i*.785+u*2.2,r=tile*(.18+.42*u);c.fillRect(Math.round(a.x+Math.cos(angle)*r),Math.round(a.y+Math.sin(angle)*r*.8),2,2);}
+ c.restore();
+}
 export function drawNestSprite(c,image,a,tile,style,state){
  const column={dormant:0,active:1,collapse:2,ruins:3}[state],row=style==='rift'?1:0;
  if(!image?.complete||!image.naturalWidth)return false;

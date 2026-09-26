@@ -93,7 +93,8 @@ test('actual ranged and melee enemy attacks use deep-floor growth before defense
 test('all modes limit a full level progression to nineteen choices',()=>{
  for(const mission of Object.keys(MISSIONS)){
   const g=new Game(349,[],0,'soldier','onyx',mission);g.enemies=[];
-  for(let level=2;level<=MAX_LEVEL;level++){g.player.xp=levelCost(g,g.player.level)-1;kill(g);assert.equal(g.player.level,level);assert.equal(g.pendingPerks,1);assert.ok(g.choosePerk(g.perkChoices[0].id));}
+  while(g.pendingPerks)assert.ok(g.choosePerk(g.perkChoices[0].id));   // 3.194.0: survival starts at level 5 with its picks
+  for(let level=g.player.level+1;level<=MAX_LEVEL;level++){g.player.xp=levelCost(g,g.player.level)-1;kill(g);assert.equal(g.player.level,level);assert.equal(g.pendingPerks,1);assert.ok(g.choosePerk(g.perkChoices[0].id));}
   // Past the cap the number stops; each MAX_LEVEL+2 experience buys supplies instead of a choice.
   for(let extra=1;extra<=2;extra++){const meds=g.player.meds;g.player.xp=MAX_LEVEL+1;kill(g);
    assert.equal(g.player.level,MAX_LEVEL);assert.equal(g.pendingPerks,0);assert.equal(g.player.meds,Math.min(g.itemCapacity(),meds+CAP_SUPPLY.meds));}

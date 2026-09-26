@@ -1,1 +1,1 @@
-export {Renderer} from './renderer.js';
+export {Renderer,EXTRACTION_BEAM} from './renderer.js';

@@ -12,16 +12,22 @@ import {factionPool} from './faction-catalog.js';
 import {rollEnemyAffixes,birthRandom} from './enemy-affixes.js';
 import {rollEnemyElite} from './elite-enemies.js';
 import {isNoncombatant} from './enemy-data.js';
+import {WEAPONS} from './data.js';
+import {AMMUNITION} from './ammunition.js';
+import {levelCost} from './perks.js';
 
 export const SURVIVAL_TUNING=Object.freeze({
  integrity:250,pointHp:15,pointLoss:20,   // user, to test with
  turns:240,                                // the exit opens at this turn (user: well over 150; docs/SURVIVAL.md 試跑)
- firstWave:15,waveInterval:30,             // when each wave arrives (3.192.0, user: 20 was far too many enemies at once)
+ firstWave:30,waveInterval:35,             // when each wave arrives (3.194.0, user: room to lay traps; 3.192.0 had 15 and 30)
  lead:12,                                  // 3.191.0: turns between a wave's announcement and its arrival
  liveLimit:40,spawnDistance:8,spawnBand:8, // user: at most 40 at once, at least 8 turns' walk from the target
  pointClearance:3,                         // a point group never arrives closer than this to you (hunters: spawnDistance)
  groupsMax:4,groupGrowth:5,sizeBase:2,sizeGrowth:4,sizeMax:5,depthGrowth:3,depthMax:9,
+ kitWeapons:3,startLevel:5,                // 3.194.0 (user): the starting kit
 });
+// The guns a kit draws from (every gun but the drop-only ones); a melee class gets one blade among them.
+const KIT_GUNS=Object.freeze([0,1,2,3,4,5,6,8]);
 const T=SURVIVAL_TUNING;
 export const isSurvival=g=>g?.mission?.id==='survival';
 export const pointLetter=i=>String.fromCharCode(65+i);
@@ -68,7 +74,24 @@ export function setupSurvival(g){
   if(tiles.length){const p=tiles[0];points.push({id:`point-${points.length}`,x:p.x,y:p.y,hp:T.pointHp,pressed:false});taken.add(key(p));}
  });
  g.survival={integrity:T.integrity,points,wave:0,nextWave:T.firstWave,open:false,turns:T.turns,incoming:[]};
+ survivalKit(g,taken);
  return g;
+}
+
+// 3.194.0 (user): one floor means no later armouries, so the run starts with a basic build. Three weapons you do not carry
+// lie beside you (by seed; affixes rolled like any drop), every ammunition reserve is full, and there is experience for
+// level 5, so its picks come up at once. Placed and drawn by hash, never from the floor's own random stream.
+function survivalKit(g,taken){
+ const p=g.player,rng=birthRandom(g.seed,g.floor,'survival-kit','survival-v2'),carried=new Set(p.owned.map(slot=>p.weaponBases[slot]));
+ const take=list=>list.splice(Math.floor(rng()*list.length),1)[0],guns=KIT_GUNS.filter(w=>!carried.has(w));
+ const blades=WEAPONS.map((w,i)=>w.melee&&!w.locked&&!carried.has(i)&&!carried.has(WEAPONS.findIndex(o=>o.code===w.code))?i:-1).filter(i=>i>=0);
+ const bases=p.owned.some(slot=>WEAPONS[p.weaponBases[slot]]?.melee)&&blades.length?[take(blades)]:[];
+ while(bases.length<T.kitWeapons&&guns.length)bases.push(take(guns));
+ const beside=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).filter(q=>g.passable(q.x,q.y)&&g.canCross(p,q)&&!taken.has(key(q)));
+ bases.forEach((weapon,i)=>{const at=beside[i]||{x:p.x,y:p.y};g.items.push(g.registerWeapon({x:at.x,y:at.y,type:'weapon',weapon},true));});
+ for(const [type,ammo] of Object.entries(AMMUNITION))if(type!=='grenade'&&ammo.key)p[ammo.key]=Math.max(p[ammo.key]||0,g.ammoCapacity(type));
+ for(let level=p.level;level<T.startLevel;level++)p.xp+=levelCost(g,level);
+ g.settleLevels();
 }
 
 // Where a group comes in: 8–16 turns' walk from its target, outside the target's room, clear of you (hunters by
@@ -122,6 +145,7 @@ function arriveGroup(g,entry,room){
   let e=makeEnemy(type,p.x,p.y,id,depth,g.difficultySpec,g.facilityFaction);e=rollEnemyElite(rollEnemyAffixes(e,g.seed,depth,g.difficultySpec),g.seed,depth,g.difficultySpec);
   Object.assign(e,{faction:g.facilityFaction,alert:true,lastKnown:{x:g.player.x,y:g.player.y},survival:role==='hunter'?{role:'hunter'}:{role:'point',target:target.id}});
   g.enemies.push(e);made++;
+  g.effects.push({type:'portalSpawn',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});   // 3.194.0: out of the rift portal
  }
  return {made,text:made?(role==='hunter'?t('survival.groupHunter',{n:made}):t('survival.groupPoint',{n:made,point:pointName(target)})):''};
 }

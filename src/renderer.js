@@ -12,7 +12,7 @@ import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
 import {enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL,spriteToneRole,VENOM_VISUAL,TONGUE_VISUAL,SPRITE_NAMES,AFTERMATH_NAMES} from './enemy-visuals.js';
 import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
-import {NEST_ATLAS,drawNest,drawNestEffect,drawNestSprite} from './nest-art.js';
+import {NEST_ATLAS,drawNest,drawNestEffect,drawNestSprite,drawPortalEffect} from './nest-art.js';
 import {DECAL_ATLAS,FactionDecals} from './faction-decals.js';
 import {blindReason} from './blind-fire.js';
 import {DECOY_TUNING,decoyReason,mineReason,glowstickReason} from './field-gear.js';
@@ -41,6 +41,8 @@ import {pointLetter,pointStatus,pointTargeted,SURVIVAL_TUNING} from './survival.
 // How a survival point shows, on the field and the floor map: quiet, held (3.191.0) or fallen; 3.192.0 (user): a point a
 // group is after wears a terminal-style amber frame (four corner brackets) instead of a colour of its own.
 const POINT_COLORS=Object.freeze({quiet:'#6fd3d6',pressed:'#ff5a44',fallen:'#6b6b6b'}),POINT_FRAME='#ffc861';
+// 3.194.0: the extraction beam's phases, in ms: thin, swelling, full (the operative vanishes during it), narrowing away.
+export const EXTRACTION_BEAM=Object.freeze({thin:450,swell:450,hold:350,fade:550,vanish:800,get total(){return this.thin+this.swell+this.hold+this.fade;}});
 function pointFrame(c,cx,cy,half,arm,width,color){c.strokeStyle=color;c.lineWidth=width;c.beginPath();for(const [sx,sy] of [[-1,-1],[1,-1],[1,1],[-1,1]]){const x=cx+sx*half,y=cy+sy*half;c.moveTo(x-sx*arm,y);c.lineTo(x,y);c.lineTo(x,y-sy*arm);}c.stroke();}
 import {cameraFrame,zoomStep} from './camera.js';
 import {MUZZLE_FLASHES,flashCells,flashUnit,muzzlePoint} from './muzzle-flash.js';
@@ -302,7 +304,7 @@ export class Renderer {
     const goreShade=(x,y)=>isDark(g,{x:Math.round(x),y:Math.round(y)})?DARK_ACTOR_BRIGHTNESS:1;
     if(this.splatter){this.splatter.use(`${g.seed}:${g.floor}`);for(const b of this.gore||[])this.splatter.bake(b.burst,b.at,time-b.start);if(this.kia?.burst)this.splatter.bake(this.kia.burst,this.kia.at,time-this.kia.start);this.splatter.draw(c,this.project(0,0),t,goreShade);}
     if(this.kia)drawKiaGround(this,time);
-    const pos=this.projectActor(p);if(p.hp<=0){if(this.kia)drawKiaBody(this,pos,p.character,time);else this.corpse(pos,'player',p.character);}else this.glitchDraw(pos,'player',()=>this.actor(pos,'player',time,p));
+    const pos=this.projectActor(p);if(p.hp<=0){if(this.kia)drawKiaBody(this,pos,p.character,time);else this.corpse(pos,'player',p.character);}else if(!this.extractedAt(time))this.glitchDraw(pos,'player',()=>this.actor(pos,'player',time,p));   // 3.194.0: gone in the extraction beam
     for(const cover of g.cover){const dx=cover.x-p.x,dy=cover.y-p.y;const x=pos.x+dx*t*(isBarrier(cover)?1:.48),y=pos.y+dy*t*(isBarrier(cover)?1:.48);this.line(x+(dy? -t*.27:0),y+(dx?-t*.27:0),x+(dy?t*.27:0),y+(dx?t*.27:0),cover.type==='wall'?'#8bd2c9':'#c7d896',2);}
     const hiddenEnemies=new Set(g.visibleEnemies.filter(e=>cornerHidden(g,e)));
     for(const e of g.visibleEnemies){const a=this.projectActor(e);this.glitchDraw(a,e.id,()=>this.actor(a,e.type,time,e,hiddenEnemies.has(e)));if(e.keycard&&e.hp>0)this.keyBeam({x:a.x,y:a.y-this.tile*.55},time,.45);/* 3.146.0: carries the keycard */if(missionTarget(g,e))this.text('◇',a.x-this.tile*.35,a.y-8,'#88f3ff',12);}
@@ -322,6 +324,7 @@ export class Renderer {
       // 3.116.0 (user decision): a flash only for a shooter the player can see, judged once per shot on the state it came from.
       const shot=fx.type==='shot'||fx.type==='enemyShot';
       if(shot&&fx.flash){fx.shooterSeen??=fx.type==='enemyShot'?g.visibleEnemies.some(e=>e.x===fx.from.x&&e.y===fx.from.y):g.visible(fx.from);if(fx.shooterSeen)this.muzzleFlash(fx,a,angle,elapsed);}
+      if(fx.type==='portalSpawn'){if(g.visible(fx.to))drawPortalEffect(c,this.terrainImages?.get(NEST_ATLAS),b,t,elapsed);c.globalAlpha=1;continue;}   // 3.194.0
       if(fx.type==='nestCollapse'||fx.type==='nestSpawn'){if(g.visible(fx.type==='nestCollapse'?fx.from:fx.to))drawNestEffect(c,this.terrainImages?.get(NEST_ATLAS),fx,a,b,t,elapsed);c.globalAlpha=1;continue;}
       if(fx.quiet){
         const q=shot?a:b;
@@ -367,6 +370,7 @@ export class Renderer {
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}
     if(this.gore?.length){for(const b of this.gore)drawBurstAir(c,t,this.project(b.at.x,b.at.y),b.burst,time-b.start,false,(dx,dy)=>goreShade(b.at.x+dx,b.at.y+dy));this.gore=this.gore.filter(b=>time-b.start<b.life);}
     if(this.kia)drawKiaAir(this,time);
+    if(this.extraction)this.extractionBeam(time);
     // Raised partitions share the wall occlusion layer; footprints remain on ground edges.
     const seenBarriers=g.barriers.filter(b=>edgeCells(b).some(q=>g.mapped(q.x,q.y)));
     const barriers=[...seenBarriers.map(b=>({b,y:b.y+(b.axis==='x'?.5:.08)})),...barrierJunctions(seenBarriers).map(j=>({j,y:j.y+.081}))].sort((a,b)=>a.y-b.y);
@@ -506,6 +510,21 @@ export class Renderer {
 
   hazard(a,h,time){const t=this.tile,l=a.x-t*.43,top=a.y-t*.43;this.box(l,top,t*.86,t*.86,h.type==='acid'?'#709a4855':'#cf672c55');for(let i=0;i<4;i++){const n=(i*13)%25;this.box(l+5+n,top+5+(i*7)%23,4,3,h.type==='acid'?'#b8d47388':'#efa65a99');}this.glow(a.x,a.y,t*.7,h.type==='acid'?'#b4cd5312':'#f99a381a');}
   exit(a,time){const t=this.tile;this.box(a.x-t*.44,a.y-t*.44,t*.88,t*.88,'#284b40','#8fca9b');this.box(a.x-t*.32,a.y-t*.32,t*.64,t*.64,'#2e5b4a','#a1d3a655');for(let i=-1;i<=1;i++)this.line(a.x+i*9,a.y-8,a.x+i*9,a.y+6,'#102e24',2);this.text(this.game.exitBlocked?'LOCK':this.game.exitKind==='up'?'UP':this.game.exitKind==='down'?'DOWN':'EXIT',a.x,a.y+16,'#ceebbb',8);this.glow(a.x,a.y,t*.8,'#9de0aa1c');}
+  // 3.194.0 (user): extraction. A thin beam of the keycard's light (keyBeam) comes down on the operative, swells and
+  // throws light around, the operative is gone, and the beam narrows away. controller.endRun sets `extraction`
+  // ({start, at}) and darkens the screen only after EXTRACTION_BEAM.total.
+  extractedAt(time){return Boolean(this.extraction&&time-this.extraction.start>=EXTRACTION_BEAM.vanish);}
+  extractionBeam(time){
+    const x=this.extraction,T=EXTRACTION_BEAM,el=time-x.start;if(el<0||el>T.total)return;
+    const c=this.ctx,t=this.tile,a=this.project(x.at.x,x.at.y),clamp=v=>Math.max(0,Math.min(1,v));
+    const appear=clamp(el/T.thin),swell=clamp((el-T.thin)/T.swell),fade=clamp((el-T.thin-T.swell-T.hold)/T.fade);
+    const width=(1.5+swell*t*.55)*(1-fade)+fade*1.5,alpha=appear*(1-clamp((fade-.6)/.4)),foot=a.y+t*.25;
+    const beam=c.createLinearGradient(a.x,0,a.x,foot);beam.addColorStop(0,`rgba(255,232,150,${.08*alpha})`);beam.addColorStop(.7,`rgba(255,238,170,${.45*alpha})`);beam.addColorStop(1,`rgba(255,248,220,${.85*alpha})`);
+    c.save();c.globalCompositeOperation='lighter';c.fillStyle=beam;c.fillRect(a.x-width*1.8,0,width*3.6,foot);c.fillRect(a.x-width/2,0,width,foot);
+    const flare=swell*(1-fade);
+    if(flare>0){this.glow(a.x,a.y,t*(.5+1.1*flare),`rgba(255,231,160,${.55*flare})`);c.fillStyle=`rgba(255,244,205,${.8*flare})`;for(let i=0;i<10;i++){const angle=i*.628+el/400,r=t*(.3+.8*flare);c.fillRect(Math.round(a.x+Math.cos(angle)*r),Math.round(a.y+Math.sin(angle)*r*.6),2,2);}}
+    c.restore();
+  }
   // 3.146.0 (user idea): the keycard is a point of light with a beam standing up from it, no box. A trial of a new way
   // to mark things worth walking to; `size` 1 on the ground, smaller over the enemy that carries it.
   keyBeam(a,time,size=1){

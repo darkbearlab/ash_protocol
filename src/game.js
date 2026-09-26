@@ -207,6 +207,12 @@ export class Game {
     if(missionDefinition(this).returnTrip){this.mission.returning=true;scheduleRetreatWave(this);this.log(t('game.objectiveReturn'),true);}
     this.log(t('game.objectiveRecovered',{summary:this.missionSummary}));return true;
   }
+  // Experience into levels and picks (moved out of the kill code in 3.194.0 so the survival kit can grant levels too).
+  settleLevels(){
+    const p=this.player;
+    while(p.level<MAX_LEVEL&&p.xp>=levelCost(this,p.level)){p.xp-=levelCost(this,p.level);p.level++;if(activeTrait(p,'tactical_supply')){this.log(t('game.tacticalSupply'));this.receiveGrenade('smoke',1);}if(this.perkPicks+this.pendingPerks<perkLimit(p.level))this.pendingPerks++;}
+    while(p.level>=MAX_LEVEL&&p.xp>=MAX_LEVEL+2){p.xp-=MAX_LEVEL+2;giveCapSupply(this);}
+  }
   // 3.189.0 survival hooks for the enemy tree (src/enemy-behavior.js), which does not import src/survival.js itself.
   survivalAction(ctx,move){return survivalAction(ctx,move);}
   holdsPoint(e){return holdsPoint(this,e);}
@@ -909,9 +915,7 @@ export class Game {
     this.log(t('game.killed',{target:enemyName(e)}));if(missionTarget(this,e))this.log(sentence(this.missionSummary));salvageBlueprint(this,e,attacker);
     // The number stops at MAX_LEVEL (3.52.0, user call). Past it the threshold stays at the level-20 cost and each
     // one hands over supplies instead of a pick, so the HUD can simply read MAX.
-    const p=this.player;
-    while(p.level<MAX_LEVEL&&p.xp>=levelCost(this,p.level)){p.xp-=levelCost(this,p.level);p.level++;if(activeTrait(p,'tactical_supply')){this.log(t('game.tacticalSupply'));this.receiveGrenade('smoke',1);}if(this.perkPicks+this.pendingPerks<perkLimit(p.level))this.pendingPerks++;}
-    while(p.level>=MAX_LEVEL&&p.xp>=MAX_LEVEL+2){p.xp-=MAX_LEVEL+2;giveCapSupply(this);}
+    this.settleLevels();
     enemyDeath(this,e);dropKeycard(this,e);   // 3.146.0
     // A comrade gunned down in sight breaks the rebels who saw it; executions and self-destruction never do.
     if(attacker&&!this.enemies.includes(attacker))witnessDeath(this,e);

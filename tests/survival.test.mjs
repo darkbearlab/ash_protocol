@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import {Game,makeEnemy} from '../src/engine.js';
 import {SURVIVAL_TUNING as T,isSurvival,turnsLeft,pointBlocks,pointStatus,pointTargeted} from '../src/survival.js';
 import {MISSIONS,RANDOM_MISSION_IDS,OFFERED_MISSION_IDS,exitBlocked} from '../src/missions.js';
@@ -14,7 +15,10 @@ import {commsLine} from '../src/comms.js';
 
 // 3.189.0 (user design; docs/SURVIVAL.md): the survival mission. 3.191.0 (user, after playing): the map is known from the
 // start, a point is held only by an enemy standing on it, enemies walk around the other points, waves are announced ahead.
-const survival=(seed=11,faction='loyalist')=>{const g=new Game(seed,[],0,'soldier','onyx','survival',{facilityFaction:faction});g.enemies=g.enemies.filter(e=>!isNoncombatant(e));Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});return g;};
+// 3.194.0: a survival run starts at level 5 with its picks waiting; the tests take them before acting.
+const picked=g=>{while(g.pendingPerks)g.choosePerk(g.perkChoices[0].id);return g;};
+const run=(seed,faction='loyalist',character='soldier')=>picked(new Game(seed,[],0,character,'onyx','survival',{facilityFaction:faction}));
+const survival=(seed=11,faction='loyalist')=>{const g=run(seed,faction);g.enemies=g.enemies.filter(e=>!isNoncombatant(e));Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});return g;};
 const foe=(g,x,y,id=`qa-${g.enemies.length}`)=>{const e=makeEnemy('rifleman',x,y,id,1,g.difficultySpec,g.facilityFaction);e.alert=true;g.enemies.push(e);return e;};
 const around=(g,pt)=>[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:pt.x+dx,y:pt.y+dy})).filter(q=>g.passable(q.x,q.y)&&!g.enemies.some(e=>e.x===q.x&&e.y===q.y)&&!(q.x===g.player.x&&q.y===g.player.y));
 function walk(g,from){const out=new Map([[`${from.x},${from.y}`,0]]),q=[from];for(let i=0;i<q.length;i++){const c=q[i],d=out.get(`${c.x},${c.y}`);for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const n={x:c.x+dx,y:c.y+dy},k=`${n.x},${n.y}`;if(out.has(k)||!g.passable(n.x,n.y)||!g.canRoute(c,n))continue;out.set(k,d+1);q.push(n);}}return out;}
@@ -97,7 +101,7 @@ test('enemies walk around every point but the one they are sent to hold, until t
 });
 
 test('a point group stands on its point, the next one guards beside it; you on the point keep it; a far hunter still comes',()=>{
- const g=new Game(21,[],0,'soldier','onyx','survival',{facilityFaction:'loyalist'}),s=g.survival;s.nextWave=1e6;g.enemies=[];g.player.maxHp=g.player.hp=5000;
+ const g=run(21),s=g.survival;s.nextWave=1e6;g.enemies=[];g.player.maxHp=g.player.hp=5000;
  const pt=[...s.points].sort((a,b)=>Math.abs(b.x-g.player.x)+Math.abs(b.y-g.player.y)-Math.abs(a.x-g.player.x)-Math.abs(a.y-g.player.y))[0],start=far(g,pt,6);
  const e=foe(g,start[0],start[1],'walker');e.survival={role:'point',target:pt.id};
  for(let i=0;i<12&&(e.x!==pt.x||e.y!==pt.y);i++)g.action('wait');
@@ -105,12 +109,12 @@ test('a point group stands on its point, the next one guards beside it; you on t
  const next=far(g,pt,5),guard=foe(g,next[0],next[1],'guard');guard.survival={role:'point',target:pt.id};
  for(let i=0;i<10;i++)g.action('wait');
  assert.deepEqual({x:e.x,y:e.y},{x:pt.x,y:pt.y},'and stays');assert.equal(Math.abs(guard.x-pt.x)+Math.abs(guard.y-pt.y),1,'the other guards beside it');
- const h=new Game(21,[],0,'soldier','onyx','survival',{facilityFaction:'loyalist'});h.survival.nextWave=1e6;h.enemies=[];h.player.maxHp=h.player.hp=5000;
+ const h=run(21);h.survival.nextWave=1e6;h.enemies=[];h.player.maxHp=h.player.hp=5000;
  const mine=[...h.survival.points].sort((a,b)=>Math.abs(b.x-h.player.x)+Math.abs(b.y-h.player.y)-Math.abs(a.x-h.player.x)-Math.abs(a.y-h.player.y))[0];Object.assign(h.player,{x:mine.x,y:mine.y});h.reveal();
  const from=far(h,mine,6),w=foe(h,from[0],from[1],'walker');w.survival={role:'point',target:mine.id};
  for(let i=0;i<12;i++){h.action('wait');assert.ok(w.hp<=0||w.x!==mine.x||w.y!==mine.y);}
  assert.equal(mine.hp,T.pointHp,'held by you, it loses nothing');
- const k=new Game(21,[],0,'soldier','onyx','survival',{facilityFaction:'loyalist'});k.survival.nextWave=1e6;k.enemies=[];
+ const k=run(21);k.survival.nextWave=1e6;k.enemies=[];
  const spot=[...walk(k,k.player).keys()].map(q=>q.split(',').map(Number)).sort((a,b)=>Math.abs(b[0]-k.player.x)+Math.abs(b[1]-k.player.y)-Math.abs(a[0]-k.player.x)-Math.abs(a[1]-k.player.y))[0],hunter=foe(k,spot[0],spot[1],'hunter');hunter.survival={role:'hunter'};
  const d0=Math.abs(hunter.x-k.player.x)+Math.abs(hunter.y-k.player.y);assert.ok(d0>16);k.action('wait');k.action('wait');
  assert.ok(Math.abs(hunter.x-k.player.x)+Math.abs(hunter.y-k.player.y)<d0,'closing in');
@@ -141,4 +145,27 @@ test('saves keep a survival run and its announced waves; bad state is refused; a
  for(const bad of [d=>d.enemies.find(e=>e.survival?.role==='point').survival.target='point-99',d=>d.enemies.find(e=>e.survival).survival.role='boss']){const raw=JSON.parse(g.serialize());bad(raw.data);assert.equal(Game.restore(JSON.stringify(raw)),null);}
  const other=JSON.parse(new Game(4).serialize());other.data.survival=structuredClone(g.survival);assert.equal(Game.restore(JSON.stringify(other)),null);
  const old=JSON.parse(g.serialize());old.version=78;delete old.data.survival.incoming;const back=Game.restore(JSON.stringify(old));assert.ok(back);assert.deepEqual(back.survival.incoming,[]);
+});
+
+test('a survival run starts with a kit: three weapons you do not carry beside you, full reserves, level 5 with its picks',()=>{
+ const g=new Game(21,[],0,'soldier','onyx','survival',{facilityFaction:'loyalist'}),p=g.player;
+ const kit=g.items.filter(i=>i.type==='weapon'&&Math.abs(i.x-p.x)+Math.abs(i.y-p.y)<=1);
+ assert.equal(kit.length,T.kitWeapons);assert.ok(kit.every(i=>Number.isInteger(i.slot)&&!p.owned.includes(i.slot)&&g.canTouch(i)));
+ const carried=p.owned.map(slot=>p.weaponBases[slot]);assert.ok(kit.every(i=>!carried.includes(i.weapon)));assert.equal(new Set(kit.map(i=>i.weapon)).size,kit.length);
+ for(const type of ['rifle','pistol','shell','energy','ordnance'])assert.equal(p[{rifle:'reserve'}[type]||type],g.ammoCapacity(type),type);
+ assert.deepEqual([p.level,g.pendingPerks],[T.startLevel,T.startLevel-1]);assert.equal(g.action('wait'),false,'the picks come first');
+ const again=new Game(21,[],0,'soldier','onyx','survival',{facilityFaction:'loyalist'});assert.deepEqual(again.items.filter(i=>i.type==='weapon').map(i=>[i.weapon,p.affixes[i.slot]??null]),g.items.filter(i=>i.type==='weapon').map(i=>[i.weapon,p.affixes[i.slot]??null]),'by seed');
+ const berserker=new Game(21,[],0,'berserker','onyx','survival',{facilityFaction:'loyalist'}),b=berserker.player;
+ assert.ok(berserker.items.some(i=>i.type==='weapon'&&Math.abs(i.x-b.x)+Math.abs(i.y-b.y)<=1&&berserker.weaponAt(i.slot).melee),'a melee class gets a blade');
+ const plain=new Game(21);assert.equal(plain.player.level,1);assert.equal(plain.pendingPerks,0);
+});
+
+test('reinforcements come out of the rift portal; a won run is lifted out in a beam before the dark',()=>{
+ const g=survival(21),s=g.survival;s.nextWave=g.turn+T.lead;g.action('wait');
+ while(s.incoming.length)g.action('wait');
+ const arrivals=g.enemies.filter(e=>e.survival);assert.ok(arrivals.length);
+ const controller=readFileSync(new URL('../src/controller.js',import.meta.url),'utf8'),survivalSource=readFileSync(new URL('../src/survival.js',import.meta.url),'utf8');
+ assert.match(survivalSource,/g\.effects\.push\(\{type:'portalSpawn',from:\{x:p\.x,y:p\.y\},to:\{x:p\.x,y:p\.y\},damage:0\}\)/);
+ assert.match(controller,/if\(game\.status==='won'\)renderer\.extraction=\{start:renderer\.time,at:\{x:game\.player\.x,y:game\.player\.y\}\};/);
+ assert.match(controller,/sayComms\(\{\.\.\.round\.plan\.field,then:afterBeam\}\);else afterBeam\(\);/);
 });
