@@ -233,11 +233,13 @@ function showNextComms(){
 // Drops whatever is showing or waiting; a box already closing finishes quietly (3.174.0).
 function clearComms(){commsRound++;commsQueue.length=0;commsLayer.innerHTML='';}
 function sayCommsFor(entries){for(const message of commsForLogs(entries))sayComms(message);}
-// The training course (3.198.0, src/course.js): its beats play in order, a line on the comms bar, then a card once the
-// line before it has closed. Input waits while a card is still to come, so the lesson and the floor stay in step.
+// The training course (3.198.0, src/course.js): its beats play in order on the comms bar. A card opens as soon as the
+// line before it starts, and the comms bar stays where it is at the top of the screen, drawn above the card, so the
+// conversation keeps going (user, 2026-09-27: the card must not swallow the dialogue; it stays at the top edge). Input waits while a card is still to come, so the lesson and the floor stay
+// in step.
 let courseQueue=[],courseBusy=false,courseCard=null,courseWaiting=false;
 const courseHolds=()=>courseBusy&&courseQueue.some(item=>item.card);
-function resetCourse(){courseQueue=[];courseBusy=false;courseCard=null;courseWaiting=false;}
+function resetCourse(){courseQueue=[];courseBusy=false;courseCard=null;courseWaiting=false;if(commsLayer.parentElement!==$('.battle-header'))$('.battle-header').append(commsLayer);}
 function playCourse(){if(!courseActive(game))return;for(const beat of takeCourseBeats(game))courseQueue.push(...beat.items);if(!courseBusy)courseNext();}
 function courseNext(){
   if(!courseActive(game)||game.status!=='playing'){resetCourse();return;}
@@ -245,10 +247,22 @@ function courseNext(){
   // A card never replaces a menu the player opened (settings, the map): it waits for that menu to close.
   if(item.card&&$('#modal').open){courseWaiting=true;return;}
   courseQueue.shift();
-  if(item.say){sayComms({...item.say,then:courseNext});return;}
-  courseCard={id:item.card};modal(courseCardMarkup(item.card,0));
+  if(item.say){
+    // A line with a card after it opens the card at once and plays on top of it; the card's close carries on.
+    if(courseQueue[0]?.card){sayComms(item.say);courseNext();return;}
+    sayComms({...item.say,then:courseNext});return;
+  }
+  courseCard={id:item.card};modal(courseCardMarkup(item.card,0));commsOnCard(true);
 }
-function closeCourseCard(){const id=courseCard?.id;if(!id)return;courseCard=null;if($('#modal').open)$('#modal').close();courseCardClosed(game,id);playCourse();courseNext();}
+// While a card is open the comms bar joins the dialog (the only way above its backdrop) but is pinned to the header's
+// own place on screen, so it never moves; it goes back to the header when the card closes.
+function commsOnCard(on){
+  const header=$('.battle-header'),host=on?$('#modal'):header;
+  if(on){const r=header.getBoundingClientRect();commsLayer.style.setProperty('--comms-top',`${r.top}px`);commsLayer.style.setProperty('--comms-left',`${r.left}px`);commsLayer.style.setProperty('--comms-width',`${r.width}px`);}
+  else for(const k of ['--comms-top','--comms-left','--comms-width'])commsLayer.style.removeProperty(k);
+  if(commsLayer.parentElement===host)return;if(on)host.prepend(commsLayer);else host.append(commsLayer);
+}
+function closeCourseCard(){const id=courseCard?.id;if(!id)return;courseCard=null;if($('#modal').open)$('#modal').close();commsOnCard(false);courseCardClosed(game,id);playCourse();courseNext();}
 // 3.169.0 (docs/STORY.md 8): the officer on duty remarks on what the last action showed; the kill house has no comms.
 let commsBefore=null,commsMemory=null,dutyOverride=null;
 function sayCommsEvents(entries){
