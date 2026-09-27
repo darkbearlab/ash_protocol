@@ -18,7 +18,7 @@ test('arcade inherits campaign geometry, furnishings and combat positions across
  }
 });
 test('tutorial uses valid campaign recipe and gates preserve sequential access and pre-door cards',()=>{
- assert.ok(validateRecipe(KILLHOUSE_RECIPES.tutorial));const g=createKillhouse();
+ assert.ok(validateRecipe(KILLHOUSE_RECIPES.tutorial));const g=createKillhouse({options:{tutorialCourse:false}});   // the six-card tutorial behind the course switch (3.198.0)
  for(const entry of g.tutorialEntrances){
   Object.assign(g.player,entry.approach);assert.equal(tutorialCue(g),entry.toRoom);
   const gate=g.barriers.find(b=>b.id===entry.barrierId);
@@ -28,7 +28,7 @@ test('tutorial uses valid campaign recipe and gates preserve sequential access a
  assert.ok(g.props.some(p=>p.type==='module'));assert.ok(g.barriers.some(b=>b.type==='low_partition'));
 });
 test('researcher remains in left area and never opens a teaching gate',()=>{
- const g=createKillhouse(),e=g.enemies.find(e=>e.type==='civilian');g.sight=()=>true;
+ const g=createKillhouse({options:{tutorialCourse:false}}),e=g.enemies.find(e=>e.type==='civilian');g.sight=()=>true;
  for(let turn=0;turn<40;turn++){g.turn=turn;Object.assign(g.player,{x:10+(turn%3),y:18+turn%7});civilianAction({g,e});assert.ok(e.x>=10&&e.x<13&&e.y>=18&&e.y<25);}
  assert.ok(g.barriers.filter(b=>b.type==='door').every(b=>!b.open));
 });

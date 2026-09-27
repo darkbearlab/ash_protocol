@@ -64,6 +64,9 @@ import {OUTRO_TUNING,outroPlan} from './outro.js';
 import {GORE_SETTINGS,validGoreSetting,goreLevel} from './gore.js';
 import {commsEvents,commsSnapshot,newCommsMemory} from './comms-events.js';
 import {validDuty} from './duty.js';
+import {courseActive,takeCourseBeats,courseCardClosed,courseDeathLines} from './course.js';
+import {COURSE_EXTRACT_LINE,COURSE_RESULT_LINE} from './course-script.js';
+import {courseCardMarkup} from './course-ui.js';
 import {factionDef} from './faction-catalog.js';
 import {Renderer,EXTRACTION_BEAM} from './render.js';
 import {AudioEngine,AUDIO_TUNING,volumePercent} from './audio.js';
@@ -230,6 +233,22 @@ function showNextComms(){
 // Drops whatever is showing or waiting; a box already closing finishes quietly (3.174.0).
 function clearComms(){commsRound++;commsQueue.length=0;commsLayer.innerHTML='';}
 function sayCommsFor(entries){for(const message of commsForLogs(entries))sayComms(message);}
+// The training course (3.198.0, src/course.js): its beats play in order, a line on the comms bar, then a card once the
+// line before it has closed. Input waits while a card is still to come, so the lesson and the floor stay in step.
+let courseQueue=[],courseBusy=false,courseCard=null,courseWaiting=false;
+const courseHolds=()=>courseBusy&&courseQueue.some(item=>item.card);
+function resetCourse(){courseQueue=[];courseBusy=false;courseCard=null;courseWaiting=false;}
+function playCourse(){if(!courseActive(game))return;for(const beat of takeCourseBeats(game))courseQueue.push(...beat.items);if(!courseBusy)courseNext();}
+function courseNext(){
+  if(!courseActive(game)||game.status!=='playing'){resetCourse();return;}
+  const item=courseQueue[0];if(!item){courseBusy=false;return;}courseBusy=true;
+  // A card never replaces a menu the player opened (settings, the map): it waits for that menu to close.
+  if(item.card&&$('#modal').open){courseWaiting=true;return;}
+  courseQueue.shift();
+  if(item.say){sayComms({...item.say,then:courseNext});return;}
+  courseCard={id:item.card};modal(courseCardMarkup(item.card,0));
+}
+function closeCourseCard(){const id=courseCard?.id;if(!id)return;courseCard=null;if($('#modal').open)$('#modal').close();courseCardClosed(game,id);playCourse();courseNext();}
 // 3.169.0 (docs/STORY.md 8): the officer on duty remarks on what the last action showed; the kill house has no comms.
 let commsBefore=null,commsMemory=null,dutyOverride=null;
 function sayCommsEvents(entries){
@@ -319,6 +338,7 @@ function update(view=renderer.game) {
   if(!replay&&!isSimulation(game)&&game.status==='playing'&&(entered||resumable))trackRun(game);
   if(entered)persist();
   if(game.status!=='playing'&&lastStatus==='playing'){lastStatus=game.status;if(!replay)recordResult(game);if(kia)kia.resultPending=true;else endRun();}
+  else if(entered&&courseActive(game)&&game.status==='playing'){if(!$('#modal').open)playCourse();}
   else if(entered&&isSimulation(game)&&game.status==='playing'&&!$('#modal').open&&promptDue(game,promptLog(game)))showRoomPrompt();
   else if(entered&&game.pendingPerks&&game.status==='playing')showLevelUp();
   else if(entered&&saveWarningDue&&!$('#modal').open)showSaveWarning();
@@ -343,8 +363,9 @@ function skipPlayback(){
 // the scene without voices. The result itself was recorded when the operative died. (`kia` is declared with the
 // game state at the top.)
 function startKia(fall){
-  clearComms();
-  const quiet=Boolean(replay)||isSimulation(game),seed=(Number(game.seed)||0)*31+game.turn;
+  clearComms();resetCourse();
+  // 3.198.0: the training course voices its deaths (src/course.js courseDeathLines); the rest of the kill house stays quiet.
+  const quiet=Boolean(replay)||isSimulation(game)&&!courseActive(game),seed=(Number(game.seed)||0)*31+game.turn;
   kia={start:performance.now(),times:kiaTimes(),quiet,voiced:false,resultAt:Infinity,resultPending:false,shown:false};
   renderer.kia={start:renderer.time,at:{x:fall.to.x,y:fall.to.y},blow:fall.blow||null,burst:kiaBurst(seed,fall.blow||null),frozen:true};
   renderer.pace=()=>{if(!kia)return null;const since=performance.now()-kia.start;renderer.kia.frozen=since<KIA_TUNING.freezeMs;return {scale:kiaTimeScale(since),zoom:kiaZoom(since,kia.times.voiceAt)};};
@@ -354,15 +375,20 @@ function kiaTick(){
   const since=performance.now()-kia.start;
   if(!kia.voiced&&since>=kia.times.voiceAt){
     kia.voiced=true;
-    const message=kia.quiet?null:commsLine(dutySpeaker({game}),'kia');
+    // The course's controllers talk it over (lines can be tapped on); the results wait for the last one to close.
+    const lines=!kia.quiet&&courseActive(game)?courseDeathLines(game):null,k=kia;
+    if(lines?.length)lines.forEach((m,i)=>sayComms(i===lines.length-1?{...m,then:()=>{if(kia===k)k.resultAt=performance.now()-k.start;}}:m));
+    else{
+    const message=kia.quiet||lines?null:commsLine(dutySpeaker({game}),'kia');
     if(message){const seconds=kiaSeconds(t(message.line,message.vars));sayComms({...message,seconds,tap:false});kia.resultAt=since+seconds*1000+KIA_TUNING.closeMs;}
     else kia.resultAt=since;
+    }
   }
   if(since>=kia.resultAt&&kia.resultPending&&!playback){kia.shown=true;renderer.pace=null;renderer.kia.frozen=false;endRun();}
 }
 // A new run, a loaded save or a replay clears the scene; the fallen body and the blood stay until then, so the last
 // battlefield still shows them.
-function resetKia(){kia=null;renderer.kia=null;renderer.pace=null;renderer.gore=[];renderer.splatter.reset();endOutro();}
+function resetKia(){kia=null;renderer.kia=null;renderer.pace=null;renderer.gore=[];renderer.splatter.reset();endOutro();resetCourse();}
 // The end of a run in three parts (3.177.0, user design; src/outro.js, docs/STORY.md 8): the officer approves the
 // extraction on the header bar (for a death the scene above has played instead), the field fades to dark, she speaks
 // in the middle of the screen — and when the purge review finds the unit deficient the overseer cuts in with a silence
@@ -373,7 +399,7 @@ const outroShade=document.createElement('div');outroShade.className='outro-shade
 function endOutro(){outro=null;outroShade.classList.remove('on');renderer.extraction=null;}
 const ending=()=>Boolean(outro)||Boolean(kia&&!kia.shown);
 function endRun(){
-  if(isSimulation(game)){showResult();return;}
+  if(isSimulation(game)){if(courseActive(game)&&game.status==='won')courseExtraction();else showResult();return;}
   const round={plan:outroPlan(game,{voiced:!replay})};outro=round;
   const darken=()=>{if(outro!==round)return;outroShade.classList.add('on');setTimeout(()=>outroChannel(round,0),OUTRO_TUNING.darkMs);};
   // 3.194.0 (user): a won run is lifted out in a beam of light first (renderer.extractionBeam); the dark waits for it.
@@ -383,6 +409,13 @@ function endRun(){
   const began=performance.now(),afterBeam=()=>{const x=renderer.extraction;if(outro!==round)return;if(!x||renderer.time-x.start>=EXTRACTION_BEAM.total||performance.now()-began>EXTRACTION_BEAM.total+5000)darken();else setTimeout(afterBeam,80);};
   clearComms();
   if(round.plan.field)sayComms({...round.plan.field,then:afterBeam});else afterBeam();
+}
+// 3.198.0: the training course ends in the extraction beam too, with Wren's line under it, then straight to the results.
+function courseExtraction(){
+  const round={course:true};outro=round;clearComms();
+  renderer.extraction={start:renderer.time,at:{x:game.player.x,y:game.player.y}};
+  const began=performance.now(),done=()=>{const x=renderer.extraction;if(outro!==round)return;if(!x||renderer.time-x.start>=EXTRACTION_BEAM.total||performance.now()-began>EXTRACTION_BEAM.total+5000)showResult();else setTimeout(done,80);};
+  sayComms({...COURSE_EXTRACT_LINE,then:done});
 }
 function outroChannel(round,i){
   if(outro!==round)return;
@@ -408,7 +441,7 @@ renderer.onFrame=dt=>{
 const sayLine=(cue,detail={})=>renderer.addEffects([playerCalloutEvent(cue,detail)]);
 function act(type,arg) {
   skipPlayback();
-  if(playback||orientationBlocked||!entered||$('#modal').open||performance.now()<lockUntil)return false;
+  if(playback||orientationBlocked||!entered||$('#modal').open||courseHolds()||performance.now()<lockUntil)return false;
   pointerStart=null;
   commsBefore=commsSnapshot(game);
   const oldLog=game.logs[0],{success,steps}=captureAction(game,()=>game.action(type,arg));
@@ -462,7 +495,7 @@ function fireWeapon(){
   notify(start?t('controller.launchHintPad'):t('controller.launchHint'));
 }
 const operatorReady=view=>!isSimulation(view)&&view.status==='playing'&&!!view.operatorCorpse&&!view.operatorCorpse.recovered&&view.canTouch(view.operatorCorpse);
-function interactions(view=renderer.game){return [...view.nearbyObjectives.map(o=>({label:t('controller.act.recover'),action:`objective:${o.id}`})),...view.nearbyContainers.map(c=>({label:`${t('controller.act.open',{v:view.containerLabel(c)})}`,action:`case:${c.id}`})),...view.nearbyDoors.map(b=>({label:view.doorLabel(b),action:`door:${b.id}`})),...(view.groundWeapon?[{label:t('controller.act.pickup'),action:'bag'}]:[]),...(view.nearbyTerminal?[{label:`${t('controller.act.terminal',{v:terminalRemaining(view.nearbyTerminal)})}`,action:'terminal'}]:[]),...(operatorReady(view)?[{label:t('controller.act.recoverId'),action:'operator'}]:[]),...(view.canTouch(view.exitPoint)&&(!isSimulation(view)||exitStep(view))?[{label:view.exitBlocked?t('controller.act.elevatorLocked'):view.exitLabel+(view.allyTravelSummary?' · '+view.allyTravelSummary:''),action:isSimulation(view)?'exitStep':'descend'}]:[])];}
+function interactions(view=renderer.game){return [...view.nearbyObjectives.map(o=>({label:t('controller.act.recover'),action:`objective:${o.id}`})),...view.nearbyContainers.map(c=>({label:`${t('controller.act.open',{v:view.containerLabel(c)})}`,action:`case:${c.id}`})),...view.nearbyDoors.map(b=>({label:view.doorLabel(b),action:`door:${b.id}`})),...(view.groundWeapon?[{label:t('controller.act.pickup'),action:'bag'}]:[]),...(view.nearbyTerminal?[{label:`${t('controller.act.terminal',{v:terminalRemaining(view.nearbyTerminal)})}`,action:'terminal'}]:[]),...(operatorReady(view)?[{label:t('controller.act.recoverId'),action:'operator'}]:[]),...(view.canTouch(view.exitPoint)&&(!isSimulation(view)||courseActive(view)||exitStep(view))?[{label:view.exitBlocked?t('controller.act.elevatorLocked'):view.exitLabel+(view.allyTravelSummary?' · '+view.allyTravelSummary:''),action:isSimulation(view)&&!courseActive(view)?'exitStep':'descend'}]:[])];}
 function updateAim(view=renderer.game){const blinding=renderer.mode==='blind',launching=renderer.mode==='launch'||blinding,deploying=renderer.mode==='deploy',commanding=renderer.mode==='pet'||renderer.mode==='drone',aiming=renderer.mode==='grenade',roping=renderer.mode==='rope',placing=renderer.mode==='place',flaring=renderer.mode==='flare'||roping||placing,suppressing=renderer.mode==='suppress',preview=suppressing&&renderer.aim?suppressivePreview(view,renderer.aim):null,b=$('#interact'),options=interactions(view);
   const entry=preparedEntry(view.player,'grenade');
   $('#grenade-label').textContent=aiming?t('controller.grenade.cancel'):entry?`${entry.short} ${(game?.player||view.player)[entry.resource]}`:t('controller.grenade.notReady');
@@ -1088,7 +1121,7 @@ function simulationResultMarkup(){
   const r=game.simulationResult;
   if(r.outcome==='dead')return disposedMarkup(r);
   if(r.outcome!=='won')return null;
-  if(r.mode==='tutorial')return tutorialResultMarkup(game,{saved:saveTutorialOutcome('completed')});
+  if(r.mode==='tutorial'){const html=tutorialResultMarkup(game,{saved:saveTutorialOutcome('completed')});return courseActive(game)?`<div class="course-result">${commsMarkup(COURSE_RESULT_LINE,{timer:false,context:{game}})}</div>${html}`:html;}
   const score=killhouseScore(r),before=bestRecord(profile(),r)?.score??null;let saved=false;
   try{saved=saveArcadeResult(game,score,KILLHOUSE_SCORE.formula);}catch{saved=false;}
   const best=bestRecord(profile(),r)?.score??null;
@@ -1162,6 +1195,9 @@ document.addEventListener('click',e=>{
   if(b&&!b.disabled&&skipPlayback()&&$('#modal').open)return;
   if(playback||orientationBlocked||!b||b.disabled)return;
   if(b.dataset.effects!==undefined){effectsOpen=!effectsOpen;renderEffects();return;}   // 3.193.0: the effects strip
+  // 3.198.0: a course card pages in place; its last page carries the course on.
+  if(b.dataset.coursePage!==undefined&&courseCard){audio.play('select');modal(courseCardMarkup(courseCard.id,Number(b.dataset.coursePage)));return;}
+  if(b.dataset.courseDone!==undefined){audio.play('select');closeCourseCard();return;}
   // 3.117.0: pressing a button in a menu is heard (the adopted select sound); the battle controls have their own sounds.
   if(b.closest('#modal'))audio.play('select');
   if(b.dataset.packInfo){const desc=document.getElementById('pack-desc-'+b.dataset.packInfo);if(desc){desc.hidden=!desc.hidden;b.setAttribute('aria-expanded',String(!desc.hidden));}return;}
@@ -1300,7 +1336,7 @@ $('#orientation-guard').addEventListener('cancel',e=>e.preventDefault());
 // Devices that cannot rotate may continue in landscape until the page reloads (3.44).
 $('#orientation-continue').addEventListener('click',()=>{orientationOverride=true;updateOrientation();});
 $('#field-messages').addEventListener('click',e=>{if(!e.target.closest('button')&&entered&&!playback&&!orientationBlocked&&!$('#modal').open)showLog();});
-$('#modal').addEventListener('close',()=>{titleFlow=false;syncMusic();});
+$('#modal').addEventListener('close',()=>{titleFlow=false;syncMusic();if(courseCard)closeCourseCard();else if(courseWaiting){courseWaiting=false;courseNext();}});
 $('#modal').addEventListener('cancel',e=>{if(!entered||game.pendingPerks||game.status!=='playing')e.preventDefault();});
 let pointerStart=null;
 $('#battle').addEventListener('pointerdown',e=>{pointerStart=(playback&&!skipEnabled())||orientationBlocked?null:{x:e.clientX,y:e.clientY};});
@@ -1327,7 +1363,7 @@ $('#battle').addEventListener('pointerup',e=>{
   const supply=game.props.find(o=>isContainer(o)&&!o.opened&&distance(o,pos)===0&&game.visible(o));
   if(supply){notify(`${t('controller.crateInfo',{v:containerName(supply),v2:game.canTouch(supply)?t('controller.crate.openNow'):t('controller.crate.openNear')})}`);return;}
   const corpse=game.operatorCorpse;if(corpse&&!corpse.recovered&&!isSimulation(game)&&distance(pos,corpse)===0&&game.visible(corpse)){if(operatorReady(game))recoverCorpse();else notify(`${t('controller.corpseInfo',{v:CHARACTERS[corpse.character]?.label||t('controller.operative')})}`);return;}
-  if(distance(pos,game.exitPoint)===0&&game.canTouch(pos)&&(!isSimulation(game)||exitStep(game))){if(isSimulation(game))act('move',exitStep(game));else act('interact');return;}
+  if(distance(pos,game.exitPoint)===0&&game.canTouch(pos)&&(!isSimulation(game)||courseActive(game)||exitStep(game))){if(isSimulation(game)&&!courseActive(game))act('move',exitStep(game));else act('interact');return;}
   if(game.props.some(o=>o.type==='terminal'&&!o.used&&distance(o,pos)===0&&game.canTouch(o))){showTerminal();return;}
   if(distance(pos,game.player)===1)move(pos.x-game.player.x,pos.y-game.player.y);
   else if(!game.visibleTiles.has(`${pos.x},${pos.y}`)&&!blindReason(game,pos))startBlindAim(pos);
@@ -1427,6 +1463,8 @@ $('#import-replay').addEventListener('change',async e=>{
 });
 // Test mode: preview the field channel (text, or {speaker, expression, line|text}), force the next mission's officer, or
 // have the officer on duty say an event's line.
+// 3.198.0: test mode only — the live game and a redraw, for staging the training course's card pictures (tools/course-shots.mjs).
+if(TEST_MODE)globalThis.__ashSim={get game(){return game;},update:()=>update(),get renderer(){return renderer;},start:options=>startSimulation(options)};
 if(TEST_MODE)globalThis.__ashComms={say:message=>sayComms(message),duty:id=>{dutyOverride=validDuty(id)?id:null;return dutyOverride;},event:(type,vars={})=>{const message=commsLine(dutySpeaker({game}),type,vars);if(message)sayComms(message);return message;}};
 if(TEST_MODE)globalThis.__ashReplay={load:(raw,options)=>loadReplay(typeof raw==='string'?raw:JSON.stringify(raw),options),
   pause(){if(replay){replay.paused=true;replayBadge();}},resume(){if(replay){replay.paused=false;replayBadge();}},stop:()=>stopReplay(),hash:()=>stateHash(game),

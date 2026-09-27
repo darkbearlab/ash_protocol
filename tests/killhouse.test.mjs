@@ -20,7 +20,7 @@ const enterCombat=g=>{Object.assign(g.player,g.end);assert.equal(g.descend(),tru
 // onto the exit from a crossable side. The loadout test still stepped in from the west and failed CI once (3.96.0).
 const exitApproach=g=>[[1,0],[-1,0],[0,1],[0,-1]].find(([dx,dy])=>{const from={x:g.end.x-dx,y:g.end.y-dy};return g.grid[from.y]?.[from.x]===1&&g.canCross(from,g.end)&&!g.enemies.some(e=>e.hp>0&&e.x===from.x&&e.y===from.y);});
 test('tutorial is fixed soldier, fixed geometry/population/supplies and sequential reachable rooms',()=>{
- const a=createKillhouse({seed:5,character:'recon'}),b=createKillhouse({seed:999,character:'ninja'});
+ const a=createKillhouse({seed:5,character:'recon',options:{tutorialCourse:false}}),b=createKillhouse({seed:999,character:'ninja',options:{tutorialCourse:false}});   // the six-card tutorial (3.198.0 switch)
  assert.equal(a.player.character,'soldier');assert.deepEqual(a.grid,b.grid);assert.deepEqual(a.enemies,b.enemies);assert.deepEqual(a.items,b.items);assert.equal(a.rooms.length,6);
  assert.ok(a.enemies.every(e=>['rifleman','raider','sniper','gunner','civilian'].includes(e.type)&&e.simulation&&!e.affixes&&!e.elite));
  // 3.88.1 (user report): the second researcher fled right and opened room 5's door, so only the left one stays.

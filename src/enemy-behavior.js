@@ -77,7 +77,8 @@ function blindChance(ctx,roll){
  const before=e.blindShot;e.blindShot=BLIND_TUNING.penalty;try{return roll();}finally{if(before===undefined)delete e.blindShot;else e.blindShot=before;}
 }
 function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold'});const fired=def.range>1,rapid=fired&&activeTrait(e,'rapid_fire'),weapon=enemyWeapon(e),rounds=fired?weapon.rounds:1,hits=new Set();let firedRounds=0,poisonApplied=false;
- const totalDamage=def.expendable?def.damage:scaleEnemy(def.damage+floorDamageBonus(g.floor,g.difficultySpec),g.floor,'damage',g.difficultySpec),baseRounds=fired?(enemyDef(e)?.rounds||1):1;
+ // damageScale (3.198.0): the training course's drone hits at a fraction of a drone's damage (src/course.js).
+ const base=def.expendable?def.damage:scaleEnemy(def.damage+floorDamageBonus(g.floor,g.difficultySpec),g.floor,'damage',g.difficultySpec),totalDamage=e.damageScale===undefined?base:Math.max(1,Math.round(base*e.damageScale)),baseRounds=fired?(enemyDef(e)?.rounds||1):1;
  for(let n=0;n<rounds&&p.hp>0;n++){const before=p.hp,roundDamage=Math.max(1,Math.floor(totalDamage/baseRounds)+(n%baseRounds<totalDamage%baseRounds?1:0));firedRounds++;if(rapid&&n>=baseRounds)revealEnemyAffix(g,e,'suppressor');
         if(fired)g.recordExposure(e,unitTree(e).fixedTile&&e.aim?e.aim:p);if(fired)spentCase(g,e,enemyDef(e)?.casing);
         if(unitTree(e).fixedTile&&e.aim&&!g.shotClear(e,e.aim)){const edge=firstBarrierOnRay(g.barriers,e,e.aim);g.log(t('enemy-behavior.sniperBlocked'));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:edge?{x:edge.x,y:edge.y}:{...e.aim},damage:0});if(edge)g.damageProp(edge,roundDamage);}

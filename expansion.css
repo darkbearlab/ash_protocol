@@ -585,3 +585,15 @@ html[lang="en"] .comms.compact .comms-who{line-height:15px}
 .effects-panel .fx-row{display:flex;align-items:center;gap:10px;margin:4px 0;font-size:12px;color:#c9d6bf}.effects-panel .fx-row.good{color:#bfe0a8}.effects-panel .fx-row.bad{color:#f3a182}.effects-panel .fx-row.dim{color:#8d9a88}
 .effects-panel .fx-note{margin:6px 0 0;color:var(--muted);font-size:11px}
 .loadout-bar .loadout-status[aria-expanded="true"]{background:#223120}
+/* 3.198.0: the training course's full-screen cards (src/course-ui.js) and the controller's line on its result */
+.course-card h2{margin:4px 0 10px}
+.course-card p{margin:10px 0 0;line-height:1.7}
+.course-shot{margin:0;display:flex;justify-content:center;border:1px solid #3a4636;background:#0b100d}
+.course-shot img{display:block;max-width:100%;max-height:44vh;image-rendering:pixelated;object-fit:contain}
+.course-chart{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.course-chart section{padding:8px 10px;border-left:3px solid #6f7d66;background:#1b211a}
+.course-chart h3{margin:0 0 6px;color:var(--orange);font-size:13px}
+.course-chart ul{margin:0;padding-left:16px;display:grid;gap:4px;font:12px/1.5 var(--mono)}
+@media (max-width:420px){.course-chart{grid-template-columns:1fr}}
+.course-pager{justify-content:flex-end}
+.course-result{margin-bottom:12px}

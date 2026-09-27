@@ -20,7 +20,7 @@ export const ARCADE_PROMPTS={
 };
 const PHASE_LABELS={tutorial:t('label.training'),armory:t('label.armory'),combat:t('label.range')};
 export const simulationLabel=g=>`KILL HOUSE · ${PHASE_LABELS[g.simulation.phase]||t('label.sim')}`;
-export const simulationBrief=g=>g.simulation.phase==='tutorial'?t('brief.tutorial'):ARCADE_PROMPTS[g.simulation.phase]||'';
+export const simulationBrief=g=>g.simulation.phase==='tutorial'?t(g.course?'course.brief':'brief.tutorial'):ARCADE_PROMPTS[g.simulation.phase]||'';   // course: 3.198.0
 
 // Tutorial rooms open a card the player dismisses; arcade phases only toast on their first room.
 export function roomPrompt(event){

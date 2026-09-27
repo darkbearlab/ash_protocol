@@ -11,6 +11,7 @@ import {buildModule} from './map-slots.js';
 import {isBossClass,hasEnemyTag} from './enemy-data.js';
 import {makeBarrier} from './barriers.js';
 import {fullLighting,placeLamps} from './lighting.js';
+import {courseMap} from './course-map.js';
 // Explicit, isolated recipe pool. It never enters campaign recipe selection or consumes its RNG.
 export const KILLHOUSE_GENERATION={floor:4};
 export const KILLHOUSE_RECIPES={tutorial:{id:'killhouse-tutorial',name:'六區訓練',theme:'security',layout:[['A','A','B'],['D','C','B'],['D','E','F']],openings:{default:[1,1]},doorRatio:0},arcade:MAP_RECIPES};
@@ -54,6 +55,8 @@ export function armoryWeapons(character,selection='all'){
 // 3.184.0 (user): every simulation map is on real lighting, like a campaign floor (docs/LIGHTING.md). The combat map keeps
 // the campaign's unpowered rooms and gets their wall lamps the same way; the tutorial and the armory are fully powered.
 export function killhouseMap(seed,phase,character,options){
+ // 3.198.0: the training course brings its own lamps and dark room (src/course-map.js).
+ if(phase==='tutorial'&&options?.tutorialCourse)return courseMap();
  return placeLamps(phase==='combat'?arcadeMap(seed):phase==='tutorial'?tutorialMap():armoryMap(character,options),seed,KILLHOUSE_GENERATION.floor);
 }
 function armoryMap(character,options){

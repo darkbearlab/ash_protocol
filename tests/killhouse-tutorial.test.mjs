@@ -4,6 +4,7 @@ import {createKillhouse,isNoncombatant} from '../src/engine.js';
 import {tutorialCue,nextPrompt,promptDue,TUTORIAL_PROMPTS} from '../src/killhouse-ui.js';
 
 // Tutorial fixes from play reports (3.88.1): lesson cards before the door, and one researcher who cannot open room 5.
+// 3.198.0: this is the six-card tutorial, kept behind KILLHOUSE_OPTIONS.tutorialCourse (tests/course.test.mjs has the course).
 const inRoom=(r,q)=>q.x>=r.x&&q.x<r.x+r.w&&q.y>=r.y&&q.y<r.y+r.h;
 function cueTiles(g){
  const p=g.player,home={x:p.x,y:p.y},cues=[];
@@ -17,7 +18,7 @@ function route(g,from,to){
 }
 
 test('each lesson card fires once, on the tile before its door, before anyone in that room has noticed the player',()=>{
- const g=createKillhouse({mode:'tutorial'}),p=g.player,shown=new Set(),cues=cueTiles(g);
+ const g=createKillhouse({mode:'tutorial',options:{tutorialCourse:false}}),p=g.player,shown=new Set(),cues=cueTiles(g);
  assert.deepEqual(cues.map(c=>c.room),[1,2,3,4,5]);
  assert.equal(nextPrompt(g,g.takeRoomEvents(),shown).title,TUTORIAL_PROMPTS[0].title);
  for(const cue of cues){
@@ -39,7 +40,7 @@ test('each lesson card fires once, on the tile before its door, before anyone in
 });
 
 test('the researcher room keeps one researcher on the left, and room 5 stays shut while the player fights there',()=>{
- const g=createKillhouse({mode:'tutorial'}),r4=g.rooms[4],r5=g.rooms[5],p=g.player,researchers=g.enemies.filter(isNoncombatant);
+ const g=createKillhouse({mode:'tutorial',options:{tutorialCourse:false}}),r4=g.rooms[4],r5=g.rooms[5],p=g.player,researchers=g.enemies.filter(isNoncombatant);
  assert.equal(researchers.length,1);assert.ok(inRoom(r4,researchers[0])&&researchers[0].x<r4.cx,'left half of room 4');
  for(const e of g.enemies)if(!inRoom(r4,e)&&!inRoom(r5,e))e.hp=0;
  for(const b of g.barriers)if(b.id!=='edge-kh-4-5')b.open=true;
