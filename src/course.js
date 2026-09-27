@@ -97,8 +97,10 @@ export function courseAfter(g,type,success,before={},arg=null){
  // 2 attack: the drone locks, the player is stunned, then the drone waits for the first shot
  const drone=role(g,'drone')[0];
  if(at(1))fire(g,'s2Enter');
- if(has('s2Enter')&&drone?.hp>0&&g.target===drone.id&&fire(g,'s2Lock')){
-  c.stunned=true;p.control.disabled=Math.max(p.control.disabled,COURSE_TUNING.stun);
+ // The lock-on lesson starts the moment the drone comes into view (the door opening), whatever the player had locked
+ // before, and locks it for them: no shot at it can come before the card (user, 2026-09-27).
+ if(has('s2Enter')&&drone?.hp>0&&(g.target===drone.id||g.visibleEnemies.includes(drone))&&fire(g,'s2Lock')){
+  g.target=drone.id;c.stunned=true;p.control.disabled=Math.max(p.control.disabled,COURSE_TUNING.stun);
   g.log(t('game.disabledYou',{n:COURSE_TUNING.stun}),true,t('game.disabledYouReal'));
  }
  if(c.stunned&&!p.control.disabled)fire(g,'s2Ready');

@@ -163,3 +163,14 @@ test('the comms bar shows each line once, and its countdown survives moving onto
  assert.ok(source.includes("if(bar)bar.currentTime=performance.now()-commsShownAt;"),'the countdown resumes after a move');
  assert.ok(source.indexOf("commsShownAt=performance.now();")>source.indexOf('function showNextComms'),'the start time is taken when a line goes up');
 });
+
+test('the lock-on lesson starts as the door to zone 2 opens, even with something else locked (3.198.2)',()=>{
+ const g=course(),p=g.player,drone=g.enemies.find(e=>e.course==='drone');
+ g.course.fired.push('moved','cover','doorGo','door','box','pickup','boxDone');takeCourseBeats(g);
+ Object.assign(p,{x:16,y:5});g.reveal();assert.ok(g.action('move',[1,0]));
+ g.target='kh-cover-0';   // the player had tapped a crate earlier; auto-lock keeps that target
+ assert.ok(g.action('move',[1,0]),'the door opens from the doorway');
+ const ids=takeCourseBeats(g).map(b=>b.id);assert.ok(ids.includes('s2Lock'),'no need to step in');
+ assert.equal(g.target,drone.id,'the course locks the drone');assert.equal(p.control.disabled,COURSE_TUNING.stun);
+ assert.deepEqual({x:p.x,y:p.y},{x:17,y:5});assert.equal(drone.hp,drone.maxHp,'nothing was fired at it');
+});
