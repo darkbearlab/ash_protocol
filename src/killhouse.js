@@ -6,7 +6,7 @@ import {roomAt} from './map-geometry.js';
 import {purgeReview,notePurgeDeparture} from './purge-review.js';
 import {departAllies,arriveAllies} from './allies.js';
 import {pickPortrait} from './portraits.js';
-import {startCourse,courseBefore,courseAfter,courseExitBlocked} from './course.js';
+import {startCourse,courseBefore,courseAfter,courseExitBlocked,courseDoorLocked,courseDoorFor} from './course.js';
 export class KillhouseGame extends Game {
  constructor({mode='tutorial',seed=Date.now()%1000000,character='soldier',portrait=pickPortrait(),options={}}={}){
   const simulation=simulationConfig(mode,options);super(mode==='tutorial'?1:seed,[],0,mode==='tutorial'?'soldier':character,portrait,'extraction',{facilityFaction:'loyalist',simulation});
@@ -23,6 +23,9 @@ export class KillhouseGame extends Game {
  get exitLabel(){return t(`missions.exit.${this.exitKind}`);}
  // The course's elevator stays locked until every target is down; it is used from beside it like a campaign one.
  get exitBlocked(){return this.course?courseExitBlocked(this):'';}
+ // The course keeps each zone's door shut until its lesson is done: nobody opens it, and the player is told why.
+ setDoor(b,open){return open&&courseDoorLocked(this,b)?false:super.setDoor(b,open);}
+ validateAction(type,arg){return this.course&&courseDoorLocked(this,courseDoorFor(this,type,arg))?this.fail(t('course.doorLocked')):super.validateAction(type,arg);}
  get missionSummary(){return `KILL HOUSE · ${this.simulation.phase}`;}
  // The course's one supply box opens like a campaign one (its lesson); other simulation boxes stay shut.
  openContainer(arg){return simulationDrops(this)||this.course?super.openContainer(arg):this.fail(t('killhouse.noCrates'));}

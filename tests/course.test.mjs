@@ -128,3 +128,22 @@ test('the course comes off as a unit: the switch brings back the six-card tutori
  const users=[];for(const f of await readdir(new URL('../src/',import.meta.url)))if(f.endsWith('.js')&&!f.startsWith('course')){const body=await readFile(new URL(`../src/${f}`,import.meta.url),'utf8');if(/from '\.\/course[\w-]*\.js'/.test(body))users.push(f);}
  assert.deepEqual(users.sort(),['controller.js','killhouse-maps.js','killhouse.js']);
 });
+
+test('each zone door stays shut until its lesson is done, for everyone, and the researcher waits behind his',()=>{
+ const g=course(),p=g.player,door=id=>g.barriers.find(b=>b.id===id),has=id=>g.course.fired.push(id);
+ // Teleporting past the drone would set off its lock-on stun; this test is only about the doors.
+ const tryOpen=(x,y,step,id)=>{Object.assign(p,{x,y});p.control.disabled=0;g.reveal();return g.action('move',step)&&door(id).open;};
+ assert.equal(tryOpen(12,5,[1,0],'edge-kh-compartment'),false);assert.match(g.logs[0].text,/門打不開/);
+ has('doorGo');has('door');assert.equal(tryOpen(12,5,[1,0],'edge-kh-compartment'),true,'open once the door has been explained');
+ for(const [id,x,y,step,lesson] of [['edge-kh-0-1',17,5,[1,0],'boxDone'],['edge-kh-1-2',21,9,[0,1],'s2Down'],['edge-kh-2-3',17,13,[-1,0],'s3Down'],['edge-kh-3-4',4,17,[0,1],'s4Clear']]){
+  assert.equal(tryOpen(x,y,step,id),false,`${id} before ${lesson}`);assert.equal(g.action('door',{id,open:true}),false);
+  assert.equal(g.setDoor(door(id),true),false,'nobody else opens it either');
+  if(id==='edge-kh-3-4'){
+   const civ=g.enemies.find(e=>e.course==='civilian'),spot={x:civ.x,y:civ.y};civ.alert=true;
+   for(let i=0;i<6;i++)g.action('wait');assert.deepEqual({x:civ.x,y:civ.y},spot,'the researcher waits while his door is shut');
+  }
+  has(lesson);assert.equal(tryOpen(x,y,step,id),true,`${id} after ${lesson}`);
+ }
+ const civ=g.enemies.find(e=>e.course==='civilian'),spot={x:civ.x,y:civ.y};assert.equal(civ.order,undefined,'released when his door opened');
+ g.action('move',[0,1]);g.action('wait');assert.notDeepEqual({x:civ.x,y:civ.y},spot,'and he runs once he sees you');
+});

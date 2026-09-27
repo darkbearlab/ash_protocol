@@ -919,6 +919,7 @@ export default Object.freeze({
  "course.log.resupply":"The simulation restocked your frag grenades.",
  "course.exitLocked":"Targets remain. The elevator is locked.",
  "course.brief":"Six zones in order, with both controllers guiding you. Once every target is down, stand beside the elevator and press Extract.",
+ "course.doorLocked":"Finish this zone's training first. The door won't open.",
  // src/daily.js
  "daily.title":"ASH PROTOCOL // DAILY OPERATION",
  // deckLabels

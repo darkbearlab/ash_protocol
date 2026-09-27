@@ -1,7 +1,8 @@
 import {t} from './i18n.js';
 import {ENEMY_TYPES} from './data.js';
 import {distance} from './world.js';
-import {registerOrder,giveOrder} from './orders.js';
+import {registerOrder,giveOrder,endOrder} from './orders.js';
+import {barrierBetween} from './barriers.js';
 import {roomAt} from './map-geometry.js';
 import {lightAt,LIGHT} from './lighting.js';
 import {COURSE_BEATS,COURSE_AFTER_CARD,COURSE_DEATH} from './course-script.js';
@@ -23,7 +24,8 @@ const SECTION_OF_ROOM=Object.freeze([1,2,3,4,5,5]);
 export const courseActive=g=>Boolean(g?.course);
 const role=(g,part)=>g.enemies.filter(e=>e.course===part);
 
-// Target drones never act; the training drone hovers in place and fires only once the course has armed it.
+// Target drones never act; the researcher waits where he is until his room's door opens; the training drone hovers in
+// place and fires only once the course has armed it.
 registerOrder('course_hold',{act:({g,e})=>{
  if(e.course!=='drone'||!g.course?.armed)return true;
  const p=g.player;
@@ -36,7 +38,7 @@ export function startCourse(g){
  for(const e of g.enemies){
   if(e.course==='drone')Object.assign(e,{hp:COURSE_TUNING.droneHp,maxHp:COURSE_TUNING.droneHp,damageScale:COURSE_TUNING.droneDamage,courseName:'course.name.trainingDrone'});
   if(e.course==='target')Object.assign(e,{hp:COURSE_TUNING.targetHp,maxHp:COURSE_TUNING.targetHp,courseName:'course.name.target'});
-  if(e.course==='drone'||e.course==='target')giveOrder(g,e,{kind:'course_hold',by:'course',patience:null,breakOn:[]});
+  if(e.course==='drone'||e.course==='target'||e.course==='civilian')giveOrder(g,e,{kind:'course_hold',by:'course',patience:null,breakOn:[]});
  }
  fire(g,'start');
 }
@@ -46,6 +48,23 @@ function fire(g,id){
 }
 export const takeCourseBeats=g=>g.course?g.course.beats.splice(0):[];
 export const courseFired=(g,id)=>Boolean(g.course?.fired.includes(id));
+// Each zone's way out stays shut until its lesson is done (user, 2026-09-27); the compartment door in zone 1 opens once
+// the door has been explained. Everyone's door opening goes through Game.setDoor, which KillhouseGame asks first.
+const DOOR_GATES=Object.freeze({
+ 'edge-kh-compartment':has=>has('door'),
+ 'edge-kh-0-1':has=>has('boxDone'),
+ 'edge-kh-1-2':has=>has('s2Down'),
+ 'edge-kh-2-3':has=>has('s3All')||has('s3Down'),
+ 'edge-kh-3-4':has=>has('s4Clear')
+});
+export const courseDoorLocked=(g,b)=>Boolean(g.course&&b&&DOOR_GATES[b.id]&&!DOOR_GATES[b.id](id=>g.course.fired.includes(id)));
+// The door the player's action would open, if any: interacting with it, or walking into it.
+export function courseDoorFor(g,type,arg){
+ const p=g.player;
+ if(type==='door'&&arg?.open)return g.barriers.find(b=>b.id===arg.id)||null;
+ if(type==='move'&&Array.isArray(arg)){const b=barrierBetween(g.barriers,p,{x:p.x+arg[0],y:p.y+arg[1]});return b?.type==='door'&&!b.open?b:null;}
+ return null;
+}
 // A card the controller closed can set off the next beat.
 export function courseCardClosed(g,cardId){const next=COURSE_AFTER_CARD[cardId];if(next)fire(g,next);}
 // Read before the action: what the course compares against afterwards.
@@ -94,8 +113,9 @@ export function courseAfter(g,type,success,before={},arg=null){
  if(alive(dark).length<dark.length)fire(g,'s4Kill');
  if(has('s4Kill')&&alive(dark).some(e=>e.alert))fire(g,'s4Noticed');
  if(dark.length&&!alive(dark).length)fire(g,'s4Clear');
- // 5 the researcher, then the fight on your own
+ // 5 the researcher, then the fight on your own. He waits until the door into his room opens (user, 2026-09-27).
  const civ=role(g,'civilian')[0],guards=role(g,'guard');
+ if(civ?.order?.kind==='course_hold'&&g.barriers.find(b=>b.id==='edge-kh-3-4')?.open)endOrder(g,civ,'released');
  if(room===4)fire(g,'s5Enter');
  if(has('s5Enter')&&civ?.hp>0&&civ.screamCooldown>0)fire(g,'s5Scream');
  if(has('s5Enter')&&civ&&civ.hp<=0)fire(g,'s5Down');
