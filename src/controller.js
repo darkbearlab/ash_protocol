@@ -222,11 +222,13 @@ const notifyLatest=()=>{sayCommsEvents(game.logs.slice(0,lastActionLogs));const 
 // time, the rest wait their turn.
 // 3.173.0 (user's pick from the mockups): the slim box covers the battle header, not the field.
 const commsLayer=document.createElement('div');commsLayer.className='comms-layer';commsLayer.setAttribute('aria-live','polite');$('.battle-header').append(commsLayer);
-const commsQueue=[];let commsRound=0;
+const commsQueue=[];let commsRound=0,commsShownAt=0;
 function sayComms(message){commsQueue.push(message);if(commsQueue.length===1)showNextComms();}
+// One box at a time: a line already on the bar is never shown again. (3.198.0: a `then` that says the next line itself —
+// the training course — used to have that line armed twice, and the spare timer cleared the line after it early.)
 function showNextComms(){
-  const message=commsQueue[0],round=commsRound;if(message===undefined)return;
-  commsLayer.innerHTML=commsMarkup(message,{context:{game},compact:true});
+  const message=commsQueue[0],round=commsRound;if(message===undefined||commsLayer.firstElementChild)return;
+  commsLayer.innerHTML=commsMarkup(message,{context:{game},compact:true});commsShownAt=performance.now();
   armComms(commsLayer.querySelector('.comms'),()=>{if(round!==commsRound)return;commsLayer.innerHTML='';commsQueue.shift();message?.then?.();showNextComms();},{tap:message?.tap!==false});
 }
 // A message's `then` runs when its box has closed (3.177.0, the end of a run).
@@ -260,7 +262,11 @@ function commsOnCard(on){
   const header=$('.battle-header'),host=on?$('#modal'):header;
   if(on){const r=header.getBoundingClientRect();commsLayer.style.setProperty('--comms-top',`${r.top}px`);commsLayer.style.setProperty('--comms-left',`${r.left}px`);commsLayer.style.setProperty('--comms-width',`${r.width}px`);}
   else for(const k of ['--comms-top','--comms-left','--comms-width'])commsLayer.style.removeProperty(k);
-  if(commsLayer.parentElement===host)return;if(on)host.prepend(commsLayer);else host.append(commsLayer);
+  if(commsLayer.parentElement===host)return;
+  // Moving a node restarts its CSS animations (and a closed dialog has already dropped them): the countdown line carries
+  // on from the time its line has been up.
+  if(on)host.prepend(commsLayer);else host.append(commsLayer);
+  const bar=commsLayer.querySelector('.comms-timer')?.getAnimations?.()[0];if(bar)bar.currentTime=performance.now()-commsShownAt;
 }
 function closeCourseCard(){const id=courseCard?.id;if(!id)return;courseCard=null;if($('#modal').open)$('#modal').close();commsOnCard(false);courseCardClosed(game,id);playCourse();courseNext();}
 // 3.169.0 (docs/STORY.md 8): the officer on duty remarks on what the last action showed; the kill house has no comms.

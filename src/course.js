@@ -1,7 +1,7 @@
 import {t} from './i18n.js';
 import {ENEMY_TYPES} from './data.js';
 import {distance} from './world.js';
-import {registerOrder,giveOrder,endOrder} from './orders.js';
+import {registerOrder,giveOrder,runOrder} from './orders.js';
 import {barrierBetween} from './barriers.js';
 import {roomAt} from './map-geometry.js';
 import {lightAt,LIGHT} from './lighting.js';
@@ -24,9 +24,16 @@ const SECTION_OF_ROOM=Object.freeze([1,2,3,4,5,5]);
 export const courseActive=g=>Boolean(g?.course);
 const role=(g,part)=>g.enemies.filter(e=>e.course===part);
 
-// Target drones never act; the researcher waits where he is until his room's door opens; the training drone hovers in
-// place and fires only once the course has armed it.
-registerOrder('course_hold',{act:({g,e})=>{
+// Target drones never act. The researcher neither moves nor screams until the player has stepped into his room (user,
+// 2026-09-27: he used to scream from off screen and bring the next room in first); then he takes his own flight order,
+// screams at the player and runs, on the same turn. The training drone hovers in place and fires only once armed.
+export const COURSE_ROOMS=Object.freeze({civilian:4});
+registerOrder('course_hold',{act:ctx=>{
+ const {g,e}=ctx;
+ if(e.course==='civilian'){
+  if(roomAt(g.rooms,g.player)!==COURSE_ROOMS.civilian)return true;
+  e.screamCooldown=0;giveOrder(g,e,{kind:'flee',by:'self',patience:null,breakOn:[]});return runOrder(ctx);   // src/civilians.js
+ }
  if(e.course!=='drone'||!g.course?.armed)return true;
  const p=g.player;
  if(!(g.sight(e,p)&&g.shotClear(e,p)&&distance(e,p)<=ENEMY_TYPES[e.type].range))return true;
@@ -39,6 +46,8 @@ export function startCourse(g){
   if(e.course==='drone')Object.assign(e,{hp:COURSE_TUNING.droneHp,maxHp:COURSE_TUNING.droneHp,damageScale:COURSE_TUNING.droneDamage,courseName:'course.name.trainingDrone'});
   if(e.course==='target')Object.assign(e,{hp:COURSE_TUNING.targetHp,maxHp:COURSE_TUNING.targetHp,courseName:'course.name.target'});
   if(e.course==='drone'||e.course==='target'||e.course==='civilian')giveOrder(g,e,{kind:'course_hold',by:'course',patience:null,breakOn:[]});
+  // Seeing the player through the opened door must not make him scream yet (src/civilians.js scream reads the cooldown).
+  if(e.course==='civilian')e.screamCooldown=Number.MAX_SAFE_INTEGER;
  }
  fire(g,'start');
 }
@@ -113,11 +122,10 @@ export function courseAfter(g,type,success,before={},arg=null){
  if(alive(dark).length<dark.length)fire(g,'s4Kill');
  if(has('s4Kill')&&alive(dark).some(e=>e.alert))fire(g,'s4Noticed');
  if(dark.length&&!alive(dark).length)fire(g,'s4Clear');
- // 5 the researcher, then the fight on your own. He waits until the door into his room opens (user, 2026-09-27).
+ // 5 the researcher (held by course_hold until the player steps in), then the fight on your own
  const civ=role(g,'civilian')[0],guards=role(g,'guard');
- if(civ?.order?.kind==='course_hold'&&g.barriers.find(b=>b.id==='edge-kh-3-4')?.open)endOrder(g,civ,'released');
  if(room===4)fire(g,'s5Enter');
- if(has('s5Enter')&&civ?.hp>0&&civ.screamCooldown>0)fire(g,'s5Scream');
+ if(has('s5Enter')&&civ?.hp>0&&civ.order?.kind!=='course_hold'&&civ.screamCooldown>0)fire(g,'s5Scream');
  if(has('s5Enter')&&civ&&civ.hp<=0)fire(g,'s5Down');
  if(room===5)fire(g,'s5Combat');
  if(has('s5Enter')&&p.hp<=p.maxHp*COURSE_TUNING.hurt)fire(g,'s5Hurt');

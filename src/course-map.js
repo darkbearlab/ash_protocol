@@ -31,7 +31,8 @@ const CAST=Object.freeze([
  {id:'kh-target-0',type:'drone',x:20,y:14,course:'target'},{id:'kh-target-1',type:'drone',x:21,y:15,course:'target'},{id:'kh-target-2',type:'drone',x:22,y:16,course:'target'},
  // Neither dark-room rifleman carries a flashlight (the hash in src/lighting.js carriesFlashlight; tests pin it).
  {id:'kh-dark-0',type:'rifleman',x:3,y:12,course:'dark'},{id:'kh-dark-1',type:'rifleman',x:2,y:15,course:'dark'},
- {id:'kh-civ',type:'civilian',x:12,y:20,course:'civilian'},
+ // A few steps from the door, so he is on screen when he screams (user, 2026-09-27).
+ {id:'kh-civ',type:'civilian',x:7,y:21,course:'civilian'},
  {id:'kh-guard-0',type:'rifleman',x:19,y:20,course:'guard'},{id:'kh-guard-1',type:'raider',x:21,y:23,course:'guard'},{id:'kh-guard-2',type:'gunner',x:22,y:19,course:'guard'}
 ]);
 export function courseMap(){

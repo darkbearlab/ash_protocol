@@ -76,9 +76,15 @@ test('walking the course: every beat fires in order, the stun, the waiting drone
  assert.ok(fired.includes('s4Kill')&&fired.includes('s4Noticed'));
  p.hp=p.maxHp=9999;for(let i=0;i<20&&dark[1].hp>0;i++){if(g.visibleEnemies.includes(dark[1])){g.target=dark[1].id;if(!act('fire'))act('reload');}else act('wait');}
  assert.ok(fired.includes('s4Clear'));
- // 5: the researcher screams on sight and warns the room at the end.
- walk(g.tutorialEntrances[3].approach);act('move',[0,1]);act('move',[0,1]);
- assert.ok(fired.includes('s5Enter')&&fired.includes('s5Scream'));assert.ok(g.enemies.some(e=>e.course==='guard'&&e.alert));
+ // 5: the researcher waits until the player steps in, screams on screen, and only warns the next room once he reaches it.
+ const civ=g.enemies.find(e=>e.course==='civilian'),home={x:civ.x,y:civ.y};
+ walk(g.tutorialEntrances[3].approach);act('move',[0,1]);act('wait');act('wait');
+ assert.deepEqual({x:civ.x,y:civ.y},home,'the door is open but the player is still outside');assert.ok(!fired.includes('s5Scream'));
+ act('move',[0,1]);
+ assert.ok(fired.includes('s5Enter')&&fired.includes('s5Scream'));assert.ok(Math.abs(civ.x-p.x)<=4&&Math.abs(civ.y-p.y)<=4,'close enough to be on screen');
+ assert.ok(g.enemies.filter(e=>e.course==='guard').every(e=>!e.alert),'his first scream does not reach the fight room');
+ for(let i=0;i<14&&!g.enemies.some(e=>e.course==='guard'&&e.alert);i++)act('wait');
+ assert.ok(g.enemies.some(e=>e.course==='guard'&&e.alert),'he runs to the fight room and warns it');
  assert.deepEqual(cards,['move','cover','door','box','target','windup','reload','throw','light','flash','flashlight','civilian']);
  const order=Object.keys(COURSE_BEATS).filter(k=>fired.includes(k));assert.deepEqual(fired.filter(k=>order.includes(k)),fired,'no beat twice');
 });
@@ -129,9 +135,10 @@ test('the course comes off as a unit: the switch brings back the six-card tutori
  assert.deepEqual(users.sort(),['controller.js','killhouse-maps.js','killhouse.js']);
 });
 
-test('each zone door stays shut until its lesson is done, for everyone, and the researcher waits behind his',()=>{
+test('each zone door stays shut until its lesson is done, for everyone, and the researcher waits until the player steps in',()=>{
  const g=course(),p=g.player,door=id=>g.barriers.find(b=>b.id===id),has=id=>g.course.fired.push(id);
- // Teleporting past the drone would set off its lock-on stun; this test is only about the doors.
+ // Teleporting past the drone sets off its lock-on stun, and the dark room's riflemen may shoot: neither is this test's.
+ p.maxHp=p.hp=9999;
  const tryOpen=(x,y,step,id)=>{Object.assign(p,{x,y});p.control.disabled=0;g.reveal();return g.action('move',step)&&door(id).open;};
  assert.equal(tryOpen(12,5,[1,0],'edge-kh-compartment'),false);assert.match(g.logs[0].text,/門打不開/);
  has('doorGo');has('door');assert.equal(tryOpen(12,5,[1,0],'edge-kh-compartment'),true,'open once the door has been explained');
@@ -144,6 +151,15 @@ test('each zone door stays shut until its lesson is done, for everyone, and the 
   }
   has(lesson);assert.equal(tryOpen(x,y,step,id),true,`${id} after ${lesson}`);
  }
- const civ=g.enemies.find(e=>e.course==='civilian'),spot={x:civ.x,y:civ.y};assert.equal(civ.order,undefined,'released when his door opened');
- g.action('move',[0,1]);g.action('wait');assert.notDeepEqual({x:civ.x,y:civ.y},spot,'and he runs once he sees you');
+ const civ=g.enemies.find(e=>e.course==='civilian'),spot={x:civ.x,y:civ.y};
+ p.control.disabled=0;for(let i=0;i<3;i++)g.action('wait');assert.deepEqual({x:civ.x,y:civ.y},spot,'an open door alone does not free him');assert.equal(civ.order?.kind,'course_hold');
+ p.control.disabled=0;assert.ok(g.action('move',[0,1]));assert.deepEqual({x:p.x,y:p.y},{x:4,y:18});assert.notDeepEqual({x:civ.x,y:civ.y},spot,'he runs the turn the player steps in');assert.equal(civ.order?.kind,'flee');
+});
+
+test('the comms bar shows each line once, and its countdown survives moving onto and off a card (3.198.1)',async()=>{
+ // A `then` that says the next line itself used to get that line armed twice; the spare timer cleared the line after it.
+ const source=await readFile(new URL('../src/controller.js',import.meta.url),'utf8');
+ assert.ok(source.includes("if(message===undefined||commsLayer.firstElementChild)return;"),'one box at a time');
+ assert.ok(source.includes("if(bar)bar.currentTime=performance.now()-commsShownAt;"),'the countdown resumes after a move');
+ assert.ok(source.indexOf("commsShownAt=performance.now();")>source.indexOf('function showNextComms'),'the start time is taken when a line goes up');
 });
