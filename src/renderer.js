@@ -371,7 +371,6 @@ export class Renderer {
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}
     if(this.gore?.length){for(const b of this.gore)drawBurstAir(c,t,this.project(b.at.x,b.at.y),b.burst,time-b.start,false,(dx,dy)=>goreShade(b.at.x+dx,b.at.y+dy));this.gore=this.gore.filter(b=>time-b.start<b.life);}
     if(this.kia)drawKiaAir(this,time);
-    if(this.extraction)this.extractionBeam(time);
     // Raised partitions share the wall occlusion layer; footprints remain on ground edges.
     const seenBarriers=g.barriers.filter(b=>edgeCells(b).some(q=>g.mapped(q.x,q.y)));
     const barriers=[...seenBarriers.map(b=>({b,y:b.y+(b.axis==='x'?.5:.08)})),...barrierJunctions(seenBarriers).map(j=>({j,y:j.y+.081}))].sort((a,b)=>a.y-b.y);
@@ -381,6 +380,9 @@ export class Renderer {
       c.globalAlpha=[[0,-1],[1,0],[0,1],[-1,0]].some(([dx,dy])=>g.visibleTiles?.has((x+dx)+','+(y+dy)))?1:.36;
       this.wall(a,x,y);c.globalAlpha=1;
     }
+    // 3.198.5 (user): the extraction beam falls from the top of the screen, so it is drawn over the walls it crosses
+    // rather than occluded by them like other world-space effects.
+    if(this.extraction)this.extractionBeam(time);
 
     // Optional tactical overlay uses ground coordinates, above wall art for readability.
     this.drawTacticalOverlays();
