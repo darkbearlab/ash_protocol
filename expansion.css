@@ -597,6 +597,5 @@ html[lang="en"] .comms.compact .comms-who{line-height:15px}
 @media (max-width:420px){.course-chart{grid-template-columns:1fr}}
 .course-pager{justify-content:flex-end}
 .course-result{margin-bottom:12px}
-/* 3.198.0 (user): with a course card open the comms bar stays at the top of the screen, above the card and its backdrop */
 #modal > .comms-layer{position:fixed;top:var(--comms-top,0);left:var(--comms-left,0);width:var(--comms-width,100%);right:auto;z-index:10;margin:0}
-#modal > .comms-layer:empty{display:none}
+#modal > .comms-layer:empty{display:none}   /* 3.198.0 (user): with a course card open the comms bar stays at the top of the screen, above the card and its backdrop; it is in the dialog but outside #modal-content, so no filter re-anchors it */
