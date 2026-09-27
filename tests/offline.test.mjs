@@ -35,3 +35,16 @@ test('unavailable or full cache does not prevent online play; missing offline sh
   for(const options of [{brokenCache:true},{quota:true}])assert.equal(await(await worker(undefined,{...options,online:new Response('online')}).request('./')).text(),'online');
   assert.equal((await worker().request('./?v=unknown')).type,'error');
 });
+test('a hashed file already cached starts without the network; pages and unhashed files still ask first (3.198.4)',async()=>{
+  const base='https://example.test/ash_protocol/',calls=[];let online=new Response('fresh');
+  const handlers={},entries=new Map(),url=r=>new URL(typeof r==='string'?r:r.url,base).href;
+  const cache={match:async r=>entries.get(url(r))?.clone(),put:async(r,v)=>{entries.set(url(r),v);}};
+  vm.runInNewContext(source,{URL,Request,Response,self:{location:new URL('sw.js?v=current',base),addEventListener:(k,fn)=>handlers[k]=fn},caches:{open:async()=>cache,match:async()=>undefined},fetch:async r=>{calls.push(url(r));return online.clone();}});
+  const request=async(path,mode='cors')=>{let result;handlers.fetch({request:{url:new URL(path,base).href,mode,method:'GET'},respondWith:p=>result=p});return result;};
+  entries.set(base+'src/game.js?v=current',new Response('cached module'));entries.set(base+'assets/pixel/atlas.png',new Response('cached picture'));
+  assert.equal(await(await request('./src/game.js?v=current')).text(),'cached module');assert.deepEqual(calls,[],'no request for a cached hashed file');
+  assert.equal(await(await request('./src/other.js?v=current')).text(),'fresh','an uncached hashed file is fetched');assert.equal(await(await request('./src/other.js?v=current')).text(),'fresh','and then kept');
+  assert.equal(calls.length,1);
+  assert.equal(await(await request('./assets/pixel/atlas.png','no-cors')).text(),'fresh','an unhashed file still asks the network');
+  online=new Response('new page');assert.equal(await(await request('./?v=old-bookmark','navigate')).text(),'new page','a page load always asks first');
+});

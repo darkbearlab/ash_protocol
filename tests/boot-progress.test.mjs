@@ -17,7 +17,10 @@ test('the boot screen counts the files of the import graph, and nothing loads la
  assert.match(html,new RegExp(`<span class="boot-count">0 / ${total}</span>`));
  const files=(await readdir(new URL('../src/',import.meta.url))).filter(f=>f.endsWith('.js'));
  for(const f of files)assert.doesNotMatch(await read(`../src/${f}`),/import\s*\(/,`${f}: a dynamic import would load after the bar is gone`);
- // The watcher runs before the game's module script, and reads real resource timing.
- assert.ok(html.indexOf("watch.observe({type:'resource',buffered:true})")<html.indexOf('<script type="module" src="./src/main.js">'));
- const css=await read('../expansion.css');assert.ok(css.includes('.boot-plain .boot-bar,.boot-plain .boot-count{display:none}'),'no bar without the timing API');
+ // The watcher reads real resource timing, and sits before every stylesheet: an inline script after one waits for it
+ // (Google Fonts included) and holds up the page and the game's code with it (3.198.4).
+ const watcher=html.indexOf("watch.observe({type:'resource',buffered:true})");
+ assert.ok(watcher>0&&watcher<html.indexOf('<link rel="stylesheet"'),'before the stylesheets');
+ assert.equal((html.match(/<script>/g)||[]).length,1,'no other inline script');
+ const css=await read('../expansion.css');assert.ok(css.includes('.boot-screen:not(.boot-counting) .boot-bar,.boot-screen:not(.boot-counting) .boot-count{visibility:hidden}'),'no bar without the timing API');
 });

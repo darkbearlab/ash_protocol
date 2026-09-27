@@ -275,7 +275,7 @@ body.booting .boot-screen{display:flex;position:fixed;inset:0;flex-direction:col
 .boot-bar{width:180px;max-width:60vw;height:3px;background:#27302a;overflow:hidden}
 .boot-bar i{display:block;width:0;height:100%;background:var(--orange);transition:width .15s linear}
 .boot-count{font:11px var(--mono);letter-spacing:.15em;color:var(--muted);font-variant-numeric:tabular-nums}
-.boot-plain .boot-bar,.boot-plain .boot-count{display:none}
+.boot-screen:not(.boot-counting) .boot-bar,.boot-screen:not(.boot-counting) .boot-count{visibility:hidden}
 .boot-slow{max-width:260px;text-align:center;font:11px/1.6 var(--mono);color:var(--muted);opacity:0;animation:boot-reveal 0s 12s forwards}
 @keyframes boot-reveal{to{opacity:1}}
 /* 3.44: the message bar opens the combat log; its button counts the extra lines of the last action. */
