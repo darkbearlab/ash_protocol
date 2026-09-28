@@ -22,12 +22,14 @@ export const LANGUAGE_STATUS=Object.freeze({en:'work in progress'});
 // modules that need the table, so it reads the key the same way.
 const TEST_MODE=typeof location!=='undefined'&&new URLSearchParams(location.search).get('test')==='1';
 export const LANGUAGE_KEY=`${TEST_MODE?'qa-':''}ash-language`;
+// 3.199.2 (user, 2026-09-28): the public build opens in English for everyone, whatever the browser's language;
+// Chinese is one tap away on the Settings language button, and a saved choice always wins.
+export const DEFAULT_LANGUAGE='en';
 function initialLanguage(){
  // Node: tests and tools read Chinese unless ASH_LANGUAGE=en asks for English (qa/english-scan.mjs).
  if(typeof document==='undefined')return globalThis.process?.env?.ASH_LANGUAGE==='en'?'en':'zh-TW';
  try{const saved=localStorage.getItem(LANGUAGE_KEY);if(Object.hasOwn(TABLES,saved))return saved;}catch{}
- const preferred=[...(navigator.languages||[]),navigator.language].filter(Boolean);
- return preferred.some(code=>/^zh\b/i.test(code))||!preferred.length?'zh-TW':'en';
+ return DEFAULT_LANGUAGE;
 }
 let current=initialLanguage(),table=TABLES[current];
 export const language=()=>current;
