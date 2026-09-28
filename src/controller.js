@@ -5,7 +5,8 @@ import {playerCalloutEvent} from './callouts.js';
 import {GLITCH_TUNING} from './signal-glitch.js';
 import {availableCharacters,unlockEntry,CHARACTER_IDS,shelvedCharacter} from './unlock-catalog.js';
 import {connectUnlocks,startCampaign,startKillhouse,grantUnlock} from './storage.js';
-import {unlockPageMarkup,purchaseReason,purchaseConfirmMarkup,operatorRecoveredMarkup,resultStoriesMarkup,lockedOperatorRow,operatorSignal,UNLOCK_HELP} from './unlock-ui.js';
+import {unlockPageMarkup,purchaseReason,purchaseConfirmMarkup,operatorRecoveredMarkup,resultStoriesMarkup,lockedOperatorRow,operatorSignal,UNLOCK_HELP,storyReaderMarkup} from './unlock-ui.js';
+import {storyText} from './story-text.js';
 import {isNoncombatant} from './enemy-data.js';
 import {healingAmount} from './traits.js';
 import {UNIT_BLUEPRINTS,isBlueprintLog,buildReason,deployReason,deployedUnits,mountableSlots,repairReason,repairTargets} from './workshop.js';
@@ -258,9 +259,9 @@ function courseNext(){
 }
 // While a card is open the comms bar joins the dialog (the only way above its backdrop) but is pinned to the header's
 // own place on screen, so it never moves; it goes back to the header when the card closes.
-function commsOnCard(on){
+function commsOnCard(on,box=null){
   const header=$('.battle-header'),host=on?$('#modal'):header;
-  if(on){const r=header.getBoundingClientRect();commsLayer.style.setProperty('--comms-top',`${r.top}px`);commsLayer.style.setProperty('--comms-left',`${r.left}px`);commsLayer.style.setProperty('--comms-width',`${r.width}px`);}
+  if(on){const r=box||header.getBoundingClientRect();commsLayer.style.setProperty('--comms-top',`${r.top}px`);commsLayer.style.setProperty('--comms-left',`${r.left}px`);commsLayer.style.setProperty('--comms-width',`${r.width}px`);}
   else for(const k of ['--comms-top','--comms-left','--comms-width'])commsLayer.style.removeProperty(k);
   if(commsLayer.parentElement===host)return;
   // Moving a node restarts its CSS animations (and a closed dialog has already dropped them): the countdown line carries
@@ -268,6 +269,23 @@ function commsOnCard(on){
   if(on)host.prepend(commsLayer);else host.append(commsLayer);
   const bar=commsLayer.querySelector('.comms-timer')?.getAnimations?.()[0];if(bar)bar.currentTime=performance.now()-commsShownAt;
 }
+// 3.200.0 (user): opening a facility record to read it (the archive, or the field journal) plays the controllers'
+// remarks on the comms bar, pinned to the top of the screen across the record window; a tap moves to the next line.
+// Opening another record starts its remarks instead; closing the record, or the window showing anything else, stops them.
+let recordComms=null;
+function playRecordComms(id){
+  const story=STORIES.find(s=>s.id===id),lines=story?storyText(story).comms:[];
+  if(!lines.length||courseCard)return;
+  clearComms();recordComms=id;
+  // Just above the window when there is room for the bar, otherwise over its top edge; never above the header's place.
+  const h=$('.battle-header').getBoundingClientRect(),r=$('#modal-content').getBoundingClientRect();commsOnCard(true,{top:Math.max(h.top,r.top-46),left:r.left,width:r.width});
+  for(const line of lines)sayComms(line);
+}
+function endRecordComms(){if(recordComms===null)return;recordComms=null;clearComms();commsOnCard(false);}
+$('#modal-content').addEventListener('toggle',e=>{
+  const d=e.target;if(!(d instanceof HTMLDetailsElement)||!d.dataset.story)return;
+  if(d.open)playRecordComms(d.dataset.story);else if(recordComms===d.dataset.story)endRecordComms();
+},true);
 function closeCourseCard(){const id=courseCard?.id;if(!id)return;courseCard=null;if($('#modal').open)$('#modal').close();commsOnCard(false);courseCardClosed(game,id);playCourse();courseNext();}
 // 3.169.0 (docs/STORY.md 8): the officer on duty remarks on what the last action showed; the kill house has no comms.
 let commsBefore=null,commsMemory=null,dutyOverride=null;
@@ -598,7 +616,7 @@ function cycleTarget(){const list=game.visibleEnemies;if(!list.length){notify(t(
 // one-handed use, and a tabbed menu fills the height so its top does not move when tabs of different heights change.
 // The upgrade pick is the exception (3.97.3, user report): it opens on its own under a thumb that is still tapping, so it
 // is anchored to the top edge and the queued tap lands on the backdrop.
-function modal(html,wide=false,title=false){queueMicrotask(syncMusic);cancelAim();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('transmission',Boolean($('#modal-content').querySelector('.transmission')));$('#modal').classList.toggle('briefing',Boolean($('#modal-content').querySelector('.briefing')));$('#modal').classList.toggle('outro',Boolean($('#modal-content').querySelector('.outro-channel')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
+function modal(html,wide=false,title=false){queueMicrotask(syncMusic);cancelAim();endRecordComms();$('#modal').classList.toggle('wide',wide);$('#modal').classList.toggle('title',title);$('#modal-content').innerHTML=html;$('#modal').classList.toggle('tabbed',!title&&Boolean($('#modal-content').querySelector('[role="tablist"],.journal-tabs')));$('#modal').classList.toggle('raised',Boolean($('#modal-content').querySelector('[data-perk]')));$('#modal').classList.toggle('transmission',Boolean($('#modal-content').querySelector('.transmission')));$('#modal').classList.toggle('briefing',Boolean($('#modal-content').querySelector('.briefing')));$('#modal').classList.toggle('outro',Boolean($('#modal-content').querySelector('.outro-channel')));$('#modal').classList.toggle('standalone',!title&&titleFlow);pinFooter(title);if(!$('#modal').open)$('#modal').showModal();updateOrientation(true);}
 // Main buttons stay on screen (3.97.0, user request): a menu marks them with .modal-footer; otherwise its final button
 // (or button row) is pinned. When that final button is a secondary back/cancel button, the button just before it (the
 // action) is pinned beside it, back first. Title screens lay themselves out and are left alone.
@@ -1020,7 +1038,7 @@ function endlessResult(p,abandoned){if(abandoned)return t('controller.endless.ab
   return rows.best?`<p>${t('controller.endless.bestLine',{v:isRecordRun(records,game.floor,p.level,p.kills)?t('controller.endless.newRecord'):'',best:rows.best})}</p>`:'';}
 // Operator stats, run upgrades and passive rules moved here from the compact backpack (3.97.0).
 function operatorStatus(){const p=game.player;return `<h3>${t('controller.status.title')}</h3><p>${t('controller.status.armor',{v:characterName(p.character),armor:p.armor})}<br>${combatStatSummary(p)}${meleeSummary(p).map(line=>'<br>'+line).join('')}</p>${runPerks()}<h3>${t('controller.status.passives')}</h3><p>${t('controller.status.passivesLine',{v:traitLabels(p).join(' · ')||t('controller.none')})}<br>${traitRuleLines(p).join('<br>')}<br>${t('controller.status.passivesNote')}</p>`;}
-function showJournal(){const p=game.player,records=profile();modal(`<div class="eyebrow">ARCHIVE / FIELD INTELLIGENCE</div><h2>${t('controller.journal.title')}</h2><div class="journal-tabs"><button data-modal="journal">${t('controller.journal.missions')}</button><button data-modal="bestiary">${t('controller.journal.bestiary')}</button><button data-modal="help">${t('controller.journal.manual')}</button></div><p>${game.missionSummary}</p>${runIsLive()?operatorStatus():''}<div class="result-stats"><div><b>${records.runs}</b>${t('controller.journal.runs')}</div><div><b>${records.wins}</b>${t('controller.journal.wins')}</div><div><b>${records.bestFloor}/6</b>${t('controller.journal.deepest')}</div></div><h3>${t('controller.journal.protocol',{balance:records.protocol.balance})}</h3><p>${t('controller.journal.protocolNote',{earned:game.protocol.earned,v:availableCharacters(records).length})}</p>${endlessJournal(records)}<h3>${t('controller.journal.pending',{v:(game.pendingStories||[]).length})}</h3>${(game.pendingStories||[]).map(id=>{const story=STORIES.find(s=>s.id===id);return `<p class="lore-entry"><strong>${escapeHTML(story?.title||t('controller.journal.archived'))}</strong><br>${escapeHTML(story?.body||'')}</p>`;}).join('')}<h3>${t('controller.journal.recent')}</h3>${records.history.length?records.history.slice(0,5).map(r=>`<p>${t('controller.journal.row',{v:MISSIONS[r.mission]?.name||MISSIONS.extraction.name,v2:characterName(r.character),seed:r.seed,v3:r.outcome==='abandoned'?t('controller.journal.abandoned'):r.won?t('controller.journal.extracted'):t('controller.journal.died'),v4:r.realMode?t('controller.journal.real'):'',floor:r.floor,v5:Number.isInteger(r.level)?` · LV.${pad(r.level)}`:'',kills:r.kills,turn:r.turn,v6:Array.isArray(r.mapGenerations)&&r.mapGenerations.length?` ${t('controller.journal.mapVersion',{v:r.mapGenerations.join('/')})}`:''})}</p>`).join(''):t('controller.journal.noRuns')}<button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`,true);}
+function showJournal(){const p=game.player,records=profile();modal(`<div class="eyebrow">ARCHIVE / FIELD INTELLIGENCE</div><h2>${t('controller.journal.title')}</h2><div class="journal-tabs"><button data-modal="journal">${t('controller.journal.missions')}</button><button data-modal="bestiary">${t('controller.journal.bestiary')}</button><button data-modal="help">${t('controller.journal.manual')}</button></div><p>${game.missionSummary}</p>${runIsLive()?operatorStatus():''}<div class="result-stats"><div><b>${records.runs}</b>${t('controller.journal.runs')}</div><div><b>${records.wins}</b>${t('controller.journal.wins')}</div><div><b>${records.bestFloor}/6</b>${t('controller.journal.deepest')}</div></div><h3>${t('controller.journal.protocol',{balance:records.protocol.balance})}</h3><p>${t('controller.journal.protocolNote',{earned:game.protocol.earned,v:availableCharacters(records).length})}</p>${endlessJournal(records)}<h3>${t('controller.journal.pending',{v:(game.pendingStories||[]).length})}</h3>${(game.pendingStories||[]).map(id=>{const story=STORIES.find(s=>s.id===id);return story?storyReaderMarkup(story,''):`<p class="lore-entry"><strong>${t('controller.journal.archived')}</strong></p>`;}).join('')}<h3>${t('controller.journal.recent')}</h3>${records.history.length?records.history.slice(0,5).map(r=>`<p>${t('controller.journal.row',{v:MISSIONS[r.mission]?.name||MISSIONS.extraction.name,v2:characterName(r.character),seed:r.seed,v3:r.outcome==='abandoned'?t('controller.journal.abandoned'):r.won?t('controller.journal.extracted'):t('controller.journal.died'),v4:r.realMode?t('controller.journal.real'):'',floor:r.floor,v5:Number.isInteger(r.level)?` · LV.${pad(r.level)}`:'',kills:r.kills,turn:r.turn,v6:Array.isArray(r.mapGenerations)&&r.mapGenerations.length?` ${t('controller.journal.mapVersion',{v:r.mapGenerations.join('/')})}`:''})}</p>`).join(''):t('controller.journal.noRuns')}<button class="modal-button" data-modal="close">${t('controller.backToField')}</button>`,true);}
 // The codex names cards the way the current facility does (3.103.1, user request), so 步槍兵 in play is 步槍兵 here.
 // A variant still hides behind its parent when either the base or the facing name matches, which is what kept the
 // armoured and elite cards out of the list before the factions had their own names.
@@ -1356,7 +1374,7 @@ $('#orientation-guard').addEventListener('cancel',e=>e.preventDefault());
 // Devices that cannot rotate may continue in landscape until the page reloads (3.44).
 $('#orientation-continue').addEventListener('click',()=>{orientationOverride=true;updateOrientation();});
 $('#field-messages').addEventListener('click',e=>{if(!e.target.closest('button')&&entered&&!playback&&!orientationBlocked&&!$('#modal').open)showLog();});
-$('#modal').addEventListener('close',()=>{titleFlow=false;syncMusic();if(courseCard)closeCourseCard();else if(courseWaiting){courseWaiting=false;courseNext();}});
+$('#modal').addEventListener('close',()=>{titleFlow=false;syncMusic();endRecordComms();if(courseCard)closeCourseCard();else if(courseWaiting){courseWaiting=false;courseNext();}});
 $('#modal').addEventListener('cancel',e=>{if(!entered||game.pendingPerks||game.status!=='playing')e.preventDefault();});
 let pointerStart=null;
 $('#battle').addEventListener('pointerdown',e=>{pointerStart=(playback&&!skipEnabled())||orientationBlocked?null:{x:e.clientX,y:e.clientY};});

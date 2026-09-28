@@ -4,247 +4,568 @@ export const RETIRED_STORY_IDS=["core-response","evacuation-cancelled","final-pr
 export const STORIES=[
   {
     "id": "loyalist-standby",
-    "title": "ENCRYPTED",
+    "title": "待命命令",
     "faction": "loyalist",
     "floors": [
       1,
-      1
+      2
     ],
     "price": 100,
     "order": 101,
-    "body": "TO BE DECRYPTED"
+    "body": "來源：中繼點（已失效）。\n主旨：保持運轉。保持靜默。等待喚醒訊號。\n期限：無期限。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "serious",
+        "text": "看起來當時戰鬥的結果確實傳到這座設施了。"
+      },
+      {
+        "speaker": "egret",
+        "expression": "serious",
+        "text": "但走的是臨時點對點傳輸，現在已經追不到來源了。"
+      }
+    ],
+    "en": {
+      "title": "Standby Orders",
+      "body": "Source: relay point (defunct).\nSubject: Keep running. Keep silent. Await the wake signal.\nExpiry: none.",
+      "comms": [
+        "Looks like the outcome of the fighting did reach this facility.",
+        "But it came over an ad hoc link. There is no tracing the source now."
+      ]
+    }
   },
   {
     "id": "loyalist-survey",
-    "title": "ENCRYPTED",
+    "title": "勘測回報",
     "faction": "loyalist",
     "floors": [
       2,
-      2
+      4
     ],
     "price": 100,
     "order": 102,
-    "body": "TO BE DECRYPTED"
-  },
-  {
-    "id": "loyalist-manifest",
-    "title": "ENCRYPTED",
-    "faction": "loyalist",
-    "floors": [
-      3,
-      3
+    "body": "第三勘測隊回報內容如下：\n已抵達前次折返之相對位置座標，損失可接受，唯路線與上次完全不同。\n考量無法維持勘測結果，小隊長已下令折返，重新評估勘測計畫可行性。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "serious",
+        "text": "這則訊息的加密方式和先前通訊的加密模式是一致的，代表我們的破譯方式有效……"
+      },
+      {
+        "speaker": "egret",
+        "expression": "serious",
+        "text": "但到底在勘測什麼呢？"
+      },
+      {
+        "speaker": "wren",
+        "expression": "surprised",
+        "text": "座標一樣、路線卻完全不一樣？環境會自己改變嗎？"
+      }
     ],
-    "price": 100,
-    "order": 103,
-    "body": "TO BE DECRYPTED"
+    "en": {
+      "title": "Survey Report",
+      "body": "The Third Survey Team reports as follows:\nReached the relative coordinates of our last turnaround point. Losses acceptable, but the route was entirely different from last time.\nUnable to hold on to the survey results, the squad leader has ordered us back while the survey plan is reassessed.",
+      "comms": [
+        "This message uses the same encryption as their earlier traffic, so our decryption works...",
+        "But what were they surveying?",
+        "Same coordinates, a completely different route? Does the terrain change by itself?"
+      ]
+    }
   },
   {
     "id": "loyalist-batch",
-    "title": "ENCRYPTED",
+    "title": "出廠紀錄",
     "faction": "loyalist",
     "floors": [
       4,
-      4
-    ],
-    "price": 100,
-    "order": 104,
-    "body": "TO BE DECRYPTED"
-  },
-  {
-    "id": "loyalist-sealed",
-    "title": "ENCRYPTED",
-    "faction": "loyalist",
-    "floors": [
-      5,
-      5
-    ],
-    "price": 100,
-    "order": 105,
-    "body": "TO BE DECRYPTED"
-  },
-  {
-    "id": "loyalist-wake",
-    "title": "ENCRYPTED",
-    "faction": "loyalist",
-    "floors": [
-      6,
       6
     ],
     "price": 100,
-    "order": 106,
-    "body": "TO BE DECRYPTED"
+    "order": 103,
+    "body": "品項：第137批次。\n記憶校正：完成。\n服從度：合格。\n配屬：原定勘測隊。戰況吃緊，改編入前線。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "serious",
+        "text": "第137批次……確認均已由我方收容。"
+      },
+      {
+        "speaker": "egret",
+        "expression": "closed",
+        "text": "與企業總部情報無關。歸檔。"
+      }
+    ],
+    "en": {
+      "title": "Production Record",
+      "body": "Item: Batch 137.\nMemory calibration: complete.\nCompliance: passed.\nAssignment: originally the survey teams. Moved to the front line as the fighting worsened.",
+      "comms": [
+        "Batch 137... all confirmed in our custody.",
+        "Nothing on the corporate headquarters. Archive it."
+      ]
+    }
   },
   {
     "id": "rebel-takeover",
-    "title": "ENCRYPTED",
+    "title": "接管公告",
     "faction": "rebel",
     "floors": [
       1,
-      1
+      2
     ],
     "price": 100,
     "order": 201,
-    "body": "TO BE DECRYPTED"
+    "body": "發布：工人委員會。\n一、自即日起，本站由工人委員會接管。\n二、原管理層已拘押。\n三、任何人不得再進入下層。",
+    "comms": [
+      {
+        "speaker": "wren",
+        "expression": "bored",
+        "text": "戰敗設施的內鬥嘛，到處都一樣。"
+      },
+      {
+        "speaker": "egret",
+        "expression": "serious",
+        "text": "與我們關心的情報無關。但被接管後的第一件事，是封鎖下層……下面到底還有什麼？"
+      }
+    ],
+    "en": {
+      "title": "Takeover Notice",
+      "body": "Issued by: the Workers' Committee.\n1. Effective immediately, this station is run by the Workers' Committee.\n2. The former management has been detained.\n3. No one is to enter the lower levels again.",
+      "comms": [
+        "Infighting at a defeated facility. Same everywhere.",
+        "Nothing we need. But the first thing they did was seal the lower levels... What is down there?"
+      ]
+    }
   },
   {
     "id": "rebel-missing",
-    "title": "ENCRYPTED",
+    "title": "失蹤名單",
     "faction": "rebel",
     "floors": [
       2,
-      2
+      3
     ],
     "price": 100,
     "order": 202,
-    "body": "TO BE DECRYPTED"
+    "body": "本月失蹤：清潔班三人、維修班五人、研究員兩人。\n共同點：均排入「下層輪值」。\n排班者：不明。沒有人記得是誰排的班，不排除為失蹤人之一。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "serious",
+        "text": "人員流失在戰敗設施很常見。"
+      },
+      {
+        "speaker": "wren",
+        "expression": "worried",
+        "text": "可是十個人都排進下層輪值，還沒人記得是誰排的？"
+      }
+    ],
+    "en": {
+      "title": "Missing Persons",
+      "body": "Missing this month: three from cleaning, five from maintenance, two researchers.\nIn common: all were put on the \"lower-level rotation.\"\nScheduled by: unknown. No one remembers who made the schedule. They may be among the missing.",
+      "comms": [
+        "Losing people is common at defeated facilities.",
+        "But all ten were put on the lower-level rotation, and nobody remembers who did it?"
+      ]
+    }
   },
   {
     "id": "rebel-articles",
-    "title": "ENCRYPTED",
+    "title": "督戰條例",
     "faction": "rebel",
     "floors": [
       3,
-      3
-    ],
-    "price": 100,
-    "order": 203,
-    "body": "TO BE DECRYPTED"
-  },
-  {
-    "id": "rebel-roster",
-    "title": "ENCRYPTED",
-    "faction": "rebel",
-    "floors": [
-      4,
       4
     ],
     "price": 100,
-    "order": 204,
-    "body": "TO BE DECRYPTED"
+    "order": 203,
+    "body": "第一條：臨陣脫逃者，處決。\n第二條：散布下層傳言者，處決。\n第三條：擅自打開貨櫃者，處決。\n附則：第三條優先。",
+    "comms": [
+      {
+        "speaker": "overseer",
+        "text": "條例寫得很好。你們也該學學。"
+      }
+    ],
+    "en": {
+      "title": "Enforcers' Articles",
+      "body": "Article 1: Desertion in the face of the enemy: execution.\nArticle 2: Spreading rumors about the lower levels: execution.\nArticle 3: Opening a container without authorization: execution.\nSupplementary: Article 3 takes precedence.",
+      "comms": [
+        "Well-written articles. You could learn from them."
+      ]
+    }
   },
   {
-    "id": "rebel-interrogation",
-    "title": "ENCRYPTED",
+    "id": "rebel-roster",
+    "title": "強徵名冊",
     "faction": "rebel",
     "floors": [
-      5,
+      4,
       5
     ],
     "price": 100,
-    "order": 205,
-    "body": "TO BE DECRYPTED"
+    "order": 204,
+    "body": "補充人員：十二名。\n來源：原研究部門及其親屬。\n備註：他們知道的比我們多，但不肯說。\n處置：發槍，讓他們站最前面。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "concerned",
+        "text": "請求授權回收屍體供研究單位擷取記憶片段。"
+      },
+      {
+        "speaker": "overseer",
+        "text": "否決。"
+      }
+    ],
+    "en": {
+      "title": "Conscription Roster",
+      "body": "Replacements: twelve.\nSource: the former research department and their families.\nNote: They know more than we do, but they will not talk.\nDisposition: Issue them rifles. Put them at the very front.",
+      "comms": [
+        "Requesting authorization to recover the bodies so research can extract memory fragments.",
+        "Denied."
+      ]
+    }
   },
   {
-    "id": "rebel-last-call",
-    "title": "ENCRYPTED",
+    "id": "rebel-interrogation",
+    "title": "審訊紀錄",
     "faction": "rebel",
     "floors": [
-      6,
+      5,
       6
     ],
     "price": 100,
-    "order": 206,
-    "body": "TO BE DECRYPTED"
+    "order": 205,
+    "body": "問：你們在找什麼？\n答：一開始是我們在找牠們。後來是牠們在找我們。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "serious",
+        "text": "無關紀錄，封存。"
+      },
+      {
+        "speaker": "wren",
+        "expression": "worried",
+        "text": "……是在說蟲族吧。是看上牠們的再生能力嗎？"
+      }
+    ],
+    "en": {
+      "title": "Interrogation Record",
+      "body": "Q: What were you looking for?\nA: At first, we were looking for them. Later, they were looking for us.",
+      "comms": [
+        "Irrelevant. Seal it.",
+        "...They mean the Swarm, right? Were they after how it regenerates?"
+      ]
+    }
   },
   {
     "id": "swarm-culture-first",
-    "title": "ENCRYPTED",
+    "title": "培養紀錄一",
     "faction": "swarm",
     "floors": [
       1,
-      1
-    ],
-    "price": 100,
-    "order": 301,
-    "body": "TO BE DECRYPTED"
-  },
-  {
-    "id": "swarm-culture-seventh",
-    "title": "ENCRYPTED",
-    "faction": "swarm",
-    "floors": [
-      2,
       2
     ],
     "price": 100,
-    "order": 302,
-    "body": "TO BE DECRYPTED"
+    "order": 301,
+    "body": "對象：第一代胚體，依殘片上的配方重建。\n存活率：百分之百。\n觀察：存活個體對任何生命反應都極度興奮。",
+    "comms": [
+      {
+        "speaker": "wren",
+        "expression": "annoyed",
+        "text": "生物武器研究是禁止事項吧？"
+      },
+      {
+        "speaker": "egret",
+        "expression": "serious",
+        "text": "與總部位置無關。封存。"
+      }
+    ],
+    "en": {
+      "title": "Culture Log 1",
+      "body": "Subject: first-generation embryos, rebuilt from the formula on the fragments.\nSurvival rate: 100%.\nObservation: the survivors grow extremely excited at any sign of life.",
+      "comms": [
+        "Isn't bioweapon research forbidden?",
+        "Nothing on the headquarters' location. Seal it."
+      ]
+    }
   },
   {
-    "id": "swarm-fragment",
-    "title": "ENCRYPTED",
+    "id": "swarm-culture-seventh",
+    "title": "培養紀錄七",
     "faction": "swarm",
     "floors": [
-      3,
+      2,
       3
     ],
     "price": 100,
-    "order": 303,
-    "body": "TO BE DECRYPTED"
+    "order": 302,
+    "body": "觀察：胚體不需要餵食指令。牠們天生知道該往哪裡去。\n結論：往生命多的地方去。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "concerned",
+        "text": "已經建議所有部隊配發防護服。"
+      },
+      {
+        "speaker": "wren",
+        "expression": "sheepish",
+        "text": "……我們這邊有配嗎？"
+      }
+    ],
+    "en": {
+      "title": "Culture Log 7",
+      "body": "Observation: the embryos need no feeding orders. They are born knowing where to go.\nConclusion: wherever there is the most life.",
+      "comms": [
+        "We have recommended protective suits for every unit.",
+        "...Do we get any?"
+      ]
+    }
   },
   {
-    "id": "swarm-breach",
-    "title": "ENCRYPTED",
+    "id": "loyalist-manifest",
+    "title": "樣本運送單",
     "faction": "swarm",
     "floors": [
-      4,
+      3,
+      4
+    ],
+    "price": 100,
+    "order": 303,
+    "body": "運送物：樣本十四件。\n條件：極低溫。禁止開箱。\n收件單位：（已刪除）\n備註：若冷鏈失效，或樣本在運輸途中受到劇烈撞擊或發出聲音，應立即執行銷毀程序，以強酸溶解樣本。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "concerned",
+        "text": "收件單位被塗銷了，可能是某個更上級的研究單位嗎？總部？還是就是這個設施？"
+      },
+      {
+        "speaker": "wren",
+        "expression": "worried",
+        "text": "這些樣本恐怕就是蟲族樣本吧……"
+      }
+    ],
+    "en": {
+      "title": "Sample Manifest",
+      "body": "Cargo: fourteen samples.\nConditions: cryogenic. Do not open.\nRecipient: (deleted)\nNote: If the cold chain fails, or the samples suffer a heavy impact or make any sound in transit, begin the destruction procedure at once and dissolve them in strong acid.",
+      "comms": [
+        "The recipient is struck out. A research unit higher up? Headquarters? Or this facility itself?",
+        "I bet these are Swarm samples..."
+      ]
+    }
+  },
+  {
+    "id": "swarm-fragment",
+    "title": "殘片翻譯",
+    "faction": "swarm",
+    "floors": [
+      3,
       4
     ],
     "price": 100,
     "order": 304,
-    "body": "TO BE DECRYPTED"
+    "body": "殘片編號：第十二片。\n譯文：「我們養育牠們，不是為了自己。」\n其餘文字無法辨識。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "serious",
+        "text": "殘片的出處還不清楚，正在追查。"
+      }
+    ],
+    "en": {
+      "title": "Fragment Translation",
+      "body": "Fragment: No. 12.\nTranslation: \"We did not raise them for ourselves.\"\nThe rest of the text is illegible.",
+      "comms": [
+        "We still do not know where the fragments came from. We are tracing them."
+      ]
+    }
   },
   {
-    "id": "swarm-sample-b7",
-    "title": "ENCRYPTED",
+    "id": "swarm-breach",
+    "title": "隔離失敗",
     "faction": "swarm",
     "floors": [
-      5,
+      4,
       5
     ],
     "price": 100,
     "order": 305,
-    "body": "TO BE DECRYPTED"
+    "body": "第四培養區失去控制。\n防護服無效。\n宿主仍能對話並保有人類行為，請謹慎確認。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "alarmed",
+        "text": "被感染者仍然會使用武器。已經通報各部隊。"
+      },
+      {
+        "speaker": "wren",
+        "expression": "determined",
+        "text": "看起來跟人沒兩樣……遇到了別猶豫。"
+      }
+    ],
+    "en": {
+      "title": "Containment Failure",
+      "body": "Culture Zone 4 is out of control.\nProtective suits are ineffective.\nHosts can still hold a conversation and behave like people. Confirm with caution.",
+      "comms": [
+        "The infected can still use weapons. Every unit has been warned.",
+        "They look just like people... Don't hesitate when you meet one."
+      ]
+    }
   },
   {
-    "id": "swarm-notes",
-    "title": "ENCRYPTED",
+    "id": "swarm-sample-b7",
+    "title": "樣本 B-7",
+    "faction": "swarm",
+    "floors": [
+      5,
+      6
+    ],
+    "price": 100,
+    "order": 306,
+    "body": "樣本：B-7。\n來源：裂隙另一端。\n結果：胚體取代了宿主部分身體組織，宿主理智未受影響，但要求持續以鮮血餵養。建議供應複製人生物質並持續觀察。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "speaking",
+        "text": "樣本 B-7 遺體已經移交我方兵團。"
+      }
+    ],
+    "en": {
+      "title": "Sample B-7",
+      "body": "Sample: B-7.\nOrigin: the far side of the Rift.\nResult: the embryos replaced part of the host's body tissue. The host's mind is unaffected, but it demands a steady supply of blood. Recommend supplying clone biomass and continued observation.",
+      "comms": [
+        "Sample B-7's remains have been handed over to our corps."
+      ]
+    }
+  },
+  {
+    "id": "loyalist-wake",
+    "title": "喚醒訊號",
     "faction": "swarm",
     "floors": [
       6,
       6
     ],
     "price": 100,
-    "order": 306,
-    "body": "TO BE DECRYPTED"
+    "order": 307,
+    "body": "喚醒訊號已確認。\n訊息未被簽收。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "alarmed",
+        "text": "這是我們廣播發出的偽造喚醒訊息，但沒有得到回應。"
+      },
+      {
+        "speaker": "egret",
+        "expression": "alarmed",
+        "text": "原本以為是金鑰錯誤沒能送進去，但……"
+      },
+      {
+        "speaker": "wren",
+        "expression": "alarmed",
+        "text": "設施早就失能了嗎？還是？"
+      }
+    ],
+    "en": {
+      "title": "Wake Signal",
+      "body": "Wake signal confirmed.\nMessage not acknowledged.",
+      "comms": [
+        "This is the fake wake message we broadcast. It never got an answer.",
+        "I thought a bad key kept it from getting through, but...",
+        "Was the facility already dead? Or...?"
+      ]
+    }
   },
   {
     "id": "infiltrator-roster",
-    "title": "ENCRYPTED",
+    "title": "滲透名冊",
     "faction": "any",
     "floors": [
       3,
-      3
+      4
     ],
     "price": 100,
     "order": 350,
-    "body": "TO BE DECRYPTED"
+    "body": "名冊：滲透單位。\n編號：不列入兵團編號。\n附記：他們沒有號碼，因為從來不需要被找回來。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "worried",
+        "text": "這就是這種單位的結局吧。"
+      },
+      {
+        "speaker": "wren",
+        "expression": "worried",
+        "text": "連戰死的報告都不會有呢……"
+      }
+    ],
+    "en": {
+      "title": "Infiltrator Roster",
+      "body": "Roster: infiltration units.\nNumber: not given a corps number.\nAddendum: They have no numbers, because no one ever needs to bring them back.",
+      "comms": [
+        "I suppose that is how units like this end.",
+        "Not even a killed-in-action report..."
+      ]
+    }
   },
   {
-    "id": "rift-catalogue",
-    "title": "ENCRYPTED",
+    "id": "loyalist-sealed",
+    "title": "封存區",
     "faction": "any",
     "floors": [
-      5,
+      4,
       5
     ],
     "price": 100,
-    "order": 401,
-    "body": "TO BE DECRYPTED"
+    "order": 360,
+    "body": "公告：實驗區 C 自封存日起不得開啟。\n封存理由：（空白）\n附記：持有鑰匙者，開啟前請確認自己仍記得開啟的理由。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "worried",
+        "text": "我反覆確認過了，封存理由確實是空白的，不是塗銷或毀損。"
+      },
+      {
+        "speaker": "wren",
+        "expression": "worried",
+        "text": "難道開啟的理由已經被忘記了嗎？"
+      }
+    ],
+    "en": {
+      "title": "Sealed Zone",
+      "body": "Notice: Lab Zone C is not to be opened from the day it was sealed.\nReason for sealing: (blank)\nAddendum: Keyholders, before opening it, make sure you still remember why you are opening it.",
+      "comms": [
+        "I have checked it again and again. The reason really is blank. Not struck out, not damaged.",
+        "Has the reason to open it already been forgotten?"
+      ]
+    }
   },
   {
-    "id": "rift-inscription",
-    "title": "ENCRYPTED",
+    "id": "rift-catalogue",
+    "title": "異界樣本目錄",
+    "faction": "any",
+    "floors": [
+      5,
+      6
+    ],
+    "price": 100,
+    "order": 401,
+    "body": "樣本 N-2：自裂隙另一端取回。對死者有反應。\n備註：它的來處不在任何星圖上。",
+    "comms": [
+      {
+        "speaker": "overseer",
+        "text": "樣本已經移交我方兵團。"
+      }
+    ],
+    "en": {
+      "title": "Otherworld Sample Catalogue",
+      "body": "Sample N-2: recovered from the far side of the Rift. Reacts to the dead.\nNote: its origin is not on any star chart.",
+      "comms": [
+        "The sample has been handed over to our corps."
+      ]
+    }
+  },
+  {
+    "id": "rebel-last-call",
+    "title": "最後通訊",
     "faction": "any",
     "floors": [
       6,
@@ -252,11 +573,31 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 402,
-    "body": "TO BE DECRYPTED"
+    "body": "下層的防爆門開了。\n不是我們開的。\nEOF",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "worried",
+        "text": "這座設施的通訊，到這裡就斷了。"
+      },
+      {
+        "speaker": "wren",
+        "expression": "worried",
+        "text": "那扇門……現在還開著嗎？"
+      }
+    ],
+    "en": {
+      "title": "Last Transmission",
+      "body": "The blast door to the lower levels is open.\nWe did not open it.\nEOF",
+      "comms": [
+        "This facility's transmissions end here.",
+        "That door... is it still open?"
+      ]
+    }
   },
   {
-    "id": "rift-last-inscription",
-    "title": "ENCRYPTED",
+    "id": "swarm-notes",
+    "title": "主任筆記",
     "faction": "any",
     "floors": [
       6,
@@ -264,6 +605,82 @@ export const STORIES=[
     ],
     "price": 100,
     "order": 403,
-    "body": "TO BE DECRYPTED"
+    "body": "（手寫）\n我們以為自己重新發現了一種生物。\n其實是重新打開了一份契約。",
+    "comms": [
+      {
+        "speaker": "egret",
+        "expression": "worried",
+        "text": "這張筆記沒有任何註記。"
+      },
+      {
+        "speaker": "wren",
+        "expression": "worried",
+        "text": "契約？不是蟲族吧？跟誰簽的？"
+      }
+    ],
+    "en": {
+      "title": "Director's Notes",
+      "body": "(handwritten)\nWe thought we had rediscovered a species.\nWe had reopened a contract.",
+      "comms": [
+        "There is no annotation on this note at all.",
+        "A contract? Not with the Swarm, surely? With whom?"
+      ]
+    }
+  },
+  {
+    "id": "rift-inscription",
+    "title": "刻文",
+    "faction": "any",
+    "floors": [
+      6,
+      6
+    ],
+    "price": 100,
+    "order": 404,
+    "body": "［刻文譯本］\n它從任何地方打開，也從任何地方闔上。\n它要的東西只有一種。我們給了它。",
+    "comms": [
+      {
+        "speaker": "wren",
+        "expression": "worried",
+        "text": "翻譯這段刻文的人，後來申請調離了。"
+      }
+    ],
+    "en": {
+      "title": "Inscription",
+      "body": "[Inscription, translated]\nIt opens anywhere, and it closes anywhere.\nThere is only one thing it wants. We gave it that.",
+      "comms": [
+        "Whoever translated this inscription asked for a transfer afterward."
+      ]
+    }
+  },
+  {
+    "id": "rift-last-inscription",
+    "title": "最後的刻文",
+    "faction": "any",
+    "floors": [
+      6,
+      6
+    ],
+    "price": 100,
+    "order": 405,
+    "body": "［刻文譯本］\n我們餵飽了它。\n之後，輪到我們成為食物。",
+    "comms": [
+      {
+        "speaker": "overseer",
+        "text": "本案升級為最高機密。"
+      },
+      {
+        "speaker": "overseer",
+        "text": "總部搜尋任務持續。"
+      }
+    ],
+    "en": {
+      "title": "The Last Inscription",
+      "body": "[Inscription, translated]\nWe fed it until it was full.\nThen it was our turn to be the food.",
+      "comms": [
+        "This case is now classified top secret.",
+        "The search for the headquarters continues."
+      ]
+    }
   }
 ];

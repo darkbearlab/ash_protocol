@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 
 // 3.167.0: a short English run in a child process (the language is chosen when modules load). What the player reads
-// must hold no Chinese, apart from the shelved classes, which are not translated yet. 3.190.0: the story fragments are
-// ENCRYPTED placeholders in both languages, so a data pickup reads English too.
+// must hold no Chinese, apart from the shelved classes, which are not translated yet. 3.200.0: a data pickup names the
+// record by its English title (content/stories/<id>.en.md).
 const script=`
 import {Game} from './src/engine.js';
 import {play} from './tools/balance.mjs';

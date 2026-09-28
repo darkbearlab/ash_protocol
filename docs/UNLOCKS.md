@@ -25,7 +25,7 @@
 10. **無盡模式每一層重抽一次派系**（依種子），而且只有職業屍體，沒有故事片段。
 11. **屍體沒去互動就錯過**：抽到的職業這一局不會再出現。無盡模式是生存與探索的取捨。
 12. **試玩版不開放其他職業**：只有起始三職業，不能購買，也沒有職業屍體。
-13. **故事片段由使用者自己在本機維護**：用內容檔增刪修改，不需要透過 Claude 或 Codex（第 5.2 節）。
+13. **故事片段由使用者自己在本機維護**：用內容檔增刪修改，不需要透過 Claude 或 Codex（第 5.2 節）。3.200.0 起平常在「設施紀錄編輯台」Artifact 寫，由 Claude 套用成內容檔。
 
 ## 2. 解鎖目錄
 
@@ -109,7 +109,11 @@
 
 ## 5.2 故事片段的內容檔（使用者自己維護）
 
-> **3.190.0（使用者，凍結版本前）**：故事還在改寫，原文搬到 `content/story-drafts/`，`content/stories/` 是同 `id` 的 ENCRYPTED／TO BE DECRYPTED 佔位。`UNLOCK_SETTINGS.storiesWip` 開著時：解鎖頁蓋 DECRYPTION IN PROGRESS 章、紀錄不能購買（`grantUnlock` 也拒絕），撤離帶回照常；撿到資料的紀錄寫「取得加密的設施紀錄」。放回的步驟見 content/story-drafts/README.md。
+> **3.200.0（使用者，2026-09-29）**：改寫後的 22 段紀錄放回遊戲，`UNLOCK_SETTINGS.storiesWip` 關閉。3.190.0–3.199.x 期間是 ENCRYPTED 佔位；把旗標開回去，就恢復 DECRYPTION IN PROGRESS 章與停售。
+>
+> - 使用者在「設施紀錄編輯台」（<https://claude.ai/artifact/3De9qdcEpmqh7qDJqPBa6D>）寫標題、派系、內文與管制員評論，Claude 套用成內容檔並翻譯英文。樓層、價格、排序由 Claude 安排（使用者：「之後你安排」）。
+> - 內容檔多兩樣：內文後 `=== COMMS ===` 的管制員評論，點開紀錄閱讀時播在上方通訊框；同 `id` 的 `.en.md` 英文檔。格式見 content/stories/README.md。
+> - 撿到資料時紀錄只寫「資料已解密：設施紀錄「標題」，撤離後歸檔。」，內文在解鎖頁與戰場日誌點開閱讀。
 
 - **目的**：使用者在本機用編輯器增刪修改故事片段，不需要透過 Claude 或 Codex（使用者決定）。
 - **位置與格式**：放在 `content/stories/`，一段故事一個 Markdown 檔，檔名就是 ID。

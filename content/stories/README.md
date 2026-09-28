@@ -2,7 +2,7 @@
 
 這個資料夾放遊戲裡的故事片段。一段故事一個 `.md` 檔，用編輯器直接新增、修改、刪除，不需要改程式。這個 README 本身不會被當成故事。
 
-> **3.190.0 起**：凍結版本前，這裡的 22 個檔案都是佔位（標題 `ENCRYPTED`、內文 `TO BE DECRYPTED`），原文在 [`../story-drafts/`](../story-drafts/README.md)。寫好的故事放回來時照那邊的步驟，別忘了關掉 `UNLOCK_SETTINGS.storiesWip`。
+> **3.200.0 起**：紀錄平常在「設施紀錄編輯台」（<https://claude.ai/artifact/3De9qdcEpmqh7qDJqPBa6D>）寫：標題、派系、內文與管制員評論。寫好後跟 Claude 說「套用設施紀錄」，Claude 會寫成這裡的檔案、翻好英文、安排樓層與排序。也可以照下面的格式直接改檔案。
 
 ## 快速開始
 
@@ -29,12 +29,26 @@ order: 7
 第一段內文。
 
 空一行就是新的段落。
+
+=== COMMS ===
+egret/serious: 白鷺的評論。
+wren/worried: 鷦鷯接話。
+overseer: 監視官沒有臉，不寫表情。
 ```
 
 - **front matter**：第一行剛好是 `---`，欄位寫完後再一行 `---`。中間一行一個欄位，寫成「欄位: 值」。
 - **內文**：第二個 `---` 之後的全部文字，1–12000 字。
   - 空一行分段；只換行不空行，遊戲裡也會換行。
   - 內文是純文字：Markdown 語法（粗體、連結）和 HTML 都會照原樣顯示，不會轉換。
+- **管制員評論**（3.200.0，選填）：內文後面一行剛好是 `=== COMMS ===`，之後一行一句，寫成「說話者/表情: 台詞」。
+  - 玩家點開紀錄閱讀時，畫面上方的通訊框照順序播，點一下換下一句。
+  - 說話者：`egret`（白鷺）、`wren`（鷦鷯）、`overseer`（監視官，沒有臉，不寫表情）。
+  - 表情照 `src/comms.js` 的臉譜：白鷺 serious、gentle、speaking、concerned、worried、alarmed、sad、closed；鷦鷯 neutral、grin、speaking、wink、bored、annoyed、serious、alarmed、surprised、sheepish、worried、smug、laughing、sigh、determined、sad。
+  - 一句建議 40 字內，通訊框很窄。
+- **英文檔**（3.200.0）：同一個 id 加 `.en.md`，例如 `night-shift.en.md`。
+  - front matter 只寫 `id`（不含 `.en`）和 `title`；派系、樓層、價格、排序都跟中文檔。
+  - 下面是英文內文；有管制員評論時，英文的 `=== COMMS ===` 要一樣多句，順序、說話者與表情都相同。
+  - 英文模式讀英文檔；沒有英文檔的紀錄，英文模式會顯示中文。
 
 ## 欄位
 
@@ -51,7 +65,7 @@ order: 7
 
 - **只在戰役**：撿到資料物件時，從「派系和樓層符合、玩家還沒解鎖」的故事裡抽一段。無盡模式沒有故事。
 - **撤離才算**：成功撤離才解鎖；陣亡或放棄，這局撿到的故事就遺失。
-- **也能購買**：主選單 UNLOCKS 的故事頁可以用協定點數直接解鎖（3.190.0 起暫停：`UNLOCK_SETTINGS.storiesWip`）。
+- **也能購買**：主選單 UNLOCKS 的故事頁可以用協定點數直接解鎖（3.190.0–3.199.x 凍結期間暫停過；`UNLOCK_SETTINGS.storiesWip` 開著時就不能買）。
 - **不影響地圖**：增刪故事不會改變地圖，只改變撿到的是哪一段。同一個種子在不同版本可能撿到不同故事。
 - **沒得抽時**：沒有符合條件的故事，資料物件照常給點數和廢料。
 
@@ -93,5 +107,5 @@ order: 7
 
 - 不要手改 `src/story-data.js`，它是 `npm run stories` 產生的。
 - 不要刪掉 `_retired.txt` 和 `_banned-words.txt`；內容可以只有註解。
-- 多語言檔（例如 `night-shift.en.md`）還沒支援，先不要建立，會被當成 `id` 和檔名不符。
+- 英文檔的檔名是 `<id>.en.md`；找不到同名中文檔、或評論句數對不上時，`npm run stories` 會報錯。
 - 這個資料夾由你維護；Claude 和 Codex 只在你要求時修改（docs/UNLOCKS.md 第 5.2 節）。

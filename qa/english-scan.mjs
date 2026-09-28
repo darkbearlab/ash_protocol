@@ -23,9 +23,8 @@ const {calloutLine,playerLine}=await import('../src/callout-ui.js');
 const CJK=/[一-鿿　-〿＀-￯]/;
 // Shelved classes and save-upgrade notices are not translated (docs/TEXT_INVENTORY.md 4).
 const SHELVED=/德魯伊|死靈|獵獸|寵物|召喚物|伴生|飽食|飢餓|共生|群葬|速葬|亡者|餵|排出|起身|集結|^指揮$|存檔已升級|戰術更新|備彈已分類|武器已升級為獨立|語言/;
-// 3.190.0: the story fragments are ENCRYPTED placeholders in both languages while the user rewrites them
-// (content/story-drafts), so they are scanned like everything else. Put the exceptions back only if Chinese-only
-// stories return (content/story-drafts/README.md).
+// 3.200.0: story-data.js holds every record in both languages (the Chinese original and its .en.md), so its exports
+// are not scanned raw; what an English reader sees, storyText() of every record, is scanned below instead.
 const found=new Map();
 // Chinese joins sentences with nothing between them; English needs a space. A sentence end glued to the next word
 // ("yet.Arcade") means two table sentences were concatenated in code.
@@ -59,12 +58,14 @@ for(const [mission,status] of [['extraction','dead'],['endless','dead'],['extrac
  g.status=status;g.floor=floor;const copy=quietly(()=>resultCopy(g));
  if(copy)for(const v of [copy.title,copy.body])note(`result ${mission} ${status} ${floor}`,v);
 }
-const SKIP=new Set(['text-zh-tw.js','voices-zh-tw.js','pet-growth.js','pet-ui.js','materials.js','replay.js','world.js','personality.js','map-recipes-data.js','map-merging.js','killhouse-maps.js','controller.js','main.js','i18n.js']);
+const SKIP=new Set(['text-zh-tw.js','voices-zh-tw.js','story-data.js','pet-growth.js','pet-ui.js','materials.js','replay.js','world.js','personality.js','map-recipes-data.js','map-merging.js','killhouse-maps.js','controller.js','main.js','i18n.js']);
 for(const file of readdirSync(new URL('../src/',import.meta.url)).filter(f=>f.endsWith('.js')&&!SKIP.has(f))){
  const mod=await import(`../src/${file}`).catch(()=>null);if(!mod)continue;
  for(const [name,value] of Object.entries(mod)){if(typeof value==='function')continue;let text;try{text=JSON.stringify(value);}catch{continue;}
   if(text&&CJK.test(text))for(const m of text.matchAll(/"((?:[^"\\]|\\.)*)"/g))note(`export ${file}:${name}`,JSON.parse(`"${m[1]}"`));}
 }
+const {STORIES}=await import('../src/story-data.js');const {storyText}=await import('../src/story-text.js');
+for(const s of STORIES){const v=storyText(s);for(const text of [v.title,v.body,...v.comms.map(c=>c.text)])note(`story ${s.id}`,text);}
 if(language()!=='en')throw new Error('the scan did not run in English');
 if(glued.size){console.log(`${glued.size} texts with sentences glued together:`);for(const [text,where] of glued)console.log(` [${where}] ${text}`);process.exitCode=1;}
 if(found.size){console.log(`${found.size} Chinese texts in English mode:`);for(const [text,where] of [...found].slice(0,process.argv.includes('--quiet')?10:200))console.log(` [${where}] ${text}`);process.exitCode=1;}

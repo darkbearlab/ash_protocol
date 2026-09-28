@@ -1,6 +1,7 @@
 import {t} from './i18n.js';
 import {CHARACTERS} from './characters.js';
 import {STORIES,RETIRED_STORY_IDS} from './story-data.js';
+import {storyText} from './story-text.js';
 import {UNLOCK_SETTINGS,CHARACTER_IDS,unlocked,unlockEntry,shelvedCharacter} from './unlock-catalog.js';
 import {FACTIONS} from './faction-catalog.js';
 
@@ -39,10 +40,16 @@ function characterCard(profile,id,options){
   const tier=entry.starting?t('unlock-ui.starter'):owned?t('unlock-ui.unlocked'):`${t('unlock-ui.price',{price:entry.price})}`;
   return `<article class="upgrade-card unlock-card${owned?' unlocked':''}"><canvas data-class-sprite="${id}" width="32" height="32" aria-hidden="true"></canvas><h3>${c.label}</h3><span class="upgrade-tier">${tier}</span>${owned?(c.label.toLowerCase()===c.name.toLowerCase()?'':`<p>${c.name.toUpperCase()}</p>`):`<p>${options.settings.demo?t('unlock-ui.fullRelease'):CORPSE_HINT}</p><button data-unlock-buy="${id}"${reason?' disabled':''}>${reason||t('unlock-ui.unlock')}</button>`}</article>`;
 }
+// 3.200.0 (user): a record opens from its title; opening it plays the controllers' remarks on the comms bar at the top of
+// the screen (controller.js listens for `data-story`). The field journal shows records brought back this run the same way.
+export function storyReaderMarkup(s,note=t('unlock-ui.unlocked')){
+  const {title,body}=storyText(s);
+  return `<details class="upgrade-section story-entry" data-story="${escapeHTML(s.id)}"><summary><span class="story-title">${escapeHTML(title)}</span><small>${note}</small></summary><div class="lore-entry">${paragraphs(body)}</div></details>`;
+}
 function storyEntry(profile,s,options){
-  if(unlocked(profile,s.id))return `<details class="upgrade-section story-entry"><summary><span class="story-title">${escapeHTML(s.title)}</span><small>${t('unlock-ui.unlocked')}</small></summary><div class="lore-entry">${paragraphs(s.body)}</div></details>`;
+  if(unlocked(profile,s.id))return storyReaderMarkup(s);
   const reason=purchaseReason(profile,{...s,kind:'story'},options);
-  return `<div class="story-entry locked"><h3>${escapeHTML(s.title)}</h3><p>${storyHint(s)}</p><button data-unlock-buy="${escapeHTML(s.id)}"${reason?' disabled':''}>${reason||`${t('unlock-ui.unlockFor',{price:s.price})}`}</button></div>`;
+  return `<div class="story-entry locked"><h3>${escapeHTML(storyText(s).title)}</h3><p>${storyHint(s)}</p><button data-unlock-buy="${escapeHTML(s.id)}"${reason?' disabled':''}>${reason||`${t('unlock-ui.unlockFor',{price:s.price})}`}</button></div>`;
 }
 
 export function unlockPageMarkup(profile,{tab='characters',message='',settings=UNLOCK_SETTINGS,available=true}={}){
@@ -60,7 +67,7 @@ ${tabs}${message?`<p role="status">${escapeHTML(message)}</p>`:''}<section role=
 }
 
 export function purchaseConfirmMarkup(profile,id){
-  const entry=unlockEntry(id),story=entry.kind==='story',name=story?`${t('unlock-ui.storyName',{v:escapeHTML(entry.title)})}`:`${t('unlock-ui.className',{v:characterLabel(id)})}`;
+  const entry=unlockEntry(id),story=entry.kind==='story',name=story?`${t('unlock-ui.storyName',{v:escapeHTML(storyText(STORIES.find(s=>s.id===id)).title)})}`:`${t('unlock-ui.className',{v:characterLabel(id)})}`;
   return `<div class="eyebrow">PROTOCOL / CONFIRM</div><h2>${t('unlock-ui.confirmTitle',{name})}</h2><p>${t('unlock-ui.confirmBody',{price:entry.price,v:profile.protocol.balance-entry.price})}</p>
 <button class="modal-button" data-unlock-confirm="${escapeHTML(id)}">${t('unlock-ui.confirm')}</button><button class="modal-button secondary" data-unlock-tab="${story?'stories':'characters'}">${t('controller.cancel')}</button>`;
 }
@@ -74,7 +81,7 @@ export function operatorRecoveredMarkup(id,{newly=true}={}){
 // Read the profile after the result is written: only stories that were actually saved count as unlocked.
 export function resultStoriesMarkup(game,profile){
   const pending=game.pendingStories||[];if(!pending.length)return '';
-  const title=id=>escapeHTML(STORIES.find(s=>s.id===id)?.title||t('unlock-ui.archivedRecord'));
+  const title=id=>{const s=STORIES.find(x=>x.id===id);return escapeHTML(s?storyText(s).title:t('unlock-ui.archivedRecord'));};
   if(game.status==='won'){const saved=pending.filter(id=>profile.unlocks.stories?.includes(id));
     return `<section class="result-unlocks"><h3>${t('unlock-ui.storiesUnlocked',{savedLength:saved.length})}</h3><p>${saved.length?saved.map(title).join(t('common.listSeparator')):t('unlock-ui.storiesNotSaved')}</p></section>`;}
   return `<section class="result-unlocks lost"><h3>${t('unlock-ui.storiesLost',{pendingLength:pending.length})}</h3><p>${t('unlock-ui.noExtraction',{v:pending.map(title).join(t('common.listSeparator'))})}</p></section>`;

@@ -1,8 +1,8 @@
 import {STORIES,RETIRED_STORY_IDS} from './story-data.js';
-// 3.190.0 (user, before the version freeze): the stories are being rewritten, so content/stories holds ENCRYPTED
-// placeholders (the drafts wait in content/story-drafts). While storiesWip is on, records cannot be bought (points
-// would buy a placeholder); extraction still brings them back, and they keep their ids for when the text returns.
-export const UNLOCK_SETTINGS={demo:false,storiesWip:true,consecutiveFactions:true,fixedFactionOverride:true,corpseStart:5,corpseStep:.1,corpseMax:.5,corpsePity:4};
+// 3.190.0 (user, before the version freeze): while the stories were rewritten, content/stories held ENCRYPTED
+// placeholders and storiesWip stopped records being bought. 3.200.0: the rewritten records are back (Chinese and
+// English, with the controllers' remarks), so it is off; turning it on again restores the stamp and the refusal.
+export const UNLOCK_SETTINGS={demo:false,storiesWip:false,consecutiveFactions:true,fixedFactionOverride:true,corpseStart:5,corpseStep:.1,corpseMax:.5,corpsePity:4};
 export const STARTING_CHARACTERS=['soldier','recon','engineer'];
 export const CHARACTER_IDS=[...STARTING_CHARACTERS,'necromancer','druid','bulwark','berserker','ninja'];
 // 3.156.0 (user decision 2026-09-20): the druid and the necromancer are shelved until their redesigns are done — no
@@ -12,7 +12,7 @@ export const shelvedCharacter=id=>SHELVED_CHARACTERS.includes(id);
 // 3.156.0: every operator cost the same 100 points a story does. 3.199.0 (user, for the first public build): 500, so a
 // class takes several successful runs to buy; corpses in endless mode still unlock them for free.
 export const CHARACTER_PRICE=500;
-export const UNLOCK_CATALOG=[...CHARACTER_IDS.filter(id=>!shelvedCharacter(id)).map(id=>({id,kind:'character',price:STARTING_CHARACTERS.includes(id)?0:CHARACTER_PRICE,starting:STARTING_CHARACTERS.includes(id),sources:['corpse']})),...STORIES.map(s=>({...s,kind:'story',sources:['extraction']}))];
+export const UNLOCK_CATALOG=[...CHARACTER_IDS.filter(id=>!shelvedCharacter(id)).map(id=>({id,kind:'character',price:STARTING_CHARACTERS.includes(id)?0:CHARACTER_PRICE,starting:STARTING_CHARACTERS.includes(id),sources:['corpse']})),...STORIES.map(({id,faction,floors,price,order})=>({id,faction,floors,price,order,kind:'story',sources:['extraction']}))];
 export const unlockEntry=id=>UNLOCK_CATALOG.find(e=>e.id===id)||(RETIRED_STORY_IDS.includes(id)?{id,kind:'story',retired:true,sources:['extraction']}:null);
 export const unlocked=(p,id)=>{const e=unlockEntry(id);return !!e&&(e.starting||p?.unlocks?.[e.kind==='character'?'characters':'stories']?.includes(id));};
 export const availableCharacters=(p,settings=UNLOCK_SETTINGS)=>CHARACTER_IDS.filter(id=>!shelvedCharacter(id)&&(STARTING_CHARACTERS.includes(id)||!settings.demo&&unlocked(p,id)));

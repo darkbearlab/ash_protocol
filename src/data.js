@@ -1,5 +1,4 @@
 import {t} from './i18n.js';
-import {STORIES} from './story-data.js';
 import {DEFAULT_FACTION,factionBoss} from './faction-catalog.js';
 // Content and balance live here. IDs are persisted in saves: append, never reorder.
 export const SIZE = 27;
@@ -155,7 +154,6 @@ export const PERKS = [
 ];
 export const SUPPLY_NAMES = {ammo:t('supplyNames.ammo'),pistol:t('supplyNames.pistol'),shell:t('supplyNames.shell'),energy:t('supplyNames.energy'),ordnance:t('supplyNames.ordnance'),med:t('supplyNames.med'),armor:t('supplyNames.armor'),grenade:t('supplyNames.grenade'),smoke:t('supplyNames.smoke'),emp:t('supplyNames.emp'),stun:t('supplyNames.stun'),scrap:t('supplyNames.scrap'),weapon:t('supplyNames.weapon'),lore:t('supplyNames.lore'),spray:t('supplyNames.spray'),adrenaline:t('supplyNames.adrenaline'),barricade:t('supplyNames.barricade'),flare:t('supplyNames.flare'),nvg:t('supplyNames.nvg'),escape_line:t('supplyNames.escape_line'),redeploy_line:t('supplyNames.redeploy_line'),decoy:t('supplyNames.decoy'),mine:t('supplyNames.mine'),glowstick:t('supplyNames.glowstick'),exo:t('supplyNames.exo'),key:t('supplyNames.key'),irg:t('supplyNames.irg')};
 PERKS.push({id:'ammo_recovery',name:t('perks.ammo_recovery.name'),cap:3,effect:'passive',text:t('perks.ammo_recovery.text')});
-export const LORE = STORIES.map(s=>s.body);
 
 // Loitering munition (3.103.0, user request): launched by a 投放 enemy, it appears exactly at its strike range so one
 // step back escapes it, and on its next turn it hooks itself to the player's side and detonates. Low hp on purpose —

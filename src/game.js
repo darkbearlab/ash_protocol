@@ -90,6 +90,7 @@ import {wallCover,shotChance,bracingBonus,adjacentWalls} from './combat.js';
 import {terminalReason,useTerminal,validTerminalSpent} from './terminal.js';
 import {FLARE_TUNING,flareLights,flareReason,validFlares} from './flares.js';
 import {validDuty,DEFAULT_DUTY} from './duty.js';
+import {storyText} from './story-text.js';
 
 // Consumables (3.106.0, user request): the spray matches the ground armour pickup, and adrenaline is priced in health.
 export const SPRAY_PLATES=20,SURGE_COST=15,SURGE_STEPS=2;
@@ -1196,7 +1197,7 @@ export class Game {
       else if(item.type==='nvg'){if(p.wearables.includes('nvg')){this.log(t('game.nvgHave'));return true;}p.wearables.push('nvg');this.log(t('game.nvgFound'));}
       else if(item.type==='armor'){const amount=Math.min(item.amount||20,this.plateCapacity-(p.plates||0));if(amount<=0){this.log(t('game.platesFullLeft'));return true;}p.plates=(p.plates||0)+amount;this.log(t('game.platesRepaired',{n:amount,plates:p.plates,cap:this.plateCapacity}));}
       else if(item.type==='scrap'){const amount=Math.round((item.amount||15)*(1+p.scavenger*.5));p.scrap+=amount;this.log(t('game.scrapGained',{n:amount}));}
-      else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;const story=collectStory(this,item);this.log(story?(UNLOCK_SETTINGS.storiesWip?t('game.storyEncrypted'):t('game.storyDecrypted',{body:story.body})):t('game.dataRecovered'));}
+      else if(item.type==='lore'){if(!p.lore.includes(item.floor)){p.lore.push(item.floor);this.awardProtocol('lore',item.floor);}p.scrap+=10;const story=collectStory(this,item);this.log(story?(UNLOCK_SETTINGS.storiesWip?t('game.storyEncrypted'):t('game.storyDecrypted',{title:storyText(story).title})):t('game.dataRecovered'));}
       return false;
     });
     if(partial||this.items.length<before)this.effects.push({type:'pickup',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:0});

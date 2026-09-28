@@ -54,6 +54,8 @@ Pages 設定使用 **GitHub Actions** 作為來源。完成一次設定後，後
 
 使用者 2026-09-28 決定：第一個公開版本放 itch.io，開發版照舊推 main、部署到 GitHub Pages。
 
+使用者 2026-09-29：itch.io 上的凍結版從現在起不再更新，除非有特殊理由。main 的新功能（3.200.0 起）只部署到 GitHub Pages，不重新打包上傳。
+
 - **凍結版就是上傳到 itch.io 的 zip**：
   - itch.io 保存上傳的檔案，要等下次上傳才會變。
   - 不另開 repo，也不在 repo 裡放凍結目錄。
