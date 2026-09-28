@@ -1,8 +1,10 @@
 // Daily operation (3.44, user requirement): the local date is hashed together with a fixed phrase, so tomorrow's
 // seed is no longer simply tomorrow's YYYYMMDD. The phrase ships in the client, so this only raises the bar;
 // truly hiding the next day would need a server.
-import {t} from './i18n.js';
-const DAILY_PHRASE=t('daily.title');
+// 3.199.1 (user, 2026-09-28): the phrase is a fixed constant, not translated text. It used to be the language table's
+// daily.title, so English and Chinese players got different seeds on the same day. This is the Chinese title the seeds
+// have always been hashed with, so Chinese players keep their seeds and English players now get the same ones.
+const DAILY_PHRASE='ASH PROTOCOL // 灰燼協定 // DAILY OPERATION';
 export const scatter=n=>{let x=n>>>0;x=Math.imul(x^(x>>>16),2246822519);x=Math.imul(x^(x>>>13),3266489917);return (x^(x>>>16))>>>0;};
 export const dateKey=(d=new Date())=>d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate();
 // FNV-1a over the date and phrase, then scattered; always a valid map seed (0–999999999).

@@ -922,7 +922,6 @@ export default Object.freeze({
  "course.brief":"六個區域依序訓練，兩位管制員會一路帶你。清除所有目標後，站在電梯旁按撤離。",
  "course.doorLocked":"這一區的訓練還沒完成，門打不開。",
  // src/daily.js
- "daily.title":"ASH PROTOCOL // 灰燼協定 // DAILY OPERATION",
  // deckLabels
  "deckLabels.up":"向上",
  "deckLabels.down":"向下",

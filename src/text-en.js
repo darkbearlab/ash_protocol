@@ -921,7 +921,6 @@ export default Object.freeze({
  "course.brief":"Six zones in order, with both controllers guiding you. Once every target is down, stand beside the elevator and press Extract.",
  "course.doorLocked":"Finish this zone's training first. The door won't open.",
  // src/daily.js
- "daily.title":"ASH PROTOCOL // DAILY OPERATION",
  // deckLabels
  "deckLabels.up":"Up",
  "deckLabels.down":"Down",
