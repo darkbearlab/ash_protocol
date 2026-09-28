@@ -48,3 +48,11 @@ test('a hashed file already cached starts without the network; pages and unhashe
   assert.equal(await(await request('./assets/pixel/atlas.png','no-cors')).text(),'fresh','an unhashed file still asks the network');
   online=new Response('new page');assert.equal(await(await request('./?v=old-bookmark','navigate')).text(),'new page','a page load always asks first');
 });
+test('installing does not depend on the folder address: a host that refuses it still gets the offline cache (3.199.0)',async()=>{
+  const base='https://html.test/html/123456/',handlers={},added=[],tried=[];let installing;
+  const cache={addAll:async list=>{for(const r of list)added.push(new URL(r.url).pathname);},add:async r=>{tried.push(new URL(r.url).pathname);throw Error('404');}};
+  vm.runInNewContext(source,{URL,Response,Request:class extends Request{constructor(url,options){super(new URL(url,base),options);}},self:{location:new URL('sw.js?v=current',base),addEventListener:(k,fn)=>handlers[k]=fn,skipWaiting(){}},caches:{open:async()=>cache}});
+  handlers.install({waitUntil:p=>installing=p});
+  await installing;
+  assert.deepEqual(tried,['/html/123456/']);assert.ok(added.includes('/html/123456/index.html'));assert.ok(!added.includes('/html/123456/'));
+});

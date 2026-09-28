@@ -30,7 +30,7 @@ test('while the stories are rewritten they cannot be bought, but extraction stil
  assert.ok(grantUnlock(p,'ninja','purchase'),'classes are still for sale');
  assert.equal(purchaseReason(p,{...STORIES[0],kind:'story'}),t('unlock-ui.storiesWip'));
  const page=unlockPageMarkup(p,{tab:'stories'});
- assert.match(page,/class="story-stamp" aria-hidden="true"><span>DECRYPTION<br>IN PROGRESS<\/span>/);
+ assert.match(page,/class="story-stamp" aria-hidden="true"><div class="story-term">.*DECRYPTION IN PROGRESS/);   // 3.199.0: a terminal readout
  assert.ok(page.includes(t('unlock-ui.storiesWipNote')));
  assert.equal((page.match(/data-unlock-buy="[^"]+" disabled>尚未開放<\/button>/g)||[]).length,STORIES.length);
  p.unlocks.stories.push(id);

@@ -50,6 +50,36 @@ Pages 設定使用 **GitHub Actions** 作為來源。完成一次設定後，後
 
 若正式遊戲仍在開啟狀態，部署不會強制中斷當前回合；重新整理載入新版。存檔沿用版本遷移。GitHub 與 localhost 是不同 origin，各自保有自己的存檔，可使用遊戲內匯出 / 匯入移轉。
 
+## itch.io 凍結版（3.199.0 起）
+
+使用者 2026-09-28 決定：第一個公開版本放 itch.io，開發版照舊推 main、部署到 GitHub Pages。
+
+- **凍結版就是上傳到 itch.io 的 zip**：
+  - itch.io 保存上傳的檔案，要等下次上傳才會變。
+  - 不另開 repo，也不在 repo 裡放凍結目錄。
+  - 原因：`darkbearlab.github.io` 底下的任何路徑都是同一個網站，會跟開發版共用存檔（存檔名稱不分路徑）。開發版 Service Worker 的範圍也涵蓋子目錄。
+- **打包**：
+  - `npm run itch` 先 build，再把 dist/ 打成 `release/ash-protocol-<版本>-itch.zip`（`release/` 不進 git）。
+  - index.html 在 zip 根目錄；所有路徑都是相對的，itch.io 從 `/html/<上傳編號>/` 提供也能跑。
+  - 同一份程式每次打出來的 zip 完全相同。
+  - 超過 itch.io 的上限（1000 個檔案、解壓後 500 MB）會直接報錯。
+- **上傳**（使用者操作）：
+  - itch.io 專案的 Kind of project 選 HTML。
+  - 上傳 zip，勾「This file will be played in the browser」。
+  - 手機優先的話，勾 Mobile friendly，視窗尺寸設直式。
+- **凍結紀錄**：
+  - 在凍結的 commit 打標籤 `v<版本>`，GitHub Release 附上同一個 zip。
+  - main 的下一版直接跳下一個小版本號，例如凍在 3.199.0，main 下一版是 3.200.0。
+- **凍結版要修 bug**：
+  1. 先在 main 修好。
+  2. 從標籤開 `release/<版本>` 分支，把修正搬過去。
+  3. 用修補版號（3.199.1、3.199.2…），不會跟 main 撞號。
+  4. `npm run itch` 重新打包，再上傳 itch.io；新的 zip 同樣附在該版本的 Release 上。
+- **存檔**：
+  - itch.io 與 GitHub Pages 是不同網域，存檔各自獨立。
+  - 玩家要搬存檔，用遊戲內的匯出／匯入。
+- **Service Worker**：安裝時資料夾網址（`./`）抓不到也沒關係（3.199.0），不會因為主機不回應資料夾網址就整個沒有離線快取。
+
 ## 3.19 入口回退
 
 只有 SW 目錄的 ./ 與 ./index.html 的 GET 導覽可忽略查詢，先查當前 CACHE 的原請求，缺少再用預存 index.html。網路失敗或首頁 HTTP 錯誤都可回退。未知文件／JS／CSS 不可拿首頁代替，資源 ?v 雜湊仍精確比對，不使用跨版本 caches.match。QA namespace 依瀏覽器保留的 ?test=1 判斷，不因回傳 index.html 改成正式存檔。

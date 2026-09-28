@@ -13,6 +13,9 @@ const paragraphs=body=>escapeHTML(body).split(/(?:\r?\n){2,}/).map(p=>`<p>${p.re
 const characterLabel=id=>CHARACTERS[id]?.label||id;
 const factionName=id=>id==='any'?t('unlock-ui.anyFacility'):FACTIONS[id]?.name||id;
 const floorsLabel=([from,to])=>from===to?`${t('unlock-ui.fromFloor',{from})}`:`${t('unlock-ui.floorRange',{from,to})}`;
+// 3.190.0: the notice over the records while the stories are rewritten. 3.199.0 (user): a terminal readout in the main
+// menu's style instead of a tilted rubber stamp. Decorative terminal text, the same in every language.
+const STORY_STAMP='<div class="story-stamp" aria-hidden="true"><div class="story-term"><span class="story-term-head">ARCHIVE / FACILITY RECORDS</span><span class="story-term-line"><b>&gt;</b> DECRYPTION IN PROGRESS</span><span class="story-term-bar"><i></i></span><span class="story-term-status">STATUS · AWAITING KEY</span></div></div>';
 
 export const UNLOCK_TABS={characters:t('unlock-ui.tabClasses'),stories:t('unlock-ui.tabStories')};
 export const CORPSE_HINT=t('unlock-ui.corpseHint');
@@ -48,7 +51,7 @@ export function unlockPageMarkup(profile,{tab='characters',message='',settings=U
   const archived=RETIRED_STORY_IDS.filter(id=>profile.unlocks.stories?.includes(id));
   const tabs=`<div class="inventory-tabs unlock-tabs" role="tablist" aria-label="${t('unlock-ui.tabsAria')}">${Object.entries(UNLOCK_TABS).map(([id,label])=>`<button role="tab" aria-selected="${id===tab}" data-unlock-tab="${id}">${label}</button>`).join('')}</div>`;
   const panel=tab==='stories'
-    ?`${settings.storiesWip?`<p class="story-wip-note">${t('unlock-ui.storiesWipNote')}</p>`:''}<div class="story-list${settings.storiesWip?' wip':''}">${settings.storiesWip?'<div class="story-stamp" aria-hidden="true"><span>DECRYPTION<br>IN PROGRESS</span></div>':''}${stories.map(s=>storyEntry(profile,s,options)).join('')}${archived.map(()=>t('unlock-ui.archivedEntry')).join('')}${stories.length||archived.length?'':t('unlock-ui.noStories')}</div>`
+    ?`${settings.storiesWip?`<p class="story-wip-note">${t('unlock-ui.storiesWipNote')}</p>`:''}<div class="story-list${settings.storiesWip?' wip':''}">${settings.storiesWip?STORY_STAMP:''}${stories.map(s=>storyEntry(profile,s,options)).join('')}${archived.map(()=>t('unlock-ui.archivedEntry')).join('')}${stories.length||archived.length?'':t('unlock-ui.noStories')}</div>`
     :`<div class="upgrade-grid unlock-grid">${classes.map(id=>characterCard(profile,id,options)).join('')}</div>`;
   return `<div class="eyebrow">PROTOCOL / UNLOCKS</div><h2>${t('unlock-ui.title')}</h2>
 <p>${t('unlock-ui.protocol')} <b>${profile.protocol.balance}</b> ${t('unlock-ui.summary',{v:classes.filter(id=>unlocked(profile,id)).length,classesLength:classes.length,v2:stories.filter(s=>unlocked(profile,s.id)).length,storiesLength:stories.length})}<br>${settings.demo?t('unlock-ui.demoNote'):t('unlock-ui.note')}</p>

@@ -39,7 +39,7 @@ test('shelved operators leave the board without breaking the profiles that alrea
 });
 
 test('purchase transaction is copy-on-success and demo gates all purchases',()=>{
- const p=normalizeProfile();p.protocol={balance:150,earned:150};const next=grantUnlock(p,'ninja','purchase');assert.equal(next.protocol.balance,50);assert.equal(p.protocol.balance,150);   // 3.156.0: every operator costs 100assert.equal(grantUnlock(next,'ninja','purchase'),false);assert.equal(grantUnlock(next,'druid','purchase'),false);assert.equal(grantUnlock(p,'ninja','purchase',{simulation:true}),false);assert.equal(grantUnlock(p,'ninja','purchase',{settings:{demo:true}}),false);assert.deepEqual(availableCharacters(next,{demo:true}),STARTING_CHARACTERS);
+ const p=normalizeProfile();p.protocol={balance:550,earned:550};const next=grantUnlock(p,'ninja','purchase');assert.equal(next.protocol.balance,50);assert.equal(p.protocol.balance,550);   // 3.199.0: every operator costs 500assert.equal(grantUnlock(next,'ninja','purchase'),false);assert.equal(grantUnlock(next,'druid','purchase'),false);assert.equal(grantUnlock(p,'ninja','purchase',{simulation:true}),false);assert.equal(grantUnlock(p,'ninja','purchase',{settings:{demo:true}}),false);assert.deepEqual(availableCharacters(next,{demo:true}),STARTING_CHARACTERS);
 });
 test('locked ongoing character survives migration; old carrying spills without losing rounds',()=>{
  const g=new Game(33,[],0,'ninja'),raw=JSON.parse(g.serialize());raw.version=44;oldScaleAmmo(raw.data);raw.data.carryLevel=carryLevels(3);raw.data.player.reserve=120;
@@ -74,7 +74,7 @@ test('storage atomically purchases, retries corpse writes and grants stories onl
  const s=await import('../src/storage.js?unlock-qa');const p=normalizeProfile();p.protocol={balance:2000,earned:2000};memory.set('ash-profile',JSON.stringify(p));const g=s.connectUnlocks(new Game(3));
  assert.throws(()=>s.startCampaign({character:'ninja'}),/未解鎖/);assert.throws(()=>s.startKillhouse({mode:'arcade',character:'ninja'}),/未解鎖/);
  fail=true;assert.equal(s.grantUnlock(g,'ninja','purchase'),false);assert.equal(JSON.parse(memory.get('ash-profile')).protocol.balance,2000);
- fail=false;s.storage.available=true;writes=0;assert.ok(s.grantUnlock(g,'ninja','purchase'));assert.equal(writes,1);assert.equal(s.startCampaign({character:'ninja',seed:4}).player.character,'ninja');assert.equal(s.startKillhouse({mode:'arcade',character:'ninja'}).player.character,'ninja');assert.equal(s.profile().protocol.balance,1900);assert.equal(s.grantUnlock(g,'ninja','purchase'),false);
+ fail=false;s.storage.available=true;writes=0;assert.ok(s.grantUnlock(g,'ninja','purchase'));assert.equal(writes,1);assert.equal(s.startCampaign({character:'ninja',seed:4}).player.character,'ninja');assert.equal(s.startKillhouse({mode:'arcade',character:'ninja'}).player.character,'ninja');assert.equal(s.profile().protocol.balance,1500);assert.equal(s.grantUnlock(g,'ninja','purchase'),false);
  g.encounteredCharacters.push('bulwark');g.operatorCorpse={...g.player,character:'bulwark',recovered:false};fail=true;assert.equal(g.recoverOperator(),false);assert.equal(g.operatorCorpse.recovered,false);fail=false;s.storage.available=true;assert.ok(g.recoverOperator());assert.ok(s.profile().unlocks.characters.includes('bulwark'));
  const item=g.items.find(i=>i.type==='lore');const story=collectStory(g,item);g.status='dead';s.recordResult(g);assert.ok(!s.profile().unlocks.stories.includes(story.id));assert.ok(s.profile().unlocks.characters.includes('bulwark'));
  const winner=s.connectUnlocks(new Game(4));collectStory(winner,winner.items.find(i=>i.type==='lore'));winner.status='won';fail=true;s.recordResult(winner);assert.equal(s.profile().unlocks.stories.length,0);fail=false;s.storage.available=true;s.recordResult(winner);assert.equal(s.profile().unlocks.stories.length,1);s.recordResult(winner);assert.equal(s.profile().unlocks.stories.length,1);
@@ -90,7 +90,7 @@ test('a v7 profile rewritten by a 3.89 tab keeps its unlocks; refunds never exce
  // The 3.89 normalizeProfile writes version 6 and rebuilds unlocks without stories, but keeps unknown top-level fields.
  const downgraded={...JSON.parse(JSON.stringify(bought)),version:6,unlocks:{weapons:[],characters:['operator',...bought.unlocks.characters]}};
  const restored=normalizeProfile(downgraded);
- assert.deepEqual(restored.unlocks.characters,[...STARTING_CHARACTERS,'ninja']);assert.deepEqual(restored.unlocks.stories,['qa-ledger-story']);assert.equal(restored.protocol.balance,1000);   // 3.156.0: 100 for the operator, 100 for the record
+ assert.deepEqual(restored.unlocks.characters,[...STARTING_CHARACTERS,'ninja']);assert.deepEqual(restored.unlocks.stories,['qa-ledger-story']);assert.equal(restored.protocol.balance,600);   // 3.199.0: 500 for the operator, 100 for the record
  assert.deepEqual(decodeBackup(JSON.stringify(makeBackup(null,restored,'qa')),'qa').snapshot.profile,restored);
  const legacy=normalizeProfile();delete legacy.unlockLedger;legacy.version=6;legacy.unlocks.characters=['ninja','druid'];assert.deepEqual(normalizeProfile(legacy).unlocks.characters,STARTING_CHARACTERS);
  const damaged=normalizeProfile();delete damaged.unlockLedger;damaged.version=6;damaged.upgrades.carrying=carryLevels(3);damaged.protocol={balance:20,earned:100};

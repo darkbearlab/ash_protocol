@@ -9,8 +9,9 @@ export const CHARACTER_IDS=[...STARTING_CHARACTERS,'necromancer','druid','bulwar
 // selecting, no buying, no corpse. They stay in CHARACTER_IDS so a profile or a save that already holds one still loads.
 export const SHELVED_CHARACTERS=['druid','necromancer'];
 export const shelvedCharacter=id=>SHELVED_CHARACTERS.includes(id);
-// 3.156.0: every operator costs the same 100 points a story does, so the whole roster is reachable in a few runs.
-export const CHARACTER_PRICE=100;
+// 3.156.0: every operator cost the same 100 points a story does. 3.199.0 (user, for the first public build): 500, so a
+// class takes several successful runs to buy; corpses in endless mode still unlock them for free.
+export const CHARACTER_PRICE=500;
 export const UNLOCK_CATALOG=[...CHARACTER_IDS.filter(id=>!shelvedCharacter(id)).map(id=>({id,kind:'character',price:STARTING_CHARACTERS.includes(id)?0:CHARACTER_PRICE,starting:STARTING_CHARACTERS.includes(id),sources:['corpse']})),...STORIES.map(s=>({...s,kind:'story',sources:['extraction']}))];
 export const unlockEntry=id=>UNLOCK_CATALOG.find(e=>e.id===id)||(RETIRED_STORY_IDS.includes(id)?{id,kind:'story',retired:true,sources:['extraction']}:null);
 export const unlocked=(p,id)=>{const e=unlockEntry(id);return !!e&&(e.starting||p?.unlocks?.[e.kind==='character'?'characters':'stories']?.includes(id));};
