@@ -7,7 +7,7 @@ const read=path=>readFile(new URL(path,import.meta.url),'utf8');
 
 test('a level-up shows the transmission first, once per level of a run, and confirming opens the choices',async()=>{
   const source=await read('../src/controller.js');
-  assert.ok(source.includes("else if(entered&&game.pendingPerks&&game.status==='playing')showLevelUp();"),'the battle raises the transmission, not the list');
+  assert.ok(source.includes("else if(entered&&game.pendingPerks&&game.status==='playing'&&!bossScene)showLevelUp();"),'the battle raises the transmission, not the list (3.204.0: after a boss scene)');
   assert.ok(source.includes('if(game.pendingPerks){showLevelUp();return;}'),'closing a menu with a choice pending comes back to it');
   assert.ok(source.includes('const transmissionKey=()=>`${game.runId}:${game.player.level}`;'),'keyed per run, so a new run at the same level still sees it');
   assert.ok(source.includes("case 'transmission':transmissionSeen=transmissionKey();showPerks();break;"));

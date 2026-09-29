@@ -31,7 +31,8 @@ export const hasWorkshop=p=>Array.isArray(p?.skills)&&p.skills.includes(WORKSHOP
 export const isMunition=a=>a?.kind==='drone'&&a.sourceId==='drone_munition';
 export const isBomber=a=>a?.kind==='drone'&&a.sourceId==='unit_bomber';
 // Enemy type -> the blueprint its wreck gives (drone -> unit_drone, bomber_bot -> unit_bomber).
-export const ENEMY_BLUEPRINTS=Object.fromEntries(Object.entries(UNIT_BLUEPRINTS).filter(([,def])=>def.enemy).map(([id,def])=>[def.enemy,id]));
+// 3.204.0 (Claude's call): the loyalist bosses are the warden's and the core guard's chassis, so they give the same blueprints.
+export const ENEMY_BLUEPRINTS=Object.freeze({...Object.fromEntries(Object.entries(UNIT_BLUEPRINTS).filter(([,def])=>def.enemy).map(([id,def])=>[def.enemy,id])),designator:'unit_warden',gunline:'unit_boss'});
 // One-shot units (munitions and suicide bots) never count toward the deploy limit.
 export const deployedUnits=g=>currentAllies(g).filter(a=>a.kind==='drone'&&!oneShot(a));
 // A deploy point needs both coordinates: null means "use the default tile", false marks a half-given point to refuse.

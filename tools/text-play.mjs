@@ -26,6 +26,7 @@ import {isContainer,containerName} from '../src/containers.js';
 import {isBarrier,barrierBetween} from '../src/barriers.js';
 import {isDark} from '../src/lighting.js';
 import {flameCells,liveFlameIntent} from '../src/fire.js';
+import {gunCells,liveGun,liveMarkIntent} from '../src/loyalist-bosses.js';
 import {targetDetails} from '../src/target-card.js';
 import {pelletChance} from '../src/shotgun.js';
 import {traitLabels,startingTraits} from '../src/traits.js';
@@ -134,6 +135,7 @@ function dangerCells(g){
  for(const m of g.marks)if(m.kind!=='grenade')add(m,m.radius??1);
  for(const m of grenadeMarkers(g))add(m,m.radius??1);
  for(const e of g.enemies)if(liveFlameIntent(e))for(const q of flameCells(g,e.flameIntent.origin,e.flameIntent.aim))cells.add(`${q.x},${q.y}`);   // 3.203.0: a flamer's marked cone
+ for(const e of g.enemies)if(liveGun(e))for(const q of gunCells(g,e.gun.origin,e.gun.aim))cells.add(`${q.x},${q.y}`);   // 3.204.0: a boss's machine-gun cone
  return cells;
 }
 function drawMap(g,radius){
@@ -209,6 +211,8 @@ function surroundings(g){
  const threats=[...g.marks.filter(m=>m.kind!=='grenade').map(m=>`${m.kind==='ally'?'友軍轟炸':'轟炸'}${at(m)} 半徑 ${m.radius??1} 剩 ${Math.max(1,m.due-g.turn)} 輪`),
   ...grenadeMarkers(g).map(m=>`手榴彈${m.label}${at(m)} 半徑 ${m.radius??1}`),
   ...tongueTelegraphs(g).map(t=>`鉤舌：${t.sourceId} 會把 ${at(t.target)} 的人拉到 ${at(t.landing)}`),
+  ...g.enemies.filter(liveMarkIntent).map(e=>`標定：${e.id} 的雷射指著你，下回合標定`),   // 3.204.0
+  ...g.enemies.filter(liveGun).map(e=>`機槍：${e.id} 扇形${e.gun.stage==='set'?'下回合開始掃射':`還會掃 ${e.gun.left} 輪`}`),
   ...(g.reinforcements||[]).filter(s=>g.visible(s)).map(s=>`增援 ${at(s)} 剩 ${Math.max(1,s.due-g.turn)} 輪`)];
  if(threats.length)rows.push(`預告：${threats.join('；')}`);
  const clouds=[...(g.smoke||[]).map(s=>`${s.kind==='toxic'?'毒霧':s.kind==='spore'?'孢子煙':s.kind==='haze'?'淡煙':s.kind==='steam'?'蒸氣':'煙霧'} 剩 ${Math.max(1,s.expires-g.turn)} 輪`),...(g.flares||[]).filter(f=>g.seen[f.y]?.[f.x]).map(f=>`照明彈${at(f)} 剩 ${Math.max(1,f.expires-g.turn)} 輪`),...(g.decoy?[`誘餌${at(g.decoy)} 耐久 ${g.decoy.hp} 剩 ${Math.max(1,g.decoy.expires-g.turn)} 輪，引開 ${g.decoy.fooled.length} 名`]:[]),...(g.mines||[]).map(m=>`地雷${at(m)}${m.seen.length?`（${m.seen.length} 名敵人看見）`:''}`)];

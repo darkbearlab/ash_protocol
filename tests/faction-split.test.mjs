@@ -11,7 +11,7 @@ import {VOICE_LINES} from '../src/callout-ui.js';
 const units=id=>new Set(Object.values(factionDef(id).roster).flat().map(([type])=>type));
 
 test('the first split adds two pickable human factions without fodder or nests',()=>{
- for(const id of ['loyalist','rebel']){const d=factionDef(id);assert.ok(d.pickable&&d.tag,id);assert.equal(d.fodder,null);assert.equal(d.nestChild,null);assert.deepEqual(d.bosses,{3:'warden',6:'boss'});}
+ for(const id of ['loyalist','rebel']){const d=factionDef(id);assert.ok(d.pickable&&d.tag,id);assert.equal(d.fodder,null);assert.equal(d.nestChild,null);assert.deepEqual(d.bosses,id==='loyalist'?{3:'designator',6:'gunline'}:{3:'warden',6:'boss'});}   // 3.204.0: the loyalists' own bosses; the rebels' wait for 3.206.0
  assert.ok(!units('loyalist').has('bomber')&&!units('loyalist').has('bomber_bot'),'loyalists field no suicide units');
  assert.ok(units('rebel').has('bomber_bot')&&!units('rebel').has('bomber'),'rebels use the robot; the spore bomber waits for the swarm');
  const robotShare=id=>{let robots=0,all=0;for(const [type,n] of factionDef(id).roster.late){all+=n;if(ENEMY_TYPES[type].mechanical)robots+=n;}return robots/all;};

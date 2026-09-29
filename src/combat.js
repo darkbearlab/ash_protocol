@@ -10,6 +10,7 @@ import {weaponBand,bandPenalty} from './range-band.js';
 import {toxicShot} from './swarm-fields.js';
 import {hazeShot} from './vents.js';
 import {classPerkRank,CLASS_PERK_TUNING,markValues} from './class-perks.js';
+import {markAccuracy,gunFlank} from './loyalist-bosses.js';
 
 export function adjacentWalls(grid,actor) {
   // 3.164.0: a pit is not a wall — nothing to lean on at its edge.
@@ -64,9 +65,11 @@ export function shotChance(game,attacker,target) {
   const pointBlankBonus=pointBlank?POINT_BLANK.accuracy:0;
   // 3.159.0: a marked target is easier for the soldier to hit (src/class-perks.js markValues).
   const markBonus=attacker===game.player&&activeTrait(target,'exposed')?markValues(attacker).accuracy:0;
-  const chance=Math.max(10,Math.min(99,pointBlankBonus+markBonus-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty-rangePenalty));
+  // 3.204.0 (src/loyalist-bosses.js): a boss's mark on you helps every enemy; a boss's set-up gun is easier from its side.
+  const designatedBonus=markAccuracy(game,attacker,target),gunFlankBonus=gunFlank(game,attacker,target);
+  const chance=Math.max(10,Math.min(99,designatedBonus+gunFlankBonus+pointBlankBonus+markBonus-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty-rangePenalty));
   // 3.134.0: gunfire or a beam through toxic mist, from anyone but the swarm, hits half as often.
   // 3.202.0: light smoke and steam from the vents halve it too, from anyone, but leave the damage alone (docs/HAZARDS.md).
   const toxic=toxicShot(game,attacker,target,weapon),haze=hazeShot(game,attacker,target,weapon);
-  return {chance:toxic||haze?Math.max(1,Math.round(chance/2)):chance,toxic,haze,aimPenalty,rangePenalty,band,pointBlank,pointBlankBonus,markBonus,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
+  return {chance:toxic||haze?Math.max(1,Math.round(chance/2)):chance,toxic,haze,aimPenalty,rangePenalty,band,pointBlank,pointBlankBonus,markBonus,designatedBonus,gunFlankBonus,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }

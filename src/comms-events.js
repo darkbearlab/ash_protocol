@@ -4,7 +4,8 @@
 //   squadDeploy, squadReady  a few turns apart (the squad leader's order and "squad ready" log lines)
 //   grenade, flank           every time (the grenade warning log line; a new enemy more than 90 degrees away from the
 //                            one you were fighting)
-//   boss                     once per boss, the first time it is seen
+//   boss                     once per boss, the first time it is seen; 3.204.0: the event carries the boss (`actor`)
+//                            for its intro scene and its own line (src/boss-scenes.js)
 //   researcher               once per floor
 //   contact                  once per floor, the first enemy seen (the overseer's cue)
 //   survivalWave             3.191.0: a survival wave announced, naming the points it goes for; survivalHunt (3.196.0)
@@ -41,7 +42,7 @@ function flanking(player,ref,other){
 export function commsEvents({game,before=null,logs=[],memory}){
  const events=[];if(!game||!memory)return events;
  const turn=game.turn,floor=game.floor,ready=type=>!(memory.until[type]>turn);
- const push=(type,vars={})=>{events.push({type,vars});const cooldown=COMMS_EVENT_TUNING[type]?.cooldown;if(cooldown)memory.until[type]=turn+cooldown;};
+ const push=(type,vars={},extra={})=>{events.push({type,vars,...extra});const cooldown=COMMS_EVENT_TUNING[type]?.cooldown;if(cooldown)memory.until[type]=turn+cooldown;};
  const seen=new Set();
  for(const entry of [...logs].reverse())for(const [type,sentence,vars] of LOG_EVENTS){
   const slots=seen.has(type)||!ready(type)?null:logSlots(entry?.text,sentence);if(!slots)continue;
@@ -50,7 +51,7 @@ export function commsEvents({game,before=null,logs=[],memory}){
  }
  const visible=(game.visibleEnemies||[]).filter(e=>e.hp>0),hostile=visible.filter(e=>!isNoncombatant(e));
  if(hostile.length&&!memory.contactFloors.includes(floor)){memory.contactFloors.push(floor);push('contact');}
- for(const e of hostile)if(isBossClass(e)&&!memory.bosses.includes(e.id)){memory.bosses.push(e.id);push('boss',{name:enemyDisplayName(e)});}
+ for(const e of hostile)if(isBossClass(e)&&!memory.bosses.includes(e.id)){memory.bosses.push(e.id);push('boss',{name:enemyDisplayName(e)},{actor:{id:e.id,type:e.type,x:e.x,y:e.y}});}
  if(visible.some(e=>isNoncombatant(e))&&!memory.researcherFloors.includes(floor)){memory.researcherFloors.push(floor);push('researcher');}
  const earlier=before?.visible||new Set(),engaged=hostile.filter(e=>earlier.has(e.id)),fresh=hostile.filter(e=>!earlier.has(e.id));
  if(engaged.length&&fresh.length){

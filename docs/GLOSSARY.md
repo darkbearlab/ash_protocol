@@ -36,7 +36,7 @@
 | 鏈鋸 | Chainsaw | `weapons.chainsaw.name` |
 | 火焰發射器 | Flamethrower | `weapons.flamer.name` |
 
-## 敵人（23）
+## 敵人（25）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -56,6 +56,8 @@
 | 巨型蟲 | Giant Bug | `enemyTypes.giant_bug.name` |
 | 巢穴巨獸 | Hive Beast | `enemyTypes.hive_beast.name` |
 | 母巢巨獸 | Hive Matriarch | `enemyTypes.hive_matriarch.name` |
+| 標定官 | Designator | `enemyTypes.designator.name` |
+| 火線官 | Gunline Officer | `enemyTypes.gunline.name` |
 | 被感染槍兵 | Infected Rifleman | `enemyTypes.rifleman_infected.name` |
 | 被感染突擊兵 | Infected Raider | `enemyTypes.raider_infected.name` |
 | 小隊長 | Squad Leader | `enemyTypes.squad_leader.name` |
@@ -142,7 +144,7 @@
 | 鉤鎖 | Grapple | `skills.grapple.name` |
 | 光學迷彩 | Optical Camouflage | `skills.camouflage.name` |
 
-## 被動特性（42）
+## 被動特性（43）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -187,6 +189,7 @@
 | 伏擊 | Ambush | `traits.ambush.name` |
 | 單挑 | Duelist | `traits.duelist.name` |
 | 標定 | Marked | `traits.exposed.name` |
+| 被標定 | Designated | `traits.designated.name` |
 | 近身投擲 | Close throw | `traits.close_throw.name` |
 
 ## 升級（37）

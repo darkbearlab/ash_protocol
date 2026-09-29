@@ -123,7 +123,9 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     // A brief impact flash precedes the grey corpse's settling motion.
     // 3.174.0: the operative's fall carries the killing blow's direction for the killed-in-action scene (src/kia.js);
     // 3.175.0: every other fall carries it too, with what the body is made of, for kill gore (src/gore.js).
-    for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0,...(dead.type==='player'?{blow:killingBlow(step.effects,dead)}:{blow:killingBlow(step.effects,dead,ENEMY_BLOWS),force:goreForce(step.effects,dead,ENEMY_BLOWS),gore:goreKind(dead),size:goreSize(dead.maxHp||enemyDef(dead)?.hp),elite:Boolean(dead.elite)})});
+    // 3.204.0: and whose body it is (`actorId`), and `enemy` for an enemy's (your own units share the boss chassis), so an
+    // enemy boss's fall plays its scene once (src/boss-scenes.js bossFallOf).
+    for(const dead of deaths)impacts.push({type:'fall',actorType:dead.type,from:{x:dead.x,y:dead.y},to:{x:dead.x,y:dead.y},damage:0,...(dead.type==='player'?{blow:killingBlow(step.effects,dead)}:{actorId:dead.id,...(step.after.enemies.some(e=>e.id===dead.id)?{enemy:true}:{}),blow:killingBlow(step.effects,dead,ENEMY_BLOWS),force:goreForce(step.effects,dead,ENEMY_BLOWS),gore:goreKind(dead),size:goreSize(dead.maxHp||enemyDef(dead)?.hp),elite:Boolean(dead.elite)})});
     // 3.176.0 hit gore: a harmful hit on a body that lives through it carries what the renderer needs for a small
     // spray (src/gore.js hitBurst). Hits on props and on bodies that fell this step (their fall bursts) carry nothing.
     for(let i=0;i<impacts.length;i++){const e=impacts[i],body=e.type==='impact'&&e.damage>0?livingBody(step.after,e.to):null;if(body)impacts[i]={...e,hit:hitInfo(step.effects,e.to,body)};}

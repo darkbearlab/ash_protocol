@@ -59,6 +59,7 @@ import {tickVents,hazeShot,scalding,validVents,inCloud} from './vents.js';
 import {stepOffHazard} from './hazard-paths.js';
 import {VENT_TUNING} from './vent-map.js';
 import {tickFires,burningAt,sprayFlame,flamerTank,validFires,dropStaleFlameIntents,FIRE_TUNING,FLAMETHROWER} from './fire.js';
+import {landMark,markDamage,bossAccuracy,clearDesignation,dropStaleBossIntents,validLoyalistBosses} from './loyalist-bosses.js';
 import {sweptGrid,sweptClear} from './line-move.js';
 export const LUNGE_TRAIT='lunge',LUNGE_TUNING=Object.freeze({reach:3});
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop,levelCost} from './perks.js';
@@ -195,7 +196,7 @@ export class Game {
   enemyCallout(actor,kind,detail){enemyCallout(this,actor,kind,detail);}
   spawnEnemy(type,x,y,id){const d=this.difficultySpec;return rollEnemyElite(rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,d,this.facilityFaction),this.seed,this.floor,d),this.seed,this.floor,d);}
   actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):enemyWeapon(actor);}
-  meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b));}
+  meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b)+bossAccuracy(this,a,b));}   // 3.204.0: a boss's mark on you, a set-up gun's flank
   defensiveEvasion(a,b){return defensiveEvasion(this,a,b);}
   grapplePlan(id=this.target){return grapplePlan(this,id);}
   get allyTravelSummary(){const near=carryCandidates(this).length,total=this.activeAllies.length;return total?t('game.allyCarry',{near,left:total-near}):'';}
@@ -1077,7 +1078,7 @@ export class Game {
   }
   damagePlayer(raw,label,attacker=null,blast=false) {
     const p=this.player,cover=!blast&&attacker?this.protectingCover(p,attacker):null;
-    let damage=raw;
+    let damage=blast?raw:raw*markDamage(this,attacker);   // 3.204.0: +20% from any enemy while a boss's mark is on you
     if(cover){damage*=1-coverEffects(cover,p,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);}
     if(!blast&&attacker&&toxicShot(this,attacker,p,this.actorWeapon(attacker)))damage*=.5;   // 3.134.0 mist
     // 3.185.0 (plan C): an enemy's gun meets your armor by its ammunition's curve too; claws, blades and blasts subtract.
@@ -1116,6 +1117,7 @@ export class Game {
   isFooled(e){return fooled(this,e);}
   noticeAttack(e){noticeAttack(this,e);}
   enemyAct(e){
+    landMark(this,e);   // 3.204.0: a boss's paint lands first, wherever you are (src/loyalist-bosses.js)
     if(decoyAct(this,e))return;   // 3.144.0
     if(mineAct(this,e))return;    // 3.145.0: shoot a mine it watched go down
     return this.enemyOpportunity(e);
@@ -1312,7 +1314,7 @@ export class Game {
     if(returning(this)&&this.floor>1&&!arrival)return this.fail(t('game.noSafeLanding'));
     this.awardProtocol('floor',this.floor);
     if((returning(this)&&this.floor===1)||(!isEndless(this)&&!missionDefinition(this).returnTrip&&this.floor===missionDepth(this))){this.awardProtocol('extraction','win');this.status='won';this.log(t('game.extracted',{summary:this.missionSummary}));return true;}
-    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;this.decoy=null;this.mines=[];this.gunFlashes=[];p.lightLingers=false;for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');const companions=departAllies(this);
+    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;this.decoy=null;this.mines=[];this.gunFlashes=[];p.lightLingers=false;for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');clearDesignation(p);const companions=departAllies(this);
     if(returning(this)){
       if(advanceTurn)this.turn++;
       Object.assign(this,resumedFloor(frame,this.turn));delete this.floorStates[next];this.floor=next;
@@ -1560,7 +1562,10 @@ export class Game {
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
       dropStaleFlameIntents(g);   // 3.203.0 review: a cone left where its flamer no longer stands is dropped, not refused
-      if(!validRuntime(g)||!validVents(g)||!validFires(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
+      // 3.204.0 (SAVE 82): a save from before has no loyalist boss with a paint or a gun and no mark on you, so nothing is
+      // converted (a floor already holding a warden or a core guard keeps it); a stale paint or gun is dropped, not refused.
+      dropStaleBossIntents(g);
+      if(!validRuntime(g)||!validVents(g)||!validFires(g)||!validLoyalistBosses(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
       if(version<32)g.shadowSteps=0;
       // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
       // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run

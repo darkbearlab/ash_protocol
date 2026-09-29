@@ -54,6 +54,11 @@ export const COMMS_LINES=Object.freeze({
   survivalHunt:['comms.egret.survivalHunt.1',{id:'comms.egret.survivalHunt.2',expression:'worried'}],
   survivalPressed:['comms.egret.survivalPressed.1',{id:'comms.egret.survivalPressed.2',expression:'serious'}],
   survivalLost:['comms.egret.survivalLost.1',{id:'comms.egret.survivalLost.2',expression:'sad'}],
+  // 3.204.0 boss scenes (src/boss-scenes.js; the user's picks from the boss line review, 2026-09-29): a boss's own intro
+  // in place of `boss` when it has one (its card's `intro`), and the kill, which also says the exit is open.
+  introLoyal3:['comms.egret.introLoyal3.1'],
+  introLoyal6:['comms.egret.introLoyal6.1'],
+  bossKill:['comms.egret.bossKill.1',{id:'comms.egret.bossKill.2',expression:'serious'}],
  }),
  wren:Object.freeze({
   briefing:['comms.wren.briefing.1',{id:'comms.wren.briefing.2',expression:'grin'},{id:'comms.wren.briefing.3',expression:'wink'}],
@@ -71,6 +76,9 @@ export const COMMS_LINES=Object.freeze({
   survivalHunt:['comms.wren.survivalHunt.1',{id:'comms.wren.survivalHunt.2',expression:'alarmed'}],
   survivalPressed:['comms.wren.survivalPressed.1',{id:'comms.wren.survivalPressed.2',expression:'annoyed'}],
   survivalLost:[{id:'comms.wren.survivalLost.1',expression:'sheepish'},'comms.wren.survivalLost.2'],
+  introLoyal3:['comms.wren.introLoyal3.1'],
+  introLoyal6:['comms.wren.introLoyal6.1'],
+  bossKill:['comms.wren.bossKill.1',{id:'comms.wren.bossKill.2',expression:'sigh'}],
  }),
  // contact (first enemy on a floor: kill them all) and researcher (kill them), once written; for a death he says
  // nothing but an ellipsis (user, 2026-09-24).
@@ -78,8 +86,8 @@ export const COMMS_LINES=Object.freeze({
 });
 // The face each speaker makes for an event (3.170.0); a line may carry its own ({id, expression}).
 export const COMMS_EXPRESSIONS=Object.freeze({
- egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed',extractApproved:'speaking',extracted:'relieved',survivalWave:'serious',survivalHunt:'serious',survivalPressed:'alarmed',survivalLost:'worried'}),
- wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad',extractApproved:'grin',extracted:'grin',survivalWave:'determined',survivalHunt:'determined',survivalPressed:'alarmed',survivalLost:'sad'}),
+ egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed',extractApproved:'speaking',extracted:'relieved',survivalWave:'serious',survivalHunt:'serious',survivalPressed:'alarmed',survivalLost:'worried',introLoyal3:'serious',introLoyal6:'serious',bossKill:'relieved'}),
+ wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad',extractApproved:'grin',extracted:'grin',survivalWave:'determined',survivalHunt:'determined',survivalPressed:'alarmed',survivalLost:'sad',introLoyal3:'surprised',introLoyal6:'alarmed',bossKill:'grin'}),
 });
 // A message from `speaker` for `event`, or null when that speaker has nothing to say about it.
 export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_LINES,expressions=COMMS_EXPRESSIONS}={}){

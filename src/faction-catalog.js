@@ -28,7 +28,9 @@ export const FACTIONS={
   squads:{perFloor:2,early:['rifleman','rifleman','gunner'],late:['rifleman_armored','gunner','sniper']},
   // 3.133.0 personality table (user decision, docs/ORDERS.md §8.1); a card not listed takes no orders on its own.
   personality:{rifleman:'disciplined',rifleman_armored:'disciplined',raider:'disciplined',raider_armored:'disciplined',gunner:'disciplined',sniper:'cunning',squad_leader:'commander',drone:'mindless',civilian:'fleeing'},
-  bosses:{3:'warden',6:'boss'},scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
+  // 3.204.0 (user design 2026-09-29, docs/BOSSES.md section 2): the loyalists' own bosses, 標定官 and 火線官. A floor already
+  // generated keeps the boss it has; the legacy mix and, until 3.206.0, the rebels keep the warden and the core guard.
+  bosses:{3:'designator',6:'gunline'},scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
  rebel:{name:t('factions.rebel.name'),tag:true,pickable:true,voice:'rebel',eliteAffixes:4,roster:{
   early:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',1],['crawler',1],['raider_elite',1],['enforcer',1]],
   late:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',2],['brute',1],['sniper',1],['crawler',1],['raider_elite',1],['gunner_elite',1],['enforcer',1]],

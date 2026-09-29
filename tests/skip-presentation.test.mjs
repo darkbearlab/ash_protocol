@@ -46,7 +46,7 @@ test('the controller skips only on a live turn, keeps the input lock, and lets t
   assert.ok(source.includes("let skipPresentation=read('ash-skip-presentation')!=='off';"),'on unless the player turned it off');
   assert.ok(source.includes("write('ash-skip-presentation',skipPresentation?'on':'off')"));
   assert.ok(source.includes('data-modal="skipPresentation"'),'the settings menu has the switch');
-  assert.ok(source.includes("function skipEnabled(){return skipPresentation&&game.status==='playing';}"),'a turn that ended the run always plays out');
+  assert.ok(source.includes("function skipEnabled(){return skipPresentation&&game.status==='playing'&&!bossScene;}"),'a turn that ended the run always plays out, and so does a boss scene (3.204.0)');
   assert.ok(/function skipPlayback\(\)\{\s*if\(!playback\|\|!skipEnabled\(\)\|\|orientationBlocked\|\|!entered\|\|performance\.now\(\)<lockUntil\)return false;/.test(source),'the double-input lock still applies');
   assert.ok(source.includes('if(playback.skipping)return;update();'),'settled events neither redraw one by one nor play their sounds');
   assert.ok(source.includes("command&&!e.repeat&&"),'a held key never skips');

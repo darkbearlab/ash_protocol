@@ -54,6 +54,7 @@ import {VOID} from './data.js';
 import {fxSheet,fxFrame,fxField,fxFieldFailed,FX_SMOKE_ALPHA} from './fx-sprites.js';
 import {ventStage,VENT_COLOR} from './vents.js';
 import {fireRow,flameCells,burningAt,liveFlameIntent} from './fire.js';
+import {BOSS_TUNING,gunCells,liveGun,liveMarkIntent,designated} from './loyalist-bosses.js';
 // Cloud colours: fill and puffs (3.134.0; haze and steam 3.202.0).
 const CLOUD_TONES=Object.freeze({smoke:['#abc1cd66','#d4dfe84a'],toxic:['#8fbf4a55','#c6e5864a'],spore:['#9c7d5366','#c8ad874a'],haze:['#c9d3da2e','#e6edf236'],steam:['#e3f1f55c','#ffffff52']});
 // cloudField's stacks, back to front: where in the texture (texture pixels), drift (texture pixels a second), opacity and
@@ -170,8 +171,9 @@ export class Renderer {
     this.due=nextDue(this.due??t,t,this.frameRate);
     const dt=Math.min((t-this.last)/1000,.1);this.last=t;
     // 3.174.0: `pace` (the killed-in-action scene, src/kia.js) slows or stops the world's clock — effects, playback and
-    // all — while the camera keeps real time, so it can push in during the freeze.
-    if(!document.hidden&&!this.isPaused?.()){const pace=this.pace?.(),world=dt*1000*(pace?pace.scale:1);this.kiaZoom=pace?pace.zoom:1;this.time+=world;this.onFrame?.(world);this.updateCamera(dt*1000);if(!this.isCovered?.()){this.shift=this.shakes.length?shakeOffset(this.shakes=liveImpulses(this.shakes,this.time),this.time):null;this.draw(this.time);if(this.glitchEnabled)this.glitchFrame();this.placeTargetCard();}}
+    // all — while the camera keeps real time, so it can push in during the freeze. 3.204.0: a boss scene's pace may also
+    // name a `focus` tile and how far (`blend`, 0-1) the camera has slid onto it.
+    if(!document.hidden&&!this.isPaused?.()){const pace=this.pace?.(),world=dt*1000*(pace?pace.scale:1);this.kiaZoom=pace?pace.zoom:1;this.sceneFocus=pace?.focus?{x:pace.focus.x,y:pace.focus.y,blend:pace.blend??1}:null;this.time+=world;this.onFrame?.(world);this.updateCamera(dt*1000);if(!this.isCovered?.()){this.shift=this.shakes.length?shakeOffset(this.shakes=liveImpulses(this.shakes,this.time),this.time):null;this.draw(this.time);if(this.glitchEnabled)this.glitchFrame();this.placeTargetCard();}}
     requestAnimationFrame(v=>this.frame(v));
   }
   // The frame is recomputed every frame; only the zoom eases (src/camera.js). A new run, a new floor or a resized board
@@ -183,6 +185,8 @@ export class Renderer {
     const scene=[g.seed,g.floor,this.w,this.h].join(':'),key=[this.zoom,this.mode||'',this.aim?'aim':'',locked?.id??'',holds.length?'hold':''].join('|');
     this.zoomState=zoomStep(scene===this.cameraScene?this.zoomState:null,{key,want:frame.tile,dt,reduceMotion:this.reduceMotion});this.cameraScene=scene;
     this.camera={x:frame.x,y:frame.y};this.tile=this.zoomState.tile*(this.kiaZoom||1);
+    // 3.204.0 boss scenes (src/boss-scenes.js): the camera slides from its usual framing onto the boss and back.
+    const f=this.sceneFocus;if(f&&f.blend>0)this.camera={x:frame.x+(f.x-frame.x)*f.blend,y:frame.y+(f.y-frame.y)*f.blend};
   }
   placeTargetCard(){
     const ui=this.targetUI,target=this.game.targeted;if(!ui)return;
@@ -286,6 +290,9 @@ export class Renderer {
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);
     // 3.203.0: a flamer's marked cone (src/enemy-behavior.js flamerAct), every tile of it you can see, until it sprays.
     for(const e of g.enemies)if(liveFlameIntent(e))this.flameArea(flameCells(g,e.flameIntent.origin,e.flameIntent.aim).filter(q=>g.visible(q)),'#f0643c30','#ff8d5ccc');
+    // 3.204.0 (src/loyalist-bosses.js): a boss's set-up machine gun — its cone amber while it sets up, red while it sweeps,
+    // with the sweeps still to come by the boss.
+    for(const e of g.enemies)if(liveGun(e)){const sweep=e.gun.stage==='sweep';this.flameArea(gunCells(g,e.gun.origin,e.gun.aim).filter(q=>g.visible(q)),sweep?'#e8503c2e':'#f0b43c24',sweep?'#ff7a5cbb':'#ffd27a99');if(g.visible(e)){const a=this.project(e.x,e.y);this.text(String(sweep?e.gun.left:BOSS_TUNING.gun.sweeps),a.x+t*.36,a.y-t*.3,sweep?'#ff9a7c':'#ffd27a',12);}}
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
     // 3.123.0: a flare's aim shows exactly the tiles it would light now (shadows and full cover stay unmarked).
     // 3.135.0: a grapple line's aim — the straight pull and its landing, green when it can go, red when it cannot.
@@ -347,6 +354,9 @@ export class Renderer {
     for(const e of g.visibleEnemies){const a=this.projectActor(e);this.glitchDraw(a,e.id,()=>this.actor(a,e.type,time,e,hiddenEnemies.has(e)));if(e.keycard&&e.hp>0)this.keyBeam({x:a.x,y:a.y-this.tile*.55},time,.45);/* 3.146.0: carries the keycard */if(missionTarget(g,e))this.text('◇',a.x-this.tile*.35,a.y-8,'#88f3ff',12);}
     for(const ally of g.localAllies||[])if(g.seen[ally.y]?.[ally.x]){const a=this.projectActor(ally);if(ally.hp>0&&ally.status==='active'){this.actor(a,ally.type,time,ally);this.box(a.x-t*.36,a.y-t*.36,t*.72,t*.72,'#64e7cf18','#83efd1');this.text(ally.kind==='pet'?'PET':ally.kind==='summon'?'SUM':ally.sourceId==='drone_munition'?'MUN':ally.sourceId==='unit_bomber'?'BOT':ally.sourceId==='unit_drone'?'DRN':ally.sourceId==='unit_warden'?'WDN':ally.sourceId==='unit_boss'?'CORE':'ALLY',a.x,a.y+t*.55,connected(g,ally)?'#9df4d5':'#a5a5a5',8);if(ally.primed)this.text('!',a.x+t*.38,a.y-9,'#ffc789',14);}else {this.corpse(a,ally.type);this.text(ally.status==='down'?tx('renderer.recover'):'×',a.x,a.y+12,'#e3cf86',10);}}
     for(const m of grenadeMarkers(g))this.grenadeLabel(m);
+    // 3.204.0: a boss's paint, a pulsing laser from it to you until it lands; the mark itself, red brackets around you.
+    for(const e of g.enemies)if(liveMarkIntent(e)&&p.hp>0){const a=this.projectActor(e),b=this.projectActor(p);c.globalAlpha=.55+.45*Math.sin(time/90);this.line(a.x,a.y,b.x,b.y,'#ff3b3b',1.5);this.box(b.x-2,b.y-2,4,4,'#ff6a6a');c.globalAlpha=1;}
+    if(p.hp>0&&designated(p)){const r=t*.47;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(pos.x+dx*r,pos.y+dy*r,pos.x+dx*(r-6),pos.y+dy*r,'#ff5a5a',1.5);this.line(pos.x+dx*r,pos.y+dy*r,pos.x+dx*r,pos.y+dy*(r-6),'#ff5a5a',1.5);}}
     if(this.mode==='pet'&&this.aim){const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b52a','#9cedca');this.text('指令',a.x,a.y+4,'#a9f3d5',10);}
     if(this.mode==='drone'&&this.aim){for(const q of droneCells(g)){const a=this.project(q.x,q.y);this.box(a.x-t*.4,a.y-t*.4,t*.8,t*.8,'#7fd8b50f','#7fd8b566');}const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b53a','#9cedca');this.text(tx('renderer.deploy'),a.x,a.y+4,'#a9f3d5',10);}
     // Grapple preview (3.47.1): the tile the berserker or the pulled enemy lands on before the strike.
@@ -363,6 +373,7 @@ export class Renderer {
       if(shot&&fx.flash){fx.shooterSeen??=fx.type==='enemyShot'?g.visibleEnemies.some(e=>e.x===fx.from.x&&e.y===fx.from.y):g.visible(fx.from);if(fx.shooterSeen)this.muzzleFlash(fx,a,angle,elapsed);}
       if(fx.type==='flame'){this.flameBurst(fx,elapsed);c.globalAlpha=1;continue;}   // 3.203.0
       if(fx.type==='flameTelegraph'){c.globalAlpha=1;continue;}   // its cone is drawn from the game state
+      if(fx.type==='bossTelegraph'){if(fx.kind==='marked'&&elapsed<320){c.globalAlpha=1-elapsed/320;this.line(a.x,a.y,b.x,b.y,'#ff5a5a',2.5);this.box(b.x-t*.45,b.y-t*.45,t*.9,t*.9,'#ff3b3b33','#ff6a6a');}c.globalAlpha=1;continue;}   // 3.204.0: drawn from the game state; the landing flashes
       if(fx.type==='portalSpawn'){if(g.visible(fx.to))drawPortalEffect(c,this.terrainImages?.get(NEST_ATLAS),b,t,elapsed);c.globalAlpha=1;continue;}   // 3.194.0
       if(fx.type==='nestCollapse'||fx.type==='nestSpawn'){if(g.visible(fx.type==='nestCollapse'?fx.from:fx.to))drawNestEffect(c,this.terrainImages?.get(NEST_ATLAS),fx,a,b,t,elapsed);c.globalAlpha=1;continue;}
       if(fx.quiet){

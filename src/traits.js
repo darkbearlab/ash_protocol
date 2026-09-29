@@ -55,6 +55,8 @@ export const TRAITS={
  ambush:{name:t('traits.ambush.name'),text:t('traits.ambush.text')},
   duelist:{name:t('traits.duelist.name'),text:t('traits.duelist.text')},
   exposed:{name:t('traits.exposed.name'),text:t('traits.exposed.text')},
+  // 3.204.0: a loyalist boss's mark, on you (src/loyalist-bosses.js); the reverse of 預警's 標定 above.
+  designated:{name:t('traits.designated.name'),text:t('traits.designated.text')},
 };
 export function hasTrait(actor,id){return (actor?.traits||[]).some(t=>t.id===id);}
 export function activeTrait(actor,id){return hasTrait(actor,id)&&!hasTrait(actor,TRAITS[id]?.opposite);}

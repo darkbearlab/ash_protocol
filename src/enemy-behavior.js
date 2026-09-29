@@ -18,6 +18,7 @@ import {pinned,finishSuppression,rapidFireModifiers} from './suppression.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {sprayFlame,flameCells,flamerDamage,FLAMETHROWER} from './fire.js';
+import {bossSpecial} from './loyalist-bosses.js';
 import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
 import {unitTree,registerUnitTree,registerAffixBranch,runAffixBranches} from './behavior-tree.js';
 import {occupied} from './allies.js';
@@ -179,6 +180,10 @@ registerUnitTree('civilian',{before:civilianAction});
 registerUnitTree('sniper',{windup:2,fixedTile:true});
 registerUnitTree('boss',{beforeAttack:({g,e,p})=>{if((e.attackCount||0)%2!==1||e.charge)return false;g.marks.push({x:p.x,y:p.y,due:g.turn+2});e.attackCount++;enemyCallout(g,e,'telegraph',{action:'bombard'});g.log(t('enemy-behavior.bossBombard'),true);return true;},after:reinforce});
 registerUnitTree('warden',{after:reinforce});
+// 3.204.0 loyalist bosses (src/loyalist-bosses.js): 標定官 marks, 火線官 marks and sets up its machine gun, taking turns;
+// between them they fight as the warden and the core guard do, and call drones at half health.
+registerUnitTree('designator',{special:ctx=>bossSpecial(ctx,reinforce),after:reinforce});
+registerUnitTree('gunline',{special:ctx=>bossSpecial(ctx,reinforce),after:reinforce});
 // 3.125.0: the squad leader spends its turn commanding; its soldiers answer on a branch that runs before they would
 // charge, so deployment and suppression replace the shot without touching any other card's behaviour.
 registerUnitTree('squad_leader',{before:squadLeaderAct});
@@ -210,6 +215,8 @@ export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(
  if(isFlamer(e)&&e.flameIntent){if(los)e.lastKnown={x:p.x,y:p.y};flamerAct(ctx);return false;}
  // 3.189.0 survival hooks go through the game (src/game.js), so this module does not import src/survival.js.
  if(tongueAction(ctx)||pounceAction(ctx)||lobAction(ctx)||(g.survival&&g.survivalAction(ctx,move))||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};
+ // 3.204.0: a loyalist boss's gun (set up, it sweeps or packs up and nothing else) and its specials, before it walks.
+ if(tree.special?.(ctx))return;
  if(stepOffHazard(g,e,e.order?.at||known,{pinned,occupied}))return;   // 3.201.0 (src/hazard-paths.js): off a hazard, never backwards
  if(d>16)return;
  // 3.130.0 orders (docs/ORDERS.md): a committed order acts before the affix branches; 'fire' goes straight to the attack.

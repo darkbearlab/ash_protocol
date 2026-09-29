@@ -62,8 +62,9 @@ import {Game,WEAPONS,floorInfo,PERKS,ENEMY_TYPES,enemyName,distance,protocolSett
 import {DIFFICULTY_OPTIONS,difficultyOption,difficultyMeta,realModeMeta,REAL_MODE_NOTE,runOptions,FACILITY_OPTIONS,facilityOption} from './deploy-ui.js';
 import {commsMarkup,armComms,commsForLogs,commsLine,dutySpeaker} from './comms.js';
 import {KIA_TUNING,kiaTimes,kiaTimeScale,kiaZoom,kiaSeconds,kiaBurst} from './kia.js';
+import {BOSS_SCENE_TUNING,introCamera,introDone,deathTimes,deathTimeScale,deathCamera,deathBurst,bossIntroLine,bossKillLine,newBossSceneMemory,firstBossScene,bossFallOf,frontOfQueue} from './boss-scenes.js';
 import {OUTRO_TUNING,outroPlan} from './outro.js';
-import {GORE_SETTINGS,validGoreSetting,goreLevel} from './gore.js';
+import {GORE_SETTINGS,validGoreSetting,goreLevel,burstLife} from './gore.js';
 import {commsEvents,commsSnapshot,newCommsMemory} from './comms-events.js';
 import {validDuty} from './duty.js';
 import {courseActive,takeCourseBeats,courseCardClosed,courseDeathLines} from './course.js';
@@ -98,7 +99,7 @@ let inventoryTab='weapon',deploymentFaces={};
 // treatment. A bottom sheet left the finished run showing above it; closing the dialog always reveals the battle.
 let titleFlow=false;
 let playback=null,entered=false,orientationBlocked=false,orientationOverride=false,pendingBackup=null,resumable=Boolean(savedGame);
-let game=savedGame||new Game(undefined,profile().unlocks.weapons,profile().upgrades.carrying),renderer=new Renderer($('#battle'),game),lockUntil=0,lastStatus='playing',previousFloor=game.floor,noticeTimer,kia=null;
+let game=savedGame||new Game(undefined,profile().unlocks.weapons,profile().upgrades.carrying),renderer=new Renderer($('#battle'),game),lockUntil=0,lastStatus='playing',previousFloor=game.floor,noticeTimer,kia=null,bossScene=null,bossSceneMemory=null;
 renderer.targetingEnabled=read('ash-targeting')!=='off';
 renderer.movementBoundaries=read('ash-movement-boundaries')==='on';
 // 3.114.0 (user request): a command pressed while the last turn is still animating ends that animation and runs. On by
@@ -230,13 +231,19 @@ function sayComms(message){commsQueue.push(message);if(commsQueue.length===1)sho
 // the training course — used to have that line armed twice, and the spare timer cleared the line after it early.)
 function showNextComms(){
   const message=commsQueue[0],round=commsRound;if(message===undefined||commsLayer.firstElementChild)return;
-  commsLayer.innerHTML=commsMarkup(message,{context:{game},compact:true});commsShownAt=performance.now();
+  commsLayer.innerHTML=commsMarkup(message,{context:{game},compact:true});commsShownAt=performance.now();message?.shown?.();   // shown: 3.204.0, a boss intro's clock
   armComms(commsLayer.querySelector('.comms'),()=>{if(round!==commsRound)return;commsLayer.innerHTML='';commsQueue.shift();message?.then?.();showNextComms();},{tap:message?.tap!==false});
 }
 // A message's `then` runs when its box has closed (3.177.0, the end of a run).
 // Drops whatever is showing or waiting; a box already closing finishes quietly (3.174.0).
 function clearComms(){commsRound++;commsQueue.length=0;commsLayer.innerHTML='';}
 function sayCommsFor(entries){for(const message of commsForLogs(entries))sayComms(message);}
+// 3.204.0 (review): a boss intro goes to the front of the queue (src/boss-scenes.js frontOfQueue): the line on the bar
+// gives way at once (its `then` still runs) and the waiting ones follow the intro in their order.
+function sayCommsFirst(message){
+  const showing=Boolean(commsLayer.firstElementChild),{queue,dropped}=frontOfQueue(commsQueue,message,showing);
+  commsRound++;commsLayer.innerHTML='';commsQueue.splice(0,commsQueue.length,...queue);dropped?.then?.();showNextComms();
+}
 // The training course (3.198.0, src/course.js): its beats play in order on the comms bar. A card opens as soon as the
 // line before it starts, and the comms bar stays where it is at the top of the screen, drawn above the card, so the
 // conversation keeps going (user, 2026-09-27: the card must not swallow the dialogue; it stays at the top edge). Input waits while a card is still to come, so the lesson and the floor stay
@@ -296,7 +303,9 @@ function sayCommsEvents(entries){
   if(!entered||isSimulation(game))return;
   if(commsMemory?.runId!==game.runId)commsMemory=newCommsMemory(game.runId);
   const speaker=dutySpeaker({game});
-  for(const event of commsEvents({game,before:commsBefore,logs:entries,memory:commsMemory})){const message=commsLine(speaker,event.type,event.vars);if(message)sayComms(message);}
+  // 3.204.0: a boss seen for the first time plays its intro (src/boss-scenes.js) ahead of this action's other remarks.
+  const intro=event=>Boolean(event.actor),events=commsEvents({game,before:commsBefore,logs:entries,memory:commsMemory}).sort((a,b)=>Number(intro(b))-Number(intro(a)));
+  for(const event of events){if(intro(event)){startBossIntro(event,speaker);continue;}const message=commsLine(speaker,event.type,event.vars);if(message)sayComms(message);}
 }
 // Half health or less: the battlefield edges pulse red, deeper and faster as health falls (3.43).
 function lowHealth(p){
@@ -380,7 +389,7 @@ function update(view=renderer.game) {
   if(game.status!=='playing'&&lastStatus==='playing'){lastStatus=game.status;if(!replay)recordResult(game);if(kia)kia.resultPending=true;else endRun();}
   else if(entered&&courseActive(game)&&game.status==='playing'){if(!$('#modal').open)playCourse();}
   else if(entered&&isSimulation(game)&&game.status==='playing'&&!$('#modal').open&&promptDue(game,promptLog(game)))showRoomPrompt();
-  else if(entered&&game.pendingPerks&&game.status==='playing')showLevelUp();
+  else if(entered&&game.pendingPerks&&game.status==='playing'&&!bossScene)showLevelUp();   // 3.204.0: a level-up waits for a boss scene
   else if(entered&&saveWarningDue&&!$('#modal').open)showSaveWarning();
 }
 renderer.isPaused=()=>orientationBlocked;
@@ -390,7 +399,7 @@ renderer.smokeQuality=smokeQuality(read('ash-smoke-quality'));   // 3.202.0 (use
 renderer.isCovered=()=>$('#modal').open&&$('#modal').matches('.title,.standalone,.outro');
 // Rules are resolved before a presentation starts, so skipping only drops frames. A turn that ended the run always plays
 // out, so a death is never covered by the result screen mid-fall; the 120ms double-input lock still applies.
-function skipEnabled(){return skipPresentation&&game.status==='playing';}
+function skipEnabled(){return skipPresentation&&game.status==='playing'&&!bossScene;}   // 3.204.0: a boss scene plays out
 function endPlayback(){playback=null;renderer.game=game;update();notifyLatest();}
 function skipPlayback(){
   if(!playback||!skipEnabled()||orientationBlocked||!entered||performance.now()<lockUntil)return false;
@@ -404,6 +413,7 @@ function skipPlayback(){
 // the scene without voices. The result itself was recorded when the operative died. (`kia` is declared with the
 // game state at the top.)
 function startKia(fall){
+  bossScene=null;   // 3.204.0: your own fall wins over a boss's
   clearComms();resetCourse();
   // 3.198.0: the training course voices its deaths (src/course.js courseDeathLines); the rest of the kill house stays quiet.
   const quiet=Boolean(replay)||isSimulation(game)&&!courseActive(game),seed=(Number(game.seed)||0)*31+game.turn;
@@ -429,7 +439,44 @@ function kiaTick(){
 }
 // A new run, a loaded save or a replay clears the scene; the fallen body and the blood stay until then, so the last
 // battlefield still shows them.
-function resetKia(){kia=null;renderer.kia=null;renderer.pace=null;renderer.gore=[];renderer.splatter.reset();endOutro();resetCourse();}
+// Boss scenes (3.204.0, user 2026-09-29; docs/BOSSES.md sections 5-6; timings and lines in src/boss-scenes.js). The intro
+// starts from the comms `boss` event and ends when the officer's line has closed and the camera has slid back; the kill
+// starts when the boss's fall plays and runs on its own clock. Both drive the camera through renderer.pace (a focus tile
+// and how far to slide onto it), lock the controls while they play, and play once per boss. Reduced motion keeps the
+// lines only. The kill house plays them without voices; a replay (test mode) skips them, so a fast replay never waits.
+// (`bossScene` is declared with the game state at the top.)
+const sceneMemory=()=>{if(bossSceneMemory?.runId!==game.runId)bossSceneMemory=newBossSceneMemory(game.runId);return bossSceneMemory;};
+function endBossScene(){if(!bossScene)return;bossScene=null;if(!kia)renderer.pace=null;update();}   // update: a level-up held back by the scene
+function startBossIntro(event,speaker){
+  const actor=event.actor;if(!actor||!firstBossScene(sceneMemory(),'intro',actor.id))return;
+  const message=bossIntroLine(speaker,actor.type,event.vars);
+  if(renderer.reduceMotion||replay||kia||bossScene||$('#modal').open){if(message)sayComms(message);return;}   // a window already open: the line only
+  // The clock (slide, hold, failsafe) runs from when her line is on the bar (`start`), not from the event (3.204.0 review).
+  const scene={kind:'intro',start:null,created:performance.now(),at:{x:actor.x,y:actor.y},endAt:Infinity};bossScene=scene;
+  renderer.pace=()=>{if(bossScene!==scene)return null;const cam=scene.start===null?{blend:0,zoom:1}:introCamera(performance.now()-scene.start,scene.endAt);return {scale:1,zoom:cam.zoom,focus:scene.at,blend:cam.blend};};
+  if(message)sayCommsFirst({...message,shown:()=>{if(bossScene===scene&&scene.start===null)scene.start=performance.now();},
+    then:()=>{if(bossScene!==scene||scene.endAt!==Infinity)return;scene.start??=performance.now();scene.endAt=performance.now()-scene.start;}});
+  else{scene.start=performance.now();scene.endAt=BOSS_SCENE_TUNING.intro.quietMs;}
+}
+function startBossDeath(fall){
+  if(kia||game.status!=='playing'||!firstBossScene(sceneMemory(),'death',fall.actorId))return;   // you fell this turn too: yours plays
+  if(bossScene)return;   // 3.204.0 review: a second boss down in the same action; the first one's scene (and line) covers both
+  const quiet=Boolean(replay)||isSimulation(game),message=quiet?null:bossKillLine(dutySpeaker({game}),!game.exitBlocked);
+  if(renderer.reduceMotion||replay){if(message)sayComms(message);return;}
+  const scene={kind:'death',start:performance.now(),times:deathTimes(),at:{x:fall.to.x,y:fall.to.y},message,voiced:false};bossScene=scene;
+  const seed=((Number(game.seed)||0)*53+game.turn*7+fall.to.x*31+fall.to.y)|0,burst=renderer.gore?deathBurst(seed,fall.blow||null,fall.gore||'flesh',renderer.goreLevel):null;
+  if(burst)renderer.gore.push({start:renderer.time,at:{...scene.at},burst,life:burstLife(burst)*1000});
+  renderer.pace=()=>{if(bossScene!==scene)return null;const since=performance.now()-scene.start,cam=deathCamera(since,scene.times);return {scale:deathTimeScale(since),zoom:cam.zoom,focus:scene.at,blend:cam.blend};};
+}
+function bossSceneTick(){
+  const s=bossScene;if(!s)return;
+  if(s.kind==='intro'&&s.start===null){if(performance.now()-s.created>BOSS_SCENE_TUNING.intro.maxMs)endBossScene();return;}   // her line never came up
+  const since=performance.now()-s.start;
+  if(s.kind==='intro'){if(introDone(since,s.endAt))endBossScene();return;}
+  if(!s.voiced&&since>=s.times.voiceAt){s.voiced=true;if(s.message)sayComms(s.message);}
+  if(since>=s.times.endAt)endBossScene();
+}
+function resetKia(){bossScene=null;kia=null;renderer.kia=null;renderer.pace=null;renderer.gore=[];renderer.splatter.reset();endOutro();resetCourse();}
 // The end of a run in three parts (3.177.0, user design; src/outro.js, docs/STORY.md 8): the officer approves the
 // extraction on the header bar (for a death the scene above has played instead), the field fades to dark, she speaks
 // in the middle of the screen — and when the purge review finds the unit deficient the overseer cuts in with a silence
@@ -473,7 +520,7 @@ function outroChannel(round,i){
   if(message.cutIn)setTimeout(speak,OUTRO_TUNING.cutInMs);else speak();
 }
 renderer.onFrame=dt=>{
-  kiaTick();
+  kiaTick();bossSceneTick();
   if(!playback)return;
   playback.advance(dt);
   if(playback.done)endPlayback();
@@ -482,7 +529,7 @@ renderer.onFrame=dt=>{
 const sayLine=(cue,detail={})=>renderer.addEffects([playerCalloutEvent(cue,detail)]);
 function act(type,arg) {
   skipPlayback();
-  if(playback||orientationBlocked||!entered||$('#modal').open||courseHolds()||performance.now()<lockUntil)return false;
+  if(playback||orientationBlocked||!entered||$('#modal').open||courseHolds()||bossScene||performance.now()<lockUntil)return false;   // bossScene: 3.204.0
   pointerStart=null;
   commsBefore=commsSnapshot(game);
   const oldLog=game.logs[0],{success,steps}=captureAction(game,()=>game.action(type,arg));
@@ -497,6 +544,7 @@ function act(type,arg) {
       playback=new Playback(planPresentation(steps,{reduceMotion:renderer.reduceMotion}),event=>{
         renderer.game=event.state;renderer.addEffects(event.effects,playback.elapsed-event.time);
         const fall=event.effects.find(e=>e.type==='fall'&&e.actorType==='player');if(fall&&!kia)startKia(fall);
+        const bossFall=!kia&&bossFallOf(event.effects);if(bossFall)startBossDeath(bossFall);   // 3.204.0: an enemy boss's fall only
         // An engagement line counts even when the animation is skipped; only the sounds are dropped.
         if(engagementHeard(event.effects))noteCombat(true);
         if(playback.skipping)return;update();
@@ -1476,7 +1524,7 @@ function loadReplay(raw,{from=0,fast=false}={}){
   $('#modal').close();replayControls.hidden=false;update();replayBadge();floorToast();
 }
 function replayTick(){
-  if(!replay||replay.paused||playback||orientationBlocked||performance.now()<lockUntil)return;
+  if(!replay||replay.paused||playback||bossScene||orientationBlocked||performance.now()<lockUntil)return;   // bossScene: 3.204.0
   if(replay.index>=replay.log.ops.length){finishReplay();return;}
   const op=replay.log.ops[replay.index];
   if(op.op==='perk'){game.choosePerk(op.id);$('#modal').close();update();}
@@ -1508,7 +1556,7 @@ $('#import-replay').addEventListener('change',async e=>{
 // Test mode: preview the field channel (text, or {speaker, expression, line|text}), force the next mission's officer, or
 // have the officer on duty say an event's line.
 // 3.198.0: test mode only — the live game and a redraw, for staging the training course's card pictures (tools/course-shots.mjs).
-if(TEST_MODE)globalThis.__ashSim={get game(){return game;},update:()=>update(),get renderer(){return renderer;},start:options=>startSimulation(options)};
+if(TEST_MODE)globalThis.__ashSim={get game(){return game;},update:()=>update(),get renderer(){return renderer;},start:options=>startSimulation(options),act:(type,arg)=>act(type,arg),get bossScene(){return bossScene;}};   // act, bossScene: 3.204.0, for staging the boss scenes
 if(TEST_MODE)globalThis.__ashComms={say:message=>sayComms(message),duty:id=>{dutyOverride=validDuty(id)?id:null;return dutyOverride;},event:(type,vars={})=>{const message=commsLine(dutySpeaker({game}),type,vars);if(message)sayComms(message);return message;}};
 if(TEST_MODE)globalThis.__ashReplay={load:(raw,options)=>loadReplay(typeof raw==='string'?raw:JSON.stringify(raw),options),
   pause(){if(replay){replay.paused=true;replayBadge();}},resume(){if(replay){replay.paused=false;replayBadge();}},stop:()=>stopReplay(),hash:()=>stateHash(game),
