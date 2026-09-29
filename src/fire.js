@@ -171,14 +171,16 @@ export const validFires=g=>validFireTiles(g)&&validSpecials(g,['flame']);
 // cone keeps it from stepping off a hazard; any interruption drops the cone (no cooldown). An affix flamer's cone goes
 // off at the very top of its turn, and its flamethrower replaces the affix branches and the shot (src/enemy-behavior.js);
 // the arsonist's goes off in the rebel bosses' step (src/rebel-bosses.js). `gunless`: a squad, the ambush watch and the
-// enforcer's rally hold no gun on an affix flamer. Saves: a cone left where its unit no longer stands is dropped, and so
-// is the arsonist's while it vents (3.206.0).
+// enforcer's rally hold no gun on either (3.206.2: the arsonist too — a squad leader could ready it, and the rally then
+// fire a gun it does not have). Saves: a cone left where its unit no longer stands is dropped, and so is the arsonist's
+// while it vents (3.206.0).
 const sprays=e=>Boolean(enemyDef(e)?.flameOnly);
 registerSpecial({id:'flame',intent:'flameIntent',carries:e=>isFlamer(e)||sprays(e),
  fields:{flameIntent:{valid:(v,e,f)=>validFlameIntent(e,f.grid)}},
  interrupt:{on:INTERRUPT_REASONS},
  blocks:{decoy:e=>isFlamer(e)||sprays(e),mine:e=>isFlamer(e)||sprays(e)||Boolean(e.flameIntent),stepOff:true},
  load:{stale:e=>{const i=e.flameIntent;return Boolean(i&&typeof i==='object'&&i.origin&&typeof i.origin==='object'&&!liveFlameIntent(e))||Boolean(e.flameIntent&&e.overheat>0&&enemyDef(e)?.flameOnly===true);}},
- gunless:e=>isFlamer(e),
+ gunless:e=>isFlamer(e)||sprays(e),
+ card:(g,e)=>[liveFlameIntent(e)?t('target-card.flameMarked'):''],   // 3.206.2: the cone it will spray from here
 });
 export const dropStaleFlameIntents=g=>dropStaleSpecials(g,['flame']);

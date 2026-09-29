@@ -32,17 +32,17 @@
 - **宣告的欄位與它保證的事**：
   - `intent`、`carries(e)`：放預告的欄位；可以帶這招的卡片或詞條。
   - `fields`：這招擁有的存檔欄位，一個欄位只有一個主人（重複登錄會丟錯）。`valid(v,e,f,turn)` 是讀檔檢查（封存樓層用它自己的地圖與回合）。`count:{max,min,carrier,clamp}` 是整數：`carrier` 只有會這招的卡片能帶；`clamp:'cut'` 讀檔時截到目前上限，`'drop'` 在上限小於 1 時刪掉。`scope:'actor'` 在 `Game.restore` 前段對玩家、本層敵人與友軍檢查（手榴彈）。
-  - `interrupt:{on,cooldown,to,run}`：哪些原因（死亡、失能、被移動、失去目標、壓制）取消它。有 `cooldown` 的只在預告還在時取消並重設冷卻（`to` 給不同的值）；`run` 處理分段的（架槍、架噴火器掃射中改成收起）。`charge`、`aim`、`windup`、`fireChain` 由 `interruptEnemyIntent` 統一清掉。
+  - `interrupt:{on,cooldown,run}`：哪些原因（死亡、失能、被移動、失去目標、壓制）取消它。有 `cooldown` 的只在預告還在時取消並把冷卻重設成它的上限；`run` 處理分段的（架槍、架噴火器掃射中改成收起）。`charge`、`aim`、`windup`、`fireChain` 由 `interruptEnemyIntent` 統一清掉。
   - `tick:{cooldown,drop}`：回合開頭倒數哪個冷卻，什麼狀況（倒下、失能、被釘住）要取消預告。
   - `blocks:{decoy,mine,stepOff,pin}`：`true` 是預告還在時、函式是這種單位本身：不打誘餌、不打看過的地雷、不離開腳下的危險格；`pin` 是被釘住就取消。沒寫的就不擋（架槍收起時要走路，所以不擋踩危險格）。
   - `load:{clamp,stale,restart,enemy,game}`：讀檔時先截數字，再丟掉單位已經給不了的預告（`stale`：倒下、失能、不在原位；`restart` 重設冷卻），不拒絕整份存檔；`enemy`、`game` 是其他檢查（標定只會在你身上）。
   - `rotation`：`special` 在帶這招的卡片上可以是哪些值（兩招輪流）。`lock`：預告鎖定的目標。`gunless`：沒有槍（小隊不幫它架槍、伏擊不舉槍、督戰官不讓它提前開火）。`card(g,e,aim)`：目標卡的文字。
   - 步驟 `registerStep(step,id,run,carries)`：`top` 步驟要說它替哪些單位出手；測試檢查沒有單位同時屬於兩個 `top` 步驟。
-- **測試**：`tests/enemy-specials.test.mjs` 檢查登錄完整、欄位只有一個主人、對照表、`top` 步驟不重疊、出手之後不留下蓄力（`KEPT` 是 3.206.1 找到、留給下一版修的例外）。新招式在 `qa/special-matrix.mjs` 的 `SPECIALS`（和需要時的 `TICKS`）加一列再 `--write`。
+- **測試**：`tests/enemy-specials.test.mjs` 檢查登錄完整、欄位只有一個主人、對照表、`top` 步驟不重疊、出手之後不留下蓄力（3.206.2 起沒有例外）。宣告裡有登錄表不認得的欄位（例如寫死的數字）會直接丟錯。新招式在 `qa/special-matrix.mjs` 的 `SPECIALS`（和需要時的 `TICKS`）加一列再 `--write`。
 
 登錄表管不到、還是要自己查的：
 
-- **取代普通攻擊時重置**：`charge`、`aim`、`windup` 要清掉，不然會留下永久的「!」、被當成蓄力中而不閃危險格，或被處決之類的邏輯觸發開槍。
+- **取代普通攻擊時重置**：`charge`、`aim`、`windup` 要清掉（`dropAttack(e)`，`src/enemy-specials.js`），不然會留下永久的「!」、被當成蓄力中而不閃危險格，或被處決之類的邏輯觸發開槍。別人（小隊的「已就緒」、看守的命令）幫它架好的一槍也算。
 - **中途死亡就停**：多段動作（衝鋒、連續掃射）每一步都檢查自己還活著。
 - **打到自己人**：不算玩家的擊殺、經驗、統計，戰報要寫清楚是誰打的。
 - **邊界**：不能穿過會擋路的邊（門、隔板；近戰連矮隔板也不能），不能落在坑洞上（會飛的例外），不能堵住金庫門、出口或任務目標（`reachable(...,{keys:true})`）。

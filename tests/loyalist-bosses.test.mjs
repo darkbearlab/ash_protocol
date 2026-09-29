@@ -216,7 +216,7 @@ test('saves: a paint, a gun, the cooldowns and your mark come back; bad ones are
   assert.ok(painted.action('wait'));assert.equal(marks(painted).length,1,'it lands after the load');
   const pack=field(),k=boss(pack,'gunline',16,10);k.gun={stage:'pack',left:2};assert.ok(Game.restore(pack.serialize()));
   const bad=[
-    d=>d.enemies[0].gun.extra=1,d=>d.enemies[0].gun.left=G.sweeps,d=>d.enemies[0].gun.left=0,d=>d.enemies[0].gun.stage='aim',d=>d.enemies[0].gun.aim={x:16,y:10},d=>d.enemies[0].gun.aim={x:-1,y:3},
+    d=>d.enemies[0].gun.extra=1,d=>d.enemies[0].gun.left=0,d=>d.enemies[0].gun.stage='aim',d=>d.enemies[0].gun.aim={x:16,y:10},d=>d.enemies[0].gun.aim={x:-1,y:3},
     d=>d.enemies[0].special='grenade',d=>d.enemies[0].markReady=d.turn+M.turns+M.cooldown+2,d=>d.enemies[0].markReady=1.5,
     d=>d.player.traits.find(t=>t.id===DESIGNATED).turns=M.turns+2,d=>d.player.traits.find(t=>t.id===DESIGNATED).source='boss:other',
     d=>d.player.traits.push({id:DESIGNATED,source:'boss:second',turns:1}),d=>d.enemies[0].traits.push({id:DESIGNATED,source:MARK_SOURCE,turns:2}),
@@ -233,6 +233,9 @@ test('saves: a paint, a gun, the cooldowns and your mark come back; bad ones are
   for(const change of [d=>{d.enemies[0].control.disabled=2;},d=>{d.enemies[0].hp=0;}]){
     const raw=JSON.parse(p.serialize());change(raw.data);const loaded=Game.restore(JSON.stringify(raw));assert.ok(loaded,change.toString());assert.equal(loaded.enemies[0].markIntent,undefined);}
   const frame={enemies:[{...structuredClone(b),x:14}],floorStates:{}};dropStaleBossIntents(frame);assert.equal(frame.enemies[0].gun,undefined);
+  // 3.206.2: sweeps and pack-up rounds left past today's tuning are cut to it, not refused (docs/CHECKLIST.md 3).
+  {const raw=JSON.parse(g.serialize());raw.data.enemies[0].gun={...raw.data.enemies[0].gun,stage:'sweep',left:G.sweeps+5};const cut=Game.restore(JSON.stringify(raw));assert.ok(cut);assert.equal(cut.enemies[0].gun.left,G.sweeps-1);}
+  {const raw=JSON.parse(pack.serialize());raw.data.enemies[0].gun.left=G.packUp+5;const cut=Game.restore(JSON.stringify(raw));assert.ok(cut);assert.equal(cut.enemies[0].gun.left,G.packUp);}
   assert.equal(validLoyalistBosses(g),true);
 });
 

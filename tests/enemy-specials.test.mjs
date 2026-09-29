@@ -50,20 +50,21 @@ test('the goldens: every special\'s interruptions, blocks, round start and saves
 });
 
 test('no unit is carried by two top steps: the first that acts would hide the other',()=>{
- const flamer=ENEMY_AFFIXES.find(a=>a.id==='flamer'),seen=new Map(ORDER.top.map(id=>[id,0]));
+ const seen=new Map(ORDER.top.map(id=>[id,0]));
  for(const type of Object.keys(ENEMY_TYPES))for(const faction of ['loyalist','rebel','swarm','legacy']){
   const e=makeEnemy(type,1,1,`t-${type}`,3,0,faction),units=[e];
-  if(flamer.applies(e)){const f=structuredClone(e);giveEnemyAffix(f,'flamer');units.push(f);}
-  for(const u of units){const steps=topCarriers(u);assert.ok(steps.length<=1,`${type} (${faction}${u.affixes?.length?', flamer':''}): ${steps}`);for(const id of steps)seen.set(id,seen.get(id)+1);}
+  // The affixes that bring a top step with them (3.206.2: the grenadier's primed throw).
+  for(const id of ['flamer','grenadier'])if(ENEMY_AFFIXES.find(a=>a.id===id).applies(e)){const f=structuredClone(e);giveEnemyAffix(f,id);units.push(f);}
+  for(const u of units){const steps=topCarriers(u);assert.ok(steps.length<=1,`${type} (${faction}${u.affixes?.length?`, ${u.affixes.map(a=>a.id)}`:''}): ${steps}`);for(const id of steps)seen.set(id,seen.get(id)+1);}
  }
  for(const [id,n] of seen)assert.ok(n>0,`the top step ${id} carries some unit`);
 });
 
-// Going off in place of the shot, a special leaves no shot wound up behind it (docs/CHECKLIST.md 2: 取代普通攻擊時重置).
-// KEPT lists the ones that still leave one standing when something else wound it up (a squad's 已就緒, a watch order):
-// found in 3.206.1 and kept, as the refactor changes nothing; the next rule change empties it.
-const KEPT=['spray','wall','burnSweep','gunSweep','pounceMiss','lob','grenade'];
-test('a special that goes off leaves no shot wound up, but for the ones KEPT for the next rule change',()=>{
+// Going off in place of the shot, a special leaves no shot wound up behind it (docs/CHECKLIST.md 2: 取代普通攻擊時重置),
+// even one something else wound up for it (a squad's 已就緒, a watch order). 3.206.1 found seven that left it standing
+// (the arsonist's spray, wall and ring, both sweeps, a missed pounce, the lob, the grenade); 3.206.2 clears it for all.
+const KEPT=[];
+test('a special that goes off leaves no shot wound up behind it',()=>{
  const E={x:13,y:10},T={x:10,y:10},at=q=>({x:q.x,y:q.y});
  const cases={
   flame:{card:'rifleman',affixes:['flamer'],state:{flameIntent:{origin:at(E),aim:at(T)}}},

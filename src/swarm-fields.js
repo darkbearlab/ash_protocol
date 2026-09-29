@@ -15,7 +15,7 @@ import {enemyDisplayName} from './enemy-affixes.js';
 import {activeTrait} from './traits.js';
 import {enemyDef} from './enemy-data.js';
 import {distance,key,swarmPayload} from './world.js';
-import {registerSpecial,registerStep,validSpecials,frames,INTERRUPT_REASONS} from './enemy-specials.js';
+import {registerSpecial,registerStep,validSpecials,frames,INTERRUPT_REASONS,dropAttack} from './enemy-specials.js';
 
 export const FIELD_TUNING=Object.freeze({radius:1,lobRange:6,lobCooldown:10,screenFrom:3});
 export const PAYLOADS=Object.freeze(['toxic','acid','spore']);   // same list as world.js (import cycle)
@@ -82,7 +82,7 @@ export function lobAction(ctx){
  if(e.lobIntent){
   const point=e.lobIntent.point;delete e.lobIntent;e.lobCooldown=FIELD_TUNING.lobCooldown;
   g.effects.push({type:'shot',style:'grenade',color:'#a9d24f',from:{x:e.x,y:e.y},to:{...point},damage:0});
-  spawnField(g,'toxic',point);g.log(t('swarm-fields.lobbed',{enemy:enemyDisplayName(e)}),true);
+  spawnField(g,'toxic',point);dropAttack(e);g.log(t('swarm-fields.lobbed',{enemy:enemyDisplayName(e)}),true);   // dropAttack: 3.206.2
   return true;
  }
  if((e.lobCooldown||0)>0)return false;
@@ -95,17 +95,23 @@ export function lobAction(ctx){
 }
 // 3.206.1 (src/enemy-specials.js): the lob as the shared rules see it. Swelling, it cannot shoot a mine or step off a
 // hazard, and a pin drops it; the round start counts its cooldown down and drops it for a fall, a stun or a pin.
-// Saves: a warning off its tile, or a cooldown past the tuning, is refused (not dropped or cut; docs/CHECKLIST.md 3 —
-// kept as it was, a later rule change). An interruption restarts the cooldown at the literal 10 (FIELD_TUNING.lobCooldown
-// today). Neither the cooldown nor the warning checks the card that carries it beyond `lobs`.
+// Saves (3.206.2, docs/CHECKLIST.md 3): a swelling its spitter could no longer spit (fallen, stunned, pinned, or moved
+// off the tile it swelled on) is dropped and the cooldown restarts, and a cooldown past the tuning is cut to it — they
+// used to refuse the run. A malformed one is still refused. An interruption restarts the cooldown at
+// FIELD_TUNING.lobCooldown (3.206.2: it was a literal 10, the same number).
+const live=e=>e?.hp>0&&!e.control?.disabled;
+const whole=q=>Boolean(q&&typeof q==='object'&&Number.isInteger(q.x)&&Number.isInteger(q.y));
+const staleSwell=e=>{const s=e.lobIntent;return Boolean(s&&typeof s==='object'&&whole(s.origin)&&!(live(e)&&!pinned(e)&&s.origin.x===e.x&&s.origin.y===e.y));};
 registerSpecial({id:'lob',intent:'lobIntent',carries:e=>Boolean(enemyDef(e)?.lobs)&&isSwarm(e),
  fields:{
   lobIntent:{valid:(s,e,f)=>{const pt=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&f.grid?.[q.y]?.[q.x]===1;return !(!s||!enemyDef(e)?.lobs||e.hp<=0||!pt(s.origin)||!pt(s.point)||key(s.origin)!==key(e)||distance(s.origin,s.point)>FIELD_TUNING.lobRange);}},
-  lobCooldown:{count:{max:()=>FIELD_TUNING.lobCooldown}},
+  lobCooldown:{count:{max:()=>FIELD_TUNING.lobCooldown,clamp:'cut'}},
  },
- interrupt:{on:INTERRUPT_REASONS,cooldown:'lobCooldown',to:()=>10},
+ interrupt:{on:INTERRUPT_REASONS,cooldown:'lobCooldown'},
  tick:{cooldown:'lobCooldown',drop:e=>e.hp<=0?'death':e.control?.disabled?'disabled':pinned(e)?'suppressed':null},
  blocks:{mine:true,stepOff:true,pin:true},
+ load:{stale:staleSwell,restart:'lobCooldown'},
+ card:(g,e)=>[e.lobIntent?t('target-card.swelling'):''],   // 3.206.2
 });
 registerStep('top','lob',lobAction,e=>Boolean(enemyDef(e)?.lobs)&&isSwarm(e));
 export const tickFields=g=>tickSpecials(g,[['lob']]);

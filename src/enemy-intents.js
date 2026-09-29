@@ -1,3 +1,4 @@
+import {t} from './i18n.js';
 import {receiveCallout} from './callouts.js';
 import {INTERRUPT_REASONS,ORDER,pick,countMax,registerSpecial,validActorSpecials} from './enemy-specials.js';
 // Uncommitted tells cancel on death, disruption, forced movement, or loss of a tracked shot: the wound-up shot here, and
@@ -8,7 +9,7 @@ import {INTERRUPT_REASONS,ORDER,pick,countMax,registerSpecial,validActorSpecials
 // she falls or is stunned. Fixed-tile sniper shots retain their tile through loss of sight. Committed marks never cancel.
 export {INTERRUPT_REASONS};
 export function interruptEnemyIntent(actor,reason){if(!INTERRUPT_REASONS.includes(reason))return false;actor.charge=false;actor.aim=null;actor.windup=0;actor.fireChain=null;
- for(const s of pick()){const i=s.interrupt;if(!i?.on.includes(reason))continue;if(i.run)i.run(actor,reason);else if(!i.cooldown)delete actor[s.intent];else if(actor[s.intent]){delete actor[s.intent];actor[i.cooldown]=i.to?i.to():countMax(s,i.cooldown);}}
+ for(const s of pick()){const i=s.interrupt;if(!i?.on.includes(reason))continue;if(i.run)i.run(actor,reason);else if(!i.cooldown)delete actor[s.intent];else if(actor[s.intent]){delete actor[s.intent];actor[i.cooldown]=countMax(s,i.cooldown);}}
  return true;}
 // The round start (Game.action): per group of ORDER.tick, one pass over the enemies — each declared cooldown counts down,
 // then a warning its unit can no longer give (its `tick.drop` reason: fallen, stunned, pinned) is interrupted.
@@ -26,6 +27,7 @@ registerSpecial({id:'grenade',intent:'grenadeIntent',carries:e=>Boolean(e.affixe
  interrupt:{on:INTERRUPT_REASONS},
  blocks:{mine:true,stepOff:true},
  lock:e=>e.grenadeIntent?.targetId,
+ card:(g,e)=>[e.grenadeIntent?t(e.grenadeIntent.stun?'target-card.stunReady':'target-card.grenadeReady'):''],   // 3.206.2
 });
 export const validEnemyIntent=(e,point)=>validActorSpecials(e,point);
 // Allied bombardment marks (3.95.0, the engineer's core guard) carry the unit id and their own radius and damage.

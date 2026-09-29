@@ -18,22 +18,22 @@ export const ORDER=F({
  start:F(['mark','nest']),
  // executeEnemyTree, before an order, a survival walk or anything else can move the unit: the first that acts ends the
  // turn. 'rebel' and 'swarm' are the bosses' own steps (src/rebel-bosses.js, src/swarm-bosses.js), each covering several.
- top:F(['flame','rebel','swarm','pounce','lob']),
+ top:F(['flame','grenade','rebel','gun','swarm','pounce','lob']),
  // After the orders, in place of the affix branches and the shot.
  attack:F(['flame']),
  // The enforcer's rally (src/rebels.js advanceCharge): a special primed to go off early.
  rally:F(['grenade']),
  // The round start (Game.action): one pass over the enemies per group, cooldowns first, then the drops.
  tick:F([F(['tongue']),F(['charge','nest']),F(['pounce']),F(['lob'])]),
- // The target card's lines, after 「即將攻擊」.
- card:F(['mark','gun','tongue','charge','nest','fire','vent','burn']),
+ // The target card's lines, after 「即將攻擊」 (3.206.2: the grenade, the marked cone, the pounce and the lob first).
+ card:F(['grenade','flame','pounce','lob','mark','gun','tongue','charge','nest','fire','vent','burn']),
 });
 // A declaration (registerSpecial):
 //  id, intent (the field that holds the warning), carries(e) (the cards or affixes that may hold it),
 //  fields: {name: {valid(value,e,frame,turn)} | {count:{max(),min,carrier,clamp}} | {scope:'actor',valid(value,actor,point)}}
 //    — each field has one owner; `count` is a whole number from min (0) to max(), only on a carrier when `carrier`;
 //    `clamp`: a save's number past today's tuning is cut to it ('cut'), or dropped when the tuning is under 1 ('drop').
-//  interrupt: {on:[reasons], cooldown:'field' (dropped only when set, and the cooldown restarts), to(), run(actor,reason)}
+//  interrupt: {on:[reasons], cooldown:'field' (dropped only when set, and the cooldown restarts at its max), run(actor,reason)}
 //  tick: {cooldown:'field', drop(e) → the reason to interrupt, or null}
 //  blocks: {decoy, mine, stepOff, pin}: true (while the intent is set) or a function of the unit
 //  load: {clamp(e), stale(e) → drop the intent, restart:'cooldown field', enemy(e,frame,turn), game(g)}
@@ -42,8 +42,13 @@ export const ORDER=F({
 // A step (registerStep): the owning module's function run at its point of the turn, and for a top step the units it can
 // act for (`carries`: tests/enemy-specials.test.mjs checks that no unit is carried by two top steps).
 const SPECIALS=new Map(),STEPS=Object.fromEntries(['start','top','attack','rally'].map(k=>[k,new Map()])),CARRIERS=new Map();
+// 3.206.2: a declaration holds only what the registry reads, so a number of its own (the lob's old literal 10) cannot hide in it.
+const KEYS=F({'':['id','intent','carries','fields','interrupt','tick','blocks','load','rotation','lock','gunless','card'],interrupt:['on','cooldown','run'],tick:['cooldown','drop'],blocks:['decoy','mine','stepOff','pin'],load:['clamp','stale','restart','enemy','game'],field:['valid','count','scope'],count:['max','min','carrier','clamp']});
+const unknown=(o,kind)=>Object.keys(o||{}).filter(k=>!KEYS[kind].includes(k));
 export function registerSpecial(s){
  if(!ORDER.ids.includes(s.id)||SPECIALS.has(s.id))throw new Error(`special ${s.id}: not in ORDER.ids, or declared twice`);
+ const extra=[...unknown(s,''),...['interrupt','tick','blocks','load'].flatMap(k=>unknown(s[k],k).map(x=>`${k}.${x}`)),...Object.entries(s.fields||{}).flatMap(([k,d])=>[...unknown(d,'field'),...unknown(d.count,'count')].map(x=>`${k}.${x}`))];
+ if(extra.length)throw new Error(`special ${s.id}: unknown ${extra.join(', ')}`);
  for(const o of SPECIALS.values())for(const k in s.fields||{})if(k in o.fields)throw new Error(`${k}: owned by ${o.id} and ${s.id}`);
  if(s.interrupt&&!s.interrupt.on.every(r=>INTERRUPT_REASONS.includes(r)))throw new Error(`${s.id}: unknown interrupt reason`);
  if(s.interrupt?.cooldown&&!s.fields?.[s.interrupt.cooldown]?.count)throw new Error(`${s.id}: interrupt cooldown is not a count field`);
@@ -67,6 +72,9 @@ export const lockedTarget=e=>{for(const s of pick()){const id=s.lock?.(e);if(id)
 // Does any special the unit holds keep it from `what` (decoy, mine, stepOff, pin)?
 export const blocked=(e,what)=>pick().some(s=>{const b=s.blocks?.[what];return b===true?Boolean(e[s.intent]):typeof b==='function'&&Boolean(b(e));});
 export const gunless=e=>pick().some(s=>Boolean(s.gunless?.(e)));
+// 3.206.2 (docs/CHECKLIST.md 2): a special that goes off in place of the shot leaves no shot wound up behind it — one
+// held for it by a squad's 已就緒 or a watch order would otherwise stay (a lasting 「!」, or the enforcer's rally firing it).
+export const dropAttack=e=>{e.charge=false;e.aim=null;e.windup=1;};
 
 // ---- saves ---------------------------------------------------------------------------------------------------------
 // This floor and every kept one; a kept floor's turn is the one it was left on.

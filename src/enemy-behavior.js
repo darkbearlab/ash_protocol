@@ -36,7 +36,7 @@ import {selfAmbush,selfHold} from './ambush.js';
 import {selfFlank} from './flank.js';
 import {usePounceHooks} from './pounce.js';
 import {releasePayload} from './swarm-fields.js';
-import {runStep,registerStep,lockedTarget} from './enemy-specials.js';
+import {runStep,registerStep,lockedTarget,dropAttack} from './enemy-specials.js';
 import {personalityOf} from './personality.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
@@ -102,7 +102,7 @@ function grenade(ctx){const {g,e,p,los}=ctx,intent=e.grenadeIntent;
  if(intent){if((intent.targetId&&![g.player,...g.activeAllies].some(a=>(a.id||'player')===intent.targetId&&a.hp>0))||!los||distance(e,intent.origin)>0||distance(e,p)>AFFIX_TUNING.grenadeRange){interruptEnemyIntent(e,'target_lost');return true;}
  // 3.188.0 (user): a stun grenade does no damage; it disables what its 3×3 reaches (Game.enemyStun).
  g.marks.push({kind:'grenade',phase:'flight',sourceId:e.id,x:intent.x,y:intent.y,origin:{...intent.origin},radius:AFFIX_TUNING.grenadeRadius,...(intent.stun?{stun:true,damage:0}:{damage:scaleEnemy(AFFIX_TUNING.grenadeDamage,g.floor,'damage',g.difficultySpec)}),due:g.turn+1});delete e.grenadeIntent;
- g.effects.push({type:'enemyTelegraph',phase:'flight',from:{...intent.origin},to:{x:intent.x,y:intent.y},damage:0});g.recordExposure(e,intent);g.log(t(intent.stun?'enemy-behavior.stunThrown':'enemy-behavior.grenadeThrown',{enemy:enemyName(e)}),true);return true;}
+ g.effects.push({type:'enemyTelegraph',phase:'flight',from:{...intent.origin},to:{x:intent.x,y:intent.y},damage:0});g.recordExposure(e,intent);g.log(t(intent.stun?'enemy-behavior.stunThrown':'enemy-behavior.grenadeThrown',{enemy:enemyName(e)}),true);dropAttack(e);return true;}   // dropAttack: 3.206.2, the throw is its attack
  // Which it throws is decided as it gets ready, so the warning already says so.
  const stun=g.rng()>=1-AFFIX_TUNING.stunShare;   // the top third of the roll
  e.grenadeIntent={stage:'prepare',targetId:p.id||'player',x:p.x,y:p.y,origin:{x:e.x,y:e.y},...(stun?{stun:true}:{})};revealEnemyAffix(g,e,'grenadier');g.effects.push({type:'enemyTelegraph',phase:'prepare',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});enemyCallout(g,e,'telegraph',{action:'grenade'});g.log(t(stun?'enemy-behavior.stunReady':'enemy-behavior.grenadeReady',{enemy:enemyName(e)}),true);return true;
@@ -131,6 +131,11 @@ function flamerAct(ctx){
  if(e.moved)enemyCallout(g,e,'state',{state:'move'});
  return true;
 }
+// 3.206.2: a primed grenade goes off at the very top of the thrower's turn (src/enemy-specials.js ORDER.top), before an
+// order or a survival walk could move it off the tile it aimed from. It used to go off with the affix branches, after the
+// orders, so an order walked it away and the throw was silently dropped (the 3.203.0 flamer lesson). Out of sight or out
+// of reach, or its target down, it is dropped there and the turn is spent, as before.
+registerStep('top','grenade',ctx=>{const {e,p,los}=ctx;if(!e.grenadeIntent)return false;if(los)e.lastKnown={x:p.x,y:p.y};grenade(ctx);return true;},e=>Boolean(e.affixes?.some(a=>a.id==='grenadier')));
 // 3.206.1: the enforcer's rally throws a primed grenade early (src/rebels.js advanceCharge; src/enemy-specials.js ORDER.rally).
 registerStep('rally','grenade',(g,e)=>{if(!e.grenadeIntent)return null;grenade({g,e,p:g.enemyTarget(e),def:ENEMY_TYPES[e.type],los:g.sight(e,g.enemyTarget(e)),d:distance(e,g.enemyTarget(e))});return 'grenade';});
 // 3.206.1 (src/enemy-specials.js ORDER.top, ORDER.attack): a flamer's marked cone goes off at the very top of its turn,
@@ -232,7 +237,8 @@ export function executeEnemyTree(g,e){const locked=lockedTarget(e),p=(locked?[g.
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
  // Warned specials go off first, from where they were warned, before an order, a survival walk or a hazard could move
  // the unit (src/enemy-specials.js ORDER.top; the first that acts takes the turn): a flamer's marked cone (3.203.0
- // review: walking off first left the mark behind, drawn where no spray would come); a rebel boss's wall, ring, marked
+ // review: walking off first left the mark behind, drawn where no spray would come); a primed grenade (3.206.2); a
+ // set-up machine gun (3.206.2, src/loyalist-bosses.js gunAction); a rebel boss's wall, ring, marked
  // spray or set-up sweep (3.206.0, src/rebel-bosses.js); a swarm boss's tongue or charge, then its specials in the
  // card's order (3.205.0, src/swarm-bosses.js); a hunter bug's pounce; a spitter's lob.
  if(runStep('top',ctx))return false;

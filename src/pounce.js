@@ -15,7 +15,7 @@ import {pinned} from './suppression.js';
 import {interruptEnemyIntent,enemyCallout,tickSpecials} from './enemy-intents.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 import {distance,key} from './world.js';
-import {registerSpecial,registerStep,validSpecials,INTERRUPT_REASONS} from './enemy-specials.js';
+import {registerSpecial,registerStep,validSpecials,INTERRUPT_REASONS,dropAttack} from './enemy-specials.js';
 
 let bite=null;
 // The card's own attack lives in enemy-behavior.js, which hands it over so the two files never import each other.
@@ -45,7 +45,7 @@ export function pounceAction(ctx){
   }
   // A miss is still a leap: it goes where it said it would, if it can, and lands open.
   if(distance(pending.point,g.player)>0&&sweptClear(g,e,pending.point)&&g.passable(pending.point.x,pending.point.y,e))land(g,e,pending.point);
-  e.vaultExposed=true;g.log(t('pounce.missed',{enemy:enemyDisplayName(e)}),true);
+  e.vaultExposed=true;dropAttack(e);g.log(t('pounce.missed',{enemy:enemyDisplayName(e)}),true);   // dropAttack: 3.206.2, a miss is its attack too
   return true;
  }
  if(!plan)return false;
@@ -57,16 +57,22 @@ export function pounceAction(ctx){
 }
 // 3.206.1 (src/enemy-specials.js): the pounce as the shared rules see it. Crouched, it cannot shoot a mine or step off
 // a hazard, and a pin drops it; the round start counts the cooldown down and drops the crouch for a fall, a stun or a pin.
-// Saves: a crouch off its tile, on a fallen bug, or a cooldown past the tuning is refused (not dropped or cut;
-// docs/CHECKLIST.md 3 — kept as it was, a later rule change), and neither checks the card that carries it.
+// Saves (3.206.2, docs/CHECKLIST.md 3): a crouch its bug could no longer finish (fallen, stunned, pinned, or moved off
+// the tile it crouched on) is dropped and the cooldown restarts, and a cooldown past the tuning is cut to it — they used
+// to refuse the run. A malformed one is still refused. Neither checks the card that carries it.
+const live=e=>e?.hp>0&&!e.control?.disabled;
+const whole=q=>Boolean(q&&typeof q==='object'&&Number.isInteger(q.x)&&Number.isInteger(q.y));
+const staleCrouch=e=>{const s=e.pounceIntent;return Boolean(s&&typeof s==='object'&&whole(s.origin)&&!(live(e)&&!pinned(e)&&s.origin.x===e.x&&s.origin.y===e.y));};
 registerSpecial({id:'pounce',intent:'pounceIntent',carries:canPounce,
  fields:{
   pounceIntent:{valid:(s,e,f)=>{const point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&f.grid?.[p.y]?.[p.x]===1;return !(!s||e.hp<=0||!point(s.origin)||!point(s.target)||!point(s.point)||key(e)!==key(s.origin)||distance(s.origin,s.target)>SWARM_TUNING.pounceRange||distance(s.point,s.target)!==1);}},
-  pounceCooldown:{count:{max:()=>SWARM_TUNING.pounceCooldown}},
+  pounceCooldown:{count:{max:()=>SWARM_TUNING.pounceCooldown,clamp:'cut'}},
  },
  interrupt:{on:INTERRUPT_REASONS,cooldown:'pounceCooldown'},
  tick:{cooldown:'pounceCooldown',drop:e=>e.hp<=0?'death':e.control?.disabled?'disabled':pinned(e)?'suppressed':null},
  blocks:{mine:true,stepOff:true,pin:true},
+ load:{stale:staleCrouch,restart:'pounceCooldown'},
+ card:(g,e)=>[e.pounceIntent?t('target-card.pouncing'):''],   // 3.206.2
 });
 registerStep('top','pounce',pounceAction,canPounce);
 export const tickPounces=g=>tickSpecials(g,[['pounce']]);

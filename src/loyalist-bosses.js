@@ -31,7 +31,8 @@ import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {enemyDef} from './enemy-data.js';
 import {enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {hazardTile} from './hazard-paths.js';
-import {registerSpecial,registerStep,validSpecials,dropStaleSpecials} from './enemy-specials.js';
+import {unitTree} from './behavior-tree.js';
+import {registerSpecial,registerStep,validSpecials,dropStaleSpecials,dropAttack} from './enemy-specials.js';
 
 // The user tunes these after playtesting (docs/BOSSES.md section 2).
 export const BOSS_TUNING=Object.freeze({
@@ -123,17 +124,39 @@ export function sweepGun(g,e){
 }
 // The gun's part of the boss's turn: sweeping, or packing up (3.205.0: `walk`, the tree's own walk, takes it where it
 // would go — off a hazard first — and nothing else). False when there is nothing to do with it.
-function gunTurn(g,e,walk){
+// One sweep and what comes after it. 3.206.2: shot down in its own sweep (a blast it set off), it leaves nothing to pack
+// up — the death already dropped the gun (as 焚線官's flamethrower, src/rebel-bosses.js burnTurn).
+function sweepTurn(g,e){
  const gun=e.gun,T=BOSS_TUNING.gun;
- if(gun.stage==='pack'){if(gun.left>1)gun.left--;else delete e.gun;walk?.();return true;}
- if(e.x!==gun.origin.x||e.y!==gun.origin.y){delete e.gun;return false;}   // off its mount without being stopped: gone
  sweepGun(g,e);
+ if(e.hp<=0)return;
+ if(e.hp>0)dropAttack(e);   // 3.206.2: the sweep is its shot
  const left=(gun.stage==='set'?T.sweeps:gun.left)-1;
  if(left>0)e.gun={stage:'sweep',origin:gun.origin,aim:gun.aim,left};
  else if(T.packUp>0){e.gun={stage:'pack',left:T.packUp};g.log(t('bosses.gunPack',{enemy:enemyName(e),n:T.packUp}),true);}
  else delete e.gun;
+}
+function gunTurn(g,e,walk){
+ const gun=e.gun;
+ if(gun.stage==='pack'){if(gun.left>1)gun.left--;else delete e.gun;walk?.();return true;}
+ if(e.x!==gun.origin.x||e.y!==gun.origin.y){delete e.gun;return false;}   // off its mount without being stopped: gone
+ sweepTurn(g,e);
  return true;
 }
+// 3.206.2: a set-up or sweeping gun goes off at the very top of the boss's turn (src/enemy-specials.js ORDER.top), before
+// an order, a survival walk or a hazard could move it — as 焚線官's flamethrower does (src/rebel-bosses.js). It used to
+// wait for the tree's `special` step, after a survival group's walk. Off its mount without being stopped, it is gone and
+// the turn goes on. `after` is the tree's after-step (the drone call). Packing up stays in `special` (it walks then).
+export function gunAction(ctx,after){
+ const {g,e,p,los}=ctx;
+ if(!gunDeployed(e))return false;
+ if(e.x!==e.gun.origin.x||e.y!==e.gun.origin.y){delete e.gun;return false;}
+ sweepTurn(g,e);
+ if(los&&p?.hp>0)e.lastKnown={x:p.x,y:p.y};
+ if(e.hp>0)after?.(ctx);
+ return true;
+}
+registerStep('top','gun',ctx=>gunAction(ctx,unitTree(ctx.e).after),setsGun);
 // What stops a telegraph stops these (src/enemy-intents.js): the paint is dropped, a gun being set up is dropped, a
 // sweeping gun packs up; losing sight of you (and being suppressed, which a boss resists) changes nothing.
 const BOSS_REASONS=Object.freeze(['death','disabled','displaced']);
@@ -170,11 +193,16 @@ const exactly=(o,keys)=>Boolean(o&&typeof o==='object'&&!Array.isArray(o)&&Objec
 const cell=(q,grid)=>exactly(q,'x,y')&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&seeThrough(grid?.[q.y]?.[q.x]);
 function validGun(e,grid){
  const s=e.gun,T=BOSS_TUNING.gun;if(!setsGun(e))return false;
- if(s?.stage==='pack')return exactly(s,'left,stage')&&Number.isInteger(s.left)&&s.left>=1&&s.left<=T.packUp;
+ if(s?.stage==='pack')return exactly(s,'left,stage')&&Number.isInteger(s.left)&&s.left>=1&&s.left<=Math.max(1,T.packUp);
  const set=s?.stage==='set';
  return (set||s?.stage==='sweep')&&exactly(s,set?'aim,origin,stage':'aim,left,origin,stage')&&cell(s.origin,grid)&&cell(s.aim,grid)&&(s.aim.x!==s.origin.x||s.aim.y!==s.origin.y)&&
-  s.origin.x===e.x&&s.origin.y===e.y&&live(e)&&(set||Number.isInteger(s.left)&&s.left>=1&&s.left<T.sweeps);
+  s.origin.x===e.x&&s.origin.y===e.y&&live(e)&&(set||Number.isInteger(s.left)&&s.left>=1&&s.left<=Math.max(1,T.sweeps-1));
 }
+// 3.206.2 (docs/CHECKLIST.md 3): sweeps and pack-up rounds left past today's tuning are cut to it (a save from before the
+// user retuned it), as for 焚線官's flamethrower; they used to refuse the run.
+const clampGun=e=>{const s=e.gun,T=BOSS_TUNING.gun;
+ if(s?.stage==='pack'&&Number.isSafeInteger(s.left)&&s.left>T.packUp){if(T.packUp>=1)s.left=T.packUp;else delete e.gun;}
+ else if(s?.stage==='sweep'&&Number.isSafeInteger(s.left)&&s.left>Math.max(1,T.sweeps-1))s.left=Math.max(1,T.sweeps-1);};
 // ---- the shared rules (src/enemy-specials.js) ------------------------------------------------------------------------
 // The paint lands as the boss's turn begins (ORDER.start: before a decoy or a mine can take the turn) and blocks nothing
 // else. Saves: this floor and every kept one (their own turn is the one they were left on); a paint left on a boss that
@@ -194,13 +222,13 @@ registerStep('start','mark',landMark);
 // The machine gun: set up, sweeping or packing up, it neither turns on a decoy nor shoots a mine. It never keeps the boss
 // from stepping off a hazard: packing up it walks, and its walk steps off one itself (src/enemy-behavior.js packWalk).
 // It goes off in the tree's `special` step (bossSpecial). Saves: a set-up gun off its mount, or on a fallen or stunned
-// boss, is dropped; the sweeps and pack-up rounds left are checked against today's tuning (not cut). `special` names
-// which of mark and gun it tries first.
+// boss, is dropped; the sweeps and pack-up rounds left are cut to today's tuning (3.206.2). `special` names which of mark
+// and gun it tries first.
 registerSpecial({id:'gun',intent:'gun',carries:setsGun,rotation:['mark','gun'],
  fields:{gun:{valid:(v,e,f)=>validGun(e,f.grid)}},
  interrupt:{on:BOSS_REASONS,run:interruptGun},
  blocks:{decoy:true,mine:true},
- load:{stale:e=>{const s=e.gun;return Boolean(s&&typeof s==='object'&&(s.stage==='set'||s.stage==='sweep')&&s.origin&&typeof s.origin==='object'&&!(live(e)&&s.origin.x===e.x&&s.origin.y===e.y));}},
+ load:{clamp:clampGun,stale:e=>{const s=e.gun;return Boolean(s&&typeof s==='object'&&(s.stage==='set'||s.stage==='sweep')&&s.origin&&typeof s.origin==='object'&&!(live(e)&&s.origin.x===e.x&&s.origin.y===e.y));}},
  card:(g,e,aim)=>[gunDeployed(e)?t('target-card.gunSet'):'',aim.gunFlankBonus?t('target-card.gunFlank',{n:aim.gunFlankBonus}):'',e.gun?.stage==='pack'?t('target-card.packing',{n:e.gun.left}):''],
 });
 export const dropStaleBossIntents=g=>dropStaleSpecials(g,['mark','gun']);

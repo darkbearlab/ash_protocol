@@ -39,7 +39,7 @@ import {flameCells,flamerDamage,sprayFlame,burnUnits,ignite,flammable,FIRE_TUNIN
 import {canPaint,paintMark,landedNow} from './loyalist-bosses.js';
 import {hazardTile} from './hazard-paths.js';
 import {unitTree} from './behavior-tree.js';
-import {registerSpecial,registerStep,validSpecials,dropStaleSpecials} from './enemy-specials.js';
+import {registerSpecial,registerStep,validSpecials,dropStaleSpecials,dropAttack} from './enemy-specials.js';
 
 // The user tunes these after playtesting (docs/BOSSES.md section 3).
 // arsonist: `reach` for a wall or a ring (it has to see you that close); `heat` fires before it vents for `vent` of its
@@ -219,7 +219,7 @@ function burnTurn(g,e){
 // goes off from where it warned it — the arsonist's wall or ring, the arsonist's marked spray, 焚線官's set-up sweep.
 // `after` is the tree's after-step (the drone call). True when that took the turn.
 export function rebelBossAction(ctx,after){
- const {g,e,p,los}=ctx,done=()=>{if(los&&p?.hp>0)e.lastKnown={x:p.x,y:p.y};if(e.hp>0)after?.(ctx);return true;};
+ const {g,e,p,los}=ctx,done=()=>{if(los&&p?.hp>0)e.lastKnown={x:p.x,y:p.y};if(e.hp>0){dropAttack(e);after?.(ctx);}return true;};   // dropAttack: 3.206.2
  if(e.fireIntent&&igniteFire(g,e))return done();
  if(e.flameIntent&&sprays(e)){const s=e.flameIntent;delete e.flameIntent;if(at(e,s.origin)){sprayCone(g,e,s.aim);return done();}}
  if(burnDeployed(e)){if(!at(e,e.burn.origin)){delete e.burn;return false;}burnTurn(g,e);return done();}

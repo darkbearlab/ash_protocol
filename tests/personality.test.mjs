@@ -97,16 +97,16 @@ test('矮小: brood never stops a straight move, but nothing lands on one',()=>{
   g.action('wait');assert.ok(b.pounceIntent,'the brood in the lane does not stop the pounce');
 });
 
-test('a pounce in progress survives a save; a tampered one is refused',()=>{
+test('a pounce in progress survives a save; a malformed one is refused, a stale one dropped and a long cooldown cut (3.206.2)',()=>{
   const g=new Game(7,[],0,'soldier','onyx','extraction',{facilityFaction:'swarm'}),b=g.enemies.find(e=>e.type==='crawler');assert.ok(b);
   const floor=(x,y)=>g.grid[y]?.[x]===1;
   const target=[[0,2],[2,0],[0,-2],[-2,0],[1,1],[-1,1],[1,-1],[-1,-1]].map(([dx,dy])=>({x:b.x+dx,y:b.y+dy})).find(t=>floor(t.x,t.y));
   const point=[[1,0],[-1,0],[0,1],[0,-1]].map(([dx,dy])=>({x:target.x+dx,y:target.y+dy})).find(q=>floor(q.x,q.y));
   b.pounceIntent={origin:{x:b.x,y:b.y},target,point};b.pounceCooldown=0;
   const back=Game.restore(g.serialize());assert.ok(back);assert.deepEqual(back.enemies.find(e=>e.id===b.id).pounceIntent,b.pounceIntent);
-  for(const bad of [{point:{x:point.x+5,y:point.y}},{origin:{x:b.x+1,y:b.y}},{cooldown:9}]){
-    const raw=JSON.parse(g.serialize()),e=raw.data.enemies.find(o=>o.id===b.id);
-    if(bad.cooldown)e.pounceCooldown=bad.cooldown;else Object.assign(e.pounceIntent,bad);
-    assert.equal(Game.restore(JSON.stringify(raw)),null,JSON.stringify(bad));
-  }
+  const load=change=>{const raw=JSON.parse(g.serialize());change(raw.data.enemies.find(o=>o.id===b.id));return Game.restore(JSON.stringify(raw));};
+  assert.equal(load(e=>{e.pounceIntent.point={x:point.x+5,y:point.y};}),null,'a landing away from its target');
+  const moved=load(e=>{e.pounceIntent.origin={x:b.x+1,y:b.y};});assert.ok(moved,'a crouch its bug no longer stands on');
+  assert.equal(moved.enemies.find(e=>e.id===b.id).pounceIntent,undefined);assert.equal(moved.enemies.find(e=>e.id===b.id).pounceCooldown,SWARM_TUNING.pounceCooldown);
+  const cut=load(e=>{e.pounceCooldown=9;});assert.ok(cut);assert.equal(cut.enemies.find(e=>e.id===b.id).pounceCooldown,SWARM_TUNING.pounceCooldown);
 });
