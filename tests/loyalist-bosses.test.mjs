@@ -149,10 +149,28 @@ test('架槍: set up it neither moves nor turns, is easier from outside the cone
   for(let i=0;i<G.sweeps;i++){assert.ok(g.action('wait'));assert.deepEqual([b.x,b.y],[16,10],'it cannot move');if(b.gun?.aim)assert.deepEqual(b.gun.aim,aim,'nor turn');}
   assert.deepEqual(b.gun,{stage:'pack',left:G.packUp});
   const hp=g.player.hp;
-  for(let i=0;i<G.packUp;i++){assert.ok(g.action('wait'));assert.deepEqual([b.x,b.y],[16,10]);}
+  for(let i=0;i<G.packUp;i++)assert.ok(g.action('wait'));   // 3.205.0: it may walk while it packs up (the next test)
   assert.equal(b.gun,undefined,'packed');assert.equal(g.player.hp,hp,'no shot while packing');
   // Then it may set up again (its next special after the gun is the mark, when that is ready).
-  b.special='gun';g.player.x=10;g.player.y=10;g.reveal();assert.ok(g.action('wait'));assert.equal(b.gun?.stage,'set');assert.deepEqual(b.gun.origin,origin);
+  b.special='gun';g.player.x=b.x-6;g.player.y=b.y;g.reveal();assert.ok(g.action('wait'));assert.equal(b.gun?.stage,'set');assert.deepEqual(b.gun.origin,{x:b.x,y:b.y});
+});
+
+test('收槍 (3.205.0, user 2026-09-29: 收槍的冷卻時間可以移動): packing up it walks, off a hazard first, and never fires, marks or sets up',()=>{
+  // Out of its reach: it walks toward you, both rounds.
+  const g=field(),b=boss(g,'gunline',18,10);b.gun={stage:'pack',left:G.packUp};b.markReady=0;g.player.x=4;g.reveal();fixed(g,0);const hp=g.player.hp;
+  assert.ok(g.action('wait'));assert.ok(b.x<18,`it walked: ${b.x}`);assert.deepEqual(b.gun,{stage:'pack',left:1});const x=b.x;
+  assert.ok(g.action('wait'));assert.ok(b.x<x,'and on');assert.equal(b.gun,undefined,'packed');
+  assert.equal(g.player.hp,hp,'no shot');assert.equal(b.markIntent,undefined,'no mark');assert.equal(b.charge,false,'no shot wound up');
+  // In reach and with the mark ready: still nothing but its feet.
+  const h=field(),c=boss(h,'gunline',15,10);c.gun={stage:'pack',left:G.packUp};c.markReady=0;c.special='mark';fixed(h,0);const hhp=h.player.hp;
+  for(let i=0;i<G.packUp;i++){assert.ok(h.action('wait'));assert.equal(c.markIntent,undefined,`round ${i+1}: no mark`);assert.ok(!c.gun||c.gun.stage==='pack',`round ${i+1}: no new gun`);assert.equal(c.charge,false);}
+  assert.equal(h.player.hp,hhp,'no shot in either round');assert.equal(designated(h.player),false);
+  // Next to you and not seeing you (review): it stays put; a walk into you would be a free blind shot.
+  const n=field(),a=boss(n,'gunline',11,10);a.gun={stage:'pack',left:G.packUp};a.markReady=999;a.lastKnown={x:10,y:10};const sight=n.sight.bind(n);n.sight=(x,y)=>x===a&&y===n.player?false:sight(x,y);n.reveal();
+  fixed(n,0);const nhp=n.player.hp;n.enemyAct(a);assert.equal(n.player.hp,nhp,'no blind shot');assert.deepEqual([a.x,a.y],[11,10]);
+  // On a burning tile it steps off first.
+  const k=field(),f=boss(k,'gunline',16,10);f.gun={stage:'pack',left:G.packUp};k.fires=[{x:16,y:10,age:1}];fixed(k,.999);
+  assert.ok(k.action('wait'));assert.notDeepEqual([f.x,f.y],[16,10],'off the fire');
 });
 
 test('架槍 is stopped like a telegraph while it sets up; stunned or pulled while sweeping, it packs up at once',()=>{
@@ -234,7 +252,7 @@ test('a round trip: a floor kept with a fallen boss\'s state comes back from a s
 });
 
 test('SAVE 82: a save from 81 loads unchanged, and a loyalist floor that already holds a warden keeps it',()=>{
-  assert.equal(SAVE_VERSION,82);
+  assert.equal(SAVE_VERSION,83);
   const g=field(),w=makeEnemy('warden',16,10,'old-warden',3,0,'loyalist');g.enemies.push(w);g.facilityFaction='loyalist';
   const raw=JSON.parse(g.serialize());raw.version=81;const loaded=Game.restore(JSON.stringify(raw));
   assert.ok(loaded);assert.equal(loaded.enemies.find(e=>e.id==='old-warden').type,'warden');

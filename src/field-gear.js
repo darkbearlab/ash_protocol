@@ -72,6 +72,7 @@ export function decoyAct(g,e){
  if(distance(e,g.player)<=1){release(g,[e.id]);return false;}
  if(isFlamer(e))return false;   // 3.203.0 review: a flamer has no gun to fire at it; its ordinary turn walks it there
  if(e.gun)return false;   // 3.204.0 review: a boss's set-up gun cannot turn to it, and packing up is no time to fire
+ if(e.tongueIntent||e.chargeIntent)return false;   // 3.205.0: a swarm boss's warned tongue or charge goes off first (src/swarm-bosses.js)
  const d=g.decoy,def=enemyDef(e),range=def?.range||1;
  if(distance(e,d)>range||(range>1?!g.shotClear(e,d):false))return false;
  const damage=def.expendable?def.damage:scaleEnemy(def.damage+floorDamageBonus(g.floor,g.difficultySpec),g.floor,'damage',g.difficultySpec),hit=g.rng()*100<DECOY_TUNING.hit;
@@ -144,7 +145,7 @@ export function checkMines(g){
 // 3.203.0 review: nor a flamer, which has no gun (and a marked cone is a telegraphed attack under way).
 // 3.204.0 review: nor a boss whose machine gun is set up, sweeping or being packed up (src/loyalist-bosses.js): its gun
 // points at its cone, and packing up is no time to fire.
-const canShootMines=e=>!isNoncombatant(e)&&!enemyDef(e)?.expendable&&!['bomber','munition'].includes(enemyDef(e)?.behavior)&&!isFlamer(e)&&!(e.charge||e.grenadeIntent||e.tongueIntent||e.pounceIntent||e.lobIntent||e.flameIntent||e.gun);
+const canShootMines=e=>!isNoncombatant(e)&&!enemyDef(e)?.expendable&&!['bomber','munition'].includes(enemyDef(e)?.behavior)&&!isFlamer(e)&&!(e.charge||e.grenadeIntent||e.tongueIntent||e.pounceIntent||e.lobIntent||e.flameIntent||e.gun||e.chargeIntent);   // chargeIntent: 3.205.0
 export function mineAct(g,e){
  const range=enemyDef(e)?.range||1;
  if(!(g.mines||[]).length||range<=MINE_TUNING.radius||!canShootMines(e))return false;

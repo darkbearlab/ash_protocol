@@ -60,6 +60,7 @@ import {stepOffHazard} from './hazard-paths.js';
 import {VENT_TUNING} from './vent-map.js';
 import {tickFires,burningAt,sprayFlame,flamerTank,validFires,dropStaleFlameIntents,FIRE_TUNING,FLAMETHROWER} from './fire.js';
 import {landMark,markDamage,bossAccuracy,clearDesignation,dropStaleBossIntents,validLoyalistBosses} from './loyalist-bosses.js';
+import {tickSwarmBosses,hatchEgg,crashBonus,dropStaleSwarmIntents,validSwarmBosses} from './swarm-bosses.js';
 import {sweptGrid,sweptClear} from './line-move.js';
 export const LUNGE_TRAIT='lunge',LUNGE_TUNING=Object.freeze({reach:3});
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop,levelCost} from './perks.js';
@@ -196,7 +197,7 @@ export class Game {
   enemyCallout(actor,kind,detail){enemyCallout(this,actor,kind,detail);}
   spawnEnemy(type,x,y,id){const d=this.difficultySpec;return rollEnemyElite(rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,d,this.facilityFaction),this.seed,this.floor,d),this.seed,this.floor,d);}
   actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):enemyWeapon(actor);}
-  meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b)+bossAccuracy(this,a,b));}   // 3.204.0: a boss's mark on you, a set-up gun's flank
+  meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b)+bossAccuracy(this,a,b)+crashBonus(b));}   // 3.204.0: a boss's mark on you, a set-up gun's flank; 3.205.0: a swarm boss dazed against a wall
   defensiveEvasion(a,b){return defensiveEvasion(this,a,b);}
   grapplePlan(id=this.target){return grapplePlan(this,id);}
   get allyTravelSummary(){const near=carryCandidates(this).length,total=this.activeAllies.length;return total?t('game.allyCarry',{near,left:total-near}):'';}
@@ -505,7 +506,7 @@ export class Game {
     if(phase!==null){queue.find(q=>q.actor===p).speed=phase;queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);}
     const recovering=p.recovery>0;if(recovering)p.recovery=0;
     let playerStunned=false;
-    this.turn++;tickTongues(this);tickPounces(this);tickFields(this);tickVents(this);tickFires(this);   // vents: 3.202.0; burning floor: 3.203.0
+    this.turn++;tickTongues(this);tickSwarmBosses(this);tickPounces(this);tickFields(this);tickVents(this);tickFires(this);   // vents: 3.202.0; burning floor: 3.203.0; swarm bosses: 3.205.0
     // 3.145.0 (user decision): suppression wears off (src/suppression.js decayedStacks) when the unit's own turn is over, player and
     // enemies alike, so the stacks it took since its last turn are all felt on this one. The `finally` runs on every skip
     // (`continue`) too: a stunned unit's turn has still passed. A unit with two slots (an anchored double attack) ticks
@@ -516,7 +517,7 @@ export class Game {
       try{
       if(actor.hp<=0||actor.kind&&(actor.status!=='active'||actor.floor!==this.floor))continue;
       if(actor===p&&playerStunned)continue;
-      actor.vaultExposed=false;
+      actor.vaultExposed=false;delete actor.crashed;   // crashed: 3.205.0, a swarm boss's +20 lasts until its own next turn, as the vault's does
       if(actor===p&&recovering){playerStunned=true;p.fireChain=null;this.log(t('game.chainsawSkip'),true);continue;}
       if(skipDisabled(actor)){if(actor===p){playerStunned=true;this.log(t('game.disabledSkip'),true);}continue;}
       const immunityBefore=actor.control?.immune||0;
@@ -925,15 +926,19 @@ export class Game {
   hurt(e,damage,attacker=null,cause=null) {
     if(e.hp<=0||!shotDamageAllowed(this,e))return;
     if(attacker===this.player)noticeAttack(this,e);
-    const beforeHp=e.hp;e.hp-=damage;injuryCallout(this,e,beforeHp);if(damage>0)orderHit(this,e);this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
+    // 3.205.0: a swarm boss's bite or charge on one of its own (src/swarm-bosses.js, 敵我不分) is not yours: not in your
+    // damage count (review), not your kill, xp or scrap (below), and the log says who did it.
+    const ownKind=Boolean(attacker&&attacker!==e&&this.enemies.includes(attacker)&&enemyDef(attacker)?.tongue);
+    const beforeHp=e.hp;e.hp-=damage;injuryCallout(this,e,beforeHp);if(damage>0)orderHit(this,e);if(!ownKind)this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
     // 3.202.0: a hazard's damage is logged only for an enemy you can see; the floor does not report on the ones you cannot.
-    if(cause){if(this.teamVisible(e))this.log(t(`game.stepped.${cause}`,{target:enemyName(e),damage}),false,t(`game.stepped.${cause}Real`,{target:enemyName(e)}));}else this.log(t('game.hit',{target:enemyName(e),damage}),false,t('game.hitReal',{target:enemyName(e)}));
+    if(cause){if(this.teamVisible(e))this.log(t(`game.stepped.${cause}`,{target:enemyName(e),damage}),false,t(`game.stepped.${cause}Real`,{target:enemyName(e)}));}else if(ownKind)this.log(t('swarmBosses.hitOwn',{enemy:enemyName(attacker),target:enemyName(e),damage}),false,t('swarmBosses.hitOwnReal',{enemy:enemyName(attacker),target:enemyName(e)}));else this.log(t('game.hit',{target:enemyName(e),damage}),false,t('game.hitReal',{target:enemyName(e)}));
     if(e.hp>0)return;
     if(isNoncombatant(e)){this.log(t('game.civilianDown',{target:enemyName(e)}));enemyDeath(this,e);return;}
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
     // 3.127.0: an enforcer's execution is not the player's kill, and a conscript pays out nothing.
-    const executed=isEnforcer(attacker);
+    // 3.205.0: nor is a swarm boss's bite or charge on one of its own (`ownKind` above): no kill, xp or scrap.
+    const executed=isEnforcer(attacker)||ownKind;
     if(!executed)this.player.kills++;if(!e.expendable&&!executed&&simulationUpgrades(this))this.player.xp+=enemyKillXp(e);
     if(!e.expendable&&!e.conscript&&!executed&&simulationDrops(this))this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
     this.log(t('game.killed',{target:enemyName(e)}));if(missionTarget(this,e))this.log(sentence(this.missionSummary));salvageBlueprint(this,e,attacker);
@@ -1118,6 +1123,7 @@ export class Game {
   noticeAttack(e){noticeAttack(this,e);}
   enemyAct(e){
     landMark(this,e);   // 3.204.0: a boss's paint lands first, wherever you are (src/loyalist-bosses.js)
+    hatchEgg(this,e);   // 3.205.0: the matriarch's egg sac hatches as her turn begins; not her action (src/swarm-bosses.js)
     if(decoyAct(this,e))return;   // 3.144.0
     if(mineAct(this,e))return;    // 3.145.0: shoot a mine it watched go down
     return this.enemyOpportunity(e);
@@ -1565,7 +1571,10 @@ export class Game {
       // 3.204.0 (SAVE 82): a save from before has no loyalist boss with a paint or a gun and no mark on you, so nothing is
       // converted (a floor already holding a warden or a core guard keeps it); a stale paint or gun is dropped, not refused.
       dropStaleBossIntents(g);
-      if(!validRuntime(g)||!validVents(g)||!validFires(g)||!validLoyalistBosses(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
+      // 3.205.0 (SAVE 83): a save from before has no charge, egg sac or laid nest and nothing to convert; a warned tongue
+      // or charge whose boss fell, was stunned, pinned or moved (or an egg whose matriarch fell) is dropped, not refused.
+      dropStaleSwarmIntents(g);
+      if(!validRuntime(g)||!validVents(g)||!validFires(g)||!validLoyalistBosses(g)||!validSwarmBosses(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
       if(version<32)g.shadowSteps=0;
       // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
       // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run

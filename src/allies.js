@@ -1,5 +1,5 @@
 import {t} from './i18n.js';
-import {isBossClass,isNoncombatant,ALLY_BASE_TYPES} from './enemy-data.js';
+import {isBossClass,isNoncombatant,ALLY_BASE_TYPES,hasEnemyTag} from './enemy-data.js';
 import {pinned,finishSuppression} from './suppression.js';
 import {petRank} from './pet-growth.js';
 import {PET_TETHER,petMoved,syncPetSenses,petReactions,newPetBond,petMaximum,petWeapon,petFuelCost,petCombat,transportPet,placePet} from './pet-growth.js';
@@ -7,7 +7,7 @@ import {PET_TETHER,petMoved,syncPetSenses,petReactions,newPetBond,petMaximum,pet
 import {combatStep} from './tactics.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {floorLimit} from './endless.js';
-import {ENEMY_TYPES,SIZE} from './data.js';
+import {ENEMY_TYPES,SIZE,VOID} from './data.js';
 import {weaponStats,volleyAt} from './weapons.js';
 import {shotgunBand} from './shotgun.js';
 import {AMMUNITION} from './ammunition.js';
@@ -369,7 +369,7 @@ export function validAllies(g){
   if(a.missionId!==null&&(typeof a.missionId!=='string'||!/^[a-zA-Z0-9_-]{1,80}$/.test(a.missionId)))return false;
   if(a.kind==='drone'&&!Object.hasOwn(UNIT_SOURCES,a.sourceId)||(a.sourceId==='drone_munition'?!(typeof a.payload==='string'&&Object.hasOwn(GRENADES,a.payload)):a.payload!==undefined)||a.weapon!==undefined&&(a.kind!=='drone'||!['drone_follow','drone_sentry'].includes(a.sourceId)||a.status!=='active'||!Number.isInteger(a.weapon))||a.primed!==undefined&&(a.kind!=='drone'||!['unit_bomber','unit_warden'].includes(a.sourceId)||a.status!=='active'||a.primed!==true)||a.bombard!==undefined&&(a.kind!=='drone'||a.sourceId!=='unit_boss'||a.status!=='active'||a.bombard!==true)||a.kind==='pet'&&a.sourceId!=='pet_command'||a.kind==='summon'&&a.sourceId!=='raise_dead'||a.kind==='survivor'&&a.sourceId!==null&&typeof a.sourceId!=='string')return false;
   if(a.order!==null&&(!a.order||![a.order.x,a.order.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE)))return false;
-  if(a.status==='active'){if(a.floor===g.floor&&(key(a)===key(g.player)||g.enemies.some(e=>e.hp>0&&key(e)===key(a))))return false;const k=a.floor+':'+key(a);if(occupiedCells.has(k))return false;occupiedCells.add(k);const grid=a.floor===g.floor?g.grid:g.floorStates?.[a.floor]?.grid;if(grid&&grid[a.y]?.[a.x]!==1)return false;}
+  if(a.status==='active'){if(a.floor===g.floor&&(key(a)===key(g.player)||g.enemies.some(e=>e.hp>0&&key(e)===key(a))))return false;const k=a.floor+':'+key(a);if(occupiedCells.has(k))return false;occupiedCells.add(k);const grid=a.floor===g.floor?g.grid:g.floorStates?.[a.floor]?.grid,cell=grid?.[a.y]?.[a.x];if(grid&&cell!==1&&!(cell===VOID&&hasEnemyTag(a,'flying')))return false;}   // 3.205.0 review: a flying unit may end a turn over a pit (it moves there; PITS.md)
  }
  return g.allies.filter(a=>a.kind==='pet').length<=1&&dronesPerFloorValid(g)&&g.allies.filter(a=>a.kind==='summon'&&a.status==='active').length<=summonLimit(g.player);
 }

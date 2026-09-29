@@ -15,7 +15,8 @@
 //   five rounds, and everyone in the cone takes a suppression stack each round, hit or not (a hit adds the belt's usual
 //   stack; three stacks pin, docs/SUPPRESSION.md).
 // - Set up, it cannot move or turn, and a shot or blow from outside the cone gets +15 on it. After the third sweep it
-//   packs up for two rounds (stage 'pack': no move, no shot, no mark; Claude's call), and only then can it set up again.
+//   packs up for two rounds (stage 'pack': no shot, no mark, no new gun), and only then can it set up again. 3.205.0 (user
+//   2026-09-29, 收槍的冷卻時間可以移動): while it packs up it may walk, as any unit walks (3.204.0 had it stand still).
 // - Disabled, pulled or killed while it sets up, the gun is dropped; during the sweep it packs up at once.
 // - Neither special starts in the round a mark lands or while a shot is charged, so between them both attack as the
 //   chassis they share (the warden's, the core guard's). Both call drones at half health, unannounced, as before.
@@ -118,10 +119,11 @@ export function sweepGun(g,e){
  }
  finishSuppression(inside,hits,T.rounds,T.stacks,g);
 }
-// The gun's part of the boss's turn: sweeping, or packing up. False when there is nothing to do with it.
-function gunTurn(g,e){
+// The gun's part of the boss's turn: sweeping, or packing up (3.205.0: `walk`, the tree's own walk, takes it where it
+// would go — off a hazard first — and nothing else). False when there is nothing to do with it.
+function gunTurn(g,e,walk){
  const gun=e.gun,T=BOSS_TUNING.gun;
- if(gun.stage==='pack'){if(gun.left>1)gun.left--;else delete e.gun;return true;}
+ if(gun.stage==='pack'){if(gun.left>1)gun.left--;else delete e.gun;walk?.();return true;}
  if(e.x!==gun.origin.x||e.y!==gun.origin.y){delete e.gun;return false;}   // off its mount without being stopped: gone
  sweepGun(g,e);
  const left=(gun.stage==='set'?T.sweeps:gun.left)-1;
@@ -144,10 +146,11 @@ export function interruptBoss(actor,reason){
 const order=e=>setsGun(e)?(e.special==='gun'?['gun','mark']:['mark','gun']):specials(e);
 const canPaint=(g,e)=>marksYou(e)&&!e.markIntent&&g.turn>=(e.markReady??0)&&g.player.hp>0&&g.sight(e,g.player);
 const canDeploy=(g,e,p,los)=>setsGun(e)&&!e.gun&&!landedNow(g,e)&&los&&p.hp>0&&distance(e,p)<=BOSS_TUNING.gun.range&&gunCells(g,e,p).some(q=>q.x===p.x&&q.y===p.y);
-// `after` is the tree's own after-step (the drone call), run when the special took the turn.
-export function bossSpecial(ctx,after){
+// `after` is the tree's own after-step (the drone call), run when the special took the turn; `walk` (3.205.0) is its
+// plain walk, for the pack-up rounds.
+export function bossSpecial(ctx,after,walk){
  const {g,e,p,los}=ctx;
- if(e.gun&&gunTurn(g,e)){if(e.hp>0)after?.(ctx);return true;}
+ if(e.gun&&gunTurn(g,e,()=>walk?.(ctx))){if(e.hp>0)after?.(ctx);return true;}
  if(e.charge||hazardTile(g,e.x,e.y,e))return false;   // a charged shot goes first; off a hazard before anything
  for(const kind of order(e)){
   if(kind==='mark'&&canPaint(g,e))paintMark(g,e);

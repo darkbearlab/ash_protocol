@@ -71,7 +71,12 @@ test('lines: a boss\'s own intro when it has one, the generic line otherwise; th
   assert.equal(line('wren','designator').line,'comms.wren.introLoyal3.1');assert.equal(line('wren','designator').expression,'surprised');
   assert.equal(line('egret','gunline').line,'comms.egret.introLoyal6.1');assert.equal(line('egret','gunline').expression,'serious');
   assert.equal(line('wren','gunline').line,'comms.wren.introLoyal6.1');assert.equal(line('wren','gunline').expression,'alarmed');
-  for(const type of ['warden','boss','hive_beast','hive_matriarch'])for(const speaker of ['egret','wren'])assert.match(line(speaker,type).line,new RegExp(`^comms\\.${speaker}\\.boss\\.`),`${speaker}:${type}`);
+  // 3.205.0: the swarm bosses' own lines (the user's final picks), faces as reviewed.
+  assert.deepEqual(line('egret','hive_beast'),{speaker:'egret',line:'comms.egret.introBeast.1',vars:{name:ENEMY_TYPES.hive_beast.name},expression:'alarmed'});
+  assert.equal(line('wren','hive_beast').line,'comms.wren.introBeast.1');assert.equal(line('wren','hive_beast').expression,'surprised');
+  assert.equal(line('egret','hive_matriarch').line,'comms.egret.introMatriarch.1');assert.equal(line('egret','hive_matriarch').expression,'worried');
+  assert.equal(line('wren','hive_matriarch').line,'comms.wren.introMatriarch.1');assert.equal(line('wren','hive_matriarch').expression,'alarmed');
+  for(const type of ['warden','boss'])for(const speaker of ['egret','wren'])assert.match(line(speaker,type).line,new RegExp(`^comms\\.${speaker}\\.boss\\.`),`${speaker}:${type}`);
   for(const type of ['designator','warden'])assert.equal(line('overseer',type),null,'the overseer says nothing, as before');
   assert.match(resolveComms(line('egret','designator')).text,new RegExp(ENEMY_TYPES.designator.name));
   assert.equal(bossKillLine('egret',false),null,'no line claiming an exit that is still shut');
@@ -79,11 +84,12 @@ test('lines: a boss\'s own intro when it has one, the generic line otherwise; th
   assert.equal(bossKillLine('egret',true,pick(.99)).line,'comms.egret.bossKill.2');assert.equal(bossKillLine('egret',true,pick(.99)).expression,'serious');
   assert.equal(bossKillLine('wren',true,pick(0)).expression,'grin');assert.equal(bossKillLine('wren',true,pick(.99)).expression,'sigh');
   assert.equal(bossKillLine('overseer',true),null);
-  for(const speaker of ['egret','wren'])for(const event of ['introLoyal3','introLoyal6','bossKill']){
+  for(const speaker of ['egret','wren'])for(const event of ['introLoyal3','introLoyal6','introBeast','introMatriarch','bossKill']){
     assert.ok(COMMS_LINES[speaker][event]?.length,`${speaker}.${event}`);assert.ok(COMMS_EXPRESSIONS[speaker][event],`${speaker}.${event} face`);
     for(const entry of COMMS_LINES[speaker][event]){const id=typeof entry==='string'?entry:entry.id;assert.ok(zh[id]&&en[id],id);
       const face=typeof entry==='string'?COMMS_EXPRESSIONS[speaker][event]:entry.expression;assert.ok(Object.hasOwn(COMMS_SPEAKERS[speaker].expressions,face),`${id}: ${face}`);}}
   assert.equal(ENEMY_TYPES.designator.intro,'introLoyal3');assert.equal(ENEMY_TYPES.gunline.intro,'introLoyal6');assert.equal(ENEMY_TYPES.warden.intro,undefined);
+  assert.equal(ENEMY_TYPES.hive_beast.intro,'introBeast');assert.equal(ENEMY_TYPES.hive_matriarch.intro,'introMatriarch');
 });
 
 test('each scene plays once per boss, for the run on screen',()=>{

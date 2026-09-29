@@ -57,7 +57,7 @@ export function costToGoal(g,actor,goal,limit=Infinity){
 // where it last knew you), so it never steps back off its own route and shuttles; walking on along the route takes it off
 // just the same. Not while pinned, resting (fodder), or committed to a telegraphed move (a wound-up shot, a grenade,
 // a tongue, a pounce, a lob). Noncombatants are left to their own flight. Returns true when it moved.
-const COMMITTED=Object.freeze(['charge','grenadeIntent','tongueIntent','pounceIntent','lobIntent','flameIntent']);   // flameIntent: 3.203.0
+const COMMITTED=Object.freeze(['charge','grenadeIntent','tongueIntent','pounceIntent','lobIntent','flameIntent','chargeIntent']);   // flameIntent: 3.203.0; chargeIntent: 3.205.0
 export function stepOffHazard(g,e,goal,{pinned=()=>false,occupied=()=>false}={}){
  if(!avoidsHazards(e)||!hazardTile(g,e.x,e.y,e)||pinned(e)||e.actionDelay>0||COMMITTED.some(f=>e[f]))return false;
  const costs=goal?costToGoal(g,e,goal):null,here=costs?.get(key(e))??Infinity,cost=q=>costs?.get(key(q))??Infinity;

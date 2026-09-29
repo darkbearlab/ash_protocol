@@ -1,5 +1,6 @@
 import {t} from './i18n.js';
-import {poisonHit,tongueAction,infectedDeath} from './swarm.js';
+import {poisonHit,useTongueHooks,infectedDeath} from './swarm.js';
+import {swarmBossAction} from './swarm-bosses.js';
 import {civilianAction} from './civilians.js';
 import {hasEnemyTag,enemyDef} from './enemy-data.js';
 import {observeEnemy} from './callouts.js';
@@ -182,8 +183,15 @@ registerUnitTree('boss',{beforeAttack:({g,e,p})=>{if((e.attackCount||0)%2!==1||e
 registerUnitTree('warden',{after:reinforce});
 // 3.204.0 loyalist bosses (src/loyalist-bosses.js): 標定官 marks, 火線官 marks and sets up its machine gun, taking turns;
 // between them they fight as the warden and the core guard do, and call drones at half health.
+// 3.205.0 (user 2026-09-29, 收槍的冷卻時間可以移動): packing up its gun, 火線官 walks as any unit does — off a hazard
+// first, then toward where it would fight from — and does nothing else: no shot wound up, no mark, no new gun.
+function packWalk(ctx){
+ const {g,e,p,los,d}=ctx;e.charge=false;e.aim=null;
+ if(stepOffHazard(g,e,e.order?.at||(los?p:e.lastKnown||e.aim),{pinned,occupied})||d>16||distance(e,p)<=1)return;   // next to you it stays (a walk into you would be a blind shot)
+ move(ctx);if(e.moved)enemyCallout(g,e,'state',{state:'move'});
+}
 registerUnitTree('designator',{special:ctx=>bossSpecial(ctx,reinforce),after:reinforce});
-registerUnitTree('gunline',{special:ctx=>bossSpecial(ctx,reinforce),after:reinforce});
+registerUnitTree('gunline',{special:ctx=>bossSpecial(ctx,reinforce,packWalk),after:reinforce});
 // 3.125.0: the squad leader spends its turn commanding; its soldiers answer on a branch that runs before they would
 // charge, so deployment and suppression replace the shot without touching any other card's behaviour.
 registerUnitTree('squad_leader',{before:squadLeaderAct});
@@ -192,7 +200,7 @@ useSquadAttack(attack);
 registerUnitTree('enforcer',{before:enforcerAct});
 // 3.131.0: a rebel's hiding is its retreat order now (src/rebels.js), run with the other orders before the affixes.
 useRebelHooks({attack,grenade});
-usePounceHooks({attack});
+usePounceHooks({attack});useTongueHooks({attack});   // 3.205.0: the tongue bites what it catches
 // 3.133.0 personality (docs/ORDERS.md §8.1): a unit with no order checks the kinds its personality accepts, in that
 // order, and takes the first whose moment has come. Units of a faction without a table keep the old checks.
 const SELF={retreat:selfRetreat,ambush:selfAmbush,hold:selfHold,flank:selfFlank};
@@ -214,7 +222,9 @@ export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(
  // walking off first left the mark behind, drawn where no spray would come.
  if(isFlamer(e)&&e.flameIntent){if(los)e.lastKnown={x:p.x,y:p.y};flamerAct(ctx);return false;}
  // 3.189.0 survival hooks go through the game (src/game.js), so this module does not import src/survival.js.
- if(tongueAction(ctx)||pounceAction(ctx)||lobAction(ctx)||(g.survival&&g.survivalAction(ctx,move))||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};
+ // 3.205.0 (src/swarm-bosses.js): a swarm boss's warned tongue or charge goes off first, from where it was announced,
+ // before an order or a survival walk could move it; then its specials (charge, nest, tongue) in the card's order.
+ if(swarmBossAction(ctx)||pounceAction(ctx)||lobAction(ctx)||(g.survival&&g.survivalAction(ctx,move))||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};
  // 3.204.0: a loyalist boss's gun (set up, it sweeps or packs up and nothing else) and its specials, before it walks.
  if(tree.special?.(ctx))return;
  if(stepOffHazard(g,e,e.order?.at||known,{pinned,occupied}))return;   // 3.201.0 (src/hazard-paths.js): off a hazard, never backwards

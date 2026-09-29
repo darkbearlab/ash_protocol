@@ -58,6 +58,9 @@ export const COMMS_LINES=Object.freeze({
   // in place of `boss` when it has one (its card's `intro`), and the kill, which also says the exit is open.
   introLoyal3:['comms.egret.introLoyal3.1'],
   introLoyal6:['comms.egret.introLoyal6.1'],
+  // 3.205.0: the swarm bosses' own intros (the user's final picks from the same review).
+  introBeast:['comms.egret.introBeast.1'],
+  introMatriarch:['comms.egret.introMatriarch.1'],
   bossKill:['comms.egret.bossKill.1',{id:'comms.egret.bossKill.2',expression:'serious'}],
  }),
  wren:Object.freeze({
@@ -78,6 +81,8 @@ export const COMMS_LINES=Object.freeze({
   survivalLost:[{id:'comms.wren.survivalLost.1',expression:'sheepish'},'comms.wren.survivalLost.2'],
   introLoyal3:['comms.wren.introLoyal3.1'],
   introLoyal6:['comms.wren.introLoyal6.1'],
+  introBeast:['comms.wren.introBeast.1'],
+  introMatriarch:['comms.wren.introMatriarch.1'],
   bossKill:['comms.wren.bossKill.1',{id:'comms.wren.bossKill.2',expression:'sigh'}],
  }),
  // contact (first enemy on a floor: kill them all) and researcher (kill them), once written; for a death he says
@@ -86,8 +91,8 @@ export const COMMS_LINES=Object.freeze({
 });
 // The face each speaker makes for an event (3.170.0); a line may carry its own ({id, expression}).
 export const COMMS_EXPRESSIONS=Object.freeze({
- egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed',extractApproved:'speaking',extracted:'relieved',survivalWave:'serious',survivalHunt:'serious',survivalPressed:'alarmed',survivalLost:'worried',introLoyal3:'serious',introLoyal6:'serious',bossKill:'relieved'}),
- wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad',extractApproved:'grin',extracted:'grin',survivalWave:'determined',survivalHunt:'determined',survivalPressed:'alarmed',survivalLost:'sad',introLoyal3:'surprised',introLoyal6:'alarmed',bossKill:'grin'}),
+ egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed',extractApproved:'speaking',extracted:'relieved',survivalWave:'serious',survivalHunt:'serious',survivalPressed:'alarmed',survivalLost:'worried',introLoyal3:'serious',introLoyal6:'serious',introBeast:'alarmed',introMatriarch:'worried',bossKill:'relieved'}),
+ wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad',extractApproved:'grin',extracted:'grin',survivalWave:'determined',survivalHunt:'determined',survivalPressed:'alarmed',survivalLost:'sad',introLoyal3:'surprised',introLoyal6:'alarmed',introBeast:'surprised',introMatriarch:'alarmed',bossKill:'grin'}),
 });
 // A message from `speaker` for `event`, or null when that speaker has nothing to say about it.
 export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_LINES,expressions=COMMS_EXPRESSIONS}={}){

@@ -10,7 +10,7 @@ import {lineReason} from './lines.js';
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
-import {enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL,spriteToneRole,VENOM_VISUAL,TONGUE_VISUAL,SPRITE_NAMES,AFTERMATH_NAMES} from './enemy-visuals.js';
+import {enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL,spriteToneRole,VENOM_VISUAL,TONGUE_VISUAL,CHARGE_VISUAL,EGG_VISUAL,SPRITE_NAMES,AFTERMATH_NAMES} from './enemy-visuals.js';
 import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
 import {NEST_ATLAS,drawNest,drawNestEffect,drawNestSprite,drawPortalEffect} from './nest-art.js';
 import {DECAL_ATLAS,FactionDecals} from './faction-decals.js';
@@ -55,6 +55,7 @@ import {fxSheet,fxFrame,fxField,fxFieldFailed,FX_SMOKE_ALPHA} from './fx-sprites
 import {ventStage,VENT_COLOR} from './vents.js';
 import {fireRow,flameCells,burningAt,liveFlameIntent} from './fire.js';
 import {BOSS_TUNING,gunCells,liveGun,liveMarkIntent,designated} from './loyalist-bosses.js';
+import {chargeLanes,eggSacs} from './swarm-bosses.js';
 // Cloud colours: fill and puffs (3.134.0; haze and steam 3.202.0).
 const CLOUD_TONES=Object.freeze({smoke:['#abc1cd66','#d4dfe84a'],toxic:['#8fbf4a55','#c6e5864a'],spore:['#9c7d5366','#c8ad874a'],haze:['#c9d3da2e','#e6edf236'],steam:['#e3f1f55c','#ffffff52']});
 // cloudField's stacks, back to front: where in the texture (texture pixels), drift (texture pixels a second), opacity and
@@ -292,6 +293,9 @@ export class Renderer {
     for(const e of g.enemies)if(liveFlameIntent(e))this.flameArea(flameCells(g,e.flameIntent.origin,e.flameIntent.aim).filter(q=>g.visible(q)),'#f0643c30','#ff8d5ccc');
     // 3.204.0 (src/loyalist-bosses.js): a boss's set-up machine gun — its cone amber while it sets up, red while it sweeps,
     // with the sweeps still to come by the boss.
+    // 3.205.0 (src/swarm-bosses.js): a swarm boss's charge lane, every tile of it you can see, and the matriarch's egg sac.
+    for(const lane of chargeLanes(g))this.chargeLane(lane,time);
+    for(const sac of eggSacs(g))if(g.visible(sac))this.eggSac(sac,time);
     for(const e of g.enemies)if(liveGun(e)){const sweep=e.gun.stage==='sweep';this.flameArea(gunCells(g,e.gun.origin,e.gun.aim).filter(q=>g.visible(q)),sweep?'#e8503c2e':'#f0b43c24',sweep?'#ff7a5cbb':'#ffd27a99');if(g.visible(e)){const a=this.project(e.x,e.y);this.text(String(sweep?e.gun.left:BOSS_TUNING.gun.sweeps),a.x+t*.36,a.y-t*.3,sweep?'#ff9a7c':'#ffd27a',12);}}
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
     // 3.123.0: a flare's aim shows exactly the tiles it would light now (shadows and full cover stay unmarked).
@@ -339,8 +343,10 @@ export class Renderer {
     // Tongue pulls (3.84.1): the announced line to the grabbed tile and the landing tile, only for bosses the player can see.
     for(const tongue of tongueTelegraphs(g)){
       const source=g.visibleEnemies.find(e=>e.id===tongue.sourceId);if(!source)continue;
-      const a=this.projectActor(source),b=this.project(tongue.target.x,tongue.target.y),l=this.project(tongue.landing.x,tongue.landing.y);
-      c.setLineDash([4,3]);this.line(a.x,a.y,b.x,b.y,TONGUE_VISUAL.line,2);c.setLineDash([]);
+      // 3.205.0: the whole line it will fly along (to its reach or the first wall): the first body on it is caught.
+      for(const q of tongue.lane)if(g.visible(q)){const m=this.project(q.x,q.y);this.box(m.x-t*.4,m.y-t*.4,t*.8,t*.8,TONGUE_VISUAL.lane);}
+      const end=tongue.lane[tongue.lane.length-1]||tongue.target,a=this.projectActor(source),b=this.project(tongue.target.x,tongue.target.y),l=this.project(tongue.landing.x,tongue.landing.y),z=this.project(end.x,end.y);
+      c.setLineDash([4,3]);this.line(a.x,a.y,z.x,z.y,TONGUE_VISUAL.line,2);c.setLineDash([]);
       this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,TONGUE_VISUAL.fill,TONGUE_VISUAL.edge);this.box(l.x-t*.28,l.y-t*.28,t*.56,t*.56,'#00000000',TONGUE_VISUAL.landing);
     }
     // Stains stamped on this floor's layer as drops land (never saved), then the layer; the fallen operative's pool.
@@ -373,7 +379,7 @@ export class Renderer {
       if(shot&&fx.flash){fx.shooterSeen??=fx.type==='enemyShot'?g.visibleEnemies.some(e=>e.x===fx.from.x&&e.y===fx.from.y):g.visible(fx.from);if(fx.shooterSeen)this.muzzleFlash(fx,a,angle,elapsed);}
       if(fx.type==='flame'){this.flameBurst(fx,elapsed);c.globalAlpha=1;continue;}   // 3.203.0
       if(fx.type==='flameTelegraph'){c.globalAlpha=1;continue;}   // its cone is drawn from the game state
-      if(fx.type==='bossTelegraph'){if(fx.kind==='marked'&&elapsed<320){c.globalAlpha=1-elapsed/320;this.line(a.x,a.y,b.x,b.y,'#ff5a5a',2.5);this.box(b.x-t*.45,b.y-t*.45,t*.9,t*.9,'#ff3b3b33','#ff6a6a');}c.globalAlpha=1;continue;}   // 3.204.0: drawn from the game state; the landing flashes
+      if(fx.type==='bossTelegraph'){if(fx.kind==='marked'&&elapsed<320){c.globalAlpha=1-elapsed/320;this.line(a.x,a.y,b.x,b.y,'#ff5a5a',2.5);this.box(b.x-t*.45,b.y-t*.45,t*.9,t*.9,'#ff3b3b33','#ff6a6a');}else this.swarmBossEffect(fx,a,b,elapsed);c.globalAlpha=1;continue;}   // 3.204.0: drawn from the game state; the landing flashes
       if(fx.type==='portalSpawn'){if(g.visible(fx.to))drawPortalEffect(c,this.terrainImages?.get(NEST_ATLAS),b,t,elapsed);c.globalAlpha=1;continue;}   // 3.194.0
       if(fx.type==='nestCollapse'||fx.type==='nestSpawn'){if(g.visible(fx.type==='nestCollapse'?fx.from:fx.to))drawNestEffect(c,this.terrainImages?.get(NEST_ATLAS),fx,a,b,t,elapsed);c.globalAlpha=1;continue;}
       if(fx.quiet){
@@ -648,6 +654,33 @@ export class Renderer {
     if(!fire){this.hazard(a,{type:'fire',x:f.x,y:f.y},time);return;}
     this.glow(a.x,a.y,t*.8,'#cf672c44');this.ctx.drawImage(fire.img,fxFrame(time,f.x,f.y,fire.frames)*fire.cell,fire.rows[fireRow(f)]*fire.cell,fire.cell,fire.cell,a.x-t/2,a.y-t/2,t,t);this.glow(a.x,a.y,t*.7,'#f99a381a');}
   // A spray's reach, tile by tile: the flamethrower's aim and a flamer's marked cone.
+  // 3.205.0 (src/swarm-bosses.js): a charge lane with chevrons pointing down it, and a red bar across its end when it will
+  // hit a wall there (and stun itself).
+  chargeLane(lane,time){
+    const g=this.game,t=this.tile,c=this.ctx,{dir}=lane,s=t*.14;
+    for(const q of lane.cells){if(!g.visible(q))continue;const a=this.project(q.x,q.y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,CHARGE_VISUAL.fill,CHARGE_VISUAL.edge);
+      c.globalAlpha=.7+.3*Math.sin(time/110);const x=a.x+dir.x*s*.6,y=a.y+dir.y*s*.6;
+      this.line(x-dir.x*s-dir.y*s,y-dir.y*s-dir.x*s,x,y,CHARGE_VISUAL.chevron,2);this.line(x-dir.x*s+dir.y*s,y-dir.y*s+dir.x*s,x,y,CHARGE_VISUAL.chevron,2);c.globalAlpha=1;}
+    const last=lane.cells[lane.cells.length-1]||lane.origin;
+    if(lane.crash&&g.visible(last)){const a=this.project(last.x+dir.x*.5,last.y+dir.y*.5),h=t*.46;if(dir.x)this.box(a.x-3,a.y-h,6,h*2,CHARGE_VISUAL.wall);else this.box(a.x-h,a.y-3,h*2,6,CHARGE_VISUAL.wall);}
+  }
+  // The matriarch's egg sac: a pale, pulsing sac on the tile it will hatch on next round.
+  eggSac(q,time){
+    const a=this.project(q.x,q.y),t=this.tile,c=this.ctx,beat=1+.06*Math.sin(time/150);
+    this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,EGG_VISUAL.fill,EGG_VISUAL.edge);
+    c.beginPath();c.ellipse(a.x,a.y+t*.05,t*.2*beat,t*.27*beat,0,0,Math.PI*2);c.fillStyle=EGG_VISUAL.sac;c.fill();c.strokeStyle=EGG_VISUAL.vein;c.lineWidth=1.5;c.stroke();
+    this.line(a.x-t*.06,a.y-t*.12,a.x+t*.02,a.y+t*.14,EGG_VISUAL.vein,1);this.box(a.x-t*.1,a.y-t*.12,3,3,EGG_VISUAL.glow);
+  }
+  // The swarm bosses' moments: dust down a charge's path and a burst where it hits the wall, a puff where a body was
+  // knocked aside, and the sac splitting (or crushed) as it hatches.
+  swarmBossEffect(fx,a,b,elapsed){
+    const g=this.game,t=this.tile,c=this.ctx;
+    if(fx.kind==='rush'&&elapsed<450&&(g.visible(fx.from)||g.visible(fx.to))){c.globalAlpha=1-elapsed/450;const n=Math.max(1,Math.round(Math.hypot(b.x-a.x,b.y-a.y)/(t*.5)));for(let i=0;i<=n;i++){const k=i/n,r=2+((i*7)%3);this.box(Math.round(a.x+(b.x-a.x)*k+((i*13)%7-3))-r/2,Math.round(a.y+(b.y-a.y)*k+((i*11)%7-3))-r/2,r,r,CHARGE_VISUAL.dust);}
+      if(fx.crash&&fx.dir&&elapsed<300){const w=this.project(fx.to.x+fx.dir.x*.5,fx.to.y+fx.dir.y*.5);c.globalAlpha=1;this.effectSprite('impact',w,32);}}
+    else if(fx.kind==='shove'&&elapsed<300&&g.visible(fx.to)){c.globalAlpha=1-elapsed/300;for(let i=0;i<6;i++){const th=i*1.05,r=4+elapsed/300*t*.3;this.box(Math.round(b.x+Math.cos(th)*r)-1,Math.round(b.y+Math.sin(th)*r)-1,3,3,CHARGE_VISUAL.dust);}}
+    else if((fx.kind==='hatch'||fx.kind==='eggLost')&&elapsed<420&&g.visible(fx.to)){c.globalAlpha=1-elapsed/420;for(let i=0;i<8;i++){const th=i*.785,r=3+elapsed/420*t*.4;this.box(Math.round(b.x+Math.cos(th)*r)-1,Math.round(b.y+Math.sin(th)*r)-1,3,3,fx.kind==='hatch'?EGG_VISUAL.sac:EGG_VISUAL.vein);}}
+    else if(fx.kind==='charge'&&elapsed<260&&g.visible(fx.from)){c.globalAlpha=1-elapsed/260;this.box(a.x-t*.45,a.y-t*.45,t*.9,t*.9,CHARGE_VISUAL.fill,CHARGE_VISUAL.chevron);}
+  }
   flameArea(cells,fill,stroke){const t=this.tile;for(const {x,y} of cells){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}}
   // 3.203.0: the flamethrower's burst (Codex's flame-burst.png, drawn facing east) on every tile the spray reached that you
   // can see, turned to the spray's direction about the tile's centre and played once, four frames in 600 ms (inside the

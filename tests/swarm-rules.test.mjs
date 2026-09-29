@@ -10,6 +10,9 @@ import {pullLanding} from '../src/melee-classes.js';
 const arena=()=>{const g=affixArena();g.facilityFaction='swarm';return g;};
 const spawn=(g,type,x=14,y=10)=>{const e=g.spawnEnemy(type,x,y,`swarm-${g.enemies.length}`);e.alert=true;e.lastKnown={x:10,y:10};g.enemies.push(e);g.reveal();return e;};
 const sure=g=>{g.rng=Object.assign(()=>0,{state:()=>1});};
+// 3.205.0: the beast charges first and the matriarch lays nests first (src/swarm-bosses.js); these tongue tests hold those
+// on cooldown so the tongue is what the boss does (tests/swarm-bosses.test.mjs covers the rest).
+const tongueOnly=e=>{if(e.type==='hive_beast')e.chargeCooldown=3;if(e.type==='hive_matriarch')e.nestCooldown=6;return e;};
 
 test('venom hits inflict no direct damage or armour loss; stacks cap at four, DOT scales by stacks, medkit and hazmat work',()=>{
  const g=arena(),e=spawn(g,'spitter');sure(g);g.player.plates=20;const hp=g.player.hp;
@@ -29,25 +32,26 @@ test('spitter enters swarm roster at floor three and gains a second entry at sev
  for(const floor of [1,2,3,6,7,60]){assert.equal(factionPool('swarm',floor).filter(t=>t==='spitter').length,floor<3?0:floor<7?1:2);for(const f of ['legacy','loyalist','rebel'])assert.ok(!factionPool(f,floor).includes('spitter'));}
  assert.equal(ENEMY_TYPES.spitter.armor,0);assert.equal(ENEMY_TYPES.spitter.damage,0);assert.equal(ENEMY_TYPES.spitter.loot,undefined);
 });
-test('tongue shares grapple geometry, prepares for an opportunity, then pulls with no damage and a four-paid-turn cooldown',()=>{
- const g=arena(),e=spawn(g,'hive_beast');const plan=tonguePlan(g,e);assert.deepEqual(plan.point,pullLanding(g,g.player,e));const state=g.rng.state();g.enemyAct(e);
+test('tongue lands where the grapple would, prepares for an opportunity, then pulls and bites (3.205.0) with a four-paid-turn cooldown',()=>{
+ const g=arena(),e=tongueOnly(spawn(g,'hive_beast'));const plan=tonguePlan(g,e);assert.deepEqual(plan.point,pullLanding(g,g.player,e));const state=g.rng.state();g.enemyAct(e);
  assert.deepEqual(tongueTelegraphs(g)[0].target,{x:10,y:10});assert.equal(g.player.x,10);assert.equal(g.rng.state(),state);
- g.enemyAct(e);assert.equal(g.player.x,13);assert.equal(g.player.hp,100);assert.equal(e.tongueIntent,undefined);assert.equal(e.tongueCooldown,4);assert.ok(g.effects.some(f=>f.type==='tonguePull'));
+ g.enemyAct(e);assert.equal(g.player.x,13);assert.ok(g.player.hp<100,'bitten in the same action');assert.equal(e.tongueIntent,undefined);assert.equal(e.tongueCooldown,4);assert.ok(g.effects.some(f=>f.type==='tonguePull'));
  // 3.124.0: the pull records a three-tile move; a save taken now must load (it used to be rejected).
  assert.deepEqual(g.player.moveDelta,[3,0]);const reloaded=Game.restore(g.serialize());assert.ok(reloaded);assert.deepEqual(reloaded.player.moveDelta,[3,0]);
  g.player.x=10;for(let n=0;n<3;n++)tickTongues(g);g.enemyAct(e);assert.equal(e.tongueIntent,undefined);tickTongues(g);g.enemyAct(e);assert.ok(e.tongueIntent);
  // The ability is card data, not a boss-ID test.
  ENEMY_TYPES.qa_tongue={...ENEMY_TYPES.crawler,tongue:true};try{const h=arena(),q=spawn(h,'qa_tongue');h.enemyAct(q);assert.ok(q.tongueIntent);}finally{delete ENEMY_TYPES.qa_tongue;}
 });
-test('tongue cancels on stun, pin, death, displacement, target movement or blocked ray; damage alone does not cancel',()=>{
- for(const cause of ['stun','pin','death','displace','move','wall','hurt']){const g=arena(),e=spawn(g,'hive_matriarch');g.enemyAct(e);assert.ok(e.tongueIntent);
+test('tongue cancels on stun, pin, death or displacement and misses a target that left its line or a line a wall now cuts; damage alone does not cancel',()=>{
+ for(const cause of ['stun','pin','death','displace','move','wall','hurt']){const g=arena(),e=tongueOnly(spawn(g,'hive_matriarch'));g.enemyAct(e);assert.ok(e.tongueIntent);
   if(cause==='stun')applyDisruption(e,'biological');if(cause==='pin')applySuppression(e,5);if(cause==='death')g.hurt(e,10000);if(cause==='displace')e.y++;if(cause==='move')g.player.y++;if(cause==='wall')g.grid[10][12]=0;if(cause==='hurt')g.hurt(e,1);
   if(cause==='pin'||cause==='stun'||cause==='death')assert.equal(e.tongueIntent,undefined);
   g.enemyAct(e);assert.equal(e.tongueIntent,undefined);assert.equal(g.player.x,cause==='hurt'?13:10);
  }
 });
-test('tongue needs visible clear five-tile reach and a swept unoccupied path; no passing walls, props or bodies',()=>{
- for(const block of ['range','sight','wall','units','prop']){const g=arena(),e=spawn(g,'hive_beast');if(block==='range')e.x=16;if(block==='sight')g.sight=()=>false;if(block==='wall')for(let y=0;y<27;y++)g.grid[y][12]=0;if(block==='units')for(let y=0;y<27;y++)spawn(g,'crawler',12,y);if(block==='prop')for(let y=0;y<27;y++)g.props.push({id:`p${y}`,type:'cover',x:12,y,hp:10});assert.equal(tonguePlan(g,e),null,block);}
+test('tongue needs sight, a clear shot and its line within five tiles; walls and solid objects stop the line, a body on it is caught instead (3.205.0)',()=>{
+ for(const block of ['range','sight','wall','units','prop']){const g=arena(),e=spawn(g,'hive_beast');if(block==='range')e.x=16;if(block==='sight')g.sight=()=>false;if(block==='wall')for(let y=0;y<27;y++)g.grid[y][12]=0;if(block==='units')for(let y=0;y<27;y++)spawn(g,'crawler',12,y);if(block==='prop')for(let y=0;y<27;y++)g.props.push({id:`p${y}`,type:'cover',x:12,y,hp:10});
+  if(block==='units')assert.ok(tonguePlan(g,e),'bodies no longer stop the announcement: the first one on the line is caught');else assert.equal(tonguePlan(g,e),null,block);}
 });
 test('infection is saved hidden at birth, respects faction isolation, works on fodder and elites, consumes no combat RNG',()=>{
  const g=arena(),before=g.rng.state();for(const type of ['rifleman_infected','raider_infected','fodder']){const e=spawn(g,type);assert.deepEqual(e.affixes.map(a=>a.id),['venomous','brood_host']);assert.ok(e.affixes.every(a=>!a.revealed));}
@@ -62,7 +66,7 @@ test('death brood shares expendable/live caps with nests and other sources; bloc
  for(const mode of ['expendable','live','blocked']){const g=arena(),e=spawn(g,'rifleman_infected');e.hp=0;if(mode==='blocked')for(const [dx,dy] of [[0,-1],[1,0],[0,1],[-1,0]])g.grid[e.y+dy][e.x+dx]=0;else for(let n=0;n<(mode==='live'?RUNTIME_TUNING.liveLimit:RUNTIME_TUNING.expendableLimit);n++)spawn(g,mode==='live'?'crawler':'fodder',1,n%25+1);infectedDeath(g,e);assert.equal(g.enemies.filter(a=>a.broodParent).length,0,mode);}
 });
 test('current save preserves poison, tongue and burst state; older optional state needs no reroll; malformed fields and archive state reject',()=>{
- assert.ok(SAVE_VERSION>=44);const g=arena(),e=spawn(g,'hive_beast');g.enemyAct(e);g.player.poison=4;const raw=g.serialize(),copy=Game.restore(raw);assert.ok(copy);assert.deepEqual(copy.enemies,e?[e]:[]);assert.equal(copy.player.poison,4);assert.equal(copy.rng.state(),g.rng.state());const frame=archiveFloor(g);assert.deepEqual(resumedFloor(frame,g.turn+9).enemies,frame.enemies);
+ assert.ok(SAVE_VERSION>=44);const g=arena(),e=tongueOnly(spawn(g,'hive_beast'));g.enemyAct(e);g.player.poison=4;const raw=g.serialize(),copy=Game.restore(raw);assert.ok(copy);assert.deepEqual(copy.enemies,e?[e]:[]);assert.equal(copy.player.poison,4);assert.equal(copy.rng.state(),g.rng.state());const frame=archiveFloor(g);assert.deepEqual(resumedFloor(frame,g.turn+9).enemies,frame.enemies);
  const old=JSON.parse(raw);old.version=42;delete old.data.enemies[0].tongueIntent;assert.ok(Game.restore(JSON.stringify(old)));
  for(const change of [d=>d.player.poison=7,d=>d.enemies[0].tongueCooldown=-1,d=>d.enemies[0].tongueIntent.target.x=99,d=>d.enemies[0].broodParent='fake',d=>d.enemies[0].tongueIntent=null]){const bad=JSON.parse(raw);change(bad.data);assert.equal(Game.restore(JSON.stringify(bad)),null);}
  const h=arena(),host=spawn(h,'fodder');host.hp=0;infectedDeath(h,host);const archived=archiveFloor(h);assert.ok(validSwarm({...g,floorStates:{1:archived}}));archived.enemies.find(a=>a.broodParent).broodParent='invalid';assert.equal(validSwarm({...g,floorStates:{1:archived}}),false);

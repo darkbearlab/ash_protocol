@@ -70,7 +70,9 @@ export function closedGround(g){
 export function decalPlan(g,{tuning=DECAL_TUNING,exclude=EXCLUDED_CELLS}={}){
  const packs=FACTION_PACKS[g.facilityFaction];if(!packs||!g.grid)return [];
  const T=tuning,seed=g.seed,floor=g.floor,size=g.grid.length;
- const nests=g.props.filter(p=>p.type==='nest');
+ // 3.205.0: only the floor's own nest; the matriarch's laid ones (src/swarm-bosses.js) come later and would move the decals
+ // on a reload.
+ const nests=g.props.filter(p=>p.type==='nest'&&/^nest-\d+-\d+$/.test(p.id));
  const near=(x,y)=>nests.some(h=>Math.abs(h.x-x)+Math.abs(h.y-y)<=T.near);
  const patch=(x,y)=>1+(T.patchMin+(T.patchMax-T.patchMin)*patchNoise(seed,floor,x,y,T.patch)-1)*T.patchiness;
  const chance=(base,x,y)=>base*T.density*patch(x,y)*(near(x,y)?T.nearBoost:1);

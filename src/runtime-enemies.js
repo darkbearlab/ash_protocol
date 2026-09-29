@@ -1,6 +1,6 @@
 import {t} from './i18n.js';
 import {DEFAULT_FACTION,factionDef} from './factions.js';
-import {isNoncombatant} from './enemy-data.js';
+import {isNoncombatant,enemyDef} from './enemy-data.js';
 import {registerUnitTree,unitTree} from './behavior-tree.js';
 import {makeEnemy,random,key,distance,DIRECTIONS,reachable} from './world.js';
 import {roomTiles} from './map-geometry.js';
@@ -51,8 +51,12 @@ registerUnitTree('nest',{tick:({g,nest})=>{
 export function tickNests(g){for(const nest of g.props.filter(p=>p.type==='nest'&&p.hp>0))unitTree(nest).tick({g,nest});}
 export function validRuntime(g){
  const ids=new Set();for(const e of g.enemies){if(ids.has(e.id))return false;ids.add(e.id);if([factionDef(g.facilityFaction??DEFAULT_FACTION).fodder,factionDef(g.facilityFaction??DEFAULT_FACTION).nestChild].includes(e.type)&&(!e.expendable||!e.reinforcement||!Number.isInteger(e.actionDelay)||e.actionDelay<0||e.actionDelay>1))return false;}
- const nests=g.props.filter(p=>p.type==='nest');if(nests.length>RUNTIME_TUNING.nestCount)return false;
- for(const p of nests){const s=p.nest;if(!/^nest-\d+-\d+$/.test(p.id)||ids.has(p.id)||!Number.isFinite(p.hp)||!Number.isFinite(p.maxHp)||p.maxHp<=0||p.hp>p.maxHp||!s||typeof s.active!=='boolean'||!Number.isInteger(s.remaining)||s.remaining<0||!Number.isInteger(s.serial)||s.serial<0||!Number.isInteger(s.total)||s.total<1||s.total>100||s.serial+s.remaining!==s.total||!Number.isInteger(s.interval)||s.interval<1||s.interval>100||!Number.isInteger(s.cooldown)||s.cooldown<0||s.cooldown>s.interval||!s.active&&(s.serial||s.cooldown))return false;ids.add(p.id);}
+ // 3.205.0: the matriarch's laid nests (src/swarm-bosses.js) are hers by id (`<her id>-nest-<n>`) and do not count toward
+ // the generated nest. Review: they are checked in the same loose ranges as it, not against today's numbers, so a save
+ // taken before the user retunes a nest (or holding a spent one) still loads.
+ const mother=p=>{const m=/^(.+)-nest-\d+$/.exec(p.id),e=m&&g.enemies.find(e=>e.id===m[1]);return Boolean(e&&enemyDef(e)?.specials?.includes('nest'));};
+ const nests=g.props.filter(p=>p.type==='nest'),laid=new Set(nests.filter(mother));if(nests.length-laid.size>RUNTIME_TUNING.nestCount)return false;
+ for(const p of nests){const s=p.nest;if(!(laid.has(p)||/^nest-\d+-\d+$/.test(p.id))||ids.has(p.id)||!Number.isFinite(p.hp)||!Number.isFinite(p.maxHp)||p.maxHp<=0||p.hp>p.maxHp||!s||typeof s.active!=='boolean'||!Number.isInteger(s.remaining)||s.remaining<0||!Number.isInteger(s.serial)||s.serial<0||!Number.isInteger(s.total)||s.total<1||s.total>100||s.serial+s.remaining!==s.total||!Number.isInteger(s.interval)||s.interval<1||s.interval>100||!Number.isInteger(s.cooldown)||s.cooldown<0||s.cooldown>s.interval||!s.active&&(s.serial||s.cooldown))return false;ids.add(p.id);}
  for(const e of g.enemies.filter(e=>e.type===factionDef(g.facilityFaction??DEFAULT_FACTION).nestChild&&e.broodParent===undefined&&!e.horde)){const p=nests.find(p=>p.id===e.nestId);if(!p||!Array.from({length:p.nest.serial},(_,i)=>`${p.id}-child-${i+1}`).includes(e.id))return false;}
  return true;
 }

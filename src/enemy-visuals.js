@@ -33,7 +33,11 @@ export const ELITE_VISUAL=Object.freeze({outline:'#f2c45a',corpseOutline:'#8f743
 export const NONCOMBATANT_LABEL=t('enemy-visuals.noncombatant');
 // Swarm presentation (3.84.1, docs/SWARM.md 8): venom blobs and the tongue pull. The rules only announce them (SWARM 6.4).
 export const VENOM_VISUAL=Object.freeze({blob:'#a8c93f',rim:'#e4f59a',drop:'#8fb33a'});
-export const TONGUE_VISUAL=Object.freeze({line:'#e27aa6d0',fill:'#d97aa033',edge:'#f0a3c4',landing:'#f0a3c4aa',flesh:'#c95c86',tip:'#f2b3cf',label:t('enemy-visuals.tongueWindup')});
+export const TONGUE_VISUAL=Object.freeze({line:'#e27aa6d0',fill:'#d97aa033',edge:'#f0a3c4',landing:'#f0a3c4aa',flesh:'#c95c86',tip:'#f2b3cf',lane:'#d97aa02c',label:t('enemy-visuals.tongueWindup')});
+// 3.205.0 swarm bosses (src/swarm-bosses.js): the charge lane — rust red with chevrons down it and a red bar where it hits
+// a wall — and the matriarch's egg sac, in the tongue's pink family so the swarm's warnings read as one set.
+export const CHARGE_VISUAL=Object.freeze({fill:'#e0703c26',edge:'#f0905caa',chevron:'#ffb27ae0',wall:'#ff4a3aee',dust:'#c9a27a'});
+export const EGG_VISUAL=Object.freeze({fill:'#b0609a22',edge:'#e79ad0cc',sac:'#c78ab0',vein:'#7a3a68',glow:'#ffd6f0'});
 // Kill house humanoids draw as holograms (docs/KILLHOUSE.md section 10); campaign enemies keep their colours.
 export const SIMULATION_VISUAL={tint:'#5fd6ea'};
 // 3.134.0: a swarm bomber's sac shows in its colour — green mist, yellow acid, brown spore (docs/SWARM_FIELDS.md).

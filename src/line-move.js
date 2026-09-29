@@ -18,3 +18,24 @@ const unitAt=(g,mover,q)=>[g.player,...g.enemies.filter(a=>a.hp>0),...g.activeAl
 export function sweptClear(g,mover,to,grid=sweptGrid(g,mover)){
  return grid[to.y]?.[to.x]===1&&!unitAt(g,mover,to)&&lineOfSight(grid,mover,to,g.barriers,'move');
 }
+// 3.205.0 (the swarm bosses' tongue, src/swarm.js): the cells a straight line from `from` through `toward` passes, in order,
+// out to `reach` steps (the game's step distance), stopping before the first cell `open(q)` refuses or the first edge
+// `blocks(a,b)` stops. The same traversal as lineOfSight, so a diagonal corner needs one open side; the line runs on
+// past `toward`.
+export function rayCells(from,toward,reach,open,blocks){
+ const dx=toward.x-from.x,dy=toward.y-from.y,sx=Math.sign(dx),sy=Math.sign(dy),out=[];if(!dx&&!dy)return out;
+ const stepX=dx?1/Math.abs(dx):Infinity,stepY=dy?1/Math.abs(dy):Infinity;
+ let x=from.x,y=from.y,tx=dx?.5/Math.abs(dx):Infinity,ty=dy?.5/Math.abs(dy):Infinity;
+ for(let i=0;i<reach*2+2;i++){
+  let next;
+  if(Math.abs(tx-ty)<1e-9){
+   const here={x,y},h={x:x+sx,y},v={x,y:y+sy};next={x:x+sx,y:y+sy};
+   if(!(open(h)&&!blocks(here,h)&&!blocks(h,next))&&!(open(v)&&!blocks(here,v)&&!blocks(v,next)))break;
+   tx+=stepX;ty+=stepY;
+  }else if(tx<ty){next={x:x+sx,y};if(blocks({x,y},next))break;tx+=stepX;}
+  else{next={x,y:y+sy};if(blocks({x,y},next))break;ty+=stepY;}
+  if(Math.abs(next.x-from.x)+Math.abs(next.y-from.y)>reach||!open(next))break;
+  out.push(next);x=next.x;y=next.y;
+ }
+ return out;
+}
