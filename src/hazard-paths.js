@@ -9,9 +9,22 @@ import {roomContains} from './map-geometry.js';
 // for the damage (Game.environmentTurn). Before, only the in-sight combat step charged +4 and every other walker (pursuit,
 // flanking, squads, allies, fleeing civilians) went straight across, so enemies burned or dissolved on acid and fire.
 export const HAZARD_TUNING=Object.freeze({stepCost:40});
-export const hazardTile=(g,x,y)=>Boolean(g.hazards?.some(h=>h.x===x&&h.y===y));
+// 3.202.0: a vent's steam is a hazard for every walker while it hangs there (it scalds), and toxic mist or gas is one for
+// the player's own units (it costs them hp; enemies take no harm from it). The cloud tiles are read once per cloud list.
+const cloudHazards=new WeakMap();
+function clouds(g){
+ let c=cloudHazards.get(g);
+ if(!c||c.smoke!==g.smoke){c={smoke:g.smoke,steam:new Set(),toxic:new Set()};for(const s of g.smoke||[])if(s.kind==='steam'||s.kind==='toxic')for(const q of s.cells)c[s.kind].add(`${q.x},${q.y}`);cloudHazards.set(g,c);}
+ return c;
+}
+const playerSide=actor=>typeof actor?.kind==='string';
+export const hazardTile=(g,x,y,actor=null)=>{
+ if(g.hazards?.some(h=>h.x===x&&h.y===y))return true;
+ if(!g.smoke?.length)return false;
+ const c=clouds(g),k=`${x},${y}`;return c.steam.has(k)||playerSide(actor)&&c.toxic.has(k);
+};
 export const avoidsHazards=actor=>Boolean(actor)&&!hasEnemyTag(actor,'flying');
-export const hazardCost=(g,actor,x,y)=>avoidsHazards(actor)&&hazardTile(g,x,y)?HAZARD_TUNING.stepCost:0;
+export const hazardCost=(g,actor,x,y)=>avoidsHazards(actor)&&hazardTile(g,x,y,actor)?HAZARD_TUNING.stepCost:0;
 // The route searches' door rule: a closed door can be opened on the way, a low barrier vaulted; walls and locks stop it.
 const crossable=(g,a,b)=>{const edge=barrierBetween(g.barriers,a,b);return !edgeBlocks(edge)||edge.type==='door'||vaultable(edge);};
 
@@ -38,12 +51,12 @@ export function costToGoal(g,actor,goal,limit=Infinity){
 // a tongue, a pounce, a lob). Noncombatants are left to their own flight. Returns true when it moved.
 const COMMITTED=Object.freeze(['charge','grenadeIntent','tongueIntent','pounceIntent','lobIntent']);
 export function stepOffHazard(g,e,goal,{pinned=()=>false,occupied=()=>false}={}){
- if(!avoidsHazards(e)||!hazardTile(g,e.x,e.y)||pinned(e)||e.actionDelay>0||COMMITTED.some(f=>e[f]))return false;
+ if(!avoidsHazards(e)||!hazardTile(g,e.x,e.y,e)||pinned(e)||e.actionDelay>0||COMMITTED.some(f=>e[f]))return false;
  const costs=goal?costToGoal(g,e,goal):null,here=costs?.get(key(e))??Infinity,cost=q=>costs?.get(key(q))??Infinity;
  const spots=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).filter(n=>{
   const edge=barrierBetween(g.barriers,e,n);
   if(e.simulationBounds&&!roomContains(e.simulationBounds,n)||e.simulationNoDoors&&edgeBlocks(edge)&&edge.type==='door')return false;
-  return g.passable(n.x,n.y,e)&&!(edgeBlocks(edge)&&!vaultable(edge))&&!hazardTile(g,n.x,n.y)&&!(n.x===g.player.x&&n.y===g.player.y)&&!occupied(g,n,e)&&cost(n)<=here;
+  return g.passable(n.x,n.y,e)&&!(edgeBlocks(edge)&&!vaultable(edge))&&!hazardTile(g,n.x,n.y,e)&&!(n.x===g.player.x&&n.y===g.player.y)&&!occupied(g,n,e)&&cost(n)<=here;
  }).sort((a,b)=>cost(a)-cost(b)||key(a).localeCompare(key(b)));
  const spot=spots[0];if(!spot)return false;
  const edge=barrierBetween(g.barriers,e,spot);

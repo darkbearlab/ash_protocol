@@ -5,7 +5,7 @@ import {mkdtemp,writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const [url='http://localhost:5173/',out='.']=process.argv.slice(2);
+const [url='http://localhost:5174/',out='.']=process.argv.slice(2);
 const dir=await mkdtemp(join(tmpdir(),'ash-bar-'));
 const chrome=spawn('C:/Program Files/Google/Chrome/Application/chrome.exe',['--headless=new','--remote-debugging-port=9338',`--user-data-dir=${dir}`,'--window-size=390,844','about:blank'],{stdio:'ignore'});
 let target;for(let i=0;i<60&&!target;i++){await sleep(200);try{target=(await (await fetch('http://127.0.0.1:9338/json/list')).json()).find(t=>t.type==='page');}catch{}}

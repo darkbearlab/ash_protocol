@@ -11,6 +11,7 @@ import {grantTrait,removeTraitSource} from './traits.js';
 import {enemyDef} from './enemy-data.js';
 import {distance,key} from './world.js';
 import {SIZE} from './data.js';
+import {hazardTile} from './hazard-paths.js';
 
 const SOURCE='order:flank';
 const reachOf=e=>Math.min(enemyDef(e)?.range||1,8);
@@ -22,7 +23,7 @@ export function flankSpot(g,e,target,taken=new Set()){
  for(let y=target.y-reach;y<=target.y+reach;y++)for(let x=target.x-reach;x<=target.x+reach;x++){
   if(x<0||y<0||x>=SIZE||y>=SIZE)continue;
   const q={x,y};if(distance(q,target)>reach||distance(q,target)<2||!g.passable(x,y,e)||taken.has(key(q)))continue;
-  if(others.some(a=>distance(a,q)===0)||g.hazards.some(h=>distance(h,q)===0))continue;
+  if(others.some(a=>distance(a,q)===0)||hazardTile(g,q.x,q.y,e))continue;
   if(!openShot(g,{...e,x,y},target))continue;
   found.push({q,score:(g.protectingCover(q,target)?3:0),near:distance(e,q)});
  }

@@ -119,8 +119,9 @@ function tileChar(g,x,y,marks){
  if(g.missionObjects?.().some?.(t=>!t.done&&t.x===x&&t.y===y))return 'M';
  const items=shownItems(g).filter(i=>i.x===x&&i.y===y);if(items.length)return items.some(i=>i.type==='weapon')?'W':'*';
  if(g.hazards.some(h=>h.x===x&&h.y===y))return 'X';
+ if((g.vents||[]).some(v=>v.x===x&&v.y===y))return 'V';   // 3.202.0 smoke vent (under its own cloud: the cloud shows)
  // 3.134.0: toxic mist '~' (you can see through it), smoke and spore smoke '%'.
- if((g.smoke||[]).some(s=>s.kind==='toxic'&&s.cells.some(c=>c.x===x&&c.y===y)))return '~';
+ if((g.smoke||[]).some(s=>['toxic','haze','steam'].includes(s.kind)&&s.cells.some(c=>c.x===x&&c.y===y)))return '~';   // 3.202.0: light smoke and steam are seen through too
  if((g.smoke||[]).some(s=>s.cells.some(c=>c.x===x&&c.y===y)))return '%';
  if(!g.passable(x,y))return 'o';
  const lit=g.visibleTiles?.has(`${x},${y}`);
@@ -207,7 +208,7 @@ function surroundings(g){
   ...tongueTelegraphs(g).map(t=>`鉤舌：${t.sourceId} 會把 ${at(t.target)} 的人拉到 ${at(t.landing)}`),
   ...(g.reinforcements||[]).filter(s=>g.visible(s)).map(s=>`增援 ${at(s)} 剩 ${Math.max(1,s.due-g.turn)} 輪`)];
  if(threats.length)rows.push(`預告：${threats.join('；')}`);
- const clouds=[...(g.smoke||[]).map(s=>`${s.kind==='toxic'?'毒霧':s.kind==='spore'?'孢子煙':'煙霧'} 剩 ${Math.max(1,s.expires-g.turn)} 輪`),...(g.flares||[]).filter(f=>g.seen[f.y]?.[f.x]).map(f=>`照明彈${at(f)} 剩 ${Math.max(1,f.expires-g.turn)} 輪`),...(g.decoy?[`誘餌${at(g.decoy)} 耐久 ${g.decoy.hp} 剩 ${Math.max(1,g.decoy.expires-g.turn)} 輪，引開 ${g.decoy.fooled.length} 名`]:[]),...(g.mines||[]).map(m=>`地雷${at(m)}${m.seen.length?`（${m.seen.length} 名敵人看見）`:''}`)];
+ const clouds=[...(g.smoke||[]).map(s=>`${s.kind==='toxic'?'毒霧':s.kind==='spore'?'孢子煙':s.kind==='haze'?'淡煙':s.kind==='steam'?'蒸氣':'煙霧'} 剩 ${Math.max(1,s.expires-g.turn)} 輪`),...(g.flares||[]).filter(f=>g.seen[f.y]?.[f.x]).map(f=>`照明彈${at(f)} 剩 ${Math.max(1,f.expires-g.turn)} 輪`),...(g.decoy?[`誘餌${at(g.decoy)} 耐久 ${g.decoy.hp} 剩 ${Math.max(1,g.decoy.expires-g.turn)} 輪，引開 ${g.decoy.fooled.length} 名`]:[]),...(g.mines||[]).map(m=>`地雷${at(m)}${m.seen.length?`（${m.seen.length} 名敵人看見）`:''}`)];
  if(clouds.length)rows.push(clouds.join('；'));
  const allies=(g.localAllies||[]).filter(a=>a.hp>0&&a.status==='active');if(allies.length)rows.push(`友軍：${allies.map(a=>`${a.id}${at(a)} HP ${hp(a)}`).join('、')}`);
  return rows;

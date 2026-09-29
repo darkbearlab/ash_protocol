@@ -18,7 +18,7 @@
 npm start
 ```
 
-電腦開啟 http://localhost:5173 。手機與電腦連上同一 Wi-Fi 後，輸入 `http://電腦的區域網路IP:5173`，必要時允許伺服器的防火牆提示。手機的 localhost 指向手機自己。
+電腦開啟 http://localhost:5174 。手機與電腦連上同一 Wi-Fi 後，輸入 `http://電腦的區域網路IP:5174`，必要時允許伺服器的防火牆提示。手機的 localhost 指向手機自己。
 
 ## 背景
 
@@ -85,6 +85,6 @@ npm run build
 node qa/enemy-data-identity.mjs
 ```
 
-`npm test` 涵蓋地圖生成、戰鬥與道具規則、存檔相容與機器人遊玩；`qa/enemy-data-identity.mjs` 比對地圖生成、任務快照與機器人結果的基準線，規則改動必須逐筆證明差異來源。瀏覽器開發測試用 `http://localhost:5173/?test=1`，與正式存檔隔離。
+`npm test` 涵蓋地圖生成、戰鬥與道具規則、存檔相容與機器人遊玩；`qa/enemy-data-identity.mjs` 比對地圖生成、任務快照與機器人結果的基準線，規則改動必須逐筆證明差異來源。瀏覽器開發測試用 `http://localhost:5174/?test=1`，與正式存檔隔離。
 
 部署到靜態網站根目錄時，包含 index.html、兩份 CSS、src/、assets/、manifest.webmanifest、sw.js。此版為獨立小型遊戲，沒有使用 Jupiter Hell 的程式碼或素材，也未達原作的完整製作規模。

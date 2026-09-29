@@ -24,7 +24,7 @@ export const isSwarm=a=>Boolean(a)&&a.faction==='swarm'&&typeof a.type==='string
 const cellsOf=(g,kind)=>new Set((g.smoke||[]).filter(s=>s.kind===kind).flatMap(s=>s.cells.map(key)));
 export const inToxic=(g,pos)=>cellsOf(g,'toxic').has(key(pos));
 // Every tile the straight line from a to b touches, both ends included.
-function lineCells(a,b){
+export function lineCells(a,b){
  const out=new Map(),steps=Math.max(1,Math.abs(b.x-a.x),Math.abs(b.y-a.y))*4;
  for(let i=0;i<=steps;i++){const t=i/steps,x=Math.round(a.x+(b.x-a.x)*t),y=Math.round(a.y+(b.y-a.y)*t);out.set(`${x},${y}`,{x,y});}
  return [...out.values()];
@@ -101,7 +101,7 @@ export function tickFields(g){
 export function validFields(g){
  const frames=[g,...Object.values(g.floorStates||{})];
  for(const f of frames){
-  if((f.smoke||[]).some(s=>s.kind!==undefined&&!['toxic','spore'].includes(s.kind)))return false;
+  if((f.smoke||[]).some(s=>s.kind!==undefined&&!['toxic','spore','haze','steam'].includes(s.kind)))return false;   // haze, steam: 3.202.0 vents
   for(const e of f.enemies||[]){
    if(e.lobCooldown!==undefined&&(!Number.isSafeInteger(e.lobCooldown)||e.lobCooldown<0||e.lobCooldown>FIELD_TUNING.lobCooldown))return false;
    if(e.lobIntent!==undefined){const s=e.lobIntent,pt=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&f.grid?.[q.y]?.[q.x]===1;

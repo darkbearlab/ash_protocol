@@ -38,7 +38,7 @@ Pages 設定使用 **GitHub Actions** 作為來源。完成一次設定後，後
 
 所有 HTML、圖片、模組和 manifest 使用相對 URL；Service Worker 以模組所在位置解析。禁止重新引入 `/assets/...` 或 `/src/...` 等網域根路徑。
 
-本機可用 `http://localhost:5173/ash_protocol/?test=1` 模擬 GitHub 專案子路徑。Service Worker 在 HTTPS/localhost 生效、快取名稱含版本；新增必要檔案時同步更新 sw.js。
+本機可用 `http://localhost:5174/ash_protocol/?test=1` 模擬 GitHub 專案子路徑。Service Worker 在 HTTPS/localhost 生效、快取名稱含版本；新增必要檔案時同步更新 sw.js。
 
 3.1.2 修正 Pages 的 HTTP 快取干擾：安裝新離線快取時使用 Request cache:reload，線上讀取使用 cache:no-cache 重新驗證。否則 Pages 的 max-age=600 會讓新 Service Worker 再存入舊 JS，導致部署已成功卻仍顯示舊 BUILD。離線仍讀既有快取，不清除玩家存檔。
 

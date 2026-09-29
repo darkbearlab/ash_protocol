@@ -1,14 +1,14 @@
 // Captures the training course's card pictures (3.198.0, src/course-script.js) from the running dev server, with
 // headless Chrome over the DevTools protocol (no packages). Each scene stages the live game through the test-mode hook
 // (__ashSim, src/controller.js) and captures one or more clips; tools/course-art.py joins and writes assets/course/.
-//   node server.mjs            (in another terminal: the dev server on :5173)
+//   node server.mjs            (in another terminal: the dev server on :5174)
 //   node tools/course-shots.mjs [rawDir] [scene ...]
 import {spawn} from 'node:child_process';
 import {mkdir,writeFile,mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 
-const CHROME=process.env.CHROME||'C:/Program Files/Google/Chrome/Application/chrome.exe',PORT=9333,URL_BASE='http://localhost:5173/?test=1';
+const CHROME=process.env.CHROME||'C:/Program Files/Google/Chrome/Application/chrome.exe',PORT=9333,URL_BASE='http://localhost:5174/?test=1';
 const [out='qa/course-shots',...only]=process.argv.slice(2);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 

@@ -59,7 +59,8 @@ test('post-combat population has 3–5 reachable researchers without altering co
   try{delete FACTIONS.loyalist.noncombatants;before=generate(seed,floor,[],0,'loyalist');}finally{FACTIONS.loyalist.noncombatants=config;}
   const people=map.enemies.filter(isNoncombatant);assert.ok(people.length>=3&&people.length<=5,`${seed}:${floor} ${people.length}`);assert.deepEqual(map.enemies.filter(e=>!isNoncombatant(e)),before.enemies);
   const reachableTiles=reachable(map,map.start);for(const e of people){assert.ok(reachableTiles.has(key(e)));assert.ok(!roomContains(map.rooms[map.startRoom],e));assert.ok(!map.slots.some(s=>key(s)===key(e)));assert.ok(distance(e,map.end)>2);}
-  const copy={...map,enemies:before.enemies,generation:map.generation.base};assert.deepEqual(copy,before);
+  // 3.202.0: the vents keep their spray off every unit, the researchers too, so only they may move with the population.
+  const {vents:_placed,...rest}=map,{vents:_bare,...base}=before;const copy={...rest,enemies:before.enemies,generation:map.generation.base};assert.deepEqual(copy,base);
  }
 });
 test('test faction and alternate noncombatant card need only data; no room means graceful zero population',()=>{

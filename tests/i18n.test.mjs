@@ -14,7 +14,8 @@ const slots=pattern=>[...pattern.matchAll(/\{(\w+)(?:\|[^{}|]*\|[^{}|]*)?\}/g)].
 // Ids built at run time, with every value they can take.
 const DYNAMIC={
  'dir.':['none','e','w','s','n','es','en','ws','wn'],
- 'game.stepped.':['acid','acidReal','heat','heatReal'],
+ 'game.stepped.':['acid','acidReal','heat','heatReal','steam','steamReal'],
+ 'vents.kind.':['smoke','haze','steam','toxic'],   // 3.202.0 src/vents.js ventName
  'missions.exit.':['down','up','extract','enter'],
  'manual.class.':['soldier','recon','engineer','bulwark','berserker','ninja'],
  'sceneryFurniture.':['rover.cockpit','rover.part','shuttle.cockpit','shuttle.part'],

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "gameVersion": "3.202.0",
+  "textureSize": 256,
+  "kinds": [
+    "smoke",
+    "haze",
+    "steam",
+    "toxic",
+    "spore"
+  ],
+  "files": {
+    "layers.png": "cbd3fb96a1cb3bcc7ec6708ed239b8dc1af8e9e0009e8cbbcba0cac753108fe5",
+    "baked-smoke.png": "29bdffcc4f39f126920f5b5b098efb9550fb60e94c0a4a3800fa68e168b1bcaa",
+    "baked-haze.png": "e439202e9bee36586ef8b7a8f1f292cbce49d621c9b5dc9244d7eaaa1005b786",
+    "baked-steam.png": "df821faf28c3e1aaf99435488f87af580a68bed7520313df7d97763000d7a1d7",
+    "baked-toxic.png": "5d03380293f1b38a5c2832f6021143871abf6b19b11efd7acbb72b10fcd0d9d2",
+    "baked-spore.png": "39b3d72c907c5fb33061418c0914199805460f3d0b35b99ac10ec63983b93dd9"
+  },
+  "sources": {
+    "source-haze.png": "6c64e88d18d0ba1ce8b00f28525f68158f0e8ce3022a854fd272b3c21c591cb3",
+    "source-smoke.png": "e2d477a301d5f33915d66eb49fa1cef40ac6cd74a720df428df18159cc9e73c1",
+    "source-spore.png": "15e5192f3247f90b9a732eea3e445facab5db3b6923f7f67807badebd72840cb",
+    "source-steam.png": "1d211ed12dbce0017453df56a9be0c72896bedb4f85bd99426425487f77cae76",
+    "source-toxic.png": "1a1c3ac8efefb724b69e655531259fe6bd95340affa52d8c0c137aec5ff95063"
+  }
+}

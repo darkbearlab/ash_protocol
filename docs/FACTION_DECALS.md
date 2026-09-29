@@ -5,7 +5,7 @@
 - 素材：Codex 畫的 `art/faction-overlays-v1/<pack>/overlays.png`（在 Codex 的工作目錄，沒有進版本庫）。
 - 遊戲用的圖集：`assets/pixel/faction-decals-v1/atlas.png`，六張表左右並排。
 - 程式：`src/faction-decals.js`。
-- 預覽與編輯：`qa/faction-overlay-lab.html`（`npm start` 後開 http://localhost:5173/qa/faction-overlay-lab.html）。
+- 預覽與編輯：`qa/faction-overlay-lab.html`（`npm start` 後開 http://localhost:5174/qa/faction-overlay-lab.html）。
 
 ## 使用者的決定（2026-09-19）
 

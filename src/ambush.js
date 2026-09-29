@@ -16,6 +16,7 @@ import {enemyCallout} from './enemy-intents.js';
 import {isDark} from './lighting.js';
 import {distance,key,DIRECTIONS} from './world.js';
 import {SIZE} from './data.js';
+import {hazardTile} from './hazard-paths.js';
 
 export const AMBUSH_TUNING=Object.freeze({reach:8,chokeAhead:2});
 const SOURCE='order:ambush';
@@ -62,7 +63,7 @@ export function ambushSpot(g,e,from,choke,taken=new Set(),{hidden=true}={}){
  for(let y=choke.y-reach;y<=choke.y+reach;y++)for(let x=choke.x-reach;x<=choke.x+reach;x++){
   if(x<0||y<0||x>=SIZE||y>=SIZE)continue;
   const q={x,y},d=distance(q,choke);
-  if(d<2||d>reach||!g.passable(x,y,e)||seen.has(key(q))||taken.has(key(q))||g.hazards.some(h=>distance(h,q)===0))continue;
+  if(d<2||d>reach||!g.passable(x,y,e)||seen.has(key(q))||taken.has(key(q))||hazardTile(g,q.x,q.y,e))continue;
   if(others.some(a=>distance(a,q)===0))continue;
   const [dx,dy]=choke.dir,ox=x-choke.x,oy=y-choke.y;
   if(dx===0?ox===0:oy===0)continue;                    // straight out of the choke: you would come out facing it

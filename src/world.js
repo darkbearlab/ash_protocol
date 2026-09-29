@@ -21,6 +21,7 @@ import {floorTerminalKinds,KIND_ROOMS} from './terminal-kinds.js';
 import {packSupplies} from './containers.js';
 import {placeVault} from './vault.js';
 import {placePit} from './pits.js';
+import {placeVents} from './vent-map.js';
 import {vaultable,blockedBetween,barrierBetween,makeBarrier,edgeCells} from './barriers.js';
 import {startingTraits,grantTrait} from './traits.js';
 import {SIZE,ENEMY_TYPES,floorInfo,WEAPONS,RARE_ARMORY,VOID,seeThrough} from './data.js';
@@ -74,7 +75,7 @@ export function previewSpecial(map,seed,floor,difficulty,faction){
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeLamps(placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor),seed,floor);}   // lamps: 3.178.0, after everything else stands
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeVents(placeLamps(placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor),seed,floor),seed,floor,faction);}   // vents: 3.202.0, after everything else   // lamps: 3.178.0, after everything else stands
 // 3.135.0 (user decision, docs/ITEMS.md): once everything else stands, each of the floor's two terminals takes its kind
 // and moves to the supply room of that kind. Done last, so nothing else on the floor shifts; the room's reserved console
 // corner is tried first, and a terminal that finds no free tile there that keeps the floor safe stays put, still typed.

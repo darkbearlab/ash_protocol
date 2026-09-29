@@ -12,7 +12,9 @@ const root=process.cwd(),destination=resolve(root,'dist');
 if(dirname(destination)!==root)throw new Error('Build destination must stay within workspace');
 await rm(destination,{recursive:true,force:true});await mkdir(destination,{recursive:true});
 // 3.197.0: development pages live in tools/ and are never published; READMEs inside assets/ are notes for us, not players.
-for(const file of ['index.html','style.css','expansion.css','manifest.webmanifest','sw.js','src','assets'])await cp(resolve(root,file),join(destination,file),{recursive:true,filter:source=>!/[\\/]README\.md$/i.test(source)});
+// 3.202.0: the fire and smoke sheets' previews, loop GIF and delivery manifest are review material, not game data.
+const REVIEW_ONLY=/[\\/]fx-v1[\\/](?:[^\\/]*-preview[^\\/]*\.(?:png|gif)|overview\.png|fx-v1\.json)$/i;
+for(const file of ['index.html','style.css','expansion.css','manifest.webmanifest','sw.js','src','assets'])await cp(resolve(root,file),join(destination,file),{recursive:true,filter:source=>!/[\\/]README\.md$/i.test(source)&&!REVIEW_ONLY.test(source)});
 // Give every module/style dependency the same content-derived URL. A new release
 // must not combine fresh HTML with JS from the browser's ten-minute HTTP cache.
 const sourceFiles=['index.html','style.css','expansion.css','sw.js',...(await readdir(join(destination,'src'))).filter(n=>n.endsWith('.js')).sort().map(n=>`src/${n}`)];

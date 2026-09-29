@@ -1,0 +1,228 @@
+{
+  "version": 1,
+  "baseCommit": "cbaf1de",
+  "baseGameVersion": "3.201.0",
+  "bitDepth": 4,
+  "colorType": 3,
+  "transparentIndex": 0,
+  "rgb5": true,
+  "phaseOffset": "(x*3+y*5)%4",
+  "assets": {
+    "fire": {
+      "file": "fire.png",
+      "width": 128,
+      "height": 96,
+      "cell": 32,
+      "columns": 4,
+      "rows": 3,
+      "frameCount": 12,
+      "rowLabels": [
+        "ignition",
+        "steady",
+        "embers"
+      ],
+      "loop": true,
+      "fps": 6,
+      "alpha": [
+        1,
+        1,
+        1
+      ],
+      "palette": [
+        "#00000000",
+        "#5a1919",
+        "#842119",
+        "#b53a19",
+        "#d65219",
+        "#ef7b21",
+        "#ffad31",
+        "#ffd65a",
+        "#ffef9c",
+        "#fff7ce",
+        "#424a4a",
+        "#737b7b",
+        "#9ca5a5"
+      ],
+      "sha256": "91abd90dc31074f6970d4d6ced15d781e926c96b6564f07f9ecf12e79b4efcbb"
+    },
+    "smoke": {
+      "file": "smoke.png",
+      "width": 128,
+      "height": 160,
+      "cell": 32,
+      "columns": 4,
+      "rows": 5,
+      "frameCount": 20,
+      "rowLabels": [
+        "thick",
+        "thin",
+        "steam",
+        "toxic",
+        "spore"
+      ],
+      "loop": true,
+      "fps": 6,
+      "alpha": [
+        0.85,
+        0.5,
+        0.6,
+        0.55,
+        0.6
+      ],
+      "palette": [
+        "#00000000",
+        "#526373",
+        "#7b94a5",
+        "#adbdce",
+        "#8c9c9c",
+        "#b5c5c5",
+        "#d6dee6",
+        "#739ca5",
+        "#a5ced6",
+        "#deeff7",
+        "#526b29",
+        "#8cbd4a",
+        "#c5e684",
+        "#63523a",
+        "#9c7b52",
+        "#c5ad84"
+      ],
+      "sha256": "fe8d82c2be297d9fd58bc2b5bb4e0467714d60ad28d152d0a364378ec22a4941"
+    },
+    "vent": {
+      "file": "vent.png",
+      "width": 160,
+      "height": 128,
+      "cell": 32,
+      "columns": 5,
+      "rows": 4,
+      "frameCount": 20,
+      "rowLabels": [
+        "thick",
+        "thin",
+        "steam",
+        "toxic"
+      ],
+      "loop": false,
+      "fps": 6,
+      "alpha": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "palette": [
+        "#00000000",
+        "#101919",
+        "#293131",
+        "#424a4a",
+        "#5a6363",
+        "#7b8484",
+        "#adb5b5",
+        "#526373",
+        "#adbdce",
+        "#8c9c9c",
+        "#d6dee6",
+        "#739ca5",
+        "#deeff7",
+        "#526b29",
+        "#c5e684"
+      ],
+      "sha256": "4ef45b5fc4c7cff88cead3d1df8b2630fdf88e75683ae77d1619b02a3318b506",
+      "columnLabels": [
+        "idle",
+        "warningA",
+        "warningB",
+        "activeA",
+        "activeB"
+      ],
+      "stateLoops": {
+        "idle": [
+          0
+        ],
+        "warning": [
+          1,
+          2
+        ],
+        "active": [
+          3,
+          4
+        ]
+      }
+    },
+    "flame-burst": {
+      "file": "flame-burst.png",
+      "width": 128,
+      "height": 32,
+      "cell": 32,
+      "columns": 4,
+      "rows": 1,
+      "frameCount": 4,
+      "rowLabels": [
+        "burst"
+      ],
+      "loop": false,
+      "fps": 6,
+      "alpha": [
+        1
+      ],
+      "palette": [
+        "#00000000",
+        "#5a1919",
+        "#842119",
+        "#b53a19",
+        "#d65219",
+        "#ef7b21",
+        "#ffad31",
+        "#ffd65a",
+        "#ffef9c",
+        "#fff7ce"
+      ],
+      "sha256": "cbc44fdf161f541e44059c7e01abf7fafdd8ade13b97b02de685dc2c6772b614",
+      "direction": "east",
+      "anchor": [
+        0.5,
+        0.5
+      ]
+    },
+    "loot-flamer": {
+      "file": "loot-flamer.png",
+      "width": 16,
+      "height": 16,
+      "cell": 16,
+      "columns": 1,
+      "rows": 1,
+      "frameCount": 1,
+      "rowLabels": [
+        "fuelWeapon"
+      ],
+      "loop": false,
+      "fps": 0,
+      "alpha": [
+        1
+      ],
+      "palette": [
+        "#00000000",
+        "#211910",
+        "#3a2110",
+        "#522910",
+        "#6b3110",
+        "#843a10",
+        "#a54210",
+        "#c54a19",
+        "#e65a21",
+        "#ff7331",
+        "#ff944a",
+        "#ffb563"
+      ],
+      "sha256": "56860e253b5c95c50328b0b8f9fc8c62344cfeb87976b4f320e258acc01e40fd"
+    }
+  },
+  "sources": {
+    "source-fire.png": "cbd9c0e7f51e1156fad56cb5d400cf1dcaa5715e958184a63625d2363c18eee7",
+    "source-flame-burst.png": "e3c667ed1ffea230b1ad868ed2d260bbb0405dd83e35c4d946229ee29e32bf5d",
+    "source-loot-reference.png": "074fc983c910c4cc65a46e0f2a7f02c2c140444a8f3f66f162ce02f5f914777e",
+    "source-smoke.png": "3c48ef000f2616ae5e7aa9d3fa4a8d4625f6a1a02562345f0bfeb36b6d1f65d0",
+    "source-vent.png": "7a737924723f6f5292b055b671c24309700c7f4a2cff864e07a376644f8e9093"
+  }
+}

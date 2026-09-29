@@ -20,7 +20,7 @@ import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,enemyDisplayName as enemyNam
 import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
 import {unitTree,registerUnitTree,registerAffixBranch,runAffixBranches} from './behavior-tree.js';
 import {occupied} from './allies.js';
-import {stepOffHazard} from './hazard-paths.js';
+import {stepOffHazard,hazardTile} from './hazard-paths.js';
 import {enemyRoom} from './runtime-enemies.js';
 import {pullLanding} from './melee-classes.js';
 import {combatStep} from './tactics.js';
@@ -44,7 +44,7 @@ function revealSenses(g,e,p){if(!g.sight(e,p))return;if(e.affixes?.some(a=>a.id=
 function seekCover({g,e,p,def,los}){
       if(g.survival&&g.holdsPoint(e))return false;   // 3.189.0: a survival point group stays on its point
       if(!pinned(e)&&def.seekCover&&los&&!e.charge&&!g.protectingCover(e,p)){
-        const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>g.passable(n.x,n.y,e)&&g.canCross(e,n)&&distance(n,p)>1&&!occupied(g,n,e)&&!g.hazards.some(h=>distance(h,n)===0)&&distance(n,p)<=def.range&&inBand(enemyBand(e.type),distance(n,p))&&g.sight({...e,...n},p)&&g.shotClear({...e,...n},p)&&g.protectingCover({...e,...n},p));
+        const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(n=>g.passable(n.x,n.y,e)&&g.canCross(e,n)&&distance(n,p)>1&&!occupied(g,n,e)&&!hazardTile(g,n.x,n.y,e)&&distance(n,p)<=def.range&&inBand(enemyBand(e.type),distance(n,p))&&g.sight({...e,...n},p)&&g.shotClear({...e,...n},p)&&g.protectingCover({...e,...n},p));
         if(spot){e.x=spot.x;e.y=spot.y;e.moved=true;enemyCallout(g,e,'state',{state:'cover'});return true;}
       }
 

@@ -12,10 +12,11 @@ http.createServer(async (req,res) => {
     let pathname = decodeURIComponent(new URL(req.url,'http://localhost').pathname);
     if(pathname==='/ash_protocol'){res.writeHead(302,{Location:'/ash_protocol/'});return res.end();}
     if(pathname.startsWith('/ash_protocol/'))pathname=pathname.slice('/ash_protocol'.length);
-    const publicFile = pathname === '/' || ['/index.html','/material-review.html','/style.css','/expansion.css','/manifest.webmanifest','/sw.js'].includes(pathname) || /^\/(src\/[a-z0-9-]+\.js|qa\/[a-z0-9-]+\.(js|html)|assets\/(?:pixel\/(?:(?:terrain-v1|walls-v1|portraits|classes-v1|scenery-v1|doors-v1|nests-v1|killhouse-v1|killhouse-v2|faction-decals-v1|loot-icons-v1|comms-v1)\/)?)?[a-z0-9-]+\.(svg|png|json)|assets\/audio\/(?:sfx|music)\/[a-z0-9-]+\.(?:wav|flac|m4a)|assets\/course\/[a-z0-9-]+(?:\.en)?\.png)$/.test(pathname);
+    const publicFile = pathname === '/' || ['/index.html','/material-review.html','/style.css','/expansion.css','/manifest.webmanifest','/sw.js'].includes(pathname) || /^\/(src\/[a-z0-9-]+\.js|qa\/[a-z0-9-]+\.(js|html)|assets\/(?:pixel\/(?:(?:terrain-v1|walls-v1|portraits|classes-v1|scenery-v1|doors-v1|nests-v1|killhouse-v1|killhouse-v2|faction-decals-v1|loot-icons-v1|comms-v1|fx-v1|smoke-field-v1)\/)?)?[a-z0-9-]+\.(svg|png|json)|assets\/audio\/(?:sfx|music)\/[a-z0-9-]+\.(?:wav|flac|m4a)|assets\/course\/[a-z0-9-]+(?:\.en)?\.png)$/.test(pathname);
     if (!publicFile) { res.writeHead(404); return res.end('Not found'); }
     const file = path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));
     if (!file.startsWith(root+path.sep)) { res.writeHead(403); return res.end(); }
     const body=await readFile(file); res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-cache'}); res.end(body);
   } catch {res.writeHead(404);res.end('Not found');}
-}).listen(5173,'0.0.0.0',()=>console.log('ASH PROTOCOL ready at http://localhost:5173'));
+// 5174 since 2026-09-29: the user runs several projects at once and 5173 is usually taken by another dev server.
+}).listen(5174,'0.0.0.0',()=>console.log('ASH PROTOCOL ready at http://localhost:5174'));

@@ -13,7 +13,7 @@ python -m pip install -r tools/requirements-art.txt
 python tools/pixelize.py --source art/source-atlas.png --out assets/pixel
 ```
 
-預設 32×32，每張最多 16 色（包括透明）。流程：
+預設 32×32，每張最多 16 色（包括透明）。例外：煙霧場（`assets/pixel/smoke-field-v1/`，3.202.0）是 256×256 的無縫貼圖，一樣 4-bit、16 色內、RGB5；事先疊好的 `baked-*.png` 透明度有四階，因為煙本來就是半透明的（`art/smoke-field-v1/README.md`）。流程：
 
 1. 依 4×4 均分來源圖集，使用 alpha≥128 裁出各精靈輪廓。
 2. 保留長寬比，以 BOX 區域取樣縮成 32×32 画布內的最多 28×28 內容；四周保留透明邊。

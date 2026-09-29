@@ -21,6 +21,7 @@ import {DETOUR_TRAIT} from './detour.js';
 import {registerOrder,giveOrder,endOrder} from './orders.js';
 import {accepts} from './personality.js';
 import {SIZE} from './data.js';
+import {hazardTile} from './hazard-paths.js';
 
 // 3.153.0 (faction review): enforcerRange matches the enforcer's own gun range (10); at 7 the cowering rebels it was
 // meant to rally were routinely out of reach, so 91% of them died behind cover instead.
@@ -44,7 +45,7 @@ export function coverSpot(g,e){
  const r=REBEL_TUNING.coverSearch,p=g.player;let best=null;
  for(let y=e.y-r;y<=e.y+r;y++)for(let x=e.x-r;x<=e.x+r;x++){
   const q={x,y};if(x<0||y<0||x>=SIZE||y>=SIZE||distance(e,q)>r)continue;
-  if(!g.passable(x,y,e)||straightCorridor(g,q)||g.hazards.some(h=>distance(h,q)===0))continue;
+  if(!g.passable(x,y,e)||straightCorridor(g,q)||hazardTile(g,q.x,q.y,e))continue;
   if([p,...g.enemies.filter(o=>o.hp>0&&o!==e),...g.activeAllies].some(a=>distance(a,q)===0))continue;
   if(!g.protectingCover(q,p))continue;
   const score=distance(e,q);

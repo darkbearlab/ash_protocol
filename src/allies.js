@@ -286,7 +286,7 @@ function stepToward(g,a,goal,reached,linked,swap=false){
  if(pinned(a))return false;
  // 3.201.0 (src/hazard-paths.js): with hazards on the floor both the route and "closer" are measured with the hazard cost,
  // one measure throughout, so the ally crosses a hazard only when that is the cheaper way and never goes back and forth.
- const weighted=avoidsHazards(a)&&g.hazards?.length>0,rank=q=>weighted?q.cost:q.d;
+ const weighted=avoidsHazards(a)&&(g.hazards?.length>0||Boolean(g.smoke?.some(s=>s.kind==='steam'||s.kind==='toxic'))),rank=q=>weighted?q.cost:q.d;
  const cells=routeCells(g,a,{actor:a,limit:18,maxPlayerDistance:Math.max(leash(a),distance(a,g.player)),weighted}).filter(q=>q.first&&(distance(q,g.player)<=leash(a)||!linked));
  let dest=cells.filter(reached).sort((b,c)=>rank(b)-rank(c))[0];
  if(!dest){

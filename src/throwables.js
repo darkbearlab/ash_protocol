@@ -60,12 +60,13 @@ export function tacticalSight(game,a,b){
   const grid=objectSightGrid(game,a,b);
   if(activeTrait(a,'infrared')||!game.smoke?.length||distance(a,b)<=1)return combatSight(grid,a,b,game.barriers);
   // 3.134.0 (docs/SWARM_FIELDS.md): toxic mist never blocks sight; spore smoke blinds everyone but the swarm.
+  // 3.202.0 (docs/HAZARDS.md): light smoke and steam from the vents never block it either; they cost hit chance instead.
   const swarmEyes=a.faction==='swarm'&&typeof a.type==='string'&&!a.kind,view=swarmEyes?'swarm':'all';
   let cache=sightCache.get(game);
   if(!cache||cache.grid!==grid||cache.clouds!==game.smoke){cache={grid,clouds:game.smoke,views:{}};sightCache.set(game,cache);}
   let v=cache.views[view];
   if(!v){
-    const cells=new Set(game.smoke.filter(s=>s.kind!=='toxic'&&!(swarmEyes&&s.kind==='spore')).flatMap(s=>s.cells.map(key)));
+    const cells=new Set(game.smoke.filter(s=>!['toxic','haze','steam'].includes(s.kind)&&!(swarmEyes&&s.kind==='spore')).flatMap(s=>s.cells.map(key)));
     v=cache.views[view]={cells,blocked:grid.map((row,y)=>row.map((val,x)=>cells.has(`${x},${y}`)?0:val))};
   }
   if(!v.cells.size)return combatSight(grid,a,b,game.barriers);

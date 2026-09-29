@@ -55,6 +55,9 @@ import {attackSpeed,thrustTargets} from './melee-weapons.js';
 import {CARRY_TUNING,CAPPED_ITEMS,itemGroundType,groundItemId,itemCapacity} from './prepared.js';
 import {tickPounces,validPounce} from './pounce.js';
 import {toxicShot,toxicPlayerTurn,toxicAllyTurn,inToxic,tickFields,validFields} from './swarm-fields.js';
+import {tickVents,hazeShot,scalding,validVents,inCloud} from './vents.js';
+import {stepOffHazard} from './hazard-paths.js';
+import {VENT_TUNING} from './vent-map.js';
 import {sweptGrid,sweptClear} from './line-move.js';
 export const LUNGE_TRAIT='lunge',LUNGE_TUNING=Object.freeze({reach:3});
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop,levelCost} from './perks.js';
@@ -172,7 +175,7 @@ export class Game {
   generateFloor(){this.facilityFaction=endlessFaction(this);return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultySpec,this.facilityFaction);}
   loadFloor() {
     endSkillEffects(this.player);this.sensorContacts=[];delete this.blindAftermath;this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
-    Object.assign(this,{swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.decoy=null;this.mines=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
+    Object.assign(this,{swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined,vents:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.decoy=null;this.mines=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
     prepareMission(this);recruitConscripts(this);postSquads(this);rigContainers(this);populateRunUnlocks(this);if(isSurvival(this))setupSurvival(this);registerPurgeFloor(this);
@@ -492,7 +495,7 @@ export class Game {
     if(phase!==null){queue.find(q=>q.actor===p).speed=phase;queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);}
     const recovering=p.recovery>0;if(recovering)p.recovery=0;
     let playerStunned=false;
-    this.turn++;tickTongues(this);tickPounces(this);tickFields(this);
+    this.turn++;tickTongues(this);tickPounces(this);tickFields(this);tickVents(this);   // vents: 3.202.0
     // 3.145.0 (user decision): suppression wears off (src/suppression.js decayedStacks) when the unit's own turn is over, player and
     // enemies alike, so the stacks it took since its last turn are all felt on this one. The `finally` runs on every skip
     // (`continue`) too: a stunned unit's turn has still passed. A unit with two slots (an anchored double attack) ticks
@@ -710,7 +713,7 @@ export class Game {
       }
       for(const o of targets){
         if(this.enemies.includes(o))noticeAttack(this,o);
-        const {count,min,max}=this.pelletDamage(p.weapon,o),chance=pelletChance(w,toxicShot(this,p,o,w)),landed=[];
+        const {count,min,max}=this.pelletDamage(p.weapon,o),chance=pelletChance(w,toxicShot(this,p,o,w)||hazeShot(this,p,o,w)),landed=[];
         for(let i=0;i<count;i++)if(this.rng()*100<chance)landed.push(min+Math.floor(this.rng()*(max-min+1)));
         this.effects.push({type:'shot',weaponId:w.id,style:'bullet',...flashHidden(w),from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!landed.length});
         const foe=this.enemies.includes(o),name=foe?enemyName(o):t('common.ally');
@@ -906,7 +909,8 @@ export class Game {
     if(attacker===this.player)noticeAttack(this,e);
     const beforeHp=e.hp;e.hp-=damage;injuryCallout(this,e,beforeHp);if(damage>0)orderHit(this,e);this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
-    if(cause)this.log(t(`game.stepped.${cause}`,{target:enemyName(e),damage}),false,t(`game.stepped.${cause}Real`,{target:enemyName(e)}));else this.log(t('game.hit',{target:enemyName(e),damage}),false,t('game.hitReal',{target:enemyName(e)}));
+    // 3.202.0: a hazard's damage is logged only for an enemy you can see; the floor does not report on the ones you cannot.
+    if(cause){if(this.teamVisible(e))this.log(t(`game.stepped.${cause}`,{target:enemyName(e),damage}),false,t(`game.stepped.${cause}Real`,{target:enemyName(e)}));}else this.log(t('game.hit',{target:enemyName(e),damage}),false,t('game.hitReal',{target:enemyName(e)}));
     if(e.hp>0)return;
     if(isNoncombatant(e)){this.log(t('game.civilianDown',{target:enemyName(e)}));enemyDeath(this,e);return;}
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
@@ -1164,11 +1168,13 @@ export class Game {
     const p=this.player,hpBefore=p.hp,hazard=this.hazards.find(h=>h.x===p.x&&h.y===p.y);
     if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)addPoison(p,SWARM_TUNING.acidStacks);this.log(t(hazard.type==='acid'?'game.acidHurt':'game.heatHurt',{damage}),true,t(hazard.type==='acid'?'game.acidHurtReal':'game.heatHurtReal'));}
     toxicPlayerTurn(this,addPoison);   // 3.134.0 mist: poisoned for a turn ended in it
+    // 3.202.0: steam from a vent scalds whoever ends the round in it, flyers aside (docs/HAZARDS.md section 3).
+    if(p.hp>0&&scalding(this,p)){const damage=Math.max(0,VENT_TUNING.damage-p.hazmat);p.hp-=damage;this.log(t('game.steamHurt',{damage}),true,t('game.steamHurtReal'));}
     tickPoison(this);
     if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp,player:true});
-    for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying')))if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);
+    for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying'))){if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);if(a.hp>0&&scalding(this,a))this.damageAlly(a,VENT_TUNING.damage,null,true,true);}
     petReactions(this);
-    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying'))){const hazard=this.hazards.find(h=>h.x===e.x&&h.y===e.y);if(hazard)this.hurt(e,6,null,hazard.type==='acid'?'acid':'heat');}
+    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying'))){const hazard=this.hazards.find(h=>h.x===e.x&&h.y===e.y);if(hazard)this.hurt(e,6,null,hazard.type==='acid'?'acid':'heat');if(e.hp>0&&!e.alert&&inCloud(this,'steam',e))stepOffHazard(this,e,null,{pinned,occupied});if(e.hp>0&&scalding(this,e))this.hurt(e,VENT_TUNING.damage,null,'steam');}   // 3.202.0: an idle one flinches out of the steam
   }
   pickup() {
     // 3.118.0: a presentation-only 'pickup' effect when anything was collected, including part of a pile left behind by a
@@ -1527,7 +1533,7 @@ export class Game {
       if(!['decoys','mines'].every(k=>Number.isSafeInteger(g.player[k])&&g.player[k]>=0&&g.player[k]<=10000000)||!validExo(g.player)||!validDecoy(g)||!validMines(g)||!validKeycards(g.player)||!validVaultState(g.barriers,g.enemies))return null;
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
-      if(!validRuntime(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
+      if(!validRuntime(g)||!validVents(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
       if(version<32)g.shadowSteps=0;
       // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
       // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run
@@ -1538,7 +1544,7 @@ export class Game {
       if(version<36&&!migratePetNodes(g,version===35))return null;
       if(!validAllies(g)||!validPetBond(g)||!validWorkshop(g))return null;
       // 3.178.0: a kept floor from before real lighting has no lamps, light model or glowsticks; it must not borrow this floor's.
-      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,traits:p.traits.filter(t=>t.source!=='pet:vision'),battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
+      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined,vents:undefined,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,traits:p.traits.filter(t=>t.source!=='pet:vision'),battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
       // Weapon slots belong to the run, including weapons left on archived floors.
       for(const frame of Object.values(g.floorStates))for(const item of frame.items)if(item.type==='weapon'){
         if(locations.has(item.slot))return null;locations.add(item.slot);

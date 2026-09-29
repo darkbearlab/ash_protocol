@@ -1,6 +1,6 @@
 # 手工批准素材
 
-開啟 [線上素材審核頁](https://darkbearlab.github.io/ash_protocol/material-review.html)，或啟動專案後開啟 http://localhost:5173/material-review.html。
+開啟 [線上素材審核頁](https://darkbearlab.github.io/ash_protocol/material-review.html)，或啟動專案後開啟 http://localhost:5174/material-review.html。
 
 1. 每張圖有固定編號：T01–T04 是原地板；W01–W08 是原立面；W09–W16 是原頂板。
 2. 勾選允許的「地板／立面／頂板」用途，可跨類別、可一圖多用。全部取消代表停用。每種用途至少留一張。

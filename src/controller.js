@@ -23,6 +23,7 @@ import {iconSvg} from './ui-icons.js';
 import {blindReason,BLIND_TUNING} from './blind-fire.js';
 import {weaponBand,bandLabel} from './range-band.js';
 import {boundaryOpacityPercent} from './movement-boundaries.js';
+import {smokeQuality} from './fx-sprites.js';
 import {SCREEN_BRIGHTNESS,screenBrightnessPercent} from './screen-tone.js';
 import {drawTinyText,TINY_TEXT} from './pixel-text.js';
 import {actorStat,clampHit,combatStatSummary} from './actor-stats.js';
@@ -383,6 +384,7 @@ function update(view=renderer.game) {
 }
 renderer.isPaused=()=>orientationBlocked;
 renderer.frameRate=frameRate(read('ash-frame-rate'));
+renderer.smokeQuality=smokeQuality(read('ash-smoke-quality'));   // 3.202.0 (user): layered smoke by default, the pre-stacked one to save power
 // The title and every menu opened from it sit on an opaque backdrop, so the battlefield behind them is not drawn.
 renderer.isCovered=()=>$('#modal').open&&$('#modal').matches('.title,.standalone,.outro');
 // Rules are resolved before a presentation starts, so skipping only drops frames. A turn that ended the run always plays
@@ -1082,6 +1084,8 @@ ${simulating?'':`${sec(t('settings.dangerSection'))}
 <p id="screen-brightness-help">${t('settings.brightness')}</p>
 <button class="modal-button secondary" data-modal="frameRate" aria-pressed="${renderer.frameRate!==60}">${t('settings.fpsLabel',{frameRate:renderer.frameRate})}</button>
 <p>${t('settings.fps')}</p>
+<button class="modal-button secondary" data-modal="smokeQuality" aria-pressed="${renderer.smokeQuality!=='layers'}">${t('settings.smokeLabel',{v:t(renderer.smokeQuality==='baked'?'settings.smokeBaked':'settings.smokeLayers')})}</button>
+<p>${t('settings.smoke')}</p>
 <button class="modal-button secondary" data-modal="vhs" aria-pressed="${vhsFilter}">${t('settings.vhsLabel',{v:vhsFilter?t('controller.on'):t('controller.off')})}</button>
 <p>${t('settings.vhs')}</p>
 <button class="modal-button secondary" data-modal="shake" aria-pressed="${renderer.shakeEnabled}">${t('settings.shakeLabel',{v:renderer.shakeEnabled?t('controller.on'):t('controller.off')})}</button>
@@ -1323,6 +1327,7 @@ document.addEventListener('click',e=>{
     case 'hotkeyHints':hotkeyHints=!hotkeyHints;write('ash-hotkey-hints',hotkeyHints?'on':'off');applyHotkeyHints();settings();break;
     case 'hotkeys':showHotkeys();break;
     case 'frameRate':renderer.frameRate=nextFrameRate(renderer.frameRate);write('ash-frame-rate',String(renderer.frameRate));settings();break;
+    case 'smokeQuality':renderer.smokeQuality=renderer.smokeQuality==='baked'?'layers':'baked';write('ash-smoke-quality',renderer.smokeQuality);settings();break;
     case 'skipPresentation':skipPresentation=!skipPresentation;write('ash-skip-presentation',skipPresentation?'on':'off');settings();break;
     case 'autoRetarget':autoRetarget=!autoRetarget;write('ash-auto-retarget',autoRetarget?'on':'off');if(autoRetarget)retarget();settings();break;
     case 'movementBoundaries':renderer.movementBoundaries=!renderer.movementBoundaries;write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off');settings();break;

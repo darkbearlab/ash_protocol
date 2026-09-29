@@ -16,6 +16,7 @@ import {ENEMY_TYPES,distance,bracingBonus} from './engine.js';
 import {coneTargets,pelletChance} from './shotgun.js';
 import {lancePath} from './lance.js';
 import {toxicShot} from './swarm-fields.js';
+import {hazeShot} from './vents.js';
 import {coverEffects} from './cover.js';
 import {fooled} from './field-gear.js';
 import {grapplePlan,ambushReady,MELEE_TUNING} from './melee-classes.js';
@@ -42,7 +43,7 @@ function pelletLine(game,target){
   const {count,min,max}=game.pelletDamage(p.weapon,target),toxic=toxicShot(game,p,target,w),pierce=w.pierce||0;
   const cover=game.protectingCover(target,p),cut=cover?w.pelletCover*coverEffects(cover,target,p).efficiency*(1-pierce):0,armor=(ENEMY_TYPES[target.type]?.armor||0)*(1-pierce);
   const real=d=>Math.max(1,Math.round(d*(1-cut)*(toxic?.5:1)-armor)),low=real(min),high=real(max);
-  return t('target-card.pellets',{count,low,high,base:low!==min||high!==max?t('target-card.pelletsBase',{min,max}):'',chance:pelletChance(w,toxic)});
+  return t('target-card.pellets',{count,low,high,base:low!==min||high!==max?t('target-card.pelletsBase',{min,max}):'',chance:pelletChance(w,toxic||hazeShot(game,p,target,w))});
 }
 // 3.142.0 (playtest): 爆裂 warns when its burst would reach you or a friend standing next to the target.
 function blastNotes(game,target){

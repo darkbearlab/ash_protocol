@@ -83,7 +83,7 @@ function pickSpot(g,member,player,answer,taken,pass){
  for(let y=player.y-reach;y<=player.y+reach;y++)for(let x=player.x-reach;x<=player.x+reach;x++){
   if(x<0||y<0||x>=SIZE||y>=SIZE)continue;
   const spot={x,y},d=distance(spot,player);
-  if(d>range||!g.passable(x,y,member)||g.hazards.some(h=>distance(h,spot)===0))continue;
+  if(d>range||!g.passable(x,y,member)||hazardTile(g,spot.x,spot.y,member))continue;
   if(taken.has(key(spot))||[g.player,...g.enemies.filter(e=>e.hp>0&&e!==member),...g.activeAllies].some(a=>distance(a,spot)===0))continue;
   const from={...member,x,y},clear=g.sight(from,player)&&g.shotClear(from,player);
   if(pass!=='range'&&!clear)continue;

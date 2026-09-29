@@ -8,6 +8,7 @@ import {sizeModifier,movementModifier,activeTrait,correctionBonus,sidestepPenalt
 import {DIRECTIONS,distance,lineOfSight} from './world.js';
 import {weaponBand,bandPenalty} from './range-band.js';
 import {toxicShot} from './swarm-fields.js';
+import {hazeShot} from './vents.js';
 import {classPerkRank,CLASS_PERK_TUNING,markValues} from './class-perks.js';
 
 export function adjacentWalls(grid,actor) {
@@ -65,6 +66,7 @@ export function shotChance(game,attacker,target) {
   const markBonus=attacker===game.player&&activeTrait(target,'exposed')?markValues(attacker).accuracy:0;
   const chance=Math.max(10,Math.min(99,pointBlankBonus+markBonus-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty-rangePenalty));
   // 3.134.0: gunfire or a beam through toxic mist, from anyone but the swarm, hits half as often.
-  const toxic=toxicShot(game,attacker,target,weapon);
-  return {chance:toxic?Math.max(1,Math.round(chance/2)):chance,toxic,aimPenalty,rangePenalty,band,pointBlank,pointBlankBonus,markBonus,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
+  // 3.202.0: light smoke and steam from the vents halve it too, from anyone, but leave the damage alone (docs/HAZARDS.md).
+  const toxic=toxicShot(game,attacker,target,weapon),haze=hazeShot(game,attacker,target,weapon);
+  return {chance:toxic||haze?Math.max(1,Math.round(chance/2)):chance,toxic,haze,aimPenalty,rangePenalty,band,pointBlank,pointBlankBonus,markBonus,specialEvasion,closeBonus,vaultBonus,innateAccuracy,innateEvasion,darkPenalty,dark:light.dark,nightVision:light.nightVision,coverEfficiency:protection.efficiency,coverReduction:protection.reduction,bracedBonus,trackingBonus,sidePenalty,base,accuracyBonus,movePenalty,coverPenalty,focusBonus,evasionPenalty,cover,moving,distance:distance(attacker,target)};
 }
