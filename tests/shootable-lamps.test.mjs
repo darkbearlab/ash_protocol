@@ -1,6 +1,7 @@
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 import {Game,SIZE,makeEnemy,generate} from '../src/engine.js';
 import {LIGHT,LIGHT_MODEL,LIGHT_TUNING,lightAt,isLamp,lampWall,validLamps} from '../src/lighting.js';
@@ -55,6 +56,6 @@ test('touch: tapping the lamp against its wall locks it; the middle of its tile 
   const at=Renderer.prototype.lampPoint.call(renderer,g.lamps[0]);assert.deepEqual([at.x,Math.round(at.y)],[400,145]);
   assert.equal(Renderer.prototype.hitLamp.call(renderer,400,146),g.lamps[0]);assert.equal(Renderer.prototype.hitLamp.call(renderer,400,160),undefined);
   g.lamps[0].hp=0;assert.equal(Renderer.prototype.hitLamp.call(renderer,400,146),undefined);
-  const source=await read('../src/controller.js');
+  const source=sourceFamily('controller');
   assert.ok(source.indexOf('renderer.hitLamp(')>source.indexOf('renderer.hitBarrier(')&&source.indexOf('renderer.hitLamp(')<source.indexOf('game.props.filter(p=>p.hp>0&&game.visible(p))'),'picked before other targets and before moving');
 });

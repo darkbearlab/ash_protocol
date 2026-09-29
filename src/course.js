@@ -82,7 +82,7 @@ export function courseBefore(g){const drone=role(g,'drone')[0];return {charged:B
 export function courseAfter(g,type,success,before={},arg=null){
  const c=g.course;if(!c)return;
  const p=g.player,room=roomAt(g.rooms,p),has=id=>c.fired.includes(id);
- // The grenade button throws through the prepared slot (src/controller.js interact); 'grenade' is the direct action.
+ // The grenade button throws through the prepared slot (src/controller-aim.js interact); 'grenade' is the direct action.
  const thrown=success&&(type==='grenade'||type==='usePrepared'&&arg?.category==='grenade');
  if(room>=0)c.section=SECTION_OF_ROOM[room];
  if(g.status==='dead'){if(thrown)c.death='grenade';return;}

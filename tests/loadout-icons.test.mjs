@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFileSync} from 'node:fs';
 import {Game} from '../src/engine.js';
 import {UI_ICONS,iconSvg} from '../src/ui-icons.js';
@@ -15,7 +16,7 @@ test('every icon is a clean pixel map, and every icon the status line asks for e
  for(const name of UI_ICONS)assert.match(iconSvg(name),/^<svg class="px-icon" viewBox="0 0 \d+ \d+"[^>]*shape-rendering="crispEdges"[^>]*><path fill="currentColor" d="(M\d+ \d+h\d+v1h-\d+z)+"\/><\/svg>$/,name);
  assert.equal(iconSvg('nope'),'');
  const names=(path,pattern)=>[...read(path).matchAll(pattern)].flatMap(m=>m.slice(1).filter(Boolean));
- const asked=[...names('../src/controller.js',/chip\('([a-zA-Z]+)'/g),...names('../src/status-timers.js',/add\('([a-zA-Z]+)'/g),...names('../src/suppression-ui.js',/icon:s\.immobile\?'([a-zA-Z]+)':'([a-zA-Z]+)'/g),...names('../src/melee-ui.js',/icon:'([a-zA-Z]+)'/g)];
+ const asked=[...[...sourceFamily('controller').matchAll(/chip\('([a-zA-Z]+)'/g)].map(m=>m[1]),...names('../src/status-timers.js',/add\('([a-zA-Z]+)'/g),...names('../src/suppression-ui.js',/icon:s\.immobile\?'([a-zA-Z]+)':'([a-zA-Z]+)'/g),...names('../src/melee-ui.js',/icon:'([a-zA-Z]+)'/g)];
  assert.ok(asked.length>25);for(const name of asked)assert.ok(UI_ICONS.includes(name),name);
 });
 
@@ -30,7 +31,7 @@ test('the bar has no words in it: icons, labels for the reader, and a strip that
  assert.doesNotMatch(bar,/data-i18n="/,'no text labels on the buttons');
  for(const action of ['weapons','cycleTarget','toggleTargeting','flashlight','bag'])assert.match(bar,new RegExp(`data-action="${action}" aria-label="[^"]+"[^>]*title="[^"]+"`),action);
  assert.match(html,/<div id="effects-panel" class="effects-panel" role="region"[^>]*hidden><\/div><div class="loadout-bar"><button class="loadout-status" data-effects aria-expanded="false"/);
- const controller=read('../src/controller.js');
+ const controller=sourceFamily('controller');
  assert.match(controller,/if\(b\.dataset\.effects!==undefined\)\{effectsOpen=!effectsOpen;renderEffects\(\);return;\}/);
  assert.match(controller,/\[\['weapons','list'\],\['cycleTarget','target'\],\['toggleTargeting','eye'\],\['bag','pack'\]\]/);
  const css=read('../expansion.css');assert.match(css,/\.loadout-bar \[data-action="toggleTargeting"\]\[aria-pressed="false"\],\.loadout-bar \[data-action="flashlight"\]\[aria-pressed="false"\]\{color:/,'off is darker');

@@ -1,6 +1,7 @@
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 import {Game,SIZE,makeEnemy,generate,createKillhouse} from '../src/engine.js';
 import {killhouseMap} from '../src/killhouse-maps.js';
@@ -238,7 +239,7 @@ test('the kill house is on real lighting too: the combat map keeps its unpowered
 });
 
 test('the controls: a switch beside the aim switch, the L key, and throwing aims like a decoy',async()=>{
-  const source=await read('../src/controller.js'),html=await read('../index.html'),keys=await read('../src/hotkeys.js'),renderer=await read('../src/renderer.js');
+  const source=sourceFamily('controller'),html=await read('../index.html'),keys=await read('../src/hotkeys.js'),renderer=sourceFamily('renderer');
   assert.ok(html.includes('data-action="flashlight"'));
   assert.ok(keys.includes("{id:'flashlight',group:t('hotkeyActions.flashlight.group'),label:t('hotkeyActions.flashlight.label'),defaults:['l']}"));
   assert.ok(source.includes("else if(action==='decoy'||action==='mine'||action==='glowstick')startPlaceAim(action);"));

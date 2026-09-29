@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {captureAction,planPresentation,Playback,DEATH_MS,KILL_HOLD_MS,KILL_HOLD_REACH} from '../src/presentation.js';
 import {cameraFrame,zoomStep,CAMERA_TUNING} from '../src/camera.js';
@@ -71,7 +72,7 @@ test('an enemy walking closer turn after turn does not pump the zoom',()=>{
 
 test('the renderer keys the zoom on what it frames, and skips the hold when drawing effects',async()=>{
   const {readFile}=await import('node:fs/promises');
-  const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8');
+  const source=sourceFamily('renderer');
   assert.ok(source.includes("key=[this.zoom,this.mode||'',this.aim?'aim':'',locked?.id??'',holds.length?'hold':''].join('|')"));
   assert.ok(source.includes("scene=[g.seed,g.floor,this.w,this.h].join(':')"),'a new run, floor or board size starts exact');
   assert.ok(source.includes("fx.type==='cameraHold'||fx.type==='pickup')continue;"),'a pickup (3.118.0) only cues a sound');

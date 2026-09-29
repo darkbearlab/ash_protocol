@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {sourceFamily} from './helpers/source.mjs';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {captureAction,planPresentation,Playback} from '../src/presentation.js';
 
@@ -42,7 +42,7 @@ test('finishing a playback that already ended is a no-op',()=>{
 });
 
 test('the controller skips only on a live turn, keeps the input lock, and lets the setting turn it off',async()=>{
-  const source=await readFile(new URL('../src/controller.js',import.meta.url),'utf8');
+  const source=sourceFamily('controller');
   assert.ok(source.includes("let skipPresentation=read('ash-skip-presentation')!=='off';"),'on unless the player turned it off');
   assert.ok(source.includes("write('ash-skip-presentation',skipPresentation?'on':'off')"));
   assert.ok(source.includes('data-modal="skipPresentation"'),'the settings menu has the switch');

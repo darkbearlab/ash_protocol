@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 import {HOTKEY_ACTIONS,HOTKEY_SLOTS,HOTKEY_BUTTONS,normalizeKey,validHotkey,keyLabel,parseBindings,defaultBindings,bindKey,clearKey,keyLookup,primaryKey} from '../src/hotkeys.js';
 
@@ -44,7 +45,7 @@ test('a saved value is trusted key by key: broken entries fall back, a key claim
 });
 
 test('the controller runs bindings through the same functions as the buttons and draws hints from attributes',async()=>{
-  const source=await read('../src/controller.js'),css=await read('../expansion.css'),html=await read('../index.html');
+  const source=sourceFamily('controller'),css=await read('../expansion.css'),html=await read('../index.html');
   assert.ok(source.includes("const key=normalizeKey(e.key),command=key==='Escape'?'menu':hotkeyMap.get(key);"));
   assert.ok(source.includes("if(hotkeyCapture&&$('#modal').open){captureHotkey(e);return;}"),'waiting for a key comes before everything else');
   assert.ok(source.includes("e.preventDefault();HOTKEY_RUN[command]?.();"));

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 
 // 3.186.0 run logs (src/run-log.js): every campaign run records itself beside the save, and the results screen hands it
@@ -57,7 +58,7 @@ test('a log that cannot be written is dropped without touching the save or the s
 });
 
 test('controller wiring: every live campaign records, never a simulation or replay; results and settings download it',async()=>{
-  const source=await read('../src/controller.js'),worker=await read('../sw.js');
+  const source=sourceFamily('controller'),worker=await read('../sw.js');
   assert.ok(worker.includes("'./src/run-log.js'"));
   assert.ok(source.includes("if(!replay&&!isSimulation(game)&&game.status==='playing'&&(entered||resumable))trackRun(game);"));
   assert.match(source,/function persist\(\)\{if\(tabLost\)return false;const ok=saveGame\(game\);persistRunLog\(game\);/);
@@ -76,7 +77,7 @@ test('errors ride along in the run log without breaking its replay; the page rep
 ${'x'.repeat(600)}`));
   const log=storedRunLog();assert.equal(log.errors.length,5);assert.equal(log.errors[4].turn,g.turn);assert.ok(log.errors[0].message.startsWith('TypeError: boom 2'));assert.ok(log.errors.every(e=>e.message.length<=400));
   const played=replayLog(log);assert.equal(played.mismatch,null);assert.equal(stateHash(played.game),stateHash(g));
-  const controller=await read('../src/controller.js');
+  const controller=sourceFamily('controller');
   assert.match(controller,/addEventListener\('error',e=>\{if\(e\.error\|\|e\.message\)reportError\(e\.error\|\|e\.message\);\}\);/);
   assert.match(controller,/addEventListener\('unhandledrejection',e=>reportError\(e\.reason\)\);/);
 });

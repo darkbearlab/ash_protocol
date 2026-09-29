@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {FIELD_FILES,FX_FIELD,SMOKE_QUALITIES,smokeQuality,fxField} from '../src/fx-sprites.js';
@@ -34,7 +35,7 @@ test('the sources and outputs match the recorded processing, and the pre-stacked
   for(const [file,hash] of Object.entries(manifest.files))assert.equal(createHash('sha256').update(await readFile(new URL('assets/pixel/smoke-field-v1/'+file,root))).digest('hex'),hash,file);
   for(const [file,hash] of Object.entries(manifest.sources))assert.equal(createHash('sha256').update(await readFile(new URL(file,art))).digest('hex'),hash,file);
   // art/smoke-field-v1/process.py bakes with the renderer's numbers: the same offsets, opacities and veil.
-  const py=await readFile(new URL('process.py',art),'utf8'),js=await readFile(new URL('src/renderer.js',root),'utf8');
+  const py=await readFile(new URL('process.py',art),'utf8'),js=sourceFamily('renderer');
   const stack=js.slice(js.indexOf('const FIELD_STACKS='),js.indexOf('baked:{',js.indexOf('const FIELD_STACKS=')));
   for(const [x,y,alpha] of [...py.matchAll(/\(\((\d+), (\d+)\), ([.\d]+),/g)].map(m=>m.slice(1)))assert.ok(stack.includes(`at:[${x},${y}]`)&&stack.includes(`alpha:${alpha}`),`${x},${y} at ${alpha}`);
   assert.ok(/VEIL = \.5\b/.test(py)&&stack.includes('veil:.5'));

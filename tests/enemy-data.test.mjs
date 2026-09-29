@@ -66,7 +66,7 @@ test('rule modules do not branch on literal enemy IDs',()=>{
  for(const file of readdirSync(new URL('../src/',import.meta.url)).filter(f=>f.endsWith('.js'))){
   if(deferred.has(file))continue;
   const source=readFileSync(new URL(`../src/${file}`,import.meta.url),'utf8');
-  const lines=source.split('\n').filter(line=>!line.trimStart().startsWith('//')).map(line=>file==='game.js'&&line.trimStart().startsWith('if(version===1){')?'':line);
+  const lines=source.split('\n').filter(line=>!line.trimStart().startsWith('//')).map(line=>file==='game-save.js'&&line.trimStart().startsWith('if(version===1){')?'':line);
   assert.deepEqual(violations(lines.join('\n')),[],file);
  }
 });

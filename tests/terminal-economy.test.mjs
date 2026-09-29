@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 import {Game,SIZE,LEARNING_SCRAP} from '../src/engine.js';
 import {TERMINAL_TUNING,TERMINAL_MIN_PRICE,terminalCost,terminalRemaining,terminalDeal,tradeHoldings,ammoLot,offerReason} from '../src/terminal.js';
@@ -96,7 +97,7 @@ test('learning data and medkits: traded at a terminal, not dismantled in the pac
 });
 
 test('the terminal screen reads every price, reason and value from the rules; the battlefield shows a spent terminal',async()=>{
-  const source=await read('../src/controller.js'),renderer=await read('../src/renderer.js');
+  const source=sourceFamily('controller'),renderer=sourceFamily('renderer');
   assert.ok(source.includes("const reason=offerReason(game,row.id)||terminalAffordable(row.id);"));
   assert.ok(source.includes("modalAction('terminal',{buy,trade});"));
   assert.ok(source.includes('data-trade-step="${row.id}"'));

@@ -2,7 +2,8 @@
 // rules need to know of it — the fields it owns, who may carry it, what interrupts it, which cooldown the round start
 // counts down, what it keeps a unit from doing (turning on a decoy, shooting a mine, stepping off a hazard, being pinned
 // out of it), and how a save is trimmed and checked. The turn (src/enemy-behavior.js), the round start and the loader
-// (src/game.js), the decoy and the mine (src/field-gear.js), the hazard step (src/hazard-paths.js), suppression,
+// (Game: src/game-actions.js, src/game-enemies.js, src/game-save.js since 3.206.3), the decoy and the mine
+// (src/field-gear.js), the hazard step (src/hazard-paths.js), suppression,
 // interruptions (src/enemy-intents.js) and the target card ask here instead of keeping lists of their own.
 // A leaf, like src/behavior-tree.js: it imports nothing. The module that owns a special registers it, beside the
 // wrappers it exports (src/fire.js the flame, src/swarm.js the tongue, and so on); steps are that module's functions,

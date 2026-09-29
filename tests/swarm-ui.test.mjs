@@ -29,8 +29,9 @@ test('the target card warns about a tongue wind-up; real mode hides the state ro
 // The effects loop sits inside the frame render, which needs a canvas; the browser check covers the pixels. This guards
 // the dispatch order: an unhandled tongue effect or venom shot would fall through to the generic bullet branch.
 test('tongue and venom effects are handled before the generic projectile branch, and the telegraph reads the rules',()=>{
- const source=Renderer.toString(),at=s=>source.indexOf(s);
+ // 3.206.3: the effects loop is Renderer.drawEffects, the tongue lines Renderer.drawTelegraphs (src/renderer-*.js).
+ const source=Renderer.prototype.drawEffects.toString(),at=s=>source.indexOf(s);
  const generic=at("fx.style==='claw'||fx.style==='slash'");
  for(const branch of ["fx.type==='tongueTelegraph'","fx.type==='tonguePull'","fx.style==='venom'"]){assert.ok(at(branch)>0,branch);assert.ok(at(branch)<generic,branch);}
- assert.ok(at('tongueTelegraphs(g)')>0);
+ assert.ok(Renderer.prototype.drawTelegraphs.toString().indexOf('tongueTelegraphs(g)')>0);
 });

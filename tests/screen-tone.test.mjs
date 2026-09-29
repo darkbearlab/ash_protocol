@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 import {SCREEN_BRIGHTNESS,OPERATOR_TINT,screenBrightnessPercent,operatorTintPercent} from '../src/screen-tone.js';
 import {tintPixels,OPERATOR_COLORS} from '../src/operator-color.js';
@@ -24,7 +25,7 @@ test('colour strength mixes the tinted art back towards the grey, and full stren
 });
 
 test('the controller, page and styles wire brightness, colour strength and the quieter VHS grain',async()=>{
-  const source=await read('../src/controller.js'),html=await read('../index.html'),css=await read('../expansion.css'),colour=await read('../src/operator-color.js');
+  const source=sourceFamily('controller'),html=await read('../index.html'),css=await read('../expansion.css'),colour=await read('../src/operator-color.js');
   assert.ok(source.includes("let screenBrightness=screenBrightnessPercent(read('ash-brightness'));"));
   assert.ok(source.includes("document.documentElement.classList.toggle('toned',screenBrightness!==SCREEN_BRIGHTNESS.initial)"),'nothing is drawn at 100%');
   // 3.139.1 (user, 2026-09-19): the strength slider left the settings while the colour picker is redesigned; the colour

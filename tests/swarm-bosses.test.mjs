@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily,memberText} from './helpers/source.mjs';
 import {Game,makeEnemy,ENEMY_TYPES,SAVE_VERSION,applySuppression,scaleEnemy,floorDamageBonus,makeBarrier,VOID} from '../src/engine.js';
 import {affixArena} from '../qa/enemy-affix-scenes.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
@@ -424,10 +425,9 @@ test('review 7: gaps: the sac\'s tile rules, low partitions and the tongue, the 
 });
 
 // ---- 3.206.0 (user): the egg sac's look ---------------------------------------------------------------------------
-import {readFile} from 'node:fs/promises';
 test('3.206.0 (user): the egg sac shows the swarm wave\'s burrow on its warning tile; the drawn sac is only the fallback',async()=>{
-  const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8');
-  const body=source.slice(source.indexOf('  eggSac(q,time){'),source.indexOf('  swarmBossEffect('));
+  const source=sourceFamily('renderer');
+  const body=memberText(source,'  eggSac(q,time){');
   assert.match(body,/if\(drawNestSprite\(c,this\.terrainImages\?\.get\(NEST_ATLAS\),a,t,'burrow','active'\)\)return;/,'the burrow, as the swarm wave draws it');
   assert.ok(body.indexOf('EGG_VISUAL.fill')<body.indexOf("'burrow'")&&body.indexOf("'burrow'")<body.indexOf('c.ellipse('),'over the warning tile, with the drawn sac after it as the fallback');
 });

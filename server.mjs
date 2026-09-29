@@ -19,4 +19,5 @@ http.createServer(async (req,res) => {
     const body=await readFile(file); res.writeHead(200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream','Cache-Control':'no-cache'}); res.end(body);
   } catch {res.writeHead(404);res.end('Not found');}
 // 5174 since 2026-09-29: the user runs several projects at once and 5173 is usually taken by another dev server.
-}).listen(5174,'0.0.0.0',()=>console.log('ASH PROTOCOL ready at http://localhost:5174'));
+// 3.206.3: PORT overrides it, so a checkout's own tools (qa/render-snapshots.mjs) can serve that checkout beside it.
+}).listen(Number(process.env.PORT)||5174,'0.0.0.0',()=>console.log(`ASH PROTOCOL ready at http://localhost:${Number(process.env.PORT)||5174}`));

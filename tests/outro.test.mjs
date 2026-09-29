@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {sourceFamily} from './helpers/source.mjs';
 import {t} from '../src/i18n.js';
 import {OUTRO_TUNING,outroPlan} from '../src/outro.js';
 import {kiaSeconds} from '../src/kia.js';
@@ -47,7 +47,7 @@ test('a death has its scene on the field, so only the loss report; an abandoned 
 });
 
 test('the controller plays the end of a run instead of opening the results at once',async()=>{
- const source=await readFile(new URL('../src/controller.js',import.meta.url),'utf8');
+ const source=sourceFamily('controller');
  assert.match(source,/if\(kia\)kia\.resultPending=true;else endRun\(\);/,'the run ends into the sequence');
  assert.match(source,/kia\.shown=true;renderer\.pace=null;renderer\.kia\.frozen=false;endRun\(\);/,'so does the death scene');
  assert.match(source,/function showResult\(\)\{endOutro\(\);/,'the results stop what is left of it');

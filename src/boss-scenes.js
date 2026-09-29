@@ -1,5 +1,5 @@
 // Boss scenes (3.204.0, user 2026-09-29; docs/BOSSES.md sections 5 and 6). Presentation only: rules, saves and replays
-// never see them; src/controller.js plays them with these timings. Each plays once per boss.
+// never see them; src/controller-comms.js plays them with these timings. Each plays once per boss.
 // - The intro: when the officer on duty first sees a boss (the comms `boss` event, src/comms-events.js), input locks and
 //   the camera slides onto the boss and pushes in a little while she speaks; it slides back only once her line has
 //   closed. A boss with its own line (its card's `intro`) gets it, any other boss the generic one. The overseer has no

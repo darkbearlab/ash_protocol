@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile,readdir,access} from 'node:fs/promises';
 import {createKillhouse} from '../src/engine.js';
 import {takeCourseBeats,courseCardClosed,courseDeathSection,courseDeathLines,COURSE_TUNING} from '../src/course.js';
@@ -131,8 +132,8 @@ test('the course comes off as a unit: the switch brings back the six-card tutori
  const old=createKillhouse({mode:'tutorial',options:{tutorialCourse:false}});
  assert.equal(old.course,undefined);assert.equal(old.killhouseRecipe,'killhouse-tutorial');assert.ok(old.enemies.every(e=>!e.course&&e.damageScale===undefined&&!e.courseName));
  assert.equal(createKillhouse({mode:'arcade'}).course,undefined);
- const users=[];for(const f of await readdir(new URL('../src/',import.meta.url)))if(f.endsWith('.js')&&!f.startsWith('course')){const body=await readFile(new URL(`../src/${f}`,import.meta.url),'utf8');if(/from '\.\/course[\w-]*\.js'/.test(body))users.push(f);}
- assert.deepEqual(users.sort(),['controller.js','killhouse-maps.js','killhouse.js']);
+ const users=[];for(const f of await readdir(new URL('../src/',import.meta.url)))if(f.endsWith('.js')&&!f.startsWith('course')){const body=await readFile(new URL(`../src/${f}`,import.meta.url),'utf8');if(/from '\.\/course[\w-]*\.js'/.test(body))users.push(f.startsWith('controller-')?'controller.js':f);}   // 3.206.3: the controller's topic files count as the controller
+ assert.deepEqual([...new Set(users)].sort(),['controller.js','killhouse-maps.js','killhouse.js']);
 });
 
 test('each zone door stays shut until its lesson is done, for everyone, and the researcher waits until the player steps in',()=>{
@@ -158,7 +159,7 @@ test('each zone door stays shut until its lesson is done, for everyone, and the 
 
 test('the comms bar shows each line once, and its countdown survives moving onto and off a card (3.198.1)',async()=>{
  // A `then` that says the next line itself used to get that line armed twice; the spare timer cleared the line after it.
- const source=await readFile(new URL('../src/controller.js',import.meta.url),'utf8');
+ const source=sourceFamily('controller');
  assert.ok(source.includes("if(message===undefined||commsLayer.firstElementChild)return;"),'one box at a time');
  assert.ok(source.includes("if(bar)bar.currentTime=performance.now()-commsShownAt;"),'the countdown resumes after a move');
  assert.ok(source.indexOf("commsShownAt=performance.now();")>source.indexOf('function showNextComms'),'the start time is taken when a line goes up');

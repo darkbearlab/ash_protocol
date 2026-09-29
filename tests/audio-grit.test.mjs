@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 import {GRIT_LEVELS,GRIT_DEFAULT,gritLevel,gritPlan,popShape,noiseBurst,POP_SHAPES} from '../src/audio-grit.js';
 
@@ -49,7 +50,7 @@ test('pop shapes and the static source are fixed, so the audition and the game u
 });
 
 test('the engine plays the plan through each voice, the music wobbles, and the setting is saved',async()=>{
-  const engine=await read('../src/audio.js'),source=await read('../src/controller.js'),worker=await read('../sw.js');
+  const engine=await read('../src/audio.js'),source=sourceFamily('controller'),worker=await read('../sw.js');
   assert.ok(engine.includes('const plan=gritPlan(buffer.duration,this.grit);\n      if(plan)source.start(this.roughen(voice,plan));else{source.connect(this.sfxBus);source.start();}'));
   assert.ok(engine.includes('try{voice.gain?.disconnect();}catch{}'),'a stolen voice takes its scheduled pops with it');
   assert.ok(engine.includes('Object.assign(token,{pending:false,source,gain});this.wobble(token);'));

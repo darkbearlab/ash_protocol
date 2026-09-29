@@ -16,7 +16,7 @@ export const FX_SHEETS=Object.freeze({
 });
 // Smoke as one field (3.202.0, user 2026-09-29; art/smoke-field-v1): a large wrap-around texture per kind, not a sprite
 // per tile. The renderer shows each cloud tile the part of the texture under its map position and feathers only the
-// cloud's outer edge (src/renderer.js cloudField). Two qualities, picked in the settings (user: keep both):
+// cloud's outer edge (src/renderer-clouds.js cloudField). Two qualities, picked in the settings (user: keep both):
 // - 'layers' (default): layers.png, the five kinds' 256px textures side by side, stacked three times at run time;
 // - 'baked': baked-<kind>.png, the same stack composited ahead of time into one texture per kind, drawn once.
 // Until a texture has loaded, clouds fall back to the per-tile `smoke` sheet above, then to the procedural drawing.

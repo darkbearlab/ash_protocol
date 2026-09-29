@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {sourceFamily} from './helpers/source.mjs';
 import {Game,makeEnemy} from '../src/engine.js';
 import {SKILLS} from '../src/skills.js';
 
@@ -19,7 +19,7 @@ test('預警 finds the enemies around you without alerting them or telling them 
 });
 
 test('feeding the pet reopens the pack on the same tab unless an enemy is in view',()=>{
- const source=readFileSync(new URL('../src/controller.js',import.meta.url),'utf8');
+ const source=sourceFamily('controller');
  assert.ok(source.includes("if(b.dataset.feedOption){feedAction({optionId:b.dataset.feedOption});return;}"));
  assert.ok(source.includes("feedAction({optionId:'weapon',weaponSlot:Number(b.dataset.confirmFeedWeapon)})"));
  assert.ok(source.includes("!game.visibleEnemies.some(e=>!isNoncombatant(e))")&&source.includes('!game.pendingPerks'),'an enemy in view, a level-up or another screen wins');

@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 
 // 3.115.0 (user request): level-ups open with an incoming transmission, and a VHS filter can cover the whole screen.
 const read=path=>readFile(new URL(path,import.meta.url),'utf8');
 
 test('a level-up shows the transmission first, once per level of a run, and confirming opens the choices',async()=>{
-  const source=await read('../src/controller.js');
+  const source=sourceFamily('controller');
   assert.ok(source.includes("else if(entered&&game.pendingPerks&&game.status==='playing'&&!bossScene)showLevelUp();"),'the battle raises the transmission, not the list (3.204.0: after a boss scene)');
   assert.ok(source.includes('if(game.pendingPerks){showLevelUp();return;}'),'closing a menu with a choice pending comes back to it');
   assert.ok(source.includes('const transmissionKey=()=>`${game.runId}:${game.player.level}`;'),'keyed per run, so a new run at the same level still sees it');
@@ -24,7 +25,7 @@ test('a level-up shows the transmission first, once per level of a run, and conf
 });
 
 test('the VHS filter is off by default, remembered, and covers the page and any open dialog',async()=>{
-  const source=await read('../src/controller.js');
+  const source=sourceFamily('controller');
   assert.ok(source.includes("let vhsFilter=read('ash-vhs')==='on';document.documentElement.classList.toggle('vhs',vhsFilter);"));
   assert.ok(source.includes("write('ash-vhs',vhsFilter?'on':'off')"));
   assert.ok(source.includes('data-modal="vhs"'));

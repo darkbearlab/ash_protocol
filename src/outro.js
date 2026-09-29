@@ -1,4 +1,4 @@
-// The end of a run, in three parts (3.177.0, user design; docs/STORY.md 8). src/controller.js plays them:
+// The end of a run, in three parts (3.177.0, user design; docs/STORY.md 8). src/controller-comms.js plays them:
 // 1. on the field: the officer on duty approves the extraction on the header bar (a death has the killed-in-action
 //    scene here instead, src/kia.js), then the screen darkens;
 // 2. in the middle of the dark screen she speaks: the extraction line, or the loss report. When the purge review finds

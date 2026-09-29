@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile,readdir,stat} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
@@ -87,7 +88,7 @@ test('game audio files are the adopted ones, byte for byte, and the loop points 
 });
 
 test('the controller plays from events, keeps sound failures away from turns, and saves the audio settings',async()=>{
-  const source=await read('../src/controller.js'),worker=await read('../sw.js'),engine=await read('../src/audio.js');
+  const source=sourceFamily('controller'),worker=await read('../sw.js'),engine=await read('../src/audio.js');
   assert.ok(source.includes('for(const cue of eventSounds(event.effects,event.state))audio.play(cue);'));
   assert.ok(source.includes('if(engagementHeard(event.effects))noteCombat(true);\n        if(playback.skipping)return;'),'a skipped animation still counts its engagement line but plays nothing');
   assert.ok(source.includes("audio.setVolumes({music:volumePercent(read('ash-music-volume'),AUDIO_TUNING.musicDefault)/100,sfx:volumePercent(read('ash-sfx-volume'),AUDIO_TUNING.sfxDefault)/100});"));

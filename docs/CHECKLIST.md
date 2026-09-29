@@ -12,12 +12,13 @@
 | `node qa/save-fuzz.mjs --trace <檔> [--against <舊檔>]` | 同上，另外每一步記一行：狀態雜湊（含戰報）、這一步的特效種類、看得到的每個敵人的目標卡狀態；`--against` 指出和舊記錄第一個不同的步驟 | 不改行為的重構：動 `src/` 之前用同樣的參數先錄一份，之後每一步再錄一份比對 |
 | `node qa/special-matrix.mjs` | 每個敵人招式的對照表（打斷的每個原因；誘餌、看過的地雷、腳下的危險格、壓制、自己的回合；回合開頭；竄改過的存檔與往返任務封存樓層的讀檔），和 `tests/fixtures/special-matrix.json` 逐格比對，列出不同的格子；約 15 秒，`tests/enemy-specials.test.mjs` 也會比 | 動到敵人招式、預告、打斷、讀檔時；`--write` 只在有意改規則時重錄，報告寫明哪些格子變了 |
 | `node qa/enemy-data-identity.mjs` | 地圖生成、任務開局、機器人結果和基準逐筆比對 | 開發中用 `--only generation`／`missions`／`bots` 只跑一段；交件前完整跑一次 |
+| `node qa/render-snapshots.mjs --out <檔> [--against <舊檔>]` | 畫面與介面的快照（3.206.3）。自己開一個 `node server.mjs`（`PORT` 用空的連接埠，服務這份工作目錄；`--base <網址>` 改用已經在跑的伺服器）和獨立的無頭 Chrome（暫存設定檔、DevTools 協定），測試模式，固定亂數、時間與 ID、擋掉 Google 字型、略過 Service Worker。**canvas**：約 70 個用 `window.__ashSim` 搭的場景（地圖、道具、光線、霧、四派系與頭目樓層、每個頭目預告、兩種品質的煙霧場、火、排煙口、各種瞄準、特效、目標卡……），暫停畫面迴圈、在固定時間手動 `draw`，記像素雜湊；每個場景畫三次，後兩次要相同。**dom**：點過真的介面記下重要畫面的 HTML（標題、設定各分頁、部署、開局的 HUD、移動、開火、背包各分頁、地圖、紀錄、檔案、手冊、熱鍵、操作台、終端、通訊列、下樓、頭目出場鎖住操作）。也記頁面錯誤。`--against` 列出每個不同的場景或畫面；`--only canvas`／`dom` 只跑一半；`--png <目錄>` 另存每個 canvas 場景的圖。雜湊跟這台機器的 Chrome 與字型有關：只和同一台機器上的記錄比，不進版控 | 不改行為地動到 `src/renderer*.js`、`src/controller*.js` 或畫面用到的模組時：動手前在沒改過的程式上錄一份，之後每一步比對；約 1 分鐘 |
 | `node qa/english-scan.mjs`、`node tools/glossary.mjs --check` | 英文模式沒有中文、名詞表最新 | 改到文字時 |
 | `npm run build` | 發佈包 | 交件前一次 |
 
 身分基準有差異時：先把新功能暫時關掉，證明關掉後完全一致（差異只來自新功能），再用 `--accept` 只收下有變的那幾筆。不要用 `--write` 整份重錄。
 
-不改行為的重構（例如 3.206.1）：身分基準、招式對照表與存檔隨機測試的記錄都要完全一致，不用 `--accept`、`--write`。
+不改行為的重構（例如 3.206.1、3.206.3）：身分基準、招式對照表與存檔隨機測試的記錄都要完全一致，不用 `--accept`、`--write`；動到畫面或介面時，畫面快照（`qa/render-snapshots.mjs`）也要完全一致。沒改過的程式可以用 `git archive HEAD` 匯出到暫存目錄，在那裡開伺服器，用 `--base` 錄基準。
 
 ## 2. 新增敵人招式、預告或特殊行動
 
@@ -50,7 +51,7 @@
 - **只算敵人**：演出與戰報判斷「頭目倒下」只看敵人（`bossFallOf`）；玩家的頭目藍圖單位倒下不算。
 - **通訊**：頭目出場台詞排到佇列最前面（`sayCommsFirst`）。
 - **不讓詞條破壞解法**：快速、紅外線之類的詞條會讓預告失去意義時，在卡片上排除（`barredAffixes`）。
-- **畫面**：`src/renderer.js` 與文字版工具（`tools/text-play.mjs`）照各招式自己的形狀畫預告，還是分開寫。
+- **畫面**：`src/renderer-telegraphs.js`（3.206.3 起）與文字版工具（`tools/text-play.mjs`）照各招式自己的形狀畫預告，還是分開寫；新預告在 `qa/render-snapshots.mjs` 加一個場景。
 
 ## 3. 存檔
 
@@ -68,4 +69,4 @@
 ## 5. 視覺
 
 - 用測試模式（`?test=1`）搭場景：`window.__ashSim` 有 `game`、`renderer`、`update`、`start`、`act`、`bossScene`。
-- 截圖用獨立的無頭 Chrome（自己的暫存設定檔，DevTools 協定），不要用使用者的瀏覽器；開發伺服器在 `http://localhost:5174`。
+- 截圖用獨立的無頭 Chrome（自己的暫存設定檔，DevTools 協定），不要用使用者的瀏覽器；開發伺服器在 `http://localhost:5174`（`PORT=<埠> node server.mjs` 可以另開一個服務別的工作目錄）。`qa/render-snapshots.mjs` 是現成的例子：它的場景怎麼搭、怎麼固定時間與亂數，`--png` 可以存圖來看。

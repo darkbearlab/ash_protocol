@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFileSync} from 'node:fs';
 import {VERSION} from '../src/version.js';
 
@@ -12,6 +13,6 @@ test('package.json, src/version.js and the sw.js cache name carry the same versi
 });
 
 test('player-facing BUILD labels read the version instead of typing it', () => {
-  assert.doesNotMatch(read('src/controller.js'), /BUILD \d+\.\d+\.\d+/);
-  assert.match(read('src/controller.js'), /BUILD \$\{VERSION\}/);
+  assert.doesNotMatch(sourceFamily('controller'), /BUILD \d+\.\d+\.\d+/);
+  assert.match(sourceFamily('controller'), /BUILD \$\{VERSION\}/);
 });

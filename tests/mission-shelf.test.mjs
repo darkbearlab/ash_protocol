@@ -2,7 +2,7 @@
 // Endless is its own mode and stays. Shelved missions are still in the catalog, so runs that have one keep working.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {sourceFamily} from './helpers/source.mjs';
 import {Game} from '../src/engine.js';
 import {MISSIONS,SHELVED_MISSIONS,OFFERED_MISSION_IDS,CAMPAIGN_MISSION_IDS,offeredMission,validMissionId} from '../src/missions.js';
 
@@ -21,7 +21,7 @@ test('a run on a shelved mission still loads and plays',()=>{
  }
 });
 test('the deployment screen lists the offered missions; quick, daily and retry use them',()=>{
- const source=readFileSync(new URL('../src/controller.js',import.meta.url),'utf8');
+ const source=sourceFamily('controller');
  assert.match(source,/const MISSION_IDS=CAMPAIGN_MISSION_IDS;/);
  assert.match(source,/offered=OFFERED_MISSION_IDS\.map\(id=>\[id,MISSIONS\[id\]\]\)/);
  assert.doesNotMatch(source,/Object\.entries\(MISSIONS\)/,'no screen lists the whole catalog any more');

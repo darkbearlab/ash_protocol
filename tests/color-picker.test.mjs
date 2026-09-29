@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFileSync} from 'node:fs';
 import {OPERATOR_COLORS,validOperatorColor,operatorColor,hsvToHex,hexToHsv,hsvToRgb,softStop,BRIGHTNESS_STOP,tintPixels} from '../src/operator-color.js';
 import {colorPickerMarkup,presetFor} from '../src/color-picker.js';
@@ -46,7 +47,7 @@ test('the picker keeps the swatches, starts on the saved colour and carries a cu
 });
 
 test('the deploy screen mounts the picker, the settings stay free of colour controls, and it is cached offline',()=>{
- const source=readFileSync(new URL('../src/controller.js',import.meta.url),'utf8'),sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8'),css=readFileSync(new URL('../expansion.css',import.meta.url),'utf8');
+ const source=sourceFamily('controller'),sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8'),css=readFileSync(new URL('../expansion.css',import.meta.url),'utf8');
  assert.ok(source.includes("mountColorPicker($('#modal .color-list'),drawOperatorSprites);"));
  assert.ok(source.includes('return colorPickerMarkup(selected,character);'));
  assert.ok(!source.includes('id="operator-tint"')&&!source.includes('id="operator-value"'),'no colour control in the settings; the slider lives in the picker module');

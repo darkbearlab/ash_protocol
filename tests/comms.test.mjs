@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFileSync} from 'node:fs';
 import {t,setLanguage} from '../src/i18n.js';
 import {logSlots,commsForLogs,commsDuration,commsMarkup,armComms,resolveComms,dutySpeaker,commsLine,COMMS_HOOKS,COMMS_SPEAKERS,COMMS_TUNING,COMMS_LINES,COMMS_EXPRESSIONS,DEFAULT_EXPRESSION} from '../src/comms.js';
@@ -112,7 +113,7 @@ test('the box carries its hairline, and longer lines stay longer within the limi
 // also matched the closed dialog and outranked the browser's hiding of it, so the closed briefing stayed over the
 // field and took its taps.
 test('a closed dialog stays hidden whatever it last showed',()=>{
- const controller=readFileSync(new URL('../src/controller.js',import.meta.url),'utf8');
+ const controller=sourceFamily('controller');
  const css=['../style.css','../expansion.css'].map(f=>readFileSync(new URL(f,import.meta.url),'utf8')).join('\n').replace(/\/\*[\s\S]*?\*\//g,'');
  const classes=[...controller.matchAll(/\$\('#modal'\)\.classList\.toggle\('([\w-]+)'/g)].map(m=>m[1]);
  assert.ok(classes.includes('briefing'));

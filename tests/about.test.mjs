@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {sourceFamily} from './helpers/source.mjs';
 import {t} from '../src/i18n.js';
 import {VERSION} from '../src/version.js';
 import {aboutMarkup,ABOUT_AI,ABOUT_RIGHTS,ABOUT_CREDITS} from '../src/about.js';
@@ -14,7 +14,7 @@ test('the About page carries the AI note, the rights, the font licence and a way
  assert.match(page,/Sloth Mage Games/);assert.match(page,/<a href="https:\/\/slothmagegames\.itch\.io\/" target="_blank" rel="noopener">slothmagegames\.itch\.io<\/a>/);
  assert.equal(ABOUT_AI.length,3,'the three paragraphs the user wrote');
  assert.match(page,/data-modal="intro"/);
- const controller=readFileSync(new URL('../src/controller.js',import.meta.url),'utf8');
+ const controller=sourceFamily('controller');
  assert.match(controller,/entry\('about','ABOUT',t\('controller\.title\.about'\)\)/,'the title menu lists it');
  assert.equal((controller.match(/case 'about':modal\(aboutMarkup\(\),true\);break;/g)||[]).length,2,'both action switches open it');
 });

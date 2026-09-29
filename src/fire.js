@@ -37,7 +37,7 @@ export const burningAt=(g,pos)=>g.fires?.find(f=>f.x===pos.x&&f.y===pos.y)||null
 const fixedFire=(g,q)=>Boolean(g.hazards?.some(h=>h.type==='fire'&&h.x===q.x&&h.y===q.y));
 // A tile that can catch: bare floor (not a pit, not under a crate, barrel or nest), not the fixed fire.
 export const flammable=(g,q)=>g.grid[q.y]?.[q.x]===1&&!(g.solid?.(q.x,q.y))&&!fixedFire(g,q);
-// Which sheet row a burning tile shows (src/renderer.js): it catches, burns, then dies down in its last two rounds.
+// Which sheet row a burning tile shows (src/renderer-clouds.js burning): it catches, burns, then dies down in its last two rounds.
 export const fireRow=f=>f.age<=1?'ignite':f.age>=FIRE_TUNING.maxAge-1?'embers':'steady';
 
 // Start of a round (Game.action, after the vents). Every tile rolls against the fire as it stood when the round began, so

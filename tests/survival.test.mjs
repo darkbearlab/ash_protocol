@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFileSync} from 'node:fs';
 import {Game,makeEnemy} from '../src/engine.js';
 import {SURVIVAL_TUNING as T,isSurvival,turnsLeft,pointBlocks,pointStatus,pointTargeted} from '../src/survival.js';
@@ -166,7 +167,7 @@ test('reinforcements come out of the rift portal; a won run is lifted out in a b
  const g=survival(21),s=g.survival;s.nextWave=g.turn+T.lead;g.action('wait');
  while(s.incoming.length)g.action('wait');
  const arrivals=g.enemies.filter(e=>e.survival);assert.ok(arrivals.length);
- const controller=readFileSync(new URL('../src/controller.js',import.meta.url),'utf8'),survivalSource=readFileSync(new URL('../src/survival.js',import.meta.url),'utf8');
+ const controller=sourceFamily('controller'),survivalSource=readFileSync(new URL('../src/survival.js',import.meta.url),'utf8');
  assert.match(survivalSource,/g\.effects\.push\(\{type:'portalSpawn',from:\{x:p\.x,y:p\.y\},to:\{x:p\.x,y:p\.y\},damage:0\}\)/);
  assert.match(controller,/if\(game\.status==='won'\)renderer\.extraction=\{start:renderer\.time,at:\{x:game\.player\.x,y:game\.player\.y\}\};/);
  assert.match(controller,/sayComms\(\{\.\.\.round\.plan\.field,then:afterBeam\}\);else afterBeam\(\);/);

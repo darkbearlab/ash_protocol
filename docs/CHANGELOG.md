@@ -1,5 +1,20 @@
 # 更新紀錄
 
+## 3.206.3 — 拆開三個大檔案（遊戲行為不變）（2026-09-30）
+
+- 使用者 2026-09-29 同意的重整第三步：`src/game.js`（152 KB）、`src/renderer.js`（106 KB）、`src/controller.js`（195 KB）依主題拆成入口加主題檔，之後的工作只讀相關的檔。遊戲行為、存檔格式與 SAVE 84 都不變。
+- **Game**：`game.js`（16 KB）留建構子與狀態查詢（視線、通行、門、目標、紀錄）；`game-actions.js`（36 KB：可否行動、`action`、玩家自己的行動）、`game-attacks.js`（20 KB：玩家的武器）、`game-damage.js`（24 KB：受傷、掉落、投擲物與爆炸）、`game-enemies.js`（10 KB：敵人回合）、`game-items.js`（16 KB：背包、撿取、武器、容器、終端）、`game-floors.js`（7 KB：樓層、下樓、升級）、`game-save.js`（34 KB：`serialize` 與 `Game.restore`）。
+- **Renderer**：`renderer.js`（14 KB）留建構子、畫面迴圈、鏡頭與目標卡位置；`renderer-map.js`（30 KB：地板、牆、門、道具、物品、樓層地圖）、`renderer-actors.js`（17 KB：單位與屍體）、`renderer-clouds.js`（10 KB：煙霧場、火、排煙口）、`renderer-telegraphs.js`（20 KB：預告與瞄準）、`renderer-effects.js`（23 KB：特效、撤離光束、訊號干擾、泡泡、最上層）。原本 30 KB 的 `draw` 照原本的順序切成七層（地板、預告與瞄準、單位、瞄準對象、特效、牆、最上層），各放在該主題檔，`draw` 只依序呼叫。
+- **做法**：主題檔各是一個類別，方法逐字搬過去；入口用新的 `src/mixin.js` 把方法、getter 與 static 抄到 Game／Renderer 上（不可列舉，和 class 語法相同；同名重複定義會丟錯）。Game 的 140 個成員與 Renderer 原有的 76 個成員（`draw` 除外）原始碼與屬性描述都和改前相同，對外匯出不變（`engine.js` 287 個名稱）。
+- **controller**：`controller.js`（67 KB）留整局的狀態、所有事件監聽、`act`、`modal`、開新局與模擬、備份還原、回放工具與測試掛勾；`controller-hud.js`（18 KB：`update`、通知）、`controller-comms.js`（18 KB：通訊列、訓練課程卡、頭目與陣亡演出、結局）、`controller-aim.js`（19 KB：移動、瞄準、開火、互動、技能與道具按鈕）、`controller-deploy.js`（14 KB：標題與部署）、`controller-screens.js`（24 KB：紀錄、地圖、解鎖、升級、檔案、手冊、結算）、`controller-pack.js`（30 KB：背包、工坊、終端）、`controller-settings.js`（20 KB：設定、熱鍵、操作台）。主題檔只有宣告，載入時不碰 DOM 與設定；匯入的狀態是唯讀的，寫到別處狀態的 13 個地方改成呼叫 setter（例如 `setTitleFlow(true)`）。
+- Claude 的判斷：點擊、按鍵、觸控的處理（點擊一段 18 KB）與整局狀態留在 `controller.js`——它們寫二十幾個設定變數，搬出去要為每個加 setter、改動大段程式，本來就是「把按鈕接到主題函式」的轉接層。
+- 模組載入順序完全不變（比對 461 個入口的載入順序）；為此三個入口保留 28 行標著 `load order only` 的空 import，不要刪。
+- **新工具** `qa/render-snapshots.mjs`（CHECKLIST 第 1 節）：獨立的無頭 Chrome 在測試模式記 70 個 canvas 場景的像素雜湊（每個頭目預告、兩種品質的煙霧、火、排煙口、瞄準、特效……）與 39 個介面畫面的 HTML（設定各分頁、背包、終端、部署、通訊列、頭目出場時鎖住操作……）和頁面錯誤，`--against` 比對。`server.mjs` 可以用 `PORT` 換連接埠。
+- 其他：`sw.js` 與開啟讀取條加 20 個新檔（198 個模組）；讀原始碼的 33 個測試檔改讀整組檔案（`tests/helpers/source.mjs`），撤離光束的順序改成實際呼叫 `draw` 記下各層順序；新測試 `tests/split-modules.test.mjs`；`tools/text-inventory.mjs` 的手冊與設定頁改讀新檔；HANDOFF 第 4 節的模組地圖重寫。
+- 驗證：`npm test` 1520 項全過（原 1516 項＋新 4 項）；身分基準相同（生成 780、開局 125、機器人 24，沒用 `--accept`）；招式對照表 1130 格相同；存檔隨機測試預設 288 局 23040 步、頭目附近 144 局 11520 步乾淨，兩份逐步記錄都和改前完全相同；畫面快照 70 個場景與 39 個畫面都和改前的程式相同（`npm run build` 的發佈版也相同），頁面錯誤零；英文掃描乾淨、名詞表最新、`npm run build` 成功。
+- 報告：qa/results/2026-09-30-claude-3.206.3-split-files.md。
+- 試玩重點：無，遊戲行為不變。
+
 ## 3.206.2 — 敵人招式的規則修正：3.206.1 找到的缺口（2026-09-30）
 
 - 主工作階段：修掉 3.206.1 登錄表整理時找到的缺口（規則修正，行為照設計改變）；每一項先證明差異只來自它，再收下。

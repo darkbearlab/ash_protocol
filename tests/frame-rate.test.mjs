@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 import {FRAME_RATES,FRAME_RATE_DEFAULT,frameRate,nextFrameRate,frameDue,nextDue} from '../src/frame-rate.js';
 
@@ -40,7 +41,7 @@ test('the canvas draws at the chosen rate on 60, 90, 120 and 144 Hz screens, and
 });
 
 test('the renderer skips frames between draws and draws nothing under a full-page menu; the setting is saved',async()=>{
-  const renderer=await read('../src/renderer.js'),source=await read('../src/controller.js');
+  const renderer=sourceFamily('renderer'),source=sourceFamily('controller');
   assert.ok(renderer.includes('const tick=t-(this.lastTick??t);this.lastTick=t;\n    if(!frameDue(t,this.due??t,tick)){requestAnimationFrame(v=>this.frame(v));return;}\n    this.due=nextDue(this.due??t,t,this.frameRate);'));
   // 3.147.0: the screen shake's offset is taken just before the draw; 3.149.0: the signal interference right after.
   assert.ok(renderer.includes('this.updateCamera(dt*1000);if(!this.isCovered?.()){this.shift=this.shakes.length?shakeOffset(this.shakes=liveImpulses(this.shakes,this.time),this.time):null;this.draw(this.time);if(this.glitchEnabled)this.glitchFrame();this.placeTargetCard();}'),'the clock and playback keep running while the battlefield is hidden');

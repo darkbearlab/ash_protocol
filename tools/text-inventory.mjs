@@ -39,7 +39,7 @@ const KIND={
  'data.js':'資料：武器、敵人、升級、補給名稱與說明','traits.js':'資料：被動特性','skills.js':'資料：主動技能','prepared.js':'資料：道具與投擲物',
  'characters.js':'資料：職業','weapons.js':'資料：武器詞條','enemy-affixes.js':'資料：敵人詞條','missions.js':'資料：任務',
 };
-const kindOf=f=>SHELVED.has(f)?'德魯伊／死靈法師（下架）':KIND[f]||'規則與介面文字';
+const kindOf=f=>SHELVED.has(f)?'德魯伊／死靈法師（下架）':KIND[f]||(f.startsWith('controller-')?KIND['controller.js']:'')||'規則與介面文字';   // 3.206.3: the controller's topic files
 
 export function inventory(){
  const files=readdirSync(resolve(root,'src')).filter(f=>f.endsWith('.js')).sort();
@@ -66,9 +66,15 @@ export function inventory(){
  return {total,rows,concat,units,spoken,migration,shelvedElsewhere};
 }
 
-// The manual (showHelp in controller.js), section by section: <b>title</b><span>body</span>.
+// One top-level function's text, to the next top-level declaration (3.206.3: the controller's screens live in
+// src/controller-*.js, their functions exported).
+function functionBody(file,name){
+ const src=readFileSync(resolve(root,'src',file),'utf8'),a=src.indexOf(`function ${name}(`),next=/\n(?:export )?(?:function |const |let )/g;
+ next.lastIndex=a+10;const m=next.exec(src);return src.slice(a,m?m.index:undefined);
+}
+// The manual (showHelp in controller-screens.js), section by section: <b>title</b><span>body</span>.
 export function manualSections(){
- const src=readFileSync(resolve(root,'src/controller.js'),'utf8'),a=src.indexOf('function showHelp('),b=src.indexOf('\nfunction ',a+10),body=src.slice(a,b);
+ const body=functionBody('controller-screens.js','showHelp');
  const out=[],intro=body.slice(body.indexOf('<h2>'),body.indexOf('<div class="help-grid">'));
  out.push({title:'（開頭說明）',chars:count(intro)});
  for(const m of body.matchAll(/<b>([^<]{1,20})<\/b><span>([\s\S]*?)<\/span>(?=<b>|<\/div>)/g))out.push({title:m[1],chars:count(m[2])});
@@ -84,9 +90,9 @@ export async function voiceLines(){
  });
 }
 
-// The settings page (settings() in controller.js): button labels and explanation paragraphs.
+// The settings page (settings() in controller-settings.js): button labels and explanation paragraphs.
 export function settingsText(){
- const src=readFileSync(resolve(root,'src/controller.js'),'utf8'),a=src.indexOf('function settings('),b=src.indexOf('\nfunction ',a+10),body=src.slice(a,b);
+ const body=functionBody('controller-settings.js','settings');
  const paragraphs=[...body.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)].map(m=>count(m[1])),buttons=[...body.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map(m=>count(m[1]));
  return {paragraphs:paragraphs.length,paragraphChars:paragraphs.reduce((s,n)=>s+n,0),buttons:buttons.length,buttonChars:buttons.reduce((s,n)=>s+n,0),total:count(body)};
 }

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
 import {MUZZLE_FLASHES,barrelAxes,flashCells,flashLength,flashUnit,muzzlePoint,STILL_MS} from '../src/muzzle-flash.js';
 import {projectileVisuals} from '../src/presentation.js';
@@ -41,7 +42,7 @@ test('the flash points down the barrel, sits at the muzzle, and holds still for 
 });
 
 test('the renderer draws a flash only for a shooter the player can see, above the sprite, and no longer the old sprite',async()=>{
-  const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8');
+  const source=sourceFamily('renderer');
   assert.ok(source.includes("fx.shooterSeen??=fx.type==='enemyShot'?g.visibleEnemies.some(e=>e.x===fx.from.x&&e.y===fx.from.y):g.visible(fx.from);if(fx.shooterSeen)this.muzzleFlash(fx,a,angle,elapsed);"));
   assert.ok(!source.includes("effectSprite('muzzle'"),'the 16px centre sprite is gone');
   assert.ok(source.includes("if(!fx.quiet&&elapsed<spec.frameMs*2&&isDark(this.game,fx.from))this.glow("),'a dark room only gets paint, no lighting change');

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {sourceFamily} from './helpers/source.mjs';
 import {BOSS_SCENE_TUNING,introCamera,introDone,deathTimes,deathTimeScale,deathCamera,deathDone,deathBurst,bossIntroLine,bossKillLine,newBossSceneMemory,firstBossScene,bossFallOf,frontOfQueue} from '../src/boss-scenes.js';
 import {KIA_TUNING,kiaTimes} from '../src/kia.js';
 import {COMMS_LINES,COMMS_EXPRESSIONS,COMMS_SPEAKERS,resolveComms} from '../src/comms.js';
@@ -16,7 +16,7 @@ import zh from '../src/text-zh-tw.js';
 import en from '../src/text-en.js';
 
 // 3.204.0 (user 2026-09-29, docs/BOSSES.md sections 5-6): the boss intro and kill scenes. The timings are pure functions;
-// src/controller.js plays them.
+// src/controller-comms.js plays them.
 const D=BOSS_SCENE_TUNING.death,I=BOSS_SCENE_TUNING.intro;
 
 test('the kill scene is the operative\'s cut short: 0.6 s of slow motion, two to three seconds in all',()=>{
@@ -124,7 +124,7 @@ test('the boss event names the boss it saw, and a boss\'s fall names its body, i
 });
 
 test('the controller plays them: locked while they run, your fall wins, reduced motion keeps only the line',async()=>{
-  const source=await readFile(new URL('../src/controller.js',import.meta.url),'utf8');
+  const source=sourceFamily('controller');
   assert.ok(/courseHolds\(\)\|\|bossScene\|\|performance\.now\(\)<lockUntil\)return false;/.test(source),'no action while a scene plays');
   assert.ok(source.includes("function skipEnabled(){return skipPresentation&&game.status==='playing'&&!bossScene;}"),'nor a skip');
   assert.ok(source.includes("function startKia(fall){\n  bossScene=null;"),'your own scene takes over');
@@ -161,14 +161,14 @@ test('review 3: a boss intro jumps the comms queue, and its clock starts when he
   assert.deepEqual(frontOfQueue([a,b,c],intro,true),{queue:[intro,b,c],dropped:a},'the line on the bar gives way, the waiting ones follow in order');
   assert.deepEqual(frontOfQueue([a,b],intro,false),{queue:[intro,a,b],dropped:null},'nothing on the bar: nothing is dropped');
   const q=[a,b];frontOfQueue(q,intro,true);assert.deepEqual(q,[a,b],'the queue passed in is not changed');
-  const source=await readFile(new URL('../src/controller.js',import.meta.url),'utf8');
+  const source=sourceFamily('controller');
   assert.ok(source.includes('if(message)sayCommsFirst({...message,shown:()=>{if(bossScene===scene&&scene.start===null)scene.start=performance.now();}'),'the intro goes first and starts its clock when shown');
   assert.ok(source.includes('commsShownAt=performance.now();message?.shown?.();'),'the bar reports when a line is up');
   assert.ok(source.includes("if(s.kind==='intro'&&s.start===null){if(performance.now()-s.created>BOSS_SCENE_TUNING.intro.maxMs)endBossScene();return;}"),'a line that never comes up cannot hold the controls');
 });
 
 test('review 6: a second boss down in the same action does not restart the camera',async()=>{
-  const source=await readFile(new URL('../src/controller.js',import.meta.url),'utf8');
+  const source=sourceFamily('controller');
   assert.ok(/firstBossScene\(sceneMemory\(\),'death',fall\.actorId\)\)return;[^\n]*\n\s*if\(bossScene\)return;/.test(source));
   assert.ok(source.includes('const bossFall=!kia&&bossFallOf(event.effects);'),'the playback asks bossFallOf');
 });

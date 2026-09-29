@@ -25,7 +25,7 @@ export function lootCell(item,weapon=null){
   if(!item||SPECIAL_LOOT.includes(item.type))return null;
   if(item.type==='weapon'){
     if(weapon?.melee)return {col:0,row:0,tint:MELEE_TINT};
-    if(weapon?.tank)return {col:0,row:0,tint:FUEL.tint};   // 3.203.0: the flamethrower, when Codex's own icon is missing (src/renderer.js)
+    if(weapon?.tank)return {col:0,row:0,tint:FUEL.tint};   // 3.203.0: the flamethrower, when Codex's own icon is missing (src/renderer-map.js)
     const col=WEAPON_COLUMN[weapon?.ammoType];
     return col===undefined?null:{col,row:0};
   }

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {readFileSync} from 'node:fs';
 import {GORE_PALETTES,GORE_SETTINGS,GORE_TUNING,goreKind,goreLevel,validGoreSetting,makeBurst,enemyBurst,burstLife,goreSize,goreForce,goreForceScale} from '../src/gore.js';
 import {killingBlow,ENEMY_BLOWS,kiaBurst} from '../src/kia.js';
@@ -118,7 +119,7 @@ test('drops land within a second of world time; the burst code ships offline and
  assert.ok(early>0&&late<1);
  const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
  for(const file of ['gore.js','gore-art.js','kia.js','kia-art.js'])assert.ok(sw.includes(`./src/${file}`),file);
- const settings=readFileSync(new URL('../src/controller.js',import.meta.url),'utf8');
+ const settings=sourceFamily('controller');
  assert.match(settings,/data-modal="gore"/,'the setting is on the settings page');
  assert.match(settings,/write\('ash-gore',goreChoice\)/,'kept on this device, not in the save');
 });

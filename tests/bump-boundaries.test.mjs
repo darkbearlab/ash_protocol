@@ -1,6 +1,7 @@
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {sourceFamily} from './helpers/source.mjs';
 import {levelCost} from '../src/perks.js';
 import {readFile} from 'node:fs/promises';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
@@ -69,7 +70,7 @@ test('optional white overlay renders after wall art and does not mutate saves',(
   r.draw(0);assert.ok(calls.indexOf('white')>calls.lastIndexOf('wall'));assert.equal(g.serialize(),before);r.movementBoundaries=false;calls.length=0;r.draw(0);assert.ok(!calls.includes('white'));
 });
 test('settings stores boundary preference through namespace helpers and module is precached',async()=>{
-  const source=await readFile(new URL('../src/controller.js',import.meta.url),'utf8');assert.ok(source.includes("read('ash-movement-boundaries')==='on'"));assert.ok(source.includes("write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off')"));
+  const source=sourceFamily('controller');assert.ok(source.includes("read('ash-movement-boundaries')==='on'"));assert.ok(source.includes("write('ash-movement-boundaries',renderer.movementBoundaries?'on':'off')"));
   assert.ok((await readFile(new URL('../sw.js',import.meta.url),'utf8')).includes('./src/movement-boundaries.js'));
 });
 
