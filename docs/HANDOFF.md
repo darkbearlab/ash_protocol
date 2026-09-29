@@ -33,6 +33,7 @@
 | `npm test` | 完整測試（Node 內建測試器，`tests/*.test.mjs`），約 3.5 分鐘；推送後 GitHub 也會跑 |
 | `node qa/save-fuzz.mjs` | 存檔隨機測試，四派系平行，約 1.5 分鐘（選項見檔頭） |
 | `node qa/enemy-data-identity.mjs` | 身分基準；`--only`、`--accept`（見 CHECKLIST 第 1 節） |
+| `node qa/special-matrix.mjs`、`node qa/save-fuzz.mjs --trace <檔> --against <舊檔>` | 敵人招式對照表；存檔隨機測試的逐步記錄（不改行為的重構用，見 CHECKLIST 第 1 節） |
 | `node qa/english-scan.mjs`、`node tools/glossary.mjs --check` | 英文模式、名詞表 |
 | `npm run build` | 產生 `dist/`，相容 `/ash_protocol/` |
 | `npm run bump -- x.y.z` | 同時改 `package.json`、`src/version.js`、`sw.js` 快取名 |
@@ -50,6 +51,7 @@
 | 資料 | `data.js`（武器、敵人卡、`SAVE_VERSION`）、`enemy-data.js`、`characters.js`、`weapons.js`、`ammunition.js`、`factions.js`、`faction-catalog.js` |
 | 敵人行為 | `enemy-behavior.js`（`executeEnemyTree`）、`enemy-intents.js`、`enemy-affixes.js`、`tactics.js`、`squad.js`、`orders.js`、`ambush.js`、`flank.js`、`rebels.js`、`swarm*.js`、`pounce.js` |
 | 頭目 | `loyalist-bosses.js`、`swarm-bosses.js`、`rebel-bosses.js`、`boss-scenes.js`（出場與擊殺演出） |
+| 敵人招式登錄表（3.206.1） | `enemy-specials.js`：不 import 任何模組；每個預告招式宣告一次（欄位、打斷、回合開頭、誘餌／地雷／危險格／壓制、讀檔修剪與檢查、目標卡），`ORDER` 定所有順序。宣告在擁有招式的模組（`fire.js`、`swarm.js`、`pounce.js`、`swarm-fields.js`、`swarm-bosses.js`、`loyalist-bosses.js`、`rebel-bosses.js`、手榴彈在 `enemy-intents.js`）；`interruptEnemyIntent`、`tickSpecials` 在 `enemy-intents.js`。見 CHECKLIST 第 2 節 |
 | 地圖生成 | `world.js`（`generate`）、`map-*.js`、`pits.js`、`vault.js`、`vent-map.js`、`scenery.js`、`runtime-enemies.js` |
 | 危險地形與環境 | `hazard-paths.js`、`fire.js`、`vents.js`、`throwables.js`、`lighting.js`、`flares.js` |
 | 友軍 | `allies.js`、`workshop.js`、`pet-growth.js`、`melee-classes.js` |

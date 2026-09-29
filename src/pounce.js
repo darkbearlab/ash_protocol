@@ -12,9 +12,10 @@ import {personalityOf} from './personality.js';
 import {pullLanding} from './melee-classes.js';
 import {sweptClear} from './line-move.js';
 import {pinned} from './suppression.js';
-import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
+import {interruptEnemyIntent,enemyCallout,tickSpecials} from './enemy-intents.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 import {distance,key} from './world.js';
+import {registerSpecial,registerStep,validSpecials,INTERRUPT_REASONS} from './enemy-specials.js';
 
 let bite=null;
 // The card's own attack lives in enemy-behavior.js, which hands it over so the two files never import each other.
@@ -54,20 +55,19 @@ export function pounceAction(ctx){
  g.log(t('pounce.crouch',{enemy:enemyDisplayName(e)}),true);
  return true;
 }
-export function tickPounces(g){
- for(const e of g.enemies){
-  if(e.pounceCooldown>0)e.pounceCooldown--;
-  if(e.pounceIntent&&(e.hp<=0||e.control?.disabled||pinned(e)))interruptEnemyIntent(e,e.hp<=0?'death':e.control?.disabled?'disabled':'suppressed');
- }
-}
-export function validPounce(g){
- const frames=[g,...Object.values(g.floorStates||{})];
- for(const f of frames)for(const e of f.enemies||[]){
-  if(e.pounceCooldown!==undefined&&(!Number.isSafeInteger(e.pounceCooldown)||e.pounceCooldown<0||e.pounceCooldown>SWARM_TUNING.pounceCooldown))return false;
-  if(e.pounceIntent!==undefined){
-   const s=e.pounceIntent,point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&f.grid?.[p.y]?.[p.x]===1;
-   if(!s||e.hp<=0||!point(s.origin)||!point(s.target)||!point(s.point)||key(e)!==key(s.origin)||distance(s.origin,s.target)>SWARM_TUNING.pounceRange||distance(s.point,s.target)!==1)return false;
-  }
- }
- return true;
-}
+// 3.206.1 (src/enemy-specials.js): the pounce as the shared rules see it. Crouched, it cannot shoot a mine or step off
+// a hazard, and a pin drops it; the round start counts the cooldown down and drops the crouch for a fall, a stun or a pin.
+// Saves: a crouch off its tile, on a fallen bug, or a cooldown past the tuning is refused (not dropped or cut;
+// docs/CHECKLIST.md 3 — kept as it was, a later rule change), and neither checks the card that carries it.
+registerSpecial({id:'pounce',intent:'pounceIntent',carries:canPounce,
+ fields:{
+  pounceIntent:{valid:(s,e,f)=>{const point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&f.grid?.[p.y]?.[p.x]===1;return !(!s||e.hp<=0||!point(s.origin)||!point(s.target)||!point(s.point)||key(e)!==key(s.origin)||distance(s.origin,s.target)>SWARM_TUNING.pounceRange||distance(s.point,s.target)!==1);}},
+  pounceCooldown:{count:{max:()=>SWARM_TUNING.pounceCooldown}},
+ },
+ interrupt:{on:INTERRUPT_REASONS,cooldown:'pounceCooldown'},
+ tick:{cooldown:'pounceCooldown',drop:e=>e.hp<=0?'death':e.control?.disabled?'disabled':pinned(e)?'suppressed':null},
+ blocks:{mine:true,stepOff:true,pin:true},
+});
+registerStep('top','pounce',pounceAction,canPounce);
+export const tickPounces=g=>tickSpecials(g,[['pounce']]);
+export const validPounce=g=>validSpecials(g,['pounce']);

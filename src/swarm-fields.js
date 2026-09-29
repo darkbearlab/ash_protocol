@@ -10,11 +10,12 @@ import {t} from './i18n.js';
 import {areaCells,SMOKE_DURATION} from './throwables.js';
 import {SWARM_TUNING} from './swarm-tuning.js';
 import {pinned} from './suppression.js';
-import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
+import {interruptEnemyIntent,enemyCallout,tickSpecials} from './enemy-intents.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 import {activeTrait} from './traits.js';
 import {enemyDef} from './enemy-data.js';
 import {distance,key,swarmPayload} from './world.js';
+import {registerSpecial,registerStep,validSpecials,frames,INTERRUPT_REASONS} from './enemy-specials.js';
 
 export const FIELD_TUNING=Object.freeze({radius:1,lobRange:6,lobCooldown:10,screenFrom:3});
 export const PAYLOADS=Object.freeze(['toxic','acid','spore']);   // same list as world.js (import cycle)
@@ -92,21 +93,22 @@ export function lobAction(ctx){
  g.log(t('swarm-fields.swelling',{enemy:enemyDisplayName(e)}),true);
  return true;
 }
-export function tickFields(g){
- for(const e of g.enemies){
-  if(e.lobCooldown>0)e.lobCooldown--;
-  if(e.lobIntent&&(e.hp<=0||e.control?.disabled||pinned(e)))interruptEnemyIntent(e,e.hp<=0?'death':e.control?.disabled?'disabled':'suppressed');
- }
-}
-export function validFields(g){
- const frames=[g,...Object.values(g.floorStates||{})];
- for(const f of frames){
-  if((f.smoke||[]).some(s=>s.kind!==undefined&&!['toxic','spore','haze','steam'].includes(s.kind)))return false;   // haze, steam: 3.202.0 vents
-  for(const e of f.enemies||[]){
-   if(e.lobCooldown!==undefined&&(!Number.isSafeInteger(e.lobCooldown)||e.lobCooldown<0||e.lobCooldown>FIELD_TUNING.lobCooldown))return false;
-   if(e.lobIntent!==undefined){const s=e.lobIntent,pt=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&f.grid?.[q.y]?.[q.x]===1;
-    if(!s||!enemyDef(e)?.lobs||e.hp<=0||!pt(s.origin)||!pt(s.point)||key(s.origin)!==key(e)||distance(s.origin,s.point)>FIELD_TUNING.lobRange)return false;}
-  }
- }
- return true;
-}
+// 3.206.1 (src/enemy-specials.js): the lob as the shared rules see it. Swelling, it cannot shoot a mine or step off a
+// hazard, and a pin drops it; the round start counts its cooldown down and drops it for a fall, a stun or a pin.
+// Saves: a warning off its tile, or a cooldown past the tuning, is refused (not dropped or cut; docs/CHECKLIST.md 3 —
+// kept as it was, a later rule change). An interruption restarts the cooldown at the literal 10 (FIELD_TUNING.lobCooldown
+// today). Neither the cooldown nor the warning checks the card that carries it beyond `lobs`.
+registerSpecial({id:'lob',intent:'lobIntent',carries:e=>Boolean(enemyDef(e)?.lobs)&&isSwarm(e),
+ fields:{
+  lobIntent:{valid:(s,e,f)=>{const pt=q=>q&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&f.grid?.[q.y]?.[q.x]===1;return !(!s||!enemyDef(e)?.lobs||e.hp<=0||!pt(s.origin)||!pt(s.point)||key(s.origin)!==key(e)||distance(s.origin,s.point)>FIELD_TUNING.lobRange);}},
+  lobCooldown:{count:{max:()=>FIELD_TUNING.lobCooldown}},
+ },
+ interrupt:{on:INTERRUPT_REASONS,cooldown:'lobCooldown',to:()=>10},
+ tick:{cooldown:'lobCooldown',drop:e=>e.hp<=0?'death':e.control?.disabled?'disabled':pinned(e)?'suppressed':null},
+ blocks:{mine:true,stepOff:true,pin:true},
+});
+registerStep('top','lob',lobAction,e=>Boolean(enemyDef(e)?.lobs)&&isSwarm(e));
+export const tickFields=g=>tickSpecials(g,[['lob']]);
+// Saves: the kinds of smoke (validFieldSmoke; the loader checks the lob with the other specials); validFields is both.
+export const validFieldSmoke=g=>!frames(g).some(f=>(f.smoke||[]).some(s=>s.kind!==undefined&&!['toxic','spore','haze','steam'].includes(s.kind)));   // haze, steam: 3.202.0 vents
+export const validFields=g=>validFieldSmoke(g)&&validSpecials(g,['lob']);

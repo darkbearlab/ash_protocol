@@ -2,6 +2,7 @@ import {DIRECTIONS,key} from './world.js';
 import {hasEnemyTag,fireproof} from './enemy-data.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
 import {roomContains} from './map-geometry.js';
+import {blocked} from './enemy-specials.js';
 
 // 3.201.0 (user, 2026-09-29): anyone who walks the floor routes around hazard tiles. A hazard stays passable (you can
 // walk in and get hurt), but every route search charges `stepCost` extra for entering one, so a walker only crosses a
@@ -58,11 +59,11 @@ export function costToGoal(g,actor,goal,limit=Infinity){
 // A walker standing on a hazard steps off it (src/enemy-behavior.js, after the turn's resets), to a free tile beside it
 // that is not a hazard and is no further from where it is going (`goal`: its order's spot, else you if it sees you, else
 // where it last knew you), so it never steps back off its own route and shuttles; walking on along the route takes it off
-// just the same. Not while pinned, resting (fodder), or committed to a telegraphed move (a wound-up shot, a grenade,
-// a tongue, a pounce, a lob). Noncombatants are left to their own flight. Returns true when it moved.
-const COMMITTED=Object.freeze(['charge','grenadeIntent','tongueIntent','pounceIntent','lobIntent','flameIntent','chargeIntent','fireIntent']);   // flameIntent: 3.203.0; chargeIntent: 3.205.0; fireIntent: 3.206.0
+// just the same. Not while pinned, resting (fodder), or committed to a telegraphed move: a wound-up shot, or a special
+// whose declaration says so (src/enemy-specials.js `blocks.stepOff`: a grenade, a tongue, a pounce, a lob, a marked cone,
+// a charge, a wall or ring). Noncombatants are left to their own flight. Returns true when it moved.
 export function stepOffHazard(g,e,goal,{pinned=()=>false,occupied=()=>false}={}){
- if(!avoidsHazards(e)||!hazardTile(g,e.x,e.y,e)||pinned(e)||e.actionDelay>0||COMMITTED.some(f=>e[f]))return false;
+ if(!avoidsHazards(e)||!hazardTile(g,e.x,e.y,e)||pinned(e)||e.actionDelay>0||e.charge||blocked(e,'stepOff'))return false;
  const costs=goal?costToGoal(g,e,goal):null,here=costs?.get(key(e))??Infinity,cost=q=>costs?.get(key(q))??Infinity;
  const spots=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).filter(n=>{
   const edge=barrierBetween(g.barriers,e,n);

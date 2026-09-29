@@ -1,6 +1,5 @@
 import {t} from './i18n.js';
 import {poisonHit,useTongueHooks,infectedDeath} from './swarm.js';
-import {swarmBossAction} from './swarm-bosses.js';
 import {civilianAction} from './civilians.js';
 import {hasEnemyTag,enemyDef} from './enemy-data.js';
 import {observeEnemy} from './callouts.js';
@@ -20,7 +19,7 @@ import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {sprayFlame,flameCells,flamerDamage,FLAMETHROWER} from './fire.js';
 import {bossSpecial} from './loyalist-bosses.js';
-import {rebelBossAction,arsonistTurn,burnlineSpecial} from './rebel-bosses.js';
+import {arsonistTurn,burnlineSpecial} from './rebel-bosses.js';
 import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
 import {unitTree,registerUnitTree,registerAffixBranch,runAffixBranches} from './behavior-tree.js';
 import {occupied} from './allies.js';
@@ -35,8 +34,9 @@ import {enforcerAct,selfRetreat,useRebelHooks} from './rebels.js';
 import {runOrder} from './orders.js';
 import {selfAmbush,selfHold} from './ambush.js';
 import {selfFlank} from './flank.js';
-import {pounceAction,usePounceHooks} from './pounce.js';
-import {lobAction,releasePayload} from './swarm-fields.js';
+import {usePounceHooks} from './pounce.js';
+import {releasePayload} from './swarm-fields.js';
+import {runStep,registerStep,lockedTarget} from './enemy-specials.js';
 import {personalityOf} from './personality.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
@@ -131,6 +131,12 @@ function flamerAct(ctx){
  if(e.moved)enemyCallout(g,e,'state',{state:'move'});
  return true;
 }
+// 3.206.1: the enforcer's rally throws a primed grenade early (src/rebels.js advanceCharge; src/enemy-specials.js ORDER.rally).
+registerStep('rally','grenade',(g,e)=>{if(!e.grenadeIntent)return null;grenade({g,e,p:g.enemyTarget(e),def:ENEMY_TYPES[e.type],los:g.sight(e,g.enemyTarget(e)),d:distance(e,g.enemyTarget(e))});return 'grenade';});
+// 3.206.1 (src/enemy-specials.js ORDER.top, ORDER.attack): a flamer's marked cone goes off at the very top of its turn,
+// and after the orders its flamethrower is its weapon, whatever the order says (3.203.0).
+registerStep('top','flame',ctx=>{const {e,p,los}=ctx;if(!isFlamer(e)||!e.flameIntent)return false;if(los)e.lastKnown={x:p.x,y:p.y};flamerAct(ctx);return true;},e=>isFlamer(e));
+registerStep('attack','flame',ctx=>{if(!isFlamer(ctx.e))return false;flamerAct(ctx);return true;});
 registerAffixBranch({id:'grenadier',reveal:'effect',applies:({e})=>e.affixes?.some(a=>a.id==='grenadier'),trigger:({g,e,p,los})=>Boolean(e.grenadeIntent)||(!e.charge&&los&&distance(e,p)<=AFFIX_TUNING.grenadeRange),get chance(){return AFFIX_TUNING.grenadeChance;},pending:({e})=>Boolean(e.grenadeIntent),steps:['prepare','flight','explode'],run:grenade});
 // Loitering munition (3.103.0, user request). The launch puts it exactly at its own strike range from the player and
 // where the player can see it, so the turn it appears is a real choice: step out of reach, or shoot it down. On its next
@@ -205,7 +211,7 @@ useSquadAttack(attack);
 // 3.127.0 rebels (docs/REBELS.md): the enforcer commands through fear; a rebel that breaks hides before it would charge.
 registerUnitTree('enforcer',{before:enforcerAct});
 // 3.131.0: a rebel's hiding is its retreat order now (src/rebels.js), run with the other orders before the affixes.
-useRebelHooks({attack,grenade});
+useRebelHooks({attack});
 usePounceHooks({attack});useTongueHooks({attack});   // 3.205.0: the tongue bites what it catches
 // 3.133.0 personality (docs/ORDERS.md §8.1): a unit with no order checks the kinds its personality accepts, in that
 // order, and takes the first whose moment has come. Units of a faction without a table keep the old checks.
@@ -222,25 +228,23 @@ registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},deat
 registerUnitTree('fodder',{before:({e})=>{if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return true;}e.actionDelay=1;return false;}});
 registerUnitTree('brood',{});
 export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);}
-export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
+export function executeEnemyTree(g,e){const locked=lockedTarget(e),p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
- // 3.203.0 review: a flamer's marked cone goes off before anything else can move it (an order, a survival group's walk):
- // walking off first left the mark behind, drawn where no spray would come.
- if(isFlamer(e)&&e.flameIntent){if(los)e.lastKnown={x:p.x,y:p.y};flamerAct(ctx);return false;}
- // 3.206.0 (src/rebel-bosses.js): a rebel boss's warned fire — the arsonist's wall, ring or marked spray, 焚線官's set-up
- // sweep — goes off first, from where it was warned, before an order, a survival walk or a hazard could move it.
- if(rebelBossAction(ctx,tree.after))return false;
+ // Warned specials go off first, from where they were warned, before an order, a survival walk or a hazard could move
+ // the unit (src/enemy-specials.js ORDER.top; the first that acts takes the turn): a flamer's marked cone (3.203.0
+ // review: walking off first left the mark behind, drawn where no spray would come); a rebel boss's wall, ring, marked
+ // spray or set-up sweep (3.206.0, src/rebel-bosses.js); a swarm boss's tongue or charge, then its specials in the
+ // card's order (3.205.0, src/swarm-bosses.js); a hunter bug's pounce; a spitter's lob.
+ if(runStep('top',ctx))return false;
  // 3.189.0 survival hooks go through the game (src/game.js), so this module does not import src/survival.js.
- // 3.205.0 (src/swarm-bosses.js): a swarm boss's warned tongue or charge goes off first, from where it was announced,
- // before an order or a survival walk could move it; then its specials (charge, nest, tongue) in the card's order.
- if(swarmBossAction(ctx)||pounceAction(ctx)||lobAction(ctx)||(g.survival&&g.survivalAction(ctx,move))||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};
+ if((g.survival&&g.survivalAction(ctx,move))||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};
  // 3.204.0: a loyalist boss's gun (set up, it sweeps or packs up and nothing else) and its specials, before it walks.
  if(tree.special?.(ctx))return;
  if(stepOffHazard(g,e,e.order?.at||known,{pinned,occupied}))return;   // 3.201.0 (src/hazard-paths.js): off a hazard, never backwards
  if(d>16)return;
  // 3.130.0 orders (docs/ORDERS.md): a committed order acts before the affix branches; 'fire' goes straight to the attack.
  selfOrders(ctx);const order=runOrder(ctx);if(order===true)return;
- if(isFlamer(e)){flamerAct(ctx);return false;}   // 3.203.0: its weapon is the flamethrower, whatever the order says
+ if(runStep('attack',ctx))return false;   // 3.203.0: a flamer's weapon is the flamethrower, whatever the order says
  if(order!=='fire'&&(runAffixBranches(ctx)||seekCover(ctx)))return;
  let fired=false;
  // 3.152.0 有效距離 (src/range-band.js): a shooter outside its band moves into it first and only fires from a bad

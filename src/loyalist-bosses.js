@@ -31,6 +31,7 @@ import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {enemyDef} from './enemy-data.js';
 import {enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {hazardTile} from './hazard-paths.js';
+import {registerSpecial,registerStep,validSpecials,dropStaleSpecials} from './enemy-specials.js';
 
 // The user tunes these after playtesting (docs/BOSSES.md section 2).
 export const BOSS_TUNING=Object.freeze({
@@ -135,13 +136,14 @@ function gunTurn(g,e,walk){
 }
 // What stops a telegraph stops these (src/enemy-intents.js): the paint is dropped, a gun being set up is dropped, a
 // sweeping gun packs up; losing sight of you (and being suppressed, which a boss resists) changes nothing.
-export function interruptBoss(actor,reason){
- if(reason==='target_lost'||reason==='suppressed')return;
- delete actor.markIntent;
+const BOSS_REASONS=Object.freeze(['death','disabled','displaced']);
+function interruptGun(actor,reason){
  if(reason==='death'||actor.gun?.stage==='set')delete actor.gun;
  else if(actor.gun?.stage==='sweep')actor.gun={stage:'pack',left:BOSS_TUNING.gun.packUp};
  if(actor.gun?.stage==='pack'&&!(actor.gun.left>0))delete actor.gun;
 }
+// Both as one call (the declarations below are what src/enemy-intents.js runs).
+export function interruptBoss(actor,reason){if(reason==='target_lost'||reason==='suppressed')return;delete actor.markIntent;interruptGun(actor,reason);}
 
 // ---- the turn (src/enemy-behavior.js: the trees' `special` step, after the boss has looked around) --------------------
 const order=e=>setsGun(e)?(e.special==='gun'?['gun','mark']:['mark','gun']):specials(e);
@@ -164,15 +166,6 @@ export function bossSpecial(ctx,after,walk){
 }
 
 // ---- saves ---------------------------------------------------------------------------------------------------------
-// A paint or a set-up gun left on a boss that has since fallen, been stunned or been moved outside its own turn is
-// dropped when a save loads, as the boss itself would drop it (the 3.203.0 lesson: never refuse a run over one).
-export function dropStaleBossIntents(g){
- for(const f of [g,...Object.values(g.floorStates||{})])for(const e of f.enemies||[]){
-  if(e.markIntent!==undefined&&!live(e))delete e.markIntent;
-  const s=e.gun;
-  if(s&&typeof s==='object'&&(s.stage==='set'||s.stage==='sweep')&&s.origin&&typeof s.origin==='object'&&!(live(e)&&s.origin.x===e.x&&s.origin.y===e.y))delete e.gun;
- }
-}
 const exactly=(o,keys)=>Boolean(o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).sort().join()===keys);
 const cell=(q,grid)=>exactly(q,'x,y')&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&seeThrough(grid?.[q.y]?.[q.x]);
 function validGun(e,grid){
@@ -182,21 +175,33 @@ function validGun(e,grid){
  return (set||s?.stage==='sweep')&&exactly(s,set?'aim,origin,stage':'aim,left,origin,stage')&&cell(s.origin,grid)&&cell(s.aim,grid)&&(s.aim.x!==s.origin.x||s.aim.y!==s.origin.y)&&
   s.origin.x===e.x&&s.origin.y===e.y&&live(e)&&(set||Number.isInteger(s.left)&&s.left>=1&&s.left<T.sweeps);
 }
-// This floor and every kept one (their own turn is the one they were left on); the mark only ever sits on you.
-export function validLoyalistBosses(g){
- const M=BOSS_TUNING.mark;
- for(const f of [g,...Object.values(g.floorStates||{})]){
-  const turn=f===g?g.turn:Number.isSafeInteger(f.savedTurn)?f.savedTurn:g.turn;
-  for(const e of f.enemies||[]){
-   if(e.markIntent!==undefined&&!(marksYou(e)&&exactly(e.markIntent,'since')&&Number.isSafeInteger(e.markIntent.since)&&e.markIntent.since>=1&&e.markIntent.since<=turn&&live(e)))return false;
-   if(e.markReady!==undefined&&!(marksYou(e)&&Number.isSafeInteger(e.markReady)&&e.markReady>=1&&e.markReady<=turn+M.turns+M.cooldown+1))return false;
-   // 3.206.0: `special` on a card without the gun is the rebel bosses' to check (src/rebel-bosses.js validRebelBosses).
-   if(e.special!==undefined&&setsGun(e)&&!(e.special==='mark'||e.special==='gun'))return false;
-   if(e.gun!==undefined&&!validGun(e,f.grid))return false;
-   if(e.traits?.some(s=>s.id===DESIGNATED))return false;
-  }
- }
- if((g.allies||[]).some(a=>a.traits?.some(s=>s.id===DESIGNATED)))return false;
- const marks=(g.player?.traits||[]).filter(s=>s.id===DESIGNATED);
- return marks.length<=1&&marks.every(s=>s.source===MARK_SOURCE&&Number.isInteger(s.turns)&&s.turns>=1&&s.turns<=M.turns+1);
-}
+// ---- the shared rules (src/enemy-specials.js) ------------------------------------------------------------------------
+// The paint lands as the boss's turn begins (ORDER.start: before a decoy or a mine can take the turn) and blocks nothing
+// else. Saves: this floor and every kept one (their own turn is the one they were left on); a paint left on a boss that
+// has since fallen or been stunned is dropped (the 3.203.0 lesson: never refuse a run over one); the mark only ever sits
+// on you — never on an enemy or one of your units, at most one, for no longer than it lasts.
+registerSpecial({id:'mark',intent:'markIntent',carries:marksYou,
+ fields:{
+  markIntent:{valid:(v,e,f,turn)=>marksYou(e)&&exactly(v,'since')&&Number.isSafeInteger(v.since)&&v.since>=1&&v.since<=turn&&live(e)},
+  markReady:{valid:(v,e,f,turn)=>marksYou(e)&&Number.isSafeInteger(v)&&v>=1&&v<=turn+BOSS_TUNING.mark.turns+BOSS_TUNING.mark.cooldown+1},
+ },
+ interrupt:{on:BOSS_REASONS},
+ load:{stale:e=>e.markIntent!==undefined&&!live(e),enemy:e=>!e.traits?.some(s=>s.id===DESIGNATED),
+  game:g=>{const M=BOSS_TUNING.mark;if((g.allies||[]).some(a=>a.traits?.some(s=>s.id===DESIGNATED)))return false;const marks=(g.player?.traits||[]).filter(s=>s.id===DESIGNATED);return marks.length<=1&&marks.every(s=>s.source===MARK_SOURCE&&Number.isInteger(s.turns)&&s.turns>=1&&s.turns<=M.turns+1);}},
+ card:(g,e)=>[e.markIntent?t('target-card.painting'):''],
+});
+registerStep('start','mark',landMark);
+// The machine gun: set up, sweeping or packing up, it neither turns on a decoy nor shoots a mine. It never keeps the boss
+// from stepping off a hazard: packing up it walks, and its walk steps off one itself (src/enemy-behavior.js packWalk).
+// It goes off in the tree's `special` step (bossSpecial). Saves: a set-up gun off its mount, or on a fallen or stunned
+// boss, is dropped; the sweeps and pack-up rounds left are checked against today's tuning (not cut). `special` names
+// which of mark and gun it tries first.
+registerSpecial({id:'gun',intent:'gun',carries:setsGun,rotation:['mark','gun'],
+ fields:{gun:{valid:(v,e,f)=>validGun(e,f.grid)}},
+ interrupt:{on:BOSS_REASONS,run:interruptGun},
+ blocks:{decoy:true,mine:true},
+ load:{stale:e=>{const s=e.gun;return Boolean(s&&typeof s==='object'&&(s.stage==='set'||s.stage==='sweep')&&s.origin&&typeof s.origin==='object'&&!(live(e)&&s.origin.x===e.x&&s.origin.y===e.y));}},
+ card:(g,e,aim)=>[gunDeployed(e)?t('target-card.gunSet'):'',aim.gunFlankBonus?t('target-card.gunFlank',{n:aim.gunFlankBonus}):'',e.gun?.stage==='pack'?t('target-card.packing',{n:e.gun.left}):''],
+});
+export const dropStaleBossIntents=g=>dropStaleSpecials(g,['mark','gun']);
+export const validLoyalistBosses=g=>validSpecials(g,['mark','gun']);

@@ -1,5 +1,6 @@
 import {interruptEnemyIntent} from './enemy-intents.js';
 import {enemyDef} from './enemy-data.js';
+import {blocked} from './enemy-specials.js';
 // One aggregate application per attack, after all source contributions are known.
 // weaponRounds 3 -> 5 (3.185.0, plan C): with the rifle's 3-round and the SMG's 4-round bursts, only the machine gun's
 // 5-round belt fire (and bigger volleys) suppresses, as before.
@@ -12,12 +13,14 @@ const mechanical=a=>a?.traits?.some(t=>t.id==='mechanical');
 export const suppressionStacks=a=>mechanical(a)?0:(a?.suppression||0);
 export const suppressionPenalty=a=>suppressionStacks(a)*SUPPRESSION_TUNING.accuracy;
 export const pinned=a=>suppressionStacks(a)>=SUPPRESSION_TUNING.pinned;
+// Pinned, a unit drops the warnings whose declarations say a pin stops them (src/enemy-specials.js `blocks.pin`: a
+// tongue, a pounce, a lob, a charge); the interruption clears its other warnings with them.
 export function applySuppression(actor,stacks){
  if(mechanical(actor)){actor.suppression=0;return 0;}
  if(actor.hp<=0)return 0;
  const amount=Math.max(0,stacks-suppressionResistance(actor)),before=suppressionStacks(actor);
  if(!amount)return 0;
- actor.suppression=Math.min(SUPPRESSION_TUNING.max,before+amount);if(pinned(actor)&&(actor.tongueIntent||actor.pounceIntent||actor.lobIntent||actor.chargeIntent))interruptEnemyIntent(actor,'suppressed');return actor.suppression-before;
+ actor.suppression=Math.min(SUPPRESSION_TUNING.max,before+amount);if(pinned(actor)&&blocked(actor,'pin'))interruptEnemyIntent(actor,'suppressed');return actor.suppression-before;
 }
 export function finishSuppression(targets,hits,rounds,skillStacks=0,game=null){
  for(const actor of new Set([...targets,...hits])){const before=suppressionStacks(actor);applySuppression(actor,(targets.includes(actor)?skillStacks:0)+(rounds>=SUPPRESSION_TUNING.weaponRounds&&hits.has(actor)?SUPPRESSION_TUNING.weaponStacks:0));const after=suppressionStacks(actor);if(after>=SUPPRESSION_TUNING.pinned&&before<SUPPRESSION_TUNING.pinned)game?.enemyCallout(actor,'injury',{cue:'pinned'});else if(after>0&&!before)game?.enemyCallout(actor,'injury',{cue:'suppressed'});}

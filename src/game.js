@@ -9,7 +9,7 @@ import {validSquad,postSquads} from './squad.js';
 import {recruitConscripts,rebelMorale,witnessDeath,isEnforcer,validRebels,soundAlarm,tickAlarms} from './rebels.js';
 import {clearPoison,addPoison,tickPoison,migratePoison} from './poison.js';
 import {TRAIT_CAP} from './traits.js';
-import {tickTongues,validSwarm,SWARM_TUNING} from './swarm.js';
+import {validSwarmState,SWARM_TUNING} from './swarm.js';
 import {scream,tickCivilianCooldowns,migrateCivilians,validCivilians} from './civilians.js';
 import {rollEnemyElite,enemyKillXp,migrateElites,validElites} from './elite-enemies.js';
 import {pickFacilityFaction,factionDef,rollFacilityFaction,migrateFactions,validFactions} from './factions.js';
@@ -18,7 +18,8 @@ import {unitTree} from './behavior-tree.js';
 import {lockRealMode} from './real-mode.js';
 import {injuryCallout,playerCallout} from './callouts.js';
 import {enemyOpportunity,executeEnemyTree,enemyDeath,enemyWeapon} from './enemy-behavior.js';
-import {enemyCallout,validEnemyIntent,validEnemyMarks} from './enemy-intents.js';
+import {enemyCallout,validEnemyMarks,tickSpecials} from './enemy-intents.js';
+import {startSpecials,dropStaleSpecials,validSpecials,validActorSpecials} from './enemy-specials.js';
 import {enemyDisplayName,rollEnemyAffixes,migrateEnemyAffixes,validEnemyAffixes,enemyArmor,isFlamer} from './enemy-affixes.js';
 import {migrateResistance} from './suppression.js';
 import {DIFFICULTY_TUNING,validDifficultyOffset,DEFAULT_CURVE,validCurve} from './endless.js';
@@ -53,15 +54,14 @@ import {orderHit,validOrders} from './orders.js';
 import {LINE_ITEMS,lineReason,lineDrop,goggleDrop,infraredDrop,isLineItem} from './lines.js';
 import {attackSpeed,thrustTargets} from './melee-weapons.js';
 import {CARRY_TUNING,CAPPED_ITEMS,itemGroundType,groundItemId,itemCapacity} from './prepared.js';
-import {tickPounces,validPounce} from './pounce.js';
-import {toxicShot,toxicPlayerTurn,toxicAllyTurn,inToxic,tickFields,validFields} from './swarm-fields.js';
+import {toxicShot,toxicPlayerTurn,toxicAllyTurn,inToxic,validFieldSmoke} from './swarm-fields.js';
 import {tickVents,hazeShot,scalding,validVents,inCloud} from './vents.js';
 import {stepOffHazard} from './hazard-paths.js';
 import {VENT_TUNING} from './vent-map.js';
-import {tickFires,burningAt,sprayFlame,flamerTank,validFires,dropStaleFlameIntents,FIRE_TUNING,FLAMETHROWER} from './fire.js';
-import {landMark,markDamage,bossAccuracy,clearDesignation,dropStaleBossIntents,validLoyalistBosses} from './loyalist-bosses.js';
-import {tickSwarmBosses,hatchEgg,crashBonus,dropStaleSwarmIntents,validSwarmBosses} from './swarm-bosses.js';
-import {burnFlank,dropStaleRebelIntents,validRebelBosses} from './rebel-bosses.js';
+import {tickFires,burningAt,sprayFlame,flamerTank,validFireTiles,FIRE_TUNING,FLAMETHROWER} from './fire.js';
+import {markDamage,bossAccuracy,clearDesignation} from './loyalist-bosses.js';
+import {crashBonus} from './swarm-bosses.js';
+import {burnFlank} from './rebel-bosses.js';
 import {sweptGrid,sweptClear} from './line-move.js';
 export const LUNGE_TRAIT='lunge',LUNGE_TUNING=Object.freeze({reach:3});
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop,levelCost} from './perks.js';
@@ -507,7 +507,7 @@ export class Game {
     if(phase!==null){queue.find(q=>q.actor===p).speed=phase;queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);}
     const recovering=p.recovery>0;if(recovering)p.recovery=0;
     let playerStunned=false;
-    this.turn++;tickTongues(this);tickSwarmBosses(this);tickPounces(this);tickFields(this);tickVents(this);tickFires(this);   // vents: 3.202.0; burning floor: 3.203.0; swarm bosses: 3.205.0
+    this.turn++;tickSpecials(this);tickVents(this);tickFires(this);   // vents: 3.202.0; burning floor: 3.203.0; the specials' cooldowns and drops: src/enemy-specials.js ORDER.tick (3.206.1)
     // 3.145.0 (user decision): suppression wears off (src/suppression.js decayedStacks) when the unit's own turn is over, player and
     // enemies alike, so the stacks it took since its last turn are all felt on this one. The `finally` runs on every skip
     // (`continue`) too: a stunned unit's turn has still passed. A unit with two slots (an anchored double attack) ticks
@@ -1124,8 +1124,9 @@ export class Game {
   isFooled(e){return fooled(this,e);}
   noticeAttack(e){noticeAttack(this,e);}
   enemyAct(e){
-    landMark(this,e);   // 3.204.0: a boss's paint lands first, wherever you are (src/loyalist-bosses.js)
-    hatchEgg(this,e);   // 3.205.0: the matriarch's egg sac hatches as her turn begins; not her action (src/swarm-bosses.js)
+    // As the turn begins (src/enemy-specials.js ORDER.start), before a decoy or a mine can take it: a boss's paint lands
+    // wherever you are (3.204.0), then the matriarch's egg sac hatches (3.205.0; not her action).
+    startSpecials(this,e);
     if(decoyAct(this,e))return;   // 3.144.0
     if(mineAct(this,e))return;    // 3.145.0: shoot a mine it watched go down
     return this.enemyOpportunity(e);
@@ -1430,7 +1431,7 @@ export class Game {
       if((version>=7&&!validTraits(data.player.traits))||!validTraits(p.traits)||data.enemies.some(e=>!validTraits(e.traits)))return null;
       const tacticalActors=[p,...data.enemies,...(data.allies||[])];
       if(version<34){for(const a of tacticalActors){if(a===p){a.cornerExposure=null;a.tactics=null;}else{delete a.cornerExposure;delete a.tactics;}}for(const frame of Object.values(data.floorStates||{}))for(const a of frame.enemies||[]){delete a.cornerExposure;delete a.tactics;}}
-      if(!tacticalActors.every(a=>(a===p||validEnemyAffixes(a))&&validEnemyIntent(a,point))||!validEnemyMarks(data.marks,point,data.turn))return null;
+      if(!tacticalActors.every(a=>(a===p||validEnemyAffixes(a))&&validActorSpecials(a,point))||!validEnemyMarks(data.marks,point,data.turn))return null;
       if(!tacticalActors.every(a=>validCorner(a,data.turn)&&validTactics(a,data.turn)))return null;
       // 3.131.0 (SAVE 60): a hiding rebel's cover spot moved from cowerAt into its retreat order.
       // 3.132.0 (SAVE 61): a squad member's spot, arrival and role moved from e.squad into its duty order.
@@ -1558,7 +1559,7 @@ export class Game {
       // 3.191.0: survival waves are announced ahead; a run from 3.189–3.190 has none waiting yet.
       if(version<79&&g.survival&&!Array.isArray(g.survival.incoming))g.survival.incoming=[];
       // 3.203.0 (SAVE 81): a save from before has nothing burning, no marked cone and no flamers, so it needs nothing
-      // converted; `fires` and `flameIntent` are checked the same whatever the version (validFires, below).
+      // converted; `fires` and `flameIntent` are checked the same whatever the version (below).
       g.glowsticks??=[];g.gunFlashes??=[];
       if(!Number.isSafeInteger(g.player.glowsticks)||g.player.glowsticks<0||g.player.glowsticks>10000000||typeof g.player.flashlight!=='boolean'||typeof g.player.lightLingers!=='boolean'||!validGlowsticks(g.glowsticks,g.grid)||!validGunFlashes(g.gunFlashes,g.grid)||!(g.lightModel===undefined?g.lamps===undefined:g.lightModel===LIGHT_MODEL&&validLamps(g.lamps,g.grid)))return null;
       if(version<66){g.player.decoys??=0;g.player.mines??=0;g.player.exoPlates??=0;g.decoy??=null;g.mines??=[];g.mineSerial??=0;}
@@ -1570,18 +1571,13 @@ export class Game {
       if(!['decoys','mines'].every(k=>Number.isSafeInteger(g.player[k])&&g.player[k]>=0&&g.player[k]<=10000000)||!validExo(g.player)||!validDecoy(g)||!validMines(g)||!validKeycards(g.player)||!validVaultState(g.barriers,g.enemies))return null;
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
-      dropStaleFlameIntents(g);   // 3.203.0 review: a cone left where its flamer no longer stands is dropped, not refused
-      // 3.204.0 (SAVE 82): a save from before has no loyalist boss with a paint or a gun and no mark on you, so nothing is
-      // converted (a floor already holding a warden or a core guard keeps it); a stale paint or gun is dropped, not refused.
-      dropStaleBossIntents(g);
-      // 3.205.0 (SAVE 83): a save from before has no charge, egg sac or laid nest and nothing to convert; a warned tongue
-      // or charge whose boss fell, was stunned, pinned or moved (or an egg whose matriarch fell) is dropped, not refused.
-      dropStaleSwarmIntents(g);
-      // 3.206.0 (SAVE 84): a save from before has no rebel boss (a rebel floor already generated keeps its warden or core
-      // guard) and nothing to convert; a wall, ring or set-up flamethrower whose boss fell, was stunned or moved is dropped,
-      // and numbers longer than today's tuning are cut to it, not refused.
-      dropStaleRebelIntents(g);
-      if(!validRuntime(g)||!validVents(g)||!validFires(g)||!validLoyalistBosses(g)||!validSwarmBosses(g)||!validRebelBosses(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
+      // The enemy specials (src/enemy-specials.js, 3.206.1), on this floor and every kept one: numbers longer than today's
+      // tuning are cut to it, and a warning its unit could no longer give (fallen, stunned, pinned or moved outside its own
+      // turn) is dropped, not refused (3.203.0-3.206.0 reviews); then each is checked as its declaration says.
+      // SAVE 81-84 (3.203.0-3.206.0) needed nothing converted: a save from before has no marked cone, paint, gun, charge,
+      // egg sac, laid nest, wall, ring or set-up flamethrower (a floor already generated keeps its warden or core guard).
+      dropStaleSpecials(g);
+      if(!validRuntime(g)||!validVents(g)||!validFireTiles(g)||!validSpecials(g)||!validSwarmState(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validFieldSmoke(g))return null;
       if(version<32)g.shadowSteps=0;
       // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
       // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run

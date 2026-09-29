@@ -8,7 +8,8 @@ import {areaCells} from './throwables.js';
 import {reduceDirectDamage} from './traits.js';
 import {AFFIX_TUNING,birthRandom,enemyArmor,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {scaleEnemy} from './endless.js';
-import {fireproof} from './enemy-data.js';
+import {fireproof,enemyDef} from './enemy-data.js';
+import {registerSpecial,validSpecials,dropStaleSpecials,INTERRUPT_REASONS} from './enemy-specials.js';
 
 // Burning floor and the flamethrower (3.203.0, user design 2026-09-29, docs/HAZARDS.md sections 2 and 4).
 // - A burning tile is `{x,y,age}` in the floor's `fires` (absent when nothing burns); `age` counts the rounds it has
@@ -146,16 +147,12 @@ export function flamerTank(g,e){
 // text tool draw only those). 3.203.0 review: one left behind by something that moved or stopped the flamer outside its
 // own turn is dropped when a save loads, as the flamer itself would drop it on its turn, instead of refusing the save.
 export const liveFlameIntent=e=>Boolean(e?.hp>0&&!e.control?.disabled&&e.flameIntent?.origin&&e.flameIntent.origin.x===e.x&&e.flameIntent.origin.y===e.y);
-export function dropStaleFlameIntents(g){
- for(const f of [g,...Object.values(g.floorStates||{})])for(const e of f.enemies||[]){
-  const i=e.flameIntent;if(i&&typeof i==='object'&&i.origin&&typeof i.origin==='object'&&!liveFlameIntent(e))delete e.flameIntent;
- }
-}
-// Saves: `fires` on this floor and every kept one, and a flamer's marked cone.
+// Saves: `fires` on this floor and every kept one (validFireTiles; the loader checks the marked cone with the other
+// specials, src/enemy-specials.js), and a flamer's marked cone (validFires: both, as tests ask).
 const cell=(q,grid)=>q&&typeof q==='object'&&Object.keys(q).length===2&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&seeThrough(grid?.[q.y]?.[q.x]);
 // 3.206.0: the arsonist (a card that only sprays, `flameOnly`) marks its cone the same way, with no affix to reveal.
 export const validFlameIntent=(e,grid)=>{const i=e.flameIntent;return Boolean(i&&typeof i==='object'&&Object.keys(i).length===2&&cell(i.origin,grid)&&cell(i.aim,grid)&&i.origin.x===e.x&&i.origin.y===e.y&&(i.aim.x!==e.x||i.aim.y!==e.y)&&e.hp>0&&!e.control?.disabled&&(e.affixes?.some(a=>a.id==='flamer'&&a.revealed)||ENEMY_TYPES[e.type]?.flameOnly===true));};
-export function validFires(g){
+export function validFireTiles(g){
  for(const f of [g,...Object.values(g.floorStates||{})]){
   if(f.fires!==undefined){
    if(!Array.isArray(f.fires)||f.fires.length>FIRE_TUNING.maxTiles)return false;
@@ -165,7 +162,23 @@ export function validFires(g){
     seen.add(key(q));
    }
   }
-  for(const e of f.enemies||[])if(e.flameIntent!==undefined&&!validFlameIntent(e,f.grid))return false;
  }
  return true;
 }
+export const validFires=g=>validFireTiles(g)&&validSpecials(g,['flame']);
+// 3.206.1 (src/enemy-specials.js): the marked cone as the shared rules see it. Carried by an affix flamer and by a card
+// that only sprays (`flameOnly`, the arsonist): neither turns on a decoy or shoots a mine (it has no gun), and a marked
+// cone keeps it from stepping off a hazard; any interruption drops the cone (no cooldown). An affix flamer's cone goes
+// off at the very top of its turn, and its flamethrower replaces the affix branches and the shot (src/enemy-behavior.js);
+// the arsonist's goes off in the rebel bosses' step (src/rebel-bosses.js). `gunless`: a squad, the ambush watch and the
+// enforcer's rally hold no gun on an affix flamer. Saves: a cone left where its unit no longer stands is dropped, and so
+// is the arsonist's while it vents (3.206.0).
+const sprays=e=>Boolean(enemyDef(e)?.flameOnly);
+registerSpecial({id:'flame',intent:'flameIntent',carries:e=>isFlamer(e)||sprays(e),
+ fields:{flameIntent:{valid:(v,e,f)=>validFlameIntent(e,f.grid)}},
+ interrupt:{on:INTERRUPT_REASONS},
+ blocks:{decoy:e=>isFlamer(e)||sprays(e),mine:e=>isFlamer(e)||sprays(e)||Boolean(e.flameIntent),stepOff:true},
+ load:{stale:e=>{const i=e.flameIntent;return Boolean(i&&typeof i==='object'&&i.origin&&typeof i.origin==='object'&&!liveFlameIntent(e))||Boolean(e.flameIntent&&e.overheat>0&&enemyDef(e)?.flameOnly===true);}},
+ gunless:e=>isFlamer(e),
+});
+export const dropStaleFlameIntents=g=>dropStaleSpecials(g,['flame']);

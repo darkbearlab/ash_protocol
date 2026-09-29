@@ -11,7 +11,7 @@
 //   threat budget: the same card, but no experience, no scrap, no drop, and first to break.
 import {t} from './i18n.js';
 import {enemyDef,isNoncombatant,isBossClass} from './enemy-data.js';
-import {enemyDisplayName,isFlamer} from './enemy-affixes.js';
+import {enemyDisplayName} from './enemy-affixes.js';
 import {ENEMY_TYPES} from './data.js';
 import {grantTrait,removeTraitSource,activeTrait} from './traits.js';
 import {pinned} from './suppression.js';
@@ -22,6 +22,7 @@ import {registerOrder,giveOrder,endOrder} from './orders.js';
 import {accepts} from './personality.js';
 import {SIZE} from './data.js';
 import {hazardTile} from './hazard-paths.js';
+import {rallySpecial,gunless} from './enemy-specials.js';
 
 // 3.153.0 (faction review): enforcerRange matches the enforcer's own gun range (10); at 7 the cowering rebels it was
 // meant to rally were routinely out of reach, so 91% of them died behind cover instead.
@@ -93,15 +94,15 @@ registerOrder('retreat',{act(ctx,order){
  return true;
 }});
 
-// The attack and the grenade throw belong to enemy-behavior.js; it hands them over so the two files never import each
-// other, the same arrangement as src/squad.js.
-let hooks={attack:null,grenade:null};
+// The attack belongs to enemy-behavior.js; it hands it over so the two files never import each other, the same
+// arrangement as src/squad.js. A primed grenade goes off through its rally step (src/enemy-specials.js ORDER.rally, 3.206.1).
+let hooks={attack:null};
 export const useRebelHooks=next=>{hooks={...hooks,...next};};
 const rallies=new WeakMap();
 // "蓄勢推進一回合": only for those already aiming (and a grenade already primed). The shot uses the card's own attack.
 export function advanceCharge(g,e){
- if(isFlamer(e))return null;   // 3.203.0 review: a flamer has no gun to fire early; its own turn marks and sprays
- if(e.grenadeIntent&&hooks.grenade){hooks.grenade({g,e,p:g.enemyTarget(e),def:ENEMY_TYPES[e.type],los:g.sight(e,g.enemyTarget(e)),d:distance(e,g.enemyTarget(e))});return 'grenade';}
+ if(gunless(e))return null;   // 3.203.0 review: a flamer has no gun to fire early; its own turn marks and sprays
+ const primed=rallySpecial(g,e);if(primed)return primed;   // 3.206.1: a primed grenade goes off early (src/enemy-specials.js ORDER.rally)
  if(!e.charge||!hooks.attack)return null;
  const tree=unitTree(e),def=ENEMY_TYPES[e.type],p=g.enemyTarget(e);
  e.windup=(e.windup||1)-1;if(e.windup>0)return 'aim';

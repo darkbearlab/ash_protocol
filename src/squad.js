@@ -24,7 +24,8 @@ import {t} from './i18n.js';
 import {SUPPRESSION_TUNING,finishSuppression} from './suppression.js';
 import {areaCells} from './throwables.js';
 import {enemyDef,isNoncombatant} from './enemy-data.js';
-import {enemyDisplayName,isFlamer} from './enemy-affixes.js';
+import {enemyDisplayName} from './enemy-affixes.js';
+import {gunless} from './enemy-specials.js';
 import {enemyCallout} from './enemy-intents.js';
 import {grantTrait,activeTrait,removeTraitSource} from './traits.js';
 import {DETOUR_TRAIT} from './detour.js';
@@ -163,7 +164,7 @@ export const squadStale=(g,leader,weaponId)=>!leader.squad||leader.squad.weapon!
 export function makeReady(g,leader,members){
  for(const actor of [leader,...members.filter(m=>dutyOf(m)?.set!==false||m.order?.kind==='bound')]){
   grantTrait(actor,READY_TRAIT,SQUAD_SOURCE,SQUAD_TUNING.readyTurns);
-  if(actor!==leader&&(enemyDef(actor)?.range||1)>1&&!isFlamer(actor)){actor.charge=true;actor.windup=1;actor.aim={x:g.player.x,y:g.player.y};}   // 3.203.0: a flamer has no gun to hold on you
+  if(actor!==leader&&(enemyDef(actor)?.range||1)>1&&!gunless(actor)){actor.charge=true;actor.windup=1;actor.aim={x:g.player.x,y:g.player.y};}   // 3.203.0: a flamer has no gun to hold on you
  }
 }
 // Sensing is sight as each unit has it: the leader's infrared sees through smoke, nothing sees through a wall or a door.
@@ -206,7 +207,7 @@ export function assignMovers(g,leader,mine,target,search){
   taken.add(key(goal));
   m.squad.lastMove=g.turn;giveOrder(g,m,{kind:'bound',by:leader.id,at:goal,set:false,patience:null,breakOn:[]});
   grantTrait(m,'fast','squad:advance',SQUAD_TUNING.fastTurns);
-  if(!isFlamer(m)){m.charge=true;m.windup=1;}
+  if(!gunless(m)){m.charge=true;m.windup=1;}
  }
 }
 function searchSpot(g,member,target,taken){
@@ -230,7 +231,7 @@ export function disbandSquad(g,leader,mine){for(const m of mine){delete m.squad;
 let cardAttack=null;
 export const useSquadAttack=fn=>{cardAttack=fn;};
 function blindFire(ctx){
- const {g,e,p}=ctx;if(!cardAttack||isFlamer(e)||!g.shotClear(e,p)||distance(e,p)>(enemyDef(e)?.range||1))return false;
+ const {g,e,p}=ctx;if(!cardAttack||gunless(e)||!g.shotClear(e,p)||distance(e,p)>(enemyDef(e)?.range||1))return false;
  e.blindShot=SQUAD_TUNING.blindPenalty;
  try{cardAttack(ctx);}finally{delete e.blindShot;}
  e.charge=false;e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
@@ -252,7 +253,7 @@ export function suppressionPoint(g,member,player){
 }
 // 3.203.0: a flamer in a squad (src/enemy-behavior.js flamerAct) has no gun for covering fire or a called shot.
 export function suppressFrom(g,member,player,leader){
- if(isFlamer(member))return false;
+ if(gunless(member))return false;
  const point=suppressionPoint(g,member,player);if(!point)return false;
  const cells=new Set(areaCells(g.grid,point,1,g.barriers,g).map(key));
  const targets=[player,...g.activeAllies].filter(a=>a.hp>0&&cells.has(key(a)));

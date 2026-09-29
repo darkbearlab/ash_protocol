@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {readFileSync,readdirSync} from 'node:fs';
+import {readFileSync,readdirSync,writeFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
@@ -23,4 +25,18 @@ test('the save fuzz plays, saves, restores and replays a few steps cleanly',()=>
   const stats=JSON.parse(run.stdout.trim().split(/\r?\n/).at(-1));
   assert.equal(stats.runs,1);assert.ok(stats.steps>0);
   assert.equal(stats.refusedBefore+stats.refusedAfter+stats.diverged,0);
+});
+
+// 3.206.1: the trace a behaviour-neutral refactor is checked with (docs/CHECKLIST.md 1).
+test('the save-fuzz trace is the same run after run, and --against names the first step that differs',()=>{
+  const dir=mkdtempSync(join(tmpdir(),'ash-trace-')),a=join(dir,'a.trace'),b=join(dir,'b.trace');
+  try{
+    const args=['qa/save-fuzz.mjs','--faction','rebel','--floors','3','--seeds','1','--classes','soldier','--steps','6','--near-boss','--trace'];
+    const first=spawnSync(process.execPath,[...args,a],{cwd:root,encoding:'utf8'});assert.equal(first.status,0,first.stdout+first.stderr);
+    const lines=readFileSync(a,'utf8').trim().split(/\r?\n/);assert.equal(lines.length,6);
+    assert.match(lines[0],/^rebel 3 1 soldier 0 \S+ [0-9a-f]{16} /,'where, the action and the state hash come first');
+    const again=spawnSync(process.execPath,[...args,b,'--against',a],{cwd:root,encoding:'utf8'});assert.equal(again.status,0,again.stdout);assert.match(again.stdout,/trace identical/);
+    writeFileSync(a,lines.map((l,i)=>i===3?l.replace(/ [0-9a-f]{16} /,' 0000000000000000 '):l).join('\n')+'\n');
+    const differs=spawnSync(process.execPath,[...args,b,'--against',a],{cwd:root,encoding:'utf8'});assert.equal(differs.status,1);assert.match(differs.stdout,/differs from .* at line 4/);
+  }finally{rmSync(dir,{recursive:true,force:true});}
 });

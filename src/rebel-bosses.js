@@ -36,8 +36,10 @@ import {inCone} from './shotgun.js';
 import {enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {flameCells,flamerDamage,sprayFlame,burnUnits,ignite,flammable,FIRE_TUNING,FLAMETHROWER} from './fire.js';
-import {canPaint,paintMark,landedNow,setsGun} from './loyalist-bosses.js';
+import {canPaint,paintMark,landedNow} from './loyalist-bosses.js';
 import {hazardTile} from './hazard-paths.js';
+import {unitTree} from './behavior-tree.js';
+import {registerSpecial,registerStep,validSpecials,dropStaleSpecials} from './enemy-specials.js';
 
 // The user tunes these after playtesting (docs/BOSSES.md section 3).
 // arsonist: `reach` for a wall or a ring (it has to see you that close); `heat` fires before it vents for `vent` of its
@@ -223,6 +225,8 @@ export function rebelBossAction(ctx,after){
  if(burnDeployed(e)){if(!at(e,e.burn.origin)){delete e.burn;return false;}burnTurn(g,e);return done();}
  return false;
 }
+// 3.206.1: at the top of the tree with the other warned specials (src/enemy-specials.js ORDER.top), after a flamer's.
+registerStep('top','rebel',ctx=>rebelBossAction(ctx,unitTree(ctx.e).after),e=>setsFires(e)||setsBurn(e)||sprays(e));
 // The arsonist's own turn, when no warned fire went off (the tree's `special`; it has no gun, so it is always the whole
 // turn). `walk` is the tree's plain walk (off a hazard first, then toward its reach).
 export function arsonistTurn(ctx,after,walk){
@@ -261,13 +265,14 @@ export function burnlineSpecial(ctx,after,walk){
 }
 // What stops a telegraph stops these (src/enemy-intents.js): the wall or ring is dropped, a flamethrower being set up is
 // dropped, a sweeping one packs up at once; losing sight of you or suppression changes nothing. Venting goes on.
-export function interruptRebelBoss(actor,reason){
- if(reason==='target_lost'||reason==='suppressed')return;
- delete actor.fireIntent;
+const BOSS_REASONS=Object.freeze(['death','disabled','displaced']);
+function interruptBurn(actor,reason){
  if(reason==='death'||actor.burn?.stage==='set')delete actor.burn;
  else if(actor.burn?.stage==='sweep')actor.burn={stage:'pack',left:B.packUp};
  if(actor.burn?.stage==='pack'&&!(actor.burn.left>0))delete actor.burn;
 }
+// Both as one call (the declarations below are what src/enemy-intents.js runs).
+export function interruptRebelBoss(actor,reason){if(reason==='target_lost'||reason==='suppressed')return;delete actor.fireIntent;interruptBurn(actor,reason);}
 
 // ---- saves ---------------------------------------------------------------------------------------------------------
 const exactly=(o,keys)=>Boolean(o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).sort().join()===keys);
@@ -275,21 +280,6 @@ const tile=(q,grid)=>exactly(q,'x,y')&&Number.isInteger(q.x)&&Number.isInteger(q
 const sight=(q,grid)=>exactly(q,'x,y')&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&seeThrough(grid?.[q.y]?.[q.x]);
 const tiles=(list,grid,min)=>Array.isArray(list)&&list.length>=min&&list.length<=FIRE_TUNING.maxTiles&&list.every(q=>tile(q,grid))&&new Set(list.map(key)).size===list.length;
 const clamp=(o,k,max)=>{if(Number.isSafeInteger(o[k])&&o[k]>max){if(max>=1)o[k]=max;else delete o[k];}};
-// A warning left on a boss that has since fallen, been stunned or moved outside its own turn is dropped when a save
-// loads, as the boss would drop it; so is a marked spray on an arsonist that is venting. A number longer than today's
-// tuning (a save from before the user retuned it) is cut to it: heat, venting, sweeps and pack-up rounds left. Never a
-// reason to refuse the run (the 3.203.0 and 3.205.0 lessons).
-export function dropStaleRebelIntents(g){
- for(const f of [g,...Object.values(g.floorStates||{})])for(const e of f.enemies||[]){
-  clamp(e,'heat',A.heat-1);clamp(e,'overheat',A.vent);
-  const s=e.burn;
-  if(s?.stage==='pack'&&Number.isSafeInteger(s.left)&&s.left>B.packUp){if(B.packUp>=1)s.left=B.packUp;else delete e.burn;}
-  else if(s?.stage==='sweep')clamp(s,'left',Math.max(1,B.sweeps-1));
-  const i=e.fireIntent;if(i&&typeof i==='object'&&i.origin&&typeof i.origin==='object'&&!(live(e)&&at(e,i.origin)))delete e.fireIntent;
-  const b=e.burn;if(b&&(b.stage==='set'||b.stage==='sweep')&&b.origin&&typeof b.origin==='object'&&!(live(e)&&at(e,b.origin)))delete e.burn;
-  if(e.flameIntent&&e.overheat>0&&sprays(e))delete e.flameIntent;
- }
-}
 function validFireIntent(e,grid){
  const s=e.fireIntent,ring=s?.kind==='ring';
  if(!setsFires(e)||!live(e)||!(ring||s?.kind==='wall')||!exactly(s,ring?'cells,center,gaps,kind,origin':'cells,kind,origin')||!tile(s.origin,grid)||!at(e,s.origin)||!tiles(s.cells,grid,1))return false;
@@ -302,16 +292,39 @@ function validBurn(e,grid){
  return (set||s?.stage==='sweep')&&exactly(s,set?'aim,origin,stage':'aim,left,origin,stage')&&tile(s.origin,grid)&&sight(s.aim,grid)&&(s.aim.x!==s.origin.x||s.aim.y!==s.origin.y)&&
   at(e,s.origin)&&live(e)&&(set||Number.isInteger(s.left)&&s.left>=1&&s.left<=Math.max(1,B.sweeps-1));
 }
-const SPECIALS=Object.freeze({wall:['wall','ring'],burn:['mark','burn']});
-// This floor and every kept one. Only the cards that do it may carry it; the rest of 焚線官's mark is the loyalist
-// check's (src/loyalist-bosses.js validLoyalistBosses), and so is `special` on a card that sets up the machine gun.
-export function validRebelBosses(g){
- for(const f of [g,...Object.values(g.floorStates||{})])for(const e of f.enemies||[]){
-  if(e.fireIntent!==undefined&&!validFireIntent(e,f.grid))return false;
-  if(e.heat!==undefined&&!(setsFires(e)&&Number.isSafeInteger(e.heat)&&e.heat>=1&&e.heat<A.heat))return false;
-  if(e.overheat!==undefined&&!(setsFires(e)&&Number.isSafeInteger(e.overheat)&&e.overheat>=1&&e.overheat<=A.vent))return false;
-  if(e.burn!==undefined&&!validBurn(e,f.grid))return false;
-  if(e.special!==undefined&&!setsGun(e)&&!(setsFires(e)?SPECIALS.wall:setsBurn(e)?SPECIALS.burn:[]).includes(e.special))return false;
- }
- return true;
-}
+// ---- the shared rules (src/enemy-specials.js) ------------------------------------------------------------------------
+// This floor and every kept one; only the cards that do it may carry it (焚線官's mark is the loyalist mark,
+// src/loyalist-bosses.js). A warning left on a boss that has since fallen, been stunned or moved outside its own turn is
+// dropped when a save loads, as the boss would drop it; so is a marked spray on an arsonist that is venting (the flame's
+// declaration, src/fire.js). A number longer than today's tuning (a save from before the user retuned it) is cut to it:
+// heat, venting, sweeps and pack-up rounds left. Never a reason to refuse the run (the 3.203.0 and 3.205.0 lessons).
+// The wall or ring: warned, the arsonist turns on no decoy, shoots no mine and does not step off a hazard (it goes off
+// first, from where it was warned: the 'rebel' step). `special` names which of wall and ring it tries first.
+registerSpecial({id:'fire',intent:'fireIntent',carries:setsFires,rotation:['wall','ring'],
+ fields:{fireIntent:{valid:(v,e,f)=>validFireIntent(e,f.grid)}},
+ interrupt:{on:BOSS_REASONS},
+ blocks:{decoy:true,mine:true,stepOff:true},
+ load:{stale:e=>{const i=e.fireIntent;return Boolean(i&&typeof i==='object'&&i.origin&&typeof i.origin==='object'&&!(live(e)&&at(e,i.origin)));}},
+ card:(g,e)=>[e.fireIntent?t(e.fireIntent.kind==='ring'?'target-card.ringReady':'target-card.wallReady'):''],
+});
+// 焚線官's set-up flamethrower is 火線官's gun: no decoy, no mine, never kept from stepping off a hazard (it walks while it
+// packs up). `special` names which of mark and burn it tries first.
+registerSpecial({id:'burn',intent:'burn',carries:setsBurn,rotation:['mark','burn'],
+ fields:{burn:{valid:(v,e,f)=>validBurn(e,f.grid)}},
+ interrupt:{on:BOSS_REASONS,run:interruptBurn},
+ blocks:{decoy:true,mine:true},
+ load:{clamp:e=>{const s=e.burn;if(s?.stage==='pack'&&Number.isSafeInteger(s.left)&&s.left>B.packUp){if(B.packUp>=1)s.left=B.packUp;else delete e.burn;}else if(s?.stage==='sweep')clamp(s,'left',Math.max(1,B.sweeps-1));},
+  stale:e=>{const b=e.burn;return Boolean(b&&(b.stage==='set'||b.stage==='sweep')&&b.origin&&typeof b.origin==='object'&&!(live(e)&&at(e,b.origin)));}},
+ card:(g,e)=>[burnDeployed(e)?t('target-card.burnSet'):'',e.burn?.stage==='pack'?t('target-card.burnPack',{n:e.burn.left}):''],
+});
+// Venting: the arsonist's fires since it last vented (`heat`) and the turns of venting left (`overheat`); state only, it
+// blocks nothing and nothing interrupts it.
+registerSpecial({id:'vent',intent:'overheat',carries:setsFires,
+ fields:{
+  heat:{count:{min:1,max:()=>A.heat-1,carrier:true,clamp:'drop'}},
+  overheat:{count:{min:1,max:()=>A.vent,carrier:true,clamp:'drop'}},
+ },
+ card:(g,e)=>[e.overheat>0?t('target-card.overheat',{n:e.overheat}):'',setsFires(e)&&e.heat>0?t('target-card.heat',{n:e.heat,max:A.heat}):''],
+});
+export const dropStaleRebelIntents=g=>dropStaleSpecials(g,['flame','fire','burn','vent']);
+export const validRebelBosses=g=>validSpecials(g,['fire','burn','vent']);

@@ -9,16 +9,39 @@
 | `npm run test:quick` | 全部測試，跳過 `qa/slow-tests.txt` 列的慢測試（大型地圖生成掃描），約 1.5 分鐘 | 開發中隨時；也可以只給檔名：`npm run test:quick -- tests/fire.test.mjs` |
 | `npm test` | 完整測試，約 3.5 分鐘；推送後 GitHub 也會再跑一次 | 交件前一次 |
 | `node qa/save-fuzz.mjs` | 在真的樓層隨機行動，每一步都存檔、讀檔、重播比對；四個派系平行，約 1.5 分鐘 | 動到存檔欄位、敵人招式、預告或回合結算時，交件前一次；頭目相關加 `--near-boss --floors 3,6` |
+| `node qa/save-fuzz.mjs --trace <檔> [--against <舊檔>]` | 同上，另外每一步記一行：狀態雜湊（含戰報）、這一步的特效種類、看得到的每個敵人的目標卡狀態；`--against` 指出和舊記錄第一個不同的步驟 | 不改行為的重構：動 `src/` 之前用同樣的參數先錄一份，之後每一步再錄一份比對 |
+| `node qa/special-matrix.mjs` | 每個敵人招式的對照表（打斷的每個原因；誘餌、看過的地雷、腳下的危險格、壓制、自己的回合；回合開頭；竄改過的存檔與往返任務封存樓層的讀檔），和 `tests/fixtures/special-matrix.json` 逐格比對，列出不同的格子；約 15 秒，`tests/enemy-specials.test.mjs` 也會比 | 動到敵人招式、預告、打斷、讀檔時；`--write` 只在有意改規則時重錄，報告寫明哪些格子變了 |
 | `node qa/enemy-data-identity.mjs` | 地圖生成、任務開局、機器人結果和基準逐筆比對 | 開發中用 `--only generation`／`missions`／`bots` 只跑一段；交件前完整跑一次 |
 | `node qa/english-scan.mjs`、`node tools/glossary.mjs --check` | 英文模式沒有中文、名詞表最新 | 改到文字時 |
 | `npm run build` | 發佈包 | 交件前一次 |
 
 身分基準有差異時：先把新功能暫時關掉，證明關掉後完全一致（差異只來自新功能），再用 `--accept` 只收下有變的那幾筆。不要用 `--write` 整份重錄。
 
+不改行為的重構（例如 3.206.1）：身分基準、招式對照表與存檔隨機測試的記錄都要完全一致，不用 `--accept`、`--write`。
+
 ## 2. 新增敵人招式、預告或特殊行動
 
-- **預告先結算**：已經預告的招式在 `executeEnemyTree` 最前面處理，排在指令（包抄、撤退、看守、小隊）與其他動作之前。預告之後單位不能被別的邏輯帶走。
-- **不被拐走**：`Game.enemyAct` 在行為樹之前跑誘餌（`decoyAct`）與地雷（`mineAct`、`canShootMines`）。有預告中或執行中招式的敵人要排除。
+3.206.1 起每個招式在 `src/enemy-specials.js` 登錄一次（`registerSpecial`）。宣告放在擁有這個招式、匯出它的包裝函式的模組裡（火焰在 `src/fire.js`、鉤舌在 `src/swarm.js`、衝鋒與卵囊在 `src/swarm-bosses.js`……）。回合、回合開頭、誘餌與地雷、踩危險格、壓制、打斷、讀檔與目標卡都去問登錄表，不要在別的地方再抄一份欄位清單。新招式：
+
+- **先在 `ORDER` 排好位置**（改順序就是改規則）：
+  - `ids`：打斷與讀檔處理的順序。
+  - `start`：`Game.enemyAct` 一開始、誘餌與地雷之前（標定落下、卵囊孵化）；每一個都跑，不算單位的行動。
+  - `top`：`executeEnemyTree` 最前面，排在指令（包抄、撤退、看守、小隊）、生存模式與 `before` 之前；第一個出手的就結束這一回合。已經預告的招式放這裡，預告之後單位不會被別的邏輯帶走。
+  - `attack`：指令之後，取代詞條分支與開槍（火焰兵的噴火器）。`rally`：督戰官處決時提前出手（手榴彈）。
+  - `tick`：回合開頭，同一組一次掃過所有敵人：先倒數冷卻，再丟掉給不了的預告。`card`：目標卡上的順序。
+- **宣告的欄位與它保證的事**：
+  - `intent`、`carries(e)`：放預告的欄位；可以帶這招的卡片或詞條。
+  - `fields`：這招擁有的存檔欄位，一個欄位只有一個主人（重複登錄會丟錯）。`valid(v,e,f,turn)` 是讀檔檢查（封存樓層用它自己的地圖與回合）。`count:{max,min,carrier,clamp}` 是整數：`carrier` 只有會這招的卡片能帶；`clamp:'cut'` 讀檔時截到目前上限，`'drop'` 在上限小於 1 時刪掉。`scope:'actor'` 在 `Game.restore` 前段對玩家、本層敵人與友軍檢查（手榴彈）。
+  - `interrupt:{on,cooldown,to,run}`：哪些原因（死亡、失能、被移動、失去目標、壓制）取消它。有 `cooldown` 的只在預告還在時取消並重設冷卻（`to` 給不同的值）；`run` 處理分段的（架槍、架噴火器掃射中改成收起）。`charge`、`aim`、`windup`、`fireChain` 由 `interruptEnemyIntent` 統一清掉。
+  - `tick:{cooldown,drop}`：回合開頭倒數哪個冷卻，什麼狀況（倒下、失能、被釘住）要取消預告。
+  - `blocks:{decoy,mine,stepOff,pin}`：`true` 是預告還在時、函式是這種單位本身：不打誘餌、不打看過的地雷、不離開腳下的危險格；`pin` 是被釘住就取消。沒寫的就不擋（架槍收起時要走路，所以不擋踩危險格）。
+  - `load:{clamp,stale,restart,enemy,game}`：讀檔時先截數字，再丟掉單位已經給不了的預告（`stale`：倒下、失能、不在原位；`restart` 重設冷卻），不拒絕整份存檔；`enemy`、`game` 是其他檢查（標定只會在你身上）。
+  - `rotation`：`special` 在帶這招的卡片上可以是哪些值（兩招輪流）。`lock`：預告鎖定的目標。`gunless`：沒有槍（小隊不幫它架槍、伏擊不舉槍、督戰官不讓它提前開火）。`card(g,e,aim)`：目標卡的文字。
+  - 步驟 `registerStep(step,id,run,carries)`：`top` 步驟要說它替哪些單位出手；測試檢查沒有單位同時屬於兩個 `top` 步驟。
+- **測試**：`tests/enemy-specials.test.mjs` 檢查登錄完整、欄位只有一個主人、對照表、`top` 步驟不重疊、出手之後不留下蓄力（`KEPT` 是 3.206.1 找到、留給下一版修的例外）。新招式在 `qa/special-matrix.mjs` 的 `SPECIALS`（和需要時的 `TICKS`）加一列再 `--write`。
+
+登錄表管不到、還是要自己查的：
+
 - **取代普通攻擊時重置**：`charge`、`aim`、`windup` 要清掉，不然會留下永久的「!」、被當成蓄力中而不閃危險格，或被處決之類的邏輯觸發開槍。
 - **中途死亡就停**：多段動作（衝鋒、連續掃射）每一步都檢查自己還活著。
 - **打到自己人**：不算玩家的擊殺、經驗、統計，戰報要寫清楚是誰打的。
@@ -27,13 +50,14 @@
 - **只算敵人**：演出與戰報判斷「頭目倒下」只看敵人（`bossFallOf`）；玩家的頭目藍圖單位倒下不算。
 - **通訊**：頭目出場台詞排到佇列最前面（`sayCommsFirst`）。
 - **不讓詞條破壞解法**：快速、紅外線之類的詞條會讓預告失去意義時，在卡片上排除（`barredAffixes`）。
+- **畫面**：`src/renderer.js` 與文字版工具（`tools/text-play.mjs`）照各招式自己的形狀畫預告，還是分開寫。
 
 ## 3. 存檔
 
 - 新的持久欄位：`SAVE_VERSION` 加一，寫遷移，驗證要嚴格，但只擋「資料壞掉」。
-- **過期就丟，不要拒絕整份存檔**：預告的單位已死、失能、被移動時，讀檔時把預告丟掉（參考 `dropStaleFlameIntents`、`dropStaleBossIntents`、`dropStaleSwarmIntents`）。
-- **數字會調**：冷卻、數量、血量這類跟平衡數字有關的值，讀檔時修正到目前的上限，不要因為超過就拒絕。使用者試玩後一定會調。
-- **封存樓層**：往返任務會把樓層封存；`Game.restore` 檢查封存樓層時用的假存檔要列出新欄位的預設值（例如 `vents:undefined`、`fires:undefined`），不然會沿用目前樓層的值。測試要做 `descend()` 後 `Game.restore()`。
+- **過期就丟，不要拒絕整份存檔**：預告的單位已死、失能、被移動時，讀檔時把預告丟掉（宣告的 `load.stale`；參考火焰、架槍、鉤舌、衝鋒的宣告）。
+- **數字會調**：冷卻、數量、血量這類跟平衡數字有關的值，讀檔時修正到目前的上限（`count.clamp`、`load.clamp`），不要因為超過就拒絕。使用者試玩後一定會調。
+- **封存樓層**：往返任務會把樓層封存；`Game.restore` 檢查封存樓層時用的假存檔要列出新欄位的預設值（例如 `vents:undefined`、`fires:undefined`），不然會沿用目前樓層的值。測試要做 `descend()` 後 `Game.restore()`（`qa/special-matrix.mjs` 的 `archived` 表就是這樣做）。
 - 會飛的單位可以停在坑洞上；驗證不要把它們當成站在地上。
 
 ## 4. 測試品質

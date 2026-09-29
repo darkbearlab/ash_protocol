@@ -6,7 +6,9 @@ import {birthRandom,revealEnemyAffix} from './enemy-affixes.js';
 import {activeTrait} from './traits.js';
 import {distance,DIRECTIONS,key} from './world.js';
 import {pinned} from './suppression.js';
-import {interruptEnemyIntent} from './enemy-intents.js';
+import {interruptEnemyIntent,tickSpecials} from './enemy-intents.js';
+import {registerSpecial,validSpecials,INTERRUPT_REASONS} from './enemy-specials.js';
+import {TONGUE_VISUAL} from './enemy-visuals.js';
 import {enemyRoom,expendableRoom} from './runtime-enemies.js';
 import {occupied,allyName} from './allies.js';
 import {rayCells} from './line-move.js';
@@ -95,7 +97,27 @@ export function tongueAction(ctx){
 }
 // 3.205.0: with the lane it will fly along, as the game stands now (the renderer shades the tiles you can see).
 export const tongueTelegraphs=g=>g.enemies.filter(e=>e.hp>0&&e.tongueIntent).map(e=>({kind:'tongue',sourceId:e.id,origin:{...e.tongueIntent.origin},target:{...e.tongueIntent.target},landing:{...e.tongueIntent.point},lane:tongueLane(g,e.tongueIntent.origin,e.tongueIntent.target),interruptible:true}));
-export function tickTongues(g){for(const e of g.enemies){if(e.tongueCooldown>0)e.tongueCooldown--;if(e.tongueIntent&&(e.hp<=0||e.control?.disabled||pinned(e)))interruptEnemyIntent(e,e.hp<=0?'death':e.control?.disabled?'disabled':'suppressed');}}
+// 3.206.1 (src/enemy-specials.js): the tongue as the shared rules see it. Taut, it cannot turn on a decoy, shoot a mine
+// or step off a hazard, and a pin drops it; the round start counts the cooldown down and drops the warning for a fall, a
+// stun or a pin. It goes off in the swarm bosses' step (src/swarm-bosses.js swarmBossAction). Saves: a warning its boss
+// could no longer give (fallen, stunned, pinned, moved) is dropped and the cooldown restarts; a cooldown past the tuning
+// is cut to it.
+const live=e=>e?.hp>0&&!e.control?.disabled;
+const at=(e,q)=>q&&typeof q==='object'&&q.x===e.x&&q.y===e.y;
+registerSpecial({id:'tongue',intent:'tongueIntent',carries:e=>Boolean(enemyDef(e)?.tongue),
+ fields:{
+  // 3.205.0 review: the aimed tile may be over a pit (a flying unit there can be aimed at); the boss and the landing are floor.
+  tongueIntent:{valid:(s,e,f)=>{if(!s)return false;const point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&f.grid[p.y]?.[p.x]===1,aimed=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&seeThrough(f.grid[p.y]?.[p.x]);
+   return !(!enemyDef(e)?.tongue||e.hp<=0||e.control?.disabled||pinned(e)||!point(s.origin)||!aimed(s.target)||!point(s.point)||key(e)!==key(s.origin)||distance(s.origin,s.target)>SWARM_TUNING.tongueRange||distance(s.origin,s.point)!==1);}},
+  tongueCooldown:{count:{max:()=>SWARM_TUNING.tongueCooldown,carrier:true,clamp:'cut'}},
+ },
+ interrupt:{on:INTERRUPT_REASONS,cooldown:'tongueCooldown'},
+ tick:{cooldown:'tongueCooldown',drop:e=>e.hp<=0?'death':e.control?.disabled?'disabled':pinned(e)?'suppressed':null},
+ blocks:{decoy:true,mine:true,stepOff:true,pin:true},
+ load:{stale:e=>Boolean(e.tongueIntent&&typeof e.tongueIntent==='object'&&!(live(e)&&!pinned(e)&&at(e,e.tongueIntent.origin))),restart:'tongueCooldown'},
+ card:(g,e)=>[e.tongueIntent?TONGUE_VISUAL.label:''],
+});
+export const tickTongues=g=>tickSpecials(g,[['tongue']]);
 export function infectedDeath(g,e){
  if(!affix(e,'brood_host')||e.broodReleased)return;
  e.broodReleased=true;revealEnemyAffix(g,e,'brood_host');
@@ -108,17 +130,15 @@ export function infectedDeath(g,e){
  }
  if(count)g.log(t('swarm.hostBurst'),true);
 }
-export function validSwarm(g){
+// Saves: the poison on you and the brood a host released (validSwarmState; the loader checks the tongue with the other
+// specials, src/enemy-specials.js); validSwarm is both.
+export function validSwarmState(g){
  const frames=[g,...Object.values(g.floorStates||{})];
  if(!validPoison(g.player))return false;
  for(const f of frames)for(const e of f.enemies||[]){
-  if(e.tongueCooldown!==undefined&&(!enemyDef(e)?.tongue||!Number.isSafeInteger(e.tongueCooldown)||e.tongueCooldown<0||e.tongueCooldown>SWARM_TUNING.tongueCooldown))return false;
-  // 3.205.0 review: the aimed tile may be over a pit (a flying unit there can be aimed at); the boss and the landing are floor.
-  if(e.tongueIntent!==undefined){if(!e.tongueIntent)return false;const s=e.tongueIntent,point=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&f.grid[p.y]?.[p.x]===1,aimed=p=>p&&Number.isInteger(p.x)&&Number.isInteger(p.y)&&seeThrough(f.grid[p.y]?.[p.x]);
-   if(!enemyDef(e)?.tongue||e.hp<=0||e.control?.disabled||pinned(e)||!point(s.origin)||!aimed(s.target)||!point(s.point)||key(e)!==key(s.origin)||distance(s.origin,s.target)>SWARM_TUNING.tongueRange||distance(s.origin,s.point)!==1)return false;
-  }
   if(e.broodReleased!==undefined&&(!affix(e,'brood_host')||e.broodReleased!==true||e.hp>0))return false;
   if(e.broodParent!==undefined){const parent=f.enemies.find(p=>p.id===e.broodParent);if(!parent?.broodReleased||!hasEnemyTag(parent,'infected')||enemyFaction(parent)!==enemyFaction(e)||!e.expendable||!e.reinforcement||!Array.from({length:SWARM_TUNING.burstMax},(_,n)=>String(n)).some(n=>e.id===`${parent.id}-burst-${n}`)||e.type!==factionDef(enemyFaction(parent)).nestChild)return false;}
  }
  return true;
 }
+export const validSwarm=g=>validSwarmState(g)&&validSpecials(g,['tongue']);

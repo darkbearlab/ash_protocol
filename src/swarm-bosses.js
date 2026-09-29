@@ -18,19 +18,20 @@
 // rounds after a hatch before the next sac. A sac whose tile is taken when it hatches is lost; stunned or killed, she
 // loses it. The hatch is not her action: she goes on with her turn.
 import {t} from './i18n.js';
-import {SWARM_BOSS_TUNING,SWARM_TUNING} from './swarm-tuning.js';
+import {SWARM_BOSS_TUNING} from './swarm-tuning.js';
 import {enemyDef} from './enemy-data.js';
 import {distance,key,DIRECTIONS,reachable} from './world.js';
 import {barrierBetween,edgeBlocks} from './barriers.js';
 import {occupied,allyName} from './allies.js';
 import {pinned} from './suppression.js';
-import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
+import {interruptEnemyIntent,enemyCallout,tickSpecials} from './enemy-intents.js';
 import {enemyDisplayName as enemyName,enemyArmor} from './enemy-affixes.js';
 import {scaleEnemy} from './endless.js';
 import {reduceDirectDamage} from './traits.js';
 import {tongueAction} from './swarm.js';
 import {RUNTIME_TUNING} from './runtime-enemies.js';
 import {isSimulation} from './killhouse-policy.js';
+import {registerSpecial,registerStep,dropStaleSpecials,validSpecials} from './enemy-specials.js';
 
 const C=SWARM_BOSS_TUNING.charge,N=SWARM_BOSS_TUNING.nest;
 const specials=e=>enemyDef(e)?.specials||[];
@@ -174,43 +175,47 @@ export function swarmBossAction(ctx){
  for(const kind of specials(e))if(kind==='charge'?startCharge(ctx):kind==='nest'?layEgg(ctx):kind==='tongue'&&tongueAction(ctx))return true;
  return false;
 }
-// Round start (Game.action, with the tongue's): cooldowns count down, and a warning whose boss has fallen, been stunned
-// or pinned is dropped.
-export function tickSwarmBosses(g){
- for(const e of g.enemies){
-  if(e.chargeCooldown>0)e.chargeCooldown--;if(e.nestCooldown>0)e.nestCooldown--;
-  if(e.chargeIntent&&(e.hp<=0||e.control?.disabled||pinned(e)))interruptEnemyIntent(e,e.hp<=0?'death':e.control?.disabled?'disabled':'suppressed');
-  if(e.nestIntent&&(e.hp<=0||e.control?.disabled))interruptEnemyIntent(e,e.hp<=0?'death':'disabled');
- }
-}
+registerStep('top','swarm',swarmBossAction,e=>Boolean(enemyDef(e)?.tongue)||chargesLane(e)||laysNests(e));
+registerStep('start','nest',hatchEgg);
+// Round start (Game.action, after the tongue's): both cooldowns count down, then a warning whose boss has fallen, been
+// stunned or pinned is dropped (one pass for the two: src/enemy-specials.js ORDER.tick).
+export const tickSwarmBosses=g=>tickSpecials(g,[['charge','nest']]);
 
-// ---- saves ---------------------------------------------------------------------------------------------------------
+// ---- the shared rules and saves (src/enemy-specials.js) ------------------------------------------------------------
 const exactly=(o,keys)=>Boolean(o&&typeof o==='object'&&!Array.isArray(o)&&Object.keys(o).sort().join()===keys);
 const tile=(q,grid)=>exactly(q,'x,y')&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&grid?.[q.y]?.[q.x]===1;
 const at=(e,q)=>q&&typeof q==='object'&&q.x===e.x&&q.y===e.y;
+// The charge: stunned, pinned, moved or killed while it warns, it drops it and the cooldown restarts (losing sight of
+// you does not matter: it charges the lane whoever stands there). Warning, it cannot turn on a decoy, shoot a mine or
+// step off a hazard. `crashed` (dazed against a wall) is its too.
 // A warning left on a boss that has since fallen, been stunned, pinned or moved is dropped when a save loads, as the
-// boss would drop it (never a reason to refuse the run; the 3.203.0 lesson). The tongue's too, from this version on.
-// Review: a cooldown longer than today's tuning (a save from before the user retuned it) is cut to it, not refused.
-const clampCooldown=(e,k,max)=>{if(Number.isSafeInteger(e[k])&&e[k]>max)e[k]=max;};
-export function dropStaleSwarmIntents(g){
- for(const f of [g,...Object.values(g.floorStates||{})])for(const e of f.enemies||[]){
-  const moving=live(e)&&!pinned(e);
-  clampCooldown(e,'chargeCooldown',C.cooldown);clampCooldown(e,'nestCooldown',N.cooldown);clampCooldown(e,'tongueCooldown',SWARM_TUNING.tongueCooldown);
-  if(e.chargeIntent&&typeof e.chargeIntent==='object'&&!(moving&&at(e,e.chargeIntent.origin))){delete e.chargeIntent;e.chargeCooldown=C.cooldown;}
-  if(e.tongueIntent&&typeof e.tongueIntent==='object'&&!(moving&&at(e,e.tongueIntent.origin))){delete e.tongueIntent;e.tongueCooldown=SWARM_TUNING.tongueCooldown;}
-  if(e.nestIntent&&typeof e.nestIntent==='object'&&!live(e)){delete e.nestIntent;e.nestCooldown=N.cooldown;}
- }
-}
-export function validSwarmBosses(g){
- for(const f of [g,...Object.values(g.floorStates||{})])for(const e of f.enemies||[]){
-  const count=(v,max)=>Number.isSafeInteger(v)&&v>=0&&v<=max;
-  if(e.chargeCooldown!==undefined&&!(chargesLane(e)&&count(e.chargeCooldown,C.cooldown)))return false;
-  if(e.nestCooldown!==undefined&&!(laysNests(e)&&count(e.nestCooldown,N.cooldown)))return false;
-  if(e.chargeIntent!==undefined){const s=e.chargeIntent;if(!(chargesLane(e)&&live(e)&&exactly(s,'dir,origin')&&tile(s.origin,f.grid)&&at(e,s.origin)&&exactly(s.dir,'x,y')&&DIRECTIONS.some(([x,y])=>s.dir.x===x&&s.dir.y===y)))return false;}
-  if(e.nestIntent!==undefined&&!(laysNests(e)&&live(e)&&tile(e.nestIntent,f.grid)))return false;
-  if(e.crashed!==undefined&&!(e.crashed===true&&e.vaultExposed===true&&chargesLane(e)))return false;
-  // (Review: how many of her nests stand is not checked; a save from before the user lowered the cap still loads, and
-  // she lays no more until she is under it.)
- }
- return true;
-}
+// boss would drop it (never a reason to refuse the run; the 3.203.0 lesson). Review: a cooldown longer than today's
+// tuning (a save from before the user retuned it) is cut to it, not refused.
+registerSpecial({id:'charge',intent:'chargeIntent',carries:chargesLane,
+ fields:{
+  chargeIntent:{valid:(s,e,f)=>chargesLane(e)&&live(e)&&exactly(s,'dir,origin')&&tile(s.origin,f.grid)&&at(e,s.origin)&&exactly(s.dir,'x,y')&&DIRECTIONS.some(([x,y])=>s.dir.x===x&&s.dir.y===y)},
+  chargeCooldown:{count:{max:()=>C.cooldown,carrier:true,clamp:'cut'}},
+  crashed:{valid:(v,e)=>e.crashed===true&&e.vaultExposed===true&&chargesLane(e)},
+ },
+ interrupt:{on:['death','disabled','displaced','suppressed'],cooldown:'chargeCooldown'},
+ tick:{cooldown:'chargeCooldown',drop:e=>e.hp<=0?'death':e.control?.disabled?'disabled':pinned(e)?'suppressed':null},
+ blocks:{decoy:true,mine:true,stepOff:true,pin:true},
+ load:{stale:e=>Boolean(e.chargeIntent&&typeof e.chargeIntent==='object'&&!(live(e)&&!pinned(e)&&at(e,e.chargeIntent.origin))),restart:'chargeCooldown'},
+ card:(g,e)=>[e.chargeIntent?t('target-card.charging'):''],
+});
+// The egg sac: only her fall or a stun loses it (the cooldown restarts); it blocks nothing — it is not her action.
+// (Review: how many of her nests stand is not checked; a save from before the user lowered the cap still loads, and
+// she lays no more until she is under it.)
+registerSpecial({id:'nest',intent:'nestIntent',carries:laysNests,
+ fields:{
+  nestIntent:{valid:(v,e,f)=>laysNests(e)&&live(e)&&tile(v,f.grid)},
+  nestCooldown:{count:{max:()=>N.cooldown,carrier:true,clamp:'cut'}},
+ },
+ interrupt:{on:['death','disabled'],cooldown:'nestCooldown'},
+ tick:{cooldown:'nestCooldown',drop:e=>e.hp<=0?'death':e.control?.disabled?'disabled':null},
+ load:{stale:e=>Boolean(e.nestIntent&&typeof e.nestIntent==='object'&&!live(e)),restart:'nestCooldown'},
+ card:(g,e)=>[e.nestIntent?t('target-card.laying'):''],
+});
+// The tongue's warning is trimmed here too (its declaration is src/swarm.js's).
+export const dropStaleSwarmIntents=g=>dropStaleSpecials(g,['tongue','charge','nest']);
+export const validSwarmBosses=g=>validSpecials(g,['charge','nest']);
