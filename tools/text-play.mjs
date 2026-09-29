@@ -25,6 +25,7 @@ import {SKILLS,skillStatus} from '../src/skills.js';
 import {isContainer,containerName} from '../src/containers.js';
 import {isBarrier,barrierBetween} from '../src/barriers.js';
 import {isDark} from '../src/lighting.js';
+import {flameCells,liveFlameIntent} from '../src/fire.js';
 import {targetDetails} from '../src/target-card.js';
 import {pelletChance} from '../src/shotgun.js';
 import {traitLabels,startingTraits} from '../src/traits.js';
@@ -118,6 +119,7 @@ function tileChar(g,x,y,marks){
  if(prop){if(isContainer(prop))return prop.opened?'c':'C';if(prop.type==='terminal')return terminalRemaining(prop)?'T':'t';if(prop.type==='barrel')return 'B';if(prop.type==='nest')return 'N';if(prop.type==='cover')return 'o';}
  if(g.missionObjects?.().some?.(t=>!t.done&&t.x===x&&t.y===y))return 'M';
  const items=shownItems(g).filter(i=>i.x===x&&i.y===y);if(items.length)return items.some(i=>i.type==='weapon')?'W':'*';
+ if((g.fires||[]).some(f=>f.x===x&&f.y===y))return '^';   // 3.203.0 burning floor (src/fire.js)
  if(g.hazards.some(h=>h.x===x&&h.y===y))return 'X';
  if((g.vents||[]).some(v=>v.x===x&&v.y===y))return 'V';   // 3.202.0 smoke vent (under its own cloud: the cloud shows)
  // 3.134.0: toxic mist '~' (you can see through it), smoke and spore smoke '%'.
@@ -131,6 +133,7 @@ function dangerCells(g){
  const cells=new Set(),add=(c,r=1)=>{for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++)if(Math.abs(dx)+Math.abs(dy)<=r)cells.add(`${c.x+dx},${c.y+dy}`);};
  for(const m of g.marks)if(m.kind!=='grenade')add(m,m.radius??1);
  for(const m of grenadeMarkers(g))add(m,m.radius??1);
+ for(const e of g.enemies)if(liveFlameIntent(e))for(const q of flameCells(g,e.flameIntent.origin,e.flameIntent.aim))cells.add(`${q.x},${q.y}`);   // 3.203.0: a flamer's marked cone
  return cells;
 }
 function drawMap(g,radius){
@@ -148,12 +151,12 @@ function drawMap(g,radius){
  }
  return lines;
 }
-const LEGEND='圖例：@你 a-z敵人(見下表) &友軍 ?感測到的位置 >電梯 C補給箱(c已開) T終端(t額度用完) B油桶 o掩體/障礙 N巢穴 M任務目標 W地上武器 *地上物品 X危險地形 ~毒霧 %煙霧 !即將爆炸 =上鎖的保險室鐵門｜地板 .視野內 ,記憶中 :暗處(視野內) ;暗處(記憶)｜邊線 +關閉的門 \'開著的門 |或-隔板(擋視線) !或_矮隔板(可翻越)';
+const LEGEND='圖例：@你 a-z敵人(見下表) &友軍 ?感測到的位置 >電梯 C補給箱(c已開) T終端(t額度用完) B油桶 o掩體/障礙 N巢穴 M任務目標 W地上武器 *地上物品 X危險地形 ^燃燒的地板 ~毒霧 %煙霧 !即將爆炸 =上鎖的保險室鐵門｜地板 .視野內 ,記憶中 :暗處(視野內) ;暗處(記憶)｜邊線 +關閉的門 \'開著的門 |或-隔板(擋視線) !或_矮隔板(可翻越)';
 
 // ---- views ---------------------------------------------------------------------------------------------------------
 function weaponLine(g,slot){
  const p=g.player,w=g.weaponAt(slot),d=g.weaponDamage(slot);
- const ammo=w.melee?'近戰':`${p.ammo[slot]}/${w.mag} 備彈 ${p[g.reserveKey(w)]??0}/${g.ammoCapacity(w.ammoType)}${AMMUNITION[w.ammoType]?` ${AMMUNITION[w.ammoType].name}`:''}`;
+ const ammo=w.melee?'近戰':w.tank?`燃料 ${p.ammo[slot]}/${w.mag}（不能補充）`:`${p.ammo[slot]}/${w.mag} 備彈 ${p[g.reserveKey(w)]??0}/${g.ammoCapacity(w.ammoType)}${AMMUNITION[w.ammoType]?` ${AMMUNITION[w.ammoType].name}`:''}`;
  // 3.141.0: the shotgun is read by its pellets (per pellet, how many at 1-6 tiles, the flat chance); two-round affixes say so.
  const damage=w.pellets?(()=>{const e=g.pelletDamage(slot,{x:p.x+1,y:p.y});return `每顆 ${e.min}-${e.max} × ${w.pellets.join('/')} 顆(1-${w.pellets.length} 格) 每顆命中 ${pelletChance(w)}%`;})():`${d.min}-${d.max}`;
  return `[${slot}]${slot===p.weapon?'*':' '}${w.name}${p.upgrades[slot]?` +${p.upgrades[slot]}`:''} 傷害 ${damage}${w.hits?` ×${w.hits}`:''}${w.burst?` ×${w.burst}`:''}${w.shotCost>1?` 每發耗 ${w.shotCost}`:''}${w.volleyCost?` 每次射擊耗 ${w.volleyCost}`:''} 射程 ${w.range}${weaponBand(w)?` 有效 ${bandLabel(weaponBand(w))}`:''} ${ammo}${w.melee&&g.bumpMeleeSlot()===slot?' 撞擊用':''}${w.affix?` 詞條:${w.affixText}`:''}`;

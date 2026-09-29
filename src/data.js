@@ -6,7 +6,7 @@ export const SIZE = 27;
 // blasts cross it. seeThrough is what a line of sight may pass over or end on.
 export const VOID = 2;
 export const seeThrough = v => v === 1 || v === VOID;
-export const SAVE_VERSION = 80;   // 80 (3.202.0): smoke vents (`vents` on a floor) and their light smoke and steam (`haze`, `steam` clouds); 79 (3.191.0): survival waves announced ahead (`survival.incoming`); 78 (3.189.0): the survival mission (`survival` on the game and its enemies; docs/SURVIVAL.md); 77 (3.188.0): a grenadier's throw may be a stun grenade (`stun` on its intent and mark), and the hard curve; 76 (3.187.0): wall lamps carry hp (1 lit, 0 shot out; docs/LIGHTING.md); 75 (3.185.0): rifle rounds x3 and pistol rounds x2 in every run (plan C, docs/WEAPONS.md); 74 (3.182.0): a flashlight switched off burns to the end of the round (player.lightLingers); 73 (3.178.0): real lighting — lamps, glowsticks, the flashlight (src/lighting.js); 72 (3.177.2): a vault closet's walls are sealed (src/vault.js); 71 (3.169.0): the run keeps its comms duty officer (src/duty.js)
+export const SAVE_VERSION = 81;   // 81 (3.203.0): burning floor (`fires` on a floor), the flamethrower (weapon 18), the 火焰兵 affix and its marked cone (`flameIntent` on an enemy); 80 (3.202.0): smoke vents (`vents` on a floor) and their light smoke and steam (`haze`, `steam` clouds); 79 (3.191.0): survival waves announced ahead (`survival.incoming`); 78 (3.189.0): the survival mission (`survival` on the game and its enemies; docs/SURVIVAL.md); 77 (3.188.0): a grenadier's throw may be a stun grenade (`stun` on its intent and mark), and the hard curve; 76 (3.187.0): wall lamps carry hp (1 lit, 0 shot out; docs/LIGHTING.md); 75 (3.185.0): rifle rounds x3 and pistol rounds x2 in every run (plan C, docs/WEAPONS.md); 74 (3.182.0): a flashlight switched off burns to the end of the round (player.lightLingers); 73 (3.178.0): real lighting — lamps, glowsticks, the flashlight (src/lighting.js); 72 (3.177.2): a vault closet's walls are sealed (src/vault.js); 71 (3.169.0): the run keeps its comms duty officer (src/duty.js)
 // Every earlier save version stays loadable (and is backed up before migrating). Derived, so bumping SAVE_VERSION
 // can never silently drop the previous one from the list (3.44).
 export const LEGACY_SAVE_VERSIONS = Array.from({length: SAVE_VERSION - 1}, (_, i) => i + 1);
@@ -49,6 +49,13 @@ WEAPONS.push(
   {id:'spear',weaponClass:'melee',name:t('weapons.spear.name'),type:'SPEAR',code:'SP–05',min:20,max:26,range:2,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:92,thrust:true,desc:t('weapons.spear.desc')},
   {id:'chainsaw',weaponClass:'melee',name:t('weapons.chainsaw.name'),type:'CHAINSAW',code:'CS–06',min:3,max:10,hits:10,range:1,mag:0,file:'powerfist',ammoType:null,melee:true,lootOnly:true,hitChance:88,pierce:1,phase:'slow',recovery:true,desc:t('weapons.chainsaw.desc')},
 );
+// 3.203.0 (user decisions 2026-09-29, docs/HAZARDS.md section 4): the flamethrower, the 火焰兵's weapon and yours alike.
+// Range 5 (user: a flamer sprays five tiles), a cone (flameCone: the half-angle, the shotgun's 30°), every tile it
+// reaches catches fire and every unit on one takes min–max, no hit roll (src/fire.js sprayFlame). One tank, 8 sprays
+// (user: 6 was not worth a weapon slot), never refilled: `tank` has no reserve, and its fuel is no AMMUNITION kind.
+// Aimed at a floor tile like the launcher (pointTarget). Only from a flamer's body and unidentified crates.
+// min–max and the cone are Claude's numbers.
+WEAPONS.push({id:'flamer',weaponClass:'flamer',name:t('weapons.flamer.name'),type:'FLAMETHROWER',code:'FT–05',min:20,max:26,range:5,mag:8,file:'flamer',ammoType:'fuel',tank:true,flame:true,flameCone:30,pointTarget:true,lootOnly:true,desc:t('weapons.flamer.desc')});
 export const FLOORS = [t('floors.0'),t('floors.1'),t('floors.2'),t('floors.3'),t('floors.4'),t('floors.5')];
 export const FLOOR_INFO = [
   { color:'#a4b484', subtitle:'TRANSIT HUB', text:t('floorInfo.0.text'), hazard:null },

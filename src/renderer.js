@@ -53,6 +53,7 @@ import {SIZE,floorInfo,ENEMY_TYPES,SUPPLY_NAMES,SUPPLY_ROOMS,distance,tongueTele
 import {VOID} from './data.js';
 import {fxSheet,fxFrame,fxField,fxFieldFailed,FX_SMOKE_ALPHA} from './fx-sprites.js';
 import {ventStage,VENT_COLOR} from './vents.js';
+import {fireRow,flameCells,burningAt,liveFlameIntent} from './fire.js';
 // Cloud colours: fill and puffs (3.134.0; haze and steam 3.202.0).
 const CLOUD_TONES=Object.freeze({smoke:['#abc1cd66','#d4dfe84a'],toxic:['#8fbf4a55','#c6e5864a'],spore:['#9c7d5366','#c8ad874a'],haze:['#c9d3da2e','#e6edf236'],steam:['#e3f1f55c','#ffffff52']});
 // cloudField's stacks, back to front: where in the texture (texture pixels), drift (texture pixels a second), opacity and
@@ -244,6 +245,7 @@ export class Renderer {
       if(looked)for(const trace of memo?memo.traces:traceCells.get(x+','+y)||[])drawTrace(c,trace,a.x,a.y,t);
       const vent=looked&&g.vents?.find(v=>v.x===x&&v.y===y);if(vent)this.vent(a,vent,time,x,y);   // 3.202.0
       const hazard=looked&&g.hazards.find(h=>h.x===x&&h.y===y);if(hazard)this.hazard(a,hazard,time);
+      const burning=looked&&burningAt(g,{x,y});if(burning)this.burning(a,burning,time);   // 3.203.0
       // Swarm invasion point (3.85.1): a burrow appears once the surge wakes up and turns to rubble when it is spent.
       // It is not a prop, so it never blocks, takes damage or shows a health bar (docs/SWARM.md 9.1).
       if(g.swarmWaves?.active&&g.swarmWaves.origin.x===x&&g.swarmWaves.origin.y===y)drawNestSprite(c,this.terrainImages?.get(NEST_ATLAS),a,t,'burrow',g.swarmWaves.remaining>0?'active':'ruins');
@@ -269,16 +271,21 @@ export class Renderer {
         else{const tone=CLOUD_TONES[kind]||CLOUD_TONES.smoke;this.glow(a.x,a.y,t*.8,tone[0]);for(let n=0;n<(kind==='haze'?2:3);n++)this.box(left+5+n*7,top+8+(x+y+n)%3*6,11,5,tone[1]);}
         this.text(String(Math.max(1,cloud.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#d3e2ed',8);
       }
+      // 3.203.0: a burning tile smokes like light smoke, drawn by the same smoke field and never as a sprite of its own;
+      // it has no count (a fire's end is rolled, not known). Without the field only the flames show.
+      if(burning&&!fieldCells.some(q=>q.x===x&&q.y===y&&q.kind==='haze')&&this.smokeField('haze'))fieldCells.push({x,y,kind:'haze',alpha:c.globalAlpha,a,label:null});
       c.globalAlpha=1;
     }
     this.cloudField(fieldCells,time);
-    for(const q of fieldCells){c.globalAlpha=q.alpha;this.text(q.label,q.a.x+t*.3,q.a.y+t*.3,'#d3e2ed',8);}c.globalAlpha=1;
+    for(const q of fieldCells)if(q.label){c.globalAlpha=q.alpha;this.text(q.label,q.a.x+t*.3,q.a.y+t*.3,'#d3e2ed',8);}c.globalAlpha=1;
 
     // Swarm waves arrive unannounced (user decision, 3.85.2); only retreat reinforcements keep their countdown marker.
     for(const spawn of g.reinforcements||[])if(g.visible(spawn))this.markArea(spawn,0,'#70dce833','#94f0eeaa','+'+Math.max(1,spawn.due-g.turn));
     // Allied bombardment marks (3.95.0) are amber, so the player can tell them from enemy marks; both still hurt the player.
     for(const m of g.marks)if(m.kind!=='grenade')this.markArea(m,1,m.kind==='ally'?'#e9a2494f':'#e969494f',m.kind==='ally'?'#f8c46977':'#f8996977',String(Math.max(1,m.due-g.turn)));
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);
+    // 3.203.0: a flamer's marked cone (src/enemy-behavior.js flamerAct), every tile of it you can see, until it sprays.
+    for(const e of g.enemies)if(liveFlameIntent(e))this.flameArea(flameCells(g,e.flameIntent.origin,e.flameIntent.aim).filter(q=>g.visible(q)),'#f0643c30','#ff8d5ccc');
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
     // 3.123.0: a flare's aim shows exactly the tiles it would light now (shadows and full cover stay unmarked).
     // 3.135.0: a grapple line's aim — the straight pull and its landing, green when it can go, red when it cannot.
@@ -305,7 +312,7 @@ export class Renderer {
     for(const [i,pt] of (g.survival?.points||[]).entries()){const a=this.project(pt.x,pt.y),t=this.tile,status=pointStatus(g,pt),fallen=status==='fallen',color=POINT_COLORS[status];if(!fallen)this.glow(a.x,a.y,t*.9,color+'38');if(pointTargeted(g,pt)){const pulse=.55+.45*Math.abs(Math.sin(time/320));this.ctx.globalAlpha=pulse;pointFrame(this.ctx,a.x,a.y,t*.47,t*.16,2,POINT_FRAME);this.ctx.globalAlpha=1;}this.box(a.x-t*.28,a.y-t*.28,t*.56,t*.56,color+'40',color);this.text(pointLetter(i),a.x,a.y+4,color,11);if(!fallen){const w=t*.6;this.box(a.x-w/2,a.y+t*.34,w,3,'#000000aa');this.box(a.x-w/2,a.y+t*.34,w*pt.hp/SURVIVAL_TUNING.pointHp,3,color);}}
     for(const stick of g.glowsticks||[])if(g.seen?.[stick.y]?.[stick.x]){const a=this.project(stick.x,stick.y),t=this.tile;this.glow(a.x,a.y,t*.8,'#9dff8a2a');this.line(a.x-4,a.y+3,a.x+4,a.y-3,'#c8ffb8',3);}
     for(const flare of g.flares||[])if(g.seen?.[flare.y]?.[flare.x]){const a=this.project(flare.x,flare.y),t=this.tile;this.glow(a.x,a.y,t*1.6,'#ffd27a30');this.box(a.x-2,a.y-2,4,4,'#fff1c4');this.text(String(Math.max(1,flare.expires-g.turn)),a.x+t*.3,a.y+t*.3,'#ffe3a8',8);}
-    if(this.mode==='launch'&&this.aim)this.markArea(this.aim,1,'#e6a95b33','#eacb84aa','');
+    if(this.mode==='launch'&&this.aim){if(g.weapon?.flame)this.flameArea(flameCells(g,g.player,this.aim),'#e6a95b26','#eacb84aa');else this.markArea(this.aim,1,'#e6a95b33','#eacb84aa','');}   // 3.203.0: the flamethrower's cone
     // 3.112.0: the shotgun's cone, faint on the floor and firm on everyone one shell will reach; red for a friend.
     const coneAim=this.targetingEnabled&&!this.mode&&g.weapon?.cone&&g.targeted&&g.enemies.includes(g.targeted)?g.targeted:null;
     if(coneAim){
@@ -354,6 +361,8 @@ export class Renderer {
       // 3.116.0 (user decision): a flash only for a shooter the player can see, judged once per shot on the state it came from.
       const shot=fx.type==='shot'||fx.type==='enemyShot';
       if(shot&&fx.flash){fx.shooterSeen??=fx.type==='enemyShot'?g.visibleEnemies.some(e=>e.x===fx.from.x&&e.y===fx.from.y):g.visible(fx.from);if(fx.shooterSeen)this.muzzleFlash(fx,a,angle,elapsed);}
+      if(fx.type==='flame'){this.flameBurst(fx,elapsed);c.globalAlpha=1;continue;}   // 3.203.0
+      if(fx.type==='flameTelegraph'){c.globalAlpha=1;continue;}   // its cone is drawn from the game state
       if(fx.type==='portalSpawn'){if(g.visible(fx.to))drawPortalEffect(c,this.terrainImages?.get(NEST_ATLAS),b,t,elapsed);c.globalAlpha=1;continue;}   // 3.194.0
       if(fx.type==='nestCollapse'||fx.type==='nestSpawn'){if(g.visible(fx.type==='nestCollapse'?fx.from:fx.to))drawNestEffect(c,this.terrainImages?.get(NEST_ATLAS),fx,a,b,t,elapsed);c.globalAlpha=1;continue;}
       if(fx.quiet){
@@ -622,6 +631,25 @@ export class Renderer {
     }
     mc.putImageData(img,0,0);this.fieldMasks.set(kind,{key,canvas});return canvas;
   }
+  // 3.203.0 burning floor (src/fire.js): Codex's fire sheet, its row by how long the tile has burned (it catches, burns,
+  // dies down in its last rounds); without the sheet, the fixed fire's procedural flames.
+  burning(a,f,time){const t=this.tile,fire=fxSheet('fire');
+    if(!fire){this.hazard(a,{type:'fire',x:f.x,y:f.y},time);return;}
+    this.glow(a.x,a.y,t*.8,'#cf672c44');this.ctx.drawImage(fire.img,fxFrame(time,f.x,f.y,fire.frames)*fire.cell,fire.rows[fireRow(f)]*fire.cell,fire.cell,fire.cell,a.x-t/2,a.y-t/2,t,t);this.glow(a.x,a.y,t*.7,'#f99a381a');}
+  // A spray's reach, tile by tile: the flamethrower's aim and a flamer's marked cone.
+  flameArea(cells,fill,stroke){const t=this.tile;for(const {x,y} of cells){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}}
+  // 3.203.0: the flamethrower's burst (Codex's flame-burst.png, drawn facing east) on every tile the spray reached that you
+  // can see, turned to the spray's direction about the tile's centre and played once, four frames in 600 ms (inside the
+  // effect's 650 ms); without the sheet, a flicker of orange.
+  flameBurst(fx,elapsed){
+    const c=this.ctx,t=this.tile,g=this.game,sheet=fxSheet('flameBurst'),frame=Math.min(3,Math.floor(elapsed/150)),angle=Math.atan2(fx.to.y-fx.from.y,fx.to.x-fx.from.x),fade=frame<3?1:Math.max(0,1-(elapsed-450)/200);
+    for(const q of fx.cells||[]){
+      if(!g.visible(q))continue;
+      const a=this.project(q.x,q.y);
+      if(sheet){c.save();c.globalAlpha=fade;c.translate(a.x,a.y);c.rotate(angle);c.imageSmoothingEnabled=false;c.drawImage(sheet.img,frame*sheet.cell,0,sheet.cell,sheet.cell,-t/2,-t/2,t,t);c.restore();}
+      else{c.globalAlpha=fade;this.glow(a.x,a.y,t*.6,'#ff8a3a55');this.box(a.x-t*.2,a.y-t*.2,t*.4,t*.4,frame%2?'#ffb45a88':'#ff7a3a88');}
+    }
+  }
   hazard(a,h,time){const t=this.tile,l=a.x-t*.43,top=a.y-t*.43;
     // 3.202.0: the fixed fire of floors 5-6 burns with the sheet's steady row once Codex's sprites are there.
     const fire=h.type==='fire'&&fxSheet('fire');if(fire){this.glow(a.x,a.y,t*.8,'#cf672c44');this.ctx.drawImage(fire.img,fxFrame(time,h.x,h.y,fire.frames)*fire.cell,fire.rows.steady*fire.cell,fire.cell,fire.cell,a.x-t/2,a.y-t/2,t,t);this.glow(a.x,a.y,t*.7,'#f99a381a');return;}
@@ -677,7 +705,10 @@ export class Renderer {
   item(a,item,time){const k=itemScale(this.tile);if(!k)return;const c=this.ctx;if(item.type==='key'){this.keyBeam(a,time,Math.max(.6,k));return;}
     // 3.154.0 (docs/LOOT_ICONS_HANDOFF.md): five classes of ground loot are one pixel icon each, nothing layered on top —
     // no frame, no glow, no weapon code. The keycard, the data and the learning chips keep their own marks below.
-    const cell=lootCell(item,item.type==='weapon'?this.game.weaponAt(item.slot):null);
+    const weapon=item.type==='weapon'?this.game.weaponAt(item.slot):null,cell=lootCell(item,weapon);
+    // 3.203.0: a flamethrower is Codex's own 16px icon (loot-flamer.png), outside the atlas; the tinted silhouette without it.
+    const flamer=weapon?.flame&&fxSheet('lootFlamer');
+    if(flamer){const size=Math.max(4,Math.round(LOOT_ICON.size*k)),smooth=c.imageSmoothingEnabled;c.imageSmoothingEnabled=false;c.drawImage(flamer.img,0,0,flamer.cell,flamer.cell,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);c.imageSmoothingEnabled=smooth;return;}
     if(cell&&drawLootIcon(c,this.terrainImages?.get(LOOT_ATLAS),cell,a,LOOT_ICON.size*k))return;
 if(k<1){c.save();c.translate(a.x,a.y);c.scale(k,k);a={x:0,y:0};}const color=ITEM_COLORS[item.type]||'#c8bb93';this.box(a.x-9,a.y-6,18,15,'#14271f99');this.box(a.x-9,a.y-9,18,14,color,'#d7deb07f');this.box(a.x-7,a.y-7,14,10,'#263e3066');const symbol=item.type==='learning'?(String(item.learningId||'').startsWith('trait_')?'◆':'✦'):ITEM_SYMBOLS[item.type]||'?';this.text(symbol,a.x,a.y+2,'#e5eccb',10);if(item.cache&&SUPPLY_NAMES[item.type])this.text(SUPPLY_NAMES[item.type],a.x,a.y+17,color,8);if(item.type==='weapon'){this.glow(a.x,a.y,24,'#eabd5d30');this.text(this.game.weaponAt(item.slot).code,a.x,a.y-15,'#ffe0a3',8);this.box(a.x-11,a.y-11,22,18,'#00000000','#f6cf82');}if(item.type==='learning')this.glow(a.x,a.y,22,'#b9a2e633');if(k<1)c.restore();}
   moduleFloor(a,m){

@@ -4,7 +4,7 @@
 // nothing here tints a cell — except a melee weapon, which has no ammo type (see MELEE below).
 // The classification follows the pack (user decision 2026-09-20): PREPARED_CATALOG.grenade is the throwable class, so the
 // flare, the decoy and the mine are gear, not throwables, exactly as the pack lists them.
-import {MELEE_TINT} from './ammunition.js';
+import {MELEE_TINT,FUEL} from './ammunition.js';
 export const LOOT_ATLAS=new URL('../assets/pixel/loot-icons-v1/atlas.png',import.meta.url).href;
 // size: how wide the icon is drawn on a full-size tile (38px); it shrinks with itemScale like the old icons did.
 // The user tuned both in qa/loot-icon-lab.html on 2026-09-20: 21px, and the atlas itself was re-exported at
@@ -25,6 +25,7 @@ export function lootCell(item,weapon=null){
   if(!item||SPECIAL_LOOT.includes(item.type))return null;
   if(item.type==='weapon'){
     if(weapon?.melee)return {col:0,row:0,tint:MELEE_TINT};
+    if(weapon?.tank)return {col:0,row:0,tint:FUEL.tint};   // 3.203.0: the flamethrower, when Codex's own icon is missing (src/renderer.js)
     const col=WEAPON_COLUMN[weapon?.ammoType];
     return col===undefined?null:{col,row:0};
   }

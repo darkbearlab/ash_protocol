@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {WEAPONS} from '../src/data.js';
 import {weaponStats} from '../src/weapons.js';
-import {AMMUNITION,MELEE_TINT} from '../src/ammunition.js';
+import {AMMUNITION,MELEE_TINT,FUEL} from '../src/ammunition.js';
 import {PREPARED_CATALOG} from '../src/prepared.js';
 import {ITEM_COLORS,ITEM_SCALE,itemScale} from '../src/renderer.js';
 import {LOOT_ICON,SPECIAL_LOOT,lootCell} from '../src/loot-icons.js';
@@ -40,6 +40,7 @@ test('a weapon and its ammunition share the column of the ammo type, and melee w
   const weapon=weaponStats(slot),cell=lootCell({type:'weapon',slot},weapon);
   assert.ok(cell,`${definition.code} has a cell`);
   if(weapon.melee){assert.deepEqual(cell,{col:0,row:0,tint:MELEE_TINT},`${definition.code} uses the melee tint`);return;}
+  if(weapon.tank){assert.deepEqual(cell,{col:0,row:0,tint:FUEL.tint},`${definition.code} falls back to the fuel tint (3.203.0; its own icon is loot-flamer.png)`);return;}
   assert.deepEqual(cell,{col:column[weapon.ammoType],row:0},`${definition.code} follows its ammo type`);
  });
 });

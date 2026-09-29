@@ -3,7 +3,7 @@ import {poisonHit,tongueAction,infectedDeath} from './swarm.js';
 import {civilianAction} from './civilians.js';
 import {hasEnemyTag,enemyDef} from './enemy-data.js';
 import {observeEnemy} from './callouts.js';
-import {ENEMY_TYPES} from './data.js';
+import {ENEMY_TYPES,WEAPONS} from './data.js';
 import {DIRECTIONS,distance,key} from './world.js';
 import {BLIND_TUNING} from './blind-fire.js';
 import {lancePath} from './lance.js';
@@ -16,7 +16,8 @@ function enemyOverpen(g,e,p,damage,chance){
 import {activeTrait,recordShot} from './traits.js';
 import {pinned,finishSuppression,rapidFireModifiers} from './suppression.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
-import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,enemyDisplayName as enemyName} from './enemy-affixes.js';
+import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
+import {sprayFlame,flameCells,flamerDamage,FLAMETHROWER} from './fire.js';
 import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
 import {unitTree,registerUnitTree,registerAffixBranch,runAffixBranches} from './behavior-tree.js';
 import {occupied} from './allies.js';
@@ -103,6 +104,30 @@ function grenade(ctx){const {g,e,p,los}=ctx,intent=e.grenadeIntent;
  const stun=g.rng()>=1-AFFIX_TUNING.stunShare;   // the top third of the roll
  e.grenadeIntent={stage:'prepare',targetId:p.id||'player',x:p.x,y:p.y,origin:{x:e.x,y:e.y},...(stun?{stun:true}:{})};revealEnemyAffix(g,e,'grenadier');g.effects.push({type:'enemyTelegraph',phase:'prepare',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});enemyCallout(g,e,'telegraph',{action:'grenade'});g.log(t(stun?'enemy-behavior.stunReady':'enemy-behavior.grenadeReady',{enemy:enemyName(e)}),true);return true;
 }
+// 火焰兵 (3.203.0, user design 2026-09-29, docs/HAZARDS.md section 4): the grenadier's rhythm — it marks a cone one
+// round and sprays it the next — and nothing else: no gun, no aimed shot, no other affix branch. It marks when its
+// flamethrower reaches its target (the target's tile inside the cone); the round after, it sprays the marked cone from
+// where it stands whether the target stayed or not (the mark is the warning: step out of it). Pulled away, stunned or
+// killed in between, the cone is dropped (interruptEnemyIntent; Claude's call, as for the grenade). Out of reach it walks
+// into reach, never firing on the way.
+function flamerAct(ctx){
+ const {g,e,p,los}=ctx,intent=e.flameIntent,reach=WEAPONS[FLAMETHROWER].range;
+ // 3.203.0 review: no gun to hold on anyone, so no aim is left standing (a watch order's held aim, a squad's 已就緒);
+ // a standing charge would let an enforcer's rally fire the old gun and keep the flamer on a burning tile.
+ e.charge=false;e.aim=null;e.windup=1;
+ if(intent){
+  delete e.flameIntent;
+  if(distance(e,intent.origin)===0){g.recordExposure(e,intent.aim);g.log(t('flames.flamerSprays',{enemy:enemyName(e)}),true);sprayFlame(g,e,intent.aim,()=>flamerDamage(g));return true;}
+ }
+ if(los&&distance(e,p)<=reach&&flameCells(g,e,p).some(q=>q.x===p.x&&q.y===p.y)){
+  e.flameIntent={origin:{x:e.x,y:e.y},aim:{x:p.x,y:p.y}};revealEnemyAffix(g,e,'flamer');
+  g.effects.push({type:'flameTelegraph',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});enemyCallout(g,e,'telegraph',{action:'attack'});
+  g.log(t('flames.flamerReady',{enemy:enemyName(e)}),true);return true;
+ }
+ move({...ctx,def:{...ctx.def,range:reach}});
+ if(e.moved)enemyCallout(g,e,'state',{state:'move'});
+ return true;
+}
 registerAffixBranch({id:'grenadier',reveal:'effect',applies:({e})=>e.affixes?.some(a=>a.id==='grenadier'),trigger:({g,e,p,los})=>Boolean(e.grenadeIntent)||(!e.charge&&los&&distance(e,p)<=AFFIX_TUNING.grenadeRange),get chance(){return AFFIX_TUNING.grenadeChance;},pending:({e})=>Boolean(e.grenadeIntent),steps:['prepare','flight','explode'],run:grenade});
 // Loitering munition (3.103.0, user request). The launch puts it exactly at its own strike range from the player and
 // where the player can see it, so the turn it appears is a real choice: step out of reach, or shoot it down. On its next
@@ -180,12 +205,16 @@ registerUnitTree('brood',{});
 export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);}
 export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
+ // 3.203.0 review: a flamer's marked cone goes off before anything else can move it (an order, a survival group's walk):
+ // walking off first left the mark behind, drawn where no spray would come.
+ if(isFlamer(e)&&e.flameIntent){if(los)e.lastKnown={x:p.x,y:p.y};flamerAct(ctx);return false;}
  // 3.189.0 survival hooks go through the game (src/game.js), so this module does not import src/survival.js.
  if(tongueAction(ctx)||pounceAction(ctx)||lobAction(ctx)||(g.survival&&g.survivalAction(ctx,move))||tree.before?.(ctx))return;observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};
  if(stepOffHazard(g,e,e.order?.at||known,{pinned,occupied}))return;   // 3.201.0 (src/hazard-paths.js): off a hazard, never backwards
  if(d>16)return;
  // 3.130.0 orders (docs/ORDERS.md): a committed order acts before the affix branches; 'fire' goes straight to the attack.
  selfOrders(ctx);const order=runOrder(ctx);if(order===true)return;
+ if(isFlamer(e)){flamerAct(ctx);return false;}   // 3.203.0: its weapon is the flamethrower, whatever the order says
  if(order!=='fire'&&(runAffixBranches(ctx)||seekCover(ctx)))return;
  let fired=false;
  // 3.152.0 有效距離 (src/range-band.js): a shooter outside its band moves into it first and only fires from a bad

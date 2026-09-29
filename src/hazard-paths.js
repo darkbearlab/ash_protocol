@@ -18,8 +18,16 @@ function clouds(g){
  return c;
 }
 const playerSide=actor=>typeof actor?.kind==='string';
+// 3.203.0: a burning tile (src/fire.js) is a hazard for every walker, read once per fire list like the clouds.
+const fireHazards=new WeakMap();
+function burning(g){
+ let c=fireHazards.get(g);
+ if(!c||c.fires!==g.fires||c.size!==g.fires.length){c={fires:g.fires,size:g.fires.length,cells:new Set(g.fires.map(f=>`${f.x},${f.y}`))};fireHazards.set(g,c);}
+ return c.cells;
+}
 export const hazardTile=(g,x,y,actor=null)=>{
  if(g.hazards?.some(h=>h.x===x&&h.y===y))return true;
+ if(g.fires?.length&&burning(g).has(`${x},${y}`))return true;
  if(!g.smoke?.length)return false;
  const c=clouds(g),k=`${x},${y}`;return c.steam.has(k)||playerSide(actor)&&c.toxic.has(k);
 };
@@ -49,7 +57,7 @@ export function costToGoal(g,actor,goal,limit=Infinity){
 // where it last knew you), so it never steps back off its own route and shuttles; walking on along the route takes it off
 // just the same. Not while pinned, resting (fodder), or committed to a telegraphed move (a wound-up shot, a grenade,
 // a tongue, a pounce, a lob). Noncombatants are left to their own flight. Returns true when it moved.
-const COMMITTED=Object.freeze(['charge','grenadeIntent','tongueIntent','pounceIntent','lobIntent']);
+const COMMITTED=Object.freeze(['charge','grenadeIntent','tongueIntent','pounceIntent','lobIntent','flameIntent']);   // flameIntent: 3.203.0
 export function stepOffHazard(g,e,goal,{pinned=()=>false,occupied=()=>false}={}){
  if(!avoidsHazards(e)||!hazardTile(g,e.x,e.y,e)||pinned(e)||e.actionDelay>0||COMMITTED.some(f=>e[f]))return false;
  const costs=goal?costToGoal(g,e,goal):null,here=costs?.get(key(e))??Infinity,cost=q=>costs?.get(key(q))??Infinity;

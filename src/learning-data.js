@@ -18,11 +18,16 @@ export const validLearningId=id=>typeof id==='string'&&Object.hasOwn(LEARNING_IT
 export const UNFOUND_LEARNING=Object.freeze(['trait_night_vision','trait_infrared']);
 // 3.136.0 (user decision): the five new melee weapons join the crate axe and katana (docs/MELEE_WEAPONS.md).
 export const UNKNOWN_LOOT=[...[6,11,12,13,14,15,16,17].map(weapon=>({type:'weapon',weapon,unlockId:null})),...Object.keys(LEARNING_ITEMS).filter(id=>!UNFOUND_LEARNING.includes(id)).map(learningId=>({type:'learning',learningId,unlockId:null})),{type:'nvg',unlockId:null}];
+// 3.203.0 (user decision 2026-09-29, docs/HAZARDS.md section 4): an unidentified crate may hold a flamethrower (weapon 18,
+// src/fire.js), the one place besides a flamer's body it comes from. Claude's call: its own hash, at the share a 28th
+// entry of the list would have had, so every other crate keeps exactly what it held.
+export const CRATE_FLAMER=Object.freeze({weapon:18,share:1/28});
+const fnv=text=>{let hash=2166136261;for(const s of text){hash^=s.charCodeAt(0);hash=Math.imul(hash,16777619);}return hash>>>0;};
 export function fillUnknownContainers(map,seed,floor){
  if(!map.generation)return map;
  for(const c of map.props.filter(p=>p.type==='container'&&p.kind==='unknown'&&!p.opened)){
-  let hash=2166136261;for(const s of `${seed}:${floor}:${c.id}:unknown-v9`){hash^=s.charCodeAt(0);hash=Math.imul(hash,16777619);}
-  const {unlockId,...item}=UNKNOWN_LOOT[(hash>>>0)%UNKNOWN_LOOT.length];c.contents=[{...item}];
+  if(fnv(`${seed}:${floor}:${c.id}:flamer-v1`)/4294967296<CRATE_FLAMER.share){c.contents=[{type:'weapon',weapon:CRATE_FLAMER.weapon}];continue;}
+  const {unlockId,...item}=UNKNOWN_LOOT[fnv(`${seed}:${floor}:${c.id}:unknown-v9`)%UNKNOWN_LOOT.length];c.contents=[{...item}];
  }
  map.generation={version:9,recipeId:'contents-v9',base:map.generation};return map;
 }

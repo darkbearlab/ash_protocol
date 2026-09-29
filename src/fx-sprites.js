@@ -3,13 +3,16 @@
 // loaded, and while FX_SPRITES is on: turned off, missing or broken, every cloud, vent and flame is drawn by code as before.
 export const FX_SPRITES=true;
 // name → {src (relative to this module), cell, frames, rows: {kind: row}}. 3.202.0: Codex's first set arrived
-// (docs/FX_SPRITES_HANDOFF.md); smoke, the vent grates and the fixed fire are drawn from it, the flame burst and the
-// ground flamethrower wait for 3.203.0.
+// (docs/FX_SPRITES_HANDOFF.md); smoke, the vent grates and the fixed fire are drawn from it. 3.203.0: the burning floor
+// (fire, its row by the tile's age: src/fire.js fireRow), the flamethrower's burst (four frames facing east, turned to the
+// spray and played once) and the flamethrower lying on the floor (one 16px icon).
 const FX_DIR='../assets/pixel/fx-v1/';
 export const FX_SHEETS=Object.freeze({
  smoke:Object.freeze({src:FX_DIR+'smoke.png',cell:32,frames:4,rows:Object.freeze({smoke:0,haze:1,steam:2,toxic:3,spore:4})}),
  vent:Object.freeze({src:FX_DIR+'vent.png',cell:32,frames:5,rows:Object.freeze({smoke:0,haze:1,steam:2,toxic:3})}),
  fire:Object.freeze({src:FX_DIR+'fire.png',cell:32,frames:4,rows:Object.freeze({ignite:0,steady:1,embers:2})}),
+ flameBurst:Object.freeze({src:FX_DIR+'flame-burst.png',cell:32,frames:4,rows:Object.freeze({east:0})}),
+ lootFlamer:Object.freeze({src:FX_DIR+'loot-flamer.png',cell:16,frames:1,rows:Object.freeze({fuel:0})}),
 });
 // Smoke as one field (3.202.0, user 2026-09-29; art/smoke-field-v1): a large wrap-around texture per kind, not a sprite
 // per tile. The renderer shows each cloud tile the part of the texture under its map position and feathers only the

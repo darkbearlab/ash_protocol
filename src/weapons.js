@@ -1,6 +1,6 @@
 import {t} from './i18n.js';
 import {rapidFireModifiers} from './suppression.js';
-import {AMMUNITION} from './ammunition.js';
+import {ammoInfo} from './ammunition.js';
 import {WEAPONS,PERK_D} from './data.js';
 import {WEAPON_BANDS,shiftedBand} from './range-band.js';
 import {activeTrait} from './traits.js';
@@ -32,7 +32,7 @@ export const AFFIXES={
 // How often a dropped weapon that can carry a drop-only affix gets each one. Its own hash, so every other roll is as before.
 export const DROP_ONLY_CHANCE=.15;
 export const dropOnlyAffixes=base=>Object.keys(AFFIXES).filter(id=>AFFIXES[id].dropOnly?.includes(WEAPONS[base]?.id));
-export const affixAllowed=(base,affix)=>affix===null||Object.hasOwn(AFFIXES,affix)&&(!AFFIXES[affix].dropOnly||AFFIXES[affix].dropOnly.includes(WEAPONS[base]?.id));
+export const affixAllowed=(base,affix)=>affix===null||!WEAPONS[base]?.flame&&Object.hasOwn(AFFIXES,affix)&&(!AFFIXES[affix].dropOnly||AFFIXES[affix].dropOnly.includes(WEAPONS[base]?.id));
 // 3.148.0 改裝精通 (升級 D, docs/PERK_GROWTH.md): each rank adds a quarter of a regular affix's upside again; its downside
 // stays, and the drop-only affixes are untouched. Accuracy, range and tracking round down.
 export const masteryRank=actor=>actor?.perks?.mod_mastery||0;
@@ -71,7 +71,7 @@ export const roundCost=(w,round)=>w.volleyCost?(round===0?w.volleyCost:0):(w.sho
 // Separate from combat RNG: inspecting, collecting or restoring loot never rerolls it.
 const fnv=seed=>{let hash=2166136261;for(const c of String(seed)){hash^=c.charCodeAt(0);hash=Math.imul(hash,16777619);}return hash>>>0;};
 export function rollAffix(base,seed){
-  if(WEAPONS[base]?.melee)return null;
+  if(WEAPONS[base]?.melee||WEAPONS[base]?.flame)return null;   // 3.203.0: a flamethrower is always a plain one (8 sprays, range 5)
   const special=dropOnlyAffixes(base),pick=Math.floor(fnv(`${seed}:drop-only`)/4294967296/DROP_ONLY_CHANCE);
   if(pick<special.length)return special[pick];
   const hash=fnv(seed);if(hash%100>=65)return null;
@@ -83,7 +83,7 @@ export function rollAffix(base,seed){
   return rest[fnv(`${seed}:repick`)%rest.length];
 }
 
-export const ammoName=w=>w.melee?t('weapons.unlimited'):AMMUNITION[w.ammoType].name;
+export const ammoName=w=>w.melee?t('weapons.unlimited'):ammoInfo(w.ammoType).name;   // ammoInfo: a flamethrower's fuel too (3.203.0)
 export const magazineLabel=(w,rounds)=>w.melee?'∞':`${rounds}/${w.mag}`;
 
 // Shared dismantling/feeding/trade-in value; magazine ammunition is handled separately. The engineer's own passive

@@ -17,6 +17,11 @@ export const AMMUNITION={
   grenade:{name:t('ammunition.grenade.name'),short:t('ammunition.grenade.short'),tint:'#c3cf7c',key:'grenades',item:'grenade',base:4,step:1,pickup:1}
 };
 export const AMMO_IDS=['pistol','rifle','shell','energy','ordnance'];
+// 3.203.0: a flamethrower's fuel stays in its tank (8 sprays, never refilled, docs/HAZARDS.md section 4). It has no
+// reserve, pickup or carry level, so it is not one of the AMMUNITION kinds (the carry levels and every save list those);
+// ammoInfo answers the names and the colour for it as well. `key` null: nothing to reload from or hand back to.
+export const FUEL=Object.freeze({name:t('ammunition.fuel.name'),short:t('ammunition.fuel.short'),tint:'#e2743a',key:null});
+export const ammoInfo=type=>AMMUNITION[type]??(type==='fuel'?FUEL:null);
 // 3.185.0 (user, plan C; docs/WEAPONS.md): armor works on each kind of ammunition differently, for both sides. A round's
 // damage is multiplied by its kind's factor for the target's armor (0, 1-2, 3-5, 6 and up) instead of losing a flat
 // amount; a weapon's pierce pulls an armored factor back toward 1. Rifle rounds tear through an unarmored body and do

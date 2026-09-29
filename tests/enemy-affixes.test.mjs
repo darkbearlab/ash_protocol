@@ -12,7 +12,8 @@ test('1: births reproduce per seed/floor/ID without consuming combat RNG, includ
  const all=new Set(Array.from({length:30},(_,s)=>JSON.stringify(rollEnemyAffixes(makeEnemy('raider',1,1,'a'),s,60).affixes)));assert.ok(all.size>4);
 });
 test('2: first and later affix frequency follow independent birth stream and falling count curve',()=>{
- const counts=[0,0,0,0,0,0];for(let i=0;i<20000;i++){const e=rollEnemyAffixes(makeEnemy('raider',1,1,'trial'),i,60);counts[e.affixes.length]++;}
+ // 3.203.0: the ordinary affixes only; a special one (火焰兵) rolls on its own stream on top.
+ const counts=[0,0,0,0,0,0];for(let i=0;i<20000;i++){const e=rollEnemyAffixes(makeEnemy('raider',1,1,'trial'),i,60);counts[e.affixes.filter(a=>!ENEMY_AFFIXES.find(d=>d.id===a.id).special).length]++;}
  const atLeast=n=>counts.slice(n).reduce((a,b)=>a+b,0)/20000;
  assert.ok(Math.abs(atLeast(1)-.5)<.02);assert.ok(Math.abs(atLeast(2)-.125)<.015);assert.ok(Math.abs(atLeast(3)-.015625)<.008);
  for(const type of ['drone','brute','crawler','bomber','boss','warden','fodder','brood'])for(let i=0;i<100;i++)assert.ok(rollEnemyAffixes(makeEnemy(type,1,1,'a'),i,60).affixes.every(a=>!['grenadier','suppressor'].includes(a.id)));

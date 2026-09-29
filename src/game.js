@@ -19,7 +19,7 @@ import {lockRealMode} from './real-mode.js';
 import {injuryCallout,playerCallout} from './callouts.js';
 import {enemyOpportunity,executeEnemyTree,enemyDeath,enemyWeapon} from './enemy-behavior.js';
 import {enemyCallout,validEnemyIntent,validEnemyMarks} from './enemy-intents.js';
-import {enemyDisplayName,rollEnemyAffixes,migrateEnemyAffixes,validEnemyAffixes} from './enemy-affixes.js';
+import {enemyDisplayName,rollEnemyAffixes,migrateEnemyAffixes,validEnemyAffixes,enemyArmor,isFlamer} from './enemy-affixes.js';
 import {migrateResistance} from './suppression.js';
 import {DIFFICULTY_TUNING,validDifficultyOffset,DEFAULT_CURVE,validCurve} from './endless.js';
 import {shotDamageAllowed,pinned,tickSuppression,finishSuppression,migrateSuppression,SUPPRESSION_TUNING} from './suppression.js';
@@ -58,6 +58,7 @@ import {toxicShot,toxicPlayerTurn,toxicAllyTurn,inToxic,tickFields,validFields} 
 import {tickVents,hazeShot,scalding,validVents,inCloud} from './vents.js';
 import {stepOffHazard} from './hazard-paths.js';
 import {VENT_TUNING} from './vent-map.js';
+import {tickFires,burningAt,sprayFlame,flamerTank,validFires,dropStaleFlameIntents,FIRE_TUNING,FLAMETHROWER} from './fire.js';
 import {sweptGrid,sweptClear} from './line-move.js';
 export const LUNGE_TRAIT='lunge',LUNGE_TUNING=Object.freeze({reach:3});
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop,levelCost} from './perks.js';
@@ -107,7 +108,8 @@ export {TERMINAL_ITEMS,terminalCost,terminalReason} from './terminal.js';
 export function launchReason(g,pos){
  const p=g.player,w=g.weapon;
  if(!w.pointTarget)return t('game.launchNoGround');
- if(p.ammo[p.weapon]<=0)return t('game.launchEmpty');
+ if(p.ammo[p.weapon]<=0)return t(w.tank?'game.tankEmpty':'game.launchEmpty');   // 3.203.0: a flamethrower's tank is never refilled
+ if(w.flame&&pos&&pos.x===p.x&&pos.y===p.y)return t('game.flameOwnTile');   // 3.203.0 review: a spray needs a direction
  if(!pos||!Number.isInteger(pos.x)||!Number.isInteger(pos.y)||g.grid[pos.y]?.[pos.x]!==1)return t('game.launchPickFloor');
  if(distance(p,pos)>w.range||!g.visible(pos))return t('common.landingRange',{range:w.range});
  return '';
@@ -142,7 +144,13 @@ export function itemUseReason(g,id){
 }
 // 3.179.0: a shot from a gun with the flash hider makes no muzzle flash (src/lighting.js, src/presentation.js).
 const flashHidden=w=>w.noFlash?{suppressed:true}:{};
-const freshPlayer=()=>({flashlight:false,lightLingers:false,glowsticks:0,keycards:[],decoys:0,mines:0,exoPlates:0,learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:WEAPONS.map((_,i)=>i),affixes:WEAPONS.map(()=>null),ammo:WEAPONS.map((w,i)=>i<2?w.mag:0),upgrades:WEAPONS.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
+// A new run's pack holds a slot for each weapon of the catalog up to the chainsaw (weapon 17), slot = weapon, as it
+// always has. 3.203.0: weapons added from then on (the flamethrower, 18) take a slot only when one is found, so the slots
+// of everything found on a floor, and the weapon affixes rolled by slot, stay where they were.
+const CATALOG=WEAPONS.slice(0,18);
+// The plates you can carry: your class's, and 加掛板架's ranks (3.148.0). Filling and loading use the same number.
+const plateCapacityOf=p=>(CHARACTERS[p.character]?.plateCapacity??0)+PERK_D.rack*(p.perks?.plate_rack||0);
+const freshPlayer=()=>({flashlight:false,lightLingers:false,glowsticks:0,keycards:[],decoys:0,mines:0,exoPlates:0,learningItems:{},petBond:null,battleSpirit:freshSpirit(),perks:{},perkWeaponBonus:0,character:'soldier',vaultExposed:false,smoke:0,emp:0,stun:0,control:controlState(),moveDelta:[0,0],fireChain:null,cornerExposure:null,tactics:null,prepared:defaultPrepared(),skills:[],skillState:{},productionLines:[],blueprints:[],usedBlueprints:[],traits:[],x:0,y:0,hp:100,maxHp:100,meds:2,sprays:0,adrenaline:0,barricades:0,flares:0,escapeLines:0,redeployLines:0,meleeSlot:null,recovery:0,wearables:[],grenades:2,armor:0,bonus:0,blastBonus:0,healBonus:0,hazmat:0,scavenger:0,scrap:0,level:1,xp:0,kills:0,weapon:0,owned:[0,1],weaponBases:CATALOG.map((_,i)=>i),affixes:CATALOG.map(()=>null),ammo:CATALOG.map((w,i)=>i<2?w.mag:0),upgrades:CATALOG.map(()=>0),reserve:48,pistol:24,shell:12,energy:18,ordnance:4,facing:[0,1],guard:false,focus:false,evasive:false,poison:0,lore:[],stats:{shots:0,damage:0,grenades:0,salvaged:0}});
 export const enemyName=enemyDisplayName;
 
 export class Game {
@@ -164,7 +172,7 @@ export class Game {
     Object.assign(this.player,startingSupplies(character));Object.assign(this.player.prepared,CHARACTERS[character].prepared||{});
     // 3.158.0 (user decision): the first ranged weapon is in hand at the start, so the berserker and the ninja need no
     // switch before their first shot; the bound blade stays first in the pack and is what a bump swings.
-    this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned.find(i=>!WEAPONS[i].melee)??this.player.owned[0];this.player.ammo=WEAPONS.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
+    this.player.portrait=portrait;this.player.character=character;grantCharacterTraits(this.player);this.player.owned=[...CHARACTERS[character].weapons];this.player.weapon=this.player.owned.find(i=>!WEAPONS[i].melee)??this.player.owned[0];this.player.ammo=CATALOG.map((w,i)=>this.player.owned.includes(i)?w.mag:0);
     this.runId=newRunId();this.protocol={earned:0,events:[]};this.unlockedWeapons=[...unlocks];
     this.allies=[];this.allySerial=0;this.floorStates={};this.reinforcements=[];this.purge={floors:{}};this.logs=[];this.status='playing';this.shadowSteps=0;this.pursuit=0;this.pendingPerks=0;this.perkPicks=0;this.classPerkMisses=0;this.legacyPerkPicks=0;this.perkDraft=null;this.effects=[];this.mineSerial=0;initializeRunUnlocks(this,options);this.loadFloor();initializeAllies(this);this.reveal();
     this.log(t('game.arrived'));
@@ -175,7 +183,7 @@ export class Game {
   generateFloor(){this.facilityFaction=endlessFaction(this);return generate(this.seed,this.floor,this.unlockedWeapons,this.difficultySpec,this.facilityFaction);}
   loadFloor() {
     endSkillEffects(this.player);this.sensorContacts=[];delete this.blindAftermath;this.shadowSteps=0;this.pursuit=0;this.player.vaultExposed=false;
-    Object.assign(this,{swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined,vents:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.decoy=null;this.mines=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
+    Object.assign(this,{swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined,vents:undefined,fires:undefined},Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),this.generateFloor());for(const e of this.enemies)e.faction??=this.facilityFaction;this.mapGenerations=[...new Set([...(this.mapGenerations||[]),this.generation?.version||1])].sort((a,b)=>a-b);this.smoke=[];this.flares=[];this.decoy=null;this.mines=[];this.traces=[];this.reinforcements=[];this.player.control=controlState();
     for(const item of this.items)if(item.type==='weapon')this.registerWeapon(item,true);
     Object.assign(this.player,this.start);clearPoison(this.player);this.player.guard=false;this.player.moved=false;this.player.moveDelta=[0,0];this.player.fireChain=null;this.player.cornerExposure=null;this.player.tactics=null;this.player.focus=false;this.player.evasive=false;
     prepareMission(this);recruitConscripts(this);postSquads(this);rigContainers(this);populateRunUnlocks(this);if(isSurvival(this))setupSurvival(this);registerPurgeFloor(this);
@@ -298,9 +306,9 @@ export class Game {
   reserveKey(weapon=this.weapon){return AMMUNITION[weapon.ammoType]?.key??null;}
   // 3.177.5 (user): what the operator says about an empty or short magazine. With no reserve left there is nothing to
   // reload, so firing says 沒彈藥了, the same as reloading does; 需要裝填 only while a reload would work.
-  emptyCue(weapon=this.weapon){const key=this.reserveKey(weapon);return key&&!(this.player[key]>0)?'no_ammo':'reload_needed';}
+  emptyCue(weapon=this.weapon){if(weapon.tank)return 'no_ammo';const key=this.reserveKey(weapon);return key&&!(this.player[key]>0)?'no_ammo':'reload_needed';}
   get weaponCapacity(){return CHARACTERS[this.player.character].weaponCapacity;}
-  get plateCapacity(){return CHARACTERS[this.player.character].plateCapacity+PERK_D.rack*(this.player.perks?.plate_rack||0);}   // 加掛板架: 3.148.0
+  get plateCapacity(){return plateCapacityOf(this.player);}   // 加掛板架: 3.148.0
   ammoCapacity(type){const base=capacity(type,0)+classCarryBonus(this.player.character,type);return !activeTrait(this.player,'extended_carry')?base:type==='grenade'?base+CARRY_TUNING.throwBonus:Math.round(base*CARRY_TUNING.ammoBonus);}
   // 3.136.0 (user decision): carried items stop at five; what does not fit stays at your feet, like ammunition.
   itemCapacity(){return itemCapacity(this.player);}
@@ -323,6 +331,7 @@ export class Game {
   }
   receiveAmmo(type,amount,{spill=true}={}){
     if(type==='grenade')return this.receiveGrenade('frag',amount,{spill});
+    if(!AMMUNITION[type])return 0;   // 3.203.0: what is left in a flamethrower's tank has no reserve to go back to
     const key=AMMUNITION[type].key,accepted=Math.min(amount,Math.max(0,this.ammoCapacity(type)-this.player[key]));
     this.player[key]+=accepted;if(spill&&amount>accepted){this.dropAmmo(type,amount-accepted);this.log(t('game.ammoOverflow',{ammo:AMMUNITION[type].name,n:amount-accepted}));}return accepted;
   }
@@ -409,7 +418,7 @@ export class Game {
     if(type==='glowstick'){const reason=glowstickReason(this,arg);return !reason||this.fail(sentence(reason));}
     if(type==='mine'){const reason=mineReason(this,arg);return !reason||this.fail(sentence(reason));}
     if(type==='rope'){const reason=lineReason(this,arg);return !reason||this.fail(sentence(reason));}
-    if(type==='launch'){const reason=launchReason(this,arg);return !reason||this.fail(sentence(reason),reason===t('game.launchEmpty')?this.emptyCue():null);}
+    if(type==='launch'){const reason=launchReason(this,arg);return !reason||this.fail(sentence(reason),[t('game.launchEmpty'),t('game.tankEmpty')].includes(reason)?this.emptyCue():null);}
     if(ITEM_BY_ACTION[type]){const id=ITEM_BY_ACTION[type],reason=itemUseReason(this,id);return !reason||this.fail(sentence(reason),...itemRefusal(reason,PREPARED_CATALOG.item[id]));}
     if(type==='grenade')return (p[preparedEntry(p,'grenade').resource]>0&&arg&&Number.isInteger(arg.x)&&Number.isInteger(arg.y)&&distance(p,arg)<=5&&this.grid[arg.y]?.[arg.x]===1&&this.visible(arg))||this.fail(t('game.throwNeedsTarget'));
     if(type==='weapon')return (p.owned.includes(Number(arg))&&Number(arg)!==p.weapon)||this.fail(t('game.cannotEquip'),Number(arg)===p.weapon?'not_needed':null);
@@ -495,7 +504,7 @@ export class Game {
     if(phase!==null){queue.find(q=>q.actor===p).speed=phase;queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);}
     const recovering=p.recovery>0;if(recovering)p.recovery=0;
     let playerStunned=false;
-    this.turn++;tickTongues(this);tickPounces(this);tickFields(this);tickVents(this);   // vents: 3.202.0
+    this.turn++;tickTongues(this);tickPounces(this);tickFields(this);tickVents(this);tickFires(this);   // vents: 3.202.0; burning floor: 3.203.0
     // 3.145.0 (user decision): suppression wears off (src/suppression.js decayedStacks) when the unit's own turn is over, player and
     // enemies alike, so the stacks it took since its last turn are all felt on this one. The `finally` runs on every skip
     // (`continue`) too: a stunned unit's turn has still passed. A unit with two slots (an anchored double attack) ticks
@@ -673,6 +682,7 @@ export class Game {
   }
   reload(){
     if(this.weapon.melee)return this.fail(t('game.meleeNoReload'),'not_needed');
+    if(this.weapon.tank)return this.fail(t('game.tankNoReload'),'not_needed');   // 3.203.0: 8 sprays a tank, never refilled
     const p=this.player,need=this.weapon.mag-p.ammo[p.weapon],reserve=this.reserveKey();
     if(need<=0)return this.fail(t('game.magFull'),'chambered');
     if(p[reserve]<=0)return this.fail(t('game.noReserve'),'no_ammo');
@@ -684,9 +694,15 @@ export class Game {
   // No hit roll: the round lands on the chosen tile and the blast decides who is caught, which is what makes the launcher
   // a crowd weapon rather than a single-target one that loses its whole area effect on a miss.
   launch(pos){
-    const reason=launchReason(this,pos);if(reason)return this.fail(sentence(reason),reason===t('game.launchEmpty')?this.emptyCue():null);
+    const reason=launchReason(this,pos);if(reason)return this.fail(sentence(reason),[t('game.launchEmpty'),t('game.tankEmpty')].includes(reason)?this.emptyCue():null);   // tankEmpty: 3.203.0
     const p=this.player,w=this.weapon;
     p.facing=[Math.sign(pos.x-p.x),Math.sign(pos.y-p.y)];
+    // 3.203.0 (docs/HAZARDS.md section 4): the flamethrower sprays its cone toward the tile (src/fire.js sprayFlame).
+    if(w.flame){
+      this.recordExposure(p,pos);p.ammo[p.weapon]--;p.stats.shots++;p.fireChain=null;
+      const d=this.weaponDamage(p.weapon),{hits,lit}=sprayFlame(this,p,pos,()=>d.min+Math.floor(this.rng()*(d.max-d.min+1)));
+      this.log(hits?(lit?t('flames.sprayHits',{n:hits}):t('flames.sprayHitsNoFire',{n:hits})):lit?t('flames.sprayed'):t('flames.sprayNothing'));return true;
+    }
     this.recordExposure(p,pos);p.ammo[p.weapon]--;p.stats.shots++;spentCase(this,p,w.ammoType);
     const range=this.weaponDamage(p.weapon),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
     this.effects.push({type:'shot',weaponId:w.id,style:'grenade',...flashHidden(w),from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
@@ -766,7 +782,7 @@ export class Game {
         if(!hit){this.log(`${t('game.shotMiss',{chance})}`,false,t('game.shotMissReal'));if(w.explosive)this.log(t('game.grenadeStray'));return;}
         hits.add(e);const before=this.enemies.map(o=>[o,o.hp]);
         if(w.explosive)this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p);
-        else{this.hitTarget(e,damage,p,w.pierce||0);if(w.ammoType==='rifle'&&!(ENEMY_TYPES[e.type]?.armor>0)&&this.enemies.includes(e))this.overpenetrate(e,damage,w);}
+        else{this.hitTarget(e,damage,p,w.pierce||0);if(w.ammoType==='rifle'&&!(enemyArmor(e)>0)&&this.enemies.includes(e))this.overpenetrate(e,damage,w);}
         if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p,w.pierce||0);
         // 3.141.0 爆裂 (drop-only plasma affix): the hit bursts where it lands. The target already took the hit; everything
         // one tile away, you and your allies too, takes half of it (an explosion loses 10 a tile), plus 爆破專家.
@@ -829,7 +845,7 @@ export class Game {
       landed=true;
       // 3.136.0 (src/melee-weapons.js): claws bite harder on an unarmoured enemy; the sabre's blow splashes onto the
       // target's visible neighbours; the chainsaw costs your next action once it bites.
-      const foe=this.enemies.includes(target),bare=w.bareBonus&&foe&&!(ENEMY_TYPES[target.type]?.armor>0)?1+w.bareBonus:1;
+      const foe=this.enemies.includes(target),bare=w.bareBonus&&foe&&!(enemyArmor(target)>0)?1+w.bareBonus:1;
       const d=this.weaponDamage(slot),damage=Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)*bare);this.hitTarget(target,damage,p,w.pierce||0,w);
       if(w.splash&&foe)for(const other of this.enemies.filter(o=>o.hp>0&&o!==target&&distance(o,target)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*w.splash),p,w.pierce||0,w);
       if(w.recovery){p.recovery=1;this.log(t('game.recovery',{weapon:w.name}));}
@@ -886,7 +902,8 @@ export class Game {
     if(attacker===this.player&&weapon.melee&&wearingExo(attacker))raw=Math.round(raw*EXO_TUNING.melee);   // 3.144.0 外骨骼
     if(isLamp(target)){breakLamp(this,target);return;}   // 3.187.0: any hit puts a wall lamp out
     if(this.props.includes(target)||isBarrier(target)){if(weapon.ammoType==='energy')addTrace(this,target,'scorch');this.damageProp(target,raw,attacker);return;}
-    const cover=weapon.melee?null:this.protectingCover(target,attacker),armor=ENEMY_TYPES[target.type]?.armor||0;
+    // 3.203.0: fire washes over cover (src/fire.js), and a flamer's armour is its own (enemyArmor).
+    const cover=weapon.melee||weapon.flame?null:this.protectingCover(target,attacker),armor=enemyArmor(target);
     let parts=pellets?pellets.map(d=>blade?Math.round(d*bladeMultiplier(attacker)):d):[raw];const scale=f=>{parts=parts.map(d=>d*f);};
     if(attacker===this.player&&!weapon.melee&&!this.sight(target,attacker))scale(1+classPerkRank(attacker,'recon_unseen')*CLASS_PERK_TUNING.unseen);if(attacker===this.player&&activeTrait(target,'exposed'))scale(1+markValues(attacker).damage);
     // 3.142.0: the absorption line only when cover took something off; a fully piercing plasma shot goes straight through.
@@ -923,16 +940,19 @@ export class Game {
     // one hands over supplies instead of a pick, so the HUD can simply read MAX.
     this.settleLevels();
     enemyDeath(this,e);dropKeycard(this,e);   // 3.146.0
+    const tank=flamerTank(this,e);   // 3.203.0: a fallen flamer's tank goes up (30%) or it leaves its flamethrower below
     // A comrade gunned down in sight breaks the rebels who saw it; executions and self-destruction never do.
     if(attacker&&!this.enemies.includes(attacker))witnessDeath(this,e);
     if(isBossClass(e))this.awardProtocol(e.type,`${this.floor}:${e.id}`);
     if(e.reinforcement||e.expendable||e.conscript||!simulationDrops(this))return; // Retreat waves add pressure, not replacement supplies.
     const loot=enemyDef(e)?.loot;
-    if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.dropEnemyWeapon(e,loot.weapon);
+    // 3.203.0: a flamer carries no gun of its card's; its flamethrower drops whenever the tank did not go up.
+    if(isFlamer(e)){if(!tank)this.dropEnemyWeapon(e,FLAMETHROWER);}
+    else if(loot?.weapon!==undefined&&weaponUnlocked(WEAPONS[loot.weapon],this.unlockedWeapons)&&this.rng()<(loot.chance||0))this.dropEnemyWeapon(e,loot.weapon);
     if(this.floor>=RARE_ARMORY.minFloor&&loot?.rareWeapon!==undefined&&this.rng()<loot.rareChance)this.dropEnemyWeapon(e,loot.rareWeapon);
     if(this.rng()<ammoDropChance(this.player)){const type=loot?.ammo||'ammo';this.items.push({...this.enemyDropPoint(e),type,amount:type==='energy'?9:type==='ordnance'?2:type==='pistol'?36:type==='shell'?8:30});}
     if(this.rng()<.06)this.items.push({...this.enemyDropPoint(e),type:'med'});
-    const plate=plateDrop(this.player,(ENEMY_TYPES[e.type]?.armor||0)>0);
+    const plate=plateDrop(this.player,enemyArmor(e)>0);
     if(plate.chance>0&&this.rng()<plate.chance)this.items.push({...this.enemyDropPoint(e),type:'armor',amount:plate.amount});
     // 3.135.0 (user decisions): lines from any armed enemy and goggles from snipers, on fixed rolls of their own.
     const line=hasEnemyTag(e,'armed')?lineDrop(this.seed,this.floor,e.id):null;if(line)this.items.push({...this.enemyDropPoint(e),...line});
@@ -1170,11 +1190,13 @@ export class Game {
     toxicPlayerTurn(this,addPoison);   // 3.134.0 mist: poisoned for a turn ended in it
     // 3.202.0: steam from a vent scalds whoever ends the round in it, flyers aside (docs/HAZARDS.md section 3).
     if(p.hp>0&&scalding(this,p)){const damage=Math.max(0,VENT_TUNING.damage-p.hazmat);p.hp-=damage;this.log(t('game.steamHurt',{damage}),true,t('game.steamHurtReal'));}
+    // 3.203.0 (docs/HAZARDS.md section 2): a burning tile burns whoever ends the round on it, both sides alike; flyers aside.
+    if(p.hp>0&&burningAt(this,p)){const damage=Math.max(0,FIRE_TUNING.damage-p.hazmat);p.hp-=damage;this.log(t('game.fireHurt',{damage}),true,t('game.fireHurtReal'));}
     tickPoison(this);
     if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp,player:true});
-    for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying'))){if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);if(a.hp>0&&scalding(this,a))this.damageAlly(a,VENT_TUNING.damage,null,true,true);}
+    for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying'))){if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);if(a.hp>0&&scalding(this,a))this.damageAlly(a,VENT_TUNING.damage,null,true,true);if(a.hp>0&&burningAt(this,a))this.damageAlly(a,FIRE_TUNING.damage,null,true,true);}
     petReactions(this);
-    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying'))){const hazard=this.hazards.find(h=>h.x===e.x&&h.y===e.y);if(hazard)this.hurt(e,6,null,hazard.type==='acid'?'acid':'heat');if(e.hp>0&&!e.alert&&inCloud(this,'steam',e))stepOffHazard(this,e,null,{pinned,occupied});if(e.hp>0&&scalding(this,e))this.hurt(e,VENT_TUNING.damage,null,'steam');}   // 3.202.0: an idle one flinches out of the steam
+    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying'))){const hazard=this.hazards.find(h=>h.x===e.x&&h.y===e.y);if(hazard)this.hurt(e,6,null,hazard.type==='acid'?'acid':'heat');if(e.hp>0&&!e.alert&&(inCloud(this,'steam',e)||burningAt(this,e)))stepOffHazard(this,e,null,{pinned,occupied});if(e.hp>0&&scalding(this,e))this.hurt(e,VENT_TUNING.damage,null,'steam');if(e.hp>0&&burningAt(this,e))this.hurt(e,FIRE_TUNING.damage,null,'fire');}   // 3.202.0: an idle one flinches out of the steam; 3.203.0: and off a burning tile
   }
   pickup() {
     // 3.118.0: a presentation-only 'pickup' effect when anything was collected, including part of a pile left behind by a
@@ -1439,12 +1461,14 @@ export class Game {
       if(!validAnchor(p))return null;
       if(!validSkillState(p)||![version>=22?data.player:p,...data.enemies].every(a=>typeof a.vaultExposed==='boolean'))return null;
       if(!Array.isArray(data.sensorContacts)||data.sensorContacts.length>256||data.sensorContacts.some(q=>!point(q))||(!skillActive(p,'early_warning')&&data.sensorContacts.length))return null;
-      p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0||p.plates>CHARACTERS[p.character].plateCapacity)return null;
+      // 3.203.0 (a fix for a 3.148.0 slip): the cap is the one the game fills to, 加掛板架 included; a run with the rack
+      // and more plates than the bare class cap was refused on load.
+      p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0||p.plates>plateCapacityOf(p))return null;
       if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||data.grid[p.y]?.[p.x]!==1||!Number.isFinite(p.hp)||p.hp<=0)return null;
       if(version<5){
-        p.weaponBases=WEAPONS.map((_,i)=>i);p.affixes=WEAPONS.map(()=>null);
-        p.ammo=WEAPONS.map((_,i)=>data.player.ammo?.[i]??defaults.ammo[i]);
-        p.upgrades=WEAPONS.map((_,i)=>data.player.upgrades?.[i]??0);
+        p.weaponBases=CATALOG.map((_,i)=>i);p.affixes=CATALOG.map(()=>null);   // CATALOG: the fresh pack's slots (3.203.0)
+        p.ammo=CATALOG.map((_,i)=>data.player.ammo?.[i]??defaults.ammo[i]);
+        p.upgrades=CATALOG.map((_,i)=>data.player.upgrades?.[i]??0);
       }
       if(version>=5&&!'weaponBases affixes ammo upgrades'.split(' ').every(k=>Array.isArray(data.player[k])))return null;
       p.stats={...defaults.stats,...p.stats};
@@ -1488,7 +1512,7 @@ export class Game {
       for(const slot of [...(Array.isArray(p.productionLines)?p.productionLines.map(u=>u?.weapon):[]),...(Array.isArray(g.allies)?g.allies.map(a=>a?.weapon):[])]){
         if(slot===undefined)continue;
         const base=Number.isInteger(slot)?WEAPONS[p.weaponBases[slot]]:null;
-        if(!base||base.melee||base.locked||locations.has(slot))return null;locations.add(slot);
+        if(!base||base.melee||base.flame||base.locked||locations.has(slot))return null;locations.add(slot);   // flame: 3.203.0, never mounted
       }
       if(version>=28&&(!Object.hasOwn(data.player,'perks')||!Object.hasOwn(data.player,'perkWeaponBonus')))return null;
       if(version<28)migratePerks(g);
@@ -1522,6 +1546,8 @@ export class Game {
       if(version<76)for(const f of [g,...Object.values(g.floorStates||{})])for(const lamp of f.lamps||[])lamp.hp??=1;
       // 3.191.0: survival waves are announced ahead; a run from 3.189–3.190 has none waiting yet.
       if(version<79&&g.survival&&!Array.isArray(g.survival.incoming))g.survival.incoming=[];
+      // 3.203.0 (SAVE 81): a save from before has nothing burning, no marked cone and no flamers, so it needs nothing
+      // converted; `fires` and `flameIntent` are checked the same whatever the version (validFires, below).
       g.glowsticks??=[];g.gunFlashes??=[];
       if(!Number.isSafeInteger(g.player.glowsticks)||g.player.glowsticks<0||g.player.glowsticks>10000000||typeof g.player.flashlight!=='boolean'||typeof g.player.lightLingers!=='boolean'||!validGlowsticks(g.glowsticks,g.grid)||!validGunFlashes(g.gunFlashes,g.grid)||!(g.lightModel===undefined?g.lamps===undefined:g.lightModel===LIGHT_MODEL&&validLamps(g.lamps,g.grid)))return null;
       if(version<66){g.player.decoys??=0;g.player.mines??=0;g.player.exoPlates??=0;g.decoy??=null;g.mines??=[];g.mineSerial??=0;}
@@ -1533,7 +1559,8 @@ export class Game {
       if(!['decoys','mines'].every(k=>Number.isSafeInteger(g.player[k])&&g.player[k]>=0&&g.player[k]<=10000000)||!validExo(g.player)||!validDecoy(g)||!validMines(g)||!validKeycards(g.player)||!validVaultState(g.barriers,g.enemies))return null;
       if(version<33)g.pursuit=0;
       if(!Number.isInteger(g.pursuit)||g.pursuit<0||g.pursuit>1||g.pursuit&&(g.shadowSteps>0||p.control.disabled))return null;
-      if(!validRuntime(g)||!validVents(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
+      dropStaleFlameIntents(g);   // 3.203.0 review: a cone left where its flamer no longer stands is dropped, not refused
+      if(!validRuntime(g)||!validVents(g)||!validFires(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
       if(version<32)g.shadowSteps=0;
       // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
       // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run
@@ -1544,7 +1571,8 @@ export class Game {
       if(version<36&&!migratePetNodes(g,version===35))return null;
       if(!validAllies(g)||!validPetBond(g)||!validWorkshop(g))return null;
       // 3.178.0: a kept floor from before real lighting has no lamps, light model or glowsticks; it must not borrow this floor's.
-      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined,vents:undefined,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,traits:p.traits.filter(t=>t.source!=='pet:vision'),battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
+      // 3.203.0: nor this floor's fire (SAVE 81): a floor kept without `fires` is checked without them.
+      if(!validRetreatState(g,(floor,frame)=>Boolean(Game.restore(JSON.stringify({version:SAVE_VERSION,rngState:g.rng.state(),data:{...data,swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],gunFlashes:[],lamps:undefined,lightModel:undefined,vents:undefined,fires:undefined,classPerkMisses:g.classPerkMisses,legacyPerkPicks:g.legacyPerkPicks,pendingPerks:g.pendingPerks,perkPicks:g.perkPicks,perkDraft:g.perkDraft,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...frame,pursuit:0,turn:frame.savedTurn,floor,floorStates:{},allies:[],sensorContacts:[],mission:newMission(),player:{...p,petBond:null,traits:p.traits.filter(t=>t.source!=='pet:vision'),battleSpirit:{...p.battleSpirit,lastKill:p.battleSpirit.lastKill===null?null:Math.min(p.battleSpirit.lastKill,frame.savedTurn)},x:frame.start.x,y:frame.start.y,cornerExposure:null,tactics:null,fireChain:null}}})))))return null;
       // Weapon slots belong to the run, including weapons left on archived floors.
       for(const frame of Object.values(g.floorStates))for(const item of frame.items)if(item.type==='weapon'){
         if(locations.has(item.slot))return null;locations.add(item.slot);

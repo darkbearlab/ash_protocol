@@ -1,6 +1,6 @@
 import {t} from './i18n.js';
 import {bandLabel} from './range-band.js';
-import {enemyDisplayName} from './enemy-affixes.js';
+import {enemyDisplayName,enemyArmor} from './enemy-affixes.js';
 import {cardEnemyName} from './affix-ui.js';
 import {factionTag,ELITE_VISUAL,NONCOMBATANT_LABEL,TONGUE_VISUAL} from './enemy-visuals.js';
 import {isNoncombatant} from './enemy-data.js';
@@ -35,13 +35,15 @@ function coneNotes(game,target,withinRange){
   const reached=w.cone?coneTargets(game,game.player,target,w):lancePath(game,game.player,target,w.range).units,friends=reached.filter(o=>!game.enemies.includes(o)).length;
   return [`${t('target-card.reached',{v:w.cone?t('target-card.cone'):t('target-card.lance'),reachedLength:reached.length})}`,friends?`${t('target-card.friendsInCone',{friends})}`:''];
 }
+// 3.203.0: a flamer's own armour shows once it has shown itself as one (unrevealed affixes stay off the screen).
+const shownArmor=target=>target.affixes?.some(a=>a.id==='flamer'&&a.revealed)?enemyArmor(target):ENEMY_TYPES[target.type]?.armor||0;
 // 3.141.0 (docs/WEAPONS.md): a shotgun aimed at an enemy shows its pellets instead of one chance: how many reach at this
 // distance, each pellet's damage and its flat chance. 3.142.0 (playtest): the damage is what a pellet really does to
 // this target, after its armour, its cover and toxic mist, with the raw figure beside it when they differ.
 function pelletLine(game,target){
   const w=game.weapon,p=game.player;if(!w.cone||!game.enemies.includes(target))return null;
   const {count,min,max}=game.pelletDamage(p.weapon,target),toxic=toxicShot(game,p,target,w),pierce=w.pierce||0;
-  const cover=game.protectingCover(target,p),cut=cover?w.pelletCover*coverEffects(cover,target,p).efficiency*(1-pierce):0,armor=(ENEMY_TYPES[target.type]?.armor||0)*(1-pierce);
+  const cover=game.protectingCover(target,p),cut=cover?w.pelletCover*coverEffects(cover,target,p).efficiency*(1-pierce):0,armor=shownArmor(target)*(1-pierce);
   const real=d=>Math.max(1,Math.round(d*(1-cut)*(toxic?.5:1)-armor)),low=real(min),high=real(max);
   return t('target-card.pellets',{count,low,high,base:low!==min||high!==max?t('target-card.pelletsBase',{min,max}):'',chance:pelletChance(w,toxic||hazeShot(game,p,target,w))});
 }
@@ -58,9 +60,10 @@ export function targetDetails(game){
   const light=lightingEffects(game,game.player,target),attack=game.attackStatus?.(game.player,target);
   // 3.142.0: a gun that spends more than one round a shot says so while the magazine cannot pay for it.
   const short=!melee&&(game.weapon.shotCost||1)>1&&game.player.ammo[game.player.weapon]<game.weapon.shotCost;
+  const armor=shownArmor(target);
   const pellets=pelletLine(game,target),range=distance(game.player,target),withinDistance=range<=game.weapon.range,withinRange=withinDistance&&game.shotClear(game.player,target)&&(!melee||isBarrier(target)||game.canCross(game.player,target));
-  const details={name:(enemy?(missionTarget(game,target)?'◇ ':'')+cardEnemyName(target):null)||(isLamp(target)?t('target-card.lamp'):isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target,game.facilityFaction)].name:isContainer(target)?containerName(target):target.type==='barrel'?t('target-card.barrel'):FURNITURE[target.style]?.name||t('target-card.breakableCover')),fullName:enemy?enemyDisplayName(target):'',hp:`${isBarrier(target)||isLamp(target)?t('target-card.durability'):'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}${enemy?.armor>0?`${t('target-card.armor',{armor:enemy.armor})}`:''}`,
-    chance:withinRange?(short?t('target-card.magShort',{n:game.weapon.shotCost}):game.weapon.pointTarget?t('target-card.launcherSure'):pellets||t('target-card.hit',{chance:aim.chance})):melee?t('target-card.noMelee'):t('target-card.noShot'),distance:t('target-card.distance',{range,weaponRange:game.weapon.range,band:aim.band?t('target-card.band',{band:bandLabel(aim.band)}):'',burst:game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?t('target-card.single'):t('target-card.double')):''}),
+  const details={name:(enemy?(missionTarget(game,target)?'◇ ':'')+cardEnemyName(target):null)||(isLamp(target)?t('target-card.lamp'):isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target,game.facilityFaction)].name:isContainer(target)?containerName(target):target.type==='barrel'?t('target-card.barrel'):FURNITURE[target.style]?.name||t('target-card.breakableCover')),fullName:enemy?enemyDisplayName(target):'',hp:`${isBarrier(target)||isLamp(target)?t('target-card.durability'):'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}${enemy&&armor>0?`${t('target-card.armor',{armor})}`:''}`,
+    chance:withinRange?(short?t('target-card.magShort',{n:game.weapon.shotCost}):game.weapon.flame?t('target-card.flameSure'):game.weapon.pointTarget?t('target-card.launcherSure'):pellets||t('target-card.hit',{chance:aim.chance})):melee?t('target-card.noMelee'):t('target-card.noShot'),distance:t('target-card.distance',{range,weaponRange:game.weapon.range,band:aim.band?t('target-card.band',{band:bandLabel(aim.band)}):'',burst:game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?t('target-card.single'):t('target-card.double')):''}),
     traits:enemy?[factionTag(target),target.elite?ELITE_VISUAL.label:'',isNoncombatant(target)?NONCOMBATANT_LABEL:'',...traitLabels(target)].filter(Boolean).join(' · '):'',
     order:enemy&&(initiative(displayTarget)!==0||initiative(game.player)!==0)?(initiative(displayTarget)<initiative(game.player)?t('target-card.actsBefore'):initiative(displayTarget)>initiative(game.player)?t('target-card.actsAfter'):t('target-card.actsSame')):'',
     cover:melee?t('target-card.meleeIgnoresCover'):enemy?(activeTrait(target,'no_cover')?t('target-card.noCoverUse'):aim.cover?(aim.coverEfficiency===.5?t('target-card.half'):'')+(aim.cover.type==='low_partition'?t('target-card.coverLowPartition'):isBarrier(aim.cover)?t('target-card.coverPartition'):aim.cover.type==='wall'?t('target-card.coverCorner'):aim.cover.style?t('target-card.coverFurniture'):t('target-card.coverCrate')):t('target-card.coverNone')):t('target-card.breakable'),

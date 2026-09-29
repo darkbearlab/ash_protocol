@@ -44,8 +44,11 @@ export const LIGHT_TUNING=Object.freeze({
  flashlightCore:3,flashlightFade:1,flashlightHalfAngle:45,  // an enemy's flashlight: a cone toward where it last saw you
  lanternCore:2,lanternFade:1,  // the player's (3.182.0, user): all around, lit within 2, dim at 3
  lampHitPenalty:25,            // 3.187.0: a wall lamp is a small target (Claude's number)
- pointCore:1,pointFade:1       // 3.189.0: a survival point's own light, which nothing puts out
+ pointCore:1,pointFade:1,      // 3.189.0: a survival point's own light, which nothing puts out
+ fireCore:1,fireFade:1         // 3.203.0: a burning tile and the fixed fire of floors 5-6: lit within 1, dim at 2 (Claude's numbers)
 });
+// 3.203.0 (docs/HAZARDS.md section 2): what burns — the floor's burning tiles (src/fire.js) and its fixed fire hazards.
+const fireSources=game=>[...(game.fires||[]),...(game.hazards||[]).filter(h=>h.type==='fire')];
 const DIRS=[[1,0],[-1,0],[0,1],[0,-1]],DIRS_DRAWN=[[0,-1],[-1,0],[1,0],[0,1]];
 const fnv=text=>{let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 export const newLighting=game=>game?.lightModel===LIGHT_MODEL;
@@ -135,9 +138,10 @@ function lightKey(game){
  for(const x of game.flares||[])f=(Math.imul(f,31)+x.x*97+x.y*13+x.expires)|0;
  const flashes=muzzleFlashes(game);for(const x of flashes)m=(Math.imul(m,31)+x.x*97+x.y)|0;
  const stick=(game.glowsticks||[]).at(-1);   // the list is capped, so its length alone can stay the same
+ const fires=fireSources(game);let fire=fires.length;for(const x of fires)fire=(Math.imul(fire,31)+x.x*97+x.y)|0;   // 3.203.0: fire comes and goes
  const lantern=playerLightOn(p)?'on':'';
  let lights='';for(const e of game.enemies||[])if(enemyFlashlightOn(game,e))lights+=`${e.id}@${e.x},${e.y}>${enemyFlashlightDirection(e)?.join()};`;
- return `${game.lightModel}|${game.turn}|${game.floor}|${p.x},${p.y}|${lantern}|${b}|${c}|${f}|${(game.flares||[]).length}|${(game.glowsticks||[]).length},${stick?.x},${stick?.y}|${(game.lamps||[]).filter(l=>l.hp>0).length}|${m}|${flashes.length}|${lights}`;
+ return `${game.lightModel}|${game.turn}|${game.floor}|${p.x},${p.y}|${lantern}|${b}|${c}|${f}|${(game.flares||[]).length}|${(game.glowsticks||[]).length},${stick?.x},${stick?.y}|${(game.lamps||[]).filter(l=>l.hp>0).length}|${m}|${flashes.length}|${lights}|${fire}`;
 }
 const CACHE=new WeakMap();
 // How far the light sources reach and how bright, recomputed only when something that casts or blocks light changes.
@@ -180,6 +184,7 @@ function computeSources(game){
  for(const lamp of game.lamps||[])if(lamp.hp>0)shine(lamp,LIGHT_TUNING.lampCore,LIGHT_TUNING.lampCore+LIGHT_TUNING.lampFade);
  for(const pt of game.survival?.points||[])shine(pt,LIGHT_TUNING.pointCore,LIGHT_TUNING.pointCore+LIGHT_TUNING.pointFade);
  for(const stick of game.glowsticks||[])shine(stick,LIGHT_TUNING.glowstickRadius,LIGHT_TUNING.glowstickRadius,undefined,LIGHT.dim);   // dim within its radius, never lit
+ for(const fire of fireSources(game))shine(fire,LIGHT_TUNING.fireCore,LIGHT_TUNING.fireCore+LIGHT_TUNING.fireFade);   // 3.203.0
  const p=game.player;
  // An enemy's flashlight: a cone either side of its direction, lit 3 and dim at 4; its holder shows (B7).
  const beam=(holder,dir)=>{

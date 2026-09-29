@@ -36,9 +36,10 @@ export function tickVents(g){
 export const VENT_COLOR=Object.freeze({smoke:'#b8c7d0',haze:'#d7e0e6',steam:'#e8f6fa',toxic:'#a9d24f'});
 
 // A shot or a beam through light smoke or steam: half the hit chance (src/combat.js), damage untouched.
+// 3.203.0 (docs/HAZARDS.md section 2): a burning tile smokes like light smoke; the fixed fire of floors 5-6 does not.
 export function hazeShot(g,attacker,target,weapon){
  if(!attacker||!target||!ballistic(weapon))return false;
- const haze=cloudsOf(g,HAZE_KINDS);if(!haze.size)return false;
+ const haze=cloudsOf(g,HAZE_KINDS);for(const f of g.fires||[])haze.add(`${f.x},${f.y}`);if(!haze.size)return false;
  return lineCells(attacker,target).some(q=>haze.has(`${q.x},${q.y}`));
 }
 

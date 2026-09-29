@@ -14,7 +14,7 @@
 | 狂戰士 | Berserker | `characters.berserker.label` |
 | 忍者 | Ninja | `characters.ninja.label` |
 
-## 武器（16）
+## 武器（17）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -34,6 +34,7 @@
 | 軍刀 | Sabre | `weapons.sabre.name` |
 | 長矛 | Spear | `weapons.spear.name` |
 | 鏈鋸 | Chainsaw | `weapons.chainsaw.name` |
+| 火焰發射器 | Flamethrower | `weapons.flamer.name` |
 
 ## 敵人（23）
 
@@ -256,7 +257,7 @@
 | 地雷 | Mine | `preparedCatalog.item.mine.name` |
 | 外骨骼 | Exoskeleton | `preparedCatalog.item.exo.name` |
 
-## 彈藥與補給（6）
+## 彈藥與補給（7）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -266,6 +267,7 @@
 | 能量電池 | Energy cells | `ammunition.energy.name` |
 | 發射器榴彈 | Launcher grenades | `ammunition.ordnance.name` |
 | 手榴彈 | Hand grenades | `ammunition.grenade.name` |
+| 燃料 | Fuel | `ammunition.fuel.name` |
 
 ## 工坊機體（7）
 

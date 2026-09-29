@@ -85,7 +85,7 @@ export function play(seed,maxActions=1800,character='soldier',GameType=Game) {
       if(g.weapon.pointTarget){const spot=blastSpot(g,targets[0]);if(spot){act('launch',spot);continue;}}
       act('fire');continue;}
     if(p.ammo[p.weapon]<g.weapon.mag&&p[g.reserveKey()]>0&&(!targets.length||!loaded)){act('reload');continue;}
-    if(!loaded&&p[g.reserveKey()]===0){const other=p.owned.find(index=>index!==p.weapon&&(p.ammo[index]>0||p[g.reserveKey(g.weaponAt(index))]>0));if(other!==undefined){act('weapon',other);continue;}}
+    if(!loaded&&(g.weapon.tank||p[g.reserveKey()]===0)){/* 3.203.0: an empty flamethrower tank is never refilled */const other=p.owned.find(index=>index!==p.weapon&&(p.ammo[index]>0||p[g.reserveKey(g.weaponAt(index))]>0));if(other!==undefined){act('weapon',other);continue;}}
     // A visible silhouette may now be protected by a quiet corner. Reposition instead of repeatedly firing.
     const memory=!g.visibleEnemies.length&&navigation.tactics?.until>=g.turn?navigation.tactics.target:null;
     const sheltered=g.visibleEnemies.find(e=>!g.shotClear(p,e))||memory;

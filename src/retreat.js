@@ -10,7 +10,7 @@ import {missionDefinition,returning,missionObjects} from './missions.js';
 
 // Only floor-owned state is archived. Player, mission, rewards and RNG stay global.
 export const REQUIRED_FLOOR_FIELDS=['grid','lighting','rooms','start','end','startRoom','endRoom','links','mainRoute','rewardRooms','enemies','items','props','hazards','marks','barriers','seen','smoke','traces','reinforcements'];
-export const FLOOR_FIELDS=[...REQUIRED_FLOOR_FIELDS,...MAP_FIELDS,'swarmWaves','mapStyle','facilityFaction','flares','glowsticks','lamps','lightModel','vents'];   // lighting: 3.178.0; vents: 3.202.0
+export const FLOOR_FIELDS=[...REQUIRED_FLOOR_FIELDS,...MAP_FIELDS,'swarmWaves','mapStyle','facilityFaction','flares','glowsticks','lamps','lightModel','vents','fires'];   // lighting: 3.178.0; vents: 3.202.0; fires: 3.203.0 (src/fire.js)
 export function archiveFloor(g){
   const frame=structuredClone(Object.fromEntries([['savedTurn',g.turn],...FLOOR_FIELDS.filter(k=>g[k]!==undefined).map(k=>[k,g[k]])]));
   // The departure action has already advanced the global clock. Expired smoke
@@ -26,7 +26,9 @@ export function archiveFloor(g){
 export function resumedFloor(frame,turn){
   // flares (3.123.0) are optional so older archived floors still resume, and a floor never inherits another's flares.
   // 3.178.0: a floor kept from before real lighting has no lamps or light model and keeps the old rule.
-  const state={swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],lamps:undefined,lightModel:undefined,vents:undefined,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...structuredClone(frame)},elapsed=turn-state.savedTurn;delete state.savedTurn;
+  // 3.203.0: a kept floor's fire waits with it (the rounds it has burned are counted, not dated), and one kept without
+  // fire never takes another floor's.
+  const state={swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],lamps:undefined,lightModel:undefined,vents:undefined,fires:undefined,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...structuredClone(frame)},elapsed=turn-state.savedTurn;delete state.savedTurn;
   for(const cloud of state.smoke)cloud.expires+=elapsed;
   for(const flare of state.flares)flare.expires+=elapsed;
   for(const mark of state.marks)mark.due+=elapsed;

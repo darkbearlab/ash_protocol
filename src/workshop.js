@@ -39,7 +39,7 @@ export const workshopPoint=arg=>arg&&(arg.x!==undefined||arg.y!==undefined)?(Num
 const unavailable=g=>g.status!=='playing'||g.pendingPerks>0||Boolean(g.player.control.disabled);
 const validPayload=payload=>typeof payload==='string'&&Object.hasOwn(GRENADES,payload);
 // Weapons that can go on a unit: ranged, not locked, and never the last weapon in the pack.
-export const mountableSlots=g=>g.player.owned.length>1?g.player.owned.filter(slot=>{const w=g.weaponAt(slot);return !w.melee&&!w.locked&&!w.unarmed;}):[];
+export const mountableSlots=g=>g.player.owned.length>1?g.player.owned.filter(slot=>{const w=g.weaponAt(slot);return !w.melee&&!w.locked&&!w.unarmed&&!w.flame;}):[];   // flame: 3.203.0, a unit cannot aim a spray
 
 export function buildReason(g,blueprint,payload,weapon){
  const p=g.player,def=typeof blueprint==='string'&&Object.hasOwn(UNIT_BLUEPRINTS,blueprint)?UNIT_BLUEPRINTS[blueprint]:null;

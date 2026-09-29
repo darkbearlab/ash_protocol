@@ -17,6 +17,7 @@ import {isDark} from './lighting.js';
 import {distance,key,DIRECTIONS} from './world.js';
 import {SIZE} from './data.js';
 import {hazardTile} from './hazard-paths.js';
+import {isFlamer} from './enemy-affixes.js';
 
 export const AMBUSH_TUNING=Object.freeze({reach:8,chokeAhead:2});
 const SOURCE='order:ambush';
@@ -116,7 +117,9 @@ const watchOrder=cue=>({
    e.x=step.x;e.y=step.y;e.moved=true;return true;
   }
   // In place: aim held on the doorway, so the first shot needs no warning. It says something, never what.
-  if(!e.charge||e.aim?.x!==order.watch.x||e.aim?.y!==order.watch.y){order.since=g.turn;e.charge=true;e.windup=1;e.aim={...order.watch};enemyCallout(g,e,'state',{state:cue});}
+  // 3.203.0 review: a flamer watches the doorway too but holds no aim (it has no gun; it marks its cone when you come).
+  const flamer=isFlamer(e);
+  if((!e.charge&&!flamer)||e.aim?.x!==order.watch.x||e.aim?.y!==order.watch.y){order.since=g.turn;e.charge=!flamer;e.windup=1;e.aim={...order.watch};enemyCallout(g,e,'state',{state:cue});}
   e.moved=false;return true;
  },
 });

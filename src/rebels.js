@@ -11,7 +11,7 @@
 //   threat budget: the same card, but no experience, no scrap, no drop, and first to break.
 import {t} from './i18n.js';
 import {enemyDef,isNoncombatant,isBossClass} from './enemy-data.js';
-import {enemyDisplayName} from './enemy-affixes.js';
+import {enemyDisplayName,isFlamer} from './enemy-affixes.js';
 import {ENEMY_TYPES} from './data.js';
 import {grantTrait,removeTraitSource,activeTrait} from './traits.js';
 import {pinned} from './suppression.js';
@@ -100,6 +100,7 @@ export const useRebelHooks=next=>{hooks={...hooks,...next};};
 const rallies=new WeakMap();
 // "蓄勢推進一回合": only for those already aiming (and a grenade already primed). The shot uses the card's own attack.
 export function advanceCharge(g,e){
+ if(isFlamer(e))return null;   // 3.203.0 review: a flamer has no gun to fire early; its own turn marks and sprays
  if(e.grenadeIntent&&hooks.grenade){hooks.grenade({g,e,p:g.enemyTarget(e),def:ENEMY_TYPES[e.type],los:g.sight(e,g.enemyTarget(e)),d:distance(e,g.enemyTarget(e))});return 'grenade';}
  if(!e.charge||!hooks.attack)return null;
  const tree=unitTree(e),def=ENEMY_TYPES[e.type],p=g.enemyTarget(e);
