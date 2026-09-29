@@ -12,6 +12,9 @@ export const ALLY_BASE_TYPES=Object.freeze({drone:'drone',pet:'crawler'});
 export const enemyDef=value=>ENEMY_TYPES[typeof value==='string'?value:value?.type];
 export const hasEnemyTag=(value,tag)=>Boolean(enemyDef(value)?.tags?.includes(tag));
 export const isBossClass=value=>hasEnemyTag(value,'boss');
+// 3.206.0: the rebel bosses (src/rebel-bosses.js) take no harm from fire — burning floor, a flamethrower, the fixed fire of
+// floors 5-6 — and do not route around it (src/hazard-paths.js). A blast is a blast (a fuel tank still hurts them).
+export const fireproof=value=>Boolean(enemyDef(value)?.fireproof);
 export function enemyStartingTraitIds(type,floor=1){const d=enemyDef(type);return [...(d?.traits||[]),...(d?.floorTraits||[]).filter(t=>floor>=t.minFloor).map(t=>t.id),d?.mechanical?'mechanical':'biological'];}
 
 export const isNoncombatant=value=>hasEnemyTag(value,'noncombatant');

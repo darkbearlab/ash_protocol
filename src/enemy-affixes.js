@@ -43,7 +43,8 @@ export const ENEMY_AFFIXES=[
 ];
 export const isFlamer=e=>Boolean(e?.affixes?.some(a=>a.id==='flamer'));
 // An enemy's armour: its card's, or a flamer's own when that is more (3.203.0).
-export const enemyArmor=e=>Math.max(ENEMY_TYPES[e?.type]?.armor||0,isFlamer(e)?AFFIX_TUNING.flamerArmor:0);
+// 3.206.0: an overheated arsonist (src/rebel-bosses.js, `overheat` while it vents) has none at all.
+export const enemyArmor=e=>e?.overheat>0?0:Math.max(ENEMY_TYPES[e?.type]?.armor||0,isFlamer(e)?AFFIX_TUNING.flamerArmor:0);
 // 3.137.0: where affixes and deployers begin, and how fast they climb, belong to the difficulty curve (src/endless.js).
 export const deployerChance=(floor,d)=>Math.min(AFFIX_TUNING.deployerCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).deployerStart+1)*AFFIX_TUNING.deployerPerDepth);
 export const flamerChance=(floor,d)=>Math.min(AFFIX_TUNING.flamerCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).affixStart+1)*AFFIX_TUNING.flamerPerDepth);

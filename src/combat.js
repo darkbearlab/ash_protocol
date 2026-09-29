@@ -11,6 +11,7 @@ import {toxicShot} from './swarm-fields.js';
 import {hazeShot} from './vents.js';
 import {classPerkRank,CLASS_PERK_TUNING,markValues} from './class-perks.js';
 import {markAccuracy,gunFlank} from './loyalist-bosses.js';
+import {burnFlank} from './rebel-bosses.js';
 
 export function adjacentWalls(grid,actor) {
   // 3.164.0: a pit is not a wall — nothing to lean on at its edge.
@@ -66,7 +67,8 @@ export function shotChance(game,attacker,target) {
   // 3.159.0: a marked target is easier for the soldier to hit (src/class-perks.js markValues).
   const markBonus=attacker===game.player&&activeTrait(target,'exposed')?markValues(attacker).accuracy:0;
   // 3.204.0 (src/loyalist-bosses.js): a boss's mark on you helps every enemy; a boss's set-up gun is easier from its side.
-  const designatedBonus=markAccuracy(game,attacker,target),gunFlankBonus=gunFlank(game,attacker,target);
+  // 3.206.0 (src/rebel-bosses.js): so is a rebel boss's set-up flamethrower.
+  const designatedBonus=markAccuracy(game,attacker,target),gunFlankBonus=gunFlank(game,attacker,target)+burnFlank(game,attacker,target);
   const chance=Math.max(10,Math.min(99,designatedBonus+gunFlankBonus+pointBlankBonus+markBonus-specialEvasion+closeBonus+vaultBonus+base+innateAccuracy-innateEvasion+sizeModifier(target)+accuracyBonus+focusBonus+bracedBonus+trackingBonus-movePenalty-coverPenalty-evasionPenalty-sidePenalty-darkPenalty-blindPenalty-aimPenalty-rangePenalty));
   // 3.134.0: gunfire or a beam through toxic mist, from anyone but the swarm, hits half as often.
   // 3.202.0: light smoke and steam from the vents halve it too, from anyone, but leave the damage alone (docs/HAZARDS.md).

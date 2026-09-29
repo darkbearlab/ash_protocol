@@ -251,7 +251,7 @@ test('產蟲巢: the sac never cuts off floor you can reach, and is laid nearest
 });
 
 test('saves: a charge, a stunned beast, a sac and her nests come back; stale warnings are dropped; bad ones refused',()=>{
-  assert.equal(SAVE_VERSION,83);
+  assert.equal(SAVE_VERSION,84);
   const g=field(),b=boss(g,'hive_beast',16,10,'beast'),m=boss(g,'hive_matriarch',16,14,'mother');
   g.enemyAct(b);m.nestIntent={x:13,y:12};m.nestCooldown=0;
   g.props.push({id:'mother-nest-0',type:'nest',x:14,y:16,hp:45,maxHp:45,nest:{active:true,total:3,interval:2,remaining:2,cooldown:2,serial:1}});
@@ -421,4 +421,13 @@ test('review 7: gaps: the sac\'s tile rules, low partitions and the tongue, the 
   let moved=0;for(const q of floor.filter((_,i)=>i%20===0)){const laid={id:`${mother.id}-nest-0`,type:'nest',x:q.x,y:q.y,hp:45,maxHp:45,nest:{active:false,total:3,interval:2,remaining:3,cooldown:0,serial:0}};
     d.props.push(laid);assert.equal(JSON.stringify(decalPlan(d)),plan0,`laid at ${q.x},${q.y}`);laid.id='nest-6-9';if(JSON.stringify(decalPlan(d))!==plan0)moved++;d.props.pop();}
   assert.ok(moved>0,'(a nest of the floor\'s own there would move them)');
+});
+
+// ---- 3.206.0 (user): the egg sac's look ---------------------------------------------------------------------------
+import {readFile} from 'node:fs/promises';
+test('3.206.0 (user): the egg sac shows the swarm wave\'s burrow on its warning tile; the drawn sac is only the fallback',async()=>{
+  const source=await readFile(new URL('../src/renderer.js',import.meta.url),'utf8');
+  const body=source.slice(source.indexOf('  eggSac(q,time){'),source.indexOf('  swarmBossEffect('));
+  assert.match(body,/if\(drawNestSprite\(c,this\.terrainImages\?\.get\(NEST_ATLAS\),a,t,'burrow','active'\)\)return;/,'the burrow, as the swarm wave draws it');
+  assert.ok(body.indexOf('EGG_VISUAL.fill')<body.indexOf("'burrow'")&&body.indexOf("'burrow'")<body.indexOf('c.ellipse('),'over the warning tile, with the drawn sac after it as the fallback');
 });

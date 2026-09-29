@@ -1,6 +1,6 @@
 import {t} from './i18n.js';
 import {DIRECTIONS,distance,key,lineOfSight} from './world.js';
-import {WEAPONS,seeThrough} from './data.js';
+import {WEAPONS,ENEMY_TYPES,seeThrough} from './data.js';
 import {objectSightGrid} from './scenery.js';
 import {inCone} from './shotgun.js';
 import {barrierBetween,edgeBlocks} from './barriers.js';
@@ -8,6 +8,7 @@ import {areaCells} from './throwables.js';
 import {reduceDirectDamage} from './traits.js';
 import {AFFIX_TUNING,birthRandom,enemyArmor,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {scaleEnemy} from './endless.js';
+import {fireproof} from './enemy-data.js';
 
 // Burning floor and the flamethrower (3.203.0, user design 2026-09-29, docs/HAZARDS.md sections 2 and 4).
 // - A burning tile is `{x,y,age}` in the floor's `fires` (absent when nothing burns); `age` counts the rounds it has
@@ -34,7 +35,7 @@ export function fireOdds(n=0){
 export const burningAt=(g,pos)=>g.fires?.find(f=>f.x===pos.x&&f.y===pos.y)||null;
 const fixedFire=(g,q)=>Boolean(g.hazards?.some(h=>h.type==='fire'&&h.x===q.x&&h.y===q.y));
 // A tile that can catch: bare floor (not a pit, not under a crate, barrel or nest), not the fixed fire.
-const flammable=(g,q)=>g.grid[q.y]?.[q.x]===1&&!(g.solid?.(q.x,q.y))&&!fixedFire(g,q);
+export const flammable=(g,q)=>g.grid[q.y]?.[q.x]===1&&!(g.solid?.(q.x,q.y))&&!fixedFire(g,q);
 // Which sheet row a burning tile shows (src/renderer.js): it catches, burns, then dies down in its last two rounds.
 export const fireRow=f=>f.age<=1?'ignite':f.age>=FIRE_TUNING.maxAge-1?'embers':'steady';
 
@@ -64,16 +65,27 @@ export function tickFires(g){
 }
 // Set tiles alight (a spray, a tank). A tile already burning catches again from the start (fresh fuel: Claude's call);
 // a new one only while fewer than 30 burn on the floor. Returns how many are burning now of those asked.
-export function ignite(g,cells){
- const fires=[...(g.fires||[])],at=new Map(fires.map((f,i)=>[key(f),i]));let lit=0;
+// 3.206.0 `makeRoom` (a rebel boss's fire, src/rebel-bosses.js; Claude's call): a boss's warned fire never fails for the
+// cap. With 30 already burning, the oldest tile goes out for each new one (the longest burning; the first in reading
+// order among equals), never one of those being lit now. The floor still never holds more than 30. With `makeRoom` it
+// returns {lit, displaced}: how many of those asked burn now, and how many old tiles went out for them.
+export function ignite(g,cells,{makeRoom=false}={}){
+ const fires=[...(g.fires||[])],fresh=new Set(cells.filter(q=>flammable(g,q)).map(key));let lit=0,displaced=0;
+ const index=()=>new Map(fires.map((f,i)=>[key(f),i]));let at=index();
  for(const q of cells){
   if(!flammable(g,q))continue;
   const i=at.get(key(q));
   if(i!==undefined){fires[i]={x:q.x,y:q.y,age:1};lit++;continue;}
-  if(fires.length>=FIRE_TUNING.maxTiles)continue;
+  if(fires.length>=FIRE_TUNING.maxTiles){
+   if(!makeRoom)continue;
+   let old=-1;
+   for(let j=0;j<fires.length;j++){const f=fires[j];if(fresh.has(key(f)))continue;if(old<0||f.age>fires[old].age||f.age===fires[old].age&&(f.y<fires[old].y||f.y===fires[old].y&&f.x<fires[old].x))old=j;}
+   if(old<0)continue;
+   fires.splice(old,1);displaced++;at=index();
+  }
   at.set(key(q),fires.length);fires.push({x:q.x,y:q.y,age:1});lit++;
  }
- g.fires=fires.length?fires:undefined;return lit;
+ g.fires=fires.length?fires:undefined;return makeRoom?{lit,displaced}:lit;
 }
 
 // The tiles a spray reaches: out to the weapon's range, inside its cone around the aim, along a line a blast would pass
@@ -89,22 +101,33 @@ export function flameCells(g,from,aim,w=WEAPONS[FLAMETHROWER]){
  }
  return out.sort((a,b)=>distance(from,a)-distance(from,b)||a.y-b.y||a.x-b.x);
 }
-// One spray (yours from Game.launch, a flamer's from src/enemy-behavior.js): every unit on a reached tile other than the
-// sprayer takes `roll()` — no hit roll, no cover, armour subtracts as for a blade or a blast — and then the tiles catch.
-// Friends are not spared, either side's. Returns the tiles, how many units it burned and how many tiles caught.
-export function sprayFlame(g,attacker,aim,roll){
- const cells=flameCells(g,attacker,aim),reached=new Set(cells.map(key)),yours=attacker===g.player,w=WEAPONS[FLAMETHROWER];
- g.effects.push({type:'flame',from:{x:attacker.x,y:attacker.y},to:{x:aim.x,y:aim.y},cells:cells.map(({x,y})=>({x,y})),damage:0});
+// Everyone on `cells` but `attacker` takes `roll()` — no hit roll, no cover, armour subtracts as for a blade or a blast.
+// Friends are not spared, either side's. 3.206.0: a fireproof card (the rebel bosses) takes nothing, and your own spray
+// says so when you can see it. Returns how many units it burned. (sprayFlame; a rebel boss's fire, src/rebel-bosses.js)
+export function burnUnits(g,attacker,cells,roll){
+ const reached=new Set(cells.map(key)),yours=attacker===g.player;
  const units=[g.player,...g.activeAllies,...g.enemies].filter(u=>u!==attacker&&u.hp>0&&reached.has(key(u)));
+ let burned=0;
  for(const u of units){
-  const damage=roll();
+  if(fireproof(u)){if(yours&&g.visible(u))g.log(t('rebelBosses.fireproof',{enemy:enemyName(u)}));continue;}
+  const damage=roll();burned++;
   if(u===g.player)g.damagePlayer(damage,t('flames.flameSource',{enemy:enemyName(attacker)}),null,true);
   else if(g.activeAllies.includes(u))g.damageAlly(u,damage,null,true);
   else if(yours)g.hitTarget(u,damage,g.player,0,g.weapon);
   else g.hurt(u,reduceDirectDamage(u,Math.max(1,damage-enemyArmor(u))),attacker);
  }
- const lit=ignite(g,cells);
- return {cells,hits:units.length,lit,weapon:w};
+ return burned;
+}
+// One spray (yours from Game.launch, a flamer's from src/enemy-behavior.js): every unit on a reached tile burns
+// (burnUnits), and then the tiles catch. Returns the tiles, how many units it burned and how many tiles caught.
+// 3.206.0 `makeRoom` (the arsonist's spray): the tiles catch as a boss's fire does (ignite); `displaced` says how many
+// old tiles went out for them.
+export function sprayFlame(g,attacker,aim,roll,{makeRoom=false}={}){
+ const cells=flameCells(g,attacker,aim),w=WEAPONS[FLAMETHROWER];
+ g.effects.push({type:'flame',from:{x:attacker.x,y:attacker.y},to:{x:aim.x,y:aim.y},cells:cells.map(({x,y})=>({x,y})),damage:0});
+ const hits=burnUnits(g,attacker,cells,roll);
+ const caught=ignite(g,cells,{makeRoom}),lit=makeRoom?caught.lit:caught;
+ return {cells,hits,lit,weapon:w,displaced:makeRoom?caught.displaced:0};
 }
 // A flamer's spray: the flamethrower's damage, grown with depth like any enemy's.
 export const flamerDamage=g=>{const w=WEAPONS[FLAMETHROWER];return scaleEnemy(w.min+Math.floor(g.rng()*(w.max-w.min+1)),g.floor,'damage',g.difficultySpec);};
@@ -130,7 +153,8 @@ export function dropStaleFlameIntents(g){
 }
 // Saves: `fires` on this floor and every kept one, and a flamer's marked cone.
 const cell=(q,grid)=>q&&typeof q==='object'&&Object.keys(q).length===2&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&seeThrough(grid?.[q.y]?.[q.x]);
-export const validFlameIntent=(e,grid)=>{const i=e.flameIntent;return Boolean(i&&typeof i==='object'&&Object.keys(i).length===2&&cell(i.origin,grid)&&cell(i.aim,grid)&&i.origin.x===e.x&&i.origin.y===e.y&&(i.aim.x!==e.x||i.aim.y!==e.y)&&e.hp>0&&!e.control?.disabled&&e.affixes?.some(a=>a.id==='flamer'&&a.revealed));};
+// 3.206.0: the arsonist (a card that only sprays, `flameOnly`) marks its cone the same way, with no affix to reveal.
+export const validFlameIntent=(e,grid)=>{const i=e.flameIntent;return Boolean(i&&typeof i==='object'&&Object.keys(i).length===2&&cell(i.origin,grid)&&cell(i.aim,grid)&&i.origin.x===e.x&&i.origin.y===e.y&&(i.aim.x!==e.x||i.aim.y!==e.y)&&e.hp>0&&!e.control?.disabled&&(e.affixes?.some(a=>a.id==='flamer'&&a.revealed)||ENEMY_TYPES[e.type]?.flameOnly===true));};
 export function validFires(g){
  for(const f of [g,...Object.values(g.floorStates||{})]){
   if(f.fires!==undefined){

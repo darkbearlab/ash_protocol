@@ -30,9 +30,9 @@ const fixed=(g,v)=>{g.rng=Object.assign(()=>v,{state:()=>1});};
 const marks=g=>g.player.traits.filter(t=>t.id===DESIGNATED);
 const M=BOSS_TUNING.mark,G=BOSS_TUNING.gun;
 
-test('the catalog: loyalists get 標定官 and 火線官; the legacy mix and the rebels keep the warden and the core guard',()=>{
+test('the catalog: loyalists get 標定官 and 火線官; the legacy mix keeps the warden and the core guard',()=>{
   assert.deepEqual(FACTIONS.loyalist.bosses,{3:'designator',6:'gunline'});
-  for(const id of ['legacy','rebel'])assert.deepEqual(FACTIONS[id].bosses,{3:'warden',6:'boss'},id);
+  assert.deepEqual(FACTIONS.legacy.bosses,{3:'warden',6:'boss'});assert.deepEqual(FACTIONS.rebel.bosses,{3:'arsonist',6:'burnline'},'3.206.0: the rebels have their own (tests/rebel-bosses.test.mjs)');
   assert.deepEqual(FACTIONS.swarm.bosses,{3:'hive_beast',6:'hive_matriarch'});
   assert.equal(factionBoss('loyalist',3),'designator');assert.equal(factionBoss('loyalist',6),'gunline');
   // Stats like the chassis they share (user); both are bosses that call drones; the warden and core guard are untouched.
@@ -48,7 +48,7 @@ test('the catalog: loyalists get 標定官 and 火線官; the legacy mix and the
   // Generated floors: a loyalist floor 3 and 6 (and 9 and 12 in the cycle) hold the new boss; the others do not.
   for(const seed of [3,11]){
     for(const [floor,type] of [[3,'designator'],[6,'gunline'],[9,'designator']])assert.ok(generate(seed,floor,[],0,'loyalist').enemies.some(e=>e.type===type),`${seed}:${floor}`);
-    for(const faction of ['legacy','rebel']){const three=generate(seed,3,[],0,faction).enemies,six=generate(seed,6,[],0,faction).enemies;
+    for(const faction of ['legacy']){const three=generate(seed,3,[],0,faction).enemies,six=generate(seed,6,[],0,faction).enemies;
       assert.ok(three.some(e=>e.type==='warden')&&six.some(e=>e.type==='boss'),faction);assert.ok(![...three,...six].some(e=>['designator','gunline'].includes(e.type)),faction);}
   }
 });
@@ -252,7 +252,7 @@ test('a round trip: a floor kept with a fallen boss\'s state comes back from a s
 });
 
 test('SAVE 82: a save from 81 loads unchanged, and a loyalist floor that already holds a warden keeps it',()=>{
-  assert.equal(SAVE_VERSION,83);
+  assert.equal(SAVE_VERSION,84);
   const g=field(),w=makeEnemy('warden',16,10,'old-warden',3,0,'loyalist');g.enemies.push(w);g.facilityFaction='loyalist';
   const raw=JSON.parse(g.serialize());raw.version=81;const loaded=Game.restore(JSON.stringify(raw));
   assert.ok(loaded);assert.equal(loaded.enemies.find(e=>e.id==='old-warden').type,'warden');

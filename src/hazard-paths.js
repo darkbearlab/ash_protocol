@@ -1,5 +1,5 @@
 import {DIRECTIONS,key} from './world.js';
-import {hasEnemyTag} from './enemy-data.js';
+import {hasEnemyTag,fireproof} from './enemy-data.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
 import {roomContains} from './map-geometry.js';
 
@@ -25,9 +25,12 @@ function burning(g){
  if(!c||c.fires!==g.fires||c.size!==g.fires.length){c={fires:g.fires,size:g.fires.length,cells:new Set(g.fires.map(f=>`${f.x},${f.y}`))};fireHazards.set(g,c);}
  return c.cells;
 }
+// 3.206.0: fire (a burning tile, the fixed fire of floors 5-6) is no hazard to a fireproof card (the rebel bosses), which
+// walks through it and stands in its own smoke.
 export const hazardTile=(g,x,y,actor=null)=>{
- if(g.hazards?.some(h=>h.x===x&&h.y===y))return true;
- if(g.fires?.length&&burning(g).has(`${x},${y}`))return true;
+ const proof=Boolean(actor)&&fireproof(actor);
+ if(g.hazards?.some(h=>h.x===x&&h.y===y&&!(proof&&h.type==='fire')))return true;
+ if(g.fires?.length&&!proof&&burning(g).has(`${x},${y}`))return true;
  if(!g.smoke?.length)return false;
  const c=clouds(g),k=`${x},${y}`;return c.steam.has(k)||playerSide(actor)&&c.toxic.has(k);
 };
@@ -57,7 +60,7 @@ export function costToGoal(g,actor,goal,limit=Infinity){
 // where it last knew you), so it never steps back off its own route and shuttles; walking on along the route takes it off
 // just the same. Not while pinned, resting (fodder), or committed to a telegraphed move (a wound-up shot, a grenade,
 // a tongue, a pounce, a lob). Noncombatants are left to their own flight. Returns true when it moved.
-const COMMITTED=Object.freeze(['charge','grenadeIntent','tongueIntent','pounceIntent','lobIntent','flameIntent','chargeIntent']);   // flameIntent: 3.203.0; chargeIntent: 3.205.0
+const COMMITTED=Object.freeze(['charge','grenadeIntent','tongueIntent','pounceIntent','lobIntent','flameIntent','chargeIntent','fireIntent']);   // flameIntent: 3.203.0; chargeIntent: 3.205.0; fireIntent: 3.206.0
 export function stepOffHazard(g,e,goal,{pinned=()=>false,occupied=()=>false}={}){
  if(!avoidsHazards(e)||!hazardTile(g,e.x,e.y,e)||pinned(e)||e.actionDelay>0||COMMITTED.some(f=>e[f]))return false;
  const costs=goal?costToGoal(g,e,goal):null,here=costs?.get(key(e))??Infinity,cost=q=>costs?.get(key(q))??Infinity;

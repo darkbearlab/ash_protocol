@@ -20,6 +20,7 @@ import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {sprayFlame,flameCells,flamerDamage,FLAMETHROWER} from './fire.js';
 import {bossSpecial} from './loyalist-bosses.js';
+import {rebelBossAction,arsonistTurn,burnlineSpecial} from './rebel-bosses.js';
 import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
 import {unitTree,registerUnitTree,registerAffixBranch,runAffixBranches} from './behavior-tree.js';
 import {occupied} from './allies.js';
@@ -192,6 +193,11 @@ function packWalk(ctx){
 }
 registerUnitTree('designator',{special:ctx=>bossSpecial(ctx,reinforce),after:reinforce});
 registerUnitTree('gunline',{special:ctx=>bossSpecial(ctx,reinforce,packWalk),after:reinforce});
+// 3.206.0 rebel bosses (src/rebel-bosses.js): 縱火者 sets walls and rings of fire and sprays between them, and walks when
+// it does neither (its range is the flamethrower's) or while it vents; 焚線官 marks and sets up a flamethrower cone, taking
+// turns, walks while it packs up, and otherwise fights as the core guard's chassis does. Both call drones at half health.
+registerUnitTree('arsonist',{special:ctx=>arsonistTurn(ctx,reinforce,packWalk),after:reinforce});
+registerUnitTree('burnline',{special:ctx=>burnlineSpecial(ctx,reinforce,packWalk),after:reinforce});
 // 3.125.0: the squad leader spends its turn commanding; its soldiers answer on a branch that runs before they would
 // charge, so deployment and suppression replace the shot without touching any other card's behaviour.
 registerUnitTree('squad_leader',{before:squadLeaderAct});
@@ -221,6 +227,9 @@ export function executeEnemyTree(g,e){const locked=e.grenadeIntent?.targetId,p=(
  // 3.203.0 review: a flamer's marked cone goes off before anything else can move it (an order, a survival group's walk):
  // walking off first left the mark behind, drawn where no spray would come.
  if(isFlamer(e)&&e.flameIntent){if(los)e.lastKnown={x:p.x,y:p.y};flamerAct(ctx);return false;}
+ // 3.206.0 (src/rebel-bosses.js): a rebel boss's warned fire — the arsonist's wall, ring or marked spray, 焚線官's set-up
+ // sweep — goes off first, from where it was warned, before an order, a survival walk or a hazard could move it.
+ if(rebelBossAction(ctx,tree.after))return false;
  // 3.189.0 survival hooks go through the game (src/game.js), so this module does not import src/survival.js.
  // 3.205.0 (src/swarm-bosses.js): a swarm boss's warned tongue or charge goes off first, from where it was announced,
  // before an order or a survival walk could move it; then its specials (charge, nest, tongue) in the card's order.

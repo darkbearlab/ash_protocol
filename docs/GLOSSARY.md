@@ -36,7 +36,7 @@
 | 鏈鋸 | Chainsaw | `weapons.chainsaw.name` |
 | 火焰發射器 | Flamethrower | `weapons.flamer.name` |
 
-## 敵人（25）
+## 敵人（27）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -58,6 +58,8 @@
 | 母巢巨獸 | Hive Matriarch | `enemyTypes.hive_matriarch.name` |
 | 標定官 | Designator | `enemyTypes.designator.name` |
 | 火線官 | Gunline Officer | `enemyTypes.gunline.name` |
+| 縱火者 | Arsonist | `enemyTypes.arsonist.name` |
+| 焚線官 | Burnline Officer | `enemyTypes.burnline.name` |
 | 被感染槍兵 | Infected Rifleman | `enemyTypes.rifleman_infected.name` |
 | 被感染突擊兵 | Infected Raider | `enemyTypes.raider_infected.name` |
 | 小隊長 | Squad Leader | `enemyTypes.squad_leader.name` |

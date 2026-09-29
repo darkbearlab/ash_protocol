@@ -191,7 +191,7 @@ export const FACTIONS = {
 | 第 1–2 層 | rifleman 2、raider 1、gunner 1、drone 1、crawler 1 | rifleman 1、raider 2、gunner 1、drone 2、bomber_bot 1、crawler 1 |
 | 第 3 層起 | rifleman 2、raider 2、gunner 1、drone 1、brute 1、sniper 1、crawler 1 | rifleman 1、raider 2、gunner 1、drone 2、bomber_bot 2、brute 1、sniper 1、crawler 1、raider_elite 1 |
 | 第 7 層起另加 | brute 1、sniper 1 | bomber_bot 1、gunner_elite 1 |
-| 頭目 | 第 3 層 warden、第 6 層 boss | 同左（placeholder） |
+| 頭目 | 第 3 層 warden、第 6 層 boss | 同左（placeholder；3.206.0 起換成縱火者 `arsonist`、焚線官 `burnline`，見 BOSSES.md 第 3 節） |
 | 偵察、撤退增援 | rifleman；rifleman、raider | 同左 |
 | 雜兵、蟲巢 | 無（`fodder`、`nestChild` 為 `null`） | 無 |
 
@@ -258,7 +258,7 @@ export const FACTIONS = {
 
 ### 14.7 沒有做的
 
-- 忠誠方小隊長、叛軍專屬頭目。
+- 忠誠方小隊長、叛軍專屬頭目（之後分別在 3.125.0 與 3.206.0 做了）。
 - 圖鑑依派系分組、派系專屬的詞條權重、派系染色。
 
 ## 15. 叛軍小菁英加量與忠誠者裝甲（3.81.0，Claude）

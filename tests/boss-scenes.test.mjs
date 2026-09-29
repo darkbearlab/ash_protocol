@@ -76,6 +76,15 @@ test('lines: a boss\'s own intro when it has one, the generic line otherwise; th
   assert.equal(line('wren','hive_beast').line,'comms.wren.introBeast.1');assert.equal(line('wren','hive_beast').expression,'surprised');
   assert.equal(line('egret','hive_matriarch').line,'comms.egret.introMatriarch.1');assert.equal(line('egret','hive_matriarch').expression,'worried');
   assert.equal(line('wren','hive_matriarch').line,'comms.wren.introMatriarch.1');assert.equal(line('wren','hive_matriarch').expression,'alarmed');
+  // 3.206.0: the rebel bosses' own lines (the user's final picks, intro.rebel3 and intro.rebel6), faces as reviewed.
+  assert.deepEqual(line('egret','arsonist'),{speaker:'egret',line:'comms.egret.introRebel3.1',vars:{name:ENEMY_TYPES.arsonist.name},expression:'concerned'});
+  assert.equal(line('wren','arsonist').line,'comms.wren.introRebel3.1');assert.equal(line('wren','arsonist').expression,'alarmed');
+  assert.equal(line('egret','burnline').line,'comms.egret.introRebel6.1');assert.equal(line('egret','burnline').expression,'serious');
+  assert.equal(line('wren','burnline').line,'comms.wren.introRebel6.1');assert.equal(line('wren','burnline').expression,'worried');
+  assert.equal(zh['comms.egret.introRebel3.1'],'{name}。它會用火封住你的退路。火會蔓延，保持移動。');assert.equal(en['comms.egret.introRebel3.1'],'{name}. It uses fire to cut off your retreat. Fire spreads. Keep moving.');
+  assert.equal(zh['comms.wren.introRebel3.1'],'是{name}……它會放火把你圍起來，別被燒到了！');assert.equal(en['comms.wren.introRebel3.1'],"It's {name}... It'll ring you with fire. Don't get burned!");
+  assert.equal(zh['comms.egret.introRebel6.1'],'{name}。它會標定你，再用火逼你走位。別被趕進死角。');assert.equal(en['comms.egret.introRebel6.1'],"{name}. It marks you, then herds you with fire. Don't get driven into a corner.");
+  assert.equal(zh['comms.wren.introRebel6.1'],'標定加放火……這個超討厭。腳步別停喔。');assert.equal(en['comms.wren.introRebel6.1'],"Marking and fire... this one's nasty. Keep your feet moving.");
   for(const type of ['warden','boss'])for(const speaker of ['egret','wren'])assert.match(line(speaker,type).line,new RegExp(`^comms\\.${speaker}\\.boss\\.`),`${speaker}:${type}`);
   for(const type of ['designator','warden'])assert.equal(line('overseer',type),null,'the overseer says nothing, as before');
   assert.match(resolveComms(line('egret','designator')).text,new RegExp(ENEMY_TYPES.designator.name));
@@ -84,12 +93,13 @@ test('lines: a boss\'s own intro when it has one, the generic line otherwise; th
   assert.equal(bossKillLine('egret',true,pick(.99)).line,'comms.egret.bossKill.2');assert.equal(bossKillLine('egret',true,pick(.99)).expression,'serious');
   assert.equal(bossKillLine('wren',true,pick(0)).expression,'grin');assert.equal(bossKillLine('wren',true,pick(.99)).expression,'sigh');
   assert.equal(bossKillLine('overseer',true),null);
-  for(const speaker of ['egret','wren'])for(const event of ['introLoyal3','introLoyal6','introBeast','introMatriarch','bossKill']){
+  for(const speaker of ['egret','wren'])for(const event of ['introLoyal3','introLoyal6','introBeast','introMatriarch','introRebel3','introRebel6','bossKill']){
     assert.ok(COMMS_LINES[speaker][event]?.length,`${speaker}.${event}`);assert.ok(COMMS_EXPRESSIONS[speaker][event],`${speaker}.${event} face`);
     for(const entry of COMMS_LINES[speaker][event]){const id=typeof entry==='string'?entry:entry.id;assert.ok(zh[id]&&en[id],id);
       const face=typeof entry==='string'?COMMS_EXPRESSIONS[speaker][event]:entry.expression;assert.ok(Object.hasOwn(COMMS_SPEAKERS[speaker].expressions,face),`${id}: ${face}`);}}
   assert.equal(ENEMY_TYPES.designator.intro,'introLoyal3');assert.equal(ENEMY_TYPES.gunline.intro,'introLoyal6');assert.equal(ENEMY_TYPES.warden.intro,undefined);
   assert.equal(ENEMY_TYPES.hive_beast.intro,'introBeast');assert.equal(ENEMY_TYPES.hive_matriarch.intro,'introMatriarch');
+  assert.equal(ENEMY_TYPES.arsonist.intro,'introRebel3');assert.equal(ENEMY_TYPES.burnline.intro,'introRebel6');assert.equal(ENEMY_TYPES.boss.intro,undefined);
 });
 
 test('each scene plays once per boss, for the run on screen',()=>{

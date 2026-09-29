@@ -38,6 +38,12 @@ export const TONGUE_VISUAL=Object.freeze({line:'#e27aa6d0',fill:'#d97aa033',edge
 // a wall — and the matriarch's egg sac, in the tongue's pink family so the swarm's warnings read as one set.
 export const CHARGE_VISUAL=Object.freeze({fill:'#e0703c26',edge:'#f0905caa',chevron:'#ffb27ae0',wall:'#ff4a3aee',dust:'#c9a27a'});
 export const EGG_VISUAL=Object.freeze({fill:'#b0609a22',edge:'#e79ad0cc',sac:'#c78ab0',vein:'#7a3a68',glow:'#ffd6f0'});
+// 3.206.0 rebel bosses (src/rebel-bosses.js): a warned wall or ring of fire — fuel-orange tiles with a hot edge and, for
+// the wall, a line through them; the ring's gaps are the cool green of your own units' marks with an arrow pointing the
+// way out — and 焚線官's set-up flamethrower, 火線官's cone in fire colours (amber-orange while it sets up, red-orange
+// while it sweeps). An overheated arsonist sheds pale steam with a cool-blue count of its venting rounds; its heat shows
+// as orange pips before that.
+export const REBEL_FIRE_VISUAL=Object.freeze({fill:'#ff6a2a2e',edge:'#ff9a4acc',line:'#ffb05add',gap:'#9df4d5',gapFill:'#9df4d51c',set:Object.freeze(['#ff9a3c26','#ffc07acc']),sweep:Object.freeze(['#ff4a2a36','#ff7a3add']),setText:'#ffc07a',sweepText:'#ff8a5c',steam:'#dfe9f0',vent:'#8fd3ff',heat:'#ff8a3a',heatOff:'#5a3a2a'});
 // Kill house humanoids draw as holograms (docs/KILLHOUSE.md section 10); campaign enemies keep their colours.
 export const SIMULATION_VISUAL={tint:'#5fd6ea'};
 // 3.134.0: a swarm bomber's sac shows in its colour — green mist, yellow acid, brown spore (docs/SWARM_FIELDS.md).

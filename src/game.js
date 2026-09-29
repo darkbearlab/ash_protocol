@@ -13,7 +13,7 @@ import {tickTongues,validSwarm,SWARM_TUNING} from './swarm.js';
 import {scream,tickCivilianCooldowns,migrateCivilians,validCivilians} from './civilians.js';
 import {rollEnemyElite,enemyKillXp,migrateElites,validElites} from './elite-enemies.js';
 import {pickFacilityFaction,factionDef,rollFacilityFaction,migrateFactions,validFactions} from './factions.js';
-import {isBossClass,hasEnemyTag,enemyDef,isNoncombatant} from './enemy-data.js';
+import {isBossClass,hasEnemyTag,enemyDef,isNoncombatant,fireproof} from './enemy-data.js';
 import {unitTree} from './behavior-tree.js';
 import {lockRealMode} from './real-mode.js';
 import {injuryCallout,playerCallout} from './callouts.js';
@@ -61,6 +61,7 @@ import {VENT_TUNING} from './vent-map.js';
 import {tickFires,burningAt,sprayFlame,flamerTank,validFires,dropStaleFlameIntents,FIRE_TUNING,FLAMETHROWER} from './fire.js';
 import {landMark,markDamage,bossAccuracy,clearDesignation,dropStaleBossIntents,validLoyalistBosses} from './loyalist-bosses.js';
 import {tickSwarmBosses,hatchEgg,crashBonus,dropStaleSwarmIntents,validSwarmBosses} from './swarm-bosses.js';
+import {burnFlank,dropStaleRebelIntents,validRebelBosses} from './rebel-bosses.js';
 import {sweptGrid,sweptClear} from './line-move.js';
 export const LUNGE_TRAIT='lunge',LUNGE_TUNING=Object.freeze({reach:3});
 import {ammoDropChance,recordPerkOffer,ensurePerks,eligiblePerks,applyPerk,migratePerks,validPerks,plateDrop,levelCost} from './perks.js';
@@ -197,7 +198,7 @@ export class Game {
   enemyCallout(actor,kind,detail){enemyCallout(this,actor,kind,detail);}
   spawnEnemy(type,x,y,id){const d=this.difficultySpec;return rollEnemyElite(rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,d,this.facilityFaction),this.seed,this.floor,d),this.seed,this.floor,d);}
   actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):enemyWeapon(actor);}
-  meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b)+bossAccuracy(this,a,b)+crashBonus(b));}   // 3.204.0: a boss's mark on you, a set-up gun's flank; 3.205.0: a swarm boss dazed against a wall
+  meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b)+bossAccuracy(this,a,b)+crashBonus(b)+burnFlank(this,a,b));}   // 3.204.0: a boss's mark on you, a set-up gun's flank; 3.205.0: a swarm boss dazed against a wall; 3.206.0: a set-up flamethrower's flank
   defensiveEvasion(a,b){return defensiveEvasion(this,a,b);}
   grapplePlan(id=this.target){return grapplePlan(this,id);}
   get allyTravelSummary(){const near=carryCandidates(this).length,total=this.activeAllies.length;return total?t('game.allyCarry',{near,left:total-near}):'';}
@@ -928,7 +929,8 @@ export class Game {
     if(attacker===this.player)noticeAttack(this,e);
     // 3.205.0: a swarm boss's bite or charge on one of its own (src/swarm-bosses.js, 敵我不分) is not yours: not in your
     // damage count (review), not your kill, xp or scrap (below), and the log says who did it.
-    const ownKind=Boolean(attacker&&attacker!==e&&this.enemies.includes(attacker)&&enemyDef(attacker)?.tongue);
+    // 3.206.0: nor any enemy boss's (a rebel boss's fire burns whoever stands in it, src/rebel-bosses.js).
+    const ownKind=Boolean(attacker&&attacker!==e&&this.enemies.includes(attacker)&&(enemyDef(attacker)?.tongue||isBossClass(attacker)));
     const beforeHp=e.hp;e.hp-=damage;injuryCallout(this,e,beforeHp);if(damage>0)orderHit(this,e);if(!ownKind)this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
     // 3.202.0: a hazard's damage is logged only for an enemy you can see; the floor does not report on the ones you cannot.
@@ -1204,7 +1206,8 @@ export class Game {
     if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp,player:true});
     for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying'))){if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);if(a.hp>0&&scalding(this,a))this.damageAlly(a,VENT_TUNING.damage,null,true,true);if(a.hp>0&&burningAt(this,a))this.damageAlly(a,FIRE_TUNING.damage,null,true,true);}
     petReactions(this);
-    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying'))){const hazard=this.hazards.find(h=>h.x===e.x&&h.y===e.y);if(hazard)this.hurt(e,6,null,hazard.type==='acid'?'acid':'heat');if(e.hp>0&&!e.alert&&(inCloud(this,'steam',e)||burningAt(this,e)))stepOffHazard(this,e,null,{pinned,occupied});if(e.hp>0&&scalding(this,e))this.hurt(e,VENT_TUNING.damage,null,'steam');if(e.hp>0&&burningAt(this,e))this.hurt(e,FIRE_TUNING.damage,null,'fire');}   // 3.202.0: an idle one flinches out of the steam; 3.203.0: and off a burning tile
+    // 3.206.0: a fireproof card (the rebel bosses) takes nothing from fire, the fixed fire of floors 5-6 included.
+    for(const e of this.enemies.filter(e=>e.hp>0&&!hasEnemyTag(e,'flying'))){const proof=fireproof(e),hazard=this.hazards.find(h=>h.x===e.x&&h.y===e.y&&!(proof&&h.type==='fire'));if(hazard)this.hurt(e,6,null,hazard.type==='acid'?'acid':'heat');if(e.hp>0&&!e.alert&&(inCloud(this,'steam',e)||burningAt(this,e)))stepOffHazard(this,e,null,{pinned,occupied});if(e.hp>0&&scalding(this,e))this.hurt(e,VENT_TUNING.damage,null,'steam');if(e.hp>0&&!proof&&burningAt(this,e))this.hurt(e,FIRE_TUNING.damage,null,'fire');}   // 3.202.0: an idle one flinches out of the steam; 3.203.0: and off a burning tile
   }
   pickup() {
     // 3.118.0: a presentation-only 'pickup' effect when anything was collected, including part of a pile left behind by a
@@ -1574,7 +1577,11 @@ export class Game {
       // 3.205.0 (SAVE 83): a save from before has no charge, egg sac or laid nest and nothing to convert; a warned tongue
       // or charge whose boss fell, was stunned, pinned or moved (or an egg whose matriarch fell) is dropped, not refused.
       dropStaleSwarmIntents(g);
-      if(!validRuntime(g)||!validVents(g)||!validFires(g)||!validLoyalistBosses(g)||!validSwarmBosses(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
+      // 3.206.0 (SAVE 84): a save from before has no rebel boss (a rebel floor already generated keeps its warden or core
+      // guard) and nothing to convert; a wall, ring or set-up flamethrower whose boss fell, was stunned or moved is dropped,
+      // and numbers longer than today's tuning are cut to it, not refused.
+      dropStaleRebelIntents(g);
+      if(!validRuntime(g)||!validVents(g)||!validFires(g)||!validLoyalistBosses(g)||!validSwarmBosses(g)||!validRebelBosses(g)||!validSwarm(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validPounce(g)||!validFields(g))return null;
       if(version<32)g.shadowSteps=0;
       // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
       // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run

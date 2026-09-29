@@ -49,11 +49,12 @@ export const designated=p=>hasTrait(p,DESIGNATED);
 // The rounds it still holds, as the status line shows them (the landing round's rest is not counted).
 export const designatedTurns=p=>Math.min(BOSS_TUNING.mark.turns,(p?.traits||[]).find(s=>s.id===DESIGNATED)?.turns||0);
 // A mark that landed this round set the cooldown this round (so nothing else starts on the landing turn).
-const landedNow=(g,e)=>e.markReady===g.turn+BOSS_TUNING.mark.turns+BOSS_TUNING.mark.cooldown+1;
+// 3.206.0: exported for the rebel floor-6 boss, which marks the same way (src/rebel-bosses.js).
+export const landedNow=(g,e)=>e.markReady===g.turn+BOSS_TUNING.mark.turns+BOSS_TUNING.mark.cooldown+1;
 // Enemies at a marked you (src/combat.js shotChance, Game.meleeAccuracy, Game.damagePlayer).
 export const markAccuracy=(g,attacker,target)=>target===g.player&&attacker!==target&&Boolean(g.enemies?.includes(attacker))&&designated(target)?BOSS_TUNING.mark.accuracy:0;
 export const markDamage=(g,attacker)=>attacker&&g.enemies?.includes(attacker)&&designated(g.player)?1+BOSS_TUNING.mark.damage:1;
-function paintMark(g,e){
+export function paintMark(g,e){
  const p=g.player;e.markIntent={since:g.turn};
  g.effects.push({type:'bossTelegraph',kind:'mark',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});
  g.enemyCallout(e,'telegraph',{action:'aim'});g.log(t('bosses.markPaint',{enemy:enemyName(e)}),true);
@@ -144,7 +145,7 @@ export function interruptBoss(actor,reason){
 
 // ---- the turn (src/enemy-behavior.js: the trees' `special` step, after the boss has looked around) --------------------
 const order=e=>setsGun(e)?(e.special==='gun'?['gun','mark']:['mark','gun']):specials(e);
-const canPaint=(g,e)=>marksYou(e)&&!e.markIntent&&g.turn>=(e.markReady??0)&&g.player.hp>0&&g.sight(e,g.player);
+export const canPaint=(g,e)=>marksYou(e)&&!e.markIntent&&g.turn>=(e.markReady??0)&&g.player.hp>0&&g.sight(e,g.player);
 const canDeploy=(g,e,p,los)=>setsGun(e)&&!e.gun&&!landedNow(g,e)&&los&&p.hp>0&&distance(e,p)<=BOSS_TUNING.gun.range&&gunCells(g,e,p).some(q=>q.x===p.x&&q.y===p.y);
 // `after` is the tree's own after-step (the drone call), run when the special took the turn; `walk` (3.205.0) is its
 // plain walk, for the pack-up rounds.
@@ -189,7 +190,8 @@ export function validLoyalistBosses(g){
   for(const e of f.enemies||[]){
    if(e.markIntent!==undefined&&!(marksYou(e)&&exactly(e.markIntent,'since')&&Number.isSafeInteger(e.markIntent.since)&&e.markIntent.since>=1&&e.markIntent.since<=turn&&live(e)))return false;
    if(e.markReady!==undefined&&!(marksYou(e)&&Number.isSafeInteger(e.markReady)&&e.markReady>=1&&e.markReady<=turn+M.turns+M.cooldown+1))return false;
-   if(e.special!==undefined&&!(setsGun(e)&&(e.special==='mark'||e.special==='gun')))return false;
+   // 3.206.0: `special` on a card without the gun is the rebel bosses' to check (src/rebel-bosses.js validRebelBosses).
+   if(e.special!==undefined&&setsGun(e)&&!(e.special==='mark'||e.special==='gun'))return false;
    if(e.gun!==undefined&&!validGun(e,f.grid))return false;
    if(e.traits?.some(s=>s.id===DESIGNATED))return false;
   }

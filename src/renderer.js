@@ -10,7 +10,7 @@ import {lineReason} from './lines.js';
 import {suppressionStacks} from './suppression.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
-import {enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL,spriteToneRole,VENOM_VISUAL,TONGUE_VISUAL,CHARGE_VISUAL,EGG_VISUAL,SPRITE_NAMES,AFTERMATH_NAMES} from './enemy-visuals.js';
+import {enemySprite,enemyDrawing,enemyTint,ELITE_VISUAL,spriteToneRole,VENOM_VISUAL,TONGUE_VISUAL,CHARGE_VISUAL,EGG_VISUAL,REBEL_FIRE_VISUAL,SPRITE_NAMES,AFTERMATH_NAMES} from './enemy-visuals.js';
 import {CalloutBoard,bubbleText,bubbleAlpha,edgePoint,DIRECTION_ARROWS} from './callout-ui.js';
 import {NEST_ATLAS,drawNest,drawNestEffect,drawNestSprite,drawPortalEffect} from './nest-art.js';
 import {DECAL_ATLAS,FactionDecals} from './faction-decals.js';
@@ -56,6 +56,7 @@ import {ventStage,VENT_COLOR} from './vents.js';
 import {fireRow,flameCells,burningAt,liveFlameIntent} from './fire.js';
 import {BOSS_TUNING,gunCells,liveGun,liveMarkIntent,designated} from './loyalist-bosses.js';
 import {chargeLanes,eggSacs} from './swarm-bosses.js';
+import {REBEL_BOSS_TUNING,liveFireIntent,liveBurn,burnCells,setsFires} from './rebel-bosses.js';
 // Cloud colours: fill and puffs (3.134.0; haze and steam 3.202.0).
 const CLOUD_TONES=Object.freeze({smoke:['#abc1cd66','#d4dfe84a'],toxic:['#8fbf4a55','#c6e5864a'],spore:['#9c7d5366','#c8ad874a'],haze:['#c9d3da2e','#e6edf236'],steam:['#e3f1f55c','#ffffff52']});
 // cloudField's stacks, back to front: where in the texture (texture pixels), drift (texture pixels a second), opacity and
@@ -297,6 +298,10 @@ export class Renderer {
     for(const lane of chargeLanes(g))this.chargeLane(lane,time);
     for(const sac of eggSacs(g))if(g.visible(sac))this.eggSac(sac,time);
     for(const e of g.enemies)if(liveGun(e)){const sweep=e.gun.stage==='sweep';this.flameArea(gunCells(g,e.gun.origin,e.gun.aim).filter(q=>g.visible(q)),sweep?'#e8503c2e':'#f0b43c24',sweep?'#ff7a5cbb':'#ffd27a99');if(g.visible(e)){const a=this.project(e.x,e.y);this.text(String(sweep?e.gun.left:BOSS_TUNING.gun.sweeps),a.x+t*.36,a.y-t*.3,sweep?'#ff9a7c':'#ffd27a',12);}}
+    // 3.206.0 (src/rebel-bosses.js): the arsonist's warned wall or ring of fire (the ring's gaps green, pointing the way out)
+    // and 焚線官's set-up flamethrower — 火線官's cone in fire colours, with the sweeps still to come by the boss.
+    for(const e of g.enemies)if(liveFireIntent(e))this.fireIntent(e.fireIntent,time);
+    for(const e of g.enemies)if(liveBurn(e)){const sweep=e.burn.stage==='sweep',[fill,edge]=sweep?REBEL_FIRE_VISUAL.sweep:REBEL_FIRE_VISUAL.set;this.flameArea(burnCells(g,e.burn.origin,e.burn.aim).filter(q=>g.visible(q)),fill,edge);if(g.visible(e)){const a=this.project(e.x,e.y);this.text(String(sweep?e.burn.left:REBEL_BOSS_TUNING.burn.sweeps),a.x+t*.36,a.y-t*.3,sweep?REBEL_FIRE_VISUAL.sweepText:REBEL_FIRE_VISUAL.setText,12);}}
     if(this.mode==='grenade'&&this.aim)this.markArea(this.aim,2,'#e6a95b33','#eacb84aa','');
     // 3.123.0: a flare's aim shows exactly the tiles it would light now (shadows and full cover stay unmarked).
     // 3.135.0: a grapple line's aim — the straight pull and its landing, green when it can go, red when it cannot.
@@ -358,6 +363,8 @@ export class Renderer {
     for(const cover of g.cover){const dx=cover.x-p.x,dy=cover.y-p.y;const x=pos.x+dx*t*(isBarrier(cover)?1:.48),y=pos.y+dy*t*(isBarrier(cover)?1:.48);this.line(x+(dy? -t*.27:0),y+(dx?-t*.27:0),x+(dy?t*.27:0),y+(dx?t*.27:0),cover.type==='wall'?'#8bd2c9':'#c7d896',2);}
     const hiddenEnemies=new Set(g.visibleEnemies.filter(e=>cornerHidden(g,e)));
     for(const e of g.visibleEnemies){const a=this.projectActor(e);this.glitchDraw(a,e.id,()=>this.actor(a,e.type,time,e,hiddenEnemies.has(e)));if(e.keycard&&e.hp>0)this.keyBeam({x:a.x,y:a.y-this.tile*.55},time,.45);/* 3.146.0: carries the keycard */if(missionTarget(g,e))this.text('◇',a.x-this.tile*.35,a.y-8,'#88f3ff',12);}
+    // 3.206.0: an overheated arsonist steams, with its venting rounds left; before that, its heat as pips.
+    for(const e of g.visibleEnemies)if(e.hp>0&&(e.overheat>0||setsFires(e)&&e.heat>0))this.heatMarks(this.projectActor(e),e,time);
     for(const ally of g.localAllies||[])if(g.seen[ally.y]?.[ally.x]){const a=this.projectActor(ally);if(ally.hp>0&&ally.status==='active'){this.actor(a,ally.type,time,ally);this.box(a.x-t*.36,a.y-t*.36,t*.72,t*.72,'#64e7cf18','#83efd1');this.text(ally.kind==='pet'?'PET':ally.kind==='summon'?'SUM':ally.sourceId==='drone_munition'?'MUN':ally.sourceId==='unit_bomber'?'BOT':ally.sourceId==='unit_drone'?'DRN':ally.sourceId==='unit_warden'?'WDN':ally.sourceId==='unit_boss'?'CORE':'ALLY',a.x,a.y+t*.55,connected(g,ally)?'#9df4d5':'#a5a5a5',8);if(ally.primed)this.text('!',a.x+t*.38,a.y-9,'#ffc789',14);}else {this.corpse(a,ally.type);this.text(ally.status==='down'?tx('renderer.recover'):'×',a.x,a.y+12,'#e3cf86',10);}}
     for(const m of grenadeMarkers(g))this.grenadeLabel(m);
     // 3.204.0: a boss's paint, a pulsing laser from it to you until it lands; the mark itself, red brackets around you.
@@ -379,7 +386,7 @@ export class Renderer {
       if(shot&&fx.flash){fx.shooterSeen??=fx.type==='enemyShot'?g.visibleEnemies.some(e=>e.x===fx.from.x&&e.y===fx.from.y):g.visible(fx.from);if(fx.shooterSeen)this.muzzleFlash(fx,a,angle,elapsed);}
       if(fx.type==='flame'){this.flameBurst(fx,elapsed);c.globalAlpha=1;continue;}   // 3.203.0
       if(fx.type==='flameTelegraph'){c.globalAlpha=1;continue;}   // its cone is drawn from the game state
-      if(fx.type==='bossTelegraph'){if(fx.kind==='marked'&&elapsed<320){c.globalAlpha=1-elapsed/320;this.line(a.x,a.y,b.x,b.y,'#ff5a5a',2.5);this.box(b.x-t*.45,b.y-t*.45,t*.9,t*.9,'#ff3b3b33','#ff6a6a');}else this.swarmBossEffect(fx,a,b,elapsed);c.globalAlpha=1;continue;}   // 3.204.0: drawn from the game state; the landing flashes
+      if(fx.type==='bossTelegraph'){if(fx.kind==='marked'&&elapsed<320){c.globalAlpha=1-elapsed/320;this.line(a.x,a.y,b.x,b.y,'#ff5a5a',2.5);this.box(b.x-t*.45,b.y-t*.45,t*.9,t*.9,'#ff3b3b33','#ff6a6a');}else{this.swarmBossEffect(fx,a,b,elapsed);this.rebelBossEffect(fx,a,b,elapsed);}c.globalAlpha=1;continue;}   // 3.204.0: drawn from the game state; the landing flashes
       if(fx.type==='portalSpawn'){if(g.visible(fx.to))drawPortalEffect(c,this.terrainImages?.get(NEST_ATLAS),b,t,elapsed);c.globalAlpha=1;continue;}   // 3.194.0
       if(fx.type==='nestCollapse'||fx.type==='nestSpawn'){if(g.visible(fx.type==='nestCollapse'?fx.from:fx.to))drawNestEffect(c,this.terrainImages?.get(NEST_ATLAS),fx,a,b,t,elapsed);c.globalAlpha=1;continue;}
       if(fx.quiet){
@@ -664,10 +671,13 @@ export class Renderer {
     const last=lane.cells[lane.cells.length-1]||lane.origin;
     if(lane.crash&&g.visible(last)){const a=this.project(last.x+dir.x*.5,last.y+dir.y*.5),h=t*.46;if(dir.x)this.box(a.x-3,a.y-h,6,h*2,CHARGE_VISUAL.wall);else this.box(a.x-h,a.y-3,h*2,6,CHARGE_VISUAL.wall);}
   }
-  // The matriarch's egg sac: a pale, pulsing sac on the tile it will hatch on next round.
+  // The matriarch's egg sac on the tile it will hatch on next round. 3.206.0 (user): the swarm wave's burrow (the hole a
+  // surge comes out of, src/nest-art.js) over the warning tile; the pale, pulsing sac below is only the fallback for when
+  // the nest atlas has not loaded.
   eggSac(q,time){
     const a=this.project(q.x,q.y),t=this.tile,c=this.ctx,beat=1+.06*Math.sin(time/150);
     this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,EGG_VISUAL.fill,EGG_VISUAL.edge);
+    if(drawNestSprite(c,this.terrainImages?.get(NEST_ATLAS),a,t,'burrow','active'))return;
     c.beginPath();c.ellipse(a.x,a.y+t*.05,t*.2*beat,t*.27*beat,0,0,Math.PI*2);c.fillStyle=EGG_VISUAL.sac;c.fill();c.strokeStyle=EGG_VISUAL.vein;c.lineWidth=1.5;c.stroke();
     this.line(a.x-t*.06,a.y-t*.12,a.x+t*.02,a.y+t*.14,EGG_VISUAL.vein,1);this.box(a.x-t*.1,a.y-t*.12,3,3,EGG_VISUAL.glow);
   }
@@ -680,6 +690,37 @@ export class Renderer {
     else if(fx.kind==='shove'&&elapsed<300&&g.visible(fx.to)){c.globalAlpha=1-elapsed/300;for(let i=0;i<6;i++){const th=i*1.05,r=4+elapsed/300*t*.3;this.box(Math.round(b.x+Math.cos(th)*r)-1,Math.round(b.y+Math.sin(th)*r)-1,3,3,CHARGE_VISUAL.dust);}}
     else if((fx.kind==='hatch'||fx.kind==='eggLost')&&elapsed<420&&g.visible(fx.to)){c.globalAlpha=1-elapsed/420;for(let i=0;i<8;i++){const th=i*.785,r=3+elapsed/420*t*.4;this.box(Math.round(b.x+Math.cos(th)*r)-1,Math.round(b.y+Math.sin(th)*r)-1,3,3,fx.kind==='hatch'?EGG_VISUAL.sac:EGG_VISUAL.vein);}}
     else if(fx.kind==='charge'&&elapsed<260&&g.visible(fx.from)){c.globalAlpha=1-elapsed/260;this.box(a.x-t*.45,a.y-t*.45,t*.9,t*.9,CHARGE_VISUAL.fill,CHARGE_VISUAL.chevron);}
+  }
+  // 3.206.0 (src/rebel-bosses.js): a warned wall or ring of fire, pulsing. The wall's tiles with a line through their
+  // middles; the ring's tiles, and its gaps dashed green with an arrow pointing out of the ring (where it lets you go).
+  fireIntent(s,time){
+    const g=this.game,t=this.tile,c=this.ctx,V=REBEL_FIRE_VISUAL;
+    c.globalAlpha=.75+.25*Math.sin(time/120);
+    for(const q of s.cells)if(g.visible(q)){const a=this.project(q.x,q.y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,V.fill,V.edge);}
+    c.globalAlpha=1;
+    if(s.kind==='wall'){for(let i=1;i<s.cells.length;i++){const p=s.cells[i-1],q=s.cells[i];if(!g.visible(p)&&!g.visible(q))continue;const a=this.project(p.x,p.y),b=this.project(q.x,q.y);this.line(a.x,a.y,b.x,b.y,V.line,3);}return;}
+    for(const q of s.gaps||[])if(g.visible(q)){
+      const a=this.project(q.x,q.y),dx=q.x-s.center.x,dy=q.y-s.center.y,len=Math.hypot(dx,dy)||1,ux=dx/len,uy=dy/len,h=t*.22,tip={x:a.x+ux*h,y:a.y+uy*h};
+      c.setLineDash([3,2]);this.box(a.x-t/2+3,a.y-t/2+3,t-6,t-6,V.gapFill,V.gap);c.setLineDash([]);
+      this.line(a.x-ux*h,a.y-uy*h,tip.x,tip.y,V.gap,2);this.line(tip.x,tip.y,tip.x-ux*h*.7-uy*h*.6,tip.y-uy*h*.7+ux*h*.6,V.gap,2);this.line(tip.x,tip.y,tip.x-ux*h*.7+uy*h*.6,tip.y-uy*h*.7-ux*h*.6,V.gap,2);
+    }
+  }
+  // An overheated arsonist: pale steam rising and a dashed cool-blue ring, with its venting rounds left; its heat before
+  // that as a row of pips over it (lit ones orange).
+  heatMarks(a,e,time){
+    const t=this.tile,c=this.ctx,V=REBEL_FIRE_VISUAL;
+    if(e.overheat>0){
+      for(let i=0;i<5;i++){const k=(time/900+i/5)%1,x=a.x+Math.sin(i*2.1+time/400)*t*.22,y=a.y-t*.2-k*t*.45;c.globalAlpha=.55*(1-k);this.box(Math.round(x)-2,Math.round(y)-2,4,4,V.steam);}
+      c.globalAlpha=1;c.beginPath();c.setLineDash([4,3]);c.arc(a.x,a.y,t*.48,0,Math.PI*2);c.strokeStyle=V.vent;c.lineWidth=1.5;c.stroke();c.setLineDash([]);
+      this.text(String(e.overheat),a.x+t*.36,a.y-t*.3,V.vent,12);return;
+    }
+    const max=REBEL_BOSS_TUNING.arsonist.heat;for(let i=0;i<max;i++)this.box(Math.round(a.x+(i-(max-1)/2)*t*.2)-2,Math.round(a.y-t*.56)-2,5,5,i<e.heat?V.heat:V.heatOff);
+  }
+  // The rebel bosses' moments: steam bursting off an arsonist as it overheats; a hot flash on a boss as it warns fire.
+  rebelBossEffect(fx,a,b,elapsed){
+    const g=this.game,t=this.tile,c=this.ctx,V=REBEL_FIRE_VISUAL;
+    if(fx.kind==='overheat'&&elapsed<600&&g.visible(fx.from)){c.globalAlpha=1-elapsed/600;for(let i=0;i<10;i++){const th=i*.628,r=4+elapsed/600*t*.55;this.box(Math.round(a.x+Math.cos(th)*r)-2,Math.round(a.y+Math.sin(th)*r)-2,4,4,V.steam);}}
+    else if((fx.kind==='wall'||fx.kind==='ring'||fx.kind==='burn')&&elapsed<260&&g.visible(fx.from)){c.globalAlpha=1-elapsed/260;this.box(a.x-t*.45,a.y-t*.45,t*.9,t*.9,V.fill,V.line);}
   }
   flameArea(cells,fill,stroke){const t=this.tile;for(const {x,y} of cells){const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,fill,stroke);}}
   // 3.203.0: the flamethrower's burst (Codex's flame-burst.png, drawn facing east) on every tile the spray reached that you
