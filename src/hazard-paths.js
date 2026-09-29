@@ -1,0 +1,52 @@
+import {DIRECTIONS,key} from './world.js';
+import {hasEnemyTag} from './enemy-data.js';
+import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
+import {roomContains} from './map-geometry.js';
+
+// 3.201.0 (user, 2026-09-29): anyone who walks the floor routes around hazard tiles. A hazard stays passable (you can
+// walk in and get hurt), but every route search charges `stepCost` extra for entering one, so a walker only crosses a
+// hazard when going around is longer than that; with no way around it still crosses. Flyers ignore the floor, as they do
+// for the damage (Game.environmentTurn). Before, only the in-sight combat step charged +4 and every other walker (pursuit,
+// flanking, squads, allies, fleeing civilians) went straight across, so enemies burned or dissolved on acid and fire.
+export const HAZARD_TUNING=Object.freeze({stepCost:40});
+export const hazardTile=(g,x,y)=>Boolean(g.hazards?.some(h=>h.x===x&&h.y===y));
+export const avoidsHazards=actor=>Boolean(actor)&&!hasEnemyTag(actor,'flying');
+export const hazardCost=(g,actor,x,y)=>avoidsHazards(actor)&&hazardTile(g,x,y)?HAZARD_TUNING.stepCost:0;
+// The route searches' door rule: a closed door can be opened on the way, a low barrier vaulted; walls and locks stop it.
+const crossable=(g,a,b)=>{const edge=barrierBetween(g.barriers,a,b);return !edgeBlocks(edge)||edge.type==='door'||vaultable(edge);};
+
+// What it costs to walk from each tile to `goal` under the route searches' rules (units ignored): entering a tile costs 1,
+// plus stepCost when it is a hazard. One search outward from the goal; the cost of a tile counts the tiles after it.
+export function costToGoal(g,actor,goal,limit=Infinity){
+ const costs=new Map([[key(goal),0]]),buckets=[[{x:goal.x,y:goal.y}]];
+ for(let cost=0;cost<buckets.length&&cost<=limit;cost++)for(const q of buckets[cost]||[]){
+  if(costs.get(key(q))<cost)continue;
+  const through=cost+1+hazardCost(g,actor,q.x,q.y);   // stepping from a neighbour into q
+  for(const [dx,dy] of DIRECTIONS){
+   const n={x:q.x+dx,y:q.y+dy},k=key(n);
+   if(costs.has(k)&&costs.get(k)<=through||!g.passable(n.x,n.y,actor)||!crossable(g,n,q))continue;
+   costs.set(k,through);(buckets[through]||=[]).push(n);
+  }
+ }
+ return costs;
+}
+
+// A walker standing on a hazard steps off it (src/enemy-behavior.js, after the turn's resets), to a free tile beside it
+// that is not a hazard and is no further from where it is going (`goal`: its order's spot, else you if it sees you, else
+// where it last knew you), so it never steps back off its own route and shuttles; walking on along the route takes it off
+// just the same. Not while pinned, resting (fodder), or committed to a telegraphed move (a wound-up shot, a grenade,
+// a tongue, a pounce, a lob). Noncombatants are left to their own flight. Returns true when it moved.
+const COMMITTED=Object.freeze(['charge','grenadeIntent','tongueIntent','pounceIntent','lobIntent']);
+export function stepOffHazard(g,e,goal,{pinned=()=>false,occupied=()=>false}={}){
+ if(!avoidsHazards(e)||!hazardTile(g,e.x,e.y)||pinned(e)||e.actionDelay>0||COMMITTED.some(f=>e[f]))return false;
+ const costs=goal?costToGoal(g,e,goal):null,here=costs?.get(key(e))??Infinity,cost=q=>costs?.get(key(q))??Infinity;
+ const spots=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).filter(n=>{
+  const edge=barrierBetween(g.barriers,e,n);
+  if(e.simulationBounds&&!roomContains(e.simulationBounds,n)||e.simulationNoDoors&&edgeBlocks(edge)&&edge.type==='door')return false;
+  return g.passable(n.x,n.y,e)&&!(edgeBlocks(edge)&&!vaultable(edge))&&!hazardTile(g,n.x,n.y)&&!(n.x===g.player.x&&n.y===g.player.y)&&!occupied(g,n,e)&&cost(n)<=here;
+ }).sort((a,b)=>cost(a)-cost(b)||key(a).localeCompare(key(b)));
+ const spot=spots[0];if(!spot)return false;
+ const edge=barrierBetween(g.barriers,e,spot);
+ e.x=spot.x;e.y=spot.y;e.moved=true;if(vaultable(edge))e.vaultExposed=true;
+ return true;
+}

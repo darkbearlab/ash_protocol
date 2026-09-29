@@ -1,6 +1,7 @@
 import {DIRECTIONS,distance,key} from './world.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
 import {SIZE} from './data.js';
+import {hazardCost} from './hazard-paths.js';
 
 export const TACTICS={searchNodes:320,maxSteps:24,planTurns:24,holdTurns:2,holdRetry:6};
 const point=p=>p&&[p.x,p.y].every(n=>Number.isInteger(n)&&n>=0&&n<SIZE);
@@ -34,7 +35,7 @@ export function combatStep(g,a,target,{range,min=0,melee=false,leash=Infinity,pe
   for(const [dx,dy]of DIRECTIONS){
    const n={x:q.x+dx,y:q.y+dy},k=key(n),edge=barrierBetween(g.barriers,q,n);
    if(taken.has(k)||distance(n,g.player)>leash||!g.passable(n.x,n.y,a)||edgeBlocks(edge)&&!vaultable(edge)&&edge.type!=='door')continue;
-   const cost=q.cost+1+(edgeBlocks(edge)?1:0)+(g.hazards.some(h=>same(h,n))?4:0)+(reservations.has(k)?3:0);
+   const cost=q.cost+1+(edgeBlocks(edge)?1:0)+hazardCost(g,a,n.x,n.y)+(reservations.has(k)?3:0);   // 3.201.0: was +4 per hazard tile
    if(cost>=(costs.get(k)??Infinity))continue;
    costs.set(k,cost);queue.push({...n,cost,d:q.d+1,first:q.first||n});
   }

@@ -13,6 +13,7 @@ import {shotgunBand} from './shotgun.js';
 import {AMMUNITION} from './ammunition.js';
 import {distance,key,DIRECTIONS,makeEnemy} from './world.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
+import {avoidsHazards,hazardCost} from './hazard-paths.js';
 import {activeTrait,validTraits,validCombatMemory} from './traits.js';
 import {validControl,GRENADES} from './throwables.js';
 import {validCombatModifiers} from './actor-stats.js';
@@ -102,12 +103,26 @@ export function fitDrone(a,player=null){
  a.traits=a.traits.filter(t=>!(t.id==='no_cover'&&t.source==='ally:drone'));if(!ground)a.traits.push({id:'no_cover',source:'ally:drone'});
 }
 export const occupied=(g,p,except=null)=>[g.player,...g.enemies.filter(e=>e.hp>0),...currentAllies(g)].some(a=>a!==except&&key(a)===key(p));
-export function routeCells(g,start,{limit=SIZE*SIZE,actor=null,ignoreActors=false,openDoors=true,maxPlayerDistance=Infinity}={}){
+// 3.201.0: `weighted` charges the hazard cost (src/hazard-paths.js) and lists the tiles cheapest first, each with its
+// `cost` beside the step count `d`; without it the listing is the plain breadth-first one it always was.
+export function routeCells(g,start,{limit=SIZE*SIZE,actor=null,ignoreActors=false,openDoors=true,maxPlayerDistance=Infinity,weighted=false}={}){
+ const blocked=(q,n)=>{const edge=barrierBetween(g.barriers,q,n);return distance(n,g.player)>maxPlayerDistance||!g.passable(n.x,n.y,actor)||(edgeBlocks(edge)&&!vaultable(edge)&&!(openDoors&&edge.type==='door'&&!edge.locked))||(!ignoreActors&&occupied(g,n,actor));};
+ if(weighted){
+  const out=[],best=new Map([[key(start),0]]),buckets=[[{x:start.x,y:start.y,d:0,cost:0,first:null}]];
+  for(let c=0;c<buckets.length;c++)for(const q of buckets[c]||[]){
+   if(best.get(key(q))<c)continue;out.push(q);if(q.d>=limit)continue;
+   for(const [dx,dy]of DIRECTIONS){const n={x:q.x+dx,y:q.y+dy},k=key(n);if(blocked(q,n))continue;
+    const cost=c+1+hazardCost(g,actor,n.x,n.y);if(best.has(k)&&best.get(k)<=cost)continue;
+    best.set(k,cost);(buckets[cost]||=[]).push({...n,d:q.d+1,cost,first:q.first||n});
+   }
+  }
+  return out;
+ }
  const queue=[{x:start.x,y:start.y,d:0,first:null}],seen=new Set([key(start)]);
  for(let i=0;i<queue.length;i++){
   const q=queue[i];if(q.d>=limit)continue;
-  for(const [dx,dy]of DIRECTIONS){const n={x:q.x+dx,y:q.y+dy},k=key(n),edge=barrierBetween(g.barriers,q,n);
-   if(distance(n,g.player)>maxPlayerDistance||seen.has(k)||!g.passable(n.x,n.y,actor)||(edgeBlocks(edge)&&!vaultable(edge)&&!(openDoors&&edge.type==='door'&&!edge.locked))||(!ignoreActors&&occupied(g,n,actor)))continue;
+  for(const [dx,dy]of DIRECTIONS){const n={x:q.x+dx,y:q.y+dy},k=key(n);
+   if(seen.has(k)||blocked(q,n))continue;
    seen.add(k);queue.push({...n,d:q.d+1,first:q.first||n});
   }
  }return queue;
@@ -269,11 +284,14 @@ function actAlly(g,a){
 // close in on goal by walking distance instead of freezing; never step to a tile that is no closer.
 function stepToward(g,a,goal,reached,linked,swap=false){
  if(pinned(a))return false;
- const cells=routeCells(g,a,{actor:a,limit:18,maxPlayerDistance:Math.max(leash(a),distance(a,g.player))}).filter(q=>q.first&&(distance(q,g.player)<=leash(a)||!linked));
- let dest=cells.filter(reached).sort((b,c)=>b.d-c.d)[0];
+ // 3.201.0 (src/hazard-paths.js): with hazards on the floor both the route and "closer" are measured with the hazard cost,
+ // one measure throughout, so the ally crosses a hazard only when that is the cheaper way and never goes back and forth.
+ const weighted=avoidsHazards(a)&&g.hazards?.length>0,rank=q=>weighted?q.cost:q.d;
+ const cells=routeCells(g,a,{actor:a,limit:18,maxPlayerDistance:Math.max(leash(a),distance(a,g.player)),weighted}).filter(q=>q.first&&(distance(q,g.player)<=leash(a)||!linked));
+ let dest=cells.filter(reached).sort((b,c)=>rank(b)-rank(c))[0];
  if(!dest){
-  const walk=new Map(routeCells(g,goal,{actor:a,ignoreActors:true}).map(q=>[key(q),q.d])),far=q=>walk.get(key(q))??Infinity,here=far(a);
-  dest=cells.filter(q=>far(q)<here).sort((b,c)=>far(b)-far(c)||b.d-c.d)[0];
+  const walk=new Map(routeCells(g,goal,{actor:a,ignoreActors:true,weighted}).map(q=>[key(q),rank(q)])),far=q=>walk.get(key(q))??Infinity,here=far(a);
+  dest=cells.filter(q=>far(q)<here).sort((b,c)=>far(b)-far(c)||rank(b)-rank(c))[0];
   // Still no progress: the way on is another ally's tile. Trade places when that costs the other ally nothing it is doing.
   if(!dest)return swap&&swapPast(g,a,far,here,linked);
  }

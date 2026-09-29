@@ -7,6 +7,7 @@ import {roomTiles,roomContains} from './map-geometry.js';
 import {occupied} from './allies.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
 import {pinned} from './suppression.js';
+import {hazardTile} from './hazard-paths.js';
 import {registerOrder,giveOrder,runOrder} from './orders.js';
 
 export const CIVILIAN_TUNING={screamCooldown:5,screamRadius:8,fleeCalloutEvery:3};
@@ -52,7 +53,7 @@ registerOrder('flee',{act({g,e}){
   const edge=barrierBetween(g.barriers,e,p);
   if(e.simulation&&g.simulation?.phase==='tutorial'&&((e.simulationBounds&&!roomContains(e.simulationBounds,p))||(e.simulationNoDoors&&edgeBlocks(edge)&&edge.type==='door')))return false;
   return g.passable(p.x,p.y,e)&&!occupied(g,p,e)&&distance(p,from)>distance(e,from)&&(!edgeBlocks(edge)||edge.type==='door'&&!edge.locked||vaultable(edge));
- }).sort((a,b)=>distance(b,from)-distance(a,from));
+ }).sort((a,b)=>Number(hazardTile(g,a.x,a.y))-Number(hazardTile(g,b.x,b.y))||distance(b,from)-distance(a,from));   // 3.201.0: off hazards first
  const p=choices[0];if(!p)return true;const edge=barrierBetween(g.barriers,e,p);
  if(edgeBlocks(edge)&&!vaultable(edge)){g.setDoor(edge,true);return true;}
  e.x=p.x;e.y=p.y;e.moved=true;if(vaultable(edge))e.vaultExposed=true;return true;

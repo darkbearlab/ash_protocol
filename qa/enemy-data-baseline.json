@@ -931,19 +931,19 @@
   "engineer:3": {
    "status": "dead",
    "floor": 2,
-   "turn": 309,
+   "turn": 315,
    "hp": 0,
    "kills": 44,
-   "actions": 322,
+   "actions": 328,
    "invalid": 0
   },
   "druid:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 424,
+   "turn": 434,
    "hp": 0,
-   "kills": 67,
-   "actions": 470,
+   "kills": 70,
+   "actions": 480,
    "invalid": 0
   },
   "druid:2": {
@@ -957,38 +957,38 @@
   },
   "druid:3": {
    "status": "dead",
-   "floor": 3,
-   "turn": 352,
+   "floor": 2,
+   "turn": 232,
    "hp": 0,
-   "kills": 66,
-   "actions": 362,
+   "kills": 50,
+   "actions": 233,
    "invalid": 0
   },
   "necromancer:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 370,
+   "turn": 375,
    "hp": 0,
-   "kills": 71,
-   "actions": 415,
+   "kills": 73,
+   "actions": 424,
    "invalid": 0
   },
   "necromancer:2": {
-   "status": "playing",
+   "status": "dead",
    "floor": 2,
-   "turn": 767,
-   "hp": 62,
-   "kills": 33,
-   "actions": 1797,
-   "invalid": 1497
+   "turn": 277,
+   "hp": 0,
+   "kills": 34,
+   "actions": 330,
+   "invalid": 3
   },
   "necromancer:3": {
    "status": "dead",
    "floor": 6,
-   "turn": 907,
+   "turn": 755,
    "hp": 0,
-   "kills": 166,
-   "actions": 973,
+   "kills": 168,
+   "actions": 818,
    "invalid": 0
   },
   "soldier:1": {
@@ -1012,19 +1012,19 @@
   "soldier:3": {
    "status": "dead",
    "floor": 3,
-   "turn": 405,
+   "turn": 358,
    "hp": 0,
-   "kills": 65,
-   "actions": 418,
+   "kills": 64,
+   "actions": 377,
    "invalid": 0
   },
   "bulwark:1": {
    "status": "won",
    "floor": 6,
-   "turn": 1142,
-   "hp": 177,
-   "kills": 159,
-   "actions": 1314,
+   "turn": 1098,
+   "hp": 189,
+   "kills": 157,
+   "actions": 1271,
    "invalid": 0
   },
   "bulwark:2": {
@@ -1057,10 +1057,10 @@
   "recon:2": {
    "status": "dead",
    "floor": 3,
-   "turn": 362,
+   "turn": 351,
    "hp": 0,
    "kills": 58,
-   "actions": 414,
+   "actions": 403,
    "invalid": 0
   },
   "recon:3": {
@@ -1093,10 +1093,10 @@
   "berserker:3": {
    "status": "dead",
    "floor": 3,
-   "turn": 420,
+   "turn": 399,
    "hp": 0,
    "kills": 69,
-   "actions": 438,
+   "actions": 413,
    "invalid": 0
   },
   "ninja:1": {

@@ -35,6 +35,7 @@ import {roomTiles} from './map-geometry.js';
 import {factionDef} from './faction-catalog.js';
 import {spentCase} from './traces.js';
 import {SIZE} from './data.js';
+import {hazardTile} from './hazard-paths.js';
 
 export const SQUAD_TUNING=Object.freeze({
  radius:7,          // how far from the leader a soldier still takes orders
@@ -211,7 +212,7 @@ export function assignMovers(g,leader,mine,target,search){
 function searchSpot(g,member,target,taken){
  const spots=[target,...DIRECTIONS.map(([dx,dy])=>({x:target.x+dx,y:target.y+dy}))];
  return spots.filter(q=>g.passable(q.x,q.y,member)&&!taken.has(key(q))&&!g.enemies.some(e=>e.hp>0&&e!==member&&distance(e,q)===0))
-  .sort((a,b)=>distance(member,a)-distance(member,b)||key(a).localeCompare(key(b)))[0]||null;
+  .sort((a,b)=>Number(hazardTile(g,a.x,a.y))-Number(hazardTile(g,b.x,b.y))||distance(member,a)-distance(member,b)||key(a).localeCompare(key(b)))[0]||null;   // 3.201.0: a hazard tile last
 }
 // 3.132.0 (docs/ORDERS.md phase three): what a member does is an order its leader gives it — 'post' (go to the
 // firing spot, suppress while the squad deploys, then cover) or 'bound' (the cross-covering advance, and the search).

@@ -86,6 +86,7 @@ import {registerPurgeFloor,notePurgeDeparture,validPurge} from './purge-review.j
 import {SIZE,SAVE_VERSION,RARE_ARMORY,WEAPONS,FLOORS,floorInfo,ENEMY_TYPES,PERK_D,LEGACY_SAVE_VERSIONS,VOID,seeThrough} from './data.js';
 import {PROTOCOL_REWARDS,newRunId,weaponUnlocked} from './progression.js';
 import {random,distance,lineOfSight,generate,makeEnemy,DIRECTIONS,key} from './world.js';
+import {hazardCost} from './hazard-paths.js';
 import {wallCover,shotChance,bracingBonus,adjacentWalls} from './combat.js';
 import {terminalReason,useTerminal,validTerminalSpent} from './terminal.js';
 import {FLARE_TUNING,flareLights,flareReason,validFlares} from './flares.js';
@@ -1102,16 +1103,23 @@ export class Game {
     // 3.132.0 突進: along its route it covers up to three tiles in one straight sweep (src/line-move.js).
     if(activeTrait(e,LUNGE_TRAIT)){const leap=this.lungeStep(e,target);if(leap)return leap;}
     if(activeTrait(e,DETOUR_TRAIT)&&distance(target,this.player)>0){const step=this.coveredStep(e,target);if(step!==undefined)return step;}
-    const queue=[{x:e.x,y:e.y,first:null}],visited=new Set([key(e)]);
+    // 3.201.0: a uniform-cost search, so a hazard tile costs HAZARD_TUNING.stepCost extra (src/hazard-paths.js). With no
+    // hazard on the way every step costs 1 and it expands in exactly the order the old breadth-first search did.
+    const buckets=[[{x:e.x,y:e.y,first:null}]],best=new Map([[key(e),0]]);let expanded=0;
     const occupied=new Set([...this.enemies.filter(o=>o!==e&&o.hp>0),...this.activeAllies].filter(a=>a!==target).map(key));
-    for(let i=0;i<queue.length&&i<SIZE*SIZE;i++)for(const [dx,dy]of DIRECTIONS) {
-      const q=queue[i],x=q.x+dx,y=q.y+dy,k=`${x},${y}`;
-      if(visited.has(k)||!this.passable(x,y,e))continue;
-      const edge=barrierBetween(this.barriers,q,{x,y});if(edgeBlocks(edge)&&edge.type!=='door'&&!vaultable(edge))continue;
-      if(skillActive(this.player)&&distance(target,this.player)>0&&x===this.player.x&&y===this.player.y)continue;
-      if(x===target.x&&y===target.y)return q.first||(distance(target,this.player)>0||edgeBlocks(edge)?{x,y}:null);
-      if(occupied.has(k))continue;
-      visited.add(k);queue.push({x,y,first:q.first||{x,y}});
+    for(let cost=0;cost<buckets.length;cost++)for(const q of buckets[cost]||[]){
+      if(best.get(key(q))<cost)continue;
+      if(expanded++>=SIZE*SIZE)return null;
+      for(const [dx,dy]of DIRECTIONS){
+        const x=q.x+dx,y=q.y+dy,k=`${x},${y}`;
+        if(best.has(k)&&best.get(k)<=cost+1||!this.passable(x,y,e))continue;
+        const edge=barrierBetween(this.barriers,q,{x,y});if(edgeBlocks(edge)&&edge.type!=='door'&&!vaultable(edge))continue;
+        if(skillActive(this.player)&&distance(target,this.player)>0&&x===this.player.x&&y===this.player.y)continue;
+        if(x===target.x&&y===target.y)return q.first||(distance(target,this.player)>0||edgeBlocks(edge)?{x,y}:null);
+        if(occupied.has(k))continue;
+        const next=cost+1+hazardCost(this,e,x,y);if(best.has(k)&&best.get(k)<=next)continue;
+        best.set(k,next);(buckets[next]||=[]).push({x,y,first:q.first||{x,y}});
+      }
     }return null;
   }
   // Uniform-cost search under nextStep's walking rules. `exposed` tiles cost extra; undefined means "use nextStep".
@@ -1127,7 +1135,7 @@ export class Game {
         const edge=barrierBetween(this.barriers,q,{x,y});if(edgeBlocks(edge)&&edge.type!=='door'&&!vaultable(edge))continue;
         if(skillActive(this.player)&&x===this.player.x&&y===this.player.y)continue;
         if(!isTarget&&occupied.has(k))continue;
-        const next=cost+1+(exposed?.has(k)?extra:0);if(best.has(k)&&best.get(k)<=next)continue;
+        const next=cost+1+(exposed?.has(k)?extra:0)+hazardCost(this,e,x,y);if(best.has(k)&&best.get(k)<=next)continue;
         best.set(k,next);(buckets[next]||=[]).push({x,y,first:q.first||{x,y},steps:q.steps+1,prev:q});
       }
     }
