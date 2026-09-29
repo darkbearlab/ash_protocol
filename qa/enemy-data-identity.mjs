@@ -2,6 +2,9 @@
 // behaviour-neutral refactor must not change: generated floors, mission set-up and bot replays.
 //   node qa/enemy-data-identity.mjs          compare with qa/enemy-data-baseline.json (exit 1 on any difference)
 //   node qa/enemy-data-identity.mjs --write  record the baseline; only when a rule change is intended
+//   node qa/enemy-data-identity.mjs --only bots             one or more groups (generation,missions,bots) while iterating
+//   node qa/enemy-data-identity.mjs --accept                copy only the differing entries into the baseline, and list
+//                                                          them, once a disabled-feature run has proved where they come from
 import {createHash} from 'node:crypto';
 import {existsSync,readFileSync,writeFileSync} from 'node:fs';
 import {Game,generate,generateLegacy} from '../src/engine.js';
@@ -24,36 +27,39 @@ const hash=value=>createHash('sha256').update(JSON.stringify(normalize(value))).
 // Errors are recorded rather than thrown, so a floor that fails the same way before and after still matches.
 const quietly=fn=>{try{return fn();}catch(error){return {error:String(error?.message||error)};}};
 
-function capture(){
- const generation={},missions={},bots={};
- for(let seed=1;seed<=40;seed++){
+function capture(groups=GROUPS){
+ const generation={},missions={},bots={},want=new Set(groups);
+ if(want.has('generation'))for(let seed=1;seed<=40;seed++){
   for(let floor=1;floor<=12;floor++)generation[`current:${seed}:${floor}`]=hash(quietly(()=>generate(seed,floor)));
   for(let floor=1;floor<=6;floor++)generation[`legacy:${seed}:${floor}`]=hash(quietly(()=>generateLegacy(seed,floor)));
  }
- for(let seed=1;seed<=10;seed++)for(let floor=1;floor<=6;floor++)generation[`offset6:${seed}:${floor}`]=hash(quietly(()=>generate(seed,floor,[],6)));
- for(const mission of Object.keys(MISSIONS))for(let seed=1;seed<=5;seed++){
+ if(want.has('generation'))for(let seed=1;seed<=10;seed++)for(let floor=1;floor<=6;floor++)generation[`offset6:${seed}:${floor}`]=hash(quietly(()=>generate(seed,floor,[],6)));
+ if(want.has('missions'))for(const mission of Object.keys(MISSIONS))for(let seed=1;seed<=5;seed++){
   for(const floor of mission==='endless'?[1,3,6,12]:[1,3,6])missions[`${mission}:${seed}:${floor}`]=hash(quietly(()=>{
    const g=new Game(seed,[],0,'soldier','onyx',mission);if(floor!==1){g.floor=floor;g.loadFloor();}
    // runId is a random ledger key for protocol settlement, not game state; the save version may change by design.
    const data=JSON.parse(g.serialize());delete data.version;delete data.data?.runId;return data;
   }));
  }
- for(const character of Object.keys(CHARACTERS))for(let seed=1;seed<=3;seed++)bots[`${character}:${seed}`]=quietly(()=>{
+ if(want.has('bots'))for(const character of Object.keys(CHARACTERS))for(let seed=1;seed<=3;seed++)bots[`${character}:${seed}`]=quietly(()=>{
   const {status,floor,turn,hp,kills,actions,invalid}=play(seed,1800,character);return {status,floor,turn,hp,kills,actions,invalid};
  });
  return {generation,missions,bots};
 }
 
-function differences(before,after){
+function differences(before,after,groups=GROUPS){
  const out=[];
- for(const group of GROUPS){
+ for(const group of groups){
   const keys=new Set([...Object.keys(before[group]||{}),...Object.keys(after[group]||{})]);
   for(const key of keys){const a=JSON.stringify(before[group]?.[key]),b=JSON.stringify(after[group]?.[key]);if(a!==b)out.push({group,key,a,b});}
  }
  return out;
 }
 
-const now=capture(),counts=Object.fromEntries(GROUPS.map(g=>[g,Object.keys(now[g]).length]));
+const onlyAt=process.argv.indexOf('--only'),groups=onlyAt<0?GROUPS:process.argv[onlyAt+1].split(',').filter(g=>GROUPS.includes(g));
+if(!groups.length){console.error('--only takes '+GROUPS.join(','));process.exit(1);}
+if(onlyAt>=0&&process.argv.includes('--write')){console.error('--write records every group; use --accept with --only');process.exit(1);}
+const now=capture(groups),counts=Object.fromEntries(groups.map(g=>[g,Object.keys(now[g]).length]));
 if(process.argv.includes('--candidate')){
  writeFileSync(new URL('./enemy-data-candidate.json',import.meta.url),JSON.stringify(now,null,1)+'\n');
 }
@@ -62,7 +68,11 @@ if(process.argv.includes('--write')){
  console.log('baseline written',counts);
 }else{
  if(!existsSync(BASELINE)){console.error('No baseline: record it with --write on the pre-refactor commit.');process.exit(1);}
- const diff=differences(JSON.parse(readFileSync(BASELINE,'utf8')),now);
+ const base=JSON.parse(readFileSync(BASELINE,'utf8')),diff=differences(base,now,groups);
+ if(diff.length&&process.argv.includes('--accept')){
+  for(const d of diff){base[d.group]??={};if(d.b===undefined)delete base[d.group][d.key];else base[d.group][d.key]=now[d.group][d.key];console.log(`  accepted ${d.group} ${d.key}: ${d.a} -> ${d.b}`);}
+  writeFileSync(BASELINE,JSON.stringify(base,null,1)+'\n');console.log(`${diff.length} entries accepted into the baseline`,counts);process.exit(0);
+ }
  if(diff.length){console.error(`${diff.length} differences from the baseline:`);for(const d of diff)console.error(`  ${d.group} ${d.key}: ${d.a} -> ${d.b}`);process.exit(1);}
  console.log('identical to baseline',counts);
 }

@@ -11,6 +11,10 @@
 | [verification-notes-3.90-to-3.112.md](verification-notes-3.90-to-3.112.md) | 給驗證者的紙條.md | 3.90.0～3.167.1 各批驗收步驟（檔名沿用） | [給驗證者的紙條.md](../../給驗證者的紙條.md)（最新兩批與尚未驗證總表） |
 | [verification-notes-3.147-to-3.177.md](verification-notes-3.147-to-3.177.md) | 給驗證者的紙條.md | 3.168.x 兩批驗收步驟與 3.147.0～3.177.5 的尚未驗證總表（2026-09-25 使用者：都驗證過了，全部結案） | [給驗證者的紙條.md](../../給驗證者的紙條.md)（2026-09-25 起：推送後沒特別說即視為已驗） |
 | [readme-notes-to-3.35.md](readme-notes-to-3.35.md) | README.md | README 檔頭 3.15.0～3.35.1 與「本次更新」3.3.0～3.14.0 的版本段落 | [README.md](../../README.md)、[CHANGELOG.md](../CHANGELOG.md) |
+| [handoff-to-3.206.md](handoff-to-3.206.md) | docs/HANDOFF.md | 3.206.0 以前的現況手冊：分工、長版模組地圖、各版接手段落與第 3 行的版本摘要 | [HANDOFF.md](../HANDOFF.md) |
+| [claude-handoff-to-3.206.md](claude-handoff-to-3.206.md) | 根目錄〈給Claude的交接.md〉 | Codex 與 Claude 的分工、授權範圍、存檔與介面不可退步的條件 | [AGENTS.md](../../AGENTS.md)（仍有效的規則已搬過去） |
+| [verification-notes-to-3.206.md](verification-notes-to-3.206.md) | 根目錄〈給驗證者的紙條.md〉 | 3.178～3.206.0 各版的檢查重點 | [CHANGELOG.md](../CHANGELOG.md) 每版最後一行「試玩重點」 |
+| [changelog-to-3.189.md](changelog-to-3.189.md) | docs/CHANGELOG.md 後段 | 3.189.0 以前的全部版本紀錄 | [CHANGELOG.md](../CHANGELOG.md) |
 
 DESIGN.md 後半的核心規則沒有封存，搬到了 [CORE_RULES.md](../CORE_RULES.md)。
 

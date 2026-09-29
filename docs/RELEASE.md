@@ -1,30 +1,28 @@
 # 發布與 GitHub Pages
 
-使用者的持續要求：每次完成工作都推至 `https://github.com/darkbearlab/ash_protocol`，並整合到 **main**。不要只留下分支或本機修改；不要 force push main。
+遊戲網址：`https://darkbearlab.github.io/ash_protocol/`。倉庫：`https://github.com/darkbearlab/ash_protocol`，整合到 **main**，不要 force push main。推送要使用者同意：做完先提交，使用者說推才推（「做完後推上去」這類指示就是同意）。
 
-遊戲網址：`https://darkbearlab.github.io/ash_protocol/`。
+## 每次交付（3.206.1 起）
 
-## 每次交付
+1. 版本號：`npm run bump -- x.y.z`，一次改 `package.json`、`src/version.js`、`sw.js` 的快取名稱；`tests/release.test.mjs` 會在三者不一致時失敗。
+2. 交件檢查照 [CHECKLIST.md](CHECKLIST.md) 第 1 節：完整 `npm test`、動到存檔或敵人招式時跑存檔隨機測試、身分基準、改到文字時跑英文檢查、`npm run build`。同一份沒改過的程式，通過的結果可以沿用。
+3. 文件：
+   - CHANGELOG 新版本放最上面：做了什麼、使用者的決定與 Claude 自己的判斷、驗證數字、審查結果；**最後一行「試玩重點：」**寫使用者要實際看的地方（取代舊的驗證紙條，使用者 2026-09-29 同意）。
+   - `qa/results/` 寫一份精簡報告：需求、做法、驗證（自己跑的與代理跑的分開寫）、審查找到什麼與怎麼修；CHANGELOG 已經寫的不重複。
+   - 對應規格照改；HANDOFF 只在架構、存檔、指令改變時更新。
+4. `git status` 確認只 stage 本批檔案，沒有秘密或暫存檔。
+5. 先 `git fetch`，確認 `origin/main` 是目前提交的祖先，再 `git push origin HEAD:main`。`[skip ci]` 的提交不要疊在程式提交上面一起推，不然整批都不會部署。
+6. `python tools/github-release.py status` 確認**這個 SHA** 的 Pages 工作流程 completed／success，線上 `src/version.js` 是新版本。部署結果補進報告（可以之後用 `[skip ci]` 的文件提交）。
 
-2026-09-09 使用者要求降低操作成本：瀏覽器／手機驗證交給使用者或其他 AI，見 [驗證紙條](../給驗證者的紙條.md)；開發端執行必要規則測試、build、main 推送與部署狀態確認。純文件交接不重跑遊戲測試。3.2.0 已獲授權開發；勿將尚未執行的外部 QA 標為通過。
-
-1. 將 UI 驗證情境交接給使用者／其他 AI，指定 `?test=1` 隔離頁面並列出未測項目。
-2. 版本號：`npm run bump -- x.y.z`，一次改 `package.json`、`src/version.js`、`sw.js` 的快取名稱（3.44.1 起）。說明頁與設定的 BUILD 字樣讀 `src/version.js`；`tests/release.test.mjs` 會在三者不一致時失敗。
-3. 依變更風險驗證：規則、存檔、生成器或共用模組改動，在本機跑完整 `npm test`；局部 UI／素材改動跑受影響測試與 `npm run build`，完整回歸由既有 CI 執行。同一份未變動程式的通過結果可沿用，只有後續修改、失敗或未解疑點才重跑。所有遊戲發布仍須完整 CI 測試及建置通過。
-4. 更新 CHANGELOG、對應的規格文件與報告，以及驗證紙條「最近推送的檢查重點」加一列（2026-09-25 使用者：推送後沒特別說就是驗證過了，狀態寫「已推送」）；HANDOFF 只在架構或流程改變時更新。
-5. `git status` 確認沒有秘密、暫存檔或未預期檔案。
-6. commit 後推至 origin/main；若用了分支，先正常合併到 main，禁止覆蓋遠端歷史。
-7. 確認 `.github/workflows/pages.yml` 成功；線上 BUILD 與素材載入由接手驗證者確認。
-
-新增 `src/` 模組時，同步加進 `sw.js` 的 `FILES`（`tests/save-safety.test.mjs` 會檢查）。
+新增 `src/` 模組時，同步加進 `sw.js` 的 `FILES` 與 `index.html` 的 `data-modules` 數量（測試會檢查）。
 
 ## 純文件交付
 
-只改不影響執行的 Markdown（如 AGENTS、說明、交接、報告），檢查差異、連結與指示是否矛盾後提交並推 main；不升遊戲版本、不跑遊戲測試或 build，也不新增一整套遊戲驗收文件。此類提交可用 `[skip ci]` 避免重部署相同遊戲，交付時說明文件已同步、線上遊戲不變。程式、設定、工作流程、生成資料、可執行腳本或素材改動不適用。
+只改不影響執行的 Markdown：檢查差異、連結與指示有沒有矛盾，提交並推 main（同樣要使用者同意）；不升遊戲版本、不跑遊戲測試。提交訊息加 `[skip ci]`，交付時說明線上遊戲不變。
 
 ## 查詢與結束
 
-發布只追蹤本次 SHA 的一個工作流程，集中等待結果，避免反覆列舉整個歷史。通過必要檢查、完成 main 推送與所需部署確認後即交付；不為擴大驗證而重跑相同檢查。遵守宿主要求的進度回報頻率，內容保持簡短。
+發布只追蹤本次 SHA 的一個工作流程，等它完成就好，不重跑已經通過的檢查。
 
 ## 自動部署
 

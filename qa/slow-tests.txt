@@ -1,0 +1,39 @@
+# Slow tests skipped by `npm run test:quick` (tools/test-quick.mjs), one exact test name per line.
+# Each took over 8 s in the full suite (3.206.0). They still run in `npm test` and in CI on every push.
+# A renamed test simply runs again in the quick suite, so this list never hides a failure from the full run.
+600 generated floors: cover never traps player, exit, enemies or items
+100 seeds: every floor, enemy and supply is reachable; spawns do not overlap
+three-floor contract targets are reachable, deterministic and independent of combat RNG for 100 seeds
+runtime generation is deterministic, conserves normal enemies/supplies, excludes objectives and preserves v1
+v1 compatibility: Soldier and Recon play dark six-floor campaigns to an end with legal actions
+slot generation through floor 60 preserves required content and enemy budget while adding safe modules and empty caches
+v2 campaigns terminate without invalid actions across both starter simulations
+600 floors retain one or two distinct modules and exactly one main-route and one side-route station
+annexes use real outer margins through floor 60 and preserve all original content and routes
+all generated cases remain reachable and contain unchanged classified rewards across 144 floors
+review 5: no 快速 or 紅外線 on the loyalist bosses; every other roll stays the same
+generation: about half the floors dig one pit, 2x2 to 5x5, inside a room, never on anything, and the floor stays whole
+generation through 60 preserves room graph, content and threat while adding only legal floor cells
+recipe maps through floor 60 satisfy all eight topology invariants with three distinct target rooms
+100 final maps place distinct reachable mission targets in separate rooms without changing loot or RNG
+about a third of floors 1-6 have a vault; each is a closet with nothing that must stay reachable
+each new floor has three deterministic dark rooms, with lit entrance and inherited corridor lighting
+an elite carries the keycard when the floor has one
+the high-rarity list: an exoskeleton, a plasma rifle with a drop-only affix, or carry-expansion data
+merged floors preserve population and supplies through floor 60 and meet geometry/mission invariants
+routes vary entrances, exits and connections; reward rooms remain reachable off the shortest route
+careless exposed squads kill quickly; shelter materially improves survival
+every floor stocks the field kit, and ammunition is no longer half the contents
+where a flamethrower comes from: flamers and unidentified crates only
+floors 7–60 generate accessible unique enemy posts and cyclic hazards, bosses, lore and guaranteed weapons
+generation preserves floor reachability and unique valid edges across seeds and all six floors
+post-combat population has 3–5 reachable researchers without altering combat or supplies, including floor60
+圍困 and 火牆 never seal you in, near walls, pits, corners and doors (random floors)
+phase three has spaced multiple passages, independently gated paths and no fully gated room links
+Thunder is loot-only, appears in later armories and heavy-enemy drops, and keeps the guaranteed cache
+vents: 0-2 a floor, one to a room, off the start and exit rooms, on free floor; swarm floors get toxic gas
+a floor that can hold a vault is common on floors 1-6
+endless factions and corpse positions are deterministic; encounters never repeat, no lore or demo corpses
+human facilities generate only their own units, with no fodder or nests
+the catalog: the rebels get 縱火者 and 焚線官; the legacy mix, the loyalists and the swarm keep theirs; the numbers
+v2 sweep and recovery reserve three distinct reachable non-expendable targets

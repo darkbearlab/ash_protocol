@@ -2,7 +2,7 @@
 
 直向手機瀏覽器的回合制戰術射擊 roguelike，中文與英文可在設定切換。目前版本見 `src/version.js`，遊玩：https://darkbearlab.github.io/ash_protocol/
 
-文件導覽：現況手冊 [docs/HANDOFF.md](docs/HANDOFF.md)、規格索引 [docs/DESIGN.md](docs/DESIGN.md)、每版變更 [docs/CHANGELOG.md](docs/CHANGELOG.md)、驗收紙條 [給驗證者的紙條.md](給驗證者的紙條.md)。3.36 之後的版本摘要只記在 CHANGELOG；下方各版段落是 3.35 以前的歷史說明。
+文件導覽：現況手冊 [docs/HANDOFF.md](docs/HANDOFF.md)、規格索引 [docs/DESIGN.md](docs/DESIGN.md)、每版變更 [docs/CHANGELOG.md](docs/CHANGELOG.md)、交件檢查 [docs/CHECKLIST.md](docs/CHECKLIST.md)。3.36 之後的版本摘要只記在 CHANGELOG；下方各版段落是 3.35 以前的歷史說明。
 
 原創科幻回合制射擊 roguelike，為手機瀏覽器設計。**↑ ↓ ← → 直接對應畫面上下左右**。每次有效行動，敵人也行動一次。
 

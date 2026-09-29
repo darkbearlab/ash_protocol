@@ -9,6 +9,7 @@
     "build": "node tools/build.mjs",
     "itch": "node tools/build.mjs && node tools/itch-package.mjs",
     "test": "node --test tests/*.test.mjs",
+    "test:quick": "node tools/test-quick.mjs",
     "bump": "node tools/bump-version.mjs",
     "balance": "node tools/balance.mjs",
     "recipes": "node tools/recipes.mjs",
