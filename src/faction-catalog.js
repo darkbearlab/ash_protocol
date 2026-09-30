@@ -12,6 +12,16 @@ const LOYALIST_NAMES={squad_leader:{name:t('loyalistNames.squad_leader.name')},r
  gunner:{name:t('loyalistNames.gunner.name')},sniper:{name:t('loyalistNames.sniper.name')},crawler:{name:t('loyalistNames.crawler.name')}};
 const REBEL_NAMES={drone:{name:t('rebelNames.drone.name')},brute:{name:t('rebelNames.brute.name')},rifleman:{name:t('rebelNames.rifleman.name')},raider:{name:t('rebelNames.raider.name')},raider_elite:{name:t('rebelNames.raider_elite.name')},
  gunner:{name:t('rebelNames.gunner.name')},gunner_elite:{name:t('rebelNames.gunner_elite.name')},sniper:{name:t('rebelNames.sniper.name')},crawler:{name:t('rebelNames.crawler.name')}};
+// 3.208.0 (user decisions 2026-09-30, docs/SWARM.md section 14): an override may also add traits, each with a rank when
+// it has one. A unit gets them when it is made (src/traits.js startingTraits with its faction; source `faction:<id>`),
+// and every load re-syncs them to this table (src/traits.js syncFactionTraits: a trait added here is added, one removed
+// is removed, an unchanged table changes nothing); a rank is read from this table through that source
+// (factionTraitRank), never saved. So a retune — a rank, or which units carry what — reaches the units a save holds. The swarm's own units only: the fodder, brood and crawler cards are shared with the legacy mix
+// (and the crawler with the loyalist and rebel dogs), which keep theirs. Agile larvae, and 近戰壓制 N on every biter
+// (src/suppression.js meleeSuppression); the bombers and spitters do not bite.
+const melee=n=>({id:'melee_suppression',rank:n});
+const SWARM_OVERRIDES={fodder:{name:t('factions.swarm.overrides.fodder.name'),traits:[melee(1)]},brood:{name:t('factions.swarm.overrides.brood.name'),traits:[{id:'agile'},melee(1)]},crawler:{name:t('factions.swarm.overrides.crawler.name'),traits:[melee(2)]},
+ giant_bug:{traits:[melee(3)]},hive_beast:{traits:[melee(5)]},hive_matriarch:{traits:[melee(5)]}};
 export const FACTIONS={
  legacy:{name:t('factions.legacy.name'),tag:false,roster:{
   early:[['rifleman',2],['raider',1],['gunner',1],['drone',1],['crawler',1]],
@@ -52,9 +62,13 @@ export const FACTIONS={
  },
  personality:{crawler:'feral',rifleman_infected:'mindless',raider_infected:'mindless',bomber:'mindless'},
  // preview (3.137.0, docs/DIFFICULTY.md): the special enemy floor 2 shows on the standard curve.
- bosses:{3:'hive_beast',6:'hive_matriarch'},scout:'rifleman_infected',preview:'spitter',retreatWave:['crawler','crawler'],fodder:'fodder',nestChild:'brood',overrides:{fodder:{name:t('factions.swarm.overrides.fodder.name')},brood:{name:t('factions.swarm.overrides.brood.name')},crawler:{name:t('factions.swarm.overrides.crawler.name')}}},
+ bosses:{3:'hive_beast',6:'hive_matriarch'},scout:'rifleman_infected',preview:'spitter',retreatWave:['crawler','crawler'],fodder:'fodder',nestChild:'brood',overrides:SWARM_OVERRIDES},
 };
 export const factionDef=id=>typeof id==='string'&&Object.hasOwn(FACTIONS,id)?FACTIONS[id]:undefined;
+// The traits a faction's override adds to one of its cards (3.208.0), as they go on the unit.
+export const factionTraits=(faction,type)=>(factionDef(faction)?.overrides?.[type]?.traits||[]).map(({id})=>({id,source:`faction:${faction}`}));
+// A unit's rank in a trait its faction gave it (3.208.0), read from the table through the trait's source: 0 when none does.
+export const factionTraitRank=(actor,id)=>Math.max(0,...(actor?.traits||[]).filter(t=>t.id===id&&typeof t.source==='string'&&t.source.startsWith('faction:')).map(t=>factionDef(t.source.slice(8))?.overrides?.[actor.type]?.traits?.find(x=>x.id===id)?.rank||0));
 export const expandRoster=entries=>entries.flatMap(([id,count])=>Array(count).fill(id));
 // The rules default stays the legacy mix, so saves, tests and baselines built without a choice are unchanged.
 export const pickFacilityFaction=(seed,mission)=>DEFAULT_FACTION;

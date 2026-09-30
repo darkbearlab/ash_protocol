@@ -213,6 +213,7 @@ const DOM_STEPS=[
    for(let i=0;i<3&&document.querySelector('#modal').open;i++){out+=H('#modal');click('#modal [data-modal="close"]')||click('#modal button');await wait(300);}return out+'floor '+__ashSim.game.floor+H('#level');`],
  ['boss-intro',`return await __rsBoss();`],
  ['operative-intro',`return 'operative';`],   // 3.207.0: a delisted operative's two-line intro (operativeIntro below)
+ ['swarm-card',`return 'swarm';`],   // 3.208.0: a swarm unit's traits on the target card and in the database (swarmCard below)
 ];
 
 // Helpers for the screens, loaded again after every page load. The build number is written as BUILD so a version
@@ -287,6 +288,7 @@ try{
   for(const [name,body] of DOM_STEPS){
    if(name==='boss-intro'){result.dom[name]=await bossIntro();continue;}
    if(name==='operative-intro'){result.dom[name]=await operativeIntro();continue;}
+   if(name==='swarm-card'){result.dom[name]=await swarmCard();continue;}
    try{result.dom[name]=await evaluate(`(async()=>{${body}})()`);}catch(error){result.dom[name]='ERROR '+String(error.message).split('\n')[0];}
   }
   console.log(`dom: ${Object.keys(result.dom).length} screens`);
@@ -330,6 +332,23 @@ async function operativeIntro(){
   for(let i=0;i<200&&line()===was;i++)await wait(50);
   const second=H('.comms-layer'),refused=__ashSim.act('wait')===false,held=Boolean(__ashSim.bossScene);
   return JSON.stringify({scene:s?{kind:s.kind,at:s.at}:null,tries,refused,held,deck:[...document.querySelectorAll('.control-deck button')].map(b=>b.disabled?1:0).join('')})+first+second;})()`).catch(error=>'ERROR '+error.message);
+}
+
+// 3.208.0: the swarm's own traits where traits are listed — a hunter bug on the target card (近戰壓制 2 階) and the
+// hostile database as a swarm facility lists its cards (蟲群幼體 · 敏捷 · 近戰壓制 1 階). A save of a swarm floor 1 with
+// a hunter bug two tiles off, continued from the title screen. With --png, a picture of the screen with the card.
+async function swarmCard(){
+ const save=await evaluate(`(async()=>{const E=await import('./src/engine.js');const g=new E.Game(1,[],0,'soldier','onyx','extraction',{facilityFaction:'swarm'}),p=g.player;
+  const spot=[[2,0],[-2,0],[0,2],[0,-2],[3,0],[-3,0],[0,3],[0,-3]].map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).find(q=>g.passable(q.x,q.y)&&!g.solid(q.x,q.y)&&!g.enemies.some(e=>e.hp>0&&e.x===q.x&&e.y===q.y)&&g.shotClear(p,q));
+  const e=g.spawnEnemy('crawler',spot.x,spot.y,'qa-hunter');g.enemies.push(e);g.target=e.id;g.reveal();return g.serialize();})()`);
+ await send('Page.navigate',{url:server.base+'/manifest.webmanifest'});await sleep(800);
+ await evaluate(`localStorage.setItem('qa-ash-save',${JSON.stringify(save)})`);
+ await load();await evaluate(DOM_HELPERS);
+ const card=await evaluate(`(async()=>{click('[data-modal="enter"]');await wait(400);for(let i=0;i<4&&document.querySelector('#modal').open;i++){click('#modal [data-modal="close"]')||click('#modal button');await wait(250);}
+  const g=__ashSim.game;g.target='qa-hunter';__ashSim.update();await wait(200);return H('#target-card');})()`).catch(error=>'ERROR '+error.message);
+ if(PNG){const shot=await send('Page.captureScreenshot',{format:'png'});await mkdir(PNG,{recursive:true});await writeFile(join(PNG,'swarm-card.png'),Buffer.from(shot.data,'base64'));}
+ const book=await evaluate(`(async()=>{openModal('bestiary');await wait(250);return H('#modal');})()`).catch(error=>'ERROR '+error.message);
+ return card+book;
 }
 
 await writeFile(OUT,JSON.stringify(result,null,1));

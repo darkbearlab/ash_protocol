@@ -58,7 +58,8 @@ export const SWARM_PAYLOADS=Object.freeze(['toxic','acid','spore']);
 export function swarmPayload(id){let h=0;for(const ch of String(id))h=(h*31+ch.charCodeAt(0))>>>0;return SWARM_PAYLOADS[h%SWARM_PAYLOADS.length];}
 export function makeEnemy(type,x,y,id,floor=1,offset=0,faction=DEFAULT_FACTION) {
   const def=ENEMY_TYPES[type],hp=def.expendable||isNoncombatant(type)?def.hp:scaleEnemy(def.hp+(isBossClass(type)?0:floorHpBonus(floor,offset,def.fragile)),floor,'hp',offset);
-  const e={id,type,x,y,hp,maxHp:hp,faction,...(isNoncombatant(type)?{screamCooldown:0}:{}),...(def.combat?{combatModifiers:{...def.combat}}:{}),...(def.expendable?{expendable:true,reinforcement:true,actionDelay:0}:{}),vaultExposed:false,traits:startingTraits(type,floor),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
+  const e={id,type,x,y,hp,maxHp:hp,faction,...(isNoncombatant(type)?{screamCooldown:0}:{}),...(def.combat?{combatModifiers:{...def.combat}}:{}),...(def.expendable?{expendable:true,reinforcement:true,actionDelay:0}:{}),vaultExposed:false,traits:startingTraits(type,floor,faction),moveDelta:[0,0],fireChain:null,control:{disabled:0,immune:0},lastKnown:null,alert:false,charge:false,windup:0,aim:null,attackCount:0,moved:false};
+  // 3.208.0: the traits its faction's override adds (startingTraits; the swarm's agile larvae and 近戰壓制).
   // 3.134.0 (docs/SWARM_FIELDS.md): a swarm spore bomber carries one sac, fixed by its id — no dice.
   if(faction==='swarm'&&def.sacs)e.traits=[...e.traits,{id:`payload_${swarmPayload(id)}`,source:'payload'}];
   return e;

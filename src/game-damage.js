@@ -11,6 +11,7 @@ import {injuryCallout} from './callouts.js';
 import {enemyDeath} from './enemy-behavior.js';
 import {enemyArmor,isFlamer} from './enemy-affixes.js';
 import {shotDamageAllowed} from './suppression.js';
+import {followUpRound} from './pursuit.js';
 import {petCombat,petDeath,petDefense,petHit,petRank,petReactions,petSurvives,syncPetSenses} from './pet-growth.js';
 import {collapseNest} from './runtime-enemies.js';
 import {objectSightGrid} from './scenery.js';
@@ -89,7 +90,8 @@ export class GameDamage {
     if(cause){if(this.teamVisible(e))this.log(t(`game.stepped.${cause}`,{target:enemyName(e),damage}),false,t(`game.stepped.${cause}Real`,{target:enemyName(e)}));}else if(ownKind)this.log(t('swarmBosses.hitOwn',{enemy:enemyName(attacker),target:enemyName(e),damage}),false,t('swarmBosses.hitOwnReal',{enemy:enemyName(attacker),target:enemyName(e)}));else this.log(t('game.hit',{target:enemyName(e),damage}),false,t('game.hitReal',{target:enemyName(e)}));
     if(e.hp>0)return;
     if(isNoncombatant(e)){this.log(t('game.civilianDown',{target:enemyName(e)}));enemyDeath(this,e);return;}
-    if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus)this.pursuitPending=true;
+    // 3.208.0 (src/pursuit.js): only a kill on the first round of the attack earns it.
+    if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus&&!followUpRound(this))this.pursuitPending=true;
     // 3.127.0: an enforcer's execution is not the player's kill, and a conscript pays out nothing.
     // 3.205.0: nor is a swarm boss's bite or charge on one of its own (`ownKind` above): no kill, xp or scrap.
     const executed=isEnforcer(attacker)||ownKind;

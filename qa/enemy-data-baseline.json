@@ -892,22 +892,22 @@
   "endless:1:3": "27b595970e645d54",
   "endless:1:6": "3c417540ec70ba34",
   "endless:1:12": "a9ad40fc98f435bd",
-  "endless:2:1": "d3016bad15947aa7",
-  "endless:2:3": "5e61a274dbceb7db",
-  "endless:2:6": "85943e08d90032a0",
-  "endless:2:12": "dffc6e2887e58ad1",
-  "endless:3:1": "d836ba232fb8f3cc",
+  "endless:2:1": "604b8f80e996f3bf",
+  "endless:2:3": "bc571465e2883be4",
+  "endless:2:6": "ee656d98ef1debbc",
+  "endless:2:12": "bbfb864206d53450",
+  "endless:3:1": "9df694d575ef4747",
   "endless:3:3": "187be2e96e7dc39d",
   "endless:3:6": "61973bb68c4db9c3",
   "endless:3:12": "4c5e5deabcc425cd",
   "endless:4:1": "1587b79e60da35bc",
   "endless:4:3": "45bfe86ec19d71ad",
-  "endless:4:6": "ab97ec18e1da8a96",
+  "endless:4:6": "67b376d83647f6f7",
   "endless:4:12": "d4557aad13fdff49",
   "endless:5:1": "69eb07ad5d755350",
-  "endless:5:3": "d56b11e916cf3bec",
+  "endless:5:3": "0fbee41f9da675a5",
   "endless:5:6": "53650de39a34a3db",
-  "endless:5:12": "a662dc399a13ffa0"
+  "endless:5:12": "54efb70ec7c9da24"
  },
  "bots": {
   "engineer:1": {
@@ -940,10 +940,10 @@
   "druid:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 459,
+   "turn": 607,
    "hp": 0,
-   "kills": 75,
-   "actions": 533,
+   "kills": 80,
+   "actions": 664,
    "invalid": 0
   },
   "druid:2": {
@@ -994,10 +994,10 @@
   "soldier:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 301,
+   "turn": 426,
    "hp": 0,
-   "kills": 54,
-   "actions": 334,
+   "kills": 68,
+   "actions": 476,
    "invalid": 0
   },
   "soldier:2": {
@@ -1039,19 +1039,19 @@
   "bulwark:3": {
    "status": "dead",
    "floor": 6,
-   "turn": 1227,
+   "turn": 1344,
    "hp": 0,
-   "kills": 180,
-   "actions": 1346,
+   "kills": 198,
+   "actions": 1503,
    "invalid": 0
   },
   "recon:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 368,
+   "turn": 347,
    "hp": 0,
-   "kills": 59,
-   "actions": 447,
+   "kills": 58,
+   "actions": 420,
    "invalid": 0
   },
   "recon:2": {

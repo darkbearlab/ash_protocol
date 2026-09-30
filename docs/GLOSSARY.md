@@ -151,7 +151,7 @@
 | 鉤鎖 | Grapple | `skills.grapple.name` |
 | 光學迷彩 | Optical Camouflage | `skills.camouflage.name` |
 
-## 被動特性（44）
+## 被動特性（45）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -199,6 +199,7 @@
 | 被標定 | Designated | `traits.designated.name` |
 | 被預警掃到 | Scanned | `traits.scanned.name` |
 | 近身投擲 | Close throw | `traits.close_throw.name` |
+| 近戰壓制 | Melee Suppression | `traits.melee_suppression.name` |
 
 ## 升級（37）
 

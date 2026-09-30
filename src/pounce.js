@@ -40,7 +40,9 @@ export function pounceAction(ctx){
   const hit=plan&&key(pending.origin)===key(e)&&key(pending.target)===key(g.player)&&key(pending.point)===key(plan.point);
   if(hit){
    land(g,e,plan.point);g.log(t('pounce.landed',{enemy:enemyDisplayName(e)}),true);
-   bite?.({...ctx,d:1,los:true});e.charge=false;e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
+   // 3.208.0 review fix (since 3.133.0): the pounce is aimed at you and lands beside you, so it bites you — not the unit
+   // the tree picked for the turn (an ally nearer the bug), which it used to hit from across the room.
+   bite?.({...ctx,p:g.player,d:1,los:true});e.charge=false;e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
    return true;
   }
   // A miss is still a leap: it goes where it said it would, if it can, and lands open.

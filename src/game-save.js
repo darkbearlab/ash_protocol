@@ -9,7 +9,7 @@ import {validSquad} from './squad.js';
 import {validRebels} from './rebels.js';
 import {dropStaleOperatives,validOperatives} from './delisted-operatives.js';
 import {migratePoison} from './poison.js';
-import {TRAIT_CAP,bodyKeyword,grantTrait,startingTraits,validCombatMemory,validTraits} from './traits.js';
+import {TRAIT_CAP,bodyKeyword,grantTrait,startingTraits,syncFactionTraits,validCombatMemory,validTraits} from './traits.js';
 import {validSwarmState} from './swarm.js';
 import {migrateCivilians,validCivilians} from './civilians.js';
 import {migrateElites,validElites} from './elite-enemies.js';
@@ -162,6 +162,11 @@ export class GameSave {
       // fire chain longer than the flat limit is clamped.
       if(version<69){for(const q of new Set([p,data.player])){if(q?.perks&&Object.hasOwn(q.perks,'soldier_braced')){q.perks.soldier_hunter=(q.perks.soldier_hunter||0)+q.perks.soldier_braced;delete q.perks.soldier_braced;}if(q?.fireChain&&Number.isInteger(q.fireChain.count)&&q.fireChain.count>3)q.fireChain.count=3;}
        if(Array.isArray(data.perkDraft?.ids))data.perkDraft.ids=data.perkDraft.ids.map(id=>id==='soldier_braced'?'soldier_hunter':id);}
+      // SAVE 86 (3.208.0, src/faction-catalog.js): faction-given traits (the swarm's agile larvae and 近戰壓制) follow the
+      // table on every load, whatever the version — this floor, your units and every kept floor, which the archive check
+      // below then reads: missing ones are added (a save from before 3.208.0), ones the table dropped are removed, and an
+      // unchanged table changes nothing (review). The rank is the table's, never saved.
+      syncFactionTraits(data);
       if((version>=7&&!validTraits(data.player.traits))||!validTraits(p.traits)||data.enemies.some(e=>!validTraits(e.traits)))return null;
       const tacticalActors=[p,...data.enemies,...(data.allies||[])];
       if(version<34){for(const a of tacticalActors){if(a===p){a.cornerExposure=null;a.tactics=null;}else{delete a.cornerExposure;delete a.tactics;}}for(const frame of Object.values(data.floorStates||{}))for(const a of frame.enemies||[]){delete a.cornerExposure;delete a.tactics;}}

@@ -3,6 +3,7 @@ import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {validSuppression} from './suppression.js';
 import {ENEMY_TYPES,SIZE} from './data.js';
 import {enemyStartingTraitIds} from './enemy-data.js';
+import {factionTraits,factionTraitRank} from './faction-catalog.js';
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const POINT_BLANK=Object.freeze({range:3,accuracy:10});
 export const TRAITS={
@@ -59,22 +60,48 @@ export const TRAITS={
   designated:{name:t('traits.designated.name'),text:t('traits.designated.text')},
   // 3.207.0: a delisted soldier's early warning, on you or your units (src/delisted-operatives.js).
   scanned:{name:t('traits.scanned.name'),text:t('traits.scanned.text')},
+  // 3.208.0 (user decisions 2026-09-30, docs/SUPPRESSION.md section 13): a melee hit that lands gives the unit it hit as
+  // many suppression stacks as the rank (src/suppression.js meleeSuppression). Only the swarm's biters carry it, through
+  // their faction's override (src/faction-catalog.js), which also holds the rank.
+  melee_suppression:{name:t('traits.melee_suppression.name'),text:t('traits.melee_suppression.text')},
 };
 export function hasTrait(actor,id){return (actor?.traits||[]).some(t=>t.id===id);}
 export function activeTrait(actor,id){return hasTrait(actor,id)&&!hasTrait(actor,TRAITS[id]?.opposite);}
 export const initiative=actor=>activeTrait(actor,'fast')?-1:activeTrait(actor,'slow')?1:0;
 export const sizeModifier=actor=>activeTrait(actor,'large')?15:activeTrait(actor,'small')?-15:0;
 export const movementModifier=actor=>activeTrait(actor,'agile')?13:activeTrait(actor,'clumsy')?-13:0;
-// Suppression resistance stacks by source, so its label carries the rank (3.75.1).
-export function traitLabels(actor){const shown=(actor?.traits||[]).filter(t=>!t.source.startsWith('affix:')||actor.affixes?.some(a=>a.revealed&&t.source===`affix:${a.id}`));return [...new Set(shown.map(t=>t.id))].map(id=>t('traits.label',{name:TRAITS[id].short||TRAITS[id].name,rank:id==='suppression_resistance'?t('traits.rank',{n:Math.min(3,new Set(shown.filter(s=>s.id===id).map(s=>s.source)).size)}):'',cancelled:activeTrait(actor,id)?'':t('traits.cancelled')}));}
+// Suppression resistance stacks by source, so its label carries the rank (3.75.1); a trait a faction gives with a rank
+// (近戰壓制, 3.208.0) carries the table's (factionTraitRank).
+const labelRank=(actor,shown,id)=>id==='suppression_resistance'?Math.min(3,new Set(shown.filter(s=>s.id===id).map(s=>s.source)).size):factionTraitRank({type:actor?.type,traits:shown},id);
+export function traitLabels(actor){const shown=(actor?.traits||[]).filter(t=>!t.source.startsWith('affix:')||actor.affixes?.some(a=>a.revealed&&t.source===`affix:${a.id}`));return [...new Set(shown.map(t=>t.id))].map(id=>{const n=labelRank(actor,shown,id);return t('traits.label',{name:TRAITS[id].short||TRAITS[id].name,rank:n?t('traits.rank',{n}):'',cancelled:activeTrait(actor,id)?'':t('traits.cancelled')});});}
 export function tickTraits(actor){actor.traits=(actor.traits||[]).flatMap(t=>t.turns===undefined?[t]:t.turns>1?[{...t,turns:t.turns-1}]:[]);}
 // The most traits a save may carry (66 legacy entries plus the two senses the v17 migration adds).
 export const TRAIT_CAP=68;
 export function validTraits(traits){return Array.isArray(traits)&&traits.length<=TRAIT_CAP&&traits.filter(t=>t?.id==='suppression_resistance').length<=3&&new Set(traits.filter(t=>t?.id==='suppression_resistance').map(t=>t.source)).size===traits.filter(t=>t?.id==='suppression_resistance').length&&traits.every(t=>t&&typeof t==='object'&&!Array.isArray(t)&&typeof t.id==='string'&&Object.hasOwn(TRAITS,t.id)&&typeof t.source==='string'&&/^[a-zA-Z0-9:_-]{1,100}$/.test(t.source)&&(t.turns===undefined||(Number.isInteger(t.turns)&&t.turns>0&&t.turns<=999)));}
 export const bodyKeyword=type=>ENEMY_TYPES[type]?.mechanical?'mechanical':'biological';
-export function startingTraits(type,floor=1){
+// 3.208.0: with its faction, the traits that faction's override adds to the card too (src/faction-catalog.js).
+export function startingTraits(type,floor=1,faction=null){
   const ids=enemyStartingTraitIds(type,floor);
-  return ids.map(id=>({id,source:`enemy:${type}`}));
+  return [...ids.map(id=>({id,source:`enemy:${type}`})),...(faction?factionTraits(faction,type):[])];
+}
+// A card as the units of a faction carry it (3.208.0): the hostile database and the text tool list a card with the
+// traits its facility's units get, ranks included (蟲群幼體 · 敏捷 · 近戰壓制 1 階).
+export const cardTraitLabels=(type,floor,faction)=>traitLabels({type,traits:startingTraits(type,floor,faction)});
+// Every load (SAVE 86, 3.208.0; review): a unit's faction-given traits follow the table as it is now — the ones it no
+// longer lists for the unit are dropped (a removed trait never shows as a rankless label or keeps working), missing ones
+// are appended (a save from before 3.208.0, or a trait added later). Nothing else moves: with the table unchanged the
+// list is left exactly as it was, so a load changes nothing and a replay stays identical. This floor, your units and
+// every kept floor. Never past the cap.
+function syncUnitFactionTraits(e){
+  if(!e||!Array.isArray(e.traits))return;
+  const want=factionTraits(e.faction,e.type),same=(a,b)=>a.id===b.id&&a.source===b.source;
+  const kept=e.traits.filter(t=>!(typeof t?.source==='string'&&t.source.startsWith('faction:'))||want.some(w=>same(w,t)));
+  const missing=want.filter(w=>!kept.some(t=>same(w,t))).slice(0,Math.max(0,TRAIT_CAP-kept.length));
+  if(kept.length===e.traits.length&&!missing.length)return;
+  e.traits=[...kept,...missing];
+}
+export function syncFactionTraits(data){
+  for(const e of [...(data.enemies||[]),...(data.allies||[]),...Object.values(data.floorStates||{}).flatMap(f=>f?.enemies||[])])syncUnitFactionTraits(e);
 }
 export function initiativeQueue(player,enemies,allies=[]){return [player,...allies.filter(a=>a.hp>0),...enemies.filter(e=>e.hp>0)].map((actor,index)=>({actor,index,speed:initiative(actor)})).sort((a,b)=>a.speed-b.speed||a.index-b.index);}
 

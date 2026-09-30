@@ -115,8 +115,10 @@ test('衝鋒: a round of warning draws the lane; then everyone on it is knocked 
   assert.deepEqual([e.x,e.y],[8,10],'it runs to the end of the lane');assert.equal(e.chargeIntent,undefined);assert.equal(e.chargeCooldown,C.cooldown);
   assert.deepEqual([e.charge,e.aim,e.windup],[false,null,1],'no blow left wound up behind the charge');
   assert.equal(e.crashed,undefined,'no wall at the end: not stunned');assert.equal(e.control.disabled,0);
+  // 3.208.0 (近戰壓制 5): the ram pins you too, so the knocked-down round is a wait (a move would be refused as pinned).
+  assert.equal(g.player.suppression,5);assert.equal(a.suppression,5,'your unit too');
   // Disabled a round: your next action is lost, the one after is yours.
-  fixed(g,.999);const x=g.player.x;g.action('move',[0,g.player.y<10?-1:1]);assert.equal(g.player.x,x);assert.equal(g.player.y,side.y,'the knocked-down round');
+  fixed(g,.999);const x=g.player.x;g.action('wait');assert.equal(g.player.x,x);assert.equal(g.player.y,side.y,'the knocked-down round');
   assert.equal(g.player.control.disabled,0);assert.equal(e.chargeCooldown,C.cooldown-1,'a round has passed on its cooldown');
   // A blow it had wound up before it lowered its head is dropped for the charge.
   const w=field(),b=boss(w,'hive_beast',16,10);Object.assign(b,{charge:true,aim:{x:15,y:10},windup:1});w.enemyAct(b);assert.ok(b.chargeIntent);assert.deepEqual([b.charge,b.aim],[false,null]);
@@ -156,6 +158,7 @@ test('衝鋒 into a wall: it stops there, stunned a round, and +20 to hit it unt
   assert.deepEqual([e.x,e.y],[10,10],'stopped against the wall (you were knocked aside)');
   assert.equal(e.control.disabled,1);assert.equal(e.crashed,true);assert.equal(e.vaultExposed,true);assert.equal(e.moved,false,'dazed where it stands');
   assert.equal(g.accuracy(g.player,e).vaultBonus,20,'a shot: +20');assert.equal(crashBonus(e),C.crashBonus);
+  g.player.suppression=0;   // 3.208.0: the ram pinned you (近戰壓制 5); measured without your stacks, which would floor the chance
   const blow=g.meleeAccuracy(g.player,e,40);e.crashed=undefined;assert.equal(blow-g.meleeAccuracy(g.player,e,40),20,'a blow: +20');e.crashed=true;
   g.target=e.id;assert.match(targetDetails(g).state,/撞牆暈眩 \+20/);
   // Its next turn is lost and the opening closes with it.
@@ -252,7 +255,7 @@ test('產蟲巢: the sac never cuts off floor you can reach, and is laid nearest
 });
 
 test('saves: a charge, a stunned beast, a sac and her nests come back; stale warnings are dropped; bad ones refused',()=>{
-  assert.equal(SAVE_VERSION,85);
+  assert.equal(SAVE_VERSION,86);
   const g=field(),b=boss(g,'hive_beast',16,10,'beast'),m=boss(g,'hive_matriarch',16,14,'mother');
   g.enemyAct(b);m.nestIntent={x:13,y:12};m.nestCooldown=0;
   g.props.push({id:'mother-nest-0',type:'nest',x:14,y:16,hp:45,maxHp:45,nest:{active:true,total:3,interval:2,remaining:2,cooldown:2,serial:1}});

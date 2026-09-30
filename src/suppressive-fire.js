@@ -6,6 +6,7 @@ import {presentStep} from './presentation.js';
 import {spentCase} from './traces.js';
 import {bladeMultiplier} from './melee-classes.js';
 import {recordShot} from './traits.js';
+import {attackRound} from './pursuit.js';
 export const suppressiveArea=(g,point)=>areaCells(g.grid,point,1,g.barriers,g);
 export function suppressiveReason(g,point){
  const p=g.player,w=g.weapon;
@@ -24,7 +25,8 @@ export function suppressiveFire(g,point){
  if(w.melee||p.ammo[p.weapon]<T.skillRounds)return g.fail(t('suppressive-fire.magShort'));
  const cells=new Set(suppressiveArea(g,point).map(key)),targets=g.enemies.filter(e=>e.hp>0&&cells.has(key(e))).sort((a,b)=>a.id.localeCompare(b.id));
  const hits=new Set(),shots=Math.min(T.skillRounds+(w.extraRounds||0),p.ammo[p.weapon]);let cursor=0,rounds=0;
- for(let i=0;i<shots&&p.hp>0;i++)presentStep(g,()=>{
+ // 3.208.0 (src/pursuit.js): each round is a round of its own; only the first can earn pursuit.
+ for(let i=0;i<shots&&p.hp>0;i++)presentStep(g,()=>attackRound(g,i,()=>{
   // 3.207.0 (review): a cloaked delisted ninja is no target you can track (Game.cloakedFrom); its rounds go to the point.
   const available=targets.filter(e=>e.hp>0&&distance(p,e)<=w.range&&g.sight(p,e)&&!g.cloakedFrom?.(p,e)&&g.shotClear(p,e));
   const target=available.length?available[cursor++%available.length]:null,to=target||point;
@@ -40,7 +42,7 @@ export function suppressiveFire(g,point){
   if(w.splash)for(const other of eligible.filter(e=>e.hp>0&&e!==target&&distance(e,target)<=1&&g.visible(e)))g.hitTarget(other,Math.round(damage*.45),p,w.pierce||0);
   for(const [e,hp] of before)if(e.hp<hp)hits.add(e);
   recordShot(p,target.id,g.turn);
- });
+ }));
  // 3.185.0: the skill's rounds are a suppressive volley however few, as they were before the five-round threshold.
  finishSuppression(targets,hits,Math.max(rounds,T.weaponRounds),T.skillStacks,g);for(const e of targets){g.noticeAttack(e);e.alert=true;e.lastKnown={x:p.x,y:p.y};}g.log(t('suppressive-fire.fired',{n:rounds}));return true;
 }

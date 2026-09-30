@@ -29,7 +29,7 @@ import {flameCells,liveFlameIntent} from '../src/fire.js';
 import {gunCells,liveGun,liveMarkIntent} from '../src/loyalist-bosses.js';
 import {targetDetails} from '../src/target-card.js';
 import {pelletChance} from '../src/shotgun.js';
-import {traitLabels,startingTraits} from '../src/traits.js';
+import {traitLabels,cardTraitLabels} from '../src/traits.js';
 import {suppressionStatus} from '../src/suppression-ui.js';
 import {grenadeMarkers} from '../src/affix-ui.js';
 import {tongueTelegraphs} from '../src/swarm.js';
@@ -299,7 +299,7 @@ function codexRows(g,type){
  const e=ENEMY_TYPES[type];if(!e)return [`圖鑑沒有 ${type}。`];
  const name=enemyName({type,faction:g.facilityFaction});
  return [`圖鑑 ${type}：${name} · 生命 ${e.hp} · 射程 ${e.range} · 護甲 ${e.armor||0}${e.damage?` · 傷害 ${e.damage.min??e.damage}-${e.damage.max??e.damage}`:''}${e.revealRange?` · 只在 ${e.revealRange} 格內看得到`:''}`,
-  `  ${e.role||''}${startingTraits(type,g.floor).length?` · 被動：${traitLabels({traits:startingTraits(type,g.floor)}).join('、')}`:''}`];
+  `  ${e.role||''}${cardTraitLabels(type,g.floor,g.facilityFaction).length?` · 被動：${cardTraitLabels(type,g.floor,g.facilityFaction).join('、')}`:''}`];
 }
 
 // What the class panels show in the game: the pet's stomach and growth, the workshop's lines and chassis.

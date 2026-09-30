@@ -23,7 +23,7 @@ import {enemyDef} from './enemy-data.js';
 import {distance,key,DIRECTIONS,reachable} from './world.js';
 import {barrierBetween,edgeBlocks} from './barriers.js';
 import {occupied,allyName} from './allies.js';
-import {pinned} from './suppression.js';
+import {pinned,meleeSuppression} from './suppression.js';
 import {interruptEnemyIntent,enemyCallout,tickSpecials} from './enemy-intents.js';
 import {enemyDisplayName as enemyName,enemyArmor} from './enemy-affixes.js';
 import {scaleEnemy} from './endless.js';
@@ -103,7 +103,7 @@ function rush({g,e}){
    Object.assign(u,{x:to.x,y:to.y});if(you||g.enemies.includes(u)){u.cornerExposure=null;u.fireChain=null;}
    g.effects.push({type:'bossTelegraph',kind:'shove',from:{...q},to:{...to},damage:0});
   }
-  ram(g,e,u,to?C.damage:C.crush);knockDown(g,u);
+  const before=u.hp;ram(g,e,u,to?C.damage:C.crush);meleeSuppression(g,e,u,before);knockDown(g,u);   // 3.208.0: the ram is a blow (近戰壓制)
   g.log(you?t(to?'swarmBosses.shovedYou':'swarmBosses.crushedYou',{n:C.disabled}):t(to?'swarmBosses.shoved':'swarmBosses.crushed',{name,n:C.disabled}),you);
  }
  if(e.hp<=0){g.reveal();return true;}   // its body stays where it fell; no run, no crash

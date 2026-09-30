@@ -1,6 +1,7 @@
 import {interruptEnemyIntent} from './enemy-intents.js';
 import {enemyDef} from './enemy-data.js';
 import {blocked} from './enemy-specials.js';
+import {factionTraitRank} from './faction-catalog.js';
 // One aggregate application per attack, after all source contributions are known.
 // weaponRounds 3 -> 5 (3.185.0, plan C): with the rifle's 3-round and the SMG's 4-round bursts, only the machine gun's
 // 5-round belt fire (and bigger volleys) suppresses, as before.
@@ -22,9 +23,20 @@ export function applySuppression(actor,stacks){
  if(!amount)return 0;
  actor.suppression=Math.min(SUPPRESSION_TUNING.max,before+amount);if(pinned(actor)&&blocked(actor,'pin'))interruptEnemyIntent(actor,'suppressed');return actor.suppression-before;
 }
+// Stacks from one source and the cry that goes with them: pinned, or suppressed from nothing.
+function suppress(actor,stacks,game){const before=suppressionStacks(actor);applySuppression(actor,stacks);const after=suppressionStacks(actor);if(after>=SUPPRESSION_TUNING.pinned&&before<SUPPRESSION_TUNING.pinned)game?.enemyCallout(actor,'injury',{cue:'pinned'});else if(after>0&&!before)game?.enemyCallout(actor,'injury',{cue:'suppressed'});}
 export function finishSuppression(targets,hits,rounds,skillStacks=0,game=null){
- for(const actor of new Set([...targets,...hits])){const before=suppressionStacks(actor);applySuppression(actor,(targets.includes(actor)?skillStacks:0)+(rounds>=SUPPRESSION_TUNING.weaponRounds&&hits.has(actor)?SUPPRESSION_TUNING.weaponStacks:0));const after=suppressionStacks(actor);if(after>=SUPPRESSION_TUNING.pinned&&before<SUPPRESSION_TUNING.pinned)game?.enemyCallout(actor,'injury',{cue:'pinned'});else if(after>0&&!before)game?.enemyCallout(actor,'injury',{cue:'suppressed'});}
+ for(const actor of new Set([...targets,...hits]))suppress(actor,(targets.includes(actor)?skillStacks:0)+(rounds>=SUPPRESSION_TUNING.weaponRounds&&hits.has(actor)?SUPPRESSION_TUNING.weaponStacks:0),game);
 }
+// 3.208.0 近戰壓制 N (user decisions 2026-09-30, docs/SUPPRESSION.md section 13): a melee hit that lands gives the unit it
+// hit N stacks, N the attacker's rank (its faction's table, src/faction-catalog.js), through applySuppression like every
+// other source: resistance subtracts, machines are immune, the cap and the pin as always. Whoever it hit — you, your
+// units, a civilian or one of its own (使用者：都算，減少例外). "Lands" is the test the weapon suppression of the same
+// attack uses: the target's health dropped (`hpBefore`). Every melee path calls it: the card's blow (the blind one,
+// the pounce's and the tongue's bite on you or your units, src/enemy-behavior.js attack), the tongue's bite on anyone
+// else (src/swarm.js) and the charge's ram (src/swarm-bosses.js).
+export const meleeSuppressionRank=a=>factionTraitRank(a,'melee_suppression');
+export function meleeSuppression(game,attacker,target,hpBefore){const n=meleeSuppressionRank(attacker);if(n>0&&target&&target.hp<hpBefore)suppress(target,n,game);}
 // 3.145.0 (user decision): after the unit's own turn the stacks halve rounding up, except that one goes to zero:
 // 5 -> 3 -> 2 -> 1 -> 0 (they used to halve rounding down, 5 -> 2 -> 1 -> 0).
 export const decayedStacks=n=>n<=1?0:Math.ceil(n/2);

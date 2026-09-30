@@ -14,7 +14,7 @@ function enemyOverpen(g,e,p,damage,chance){
  if(next&&g.activeAllies.includes(next)&&g.rng()*100<chance)g.damageAlly(next,Math.round(damage*OVERPENETRATION),e);
 }
 import {activeTrait,recordShot} from './traits.js';
-import {pinned,finishSuppression,rapidFireModifiers} from './suppression.js';
+import {pinned,finishSuppression,meleeSuppression,rapidFireModifiers} from './suppression.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {sprayFlame,flameCells,flamerDamage,FLAMETHROWER} from './fire.js';
@@ -95,6 +95,7 @@ function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold
           else {g.log(t('enemy-behavior.miss',{enemy:enemyName(e),chance}),false,t('enemy-behavior.missReal',{enemy:enemyName(e)}));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         }
 if(p.hp<before)hits.add(p);
+ if(!fired)meleeSuppression(g,e,p,before);   // 3.208.0 近戰壓制: a blow that lands (the same test as `hits`)
  if(p===g.player&&p.hp<before)drinkBlood(g,e,before-Math.max(0,p.hp));   // 3.207.0: a delisted berserker's cut heals it
  }
  if(fired)finishSuppression([],hits,firedRounds,0,g);

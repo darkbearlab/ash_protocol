@@ -5,7 +5,7 @@ import {factionDef,enemyFaction} from './factions.js';
 import {birthRandom,revealEnemyAffix} from './enemy-affixes.js';
 import {activeTrait} from './traits.js';
 import {distance,DIRECTIONS,key} from './world.js';
-import {pinned} from './suppression.js';
+import {pinned,meleeSuppression} from './suppression.js';
 import {interruptEnemyIntent,tickSpecials} from './enemy-intents.js';
 import {registerSpecial,validSpecials,INTERRUPT_REASONS} from './enemy-specials.js';
 import {TONGUE_VISUAL} from './enemy-visuals.js';
@@ -63,7 +63,9 @@ function biteBody(ctx,body){
  // One of its own, or a civilian: the same blow, rolled the same way.
  const damage=scaleEnemy(def.damage+floorDamageBonus(g.floor,g.difficultySpec),g.floor,'damage',g.difficultySpec),hit=g.rng()*100<g.meleeAccuracy(e,body);
  g.effects.push({type:'enemyShot',attackerType:e.type,style:def.attackStyle||'claw',from:{x:e.x,y:e.y},to:{x:body.x,y:body.y},damage:0,...(hit?{}:{miss:true})});
- if(hit)g.hurt(body,Math.max(1,reduceDirectDamage(body,damage-enemyArmor(body))),e);
+ if(!hit)return;
+ const before=body.hp;g.hurt(body,Math.max(1,reduceDirectDamage(body,damage-enemyArmor(body))),e);
+ meleeSuppression(g,e,body,before);   // 3.208.0 近戰壓制: its own kind and civilians too (on you or your units: attack)
 }
 function lashTongue(ctx,s){
  const {g,e}=ctx;delete e.tongueIntent;e.tongueCooldown=SWARM_TUNING.tongueCooldown;

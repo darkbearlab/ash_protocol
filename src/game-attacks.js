@@ -28,6 +28,7 @@ import {distance} from './world.js';
 import {bracingBonus} from './combat.js';
 import {enemyName} from './game.js';
 import {launchReason} from './game-actions.js';
+import {attackRound} from './pursuit.js';
 // 3.179.0: a shot from a gun with the flash hider makes no muzzle flash (src/lighting.js, src/presentation.js).
 const flashHidden=w=>w.noFlash?{suppressed:true}:{};
 export class GameAttacks {
@@ -116,9 +117,10 @@ export class GameAttacks {
     p.facing=[Math.sign(e.x-p.x),Math.sign(e.y-p.y)];
     const singleShot=singleShotAt(w,distance(p,e||intent)),shots=volleyShots(w,distance(p,e||intent),p.ammo[p.weapon]);
     let rounds=0;const hits=new Set();
+    // 3.208.0 (src/pursuit.js): each round is a round of its own; only the first can earn pursuit.
     for(let i=0;i<shots;i++) {
       if(e.hp<=0||p.hp<=0)break;
-      presentStep(this,()=>{
+      presentStep(this,()=>attackRound(this,i,()=>{
         const round=rounds;this.recordExposure(p,e);p.ammo[p.weapon]-=roundCost(w,round);p.stats.shots++;rounds++;spentCase(this,p,w.ammoType);
         const range=this.weaponDamage(p.weapon,e),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
         const chance=this.fireChance(e);
@@ -133,7 +135,7 @@ export class GameAttacks {
         // one tile away, you and your allies too, takes half of it (an explosion loses 10 a tile), plus 爆破專家.
         if(w.blast){this.log(t('game.plasmaBurst'));this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round(damage*w.blast)+10+p.blastBonus,p,this.enemies.filter(o=>o!==e));}
         for(const [other,hp] of before)if(other.hp<hp)hits.add(other);
-      });
+      }));
     }
     finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),w.suppressive?Math.max(rounds,SUPPRESSION_TUNING.weaponRounds):rounds,0,this);   // 3.185.0: 速射 keeps its suppression
     if(this.enemies.includes(e))recordShot(p,e.id,this.turn);else p.fireChain=null;
@@ -197,10 +199,11 @@ export class GameAttacks {
       const shadow=classPerkRank(p,'ninja_shadowstep');if(ambush&&shadow&&!this.shadowBonus){this.shadowSteps=shadow>=2?2:1;this.log(t('game.shadowReady',{n:this.shadowSteps}));}
     });
     // 3.136.0 chainsaw: the rest of its cuts, each in a presentation step of its own so every number shows.
-    if(landed&&w.hits>1&&this.enemies.includes(target))for(let i=1;i<w.hits&&target.hp>0&&p.hp>0;i++)presentStep(this,()=>{
+    // 3.208.0 (src/pursuit.js): each cut after the first is a follow-up round.
+    if(landed&&w.hits>1&&this.enemies.includes(target))for(let i=1;i<w.hits&&target.hp>0&&p.hp>0;i++)presentStep(this,()=>attackRound(this,i,()=>{
       const d=this.weaponDamage(slot);this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:target.x,y:target.y},damage:0,miss:false});
       this.hitTarget(target,Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)),p,w.pierce||0,w);
-    });
+    }));
     return true;
   }
   // 3.136.0: the spear in hand (src/melee-weapons.js). One thrust along a straight line out to two tiles; every unit on
