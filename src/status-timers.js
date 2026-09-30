@@ -5,6 +5,7 @@ import {SWARM_TUNING} from './swarm-tuning.js';
 import {decayedStacks,suppressionStacks} from './suppression.js';
 import {TRAITS} from './traits.js';
 import {BOSS_TUNING,DESIGNATED,designatedTurns} from './loyalist-bosses.js';
+import {OPERATIVE_TUNING,SCANNED} from './delisted-operatives.js';
 
 // Poison drops one stack every poisonDecayTurns environment turns; poisonClock counts toward the next drop.
 export const poisonTurns=p=>p.poison>0?p.poison*SWARM_TUNING.poisonDecayTurns-(p.poisonClock||0):0;
@@ -27,7 +28,9 @@ export function timedStatusChips(g){
   if(skill('camouflage'))add('ghost',skill('camouflage'),'good',t('status-timers.camouflage',{n:skill('camouflage')}));
   // 3.204.0: a boss's mark on you is a bad state of its own, with what it does (src/loyalist-bosses.js).
   if(designatedTurns(p)){const n=designatedTurns(p),M=BOSS_TUNING.mark;add('reticle',n,'bad',t('status-timers.designated',{n,accuracy:M.accuracy,damage:Math.round(M.damage*100)}));}
-  for(const s of (p.traits||[]).filter(s=>s.turns>0&&TRAITS[s.id]&&s.id!==DESIGNATED))add('hourglass',s.turns,'',t('status-timers.trait',{name:TRAITS[s.id].name,turns:s.turns}));
+  // 3.207.0: a delisted soldier's early warning on you (src/delisted-operatives.js), with what it does.
+  {const n=(p.traits||[]).find(s=>s.id===SCANNED)?.turns||0,S=OPERATIVE_TUNING.scan;if(n)add('radar',n,'bad',t('status-timers.scanned',{n,accuracy:S.accuracy,damage:Math.round(S.damage*100)}));}
+  for(const s of (p.traits||[]).filter(s=>s.turns>0&&TRAITS[s.id]&&s.id!==DESIGNATED&&s.id!==SCANNED))add('hourglass',s.turns,'',t('status-timers.trait',{name:TRAITS[s.id].name,turns:s.turns}));
   for(const kind of ['smoke','toxic','spore','haze','steam']){const turns=cloudTurns(g,kind);if(turns)add('cloud',turns,kind==='smoke'||kind==='haze'?'':'bad',t('status-timers.cloud',{name:CLOUD_NAMES[kind]||t('status-timers.inSmoke'),turns}));}
   return out;
 }

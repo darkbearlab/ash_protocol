@@ -9,7 +9,7 @@ import {rollEnemyElite} from './elite-enemies.js';
 import {fireproof,hasEnemyTag,isNoncombatant} from './enemy-data.js';
 import {unitTree} from './behavior-tree.js';
 import {enemyOpportunity,executeEnemyTree} from './enemy-behavior.js';
-import {startSpecials} from './enemy-specials.js';
+import {startSpecials,endSpecials} from './enemy-specials.js';
 import {rollEnemyAffixes} from './enemy-affixes.js';
 import {pinned} from './suppression.js';
 import {petReactions} from './pet-growth.js';
@@ -44,9 +44,12 @@ export class GameEnemyTurn {
     // As the turn begins (src/enemy-specials.js ORDER.start), before a decoy or a mine can take it: a boss's paint lands
     // wherever you are (3.204.0), then the matriarch's egg sac hatches (3.205.0; not her action).
     startSpecials(this,e);
+    // 3.207.0 (ORDER.end): after the turn, whatever took it, a delisted engineer's drone (not its action).
+    try{
     if(decoyAct(this,e))return;   // 3.144.0
     if(mineAct(this,e))return;    // 3.145.0: shoot a mine it watched go down
     return this.enemyOpportunity(e);
+    }finally{endSpecials(this,e);}
   }
   enemyOpportunity(e){return enemyOpportunity(this,e);}
   executeEnemy(e){return executeEnemyTree(this,e);}

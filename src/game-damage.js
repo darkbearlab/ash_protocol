@@ -22,6 +22,7 @@ import {PREPARED_CATALOG} from './prepared.js';
 import {toxicShot} from './swarm-fields.js';
 import {FLAMETHROWER,flamerTank} from './fire.js';
 import {markDamage} from './loyalist-bosses.js';
+import {scanDamage} from './delisted-operatives.js';
 import {ammoDropChance,plateDrop} from './perks.js';
 import {allyName,occupied} from './allies.js';
 import {salvageBlueprint,unitDestroyed} from './workshop.js';
@@ -234,13 +235,14 @@ export class GameDamage {
     if(this.decoy&&affected(this.decoy))damageDecoy(this,Math.max(1,damage-distance(origin,this.decoy)*10));
     for(const m of (this.mines||[]).filter(affected))detonateMine(this,m);
   }
-  damagePlayer(raw,label,attacker=null,blast=false) {
+  // `projectile` (3.207.0): the blow's own, when it is not the card's (a delisted ninja's knife on a card with an SMG).
+  damagePlayer(raw,label,attacker=null,blast=false,projectile=undefined) {
     const p=this.player,cover=!blast&&attacker?this.protectingCover(p,attacker):null;
-    let damage=blast?raw:raw*markDamage(this,attacker);   // 3.204.0: +20% from any enemy while a boss's mark is on you
+    let damage=blast?raw:raw*markDamage(this,attacker)*scanDamage(this,attacker,p);   // 3.204.0: +20% from any enemy while a boss's mark is on you; 3.207.0: +10% from a delisted soldier that scanned you
     if(cover){damage*=1-coverEffects(cover,p,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);}
     if(!blast&&attacker&&toxicShot(this,attacker,p,this.actorWeapon(attacker)))damage*=.5;   // 3.134.0 mist
     // 3.185.0 (plan C): an enemy's gun meets your armor by its ammunition's curve too; claws, blades and blasts subtract.
-    const ammo=attacker&&!blast?PROJECTILE_AMMO[ENEMY_TYPES[attacker.type]?.projectile]:null,mult=ammo?ammoMultiplier(ammo,p.armor):null;
+    const ammo=attacker&&!blast?PROJECTILE_AMMO[projectile??ENEMY_TYPES[attacker.type]?.projectile]:null,mult=ammo?ammoMultiplier(ammo,p.armor):null;
     damage=reduceDirectDamage(p,meleeDefense(p,Math.max(1,Math.round(mult===null?damage-p.armor:damage*mult))));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
     // 3.144.0: a worn exoskeleton's plates take their share of the hit (half of it) before your own plates do.
     const half=Math.floor(damage/2),frame=exoAbsorb(this,half),absorbed=Math.min(p.plates||0,half-frame);p.plates=(p.plates||0)-absorbed;damage-=frame+absorbed;
@@ -253,7 +255,7 @@ export class GameDamage {
     petReactions(this);syncPetSenses(this);
   }
   damageAlly(a,raw,attacker=null,blast=false,environment=false){
-    if(a.hp<=0||a.status!=='active')return;const cover=!blast&&attacker?this.protectingCover(a,attacker):null;let damage=raw;
+    if(a.hp<=0||a.status!=='active')return;const cover=!blast&&attacker?this.protectingCover(a,attacker):null;let damage=blast?raw:raw*scanDamage(this,attacker,a);   // 3.207.0: a delisted soldier's scan
     if(cover){damage*=1-coverEffects(cover,a,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);}
     if(!blast&&attacker&&toxicShot(this,attacker,a,this.actorWeapon(attacker)))damage*=.5;   // 3.134.0 mist
     if(!environment)petCombat(this,a);damage=reduceDirectDamage(a,Math.max(1,Math.round(damage-a.armor)));

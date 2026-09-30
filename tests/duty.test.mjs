@@ -34,7 +34,7 @@ test('the day record counts deployments and starts over on a new day or when dam
 });
 
 test('a run keeps its officer through a save, and runs from SAVE 70 are Egret\'s',()=>{
- assert.equal(SAVE_VERSION,84);
+ assert.equal(SAVE_VERSION,85);
  assert.equal(new Game(3).duty,DEFAULT_DUTY,'bare games and fixtures default to Egret');
  const g=new Game(3,[],0,'soldier','onyx','extraction',{duty:'wren'});
  assert.equal(g.duty,'wren');

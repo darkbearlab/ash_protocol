@@ -1,5 +1,6 @@
 import {t} from './i18n.js';
 import {receiveCallout} from './callouts.js';
+import {enemyDef} from './enemy-data.js';
 import {INTERRUPT_REASONS,ORDER,pick,countMax,registerSpecial,validActorSpecials} from './enemy-specials.js';
 // Uncommitted tells cancel on death, disruption, forced movement, or loss of a tracked shot: the wound-up shot here, and
 // every special as its declaration says (src/enemy-specials.js `interrupt`, in ORDER.ids) — which reasons drop it, and
@@ -22,8 +23,10 @@ export function enemyCallout(g,actor,kind,detail={}){if(!CALLOUT_KINDS.includes(
 // src/enemy-behavior.js) and goes off early at the enforcer's rally (src/rebels.js). It resolves in the affix branches,
 // after the orders (src/enemy-behavior.js). Saves: checked early, on this floor's player, enemies and allies (only a
 // revealed grenadier may hold one), with the loader's own point check (Game.restore); never trimmed.
-registerSpecial({id:'grenade',intent:'grenadeIntent',carries:e=>Boolean(e.affixes?.some(a=>a.id==='grenadier')),
- fields:{grenadeIntent:{scope:'actor',valid:(v,e,point)=>e.hp>0&&!e.control.disabled&&e.affixes?.some(a=>a.id==='grenadier'&&a.revealed)&&v.stage==='prepare'&&(v.stun===undefined||v.stun===true)&&(v.targetId===undefined||typeof v.targetId==='string'&&v.targetId.length<=100)&&point(v)&&point(v.origin)}},
+// 3.207.0: a delisted soldier's card (`grenades`) throws the same grenade when you come too close (src/delisted-operatives.js).
+export const throwsGrenades=e=>Boolean(e.affixes?.some(a=>a.id==='grenadier'))||Boolean(enemyDef(e)?.grenades);
+registerSpecial({id:'grenade',intent:'grenadeIntent',carries:throwsGrenades,
+ fields:{grenadeIntent:{scope:'actor',valid:(v,e,point)=>e.hp>0&&!e.control.disabled&&(e.affixes?.some(a=>a.id==='grenadier'&&a.revealed)||Boolean(enemyDef(e)?.grenades))&&v.stage==='prepare'&&(v.stun===undefined||v.stun===true)&&(v.targetId===undefined||typeof v.targetId==='string'&&v.targetId.length<=100)&&point(v)&&point(v.origin)}},
  interrupt:{on:INTERRUPT_REASONS},
  blocks:{mine:true,stepOff:true},
  lock:e=>e.grenadeIntent?.targetId,

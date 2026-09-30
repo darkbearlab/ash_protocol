@@ -1,3 +1,4 @@
+import {setOperativeDraw} from '../src/operative-draw.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,makeEnemy,generate,ENEMY_TYPES,SAVE_VERSION,scaleEnemy,floorDamageBonus,makeBarrier,VOID,giveEnemyAffix,reachable,rollEnemyAffixes,ENEMY_AFFIXES} from '../src/engine.js';
@@ -69,12 +70,14 @@ test('the catalog: the rebels get 縱火者 and 焚線官; the legacy mix, the l
   const fast=ENEMY_AFFIXES.find(x=>x.id==='fast'),infrared=ENEMY_AFFIXES.find(x=>x.id==='infrared');
   for(const type of ['arsonist','burnline']){const e=makeEnemy(type,5,5,'x',6,0,'rebel');assert.equal(fast.applies(e),false);assert.equal(infrared.applies(e),false);}
   for(let seed=1;seed<=16;seed++)for(const floor of [3,6,9,12])for(const e of generate(seed,floor,[],0,'rebel').enemies)if(['arsonist','burnline'].includes(e.type))assert.ok(!e.affixes.some(x=>['fast','infrared'].includes(x.id)),`${seed}:${floor}`);
-  // Generated floors: rebel 3, 6 and 9 hold them; the legacy mix never does.
-  for(const seed of [3,11]){
+  // Generated floors: rebel 3, 6 and 9 hold them; the legacy mix never does. 3.207.0: with the delisted operatives' draw
+  // off (src/operative-draw.js); 30% of floors 6, 9, 12... meet one instead.
+  setOperativeDraw(()=>null);
+  try{for(const seed of [3,11]){
     for(const [floor,type] of [[3,'arsonist'],[6,'burnline'],[9,'arsonist'],[12,'burnline']])assert.ok(generate(seed,floor,[],0,'rebel').enemies.some(e=>e.type===type),`${seed}:${floor}`);
     const three=generate(seed,3,[],0,'legacy').enemies,six=generate(seed,6,[],0,'legacy').enemies;
     assert.ok(three.some(e=>e.type==='warden')&&six.some(e=>e.type==='boss'));assert.ok(![...three,...six].some(e=>['arsonist','burnline'].includes(e.type)));
-  }
+  }}finally{setOperativeDraw(null);}
 });
 
 test('fireproof: burning floor, a spray, your flamethrower and the fixed fire do nothing to them; a blast still does',()=>{
@@ -355,7 +358,7 @@ test('priority: a warned wall, ring or sweep goes off first — no decoy, mine, 
 });
 
 test('saves: walls, rings, heat, venting, a marked spray and a set-up flamethrower come back; bad ones are refused',()=>{
-  assert.equal(SAVE_VERSION,84);
+  assert.equal(SAVE_VERSION,85);
   const g=field(),b=boss(g,'arsonist',15,10,'ars'),l=boss(g,'burnline',16,16,'burn');
   b.special='ring';g.enemyAct(b);b.heat=2;l.burn={stage:'sweep',origin:{x:16,y:16},aim:{x:12,y:16},left:2};l.special='mark';l.markReady=g.turn+3;
   const raw=g.serialize(),back=Game.restore(raw);assert.ok(back,'loads');

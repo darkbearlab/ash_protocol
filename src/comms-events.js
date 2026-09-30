@@ -11,12 +11,15 @@
 //   survivalWave             3.191.0: a survival wave announced, naming the points it goes for; survivalHunt (3.196.0)
 //                            when the whole wave comes for you
 //   survivalPressed          an enemy stands on a point (at most every few turns); survivalLost: a point falls
+//   cloakAlert               3.207.0: a hidden unit near you (src/detection.js; each detector's range and cooldown)
 // Which speaker says what is src/comms.js COMMS_LINES; an event nobody has a line for passes silently.
 import {logSlots} from './comms.js';
-import {isBossClass,isNoncombatant} from './enemy-data.js';
+import {isBossClass,isNoncombatant,enemyDef} from './enemy-data.js';
+import {unitCode} from './operative-draw.js';
 import {enemyDisplayName} from './enemy-affixes.js';
 import {t} from './i18n.js';
 import {pointName} from './survival.js';
+import {detectors,nearContacts} from './detection.js';
 
 export const COMMS_EVENT_TUNING=Object.freeze({squadDeploy:Object.freeze({cooldown:6}),squadReady:Object.freeze({cooldown:6}),survivalPressed:Object.freeze({cooldown:4})});
 // The points the newest announced survival wave goes for, and how soon it arrives.
@@ -51,7 +54,10 @@ export function commsEvents({game,before=null,logs=[],memory}){
  }
  const visible=(game.visibleEnemies||[]).filter(e=>e.hp>0),hostile=visible.filter(e=>!isNoncombatant(e));
  if(hostile.length&&!memory.contactFloors.includes(floor)){memory.contactFloors.push(floor);push('contact');}
- for(const e of hostile)if(isBossClass(e)&&!memory.bosses.includes(e.id)){memory.bosses.push(e.id);push('boss',{name:enemyDisplayName(e)},{actor:{id:e.id,type:e.type,x:e.x,y:e.y}});}
+ // 3.207.0: a delisted operative's serial goes with it (`code`, its intro lines read it out).
+ for(const e of hostile)if(isBossClass(e)&&!memory.bosses.includes(e.id)){memory.bosses.push(e.id);push('boss',{name:enemyDisplayName(e),...(enemyDef(e)?.operative?{code:unitCode(e)}:{})},{actor:{id:e.id,type:e.type,x:e.x,y:e.y}});}
+ // 3.207.0 (src/detection.js): something hidden from your side near you — a cloaked delisted ninja — once in a while.
+ for(const d of detectors())if(ready(d.event)&&nearContacts(game,d).length){events.push({type:d.event,vars:{}});memory.until[d.event]=turn+d.cooldown;}
  if(visible.some(e=>isNoncombatant(e))&&!memory.researcherFloors.includes(floor)){memory.researcherFloors.push(floor);push('researcher');}
  const earlier=before?.visible||new Set(),engaged=hostile.filter(e=>earlier.has(e.id)),fresh=hostile.filter(e=>!earlier.has(e.id));
  if(engaged.length&&fresh.length){

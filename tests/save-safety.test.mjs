@@ -8,6 +8,10 @@ import {SKILLS} from '../src/skills.js';
 import {SUMMON_INTERVAL} from '../src/allies.js';
 import {dailySeed,dateKey,dailyMission} from '../src/daily.js';
 import {MISSIONS} from '../src/missions.js';
+import {Game} from '../src/game.js';
+import {makeEnemy} from '../src/world.js';
+import {affixArena} from '../qa/enemy-affix-scenes.mjs';
+import {clearGeneratedMap} from './helpers/arena.mjs';
 
 // 3.44: traps that would only show up at the next format change, plus the salted daily seed.
 const memoryStorage=(memory,fail=()=>false)=>({getItem:k=>memory.get(k)??null,setItem:(k,v)=>{if(fail(k))throw new Error('quota');memory.set(k,v);},removeItem:k=>memory.delete(k)});
@@ -65,4 +69,18 @@ test('old save-version backups are pruned to the newest two',async()=>{
   storage.pruneSaveBackups();
   assert.deepEqual([...memory.keys()].filter(k=>k.startsWith('qa-ash-save-v')).sort(),['qa-ash-save-v61-backup','qa-ash-save-v64-backup']);
   assert.ok(memory.has('qa-ash-save')&&memory.has('ash-save-v50-backup')&&memory.has('qa-ash-profile-v6-backup'),'nothing else goes');
+});
+
+// 3.207.0 (independent review; the rule predates it): a load's look raises no alarm and moves no one's last-known spot.
+// Enemies are checked in one pass, so one that becomes alert and turns its flashlight on could light you for another
+// checked before it; a load's look used to be that second pass, and the restored run then differed from the saved one.
+test('a load alerts no one: the restored run is the run that saved it',()=>{
+  const g=affixArena();clearGeneratedMap(g);Object.assign(g.player,{x:10,y:10});g.reveal();
+  const e=makeEnemy('rifleman',13,10,'watcher',3,0,'loyalist');g.enemies.push(e);Object.assign(e,{alert:false,lastKnown:null});
+  assert.ok(g.sight(e,g.player),'it can see you: a look in play would alert it');
+  const copy=Game.restore(g.serialize()),mine=copy.enemies.find(x=>x.id==='watcher');
+  assert.equal(mine.alert,false);assert.equal(mine.lastKnown,null);
+  assert.equal(JSON.stringify(JSON.parse(copy.serialize()).data.enemies),JSON.stringify(JSON.parse(g.serialize()).data.enemies));
+  // A look in play still notices whoever can see you.
+  copy.reveal();assert.equal(mine.alert,true);assert.deepEqual(mine.lastKnown,{x:10,y:10});
 });

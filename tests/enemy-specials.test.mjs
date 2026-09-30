@@ -14,7 +14,7 @@ import {clearGeneratedMap} from './helpers/arena.mjs';
 test('every special in ORDER is declared, and every step point it names is registered',()=>{
  const r=registered();
  assert.deepEqual([...r.specials].sort(),[...ORDER.ids].sort(),'ORDER.ids and the declarations');
- for(const step of ['start','top','attack','rally'])assert.deepEqual([...r.steps[step]].sort(),[...ORDER[step]].sort(),`ORDER.${step} and its steps`);
+ for(const step of ['start','top','attack','rally','end'])assert.deepEqual([...r.steps[step]].sort(),[...ORDER[step]].sort(),`ORDER.${step} and its steps`);   // end: 3.207.0
  for(const id of ORDER.tick.flat()){const s=specialDef(id);assert.ok(s.fields[s.tick?.cooldown]?.count,`${id}: its tick counts down a declared count`);assert.equal(typeof s.tick.drop,'function',id);}
  for(const id of ORDER.card)assert.equal(typeof specialDef(id).card,'function',`${id}: a card line`);
  for(const id of ORDER.ids){
@@ -80,6 +80,9 @@ test('a special that goes off leaves no shot wound up behind it',()=>{
   pounceMiss:{card:'crawler',faction:'swarm',state:{pounceIntent:{origin:at(E),target:{x:10,y:11},point:{x:11,y:11}}}},
   lob:{card:'spitter',faction:'swarm',state:{lobIntent:{origin:at(E),point:at(T)}}},
   grenade:{card:'raider',affixes:['grenadier'],state:{grenadeIntent:{stage:'prepare',targetId:'player',x:10,y:10,origin:at(E)}}},
+  // 3.207.0: the delisted soldier's grenade and the delisted recon's smoke.
+  opGrenade:{card:'delisted_soldier',state:{grenadeIntent:{stage:'prepare',targetId:'player',x:10,y:10,origin:at(E)},scanCooldown:5}},
+  smoke:{card:'delisted_recon',state:{smokeIntent:{origin:at(E),point:{x:11,y:10}}}},
  };
  const kept=[];
  for(const [id,c] of Object.entries(cases)){

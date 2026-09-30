@@ -30,7 +30,7 @@ export const FACTIONS={
   personality:{rifleman:'disciplined',rifleman_armored:'disciplined',raider:'disciplined',raider_armored:'disciplined',gunner:'disciplined',sniper:'cunning',squad_leader:'commander',drone:'mindless',civilian:'fleeing'},
   // 3.204.0 (user design 2026-09-29, docs/BOSSES.md section 2): the loyalists' own bosses, 標定官 and 火線官. A floor already
   // generated keeps the boss it has; the legacy mix keeps the warden and the core guard (the rebels had them until 3.206.0).
-  bosses:{3:'designator',6:'gunline'},scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
+  bosses:{3:'designator',6:'gunline'},delisted:true,scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
  rebel:{name:t('factions.rebel.name'),tag:true,pickable:true,voice:'rebel',eliteAffixes:4,roster:{
   early:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',1],['crawler',1],['raider_elite',1],['enforcer',1]],
   late:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',2],['brute',1],['sniper',1],['crawler',1],['raider_elite',1],['gunner_elite',1],['enforcer',1]],
@@ -40,8 +40,9 @@ export const FACTIONS={
  // 3.206.0 (user design 2026-09-29, docs/BOSSES.md section 3): the rebels' own bosses, 縱火者 and 焚線官 (src/rebel-bosses.js).
  // A floor already generated keeps the warden or core guard it has. The table holds the faction's own bosses only: the
  // delisted operative (3.207.0, docs/BOSSES.md section 5) replaces the floor-6 one by a draw where the floor asks for its
- // boss (factionBoss's caller, src/world.js), so this entry stays what an undrawn floor gets.
- bosses:{3:'arsonist',6:'burnline'},scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:REBEL_NAMES},
+ // boss (factionBoss's caller, src/world.js), so this entry stays what an undrawn floor gets. `delisted` (3.207.0): this
+ // faction's floor-6 boss (and every boss floor after it in endless) may be one (src/operative-draw.js).
+ bosses:{3:'arsonist',6:'burnline'},delisted:true,scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:REBEL_NAMES},
  // Swarm (3.83.0, user): creature cards and infected soldiers, a giant bug, oversized bug bosses and burrow nests only.
  // The venom shot, the tongue pull and the infected affixes come with the Codex rules (docs/SWARM.md).
  swarm:{hordeType:'brood',infectedAffixes:['venomous','brood_host'],name:t('factions.swarm.name'),tag:true,pickable:true,voice:'creature',nestStyle:'burrow',roster:{

@@ -2,7 +2,8 @@ import {addSwarmWaves} from './swarm-waves.js';
 import {addNoncombatants} from './civilians.js';
 import {rollEnemyElite} from './elite-enemies.js';
 import {DEFAULT_FACTION,factionPool,factionBoss,factionDef} from './factions.js';
-import {isBossClass,isNoncombatant} from './enemy-data.js';
+import {isBossClass,isNoncombatant,enemyDef} from './enemy-data.js';
+import {drawnOperative,operativeType,operativeCode} from './operative-draw.js';
 import {rollEnemyAffixes} from './enemy-affixes.js';
 import {fillUnknownContainers} from './learning-data.js';
 import {addRuntimePopulation} from './runtime-enemies.js';
@@ -75,7 +76,7 @@ export function previewSpecial(map,seed,floor,difficulty,faction){
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeVents(placeLamps(placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor),seed,floor),seed,floor,faction);}   // vents: 3.202.0, after everything else   // lamps: 3.178.0, after everything else stands
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;if(enemyDef(e)?.operative)e.code=operativeCode(seed,floor,e.id);e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeVents(placeLamps(placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor),seed,floor),seed,floor,faction);}   // vents: 3.202.0, after everything else   // lamps: 3.178.0, after everything else stands
 // 3.135.0 (user decision, docs/ITEMS.md): once everything else stands, each of the floor's two terminals takes its kind
 // and moves to the supply room of that kind. Done last, so nothing else on the floor shifts; the room's reserved console
 // corner is tried first, and a terminal that finds no free tile there that keeps the floor safe stays put, still typed.
@@ -173,7 +174,10 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
   rooms.forEach((r,i)=>{
     const posts=reservationPosts(r,{legacy:!v2,deep:floor>6});
     if(i!==startRoom)for(let j=0;j<(3+extraEnemies(floor)+(floor>=3&&rng()<.45?1:0));j++) {
-      const drawn=i===endRoom&&j===0&&factionBoss(faction,info.cycleFloor)?factionBoss(faction,info.cycleFloor):pool[Math.floor(rng()*pool.length)];
+      // 3.207.0 (docs/BOSSES.md section 5): the boss's post may go to a delisted operative instead, by a hash of the seed and
+      // the floor (src/operative-draw.js), so no dice are spent either way and the rest of the floor draws the same.
+      const boss=i===endRoom&&j===0&&factionBoss(faction,info.cycleFloor),operative=boss?drawnOperative(seed,floor,faction):null;
+      const drawn=boss?operative?operativeType(operative):boss:pool[Math.floor(rng()*pool.length)];
       // A card may cap how many of it a floor can hold (3.125.0: one squad leader). The draw is never repeated, so the
       // seeded stream is identical; the card that is over its cap becomes the faction's plain scout.
       const card=ENEMY_TYPES[drawn],cap=floor>6?(card?.maxPerFloorDeep??card?.maxPerFloor):card?.maxPerFloor;

@@ -14,20 +14,25 @@ const F=Object.freeze;
 export const INTERRUPT_REASONS=F(['death','disabled','displaced','target_lost','suppressed']);
 export const ORDER=F({
  // Every special, in the order an interruption clears them and a save is trimmed.
- ids:F(['grenade','flame','tongue','pounce','lob','charge','nest','mark','gun','fire','burn','vent']),
- // Game.enemyAct, before the decoy and the mine: each runs (a mark landing, an egg hatching); none is the unit's action.
- start:F(['mark','nest']),
+ ids:F(['grenade','flame','tongue','pounce','lob','charge','nest','mark','gun','fire','burn','vent','scan','toss','smoke','drones','cloak']),
+ // Game.enemyAct, before the decoy and the mine: each runs (a mark landing, an egg hatching; 3.207.0: a delisted soldier's
+ // early warning, a delisted ninja fading back into its camouflage); none is the unit's action.
+ start:F(['mark','nest','scan','cloak']),
  // executeEnemyTree, before an order, a survival walk or anything else can move the unit: the first that acts ends the
- // turn. 'rebel' and 'swarm' are the bosses' own steps (src/rebel-bosses.js, src/swarm-bosses.js), each covering several.
- top:F(['flame','grenade','rebel','gun','swarm','pounce','lob']),
+ // turn. 'rebel' and 'swarm' are the bosses' own steps (src/rebel-bosses.js, src/swarm-bosses.js), each covering several;
+ // 'smoke' the delisted recon's throw (3.207.0, src/delisted-operatives.js).
+ top:F(['flame','grenade','rebel','gun','swarm','pounce','lob','smoke']),
  // After the orders, in place of the affix branches and the shot.
  attack:F(['flame']),
  // The enforcer's rally (src/rebels.js advanceCharge): a special primed to go off early.
  rally:F(['grenade']),
+ // 3.207.0: Game.enemyAct, after the unit's turn (whatever took it: its tree, a decoy, a mine): each runs (a delisted
+ // engineer's drone); none is the unit's action.
+ end:F(['drones']),
  // The round start (Game.action): one pass over the enemies per group, cooldowns first, then the drops.
- tick:F([F(['tongue']),F(['charge','nest']),F(['pounce']),F(['lob'])]),
+ tick:F([F(['tongue']),F(['charge','nest']),F(['pounce']),F(['lob']),F(['scan','toss','smoke','drones'])]),
  // The target card's lines, after 「即將攻擊」 (3.206.2: the grenade, the marked cone, the pounce and the lob first).
- card:F(['grenade','flame','pounce','lob','mark','gun','tongue','charge','nest','fire','vent','burn']),
+ card:F(['grenade','flame','pounce','lob','mark','gun','tongue','charge','nest','fire','vent','burn','smoke','cloak']),
 });
 // A declaration (registerSpecial):
 //  id, intent (the field that holds the warning), carries(e) (the cards or affixes that may hold it),
@@ -42,7 +47,7 @@ export const ORDER=F({
 //  gunless(e): no gun to hold on anyone (squads, the ambush watch, the rally); card(g,e,aim): target-card lines.
 // A step (registerStep): the owning module's function run at its point of the turn, and for a top step the units it can
 // act for (`carries`: tests/enemy-specials.test.mjs checks that no unit is carried by two top steps).
-const SPECIALS=new Map(),STEPS=Object.fromEntries(['start','top','attack','rally'].map(k=>[k,new Map()])),CARRIERS=new Map();
+const SPECIALS=new Map(),STEPS=Object.fromEntries(['start','top','attack','rally','end'].map(k=>[k,new Map()])),CARRIERS=new Map();
 // 3.206.2: a declaration holds only what the registry reads, so a number of its own (the lob's old literal 10) cannot hide in it.
 const KEYS=F({'':['id','intent','carries','fields','interrupt','tick','blocks','load','rotation','lock','gunless','card'],interrupt:['on','cooldown','run'],tick:['cooldown','drop'],blocks:['decoy','mine','stepOff','pin'],load:['clamp','stale','restart','enemy','game'],field:['valid','count','scope'],count:['max','min','carrier','clamp']});
 const unknown=(o,kind)=>Object.keys(o||{}).filter(k=>!KEYS[kind].includes(k));
@@ -66,6 +71,7 @@ export const countMax=(s,k)=>s.fields[k].count.max();
 
 // ---- the turn ------------------------------------------------------------------------------------------------------
 export function startSpecials(g,e){for(const id of ORDER.start)STEPS.start.get(id)?.(g,e);}
+export function endSpecials(g,e){for(const id of ORDER.end)STEPS.end.get(id)?.(g,e);}
 // The first step that takes the turn ends it (the steps short-circuit as `||` did).
 export const runStep=(step,ctx)=>ORDER[step].some(id=>STEPS[step].get(id)?.(ctx));
 export function rallySpecial(g,e){for(const id of ORDER.rally){const r=STEPS.rally.get(id)?.(g,e);if(r)return r;}return null;}

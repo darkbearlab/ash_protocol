@@ -51,6 +51,9 @@ export function tonguePlan(g,e,target=g.player){
  const point=hookLanding(g,e,target);return point?{point,origin:{x:e.x,y:e.y},target:{x:target.x,y:target.y}}:null;
 }
 let bite=null;
+// 3.207.0: a delisted berserker (src/delisted-operatives.js) throws the same line as a grapple (its card's `grapple`): the
+// same rules, its own words and colours.
+const grapple=e=>Boolean(enemyDef(e)?.grapple),hooked=g=>g?{grapple:true}:{};
 // The card's own attack lives in enemy-behavior.js, which hands it over (as for the pounce) so neither imports the other.
 export const useTongueHooks=({attack})=>{bite=attack;};
 const bodyName=(g,u)=>g.enemies.includes(u)?enemyDisplayName(u):allyName(u);
@@ -69,15 +72,16 @@ function lashTongue(ctx,s){
  // further off: over it to free floor beside the boss, or the tongue slips.
  const lane=key(s.origin)===key(e)?tongueLane(g,s.origin,s.target):[],body=tongueCatch(g,e,lane),drag=Boolean(body)&&(distance(body,e)>1||!g.canCross(body,e)),point=drag?hookLanding(g,e,body,s.point):null;
  // Nothing on the line, or nowhere beside it to drag the catch to: it lashes out to its reach and back, empty.
- if(!body||drag&&!point){const end=lane[lane.length-1]||s.target;g.effects.push({type:'tonguePull',sourceId:e.id,from:{...end},to:{...s.origin},origin:{...s.origin},damage:0,miss:true});g.log(t('swarm.tongueMissed'));return true;}
+ if(!body||drag&&!point){const end=lane[lane.length-1]||s.target;g.effects.push({type:'tonguePull',sourceId:e.id,from:{...end},to:{...s.origin},origin:{...s.origin},damage:0,miss:true,...hooked(grapple(e))});g.log(t(grapple(e)?'operatives.grappleMissed':'swarm.tongueMissed'));return true;}
  if(point){
   const from={x:body.x,y:body.y};Object.assign(body,point);
   if(body===g.player){Object.assign(body,{moved:true,moveDelta:[point.x-from.x,point.y-from.y],cornerExposure:null,fireChain:null,guard:false,focus:false,evasive:false});}
   else if(g.enemies.includes(body)){interruptEnemyIntent(body,'displaced');Object.assign(body,{moved:true,moveDelta:[point.x-from.x,point.y-from.y],cornerExposure:null});}
-  g.effects.push({type:'tonguePull',sourceId:e.id,from,to:{...point},origin:{x:e.x,y:e.y},damage:0});
+  g.effects.push({type:'tonguePull',sourceId:e.id,from,to:{...point},origin:{x:e.x,y:e.y},damage:0,...hooked(grapple(e))});
  }
  // Review: dragged, or bitten where it stands (already beside the boss).
- if(point)g.log(body===g.player?t('swarm.tonguePulled'):t('swarm.tongueCaught',{name:bodyName(g,body)}),true);
+ if(grapple(e)){if(point)g.log(body===g.player?t('operatives.grapplePulled'):t('operatives.grappleCaught',{name:bodyName(g,body)}),true);else g.log(body===g.player?t('operatives.grappleCuts'):t('operatives.grappleCutsOther',{name:bodyName(g,body)}),true);}
+ else if(point)g.log(body===g.player?t('swarm.tonguePulled'):t('swarm.tongueCaught',{name:bodyName(g,body)}),true);
  else g.log(body===g.player?t('swarm.tongueBites'):t('swarm.tongueBitesOther',{name:bodyName(g,body)}),true);
  g.reveal();
  biteBody(ctx,body);e.attackCount=(e.attackCount||0)+1;
@@ -93,10 +97,10 @@ export function tongueAction(ctx){
  const plan=tonguePlan(g,e,ctx.p||g.player);
  if(!plan)return false;
  interruptEnemyIntent(e,'target_lost');e.tongueIntent=plan;
- g.effects.push({type:'tongueTelegraph',sourceId:e.id,from:{...plan.origin},to:{...plan.target},landing:{...plan.point},damage:0});g.log(t('swarm.tongueTaut'),true);return true;
+ g.effects.push({type:'tongueTelegraph',sourceId:e.id,from:{...plan.origin},to:{...plan.target},landing:{...plan.point},damage:0,...hooked(grapple(e))});g.log(t(grapple(e)?'operatives.grappleTaut':'swarm.tongueTaut'),true);return true;
 }
 // 3.205.0: with the lane it will fly along, as the game stands now (the renderer shades the tiles you can see).
-export const tongueTelegraphs=g=>g.enemies.filter(e=>e.hp>0&&e.tongueIntent).map(e=>({kind:'tongue',sourceId:e.id,origin:{...e.tongueIntent.origin},target:{...e.tongueIntent.target},landing:{...e.tongueIntent.point},lane:tongueLane(g,e.tongueIntent.origin,e.tongueIntent.target),interruptible:true}));
+export const tongueTelegraphs=g=>g.enemies.filter(e=>e.hp>0&&e.tongueIntent).map(e=>({kind:'tongue',sourceId:e.id,origin:{...e.tongueIntent.origin},target:{...e.tongueIntent.target},landing:{...e.tongueIntent.point},lane:tongueLane(g,e.tongueIntent.origin,e.tongueIntent.target),interruptible:true,...hooked(grapple(e))}));
 // 3.206.1 (src/enemy-specials.js): the tongue as the shared rules see it. Taut, it cannot turn on a decoy, shoot a mine
 // or step off a hazard, and a pin drops it; the round start counts the cooldown down and drops the warning for a fall, a
 // stun or a pin. It goes off in the swarm bosses' step (src/swarm-bosses.js swarmBossAction). Saves: a warning its boss
@@ -115,7 +119,7 @@ registerSpecial({id:'tongue',intent:'tongueIntent',carries:e=>Boolean(enemyDef(e
  tick:{cooldown:'tongueCooldown',drop:e=>e.hp<=0?'death':e.control?.disabled?'disabled':pinned(e)?'suppressed':null},
  blocks:{decoy:true,mine:true,stepOff:true,pin:true},
  load:{stale:e=>Boolean(e.tongueIntent&&typeof e.tongueIntent==='object'&&!(live(e)&&!pinned(e)&&at(e,e.tongueIntent.origin))),restart:'tongueCooldown'},
- card:(g,e)=>[e.tongueIntent?TONGUE_VISUAL.label:''],
+ card:(g,e)=>[e.tongueIntent?(grapple(e)?t('target-card.grappling'):TONGUE_VISUAL.label):''],
 });
 export const tickTongues=g=>tickSpecials(g,[['tongue']]);
 export function infectedDeath(g,e){

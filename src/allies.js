@@ -215,7 +215,8 @@ function mountedHit(g,a,e,w){
 function actAlly(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return;
  slotTurn.set(a,g.turn);a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return;
- let w=allyWeapon(a,g.player);const linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
+ // 3.207.0: a delisted ninja under its camouflage is no target for your units either (Game.cloakedFrom).
+ let w=allyWeapon(a,g.player);const linked=connected(g,a),targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=Math.max(8,w.range)&&g.sight(a,e)&&!g.cloakedFrom?.(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
  if(a.kind==='pet'&&targets.some(e=>distance(a,e)===1&&g.shotClear(a,e)&&g.canCross(a,e)))w=petWeapon(g.player,true);
  // A mounted explosive weapon never picks an enemy beside its own unit, so its radius-1 blast cannot hit itself.
  const shot=linked&&(a.kind!=='drone'||w.builtIn||a.ammo>0)?targets.find(e=>distance(a,e)<=w.range&&g.shotClear(a,e)&&(!w.melee||g.canCross(a,e))&&!(w.mounted&&w.explosive&&distance(a,e)<=1)):null;

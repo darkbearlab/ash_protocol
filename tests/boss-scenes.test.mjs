@@ -129,11 +129,11 @@ test('the controller plays them: locked while they run, your fall wins, reduced 
   assert.ok(source.includes("function skipEnabled(){return skipPresentation&&game.status==='playing'&&!bossScene;}"),'nor a skip');
   assert.ok(source.includes("function startKia(fall){\n  bossScene=null;"),'your own scene takes over');
   assert.ok(source.includes("if(kia||game.status!=='playing'||!firstBossScene(sceneMemory(),'death',fall.actorId))return;"),'the boss\'s scene gives way when you fell in the same turn');
-  assert.ok(source.includes("if(renderer.reduceMotion||replay||kia||bossScene||$('#modal').open){if(message)sayComms(message);return;}"),'reduced motion (or a replay, or a window open): the intro line only');
+  assert.ok(source.includes("if(renderer.reduceMotion||replay||kia||bossScene||$('#modal').open){for(const m of messages)sayComms(m);return;}"),'reduced motion (or a replay, or a window open): the intro lines only (3.207.0: two for a delisted operative)');
   assert.ok(source.includes('if(!replay||replay.paused||playback||bossScene||'),'a replay waits for a scene rather than losing a step');
   assert.ok(source.includes("game.pendingPerks&&game.status==='playing'&&!bossScene)showLevelUp();"),'a level-up waits for the scene');
   assert.ok(source.includes("if(renderer.reduceMotion||replay){if(message)sayComms(message);return;}"),'reduced motion: the kill line only');
-  assert.ok(source.includes('bossKillLine(dutySpeaker({game}),!game.exitBlocked)'),'the kill line only with the exit open');
+  assert.ok(source.includes('bossKillLine(dutySpeaker({game}),!game.exitBlocked,{},dead)'),'the kill line only with the exit open (3.207.0: a delisted operative is confirmed by its serial, whatever the exit)');
   assert.ok(source.includes('kiaTick();bossSceneTick();'));
 });
 
@@ -162,7 +162,10 @@ test('review 3: a boss intro jumps the comms queue, and its clock starts when he
   assert.deepEqual(frontOfQueue([a,b],intro,false),{queue:[intro,a,b],dropped:null},'nothing on the bar: nothing is dropped');
   const q=[a,b];frontOfQueue(q,intro,true);assert.deepEqual(q,[a,b],'the queue passed in is not changed');
   const source=sourceFamily('controller');
-  assert.ok(source.includes('if(message)sayCommsFirst({...message,shown:()=>{if(bossScene===scene&&scene.start===null)scene.start=performance.now();}'),'the intro goes first and starts its clock when shown');
+  // 3.207.0: several lines (a delisted operative's two) go first in their order; the first starts the clock, the last ends it.
+  assert.ok(source.includes('const shown=()=>{if(bossScene===scene&&scene.start===null)scene.start=performance.now();};'),'the clock starts when a line is shown');
+  assert.ok(source.includes('if(messages.length)sayCommsFirst(messages.map((m,i)=>({...m,...(i===0?{shown}:{}),...(i===messages.length-1?{then}:{})})));'),'the intro goes first and starts its clock when shown');
+  assert.deepEqual(frontOfQueue([a,b],[intro,c],true),{queue:[intro,c,b],dropped:a},'two intro lines keep their order at the front');
   assert.ok(source.includes('commsShownAt=performance.now();message?.shown?.();'),'the bar reports when a line is up');
   assert.ok(source.includes("if(s.kind==='intro'&&s.start===null){if(performance.now()-s.created>BOSS_SCENE_TUNING.intro.maxMs)endBossScene();return;}"),'a line that never comes up cannot hold the controls');
 });

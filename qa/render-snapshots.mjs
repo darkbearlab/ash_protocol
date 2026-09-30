@@ -165,6 +165,19 @@ const CANVAS={
  'feature-exit':`const g=L.feature(g=>g.exitPoint);return L.shot(g,null,{at:450});`,
  'feature-module':`const g=L.feature(g=>g.props.find(o=>o.type==='module'));return L.shot(g);`,
  'callout':`const g=L.arena(),e=L.enemy(g,'rifleman',13,10);g.effects=[];g.enemyCallout(e,'telegraph',{action:'aim'});const fx=g.effects;g.effects=[];return L.shot(g,R=>{R.addEffects(structuredClone(fx),0);},{at:200});`,
+ // 3.207.0 delisted operatives (src/delisted-operatives.js): each class in its class art, the soldier's scan, the recon's
+ // warned smoke and its cloud, the engineer's drones, the berserker's grapple, the ninja hidden, as noise and in haze,
+ // the bodies, and the last words over one.
+ 'op-soldier-scan':`const g=L.arena({faction:'loyalist'}),e=L.enemy(g,'delisted_soldier',14,10,{faction:'loyalist',state:{code:'R-0317'}});g.effects=[];g.enemyAct(e);const fx=g.effects;g.effects=[];return L.shot(g,R=>{R.addEffects(structuredClone(fx),0);},{at:150});`,
+ 'op-recon-smoke':`const g=L.arena({faction:'loyalist'});L.enemy(g,'delisted_recon',15,10,{faction:'loyalist',state:{code:'R-0317',smokeIntent:{origin:${at(15,10)},point:${at(12,10)}},smokeCooldown:7}});return L.shot(g,null,{at:120});`,
+ 'op-recon-cloud':`const g=L.arena({faction:'loyalist'}),e=L.enemy(g,'delisted_recon',15,10,{faction:'loyalist',state:{code:'R-0317',smokeIntent:{origin:${at(15,10)},point:${at(13,10)}},smokeCooldown:7}});g.effects=[];g.enemyAct(e);const fx=g.effects;g.effects=[];return L.shot(g,R=>{R.addEffects(structuredClone(fx),0);},{at:500});`,
+ 'op-engineer':`const g=L.arena({faction:'loyalist'});L.enemy(g,'delisted_engineer',15,10,{faction:'loyalist',state:{code:'R-0317',droneCooldown:2}});L.enemy(g,'drone',15,9,{faction:'loyalist',state:{id:'s0-drone-0'}});L.enemy(g,'munition',13,12,{faction:'loyalist',hp:10,state:{id:'s0-drone-1'}});return L.shot(g);`,
+ 'op-berserker-grapple':`const g=L.arena({faction:'rebel'});L.enemy(g,'delisted_berserker',14,10,{faction:'rebel',state:{code:'R-0317',tongueIntent:{origin:${at(14,10)},target:${at(10,10)},point:${at(13,10)}},tongueCooldown:1}});return L.shot(g);`,
+ 'op-ninja-hidden':`const g=L.arena({faction:'rebel'});L.enemy(g,'delisted_ninja',14,10,{faction:'rebel',state:{code:'R-0317'}});return L.shot(g);`,
+ 'op-ninja-noise':`const g=L.arena({faction:'rebel'});L.enemy(g,'delisted_ninja',13,10,{faction:'rebel',state:{code:'R-0317',decloaked:true}});return L.shot(g,null,{at:210});`,
+ 'op-ninja-haze':`const g=L.arena({faction:'rebel'});g.smoke.push({kind:'haze',expires:g.turn+2,cells:[${at(14,10)},${at(15,10)},${at(14,11)},${at(15,11)}]});L.enemy(g,'delisted_ninja',14,10,{faction:'rebel',state:{code:'R-0317'}});return L.shot(g,null,{at:500});`,
+ 'op-classes':`const g=L.arena({faction:'loyalist'});['soldier','recon','engineer','berserker','ninja'].forEach((c,i)=>L.enemy(g,'delisted_'+c,8+i*2,13,{faction:'loyalist',state:{code:'R-0317',decloaked:true}}));['soldier','recon','engineer','berserker','ninja'].forEach((c,i)=>{const e=L.enemy(g,'delisted_'+c,8+i*2,8,{faction:'loyalist',state:{code:'R-0317'}});e.hp=0;});return L.shot(g,null,{at:300});`,
+ 'op-last-words':`const g=L.arena({faction:'loyalist'}),e=L.enemy(g,'delisted_soldier',13,10,{faction:'loyalist',hp:1,state:{code:'R-0317'}});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});g.effects=[];g.action('fire');const fx=g.effects;g.effects=[];return L.shot(g,R=>{R.addEffects(structuredClone(fx),0);},{at:1200});`,
 };
 
 // Screens reached through the real UI; each step returns the HTML to keep (or nothing).
@@ -199,6 +212,7 @@ const DOM_STEPS=[
    Object.assign(g.player,spot);g.reveal();__ashSim.update();await wait(100);click('[data-action="interact"]');await wait(250);let out=H('#modal');const go=document.querySelector('#modal [data-context="descend"]');if(go){go.click();await settle();}
    for(let i=0;i<3&&document.querySelector('#modal').open;i++){out+=H('#modal');click('#modal [data-modal="close"]')||click('#modal button');await wait(300);}return out+'floor '+__ashSim.game.floor+H('#level');`],
  ['boss-intro',`return await __rsBoss();`],
+ ['operative-intro',`return 'operative';`],   // 3.207.0: a delisted operative's two-line intro (operativeIntro below)
 ];
 
 // Helpers for the screens, loaded again after every page load. The build number is written as BUILD so a version
@@ -272,6 +286,7 @@ try{
   await load();await evaluate(DOM_HELPERS);
   for(const [name,body] of DOM_STEPS){
    if(name==='boss-intro'){result.dom[name]=await bossIntro();continue;}
+   if(name==='operative-intro'){result.dom[name]=await operativeIntro();continue;}
    try{result.dom[name]=await evaluate(`(async()=>{${body}})()`);}catch(error){result.dom[name]='ERROR '+String(error.message).split('\n')[0];}
   }
   console.log(`dom: ${Object.keys(result.dom).length} screens`);
@@ -295,6 +310,26 @@ async function bossIntro(){
   while(!__ashSim.bossScene&&tries<6){__ashSim.act('wait');tries++;for(let i=0;i<60&&!__ashSim.bossScene;i++)await wait(50);}
   const s=__ashSim.bossScene,refused=__ashSim.act('wait')===false;
   return JSON.stringify({scene:s?{kind:s.kind,at:s.at}:null,tries,refused,modal:document.querySelector('#modal').open,deck:[...document.querySelectorAll('.control-deck button')].map(b=>b.disabled?1:0).join('')})+H('.comms-layer');})()`).catch(error=>'ERROR '+error.message);
+}
+
+// 3.207.0: a delisted operative's intro is two lines (its serial, then its class), and the controls stay locked through
+// both: a save on a loyalist floor 6 whose boss post the draw gave to a soldier (src/operative-draw.js's QA hook, in the
+// page that writes the save), the operative in view. Records the first line, then the second once it has replaced it.
+async function operativeIntro(){
+ const save=await evaluate(`(async()=>{const E=await import('./src/engine.js'),D=await import('./src/operative-draw.js');D.setOperativeDraw(()=>'soldier');
+  const g=new E.Game(1,[],0,'soldier','onyx','extraction',{facilityFaction:'loyalist'});g.floor=6;g.loadFloor();D.setOperativeDraw(null);
+  const b=g.enemies.find(e=>e.type==='delisted_soldier');const spots=[];for(let y=0;y<g.grid.length;y++)for(let x=0;x<g.grid.length;x++)if(g.grid[y][x]===1&&!g.solid(x,y)&&!g.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y)&&E.distance({x,y},b)>=3&&E.distance({x,y},b)<=5)spots.push({x,y});
+  const spot=spots.find(q=>{Object.assign(g.player,q);g.reveal();return g.visibleEnemies.includes(b);})||spots[0];
+  Object.assign(g.player,spot,{hp:900,maxHp:900});b.alert=true;g.reveal();return g.serialize();})()`);
+ await send('Page.navigate',{url:server.base+'/manifest.webmanifest'});await sleep(800);
+ await evaluate(`localStorage.setItem('qa-ash-save',${JSON.stringify(save)})`);
+ await load();await evaluate(DOM_HELPERS);
+ return evaluate(`(async()=>{click('[data-modal="enter"]');await wait(300);let tries=0;
+  while(!__ashSim.bossScene&&tries<6){__ashSim.act('wait');tries++;for(let i=0;i<60&&!__ashSim.bossScene;i++)await wait(50);}
+  const s=__ashSim.bossScene,first=H('.comms-layer'),line=()=>document.querySelector('.comms-layer .comms-line')?.textContent||'';const was=line();
+  for(let i=0;i<200&&line()===was;i++)await wait(50);
+  const second=H('.comms-layer'),refused=__ashSim.act('wait')===false,held=Boolean(__ashSim.bossScene);
+  return JSON.stringify({scene:s?{kind:s.kind,at:s.at}:null,tries,refused,held,deck:[...document.querySelectorAll('.control-deck button')].map(b=>b.disabled?1:0).join('')})+first+second;})()`).catch(error=>'ERROR '+error.message);
 }
 
 await writeFile(OUT,JSON.stringify(result,null,1));

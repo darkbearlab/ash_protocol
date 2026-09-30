@@ -24,6 +24,7 @@ import './prepared.js';   // load order only (3.206.3 split)
 import {bossAccuracy} from './loyalist-bosses.js';
 import {crashBonus} from './swarm-bosses.js';
 import {burnFlank} from './rebel-bosses.js';
+import {cloaked,outlined} from './delisted-operatives.js';
 import {ensurePerks} from './perks.js';
 import {currentAllies,localAllies,connected,allyWeapon,initializeAllies,carryCandidates} from './allies.js';
 import './workshop.js';   // load order only (3.206.3 split)
@@ -127,9 +128,13 @@ export class Game {
   // sight. It is per card so each unit can set its own — the loitering munition uses its own hook range, so it shows
   // itself exactly when it could reach you. Everything funnels through visible()/teamVisible(), so drawing, targeting,
   // the exposure count and the allies all obey the same number.
-  revealed(watcher,e){const reach=ENEMY_TYPES[e?.type]?.revealRange;return reach===undefined||distance(watcher,e)<=reach;}
-  visible(e){return this.revealed(this.player,e)&&distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e));}
-  teamVisible(e){return this.visible(e)||this.activeAllies.some(a=>connected(this,a)&&this.revealed(a,e)&&distance(a,e)<=8&&this.sight(a,e));}
+  // 3.207.0: a delisted ninja's optical camouflage hides it from whoever cannot see through it (src/delisted-operatives.js).
+  revealed(watcher,e){const reach=ENEMY_TYPES[e?.type]?.revealRange;return (reach===undefined||distance(watcher,e)<=reach)&&!cloaked(this,watcher,e);}
+  // Your units' own targeting (src/allies.js, src/workshop.js) asks this: they cannot pick out a cloaked ninja either.
+  cloakedFrom(watcher,e){return cloaked(this,watcher,e);}
+  // 3.207.0: a delisted ninja in the same thick cloud as the one looking shows its outline, though smoke blocks the view.
+  visible(e){return this.revealed(this.player,e)&&distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e)||outlined(this,this.player,e));}
+  teamVisible(e){return this.visible(e)||this.activeAllies.some(a=>connected(this,a)&&this.revealed(a,e)&&distance(a,e)<=8&&(this.sight(a,e)||outlined(this,a,e)));}
   sight(a,b){syncPetSenses(this);return !(b===this.player&&a!==this.player&&(skillActive(this.player)||decoyHides(this,a)))&&!(this.isActor(b)&&hiddenInDark(this,a,b))&&tacticalSight(this,a,b);}
   // 3.178.0 (docs/LIGHTING.md): the black hides people, not tiles, so sight still passes through it to what lies beyond.
   isActor(b){return b===this.player||Boolean(b&&typeof b.hp==='number'&&(this.enemies.includes(b)||this.allies.includes(b)));}
@@ -162,6 +167,9 @@ export class Game {
   // terminals and the exit where a tile is mapped; what lies loose (drops, bodies, traces) still needs `seen`.
   mapped(x,y){return Boolean(this.seen[y]?.[x]||this.survival&&this.grid[y]?.[x]!==undefined);}
   // `warnings:false` (restore only): a loaded save redraws what is seen but raises no new alarm; the next look in play does.
+  // 3.207.0 (independent review): nor does it alert anyone or move what they last knew. The enemies are checked in one
+  // pass, so one that turns its flashlight on can light you for another checked before it; a load's look used to be that
+  // second pass, and a restored run then differed from the one that saved it. The save already holds what play left.
   reveal({warnings=true}={}) {
     syncPetSenses(this);
     clearMovedExposure(this);
@@ -169,7 +177,7 @@ export class Game {
     this.visibleTiles=new Set();
     for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(distance(this.player,{x,y})<=radius&&this.sight(this.player,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
     for(const a of this.activeAllies.filter(a=>connected(this,a)))for(let y=Math.max(0,a.y-8);y<=Math.min(SIZE-1,a.y+8);y++)for(let x=Math.max(0,a.x-8);x<=Math.min(SIZE-1,a.x+8);x++)if(distance(a,{x,y})<=8&&this.sight(a,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
-    for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert&&!isNoncombatant(e))this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};if(warnings&&isNoncombatant(e))scream(this,e);else if(warnings&&isEnforcer(e))soundAlarm(this,e,target);}}
+    if(warnings)for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert&&!isNoncombatant(e))this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};if(warnings&&isNoncombatant(e))scream(this,e);else if(warnings&&isEnforcer(e))soundAlarm(this,e,target);}}
     forgetSeenAftermath(this);
     this.autoTarget();
   }

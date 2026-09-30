@@ -1,3 +1,4 @@
+import {OPERATIVE_CLASSES,operativeType} from '../src/operative-draw.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
@@ -17,6 +18,8 @@ test('faction catalog validates references and covers every current enemy card',
   for(const [id,n] of d.noncombatants?.roster||[]){assert.ok(ENEMY_TYPES[id]?.tags.includes('noncombatant'));assert.ok(Number.isInteger(n)&&n>0);used.add(id);}
   for(const entries of Object.values(d.roster))for(const [id,n] of entries){assert.ok(ENEMY_TYPES[id]);assert.ok(Number.isInteger(n)&&n>0);used.add(id);}
   for(const id of Object.values(d.bosses)){assert.ok(isBossClass(id));used.add(id);}
+  // 3.207.0: a faction that meets delisted operatives reaches their cards through the draw (src/operative-draw.js).
+  if(d.delisted)for(const cls of OPERATIVE_CLASSES){assert.ok(isBossClass(operativeType(cls)));used.add(operativeType(cls));}
   for(const id of [d.scout,...d.retreatWave,d.fodder,d.nestChild].filter(id=>id!==null)){assert.ok(ENEMY_TYPES[id]);used.add(id);}
   for(const [id,n] of Object.entries(d.affixWeights||{}))assert.ok(ENEMY_AFFIXES.some(a=>a.id===id)&&Number.isFinite(n)&&n>0);
   for(const id of Object.keys(d.overrides||{}))assert.ok(ENEMY_TYPES[id]);

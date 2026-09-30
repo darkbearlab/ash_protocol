@@ -19,8 +19,9 @@ import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {sprayFlame,flameCells,flamerDamage,FLAMETHROWER} from './fire.js';
 import {bossSpecial} from './loyalist-bosses.js';
+import {soldierSpecial,drinkBlood,decloak,lastWords} from './delisted-operatives.js';
 import {arsonistTurn,burnlineSpecial} from './rebel-bosses.js';
-import {interruptEnemyIntent,enemyCallout} from './enemy-intents.js';
+import {interruptEnemyIntent,enemyCallout,throwsGrenades} from './enemy-intents.js';
 import {unitTree,registerUnitTree,registerAffixBranch,runAffixBranches} from './behavior-tree.js';
 import {occupied} from './allies.js';
 import {stepOffHazard,hazardTile} from './hazard-paths.js';
@@ -90,12 +91,14 @@ function attack(ctx){const {g,e,p,def}=ctx;enemyCallout(g,e,'state',{state:'hold
         else if(unitTree(e).fixedTile&&distance(p,e.aim||p)>0){g.log(t('enemy-behavior.sniperHitsSpot'));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{...e.aim},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         else {
           petCombat(g,p);if(fired&&lightingEffects(g,{...e,traits:(e.traits||[]).filter(t=>t.id!=='night_vision')},p).penalty>0)revealEnemyAffix(g,e,'night_vision');const chance=blindChance(ctx,()=>def.range>1?g.accuracy(e,p).chance:g.meleeAccuracy(e,p,97-(ctx.blind?BLIND_TUNING.penalty:0)));
-          if(g.rng()*100<chance){if(def.venom){g.effects.push({type:'enemyShot',attackerType:e.type,style:'venom',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});poisonHit(g,e,p);}else{if(!poisonApplied)poisonApplied=poisonHit(g,e,p);if(p===g.player){g.damagePlayer(roundDamage,t('enemy-behavior.attackSource',{enemy:enemyName(e)}),e);if(['rifle','sniper'].includes(def.projectile)&&!(p.armor>0))enemyOverpen(g,e,p,roundDamage,chance);}else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}}
+          if(g.rng()*100<chance){if(def.venom){g.effects.push({type:'enemyShot',attackerType:e.type,style:'venom',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});poisonHit(g,e,p);}else{if(!poisonApplied)poisonApplied=poisonHit(g,e,p);if(p===g.player){g.damagePlayer(roundDamage,t('enemy-behavior.attackSource',{enemy:enemyName(e)}),e,false,def.projectile);if(['rifle','sniper'].includes(def.projectile)&&!(p.armor>0))enemyOverpen(g,e,p,roundDamage,chance);}else{g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});g.damageAlly(p,roundDamage,e);}}}
           else {g.log(t('enemy-behavior.miss',{enemy:enemyName(e),chance}),false,t('enemy-behavior.missReal',{enemy:enemyName(e)}));g.effects.push({type:'enemyShot',attackerType:e.type,from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0,miss:true,...(def.venom?{style:'venom'}:{})});}
         }
 if(p.hp<before)hits.add(p);
+ if(p===g.player&&p.hp<before)drinkBlood(g,e,before-Math.max(0,p.hp));   // 3.207.0: a delisted berserker's cut heals it
  }
  if(fired)finishSuppression([],hits,firedRounds,0,g);
+ decloak(e);   // 3.207.0: a delisted ninja shows itself the round it attacks
  return fired;
 }
 function grenade(ctx){const {g,e,p,los}=ctx,intent=e.grenadeIntent;
@@ -135,7 +138,7 @@ function flamerAct(ctx){
 // order or a survival walk could move it off the tile it aimed from. It used to go off with the affix branches, after the
 // orders, so an order walked it away and the throw was silently dropped (the 3.203.0 flamer lesson). Out of sight or out
 // of reach, or its target down, it is dropped there and the turn is spent, as before.
-registerStep('top','grenade',ctx=>{const {e,p,los}=ctx;if(!e.grenadeIntent)return false;if(los)e.lastKnown={x:p.x,y:p.y};grenade(ctx);return true;},e=>Boolean(e.affixes?.some(a=>a.id==='grenadier')));
+registerStep('top','grenade',ctx=>{const {e,p,los}=ctx;if(!e.grenadeIntent)return false;if(los)e.lastKnown={x:p.x,y:p.y};grenade(ctx);return true;},throwsGrenades);   // 3.207.0: a delisted soldier's too
 // 3.206.1: the enforcer's rally throws a primed grenade early (src/rebels.js advanceCharge; src/enemy-specials.js ORDER.rally).
 registerStep('rally','grenade',(g,e)=>{if(!e.grenadeIntent)return null;grenade({g,e,p:g.enemyTarget(e),def:ENEMY_TYPES[e.type],los:g.sight(e,g.enemyTarget(e)),d:distance(e,g.enemyTarget(e))});return 'grenade';});
 // 3.206.1 (src/enemy-specials.js ORDER.top, ORDER.attack): a flamer's marked cone goes off at the very top of its turn,
@@ -209,6 +212,19 @@ registerUnitTree('gunline',{special:ctx=>bossSpecial(ctx,reinforce,packWalk),aft
 // turns, walks while it packs up, and otherwise fights as the core guard's chassis does. Both call drones at half health.
 registerUnitTree('arsonist',{special:ctx=>arsonistTurn(ctx,reinforce,packWalk),after:reinforce});
 registerUnitTree('burnline',{special:ctx=>burnlineSpecial(ctx,reinforce,packWalk),after:reinforce});
+// 3.207.0 delisted operatives (src/delisted-operatives.js; docs/BOSSES.md section 5). No drones at half health: the
+// engineer launches its own (ORDER.end), the recon's smoke goes off at the top of its turn, the berserker's charge and
+// grapple are the swarm bosses' (the 'swarm' top step). The soldier readies a grenade when you come too close; the ninja
+// cuts with a knife when it stands beside you (its card's `knife`, a blow rolled as one) and fires its SMG otherwise.
+registerUnitTree('delisted_soldier',{special:soldierSpecial});
+function ninjaAttack(ctx){
+ const {g,e,p,d,def}=ctx,knife=d<=1&&g.canCross(e,p),at=g.effects.length;
+ const fired=attack(knife?{...ctx,def:{...def,range:1,damage:def.knife,rounds:1,projectile:'melee',attackStyle:'slash'}}:ctx);
+ if(knife)for(const fx of g.effects.slice(at))if(fx.type==='enemyShot'&&fx.attackerType===e.type)fx.style='slash';
+ e.charge=Boolean(def.rapid);e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
+ return fired;
+}
+registerUnitTree('delisted_ninja',{attack:ninjaAttack});
 // 3.125.0: the squad leader spends its turn commanding; its soldiers answer on a branch that runs before they would
 // charge, so deployment and suppression replace the shot without touching any other card's behaviour.
 registerUnitTree('squad_leader',{before:squadLeaderAct});
@@ -232,7 +248,7 @@ function selfOrders(ctx){
 registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>{g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultySpec));releasePayload(g,e);}});
 registerUnitTree('fodder',{before:({e})=>{if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return true;}e.actionDelay=1;return false;}});
 registerUnitTree('brood',{});
-export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);}
+export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);lastWords(g,e);}   // lastWords: 3.207.0, a delisted operative's
 export function executeEnemyTree(g,e){const locked=lockedTarget(e),p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
  // Warned specials go off first, from where they were warned, before an order, a survival walk or a hazard could move

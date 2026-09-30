@@ -31,6 +31,7 @@ export const PLAYER_LINES=Object.freeze({blocked:t('callout-ui.player.blocked'),
 export const playerLine=event=>event.cue==='empty'?t('callout-ui.empty',{item:event.item||t('callout-ui.itemFallback')}):PLAYER_LINES[event.cue]||'';
 export function calloutLine(event,variant=0){
  if(event.speaker==='player')return playerLine(event);
+ if(event.lastWords)return t(event.line);   // 3.207.0: a delisted operative's last words (src/delisted-operatives.js)
  const voice=calloutVoice(event),lines=voice==='creature'?CREATURE[event.category]:(VOICE_LINES[voice]||HUMAN)[event.cue];
  return lines?.length?lines[hash(`${event.actorId||event.direction||''}:${event.cue}:${variant}`)%lines.length]:'';
 }
@@ -46,13 +47,14 @@ export class CalloutBoard{
  add(event,now){
   if(event?.type!=='callout'||!event.cue)return null;
   this.prune(now);
-  const key=event.visibility==='visible'?`actor:${event.actorId}`:`dir:${event.direction}`,expires=now+this.duration(event);
+  // 3.207.0: last words (`delayMs`) rise a moment after the fall, and keep their own place beside a line the body said alive.
+  const key=event.lastWords?`last:${event.actorId}`:event.visibility==='visible'?`actor:${event.actorId}`:`dir:${event.direction}`,start=now+(event.delayMs>0?event.delayMs:0),expires=start+this.duration(event);
   const same=this.items.find(i=>i.key===key);
   if(same&&same.event.cue===event.cue&&(same.event.item||'')===(event.item||'')){same.expires=Math.max(same.expires,expires);return same;}
   if(same&&RANK[same.event.priority]>RANK[event.priority])return null;
   if(event.priority!=='high'&&this.items.some(i=>i.event.cue===event.cue&&i.event.visibility===event.visibility&&now-i.started<=this.tuning.cooldownMs))return null;
   if(same)this.items.splice(this.items.indexOf(same),1);
-  const item={key,event,text:calloutLine(event,this.sequence++),started:now,expires};
+  const item={key,event,text:calloutLine(event,this.sequence++),started:start,expires};
   this.items.push(item);
   // The operator's own bubble (3.163.0) neither counts toward the cap nor is ever the one dropped.
   const others=()=>this.items.filter(i=>i.event.speaker!=='player');
@@ -63,7 +65,9 @@ export class CalloutBoard{
  // so a bubble that is already fading keeps its pace. Heard lines have no known speaker and are never silenced.
  silence(item,now){if(item.silencedAt===undefined){item.silencedAt=now;item.expires=Math.min(item.expires,now+this.tuning.fadeMs);}return item;}
  prune(now){this.items=this.items.filter(i=>now<i.expires);}
- active(now){this.prune(now);return this.items;}
+ // 3.207.0 (review): last words belong to the floor the body lies on; another floor drops them at once. Nothing else moves.
+ dropOtherFloors(floor){this.items=this.items.filter(i=>!(i.event.lastWords&&i.event.floor!==undefined&&i.event.floor!==floor));}
+ active(now){this.prune(now);return this.items.filter(i=>i.started<=now);}
 }
 
 export const bubbleText=item=>item.text;

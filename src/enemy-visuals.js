@@ -34,6 +34,12 @@ export const NONCOMBATANT_LABEL=t('enemy-visuals.noncombatant');
 // Swarm presentation (3.84.1, docs/SWARM.md 8): venom blobs and the tongue pull. The rules only announce them (SWARM 6.4).
 export const VENOM_VISUAL=Object.freeze({blob:'#a8c93f',rim:'#e4f59a',drop:'#8fb33a'});
 export const TONGUE_VISUAL=Object.freeze({line:'#e27aa6d0',fill:'#d97aa033',edge:'#f0a3c4',landing:'#f0a3c4aa',flesh:'#c95c86',tip:'#f2b3cf',lane:'#d97aa02c',label:t('enemy-visuals.tongueWindup')});
+// 3.207.0 delisted operatives (src/delisted-operatives.js): the berserker's grapple draws as the tongue does in steel and
+// rope colours; the recon's warned smoke is the cloud's tiles in smoke grey with a dashed arc from the thrower; the class
+// art is tinted `tint` (the cards' own colour); the ninja, when it shows, is a silhouette of dense grey noise.
+export const GRAPPLE_VISUAL=Object.freeze({line:'#c9d2d8d0',fill:'#b8c4cc2e',edge:'#dfe8ee',landing:'#dfe8eeaa',flesh:'#9aa6ae',tip:'#eef4f8',lane:'#b8c4cc26'});
+export const OPERATIVE_VISUAL=Object.freeze({smokeFill:'#a9bbcb2a',smokeEdge:'#c9d6e0aa',smokeLine:'#c9d6e0aa',noiseMs:70,noiseDensity:.82,noiseAlpha:.9});
+export const tongueVisual=fx=>fx?.grapple?GRAPPLE_VISUAL:TONGUE_VISUAL;
 // 3.205.0 swarm bosses (src/swarm-bosses.js): the charge lane — rust red with chevrons down it and a red bar where it hits
 // a wall — and the matriarch's egg sac, in the tongue's pink family so the swarm's warnings read as one set.
 export const CHARGE_VISUAL=Object.freeze({fill:'#e0703c26',edge:'#f0905caa',chevron:'#ffb27ae0',wall:'#ff4a3aee',dust:'#c9a27a'});

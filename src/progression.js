@@ -7,7 +7,7 @@ import {ENDLESS_MAX_FLOOR} from './endless.js';
 import {validCharacter} from './characters.js';
 import {validDutyRecord} from './duty.js';
 // Stable IDs for weapon-pool / character unlocks and permanent equipment upgrades.
-export const PROTOCOL_REWARDS={floor:4,lore:3,warden:8,boss:12,hive_beast:8,hive_matriarch:12,designator:8,gunline:12,arsonist:8,burnline:12,extraction:16};   // designator, gunline: 3.204.0, as the bosses they replace; arsonist, burnline: 3.206.0, likewise
+export const PROTOCOL_REWARDS={floor:4,lore:3,warden:8,boss:12,hive_beast:8,hive_matriarch:12,designator:8,gunline:12,arsonist:8,burnline:12,delisted_soldier:12,delisted_recon:12,delisted_engineer:12,delisted_berserker:12,delisted_ninja:12,extraction:16};   // designator, gunline: 3.204.0, as the bosses they replace; arsonist, burnline: 3.206.0, likewise; the delisted operatives: 3.207.0, as the floor-6 boss they stand in for
 export const newRunId=()=>globalThis.crypto?.randomUUID?.()||`run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 export const weaponUnlocked=(weapon,ids=[])=>!weapon.unlockId||ids.includes(weapon.unlockId);
 const integer=n=>Number.isSafeInteger(n)&&n>=0?n:0;

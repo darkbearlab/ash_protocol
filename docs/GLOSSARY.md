@@ -36,7 +36,7 @@
 | 鏈鋸 | Chainsaw | `weapons.chainsaw.name` |
 | 火焰發射器 | Flamethrower | `weapons.flamer.name` |
 
-## 敵人（27）
+## 敵人（32）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -60,6 +60,11 @@
 | 火線官 | Gunline Officer | `enemyTypes.gunline.name` |
 | 縱火者 | Arsonist | `enemyTypes.arsonist.name` |
 | 焚線官 | Burnline Officer | `enemyTypes.burnline.name` |
+| 除名士兵 | Delisted Soldier | `enemyTypes.delisted_soldier.name` |
+| 除名偵察兵 | Delisted Recon | `enemyTypes.delisted_recon.name` |
+| 除名工程師 | Delisted Engineer | `enemyTypes.delisted_engineer.name` |
+| 除名狂戰士 | Delisted Berserker | `enemyTypes.delisted_berserker.name` |
+| 除名忍者 | Delisted Ninja | `enemyTypes.delisted_ninja.name` |
 | 被感染槍兵 | Infected Rifleman | `enemyTypes.rifleman_infected.name` |
 | 被感染突擊兵 | Infected Raider | `enemyTypes.raider_infected.name` |
 | 小隊長 | Squad Leader | `enemyTypes.squad_leader.name` |
@@ -146,7 +151,7 @@
 | 鉤鎖 | Grapple | `skills.grapple.name` |
 | 光學迷彩 | Optical Camouflage | `skills.camouflage.name` |
 
-## 被動特性（43）
+## 被動特性（44）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -192,6 +197,7 @@
 | 單挑 | Duelist | `traits.duelist.name` |
 | 標定 | Marked | `traits.exposed.name` |
 | 被標定 | Designated | `traits.designated.name` |
+| 被預警掃到 | Scanned | `traits.scanned.name` |
 | 近身投擲 | Close throw | `traits.close_throw.name` |
 
 ## 升級（37）

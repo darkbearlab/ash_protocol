@@ -11,6 +11,7 @@ import {activeTrait,healActor,removeTraitSource} from './traits.js';
 import {MAX_LEVEL,giveCapSupply,isEndless,perkLimit} from './endless.js';
 import {MAP_FIELDS} from './map-geometry.js';
 import {clearDesignation} from './loyalist-bosses.js';
+import {clearScan} from './delisted-operatives.js';
 import {applyPerk,eligiblePerks,ensurePerks,levelCost,recordPerkOffer} from './perks.js';
 import {arriveAllies,departAllies} from './allies.js';
 import {archiveFloor,arrivalCell,resumedFloor,scheduleRetreatWave} from './retreat.js';
@@ -50,7 +51,7 @@ export class GameFloors {
     if(returning(this)&&this.floor>1&&!arrival)return this.fail(t('game.noSafeLanding'));
     this.awardProtocol('floor',this.floor);
     if((returning(this)&&this.floor===1)||(!isEndless(this)&&!missionDefinition(this).returnTrip&&this.floor===missionDepth(this))){this.awardProtocol('extraction','win');this.status='won';this.log(t('game.extracted',{summary:this.missionSummary}));return true;}
-    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;this.decoy=null;this.mines=[];this.gunFlashes=[];p.lightLingers=false;for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');clearDesignation(p);const companions=departAllies(this);
+    notePurgeDeparture(this);this.shadowSteps=0;this.pursuit=0;this.decoy=null;this.mines=[];this.gunFlashes=[];p.lightLingers=false;for(const e of this.enemies)removeTraitSource(e,'skill:early_warning');clearDesignation(p);for(const u of [p,...(this.allies||[])])clearScan(u);const companions=departAllies(this);
     if(returning(this)){
       if(advanceTurn)this.turn++;
       Object.assign(this,resumedFloor(frame,this.turn));delete this.floorStates[next];this.floor=next;

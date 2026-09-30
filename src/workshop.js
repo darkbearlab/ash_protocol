@@ -144,7 +144,7 @@ export function repairUnit(g,id){
 export function munitionAct(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return false;
  a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return false;
- const targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=MUNITION_TUNING.sight&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
+ const targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=MUNITION_TUNING.sight&&g.sight(a,e)&&!g.cloakedFrom?.(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
  if(!targets.length)return false;
  for(const e of targets){
   if(distance(a,e)>MUNITION_TUNING.dive||!g.shotClear(a,e))continue;
@@ -180,7 +180,7 @@ export function bomberAct(g,a){
  if(a.status!=='active'||a.floor!==g.floor||a.hp<=0)return false;
  a.moved=false;a.moveDelta=[0,0];if(a.bornTurn===g.turn||a.restTurn===g.turn)return false;
  if(a.primed){g.allies=g.allies.filter(x=>x!==a);Object.assign(a,{status:'destroyed',hp:0});delete a.primed;bomberBlast(g,a);return true;}
- const tune=ENEMY_UNIT_TUNING.bomber,targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=tune.sight&&g.sight(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
+ const tune=ENEMY_UNIT_TUNING.bomber,targets=g.enemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(a,e)<=tune.sight&&g.sight(a,e)&&!g.cloakedFrom?.(a,e)).sort((b,c)=>distance(a,b)-distance(a,c)||b.id.localeCompare(c.id));
  if(targets[0]&&distance(a,targets[0])===1){
   a.primed=true;g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.6,color:'#ffc789',damage:0});
   g.log(t('workshop.bomberWindup'));return true;

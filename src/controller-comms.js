@@ -10,7 +10,7 @@ import {storyText} from './story-text.js';
 import {isSimulation} from './engine.js';
 import {armComms,commsForLogs,commsLine,commsMarkup,dutySpeaker} from './comms.js';
 import {KIA_TUNING,kiaBurst,kiaSeconds,kiaTimeScale,kiaTimes,kiaZoom} from './kia.js';
-import {BOSS_SCENE_TUNING,bossIntroLine,bossKillLine,deathBurst,deathCamera,deathTimeScale,deathTimes,firstBossScene,frontOfQueue,introCamera,introDone,newBossSceneMemory} from './boss-scenes.js';
+import {BOSS_SCENE_TUNING,bossIntroLines,bossKillLine,deathBurst,deathCamera,deathTimeScale,deathTimes,firstBossScene,frontOfQueue,introCamera,introDone,newBossSceneMemory} from './boss-scenes.js';
 import {OUTRO_TUNING,outroPlan} from './outro.js';
 import {burstLife} from './gore.js';
 import {commsEvents,newCommsMemory} from './comms-events.js';
@@ -141,21 +141,25 @@ export function kiaTick(){
 // (`bossScene` and `kia` are declared at the top of this file.)
 const sceneMemory=()=>{if(bossSceneMemory?.runId!==game.runId)bossSceneMemory=newBossSceneMemory(game.runId);return bossSceneMemory;};
 function endBossScene(){if(!bossScene)return;bossScene=null;if(!kia)renderer.pace=null;update();}   // update: a level-up held back by the scene
+// 3.207.0: a delisted operative's intro is two lines (its serial, then its class): the camera starts with the first on
+// the bar and slides back only once the last has closed.
 function startBossIntro(event,speaker){
   const actor=event.actor;if(!actor||!firstBossScene(sceneMemory(),'intro',actor.id))return;
-  const message=bossIntroLine(speaker,actor.type,event.vars);
-  if(renderer.reduceMotion||replay||kia||bossScene||$('#modal').open){if(message)sayComms(message);return;}   // a window already open: the line only
+  const messages=bossIntroLines(speaker,actor.type,event.vars);
+  if(renderer.reduceMotion||replay||kia||bossScene||$('#modal').open){for(const m of messages)sayComms(m);return;}   // a window already open: the lines only
   // The clock (slide, hold, failsafe) runs from when her line is on the bar (`start`), not from the event (3.204.0 review).
   const scene={kind:'intro',start:null,created:performance.now(),at:{x:actor.x,y:actor.y},endAt:Infinity};bossScene=scene;
   renderer.pace=()=>{if(bossScene!==scene)return null;const cam=scene.start===null?{blend:0,zoom:1}:introCamera(performance.now()-scene.start,scene.endAt);return {scale:1,zoom:cam.zoom,focus:scene.at,blend:cam.blend};};
-  if(message)sayCommsFirst({...message,shown:()=>{if(bossScene===scene&&scene.start===null)scene.start=performance.now();},
-    then:()=>{if(bossScene!==scene||scene.endAt!==Infinity)return;scene.start??=performance.now();scene.endAt=performance.now()-scene.start;}});
+  const shown=()=>{if(bossScene===scene&&scene.start===null)scene.start=performance.now();};
+  const then=()=>{if(bossScene!==scene||scene.endAt!==Infinity)return;scene.start??=performance.now();scene.endAt=performance.now()-scene.start;};
+  if(messages.length)sayCommsFirst(messages.map((m,i)=>({...m,...(i===0?{shown}:{}),...(i===messages.length-1?{then}:{})})));
   else{scene.start=performance.now();scene.endAt=BOSS_SCENE_TUNING.intro.quietMs;}
 }
 export function startBossDeath(fall){
   if(kia||game.status!=='playing'||!firstBossScene(sceneMemory(),'death',fall.actorId))return;   // you fell this turn too: yours plays
   if(bossScene)return;   // 3.204.0 review: a second boss down in the same action; the first one's scene (and line) covers both
-  const quiet=Boolean(replay)||isSimulation(game),message=quiet?null:bossKillLine(dutySpeaker({game}),!game.exitBlocked);
+  // 3.207.0: a delisted operative's line confirms it destroyed by its serial (src/boss-scenes.js bossKillLine).
+  const dead=game.enemies.find(e=>e.id===fall.actorId)||null,quiet=Boolean(replay)||isSimulation(game),message=quiet?null:bossKillLine(dutySpeaker({game}),!game.exitBlocked,{},dead);
   if(renderer.reduceMotion||replay){if(message)sayComms(message);return;}
   const scene={kind:'death',start:performance.now(),times:deathTimes(),at:{x:fall.to.x,y:fall.to.y},message,voiced:false};bossScene=scene;
   const seed=((Number(game.seed)||0)*53+game.turn*7+fall.to.x*31+fall.to.y)|0,burst=renderer.gore?deathBurst(seed,fall.blow||null,fall.gore||'flesh',renderer.goreLevel):null;

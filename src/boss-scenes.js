@@ -10,9 +10,14 @@
 //   kill line — which also says the exit is open, so it is said only when it is — and the camera pulls back. About two
 //   seconds; input stays locked until the camera is back. When you fall in the same turn, your own scene plays instead.
 // With reduced motion neither moves the camera or the clock: only the line is said, and input is never locked.
+// 3.207.0 (docs/BOSSES.md sections 5-6): a delisted operative's intro is two lines — the officer reads its serial, then
+// what its class does — and the camera holds on it until both are said; the overseer has only the first. Its kill line
+// is 「{code}……確認銷毀。」 (it does not speak of the exit, so it is said whether the exit opened or not); the overseer
+// has one too. Its last words are a bubble at the body (src/delisted-operatives.js lastWords).
 import {commsLine} from './comms.js';
 import {enemyDef,isBossClass} from './enemy-data.js';
 import {makeBurst} from './gore.js';
+import {unitCode} from './operative-draw.js';
 
 // The user tunes these after playtesting, as with KIA_TUNING (src/kia.js).
 export const BOSS_SCENE_TUNING=Object.freeze({
@@ -86,17 +91,25 @@ export function deathBurst(seed,blow,kind='flesh',level='full',tuning=BOSS_SCENE
 // ---- lines and memory ----------------------------------------------------------------------------------------------
 // The intro line: the boss's own when the speaker has one for it, otherwise the generic `boss` line; null when she has
 // neither (the overseer).
-export function bossIntroLine(speaker,type,vars={},options={}){
- const own=enemyDef(type)?.intro;
- return (own?commsLine(speaker,own,vars,options):null)||commsLine(speaker,'boss',vars,options);
+export function bossIntroLine(speaker,type,vars={},options={}){return bossIntroLines(speaker,type,vars,options)[0]||null;}
+// Every intro line in order: a delisted operative's serial and its class (the brief left out by a speaker without one),
+// any other boss's one line. Empty when the speaker has nothing (the overseer, for a boss that is no operative).
+const OPERATIVE_BRIEFS=Object.freeze({soldier:'opBriefSoldier',recon:'opBriefRecon',engineer:'opBriefEngineer',berserker:'opBriefBerserker',ninja:'opBriefNinja'});
+export function bossIntroLines(speaker,type,vars={},options={}){
+ const def=enemyDef(type),brief=OPERATIVE_BRIEFS[def?.operative];
+ if(brief){const id=commsLine(speaker,'opId',vars,options);if(id)return [id,commsLine(speaker,brief,vars,options)].filter(Boolean);}
+ const own=def?.intro,line=(own?commsLine(speaker,own,vars,options):null)||commsLine(speaker,'boss',vars,options);
+ return line?[line]:[];
 }
-// The kill line says the exit is open, so it is said only when it is.
-export const bossKillLine=(speaker,exitOpen,options={})=>exitOpen?commsLine(speaker,'bossKill',{},options):null;
+// The kill line says the exit is open, so it is said only when it is; a delisted operative's (`actor`, with its serial)
+// confirms it destroyed instead, whatever the exit.
+export const bossKillLine=(speaker,exitOpen,options={},actor=null)=>enemyDef(actor)?.operative?commsLine(speaker,'opKill',{code:unitCode(actor)},options):exitOpen?commsLine(speaker,'bossKill',{},options):null;
 // A boss intro jumps the comms queue (3.204.0 review: behind three waiting lines it held the controls for 15 s): the line
 // on the bar, if any, gives way; the waiting ones follow the intro in their order. The new queue and the line dropped.
+// 3.207.0: `message` may be several lines (a delisted operative's two), which keep their order at the front.
 export function frontOfQueue(queue,message,showing=false){
  const waiting=[...(queue||[])],dropped=showing&&waiting.length?waiting.shift():null;
- return {queue:[message,...waiting],dropped};
+ return {queue:[...(Array.isArray(message)?message:[message]),...waiting],dropped};
 }
 // Once per boss and scene, for the run on screen (like the comms memory: the controller keeps it, a save does not).
 export const newBossSceneMemory=runId=>({runId,intro:[],death:[]});

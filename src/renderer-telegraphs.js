@@ -8,7 +8,8 @@ import {t as tx} from './i18n.js';   // t is the tile size in the draw code
 import {lineReason} from './lines.js';
 import {grenadeMarkers} from './affix-ui.js';
 import {unitTree} from './behavior-tree.js';
-import {CHARGE_VISUAL,EGG_VISUAL,REBEL_FIRE_VISUAL,TONGUE_VISUAL} from './enemy-visuals.js';
+import {CHARGE_VISUAL,EGG_VISUAL,REBEL_FIRE_VISUAL,OPERATIVE_VISUAL,tongueVisual} from './enemy-visuals.js';
+import {smokeTelegraphs} from './delisted-operatives.js';
 import {NEST_ATLAS,drawNestSprite} from './nest-art.js';
 import {blindReason} from './blind-fire.js';
 import {DECOY_TUNING,decoyReason,glowstickReason,mineReason} from './field-gear.js';
@@ -151,10 +152,19 @@ export class RendererTelegraphs {
     for(const tongue of tongueTelegraphs(g)){
       const source=g.visibleEnemies.find(e=>e.id===tongue.sourceId);if(!source)continue;
       // 3.205.0: the whole line it will fly along (to its reach or the first wall): the first body on it is caught.
-      for(const q of tongue.lane)if(g.visible(q)){const m=this.project(q.x,q.y);this.box(m.x-t*.4,m.y-t*.4,t*.8,t*.8,TONGUE_VISUAL.lane);}
+      const V=tongueVisual(tongue);   // 3.207.0: a delisted berserker's grapple in steel
+      for(const q of tongue.lane)if(g.visible(q)){const m=this.project(q.x,q.y);this.box(m.x-t*.4,m.y-t*.4,t*.8,t*.8,V.lane);}
       const end=tongue.lane[tongue.lane.length-1]||tongue.target,a=this.projectActor(source),b=this.project(tongue.target.x,tongue.target.y),l=this.project(tongue.landing.x,tongue.landing.y),z=this.project(end.x,end.y);
-      c.setLineDash([4,3]);this.line(a.x,a.y,z.x,z.y,TONGUE_VISUAL.line,2);c.setLineDash([]);
-      this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,TONGUE_VISUAL.fill,TONGUE_VISUAL.edge);this.box(l.x-t*.28,l.y-t*.28,t*.56,t*.56,'#00000000',TONGUE_VISUAL.landing);
+      c.setLineDash([4,3]);this.line(a.x,a.y,z.x,z.y,V.line,2);c.setLineDash([]);
+      this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,V.fill,V.edge);this.box(l.x-t*.28,l.y-t*.28,t*.56,t*.56,'#00000000',V.landing);
+    }
+    // 3.207.0 (src/delisted-operatives.js): a delisted recon's warned smoke grenade, the cloud's tiles you can see, with a
+    // dashed arc from the recon while you see it.
+    for(const s of smokeTelegraphs(g)){
+      const V=OPERATIVE_VISUAL,pulse=this.reduceMotion?.5:.5+.5*Math.sin(time/200);
+      for(const q of s.cells)if(g.visible(q)){const m=this.project(q.x,q.y);c.globalAlpha=.6+.4*pulse;this.box(m.x-t*.44,m.y-t*.44,t*.88,t*.88,V.smokeFill,V.smokeEdge);c.globalAlpha=1;}
+      const source=g.visibleEnemies.find(e=>e.id===s.sourceId);
+      if(source){const a=this.projectActor(source),b=this.project(s.point.x,s.point.y),mid={x:(a.x+b.x)/2,y:Math.min(a.y,b.y)-t*.8};c.save();c.setLineDash([4,4]);c.strokeStyle=V.smokeLine;c.lineWidth=1.5;c.beginPath();c.moveTo(a.x,a.y);c.quadraticCurveTo(mid.x,mid.y,b.x,b.y);c.stroke();c.restore();this.text('≋',b.x,b.y+5,'#e3edf4',15);}
     }
   }
   // What is aimed at whom (3.206.3, from Renderer.draw), over the units: grenade labels, a boss's paint and your

@@ -6,6 +6,9 @@
 //   node qa/save-fuzz.mjs                                 every faction, floors 1-6, 4 seeds, 3 classes, 80 actions
 //   node qa/save-fuzz.mjs --faction swarm --floors 3,6 --seeds 10 --steps 150 --classes soldier,ninja
 //   node qa/save-fuzz.mjs --near-boss                     start boss floors 4-6 tiles from the boss
+//   node qa/save-fuzz.mjs --operative cycle               3.207.0: every loyalist and rebel floor that draws (6, 9...)
+//                                                         meets a delisted operative, seed n the (n-1)th class of
+//                                                         soldier, recon, engineer, berserker, ninja; or name one class
 //   node qa/save-fuzz.mjs --seed-from 3 --seeds 3         only seed 3, to reproduce one run
 //   node qa/save-fuzz.mjs --out <dir>                     write each failing save there as JSON to reproduce it
 //   node qa/save-fuzz.mjs --trace <file>                  also record every step: the state hash (logs included), the
@@ -23,12 +26,16 @@ import {Game,distance} from '../src/engine.js';
 import {random} from '../src/world.js';
 import {textHash} from '../src/replay.js';
 import {targetDetails} from '../src/target-card.js';
+import {isBossClass} from '../src/enemy-data.js';
+import {setOperativeDraw,OPERATIVE_CLASSES} from '../src/operative-draw.js';
 
 const arg=(name,fallback)=>{const i=process.argv.indexOf('--'+name);return i<0?fallback:process.argv[i+1];};
 const list=(name,fallback)=>String(arg(name,fallback)).split(',').map(s=>s.trim()).filter(Boolean);
 const FACTIONS=list('faction','loyalist,rebel,swarm,legacy'),FLOORS=list('floors','1,2,3,4,5,6').map(Number);
 const SEEDS=Number(arg('seeds',4)),FROM=Number(arg('seed-from',1)),STEPS=Number(arg('steps',80)),CLASSES=list('classes','soldier,recon,engineer');
-const NEAR_BOSS=process.argv.includes('--near-boss'),OUT=arg('out',null),TRACE=arg('trace',null),AGAINST=arg('against',null);
+const NEAR_BOSS=process.argv.includes('--near-boss'),OUT=arg('out',null),TRACE=arg('trace',null),AGAINST=arg('against',null),OPERATIVE=arg('operative',null);
+// 3.207.0: the draw forced through its QA hook (src/operative-draw.js setOperativeDraw), so the run meets each class.
+if(OPERATIVE)setOperativeDraw(seed=>OPERATIVE==='cycle'?OPERATIVE_CLASSES[(Number(seed)-1)%OPERATIVE_CLASSES.length]:OPERATIVE);
 // The first line where two traces part ways (true when they match, or when there is nothing to compare).
 function compareTrace(){
  if(!TRACE||!AGAINST)return true;
@@ -85,10 +92,13 @@ for(const faction of FACTIONS)for(const floor of FLOORS)for(let seed=FROM;seed<=
  stats.runs++;
  Object.assign(g.player,{hp:5000,maxHp:5000});
  if(NEAR_BOSS){
-  const boss=g.enemies.find(e=>e.boss||e.isBoss||/boss|warden|hive_|designator|gunline|arsonist/.test(e.type));
+  const boss=g.enemies.find(e=>e.hp>0&&isBossClass(e));   // 3.207.0: any boss card (the old name list missed 焚線官)
   if(boss){
    const spots=[];for(let y=0;y<g.grid.length;y++)for(let x=0;x<g.grid.length;x++)if(g.grid[y][x]===1&&!g.solid(x,y)&&!g.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y)&&distance({x,y},boss)>=4&&distance({x,y},boss)<=6)spots.push({x,y});
-   if(spots.length){Object.assign(g.player,spots[0]);boss.alert=true;g.reveal();}
+   // 3.207.0: a tile the boss can see first (the first tile in reading order was often behind a wall, and a recon that
+   // never sees you never throws its smoke).
+   const spot=spots.find(q=>g.sight(boss,q))||spots[0];
+   if(spot){Object.assign(g.player,spot);boss.alert=true;g.reveal();}
   }
  }
  const rng=random(seed*7919+floor*31+cls.length);

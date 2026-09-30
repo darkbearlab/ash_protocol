@@ -1,3 +1,4 @@
+import {OPERATIVE_CLASSES,operativeType} from '../src/operative-draw.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,generate,makeEnemy,ENEMY_TYPES,CALLOUT_CUES} from '../src/engine.js';
@@ -33,7 +34,8 @@ test('facilities roll by seed over pickable factions; construction without a cho
 
 test('human facilities generate only their own units, with no fodder or nests',()=>{
  for(const id of ['loyalist','rebel'])for(let seed=1;seed<=12;seed++)for(const floor of [1,3,6,9]){
-  const d=factionDef(id),allowed=new Set([...units(id),...Object.values(d.bosses),d.scout,...d.retreatWave,...(d.noncombatants?.roster||[]).map(([id])=>id)]),map=generate(seed,floor,[],0,id);
+  // 3.207.0: a boss post may go to a delisted operative (src/operative-draw.js), in the facilities that meet them.
+  const d=factionDef(id),allowed=new Set([...units(id),...Object.values(d.bosses),...(d.delisted?OPERATIVE_CLASSES.map(operativeType):[]),d.scout,...d.retreatWave,...(d.noncombatants?.roster||[]).map(([id])=>id)]),map=generate(seed,floor,[],0,id);
   assert.ok(map.enemies.every(e=>allowed.has(e.type)&&e.faction===id),`${id}:${seed}:${floor} ${map.enemies.map(e=>e.type)}`);
   assert.ok(!map.props.some(p=>p.type==='nest'),`${id}:${seed}:${floor} nest`);
  }

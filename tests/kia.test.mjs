@@ -75,7 +75,8 @@ test('each officer has a call, a loss report, an extraction approval and line; t
   if(speaker==='overseer')assert.equal(t(message.line),'……');
   else assert.ok(Object.hasOwn(COMMS_SPEAKERS[speaker].expressions,message.expression));
  }
- assert.deepEqual(Object.keys(COMMS_LINES.overseer),['kia','lossReport','extractApproved','extracted','executed']);
+ // 3.207.0: and a delisted operative's intro and kill (docs/BOSSES.md section 5, 他當班時), the one boss he speaks about.
+ assert.deepEqual(Object.keys(COMMS_LINES.overseer),['kia','lossReport','extractApproved','extracted','executed','opId','opKill']);
  assert.equal(t(commsLine('overseer','executed').line),'……');
  // The user's picks on the review page (2026-09-24): Egret 2 calls and 3 reports, Wren 3 calls and 2 reports.
  assert.deepEqual(['egret','wren'].map(who=>[COMMS_LINES[who].kia.length,COMMS_LINES[who].lossReport.length]),[[2,3],[3,2]]);

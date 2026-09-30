@@ -4,7 +4,7 @@
 // the renderer, `this.game` the state being drawn and `this.ctx` the canvas.
 import {suppressionStacks} from './suppression.js';
 import {unitTree} from './behavior-tree.js';
-import {ELITE_VISUAL,enemyDrawing,enemySprite,enemyTint,spriteToneRole} from './enemy-visuals.js';
+import {ELITE_VISUAL,OPERATIVE_VISUAL,enemyDrawing,enemySprite,enemyTint,spriteToneRole} from './enemy-visuals.js';
 import {classSpriteRect} from './class-art.js';
 import {tintPixels,tintedSprite} from './operator-color.js';
 import {isDark} from './lighting.js';
@@ -52,10 +52,12 @@ export class RendererActors {
   deadOutline(name,a,size,color){const index=this.aftermathNames.indexOf(name);if(index<0||!this.aftermath?.complete||!this.aftermath.naturalWidth)return;const image=this.corpseReady?this.corpseAtlas:this.aftermath;this.drawOutline(image,{x:(index%4)*32,y:Math.floor(index/4)*32},name,color,a,size);}
   effectSprite(name,a,size=32,angle=0,dark=false){const index=this.aftermathNames.indexOf(name),c=this.ctx;if(index<0||!this.aftermath.complete||!this.aftermath.naturalWidth)return false;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);const source=name.startsWith('dead-')&&this.corpseReady?this.corpseAtlas:this.aftermath;c.drawImage(dark?this.darkActors.get(source):source,(index%4)*32,Math.floor(index/4)*32,32,32,-size/2,-size/2,size,size);c.restore();return true;}
   // The operator colour (3.48.2) tints the grey class art from a cached canvas; without one the grey cell is drawn as is.
-  classSprite(a,size,character,dead=false,dark=false){const image=this.classSprites;if(!image?.complete||!image.naturalWidth)return false;const r=classSpriteRect(character,dead),tinted=tintedSprite(image,r,this.operatorColor,this.tintCache,this.operatorTint),c=this.ctx;c.drawImage(dark?this.darkActors.get(tinted||image):tinted||image,tinted?0:r.x,tinted?0:r.y,r.w,r.h,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
+  // 3.207.0: `tint` (a '#rrggbb' at full strength) draws a delisted operative in its card's colour instead of yours.
+  classSprite(a,size,character,dead=false,dark=false,tint=null){const image=this.classSprites;if(!image?.complete||!image.naturalWidth)return false;const r=classSpriteRect(character,dead),tinted=tint?tintedSprite(image,r,tint,this.tintCache,1):tintedSprite(image,r,this.operatorColor,this.tintCache,this.operatorTint),c=this.ctx;c.drawImage(dark?this.darkActors.get(tinted||image):tinted||image,tinted?0:r.x,tinted?0:r.y,r.w,r.h,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;}
   // Endless class corpse (docs/UNLOCKS.md section 4, Claude 3.90.1): the operator's fallen sprite with a pulsing ID tag, dimmed once recovered.
   operatorCorpse(a,corpse,time){const size=spriteSize(this.tile),c=this.ctx;c.save();if(corpse.recovered)c.globalAlpha*=.45;if(!this.classSprite(a,size,corpse.character,true,isDark(this.game,corpse)))this.box(a.x-9,a.y-5,18,10,'#4e302780');c.restore();if(corpse.recovered)return;this.keyBeam(a,time,.8);/* 3.151.0: a beam marks the corpse like the keycard */c.save();c.globalAlpha*=this.reduceMotion?1:.7+.3*Math.sin(time/260);const top=Math.round(a.y-this.tile*.46);this.box(a.x-9,top,18,11,'#123d46','#82e6ec');this.text('ID',a.x,top+9,'#b7fcff',8);c.restore();}
-  corpse(a,type,character,actor){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=spriteSize(this.tile),dark=isDark(this.game,this.unproject(a.x,a.y));const c=this.ctx;c.save();const drawn=(type==='player'&&this.classSprite(a,size,character,true,dark))||(this.effectSprite('dead-'+enemySprite(type).corpse,a,size,0,dark)&&(actor?.elite&&this.deadOutline('dead-'+enemySprite(type).corpse,a,size,ELITE_VISUAL.corpseOutline),true));c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
+  // A delisted operative falls with the player's class art (3.207.0, docs/BOSSES.md section 5).
+  corpse(a,type,character,actor){const fall=this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=spriteSize(this.tile),dark=isDark(this.game,this.unproject(a.x,a.y));const c=this.ctx;c.save();const op=ENEMY_TYPES[type]?.operative,drawn=(type==='player'&&this.classSprite(a,size,character,true,dark))||(op&&this.classSprite(a,size,op,true,dark,enemyTint({type})||ENEMY_TYPES[type].color))||(this.effectSprite('dead-'+enemySprite(type).corpse,a,size,0,dark)&&(actor?.elite&&this.deadOutline('dead-'+enemySprite(type).corpse,a,size,ELITE_VISUAL.corpseOutline),true));c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
   // Idle breathing (3.104.0, user request): the sprite is cut at the waist and the top half settles two source pixels
   // and comes back. Phases are staggered by actor id so a room does not rise and fall in unison, machines do not
   // breathe, and reduced motion turns it off entirely.
@@ -73,7 +75,10 @@ export class RendererActors {
       if(player){this.box(a.x-17,a.y-17,34,34,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(a.x,a.y,20,0,Math.PI*2);c.stroke();}}
       // Optical camouflage (3.47.1): the ninja's sprite fades while it is active; the frame and label stay readable.
       c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;
-      const body=()=>{if(!player||!this.classSprite(a,size,e.character,false,dark)){if(player)this.sprite(spriteType,a,size,dark,hidden);else this.enemySprite(spriteType,a,size,dark,hidden,enemyTint(e),e?.elite?ELITE_VISUAL.outline:null);}};
+      // 3.207.0: a delisted operative is drawn with the player's class art in its card's colour; the ninja, when it shows at
+      // all, as a silhouette of dense noise (OPERATIVE_VISUAL).
+      const op=!player&&def?.operative,noise=op==='ninja';
+      const body=()=>{if(noise&&this.cloakNoise(a,size,time,e))return;if(op&&this.classSprite(a,size,op,false,dark,enemyTint(e)||def.color))return;if(!player||!this.classSprite(a,size,e.character,false,dark)){if(player)this.sprite(spriteType,a,size,dark,hidden);else this.enemySprite(spriteType,a,size,dark,hidden,enemyTint(e),e?.elite?ELITE_VISUAL.outline:null);}};
       const drop=this.breathOffset(e,type,time,size);
       if(!drop)body();
       else{
@@ -110,6 +115,18 @@ export class RendererActors {
     if(!player&&e?.elite)this.box(Math.round(a.x)-15,Math.round(a.y)-15,30,30,'#00000000',ELITE_VISUAL.outline);
     if(!player){this.enemyBars(a,e,def);if(e.charge)this.text(unitTree(e).fixedTile?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
     else this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);
+  }
+  // 3.207.0: the delisted ninja's optical camouflage, seen: its class silhouette (the untinted cell's own shape) filled
+  // with grey noise that changes every noiseMs of world time (fixed with reduced motion), from a hash of its id — never
+  // Math.random, so a frame drawn twice is the same.
+  cloakNoise(a,size,time,e){
+    const image=this.classSprites;if(!image?.complete||!image.naturalWidth)return false;
+    const r=classSpriteRect('ninja',false),V=OPERATIVE_VISUAL,frame=this.reduceMotion?0:Math.floor(time/V.noiseMs);
+    let canvas=this.noiseCanvas;if(!canvas){try{canvas=this.noiseCanvas=document.createElement('canvas');canvas.width=r.w;canvas.height=r.h;}catch{return false;}}
+    const c=canvas.getContext('2d');c.clearRect(0,0,r.w,r.h);c.drawImage(image,r.x,r.y,r.w,r.h,0,0,r.w,r.h);
+    let h=2166136261;for(const ch of `${e?.id||'ninja'}:${frame}`){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}
+    try{const px=c.getImageData(0,0,r.w,r.h),d=px.data;for(let i=0;i<d.length;i+=4){if(!d[i+3])continue;h=Math.imul(h^h>>>15,2246822507)>>>0;h=Math.imul(h^h>>>13,3266489909)>>>0;const on=(h&1023)/1024<V.noiseDensity,v=on?40+(h>>>10&191):0;d[i]=d[i+1]=d[i+2]=v;d[i+3]=on?Math.round(255*V.noiseAlpha):40;}c.putImageData(px,0,0);}catch{return false;}
+    this.ctx.drawImage(canvas,0,0,r.w,r.h,Math.round(a.x-size/2),Math.round(a.y-size/2),size,size);return true;
   }
   // Health bar and suppression pips; real mode hides both, while the charge "!" and sniper countdown stay (3.76.3).
   enemyBars(a,e,def){if(this.game.realMode)return;this.box(a.x-13,a.y-this.tile*.45,26,3,'#17271e');this.box(a.x-13,a.y-this.tile*.45,26*e.hp/e.maxHp,3,e.charge?'#f2b779':def.color);this.suppressionPips(a,e);}

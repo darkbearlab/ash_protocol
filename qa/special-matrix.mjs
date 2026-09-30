@@ -25,10 +25,11 @@ import {tickTongues} from '../src/swarm.js';
 import {tickSwarmBosses} from '../src/swarm-bosses.js';
 import {tickPounces} from '../src/pounce.js';
 import {tickFields} from '../src/swarm-fields.js';
+import {tickOperatives} from '../src/delisted-operatives.js';
 
 export const MATRIX_FIXTURE=new URL('../tests/fixtures/special-matrix.json',import.meta.url);
 const REASONS=['death','disabled','displaced','target_lost','suppressed','bogus'];
-const FIELDS=['grenadeIntent','flameIntent','tongueIntent','tongueCooldown','pounceIntent','pounceCooldown','lobIntent','lobCooldown','chargeIntent','chargeCooldown','crashed','nestIntent','nestCooldown','markIntent','markReady','gun','special','fireIntent','heat','overheat','burn','charge','aim','windup','fireChain','x','y','hp','control','suppression','vaultExposed'];
+const FIELDS=['grenadeIntent','flameIntent','tongueIntent','tongueCooldown','pounceIntent','pounceCooldown','lobIntent','lobCooldown','chargeIntent','chargeCooldown','crashed','nestIntent','nestCooldown','markIntent','markReady','gun','special','fireIntent','heat','overheat','burn','scanCooldown','grenadeCooldown','smokeIntent','smokeCooldown','droneCooldown','decloaked','charge','aim','windup','fireChain','x','y','hp','control','suppression','vaultExposed'];   // 3.207.0: the delisted operatives' fields
 const canon=v=>Array.isArray(v)?v.map(canon):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canon(v[k])])):v;
 const fields=u=>canon(Object.fromEntries(FIELDS.filter(k=>u?.[k]!==undefined).map(k=>[k,u[k]])));
 const cell=v=>JSON.stringify(canon(v));
@@ -58,9 +59,17 @@ const SPECIALS={
  burnSet:{card:'burnline',faction:'rebel',main:'burn',count:'special',state:(E,T)=>({burn:{stage:'set',origin:at(E),aim:at(T)},special:'mark'})},
  burnSweep:{card:'burnline',faction:'rebel',main:'burn',count:'burn.left',state:(E,T)=>({burn:{stage:'sweep',origin:at(E),aim:at(T),left:2},special:'mark'})},
  burnPack:{card:'burnline',faction:'rebel',main:'burn',count:'burn.left',state:()=>({burn:{stage:'pack',left:2},special:'burn'})},
+ // 3.207.0 delisted operatives (src/delisted-operatives.js): the soldier's grenade (its card's, not an affix) and its two
+ // cooldowns, the recon's warned smoke, the engineer's drone clock, the ninja showing itself, the berserker's grapple.
+ opGrenade:{card:'delisted_soldier',main:'grenadeIntent',count:'grenadeCooldown',state:(E,T)=>({grenadeIntent:{stage:'prepare',targetId:'player',x:T.x,y:T.y,origin:at(E)},grenadeCooldown:3})},
+ scan:{card:'delisted_soldier',main:'scanCooldown',count:'scanCooldown',state:()=>({scanCooldown:2})},
+ smoke:{card:'delisted_recon',main:'smokeIntent',count:'smokeCooldown',state:(E,T)=>({smokeIntent:{origin:at(E),point:{x:T.x+1,y:T.y}},smokeCooldown:1})},
+ drones:{card:'delisted_engineer',main:'droneCooldown',count:'droneCooldown',state:()=>({droneCooldown:1})},
+ cloak:{card:'delisted_ninja',main:'decloaked',state:()=>({decloaked:true})},
+ grapple:{card:'delisted_berserker',main:'tongueIntent',count:'tongueCooldown',state:(E,T)=>({tongueIntent:{origin:at(E),target:at(T),point:{x:E.x-1,y:E.y}},tongueCooldown:1})},
 };
 // Units with no special state: what the specials' checks must leave alone.
-const PLAIN={rifleman:{card:'rifleman'},aiming:{card:'rifleman',extra:{charge:true,windup:1,aim:{x:10,y:10}}},flamer:{card:'rifleman',affixes:['flamer']},grenadier:{card:'raider',affixes:['grenadier']},arsonist:{card:'arsonist',faction:'rebel'},beast:{card:'hive_beast',faction:'swarm'},crawler:{card:'crawler',faction:'swarm'},spitter:{card:'spitter',faction:'swarm'},gunline:{card:'gunline',faction:'loyalist'}};
+const PLAIN={opSoldier:{card:'delisted_soldier'},opRecon:{card:'delisted_recon'},opEngineer:{card:'delisted_engineer'},opBerserker:{card:'delisted_berserker'},opNinja:{card:'delisted_ninja'},rifleman:{card:'rifleman'},aiming:{card:'rifleman',extra:{charge:true,windup:1,aim:{x:10,y:10}}},flamer:{card:'rifleman',affixes:['flamer']},grenadier:{card:'raider',affixes:['grenadier']},arsonist:{card:'arsonist',faction:'rebel'},beast:{card:'hive_beast',faction:'swarm'},crawler:{card:'crawler',faction:'swarm'},spitter:{card:'spitter',faction:'swarm'},gunline:{card:'gunline',faction:'loyalist'}};
 
 const E0={x:13,y:10},T0={x:10,y:10},N0={x:10,y:13};
 function arena(){const g=affixArena();clearGeneratedMap(g);g.fires=undefined;g.flares=[];Object.assign(g.player,{hp:999,maxHp:999,plates:0,armor:0,guard:false});g.reveal();return g;}
@@ -117,13 +126,16 @@ const TICKS={
  crawlerIdle:{card:'crawler',faction:'swarm',state:()=>({pounceCooldown:1})},
  spitter:{card:'spitter',faction:'swarm',state:(E,T)=>({lobIntent:{origin:at(E),point:at(T)},lobCooldown:4})},
  grenadier:SPECIALS.grenade,flamer:SPECIALS.flame,designator:SPECIALS.mark,gunline:SPECIALS.gunSweep,arsonist:SPECIALS.wall,burnline:SPECIALS.burnSweep,
+ // 3.207.0: the delisted operatives' cooldowns and warnings.
+ opSoldier:{card:'delisted_soldier',state:(E,T)=>({grenadeIntent:{stage:'prepare',targetId:'player',x:T.x,y:T.y,origin:at(E)},grenadeCooldown:2,scanCooldown:2})},
+ opRecon:SPECIALS.smoke,opEngineer:SPECIALS.drones,opNinja:SPECIALS.cloak,opBerserker:{card:'delisted_berserker',state:(E,T)=>({tongueIntent:{origin:at(E),target:at(T),point:{x:E.x-1,y:E.y}},tongueCooldown:1,chargeCooldown:2})},
 };
 function tickTable(){
  const out={};
  const states={fit:()=>{},stunned:e=>{e.control={disabled:1,immune:0};},pinned:e=>{e.suppression=3;},dead:e=>{e.hp=0;}};
  for(const [id,spec] of Object.entries(TICKS))for(const [state,tweak] of Object.entries(states)){
   const r=out[`${id}:${state}`]={};
-  {const {g,e}=scene(spec);tweak(e);tickTongues(g);tickSwarmBosses(g);tickPounces(g);tickFields(g);r.exports=cell(fields(e));}
+  {const {g,e}=scene(spec);tweak(e);tickTongues(g);tickSwarmBosses(g);tickPounces(g);tickFields(g);tickOperatives(g);r.exports=cell(fields(e));}
   {const {g,e}=scene(spec);tweak(e);g.action('wait');r.round=cell({...fields(g.enemies.find(u=>u.id===e.id)||e),props:g.props.filter(o=>o.type==='nest').length});}
  }
  return out;
@@ -149,7 +161,7 @@ function loadTable(){
  }
  // Only enemies carry a grenade; a player or an ally with one is refused. The rest are checked on enemies only.
  const actors={};
- for(const [id,spec] of Object.entries({grenade:SPECIALS.grenade,flame:SPECIALS.flame,tongue:SPECIALS.tongue,mark:SPECIALS.mark,gunSet:SPECIALS.gunSet})){
+ for(const [id,spec] of Object.entries({grenade:SPECIALS.grenade,flame:SPECIALS.flame,tongue:SPECIALS.tongue,mark:SPECIALS.mark,gunSet:SPECIALS.gunSet,smoke:SPECIALS.smoke,cloak:SPECIALS.cloak})){
   const g=arena(),a=addAlly(g,'pet','crawler',{point:{x:11,y:11}});a.hp=a.maxHp=300;g.reveal();const raw=g.serialize(),state=spec.state(T0,E0,N0,g.turn);
   {const d=JSON.parse(raw);Object.assign(d.data.player,structuredClone(state));actors[`player:${id}`]=outcome(JSON.stringify(d),s=>s.player);}
   {const d=JSON.parse(raw);Object.assign(d.data.allies[0],structuredClone(state));actors[`ally:${id}`]=outcome(JSON.stringify(d),s=>s.allies[0]);}

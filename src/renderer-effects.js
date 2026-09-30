@@ -5,7 +5,7 @@
 // the renderer, `this.game` the state being drawn and `this.ctx` the canvas.
 import {liveImpulses,shakeImpulses} from './screen-shake.js';
 import {bubbleGlitch,drawGlitched,drawGlitchedBox,effectGlitches,liveGlitches,screenGlitch,screenStrength,stateGlitches} from './signal-glitch.js';
-import {CHARGE_VISUAL,EGG_VISUAL,REBEL_FIRE_VISUAL,TONGUE_VISUAL,VENOM_VISUAL} from './enemy-visuals.js';
+import {CHARGE_VISUAL,EGG_VISUAL,REBEL_FIRE_VISUAL,TONGUE_VISUAL,VENOM_VISUAL,tongueVisual} from './enemy-visuals.js';
 import {CalloutBoard,DIRECTION_ARROWS,bubbleAlpha,bubbleText,edgePoint} from './callout-ui.js';
 import {NEST_ATLAS,drawPortalEffect,drawNestEffect} from './nest-art.js';
 import {isDark} from './lighting.js';
@@ -29,7 +29,7 @@ export class RendererEffects {
   // Callout bubbles (3.76.4): drawn last so they sit above walls. A visible line follows its speaker while it stays
   // visible; a heard line only knows a direction, so it hugs that screen edge with an arrow and never marks a tile.
   drawCallouts(time){
-    const c=this.ctx,g=this.game,items=(this.callouts??=new CalloutBoard()).active(time);if(!items.length)return;
+    const c=this.ctx,g=this.game;(this.callouts??=new CalloutBoard()).dropOtherFloors(g.floor);const items=this.callouts.active(time);if(!items.length)return;   // dropOtherFloors: 3.207.0, last words stay on their floor
     c.save();c.font='10px monospace';c.textAlign='center';
     for(const item of items){
       const e=item.event,visible=e.visibility==='visible',text=visible?bubbleText(item):`${DIRECTION_ARROWS[e.direction]||''} ${bubbleText(item)}`;
@@ -37,12 +37,13 @@ export class RendererEffects {
       if(visible){
         // Follow the speaker, alive or fallen, while its tile is visible (3.84.2): a unit that speaks, moves and dies in one turn
         // used to leave its bubble on the tile where it spoke.
-        const own=e.speaker==='player',speaker=own?g.player:g.enemies.find(a=>a.id===e.actorId),shown=own||speaker&&(speaker.hp>0?g.visibleEnemies.includes(speaker):g.visible(speaker)),p=shown?this.projectActor(speaker):this.project(e.position.x,e.position.y);x=p.x;y=p.y-this.tile*.62;
+        // 3.207.0: last words stay over the body where it fell, and are not silenced by the fall that brought them.
+        const own=e.speaker==='player',speaker=own?g.player:e.lastWords?null:g.enemies.find(a=>a.id===e.actorId),shown=own||speaker&&(speaker.hp>0?g.visibleEnemies.includes(speaker):g.visible(speaker)),p=shown?this.projectActor(speaker):this.project(e.position.x,e.position.y);x=p.x;y=p.y-this.tile*.62;
         if(speaker&&speaker.hp<=0)this.callouts.silence(item,time);}
       else ({x,y}=edgePoint(e.direction,this.w,this.h));
       const w=Math.ceil(c.measureText(text).width)+10,h=15,left=Math.max(2,Math.min(this.w-w-2,x-w/2)),top=Math.max(2,Math.min(this.h-h-2,y-h));
-      const border=e.speaker==='player'?this.operatorColor:e.priority==='high'?'#f2a85c':e.priority==='medium'?'#9fd9c8':'#9aa59a';
-      const ink=e.speaker==='player'?'#f4f7ef':e.priority==='high'?'#ffd7a8':'#e3eee6',tail=visible?Math.round(x)-2:null;
+      const border=e.speaker==='player'?this.operatorColor:e.lastWords?'#b8aca0':e.priority==='high'?'#f2a85c':e.priority==='medium'?'#9fd9c8':'#9aa59a';
+      const ink=e.speaker==='player'?'#f4f7ef':e.lastWords?'#efe9df':e.priority==='high'?'#ffd7a8':'#e3eee6',tail=visible?Math.round(x)-2:null;
       // this.ctx, not c: under a glitch the drawing goes to a scratch canvas first (src/signal-glitch.js drawGlitchedBox).
       const draw=()=>{const k=this.ctx;k.font='10px monospace';k.textAlign='center';this.box(left,top,w,h,'#101a17e6',border);if(tail!==null)this.box(tail,top+h,4,3,border);k.fillStyle=ink;k.fillText(text,left+w/2,top+11);};
       c.globalAlpha=bubbleAlpha(item,time);
@@ -200,9 +201,9 @@ export class RendererEffects {
         for(let i=0;i<7;i++){const theta=i*2.4,r=4+step*19;this.box(Math.round((b.x+Math.cos(theta)*r)/2)*2,Math.round((b.y+Math.sin(theta)*r)/2)*2,2,2,fx.mechanical?'#b7e2d0':'#bd654e');}
       }else if(fx.type==='tongueTelegraph'){
         // The persistent line comes from game state; the announcement only flashes the grabbed tile.
-        if(g.visible(fx.from)&&elapsed<260)this.box(b.x-t*.45,b.y-t*.45,t*.9,t*.9,TONGUE_VISUAL.fill,TONGUE_VISUAL.edge);
+        const V=tongueVisual(fx);if(g.visible(fx.from)&&elapsed<260)this.box(b.x-t*.45,b.y-t*.45,t*.9,t*.9,V.fill,V.edge);   // 3.207.0: a grapple in steel
       }else if(fx.type==='tonguePull'){
-        if(g.visible(fx.origin)||g.visible(fx.to)){const o=this.project(fx.origin.x,fx.origin.y),k=Math.min(1,elapsed/220),q={x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k};this.line(o.x,o.y,q.x,q.y,TONGUE_VISUAL.flesh,3);this.box(q.x-3,q.y-3,6,6,TONGUE_VISUAL.tip);}
+        if(g.visible(fx.origin)||g.visible(fx.to)){const o=this.project(fx.origin.x,fx.origin.y),k=Math.min(1,elapsed/220),q={x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k};const V=tongueVisual(fx);this.line(o.x,o.y,q.x,q.y,V.flesh,3);this.box(q.x-3,q.y-3,6,6,V.tip);}
       }else if(fx.style==='venom'){
         const travel=fx.travel||130,offset=(fx.spread||0)+(fx.missPath?.35:0),end={x:b.x+Math.cos(angle+1.57)*t*offset,y:b.y+Math.sin(angle+1.57)*t*offset};
         if(elapsed<travel){const progress=elapsed/travel,q={x:a.x+(end.x-a.x)*progress,y:a.y+(end.y-a.y)*progress-Math.sin(progress*Math.PI)*t*.25};this.box(q.x-3,q.y-3,6,6,VENOM_VISUAL.blob,VENOM_VISUAL.rim);this.box(q.x-Math.cos(angle)*7-1,q.y-Math.sin(angle)*7-1,2,2,VENOM_VISUAL.blob);}

@@ -7,6 +7,7 @@ import {validSwarmWaves} from './swarm-waves.js';
 import {validSurvival} from './survival.js';
 import {validSquad} from './squad.js';
 import {validRebels} from './rebels.js';
+import {dropStaleOperatives,validOperatives} from './delisted-operatives.js';
 import {migratePoison} from './poison.js';
 import {TRAIT_CAP,bodyKeyword,grantTrait,startingTraits,validCombatMemory,validTraits} from './traits.js';
 import {validSwarmState} from './swarm.js';
@@ -309,8 +310,11 @@ export class GameSave {
       // turn) is dropped, not refused (3.203.0-3.206.0 reviews); then each is checked as its declaration says.
       // SAVE 81-84 (3.203.0-3.206.0) needed nothing converted: a save from before has no marked cone, paint, gun, charge,
       // egg sac, laid nest, wall, ring or set-up flamethrower (a floor already generated keeps its warden or core guard).
-      dropStaleSpecials(g);
-      if(!validRuntime(g)||!validVents(g)||!validFireTiles(g)||!validSpecials(g)||!validSwarmState(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validFieldSmoke(g))return null;
+      // SAVE 85 (3.207.0, src/delisted-operatives.js) needs nothing converted either: a save from before has no delisted
+      // operative (a floor already generated keeps its own boss), so no serial, scan, grenade or smoke cooldown, warned
+      // smoke, drone clock or unveiled ninja; a scan on you is cut to today's tuning like the rest.
+      dropStaleSpecials(g);dropStaleOperatives(g);
+      if(!validRuntime(g)||!validVents(g)||!validFireTiles(g)||!validSpecials(g)||!validOperatives(g)||!validSwarmState(g)||!validSwarmWaves(g)||!validSurvival(g)||!validSquad(g)||!validRebels(g)||!validOrders(g)||!validFieldSmoke(g))return null;
       if(version<32)g.shadowSteps=0;
       // Free moves used to come only from 影步, so the loader tied them to the ninja perk. Adrenaline (3.106.0) gives
       // them to every class, and that clause was rejecting any save taken between the shot and the steps — the run

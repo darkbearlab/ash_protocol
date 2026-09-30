@@ -1,3 +1,4 @@
+import {setOperativeDraw} from '../src/operative-draw.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy,generate,ENEMY_TYPES,rollEnemyAffixes} from '../src/engine.js';
@@ -46,11 +47,13 @@ test('the catalog: loyalists get 標定官 and 火線官; the legacy mix keeps t
   assert.deepEqual(enemyBand('designator'),enemyBand('warden'));assert.deepEqual(enemyBand('gunline'),enemyBand('boss'));
   assert.equal(ENEMY_BLUEPRINTS.designator,'unit_warden');assert.equal(ENEMY_BLUEPRINTS.gunline,'unit_boss');
   // Generated floors: a loyalist floor 3 and 6 (and 9 and 12 in the cycle) hold the new boss; the others do not.
-  for(const seed of [3,11]){
+  // 3.207.0: with the delisted operatives' draw off (src/operative-draw.js); 30% of floors 6, 9, 12... meet one instead.
+  setOperativeDraw(()=>null);
+  try{for(const seed of [3,11]){
     for(const [floor,type] of [[3,'designator'],[6,'gunline'],[9,'designator']])assert.ok(generate(seed,floor,[],0,'loyalist').enemies.some(e=>e.type===type),`${seed}:${floor}`);
     for(const faction of ['legacy']){const three=generate(seed,3,[],0,faction).enemies,six=generate(seed,6,[],0,faction).enemies;
       assert.ok(three.some(e=>e.type==='warden')&&six.some(e=>e.type==='boss'),faction);assert.ok(![...three,...six].some(e=>['designator','gunline'].includes(e.type)),faction);}
-  }
+  }}finally{setOperativeDraw(null);}
 });
 
 test('標定: a round of laser, then the mark lands on its turn; three more rounds of +15 to hit and +20% damage from every enemy',()=>{
@@ -255,7 +258,7 @@ test('a round trip: a floor kept with a fallen boss\'s state comes back from a s
 });
 
 test('SAVE 82: a save from 81 loads unchanged, and a loyalist floor that already holds a warden keeps it',()=>{
-  assert.equal(SAVE_VERSION,84);
+  assert.equal(SAVE_VERSION,85);
   const g=field(),w=makeEnemy('warden',16,10,'old-warden',3,0,'loyalist');g.enemies.push(w);g.facilityFaction='loyalist';
   const raw=JSON.parse(g.serialize());raw.version=81;const loaded=Game.restore(JSON.stringify(raw));
   assert.ok(loaded);assert.equal(loaded.enemies.find(e=>e.id==='old-warden').type,'warden');
