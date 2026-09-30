@@ -56,10 +56,16 @@ export const fooled=(g,e)=>Boolean(g.decoy?.hp>0&&e?.id&&g.decoy.fooled.includes
 export const decoyHides=(g,a)=>fooled(g,a)&&distance(a,g.player)>1;
 const release=(g,ids)=>{if(g.decoy)g.decoy.fooled=g.decoy.fooled.filter(id=>!ids.includes(id));};
 // You attacked `e`: it, and every fooled enemy that could see it happen, stop falling for the decoy.
-export function noticeAttack(g,e){
+// 3.209.0 (user 2026-09-30): and each one it held learns where the attack came from (`origin`: your tile, or a blast's
+// centre), not the decoy's tile, as the log says (Game.learnAttack; not while 訊號斷層 runs). The release has always come
+// with the attack itself, hit or miss; one it never held learns nothing from a miss.
+export function noticeAttack(g,e,origin=g.player){
  if(!g.decoy||!e?.id)return;
- const witnesses=g.enemies.filter(o=>o!==e&&fooled(g,o)&&o.hp>0&&g.sight(o,e)).map(o=>o.id);
- if(fooled(g,e)||witnesses.length){release(g,[e.id,...witnesses]);g.log(t('field-gear.decoyExposed'),true);}
+ const held=g.enemies.filter(o=>fooled(g,o)&&o.hp>0&&(o===e||g.sight(o,e)));
+ if(!held.length)return;
+ release(g,[e.id,...held.map(o=>o.id)]);
+ for(const o of held)g.learnAttack?.(o,origin,g.player);
+ g.log(t('field-gear.decoyExposed'),true);
 }
 export function damageDecoy(g,amount){
  const d=g.decoy;if(!d)return;

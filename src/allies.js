@@ -209,7 +209,7 @@ export function allyAct(g,a){
 // Mounted-weapon hit: close-range damage, pierce, explosive rounds (radius 1) and shotgun splash, as the player's gun.
 function mountedHit(g,a,e,w){
  const {min:low,max:high}=shotgunBand(w,distance(a,e)),damage=low+Math.floor(g.rng()*(high-low+1));
- if(w.explosive)g.explode(e,1,damage,a);else g.hitTarget(e,damage,a,w.pierce||0,w);
+ if(w.explosive)g.explode(e,1,damage,a,null,{from:a});else g.hitTarget(e,damage,a,w.pierce||0,w);   // 3.209.0: a gun's burst came from the unit
  if(w.splash)for(const other of g.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&g.sight(a,o)))g.hitTarget(other,Math.round(damage*.45),a,w.pierce||0,w);
 }
 function actAlly(g,a){

@@ -53,7 +53,7 @@ export class GameAttacks {
     const range=this.weaponDamage(p.weapon),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
     this.effects.push({type:'shot',weaponId:w.id,style:'grenade',...flashHidden(w),from:{x:p.x,y:p.y},to:{x:pos.x,y:pos.y},damage:0});
     const before=this.enemies.map(o=>[o,o.hp]);
-    this.explode(pos,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p);
+    this.explode(pos,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p,null,{from:p});   // 3.209.0: it came from your tile
     const hits=new Set(before.filter(([o,hp])=>o.hp<hp).map(([o])=>o));
     finishSuppression([],new Set([...hits].filter(o=>this.enemies.includes(o))),1,0,this);
     p.fireChain=null;
@@ -128,12 +128,12 @@ export class GameAttacks {
         this.effects.push({type:'shot',weaponId:w.id,singleShot,style:w.ammoType==='energy'?'plasma':'bullet',...flashHidden(w),from:{x:p.x,y:p.y},to:{x:e.x,y:e.y},damage:0,miss:!hit,color:w.ammoType==='energy'?'#8ae9da':null});
         if(!hit){this.log(`${t('game.shotMiss',{chance})}`,false,t('game.shotMissReal'));if(w.explosive)this.log(t('game.grenadeStray'));return;}
         hits.add(e);const before=this.enemies.map(o=>[o,o.hp]);
-        if(w.explosive)this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p);
+        if(w.explosive)this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p,null,{from:p});
         else{this.hitTarget(e,damage,p,w.pierce||0);if(w.ammoType==='rifle'&&!(enemyArmor(e)>0)&&this.enemies.includes(e))this.overpenetrate(e,damage,w);}
         if(w.splash)for(const other of this.enemies.filter(o=>o.hp>0&&o!==e&&distance(o,e)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*.45),p,w.pierce||0);
         // 3.141.0 爆裂 (drop-only plasma affix): the hit bursts where it lands. The target already took the hit; everything
         // one tile away, you and your allies too, takes half of it (an explosion loses 10 a tile), plus 爆破專家.
-        if(w.blast){this.log(t('game.plasmaBurst'));this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round(damage*w.blast)+10+p.blastBonus,p,this.enemies.filter(o=>o!==e));}
+        if(w.blast){this.log(t('game.plasmaBurst'));this.explode(isBarrier(e)?barrierFace(e,p):e,1,Math.round(damage*w.blast)+10+p.blastBonus,p,this.enemies.filter(o=>o!==e),{from:p});}
         for(const [other,hp] of before)if(other.hp<hp)hits.add(other);
       }));
     }

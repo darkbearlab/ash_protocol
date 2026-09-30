@@ -112,6 +112,8 @@ const CANVAS={
  'killhouse':`return L.shot(__ashSim.game);`,
  'target-card':`const g=L.arena(),e=L.enemy(g,'rifleman',13,10);g.target=e.id;return L.shot(g);`,
  'aiming-rifleman':`const g=L.arena(),e=L.enemy(g,'rifleman',14,10,{state:{charge:true,windup:1,aim:${at(10,10)}}});return L.shot(g);`,
+ // 3.209.0: in the black, unseen, the aim line goes to the tile it holds its aim on (a blinded squad's report), not to you.
+ 'aim-held-unseen':`const g=L.arena();g.lighting=g.grid.map(r=>r.map(()=>0));g.lightModel=2;g.lamps=[];g.glowsticks=[${at(15,11)}];L.enemy(g,'rifleman',15,10,{state:{charge:true,windup:1,aim:${at(12,13)}}});return L.shot(g);`,
  'mark-laser':`const g=L.arena({faction:'loyalist'}),e=L.enemy(g,'designator',15,10,{faction:'loyalist',state:{markIntent:{since:0}}});return L.shot(g,null,{at:37});`,
  'designated':`const g=L.arena({faction:'loyalist'});L.enemy(g,'designator',15,10,{faction:'loyalist'});L.grantTrait(g.player,'designated','boss:mark');return L.shot(g);`,
  'gun-set':`const g=L.arena({faction:'loyalist'});L.enemy(g,'gunline',14,10,{faction:'loyalist',state:{gun:{stage:'set',origin:${at(14,10)},aim:${at(10,10)}},special:'mark'}});return L.shot(g);`,

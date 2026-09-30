@@ -162,7 +162,7 @@ export class GameActions {
     this.refusal=null;
     if(type==='guard')type='wait';
     if(this.status!=='playing'||this.pendingPerks)return false;
-    this.effects=[];const p=this.player;this.pursuitPending=false;this.pursuitBlocked=Boolean(this.shadowSteps||this.shadowBonus);if(p.control.disabled)this.pursuit=0;
+    this.effects=[];this.newAttackNotes();const p=this.player;this.pursuitPending=false;this.pursuitBlocked=Boolean(this.shadowSteps||this.shadowBonus);if(p.control.disabled)this.pursuit=0;
     if(type==='usePrepared'){
       const entry=preparedEntry(p,arg?.category);if(!entry?.action)return this.fail(t('game.readySomething'));
       type=entry.action;arg=type==='skill'?p.prepared.skill:arg.target;
@@ -213,7 +213,7 @@ export class GameActions {
     if(this.pursuit&&!p.recovery&&['fire','blindFire','launch','bumpMelee','grenade','grapple','suppressiveFire'].includes(type)){
       this.pursuit=0;const intent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:arg;
       const success=this.executePlayer(type,intent);p.guard=false;p.focus=false;p.evasive=false;p.moved=success&&type==='grapple'&&p.moved;
-      this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';}this.finishPursuit();return success;
+      this.settleAttackNotes();this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';}this.finishPursuit();return success;   // 3.209.0: what your attack taught
     }
     this.pursuit=0;
     const doubleAttack=skillActive(p,'anchor')&&['fire','blindFire','bumpMelee','suppressiveFire'].includes(type),previousChain=p.fireChain?{...p.fireChain}:null;
@@ -252,15 +252,16 @@ export class GameActions {
         if(success&&p.weapon===slotWeapon&&this.weapon.ammoType&&!this.weapon.melee&&ammoBefore>0&&p.ammo[p.weapon]<=0)playerCallout(this,this.emptyCue());
         if(!success)this.log(t('game.situationChanged'));
         p.guard=success&&type==='wait';p.moved=success&&(type==='move'||type==='grapple'&&p.moved);p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
-        petReactions(this);this.reveal();checkMines(this);
-      }else if(actor.kind){const wasIn=inToxic(this,actor);presentStep(this,()=>{if(isMunition(actor))munitionAct(this,actor);else if(isBomber(actor))bomberAct(this,actor);else allyAct(this,actor);this.reveal();},actor);toxicAllyTurn(this,actor,wasIn);}
-      else if(actor.hp>0&&actor.alert)presentStep(this,()=>{this.enemyAct(actor);checkMines(this);},speed!==0||playerSpeed!==0||phase!==null?actor:null);
+        // 3.209.0 (src/game-damage.js settleAttackNotes): what your step taught the enemies, once it is over.
+        this.settleAttackNotes();petReactions(this);this.reveal();checkMines(this);this.settleAttackNotes();
+      }else if(actor.kind){const wasIn=inToxic(this,actor);presentStep(this,()=>{if(isMunition(actor))munitionAct(this,actor);else if(isBomber(actor))bomberAct(this,actor);else allyAct(this,actor);this.settleAttackNotes();this.reveal();},actor);toxicAllyTurn(this,actor,wasIn);}
+      else if(actor.hp>0&&actor.alert)presentStep(this,()=>{this.enemyAct(actor);checkMines(this);this.settleAttackNotes();},speed!==0||playerSpeed!==0||phase!==null?actor:null);
       if(immunityBefore&&!anchorExtra)actor.control.immune=Math.max(0,actor.control.immune-1);
       }finally{if(lastSlot.get(actor)===slot)tickSuppression(actor);}
     }
     if(this.floor===floor&&this.status==='playing'&&p.hp>0){
       const due=this.marks.filter(m=>m.due<=this.turn);this.marks=this.marks.filter(m=>m.due>this.turn);
-      for(const m of due){if(p.hp<=0)break;presentStep(this,()=>m.stun?this.enemyStun(m):this.explode(m,m.radius??1,m.damage??scaleEnemy(38,this.floor,'damage',this.difficultySpec)));}
+      for(const m of due){if(p.hp<=0)break;presentStep(this,()=>{if(m.stun)this.enemyStun(m);else this.explode(m,m.radius??1,m.damage??scaleEnemy(38,this.floor,'damage',this.difficultySpec),null,null,{ours:m.kind==='ally'});this.settleAttackNotes();});}   // ours: 3.209.0, a converted core guard's bombardment
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>resolveRetreatWave(this));
       if(p.hp>0)presentStep(this,()=>this.environmentTurn());
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>tickNests(this));
@@ -280,7 +281,7 @@ export class GameActions {
     for(const actor of [p,...this.enemies,...this.activeAllies])tickTraits(actor);
     // 3.127.0: rebels taunt their cowards before the player gets control, so the boosts show on the target cards.
     if(this.status==='playing'&&p.hp>0)rebelMorale(this);
-    this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';this.log(t('game.signalLost'),true);}
+    this.settleAttackNotes();this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';this.log(t('game.signalLost'),true);}
     // 3.127.2 (user decision): warnings count down after everything else in the turn, so one raised at any point of a
     // turn — during your move, the enemy phase or the closing look — comes back exactly five turns later, not four.
     tickCivilianCooldowns(this);tickAlarms(this);

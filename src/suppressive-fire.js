@@ -37,14 +37,15 @@ export function suppressiveFire(g,point){
   hits.add(target);const range=g.weaponDamage(p.weapon,target),damage=range.min+Math.floor(g.rng()*(range.max-range.min+1));
   // Even explosive/splash weapons must not damage corner-hidden targets in this skill.
   const before=g.enemies.map(e=>[e,e.hp]),eligible=g.enemies.filter(e=>g.shotClear(p,e));
-  if(w.explosive)withShotTargets(g,eligible,()=>g.explode(target,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p,eligible));
+  if(w.explosive)withShotTargets(g,eligible,()=>g.explode(target,1,Math.round((damage+p.blastBonus)*bladeMultiplier(p)),p,eligible,{from:p}));
   else g.hitTarget(target,damage,p,w.pierce||0);
   if(w.splash)for(const other of eligible.filter(e=>e.hp>0&&e!==target&&distance(e,target)<=1&&g.visible(e)))g.hitTarget(other,Math.round(damage*.45),p,w.pierce||0);
   for(const [e,hp] of before)if(e.hp<hp)hits.add(e);
   recordShot(p,target.id,g.turn);
  }));
  // 3.185.0: the skill's rounds are a suppressive volley however few, as they were before the five-round threshold.
- finishSuppression(targets,hits,Math.max(rounds,T.weaponRounds),T.skillStacks,g);for(const e of targets){g.noticeAttack(e);e.alert=true;e.lastKnown={x:p.x,y:p.y};}g.log(t('suppressive-fire.fired',{n:rounds}));return true;
+ // 3.209.0: every target learns your tile through Game.learnAttack, which keeps 訊號斷層's exemption.
+ finishSuppression(targets,hits,Math.max(rounds,T.weaponRounds),T.skillStacks,g);for(const e of targets){g.noticeAttack(e);g.learnAttack(e,p,p);}g.log(t('suppressive-fire.fired',{n:rounds}));return true;
 }
 
 export const suppressivePreview=(g,point)=>({range:g.weapon.range,minimumRounds:T.skillRounds,rounds:Math.min(T.skillRounds+(g.weapon.extraRounds||0),g.player.ammo[g.player.weapon]),accuracyPenalty:T.skillAccuracy,reason:suppressiveReason(g,point),cells:point&&Number.isInteger(point.x)&&Number.isInteger(point.y)?suppressiveArea(g,point):[]});

@@ -43,7 +43,49 @@ import {DIRECTIONS,distance,key,lineOfSight} from './world.js';
 import {wallCover} from './combat.js';
 import {FLARE_TUNING,flareLights,flareReason} from './flares.js';
 import {enemyName} from './game.js';
+import {skillActive} from './skills.js';
+import {radioHit} from './squad.js';
+// 3.209.0 (user decisions 2026-09-30, docs/CORE_RULES.md 受到攻擊): an enemy hurt by your side learns where the attack came
+// from, whether or not it can see you, and the enemies that see it hit go alert toward it. Kept per game and never saved
+// (Game.serialize writes the game's own fields):
+// - `origin`, `ours`: while a blast resolves, the tile it came from (its centre, or the shooter's tile when a gun's own
+//   round bursts) and whether it is your side's even with no attacker (a converted core guard's bombardment);
+// - `pending`: what the enemies learn, held until the step of whoever attacked is over (Game.settleAttackNotes; review of
+//   3.209.0), so the rest of the same attack — the next rounds of a burst, the second body of a thrust — resolves against
+//   the world as it was: no flashlight switched on and no ambush lost halfway through;
+// - `firstHand`: the enemies that learned an origin themselves during this action; what a witness saw never replaces it.
+const attackNotes=new WeakMap();
+const notesOf=g=>{let n=attackNotes.get(g);if(!n)attackNotes.set(g,n={origin:null,ours:false,pending:[],firstHand:new Set()});return n;};
+export const ATTACK_ORIGIN_TUNING=Object.freeze({witnessRadius:8});
 export class GameDamage {
+  // 3.209.0: attacks that tell an enemy where they came from are yours and your units' (pets, drones, summons, survivors),
+  // a unit being anything with a `kind`, on the ally list or not: a munition or a primed bot leaves it before it goes off.
+  // Only what the enemies learn reads this; kills, salvage and witnessed deaths keep reading `attacker` as before.
+  ownSide(attacker){return Boolean(attacker)&&(attacker===this.player||Boolean(attacker.kind)&&!this.enemies.includes(attacker));}
+  // docs/SKILLS.md 訊號斷層: while it runs, nothing you do moves what an enemy knows of you (it still goes alert).
+  jammedBy(attacker){return attacker===this.player&&skillActive(this.player,'signal_break');}
+  // Game.action starts every action with no first-hand knowledge on record (anything a direct call left is settled first).
+  newAttackNotes(){this.settleAttackNotes();notesOf(this).firstHand.clear();}
+  // Where the attack being resolved came from: a blast's own origin while it resolves, otherwise the attacker's tile.
+  attackOrigin(attacker){const o=notesOf(this).origin||attacker;return {x:o.x,y:o.y};}
+  // `e` learns first-hand that it is under attack from `origin`: alert, and lastKnown on that tile (not while jammed).
+  // Held until the attacker's step is over; `radio`: a squad member hit also reports it (src/squad.js radioHit).
+  learnAttack(e,origin,attacker,radio=false){notesOf(this).pending.push({learn:e,origin:{x:origin.x,y:origin.y},jammed:this.jammedBy(attacker),radio});}
+  // Any damage your side deals (hurt): the victim learns the origin, unless a decoy still holds it (fooled enemies fight
+  // your units and keep going for the decoy, docs/ITEMS.md). Every other combatant within 8 tiles that sees the victim hit
+  // (as the hit lands) goes alert toward the victim's tile, unless it learns an origin itself this action or a decoy holds it.
+  noticeHit(e,attacker){
+    const {pending}=notesOf(this),jammed=this.jammedBy(attacker);
+    if(!this.isFooled(e))this.learnAttack(e,this.attackOrigin(attacker),attacker,true);
+    for(const o of this.enemies)if(o!==e&&o.hp>0&&!isNoncombatant(o)&&!this.isFooled(o)&&distance(o,e)<=ATTACK_ORIGIN_TUNING.witnessRadius&&this.sight(o,e))pending.push({witness:o,at:{x:e.x,y:e.y},jammed});
+  }
+  // Game.action calls it once the step of whoever attacked is over, and at the end of the round, so nothing is pending at
+  // a save: first-hand knowledge first, then what the witnesses saw, where nobody learned first-hand this action.
+  settleAttackNotes(){
+    const n=notesOf(this);if(!n.pending.length)return;const list=n.pending;n.pending=[];
+    for(const q of list)if(q.learn){q.learn.alert=true;if(q.jammed)continue;q.learn.lastKnown={...q.origin};n.firstHand.add(q.learn);if(q.radio)radioHit(this,q.learn,q.origin);}
+    for(const q of list)if(q.witness&&q.witness.hp>0){q.witness.alert=true;if(!q.jammed&&!n.firstHand.has(q.witness))q.witness.lastKnown={...q.at};}
+  }
   protectingCover(target,attacker) {
     if(activeTrait(target,'no_cover'))return null;
     const cover=bestCover([edgeCover(this.barriers,target,attacker),wallCover(this.grid,target,attacker),...this.props.filter(o=>o.type==='cover'&&o.hp>0&&distance(o,target)===1)],target,attacker);
@@ -79,7 +121,8 @@ export class GameDamage {
   // 3.166.0: cause is the hazard id ('acid' or 'heat'); the sentence lives in the language table.
   hurt(e,damage,attacker=null,cause=null) {
     if(e.hp<=0||!shotDamageAllowed(this,e))return;
-    if(attacker===this.player)noticeAttack(this,e);
+    if(attacker===this.player)noticeAttack(this,e,this.attackOrigin(attacker));
+    if(damage>0&&(this.ownSide(attacker)||notesOf(this).ours)&&this.enemies.includes(e))this.noticeHit(e,attacker);   // 3.209.0
     // 3.205.0: a swarm boss's bite or charge on one of its own (src/swarm-bosses.js, 敵我不分) is not yours: not in your
     // damage count (review), not your kill, xp or scrap (below), and the log says who did it.
     // 3.206.0: nor any enemy boss's (a rebel boss's fire burns whoever stands in it, src/rebel-bosses.js).
@@ -212,14 +255,23 @@ export class GameDamage {
       // 3.177.9: close throw (the ninja) is not caught by its own stun grenade or EMP.
       else for(const actor of [p,...this.enemies,...this.activeAllies])if(affected.has(key(actor))&&!(actor===attacker&&activeTrait(actor,'close_throw'))&&applyDisruption(actor,def.keyword)){
         if(actor!==p)actor.alert=true;
+        // 3.209.0 (user 2026-09-30): stunned or jammed by yours, an enemy knows where the grenade came down (the blast's centre).
+        // A decoy still holds the one it fooled (as for a hit, Game.noticeHit).
+        if(this.enemies.includes(actor)&&this.ownSide(attacker)&&!this.isFooled(actor))this.learnAttack(actor,pos,attacker);
         const name=actor===p?null:actor.kind?allyName(actor):enemyName(actor),n=actor.control.disabled;
         this.log(name===null?t('game.disabledYou',{n}):t('game.disabled',{name,n}),actor===p,name===null?t('game.disabledYouReal'):t('game.disabledReal',{name}));
       }
       this.reveal();
     }
   }
-  explode(center,radius,damage,attacker=null,eligible=null) {
-    const origin={x:center.x,y:center.y};
+  // 3.209.0: whoever the blast hurts learns it came from its centre, or from `from`, the shooter's tile, when a gun's own
+  // round bursts (the launcher, the burst grenade rifle, a plasma burst, a unit's explosive gun). A blast it sets off (a
+  // barrel, a rigged case, a mine) has its own centre and is your side's when this one is. `ours`: your side's with no
+  // attacker (a converted core guard's bombardment); the attacker, and so kills and salvage, stay as they were.
+  explode(center,radius,damage,attacker=null,eligible=null,{from=null,ours=false}={}) {
+    const origin={x:center.x,y:center.y},notes=notesOf(this),outer={origin:notes.origin,ours:notes.ours};
+    notes.origin=from?{x:from.x,y:from.y}:{...origin};notes.ours=ours||outer.ours;
+    try{
     this.effects.push({type:'blast',from:origin,to:origin,damage:0,radius});
     const affected=p=>distance(origin,p)<=radius&&lineOfSight(objectSightGrid(this,origin,p),origin,p,this.barriers,'blast');
     // Freeze shielding for this blast before destroying any of its barriers.
@@ -236,6 +288,7 @@ export class GameDamage {
     // 3.144.0: a blast damages the decoy and sets off every mine it reaches (each is removed before it goes off).
     if(this.decoy&&affected(this.decoy))damageDecoy(this,Math.max(1,damage-distance(origin,this.decoy)*10));
     for(const m of (this.mines||[]).filter(affected))detonateMine(this,m);
+    }finally{notes.origin=outer.origin;notes.ours=outer.ours;}
   }
   // `projectile` (3.207.0): the blow's own, when it is not the card's (a delisted ninja's knife on a card with an SMG).
   damagePlayer(raw,label,attacker=null,blast=false,projectile=undefined) {

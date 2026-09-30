@@ -42,25 +42,29 @@ export const canCower=e=>isRebel(e)&&accepts(e,'retreat')&&e.hp>0&&!elite(e)&&bi
 // Cover to run to: the nearest tile that shields it from the player, never a one-tile corridor (it would seal its own
 // side in), never occupied. None found: it cowers where it stands.
 const straightCorridor=(g,q)=>{const open=([dx,dy])=>g.passable(q.x+dx,q.y+dy);return (open([1,0])&&open([-1,0])&&!open([0,1])&&!open([0,-1]))||(open([0,1])&&open([0,-1])&&!open([1,0])&&!open([-1,0]));};
-export function coverSpot(g,e){
+// `threat`: the tile it takes cover from, you by default. 3.209.0 (review): a rebel that breaks without seeing you hides from
+// where it thinks you are (Game.noticeHit: where the shot came from, or where the comrade fell), never your live tile.
+export function coverSpot(g,e,threat=g.player){
  const r=REBEL_TUNING.coverSearch,p=g.player;let best=null;
  for(let y=e.y-r;y<=e.y+r;y++)for(let x=e.x-r;x<=e.x+r;x++){
   const q={x,y};if(x<0||y<0||x>=SIZE||y>=SIZE||distance(e,q)>r)continue;
   if(!g.passable(x,y,e)||straightCorridor(g,q)||hazardTile(g,q.x,q.y,e))continue;
   if([p,...g.enemies.filter(o=>o.hp>0&&o!==e),...g.activeAllies].some(a=>distance(a,q)===0))continue;
-  if(!g.protectingCover(q,p))continue;
+  if(!g.protectingCover(q,threat))continue;
   const score=distance(e,q);
   if(!best||score<best.score||score===best.score&&key(q)<key(best.q))best={q,score};
  }
  return best?.q||null;
 }
-export function cower(g,e){
+// 3.209.0 (review): where a rebel thinks you are — your tile when it sees you, otherwise what it last knew of you.
+const threatOf=(g,e)=>g.sight(e,g.player)?g.player:e.lastKnown||g.player;
+export function cower(g,e,threat=threatOf(g,e)){
  if(!canCower(e)||isCowering(e))return false;
  grantTrait(e,COWER_TRAIT,COWER_SOURCE);
  // 3.129.0 迂迴: the run for cover takes the way you cannot see; a rally removes both with the source.
  grantTrait(e,DETOUR_TRAIT,COWER_SOURCE);
  // 3.131.0: hiding is a retreat order the rebel gives itself — no time limit, nothing but a rally ends it.
- const spot=coverSpot(g,e);
+ const spot=coverSpot(g,e,threat);
  giveOrder(g,e,{kind:'retreat',by:'self',at:spot?{x:spot.x,y:spot.y}:{x:e.x,y:e.y},patience:null,breakOn:[]});
  g.enemyCallout?.(e,'state',{state:'flee'});
  return true;
@@ -71,7 +75,8 @@ export function rally(g,e){removeTraitSource(e,COWER_SOURCE);if(e.order?.kind===
 // caused: an execution or a suicide bot going off is not the enemy's doing, and must never undo a rally.
 export function witnessDeath(g,dead){
  const broke=[];
- for(const e of g.enemies)if(e!==dead&&canCower(e)&&!isCowering(e)&&distance(e,dead)<=REBEL_TUNING.witnessRadius&&g.sight(e,dead)&&cower(g,e))broke.push(e);
+ // 3.209.0 (review): one that cannot see you hides from where the comrade fell, which is what it learns (Game.noticeHit).
+ for(const e of g.enemies)if(e!==dead&&canCower(e)&&!isCowering(e)&&distance(e,dead)<=REBEL_TUNING.witnessRadius&&g.sight(e,dead)&&cower(g,e,g.sight(e,g.player)?g.player:{x:dead.x,y:dead.y}))broke.push(e);
  return broke;
 }
 

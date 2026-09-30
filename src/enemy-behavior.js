@@ -55,6 +55,8 @@ function seekCover({g,e,p,def,los}){
 
 return false;
 }
+// 3.209.0: the unit of yours on `tile` that `e` cannot see, if any (you first).
+const unseenAt=(g,e,tile)=>[g.player,...g.activeAllies].find(a=>a.hp>0&&key(a)===key(tile)&&!g.sight(e,a))||null;
 function move({g,e,p,def,los,d}){
         if(g.survival&&g.holdsPoint(e))return;
         const destination=los?p:e.lastKnown,band=def.range>1?enemyBand(e.type):null;
@@ -64,8 +66,11 @@ function move({g,e,p,def,los,d}){
         const tooClose=Boolean(band&&los&&d<band[0]);
         const step=pinned(e)||plan?.hold?null:plan?.step||(tooClose?null:destination&&distance(e,destination)>0?g.nextStep(e,destination):null);
         // 3.180.0: the route stops short of a target's own tile, so walking into an unseen target next to it is caught here.
-        if(!step&&!los&&!pinned(e)&&destination&&key(destination)===key(p)&&distance(e,p)===1&&g.canCross(e,p)){attack({g,e,p,def,blind:true});return;}
-        if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}else if(!los&&key(step)===key(p)&&g.canCross(e,p))attack({g,e,p,def,blind:true});}
+        // 3.209.0 (user 2026-09-30): not only you — whichever of your units it cannot see stands on the tile it knows about
+        // (a pet, a drone, a summon that bit or shot it from the black), it attacks blind the same way.
+        const body=!los&&!pinned(e)&&destination?unseenAt(g,e,destination):null;
+        if(!step&&body&&distance(e,body)===1&&g.canCross(e,body)){attack({g,e,p:body,def,blind:true});return;}
+        if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}else if(!los&&key(step)===key(p)&&g.canCross(e,p))attack({g,e,p,def,blind:true});else if(body&&key(step)===key(body)&&g.canCross(e,body))attack({g,e,p:body,def,blind:true});}
 
 }
 function reinforce({g,e,p}){

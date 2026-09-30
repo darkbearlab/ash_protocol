@@ -11,9 +11,13 @@ test('v1 compatibility: Soldier and Recon play dark six-floor campaigns to an en
   // 3.185.0 (user decision): plan C's pistol and shell curves leave the Recon's starting SMG and shotgun almost harmless
   // against armor 6+, so the bot no longer wins these maps (16 of 24 before, 0 after; it falls on floor 3's brutes).
   // What stays is a tripwire against a collapse: the Recon still averages past floor 2.5 (2.9 at 3.185.0).
+  // 3.209.0 (user 2026-09-30, accepted as harder): enemies that see a comrade hit go alert toward it (docs/CORE_RULES.md
+  // 受到攻擊), so fights on these maps draw in more of the room. The Recon averages 2.33 (3.00 before; exactly 3.00 again
+  // with the witness rule switched off), the Soldier 2.92 (3.75); the tripwire moves to 2.1, which leaves room for a few
+  // floors of drift below the measured 2.33 (review: 2.3 failed on a single lost floor).
   const soldier=Array.from({length:12},(_,i)=>play(i+1,1800,'soldier',LegacyGame));
   const recon=Array.from({length:12},(_,i)=>play(i+1,1800,'recon',LegacyGame));
-  assert.ok(recon.reduce((sum,r)=>sum+r.floor,0)/recon.length>=2.5,JSON.stringify(recon));
+  assert.ok(recon.reduce((sum,r)=>sum+r.floor,0)/recon.length>=2.1,JSON.stringify(recon));
   const results=[...soldier,...recon];
   for(const r of results){assert.notEqual(r.status,'playing',JSON.stringify(r));assert.equal(r.invalid,0);if(r.status==='won')assert.equal(r.floor,FLOORS.length);}
 });

@@ -161,11 +161,26 @@ export const squadStale=(g,leader,weaponId)=>!leader.squad||leader.squad.weapon!
 // 3.128.1 (user decision): a member still walking to its spot is not ready yet — it keeps walking, and the leader's next
 // re-application reaches it once it has arrived. So the deadline readies whoever is in place, not the stragglers.
 // Bounding advancers are not stragglers: their callers decide (patience keeps them ready, contact leaves them out).
+// 3.209.0 (user 2026-09-30): the aim is held on the squad's last report (`squad.last`: your tile while anyone senses you,
+// otherwise where you were last sensed or where the shots came from), never on your live tile, which a blinded squad does
+// not know; before any report, on the tile the leader identified you on.
 export function makeReady(g,leader,members){
+ const s=leader.squad,mark=s?.last||s?.at||leader.lastKnown||{x:g.player.x,y:g.player.y};
  for(const actor of [leader,...members.filter(m=>dutyOf(m)?.set!==false||m.order?.kind==='bound')]){
   grantTrait(actor,READY_TRAIT,SQUAD_SOURCE,SQUAD_TUNING.readyTurns);
-  if(actor!==leader&&(enemyDef(actor)?.range||1)>1&&!gunless(actor)){actor.charge=true;actor.windup=1;actor.aim={x:g.player.x,y:g.player.y};}   // 3.203.0: a flamer has no gun to hold on you
+  if(actor!==leader&&(enemyDef(actor)?.range||1)>1&&!gunless(actor)){actor.charge=true;actor.windup=1;actor.aim={x:mark.x,y:mark.y};}   // 3.203.0: a flamer has no gun to hold on you
  }
+}
+// 3.209.0 (user 2026-09-30): a member hit by your side radios where the attack came from (Game.noticeHit): the leader's
+// last report moves there, so the squad holds its aim on it and its search goes there. The patience restarts only when the
+// report is new; a shooter who stays on one tile does not keep a squad holding for ever (Claude's call). A leader hit
+// reports to itself.
+export function radioHit(g,member,origin){
+ const leader=isSquadLeader(member)&&member.squad?member:member.squad&&g.enemies.find(o=>o.id===member.squad.leader&&o.hp>0&&isSquadLeader(o)&&o.squad);
+ if(!leader)return false;
+ const s=leader.squad,fresh=!s.last||s.last.x!==origin.x||s.last.y!==origin.y;
+ s.last={x:origin.x,y:origin.y};if(fresh)s.patience=SQUAD_TUNING.patience;
+ return true;
 }
 // Sensing is sight as each unit has it: the leader's infrared sees through smoke, nothing sees through a wall or a door.
 export const senses=(g,actor,player)=>actor.hp>0&&!actor.control?.disabled&&g.sight(actor,player);

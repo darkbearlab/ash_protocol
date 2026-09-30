@@ -4,6 +4,8 @@
 // You learn only what you can see (option 丙): no hit or miss line, no impact at a tile out of sight, every tracer drawn
 // as a miss, and what the shot left there (a body, blood, dropped loot) shows once you see the tile. Whether firing gives
 // your position away is the usual rule: enemies who can see you. A hit enemy still cries out as usual, which you hear.
+// 3.209.0 (user 2026-09-30, 也適用): like any hit from your side, a blind shot that lands tells the enemy it hit where it
+// came from — your tile — and the enemies that see it hit go alert toward it (Game.noticeHit). A miss reveals nothing.
 import {t,sentence} from './i18n.js';
 import {distance,key} from './world.js';
 

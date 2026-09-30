@@ -25,6 +25,9 @@ import {BOSS_TUNING,designated,gunCells,liveGun,liveMarkIntent} from './loyalist
 import {chargeLanes,eggSacs} from './swarm-bosses.js';
 import {REBEL_BOSS_TUNING,burnCells,liveBurn,liveFireIntent} from './rebel-bosses.js';
 import {POINT_COLORS,POINT_FRAME,pointFrame} from './renderer-map.js';
+// 3.209.0: where a charging enemy's dashed line points — a sniper's fixed tile; the tile it holds its aim on when it cannot
+// see whom it would shoot (a blinded squad's last report), so no line follows you through the dark; otherwise whom it tracks.
+export function chargeLineTarget(g,e){const tracked=g.activeAllies.find(a=>a.id===e.focusTarget)||g.player;return e.aim&&(unitTree(e).fixedTile||!g.sight(e,tracked))?e.aim:tracked;}
 export class RendererTelegraphs {
   // A spray's reach, tile by tile: the flamethrower's aim and a flamer's marked cone.
   // 3.205.0 (src/swarm-bosses.js): a charge lane with chevrons pointing down it, and a red bar across its end when it will
@@ -145,7 +148,7 @@ export class RendererTelegraphs {
     }
     if(this.mode==='suppress'&&this.aim)this.markArea(this.aim,1,'#8fb2ea33','#b8cff5bb','');
     for(const e of g.visibleEnemies.filter(e=>e.charge)) {
-      const a=this.projectActor(e),target=unitTree(e).fixedTile&&e.aim?e.aim:g.activeAllies.find(a=>a.id===e.focusTarget)||p,b=this.projectActor(target);
+      const a=this.projectActor(e),b=this.projectActor(chargeLineTarget(g,e));
       c.setLineDash([5,5]);this.line(a.x,a.y,b.x,b.y,unitTree(e).fixedTile?'#efb5cb8f':'#eaaa6855',1);c.setLineDash([]);
     }
     // Tongue pulls (3.84.1): the announced line to the grabbed tile and the landing tile, only for bosses the player can see.

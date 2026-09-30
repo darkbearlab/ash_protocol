@@ -54,7 +54,17 @@ test('you learn nothing you cannot see: no hit line, no impact, every tracer a m
  assert.ok(!lines.some(t=>/命中|未命中|傷害/.test(t)),lines.join(' / '));
  assert.ok(g.effects.filter(f=>f.type==='shot').every(f=>f.miss));
  assert.ok(!g.effects.some(f=>f.type==='impact'||f.type==='blast'));
- assert.equal(p.fireChain,null);assert.ok(!e.lastKnown,'the hit alone does not give you away');
+ assert.equal(p.fireChain,null);
+ // 3.209.0 (user 2026-09-30, 也適用 in place of 3.151.0's rule): a blind shot that lands tells the target where it came from.
+ assert.equal(e.alert,true);assert.deepEqual(e.lastKnown,{x:p.x,y:p.y},'the hit tells it your tile');
+});
+
+test('3.209.0: a blind shot that misses reveals nothing',()=>{
+ const g=arena(),p=g.player;cloud(g,14,10);const e=hidden(g,14,10);
+ g.rng=()=>.999;assert.ok(g.action('blindFire',{x:14,y:10}));assert.equal(e.hp,500,'every round missed');
+ assert.equal(e.alert,false);assert.equal(e.lastKnown,null,'a miss teaches the target nothing');
+ g.rng=()=>0;assert.ok(g.action('blindFire',{x:14,y:10}));assert.ok(e.hp<500);
+ assert.equal(e.alert,true);assert.deepEqual(e.lastKnown,{x:p.x,y:p.y},'the next one lands');
 });
 
 test('what the shot leaves on an unseen tile shows once the tile is seen',()=>{
