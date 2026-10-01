@@ -258,7 +258,7 @@ test('a round trip: a floor kept with a fallen boss\'s state comes back from a s
 });
 
 test('SAVE 82: a save from 81 loads unchanged, and a loyalist floor that already holds a warden keeps it',()=>{
-  assert.equal(SAVE_VERSION,90);
+  assert.equal(SAVE_VERSION,91);
   const g=field(),w=makeEnemy('warden',16,10,'old-warden',3,0,'loyalist');g.enemies.push(w);g.facilityFaction='loyalist';
   const raw=JSON.parse(g.serialize());raw.version=81;const loaded=Game.restore(JSON.stringify(raw));
   assert.ok(loaded);assert.equal(loaded.enemies.find(e=>e.id==='old-warden').type,'warden');

@@ -29,12 +29,13 @@ export const MINE_TUNING=Object.freeze({range:3,radius:1,damage:60,max:3,hit:85}
 export const EXO_TUNING=Object.freeze({plates:50,accuracy:EXO_ACCURACY,melee:1.2,suppression:5});
 
 const floorTile=(g,pos)=>Boolean(pos)&&Number.isInteger(pos.x)&&Number.isInteger(pos.y)&&g.grid[pos.y]?.[pos.x]===1;
-const standing=(g,pos)=>[g.player,...g.enemies.filter(e=>e.hp>0),...g.activeAllies].some(a=>a.x===pos.x&&a.y===pos.y);
+// 3.217.0: a burrowed bug is no one standing there (a mine on it goes off under it); a disguise blocks as its case would.
+const standing=(g,pos)=>[g.player,...g.enemies.filter(e=>e.hp>0&&e.concealed?.as!=='burrow'),...g.activeAllies].some(a=>a.x===pos.x&&a.y===pos.y);
 
 // ---- 誘餌 ------------------------------------------------------------------------------------------------------------
 // Only enemies that fight the ordinary way can be drawn off: bosses see through it, and suicide units and munitions
 // have no attack to spend on it.
-const foolable=e=>e.hp>0&&!isNoncombatant(e)&&!isBossClass(e)&&!enemyDef(e)?.expendable&&!['bomber','munition'].includes(enemyDef(e)?.behavior);
+const foolable=e=>e.hp>0&&!e.concealed&&!isNoncombatant(e)&&!isBossClass(e)&&!enemyDef(e)?.expendable&&!['bomber','munition'].includes(enemyDef(e)?.behavior);
 export function decoyReason(g,pos){
  const p=g.player;
  if(!(p.decoys>0))return t('field-gear.noDecoy');
@@ -134,7 +135,7 @@ export function mineReason(g,pos){
 }
 export function placeMine(g,pos){
  const p=g.player;p.mines--;p.facing=[Math.sign(pos.x-p.x),Math.sign(pos.y-p.y)];
- const seen=g.enemies.filter(e=>e.hp>0&&g.sight(e,pos)).map(e=>e.id);
+ const seen=g.enemies.filter(e=>e.hp>0&&!e.concealed&&g.sight(e,pos)).map(e=>e.id);   // 3.217.0: a hidden one watches for you only
  g.mineSerial=(g.mineSerial||0)+1;g.mines=[...(g.mines||[]),{id:`mine-${g.floor}-${g.mineSerial}`,x:pos.x,y:pos.y,seen}];
  g.log(seen.length?t('field-gear.mineSeen',{n:seen.length}):t('field-gear.minePlanted'));
  return true;

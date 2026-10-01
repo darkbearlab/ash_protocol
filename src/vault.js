@@ -55,7 +55,8 @@ function closets(map){
  }return out.sort((a,b)=>a.door.id<b.door.id?-1:a.door.id>b.door.id?1:0);
 }
 export const vaultCapable=map=>Boolean(map?.generation&&closets(map).length&&map.enemies.some(carrierCandidate));
-const carrierCandidate=e=>e.hp>0&&!isBossClass(e)&&!isNoncombatant(e)&&!enemyDef(e)?.expendable&&!e.horde&&!['bomber','munition'].includes(enemyDef(e)?.behavior);
+// 3.217.0: never a hidden unit (src/concealed.js) — the keycard is carried by someone you can see.
+export const carrierCandidate=e=>e.hp>0&&!e.concealed&&!isBossClass(e)&&!isNoncombatant(e)&&!enemyDef(e)?.expendable&&!e.horde&&!['bomber','munition'].includes(enemyDef(e)?.behavior);
 export function placeVault(map,seed,floor){
  if(!map?.generation||!Array.isArray(map.barriers))return map;
  if(fnv(`${seed}:${floor}:vault-v1`)/4294967296>=VAULT_TUNING.chance)return map;

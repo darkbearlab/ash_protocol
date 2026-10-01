@@ -7,6 +7,7 @@ import {spentCase} from './traces.js';
 import {bladeMultiplier} from './melee-classes.js';
 import {recordShot} from './traits.js';
 import {attackRound} from './pursuit.js';
+import {knownEnemy} from './concealed.js';   // 3.217.0 埋伏
 export const suppressiveArea=(g,point)=>areaCells(g.grid,point,1,g.barriers,g);
 export function suppressiveReason(g,point){
  const p=g.player,w=g.weapon;
@@ -23,7 +24,7 @@ export function suppressiveFire(g,point){
  // Intent is a fixed region. A lost firing line still spends the committed rounds.
  if(w.flame)return g.fail(t('suppressive-fire.needsGun'));   // 3.206.0 review fix: see suppressiveReason
  if(w.melee||p.ammo[p.weapon]<T.skillRounds)return g.fail(t('suppressive-fire.magShort'));
- const cells=new Set(suppressiveArea(g,point).map(key)),targets=g.enemies.filter(e=>e.hp>0&&cells.has(key(e))).sort((a,b)=>a.id.localeCompare(b.id));
+ const cells=new Set(suppressiveArea(g,point).map(key)),targets=g.enemies.filter(e=>e.hp>0&&cells.has(key(e))&&knownEnemy(e)).sort((a,b)=>a.id.localeCompare(b.id));
  const hits=new Set(),shots=Math.min(T.skillRounds+(w.extraRounds||0),p.ammo[p.weapon]);let cursor=0,rounds=0;
  // 3.208.0 (src/pursuit.js): each round is a round of its own; only the first can earn pursuit.
  for(let i=0;i<shots&&p.hp>0;i++)presentStep(g,()=>attackRound(g,i,()=>{

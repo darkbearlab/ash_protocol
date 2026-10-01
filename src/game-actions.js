@@ -1,6 +1,7 @@
 // The player's turn (3.206.3 split): what an action costs, whether it is allowed (validateAction and the reasons
 // the controller shows before it tries), `action` — the one entry point of every turn — and the player's own action.
 // Methods of Game (src/game.js), which copies them onto Game.prototype (src/mixin.js, 3.206.3): `this` is the game.
+import {revealConcealed} from './concealed.js';   // 3.217.0 埋伏
 import {sentence,t} from './i18n.js';
 import {blindFire,blindReason} from './blind-fire.js';
 import {isSimulation} from './killhouse-policy.js';
@@ -128,7 +129,7 @@ export class GameActions {
       if(pinned(p)&&!this.enemies.some(e=>e.hp>0&&e.x===x&&e.y===y))return this.fail(t('game.pinnedCannotMove'),'pinned');
       if(ally){if(skillActive(p,'anchor'))return this.fail(t('game.anchoredRelease'),'anchored');const reason=swapReason(this,ally);return !reason||this.fail(reason,'blocked');}
       // 3.180.0 (user): walking into an enemy you cannot see (the black) swings at it all the same, at a blind −40 (strike).
-      const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e){this.target=e.id;if(!edgeBlocks(edge)&&this.bumpMeleeSlot()!==undefined&&this.shotClear(p,e))return true;return this.fail(t('game.enemyBlocks'),'blocked');}return !skillActive(p,'anchor')||this.fail(t('game.anchoredRelease'),'anchored');
+      const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);if(e?.concealed){revealConcealed(this,e);return this.fail(t('game.enemyBlocks'),'blocked');}if(e){this.target=e.id;if(!edgeBlocks(edge)&&this.bumpMeleeSlot()!==undefined&&this.shotClear(p,e))return true;return this.fail(t('game.enemyBlocks'),'blocked');}return !skillActive(p,'anchor')||this.fail(t('game.anchoredRelease'),'anchored');
     }
     if(type==='recoverObjective')return this.nearbyObjectives.some(t=>t.id===arg)||this.fail(t('game.noObjectiveNear'));
     if(type==='openContainer')return this.nearbyContainers.some(c=>c.id===arg)||this.fail(t('game.noContainerNear'));
@@ -263,7 +264,7 @@ export class GameActions {
         // 3.209.0 (src/game-damage.js settleAttackNotes): what your step taught the enemies, once it is over.
         this.settleAttackNotes();petReactions(this);this.reveal();checkMines(this);this.settleAttackNotes();
       }else if(actor.kind){const wasIn=inToxic(this,actor);presentStep(this,()=>{if(isMunition(actor))munitionAct(this,actor);else if(isBomber(actor))bomberAct(this,actor);else allyAct(this,actor);this.settleAttackNotes();this.reveal();},actor);toxicAllyTurn(this,actor,wasIn);}
-      else if(actor.hp>0&&actor.alert)presentStep(this,()=>{this.enemyAct(actor);checkMines(this);this.settleAttackNotes();},speed!==0||playerSpeed!==0||phase!==null?actor:null);
+      else if(actor.hp>0&&(actor.alert||actor.concealed))presentStep(this,()=>{this.enemyAct(actor);checkMines(this);this.settleAttackNotes();},speed!==0||playerSpeed!==0||phase!==null?actor:null);   // concealed: 3.217.0, a hidden unit watches for you
       if(immunityBefore&&!anchorExtra)actor.control.immune=Math.max(0,actor.control.immune-1);
       }finally{if(lastSlot.get(actor)===slot)tickSuppression(actor);}
     }
@@ -337,6 +338,7 @@ export class GameActions {
         if(!this.canCross(p,{x,y})&&!vaultable(edge))return this.fail(t('game.obstacleBlocks'),'blocked');
         if(!this.passable(x,y))return this.fail(this.solid(x,y)?t('game.propBlocks'):t('game.wall'),'blocked');
         const e=this.enemies.find(e=>e.hp>0&&e.x===x&&e.y===y);
+        if(e?.concealed)revealConcealed(this,e);   // 3.217.0: walking into a hidden unit shows it (it fights from its next turn)
         if(e){this.target=e.id;return this.fail(t('game.enemyBlocks'),'blocked');}
         // Re-check the swap at resolution; a faster enemy may have disabled the ally in the meantime.
         const ally=this.activeAllies.find(a=>a.x===x&&a.y===y);

@@ -85,6 +85,9 @@ export const ENEMY_AFFIXES=[
  // walk is the ordinary one: no boss, no behaviour card of its own (no sniper, no bomber), never a flamer (it walks to
  // its cone); the fixed turret has a behaviour card. Special, rolled after 繳械 on its own stream ('sprint-v1').
  {id:'sprint',fragment:t('enemyAffixes.sprint.fragment'),order:11,applies:e=>combatant(e)&&!isBossClass(e)&&!ENEMY_TYPES[e.type]?.behavior&&!isFlamer(e),special:true,reveal:REVEAL_TYPES.effect},
+ // 埋伏 (3.217.0, user 2026-09-30, docs/ENEMY_VARIETY.md section 6; src/concealed.js): never rolled per unit — a floor pass
+ // gives it to one or two (concealSpecial), with the hiding's shape (`concealed`). Shown when the unit reveals itself.
+ {id:'concealed',fragment:t('enemyAffixes.concealed.fragment'),order:12,applies:()=>false,special:true,reveal:REVEAL_TYPES.effect},
  {id:'disarm',fragment:t('enemyAffixes.disarm.fragment'),order:10,applies:e=>armed(e)&&marksman(e)&&!isFlamer(e)&&!locksDown(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
 ];
 export const locksDown=e=>Boolean(e?.affixes?.some(a=>a.id==='lockdown'));

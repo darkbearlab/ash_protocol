@@ -67,7 +67,7 @@ export function weaponAnswer(game){
  if((w.range||0)>=8)return {kind:'long',closeIn:SQUAD_TUNING.closeIn};
  return {kind:'standard'};
 }
-export const squadMembers=(g,leader)=>g.enemies.filter(e=>e!==leader&&e.hp>0&&e.alert&&(!e.order||onDutyFor(e,leader))&&!isNoncombatant(e)&&!isSquadLeader(e)&&(enemyDef(e)?.range||1)>1&&distance(e,leader)<=SQUAD_TUNING.radius).slice(0,SQUAD_TUNING.members);
+export const squadMembers=(g,leader)=>g.enemies.filter(e=>e!==leader&&e.hp>0&&e.alert&&!e.concealed&&(!e.order||onDutyFor(e,leader))&&!isNoncombatant(e)&&!isSquadLeader(e)&&(enemyDef(e)?.range||1)>1&&distance(e,leader)<=SQUAD_TUNING.radius).slice(0,SQUAD_TUNING.members);
 
 // A firing position for one member: it can shoot from there, it keeps the distance the player's weapon demands, and
 // cover beats no cover. Taken tiles are reserved so a squad never stacks up on one doorway.

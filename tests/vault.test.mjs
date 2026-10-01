@@ -5,7 +5,7 @@ import {Game,generate} from '../src/engine.js';
 import {reachable} from '../src/world.js';
 import {edgeCells,barrierName} from '../src/barriers.js';
 import {isBossClass,isNoncombatant,enemyDef} from '../src/enemy-data.js';
-import {VAULT_TUNING,VAULT_LOOT,vaultCapable,sealVaultWalls} from '../src/vault.js';
+import {VAULT_TUNING,VAULT_LOOT,vaultCapable,sealVaultWalls,carrierCandidate} from '../src/vault.js';
 import {moduleCells} from '../src/modules.js';
 import {WEAPONS} from '../src/data.js';
 
@@ -46,7 +46,8 @@ test('an elite carries the keycard when the floor has one',()=>{
  let checked=0;
  for(let seed=1;seed<=60;seed++)for(let floor=7;floor<=12;floor++){
   const m=generate(seed,floor),{carrier}=vaultOf(m);if(!carrier)continue;
-  if(m.enemies.some(e=>e.elite&&!isBossClass(e)&&!isNoncombatant(e)&&!e.horde&&!enemyDef(e)?.expendable&&!['bomber','munition'].includes(enemyDef(e)?.behavior))){assert.ok(carrier.elite,`${seed}/${floor}`);checked++;}
+  // 3.217.0: carrierCandidate (src/vault.js) also leaves out a hidden unit (src/concealed.js).
+  if(m.enemies.some(e=>e.elite&&carrierCandidate(e))){assert.ok(carrier.elite,`${seed}/${floor}`);checked++;}
  }
  assert.ok(checked>0);
 });

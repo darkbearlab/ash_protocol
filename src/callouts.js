@@ -14,7 +14,7 @@ export function calloutCue(kind,detail={}){const cue=kind==='telegraph'?detail.a
 const states=new WeakMap();
 // Callouts are presentation only (user decision, 3.76.1): the combat log keeps rules results, so nothing is logged here.
 export function receiveCallout(g,actor,kind,detail={}){
- const cue=calloutCue(kind,detail);if(!cue||actor===g.player||actor.kind||!g.enemies.includes(actor)||actor.hp<=0)return null;
+ const cue=calloutCue(kind,detail);if(!cue||actor===g.player||actor.kind||!g.enemies.includes(actor)||actor.hp<=0||actor.concealed)return null;   // concealed: 3.217.0, a hidden unit says nothing
  // A flight and a rally can happen again and again to the same soldier; every other state is announced once.
  if(kind==='state'&&cue!=='flee'&&cue!=='rally'){const memory=states.get(actor)||{};const category=CALLOUT_CUES[cue].category;if(memory[category]===cue)return null;memory[category]=cue;states.set(actor,memory);}
  if(Math.abs(actor.x-g.player.x)+Math.abs(actor.y-g.player.y)>CALLOUT_TUNING.hearingRadius)return null;

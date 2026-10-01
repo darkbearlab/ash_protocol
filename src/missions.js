@@ -42,7 +42,7 @@ export function prepareMission(g){
   for(const r of ordered){
     if(m.targets.length===def.count)break;
     if(def.kind==='hunt'){
-      const e=g.enemies.find(e=>e.hp>0&&eligibleMissionEnemy(e)&&inside(e,r)&&accessible.has(key(e)));
+      const e=g.enemies.find(e=>e.hp>0&&!e.concealed&&eligibleMissionEnemy(e)&&inside(e,r)&&accessible.has(key(e)));
       if(e)m.targets.push({id:e.id});
     }else{
       const reserved=g.slots?.filter(s=>s.kind==='objective'&&s.roomId===r.index);

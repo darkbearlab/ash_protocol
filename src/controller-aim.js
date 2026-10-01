@@ -4,6 +4,7 @@
 // controller keeps the run's state, the event listeners and everything that runs at start-up. Its state is imported
 // (live bindings, read-only); a change to it goes through the setter the controller exports for it.
 import {t} from './i18n.js';
+import {disguised} from './concealed.js';   // 3.217.0 埋伏
 import {availableCharacters} from './unlock-catalog.js';
 import {profile,write} from './storage.js';
 import {operatorRecoveredMarkup} from './unlock-ui.js';
@@ -36,7 +37,7 @@ const BLIND_HINT=`${t('controller.blindHint',{penalty:BLIND_TUNING.penalty})}`;
 export function startBlindAim(pos){renderer.mode='blind';renderer.aim={x:pos.x,y:pos.y};updateAim();notify(BLIND_HINT);}
 export function setBlindAim(pos){const reason=blindReason(game,pos);if(reason){notify(reason+t('controller.period'));return;}renderer.aim={x:pos.x,y:pos.y};updateAim();}
 // Suppressive fire aims an area like a grenade, but range comes from the weapon and validity from suppressivePreview (3.74.1).
-function startSuppressAim(){const p=game.player,reason=suppressivePreview(game,{x:p.x,y:p.y}).reason;if(reason){notify(reason);return;}const pick=[game.targeted,...game.visibleEnemies].find(e=>e&&game.enemies.includes(e)&&!suppressivePreview(game,{x:e.x,y:e.y}).reason);renderer.mode='suppress';renderer.aim=pick?{x:pick.x,y:pick.y}:{x:p.x,y:p.y};notify(`${t('controller.suppressHint',{range:game.weapon.range})}`);updateAim();}
+function startSuppressAim(){const p=game.player,reason=suppressivePreview(game,{x:p.x,y:p.y}).reason;if(reason){notify(reason);return;}const pick=[game.targeted,...game.visibleEnemies].find(e=>e&&game.enemies.includes(e)&&!disguised(e)&&!suppressivePreview(game,{x:e.x,y:e.y}).reason);renderer.mode='suppress';renderer.aim=pick?{x:pick.x,y:pick.y}:{x:p.x,y:p.y};notify(`${t('controller.suppressHint',{range:game.weapon.range})}`);updateAim();}
 export function setSuppressAim(pos){const reason=suppressivePreview(game,pos).reason;if(reason){notify(reason);return;}renderer.aim=pos;updateAim();}
 export function setAim(pos){const launch=renderer.mode==='launch'||renderer.mode==='rope',placing=renderer.mode==='place',range=renderer.mode==='rope'?LINE_TUNING.range:launch?game.weapon.range:placing?placeRange():5;if(distance(pos,game.player)<=range&&game.grid[pos.y]?.[pos.x]===1&&game.visible(pos)){renderer.aim=pos;updateAim();}else notify(launch||placing?`${t('controller.landingRange',{range})}`:t('controller.throwRange'));}
 const placeRange=()=>renderer.placeItem==='mine'?MINE_TUNING.range:renderer.placeItem==='glowstick'?LIGHT_TUNING.glowstickRange:DECOY_TUNING.range;
@@ -124,7 +125,7 @@ export function toggleTargeting(){renderer.targetingEnabled=!renderer.targetingE
 // cannot swap for anything better. The lock is presentation state the rules already let you change for free (cycleTarget).
 export function retarget(){
   if(!autoRetarget||game.status!=='playing')return;
-  const p=game.player,w=game.weapon,locked=game.enemies.find(e=>e.id===game.target&&e.hp>0);if(!locked||w.melee||distance(p,locked)<=w.range)return;
+  const p=game.player,w=game.weapon,locked=game.enemies.find(e=>e.id===game.target&&e.hp>0);if(!locked||disguised(locked)||w.melee||distance(p,locked)<=w.range)return;
   const inRange=game.visibleEnemies.filter(e=>e.hp>0&&!isNoncombatant(e)&&distance(p,e)<=w.range).sort((a,b)=>distance(p,a)-distance(p,b));
   const pick=inRange.find(e=>game.shotClear(p,e))||inRange[0];if(pick)game.target=pick.id;
 }

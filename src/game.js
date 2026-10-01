@@ -1,4 +1,5 @@
 import {t} from './i18n.js';
+import {concealedSeen,knownEnemy} from './concealed.js';   // 3.217.0 埋伏
 import {blindAim,silenced,forgetSeenAftermath} from './blind-fire.js';
 import {initializeRunUnlocks} from './run-unlocks.js';
 import {survivalAction,holdsPoint,pointBlocks} from './survival.js';
@@ -108,7 +109,8 @@ export class Game {
   get allyTravelSummary(){const near=carryCandidates(this).length,total=this.activeAllies.length;return total?t('game.allyCarry',{near,left:total-near}):'';}
   get weapon(){return this.weaponAt(this.player.weapon);}
   weaponAt(slot){if(slot===UNARMED_SLOT)return {...UNARMED};return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot],this.player);}
-  get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.teamVisible(e));}
+  // 3.217.0 (src/concealed.js): a hidden unit is no enemy you see — a disguise is a case, a burrowed bug nothing until marked.
+  get visibleEnemies(){return this.enemies.filter(e=>e.hp>0&&this.teamVisible(e)&&knownEnemy(e));}
   // A blind shot (src/blind-fire.js) aims at what stands on its tile, seen or not, only while it resolves.
   get targeted(){const blind=blindAim(this);if(blind)return blind.target||undefined;return [...this.enemies,...this.props,...this.barriers,...(this.lamps||[])].find(e=>e.id===this.target&&e.hp>0&&this.teamVisible(e));}   // lamps: 3.187.0
   get perkChoices(){return ensurePerks(this);}
@@ -137,7 +139,9 @@ export class Game {
   // 3.207.0: a delisted ninja in the same thick cloud as the one looking shows its outline, though smoke blocks the view.
   visible(e){return this.revealed(this.player,e)&&distance(this.player,e)<=Math.max(10,this.weapon.range)&&(isBarrier(e)?edgeCells(e).some(p=>this.sight(this.player,p)):this.sight(this.player,e)||outlined(this,this.player,e));}
   teamVisible(e){return this.visible(e)||this.activeAllies.some(a=>connected(this,a)&&this.revealed(a,e)&&distance(a,e)<=8&&(this.sight(a,e)||outlined(this,a,e)));}
-  sight(a,b){syncPetSenses(this);return !(b===this.player&&a!==this.player&&(skillActive(this.player)||decoyHides(this,a)))&&!(this.isActor(b)&&hiddenInDark(this,a,b))&&tacticalSight(this,a,b);}
+  // 3.217.0: only you see a hidden unit, and only as what it shows — a case where you see its tile (never hidden in the
+  // black: a case is a thing on the floor), a burrowed bug once marked. Your units and the enemies never do.
+  sight(a,b){syncPetSenses(this);if(b?.concealed)return a===this.player&&concealedSeen(b)&&tacticalSight(this,a,b);return !(b===this.player&&a!==this.player&&(skillActive(this.player)||decoyHides(this,a)))&&!(this.isActor(b)&&hiddenInDark(this,a,b))&&tacticalSight(this,a,b);}
   // 3.178.0 (docs/LIGHTING.md): the black hides people, not tiles, so sight still passes through it to what lies beyond.
   isActor(b){return b===this.player||Boolean(b&&typeof b.hp==='number'&&(this.enemies.includes(b)||this.allies.includes(b)));}
   shotClear(a,b){return cornerRay(this,a,b).clear;}
@@ -179,7 +183,8 @@ export class Game {
     this.visibleTiles=new Set();
     for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++)if(distance(this.player,{x,y})<=radius&&this.sight(this.player,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
     for(const a of this.activeAllies.filter(a=>connected(this,a)))for(let y=Math.max(0,a.y-8);y<=Math.min(SIZE-1,a.y+8);y++)for(let x=Math.max(0,a.x-8);x<=Math.min(SIZE-1,a.x+8);x++)if(distance(a,{x,y})<=8&&this.sight(a,{x,y})){this.seen[y][x]=true;this.visibleTiles.add(`${x},${y}`);}
-    if(warnings)for(const e of this.enemies)if(e.hp>0){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert&&!isNoncombatant(e))this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};if(warnings&&isNoncombatant(e))scream(this,e);else if(warnings&&isEnforcer(e))soundAlarm(this,e,target);}}
+    // 3.217.0: a hidden unit never spots you here (no alert, no call); it watches on its own turn (src/concealed.js).
+    if(warnings)for(const e of this.enemies)if(e.hp>0&&!e.concealed){const target=this.enemyTarget(e);if(distance(e,target)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,target)){if(!e.alert&&!isNoncombatant(e))this.enemyCallout(e,'state',{state:'spotted'});e.alert=true;e.lastKnown={x:target.x,y:target.y};if(warnings&&isNoncombatant(e))scream(this,e);else if(warnings&&isEnforcer(e))soundAlarm(this,e,target);}}
     forgetSeenAftermath(this);
     this.autoTarget();
   }

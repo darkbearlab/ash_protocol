@@ -36,7 +36,7 @@ export function poisonHit(g,e,target){
 // and bitten in the same action (the berserker's grapple and strike), for the card's own blow. Nothing on the line: a
 // miss. It still aims at whoever the boss is fighting and still needs sight and a clear shot to announce.
 export const tongueLane=(g,origin,target)=>rayCells(origin,target,SWARM_TUNING.tongueRange,q=>seeThrough(g.grid[q.y]?.[q.x])&&!g.solid(q.x,q.y),(a,b)=>blockedBetween(g.barriers,a,b,'shot'));
-const bodies=(g,e)=>[g.player,...g.activeAllies,...g.enemies].filter(u=>u!==e&&u.hp>0);
+const bodies=(g,e)=>[g.player,...g.activeAllies,...g.enemies].filter(u=>u!==e&&u.hp>0&&!u.concealed);   // 3.217.0: never a hidden unit
 export function tongueCatch(g,e,lane){const all=bodies(g,e);for(const q of lane){const u=all.find(u=>u.x===q.x&&u.y===q.y);if(u)return u;}return null;}
 // Where a caught body lands: free floor beside the boss, with no wall edge between — the tile it announced while that
 // still is, else the one nearest the body.

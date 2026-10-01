@@ -76,7 +76,7 @@ export function rally(g,e){removeTraitSource(e,COWER_SOURCE);if(e.order?.kind===
 export function witnessDeath(g,dead){
  const broke=[];
  // 3.209.0 (review): one that cannot see you hides from where the comrade fell, which is what it learns (Game.noticeHit).
- for(const e of g.enemies)if(e!==dead&&canCower(e)&&!isCowering(e)&&distance(e,dead)<=REBEL_TUNING.witnessRadius&&g.sight(e,dead)&&cower(g,e,g.sight(e,g.player)?g.player:{x:dead.x,y:dead.y}))broke.push(e);
+ for(const e of g.enemies)if(e!==dead&&!e.concealed&&canCower(e)&&!isCowering(e)&&distance(e,dead)<=REBEL_TUNING.witnessRadius&&g.sight(e,dead)&&cower(g,e,g.sight(e,g.player)?g.player:{x:dead.x,y:dead.y}))broke.push(e);
  return broke;
 }
 

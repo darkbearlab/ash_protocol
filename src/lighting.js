@@ -100,7 +100,7 @@ export function carriesFlashlight(game,e){
  if(!kind||!e||e.kind||e.faction==='swarm'||hasEnemyTag(e,'infected'))return false;
  return kind==='always'||fnv(`${game.seed}:${game.floor}:flashlight:${e.id}`)/4294967296<ENEMY_FLASHLIGHT.share;
 }
-export const enemyFlashlightOn=(game,e)=>newLighting(game)&&e.hp>0&&Boolean(e.alert)&&(game.enemies||[]).includes(e)&&carriesFlashlight(game,e);
+export const enemyFlashlightOn=(game,e)=>newLighting(game)&&e.hp>0&&Boolean(e.alert)&&!e.concealed&&(game.enemies||[]).includes(e)&&carriesFlashlight(game,e);
 // Toward where it last saw you; failing that, the way it last moved; failing that, only the holder shows.
 export function enemyFlashlightDirection(e){
  const k=e.lastKnown;if(k&&(k.x!==e.x||k.y!==e.y))return [k.x-e.x,k.y-e.y];

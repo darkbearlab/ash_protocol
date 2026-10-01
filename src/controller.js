@@ -1,4 +1,5 @@
 import {t,language,languageChoice,LANGUAGES} from './i18n.js';
+import {disguised} from './concealed.js';   // 3.217.0 埋伏
 import {localizeDocument} from './localize-dom.js';
 import './story-data.js';   // load order only (3.206.3 split)
 import {playerCalloutEvent} from './callouts.js';
@@ -521,8 +522,9 @@ $('#battle').addEventListener('pointerup',e=>{
   // 3.187.0: a wall lamp is picked where it is drawn, against its wall, so the middle of its tile still moves you there.
   const lamp=renderer.hitLamp(e.clientX-r.left,e.clientY-r.top);
   if(lamp){game.target=lamp.id;if(!renderer.targetingEnabled)toggleTargeting();else update();return;}
-  const target=[...game.visibleEnemies,...game.props.filter(p=>p.hp>0&&game.visible(p))].find(o=>distance(o,pos)===0);
-  if(target){game.target=target.id;if(game.enemies.includes(target)&&!renderer.targetingEnabled)toggleTargeting();else update();return;}
+  // 3.217.0 (src/concealed.js): a disguised unit is picked like a rigged case — the tap locks it (auto-target never does).
+  const target=[...game.visibleEnemies,...game.enemies.filter(e=>e.hp>0&&disguised(e)&&game.visible(e)),...game.props.filter(p=>p.hp>0&&game.visible(p))].find(o=>distance(o,pos)===0);
+  if(target){game.target=target.id;if(game.enemies.includes(target)&&!disguised(target)&&!renderer.targetingEnabled)toggleTargeting();else update();return;}
   const supply=game.props.find(o=>isContainer(o)&&!o.opened&&distance(o,pos)===0&&game.visible(o));
   if(supply){notify(`${t('controller.crateInfo',{v:containerName(supply),v2:game.canTouch(supply)?t('controller.crate.openNow'):t('controller.crate.openNear')})}`);return;}
   const corpse=game.operatorCorpse;if(corpse&&!corpse.recovered&&!isSimulation(game)&&distance(pos,corpse)===0&&game.visible(corpse)){if(operatorReady(game))recoverCorpse();else notify(`${t('controller.corpseInfo',{v:CHARACTERS[corpse.character]?.label||t('controller.operative')})}`);return;}

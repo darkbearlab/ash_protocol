@@ -76,6 +76,8 @@ export const COMMS_LINES=Object.freeze({
   opBriefNinja:[{id:'comms.egret.opBriefNinja.1',expression:'worried'}],
   opKill:[{id:'comms.egret.opKill.1',expression:'closed'},{id:'comms.egret.opKill.2',expression:'sad'}],
   cloakAlert:[{id:'comms.egret.cloakAlert.1',expression:'alarmed'},{id:'comms.egret.cloakAlert.2',expression:'concerned'}],
+  // 3.217.0: the shared hidden-threat cue (Claude's drafts; review page https://claude.ai/artifact/AARt1a2Fc9STYfN4f2Jp3D).
+  hiddenThreat:[{id:'comms.egret.hiddenThreat.1',expression:'concerned'},{id:'comms.egret.hiddenThreat.2',expression:'listening'},{id:'comms.egret.hiddenThreat.3',expression:'serious'}],
  }),
  wren:Object.freeze({
   briefing:['comms.wren.briefing.1',{id:'comms.wren.briefing.2',expression:'grin'},{id:'comms.wren.briefing.3',expression:'wink'}],
@@ -108,6 +110,7 @@ export const COMMS_LINES=Object.freeze({
   opBriefNinja:[{id:'comms.wren.opBriefNinja.1',expression:'worried'}],
   opKill:[{id:'comms.wren.opKill.1',expression:'sad'},{id:'comms.wren.opKill.2',expression:'sad'}],
   cloakAlert:[{id:'comms.wren.cloakAlert.1',expression:'alarmed'},{id:'comms.wren.cloakAlert.2',expression:'worried'}],
+  hiddenThreat:[{id:'comms.wren.hiddenThreat.1',expression:'worried'},{id:'comms.wren.hiddenThreat.2',expression:'serious'},{id:'comms.wren.hiddenThreat.3',expression:'sigh'}],
  }),
  // contact (first enemy on a floor: kill them all) and researcher (kill them), once written; for a death he says
  // nothing but an ellipsis (user, 2026-09-24).
@@ -116,8 +119,8 @@ export const COMMS_LINES=Object.freeze({
 });
 // The face each speaker makes for an event (3.170.0); a line may carry its own ({id, expression}).
 export const COMMS_EXPRESSIONS=Object.freeze({
- egret:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed',extractApproved:'speaking',extracted:'relieved',survivalWave:'serious',survivalHunt:'serious',survivalPressed:'alarmed',survivalLost:'worried',introLoyal3:'serious',introLoyal6:'serious',introBeast:'alarmed',introMatriarch:'worried',introRebel3:'concerned',introRebel6:'serious',bossKill:'relieved',opId:'alarmed',opBriefSoldier:'serious',opBriefRecon:'concerned',opBriefEngineer:'concerned',opBriefBerserker:'alarmed',opBriefNinja:'worried',opKill:'closed',cloakAlert:'alarmed'}),
- wren:Object.freeze({briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad',extractApproved:'grin',extracted:'grin',survivalWave:'determined',survivalHunt:'determined',survivalPressed:'alarmed',survivalLost:'sad',introLoyal3:'surprised',introLoyal6:'alarmed',introBeast:'surprised',introMatriarch:'alarmed',introRebel3:'alarmed',introRebel6:'worried',bossKill:'grin',opId:'surprised',opBriefSoldier:'serious',opBriefRecon:'annoyed',opBriefEngineer:'worried',opBriefBerserker:'alarmed',opBriefNinja:'worried',opKill:'sad',cloakAlert:'alarmed'}),
+ egret:Object.freeze({hiddenThreat:'concerned',briefing:'speaking',squadDeploy:'serious',squadReady:'concerned',grenade:'alarmed',boss:'serious',flank:'alarmed',researcher:'concerned',kia:'alarmed',lossReport:'closed',extractApproved:'speaking',extracted:'relieved',survivalWave:'serious',survivalHunt:'serious',survivalPressed:'alarmed',survivalLost:'worried',introLoyal3:'serious',introLoyal6:'serious',introBeast:'alarmed',introMatriarch:'worried',introRebel3:'concerned',introRebel6:'serious',bossKill:'relieved',opId:'alarmed',opBriefSoldier:'serious',opBriefRecon:'concerned',opBriefEngineer:'concerned',opBriefBerserker:'alarmed',opBriefNinja:'worried',opKill:'closed',cloakAlert:'alarmed'}),
+ wren:Object.freeze({hiddenThreat:'worried',briefing:'speaking',squadDeploy:'serious',squadReady:'worried',grenade:'alarmed',boss:'surprised',flank:'alarmed',researcher:'neutral',kia:'alarmed',lossReport:'sad',extractApproved:'grin',extracted:'grin',survivalWave:'determined',survivalHunt:'determined',survivalPressed:'alarmed',survivalLost:'sad',introLoyal3:'surprised',introLoyal6:'alarmed',introBeast:'surprised',introMatriarch:'alarmed',introRebel3:'alarmed',introRebel6:'worried',bossKill:'grin',opId:'surprised',opBriefSoldier:'serious',opBriefRecon:'annoyed',opBriefEngineer:'worried',opBriefBerserker:'alarmed',opBriefNinja:'worried',opKill:'sad',cloakAlert:'alarmed'}),
 });
 // A message from `speaker` for `event`, or null when that speaker has nothing to say about it.
 export function commsLine(speaker,event,vars={},{random=Math.random,lines=COMMS_LINES,expressions=COMMS_EXPRESSIONS}={}){

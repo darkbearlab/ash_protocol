@@ -1,6 +1,7 @@
 // The enemy turn (3.206.3 split): spawning, whom an enemy goes for, its action (src/enemy-behavior.js decides), its
 // steps and routes, and the environment's turn.
 // Methods of Game (src/game.js), which copies them onto Game.prototype (src/mixin.js, 3.206.3): `this` is the game.
+import {concealedTurn} from './concealed.js';   // 3.217.0 埋伏
 import {t} from './i18n.js';
 import {addPoison,tickPoison} from './poison.js';
 import {activeTrait} from './traits.js';
@@ -42,6 +43,8 @@ export class GameEnemyTurn {
   isFooled(e){return fooled(this,e);}
   noticeAttack(e){noticeAttack(this,e);}
   enemyAct(e){
+    // 3.217.0 (src/concealed.js): hidden, it only watches for you (and acts at once when you come close).
+    if(e.concealed)return concealedTurn(this,e);
     // As the turn begins (src/enemy-specials.js ORDER.start), before a decoy or a mine can take it: a boss's paint lands
     // wherever you are (3.204.0), then the matriarch's egg sac hatches (3.205.0; not her action).
     startSpecials(this,e);

@@ -15,7 +15,7 @@ export const INTERRUPT_REASONS=F(['death','disabled','displaced','target_lost','
 export const ORDER=F({
  // Every special, in the order an interruption clears them and a save is trimmed. 3.212.0: 'deploy', a deployer's kind
  // and charges (src/enemy-behavior.js; state only, it neither interrupts nor ticks).
- ids:F(['grenade','flame','tongue','pounce','lob','charge','nest','mark','gun','fire','burn','vent','scan','toss','smoke','drones','cloak','deploy','lockdown','disarm']),
+ ids:F(['grenade','flame','tongue','pounce','lob','charge','nest','mark','gun','fire','burn','vent','scan','toss','smoke','drones','cloak','deploy','lockdown','disarm','conceal']),
  // Game.enemyAct, before the decoy and the mine: each runs (a mark landing, an egg hatching; 3.207.0: a delisted soldier's
  // early warning, a delisted ninja fading back into its camouflage); none is the unit's action.
  start:F(['mark','nest','scan','cloak']),

@@ -1,4 +1,5 @@
 import {distance} from './world.js';
+import {inLineOfFire,knownEnemy} from './concealed.js';   // 3.217.0 埋伏
 // Shotgun cone (3.112.0, user request; spec in docs/WEAPONS.md). One shell reaches every living enemy and active ally
 // inside a cone around the aim, out to the weapon's range. Each target rolls its own hit and its own damage, damage falls
 // off with distance in three bands, and a target standing behind something the same blast already reaches is shielded.
@@ -31,8 +32,10 @@ export function inCone(from,aim,point,halfAngle){
 
 // Nearest first, so a nearer target shields the ones behind it.
 // blind (3.151.0): a blind shot's pellets reach whoever is in the cone, seen or not.
-export function coneTargets(g,from,aim,w,blind=false){
-  const candidates=[...g.enemies.filter(e=>e.hp>0),...g.activeAllies.filter(a=>a.hp>0)]
+// 3.217.0: a disguise takes pellets like any body (and shows); a burrowed bug none, blind or not (unmarked, Game.visible
+// already leaves it out). preview (the map's boxes, the card) leaves out every enemy you do not know as one.
+export function coneTargets(g,from,aim,w,blind=false,{preview=false}={}){
+  const candidates=[...g.enemies.filter(e=>e.hp>0&&inLineOfFire(e)&&(!preview||knownEnemy(e))),...g.activeAllies.filter(a=>a.hp>0)]
     .filter(o=>distance(from,o)<=w.range&&inCone(from,aim,o,w.cone)&&(blind||g.visible(o))&&g.shotClear(from,o))
     .sort((a,b)=>Math.hypot(a.x-from.x,a.y-from.y)-Math.hypot(b.x-from.x,b.y-from.y));
   const reached=[];

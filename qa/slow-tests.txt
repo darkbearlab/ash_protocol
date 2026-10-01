@@ -40,3 +40,4 @@ v2 sweep and recovery reserve three distinct reachable non-expendable targets
 start floors: hard from floor 3, standard from floor 5, never in the easy campaign; deterministic
 where: hard from floor 3, standard from floor 5, never in the easy campaign or the swarm; one at most, in place
 start floors: hard from floor 3, standard from floor 5, never in the easy campaign; all three factions; deterministic
+where: one or two a floor from hard floor 3 and standard floor 5; soldiers as cases, biters under the floor

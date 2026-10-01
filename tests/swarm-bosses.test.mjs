@@ -255,7 +255,7 @@ test('產蟲巢: the sac never cuts off floor you can reach, and is laid nearest
 });
 
 test('saves: a charge, a stunned beast, a sac and her nests come back; stale warnings are dropped; bad ones refused',()=>{
-  assert.equal(SAVE_VERSION,90);
+  assert.equal(SAVE_VERSION,91);
   const g=field(),b=boss(g,'hive_beast',16,10,'beast'),m=boss(g,'hive_matriarch',16,14,'mother');
   g.enemyAct(b);m.nestIntent={x:13,y:12};m.nestCooldown=0;
   g.props.push({id:'mother-nest-0',type:'nest',x:14,y:16,hp:45,maxHp:45,nest:{active:true,total:3,interval:2,remaining:2,cooldown:2,serial:1}});

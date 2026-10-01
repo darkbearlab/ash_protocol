@@ -158,7 +158,7 @@ export class RendererEffects {
     if(this.glitchEnabled){const r=effectGlitches(effects,this.game,start,kicks);this.glitches=[...liveGlitches(this.glitches,this.time),...r.screen].slice(-24);for(const o of r.objects)this.objectGlitches.set(o.key,o);if(r.hit)this.onPlayerHit?.();}}
   // 3.149.0 signal interference: the state-driven glitches, then the whole-frame one.
   glitchFrame(){
-    const g=this.game,visible=[...g.visibleEnemies.map(e=>e.id),...g.props.filter(o=>o.id&&o.hp!==0&&g.visible(o)).map(o=>o.id),...g.items.filter(i=>g.visible(i)).map(itemGlitchKey)];
+    const g=this.game,visible=[...g.visibleEnemies.map(e=>e.id),...g.props.filter(o=>o.id&&o.hp!==0&&g.visible(o)).map(o=>o.id),...g.enemies.filter(e=>e.hp>0&&e.concealed?.as==='case'&&g.visible(e)).map(e=>e.id),...g.items.filter(i=>g.visible(i)).map(itemGlitchKey)];
     const r=stateGlitches(this.glitchState,g,this.time,{enemies:g.visibleEnemies,keys:visible});
     this.glitches=[...liveGlitches(this.glitches,this.time),...r.screen];for(const o of r.objects)this.objectGlitches.set(o.key,o);
     screenGlitch(this.canvas,screenStrength(this.glitches,this.time),this.dpr,this.time);

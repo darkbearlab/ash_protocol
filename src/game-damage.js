@@ -1,6 +1,7 @@
 // Hits and damage (3.206.3 split): cover, hitting and hurting any body, what an enemy drops, props and rigged cases,
 // throwables and explosions, and damage to the player and allies.
 // Methods of Game (src/game.js), which copies them onto Game.prototype (src/mixin.js, 3.206.3): `this` is the game.
+import {revealConcealed} from './concealed.js';   // 3.217.0 埋伏
 import {sentence,t} from './i18n.js';
 import {simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {isEnforcer,witnessDeath} from './rebels.js';
@@ -121,6 +122,7 @@ export class GameDamage {
   // 3.166.0: cause is the hazard id ('acid' or 'heat'); the sentence lives in the language table.
   hurt(e,damage,attacker=null,cause=null) {
     if(e.hp<=0||!shotDamageAllowed(this,e))return;
+    if(e.concealed)revealConcealed(this,e);   // 3.217.0: any damage (a shot, a blast, burning floor) shows a hidden unit
     if(attacker===this.player)noticeAttack(this,e,this.attackOrigin(attacker));
     if(damage>0&&(this.ownSide(attacker)||notesOf(this).ours)&&this.enemies.includes(e))this.noticeHit(e,attacker);   // 3.209.0
     // 3.205.0: a swarm boss's bite or charge on one of its own (src/swarm-bosses.js, 敵我不分) is not yours: not in your
@@ -243,6 +245,7 @@ export class GameDamage {
     for(const actor of [p,...this.enemies,...this.activeAllies])if(actor.hp>0&&reached.has(key(actor))&&applyDisruption(actor,def.keyword)){
       if(actor===p&&braced){p.control.disabled=Math.ceil(p.control.disabled/2);this.log(t('game.stunBraced',{n:p.control.disabled}),true,t('game.disabledYouReal'));continue;}
       if(actor!==p)actor.alert=true;
+      if(actor.concealed)revealConcealed(this,actor,{call:false});   // 3.217.0: stunned, it shows
       const name=actor===p?null:actor.kind?allyName(actor):enemyName(actor),n=actor.control.disabled;
       this.log(name===null?t('game.disabledYou',{n}):t('game.disabled',{name,n}),actor===p,name===null?t('game.disabledYouReal'):t('game.disabledReal',{name}));
     }
@@ -261,6 +264,7 @@ export class GameDamage {
       // 3.177.9: close throw (the ninja) is not caught by its own stun grenade or EMP.
       else for(const actor of [p,...this.enemies,...this.activeAllies])if(affected.has(key(actor))&&!(actor===attacker&&activeTrait(actor,'close_throw'))&&applyDisruption(actor,def.keyword)){
         if(actor!==p)actor.alert=true;
+        if(actor.concealed)revealConcealed(this,actor,{call:false});   // 3.217.0: stunned or jammed, it shows
         // 3.209.0 (user 2026-09-30): stunned or jammed by yours, an enemy knows where the grenade came down (the blast's centre).
         // A decoy still holds the one it fooled (as for a hit, Game.noticeHit).
         if(this.enemies.includes(actor)&&this.ownSide(attacker)&&!this.isFooled(actor))this.learnAttack(actor,pos,attacker);

@@ -1,4 +1,5 @@
 import {t} from './i18n.js';
+import {disguised,disguiseProp,knownEnemy} from './concealed.js';   // 3.217.0 埋伏
 import {bandLabel} from './range-band.js';
 import {enemyDisplayName,enemyArmor} from './enemy-affixes.js';
 import {cardEnemyName} from './affix-ui.js';
@@ -37,7 +38,7 @@ const meleeHints=(game,target)=>{const p=game.player,hints=[];
 function coneNotes(game,target,withinRange){
   const w=game.weapon;
   if(!(w.cone||w.lance)||!withinRange||!game.enemies.includes(target))return [];
-  const reached=w.cone?coneTargets(game,game.player,target,w):lancePath(game,game.player,target,w.range).units,friends=reached.filter(o=>!game.enemies.includes(o)).length;
+  const reached=w.cone?coneTargets(game,game.player,target,w,false,{preview:true}):lancePath(game,game.player,target,w.range).units.filter(o=>!game.enemies.includes(o)||knownEnemy(o)),friends=reached.filter(o=>!game.enemies.includes(o)).length;
   return [`${t('target-card.reached',{v:w.cone?t('target-card.cone'):t('target-card.lance'),reachedLength:reached.length})}`,friends?`${t('target-card.friendsInCone',{friends})}`:''];
 }
 // 3.203.0: a flamer's own armour shows once it has shown itself as one (unrevealed affixes stay off the screen).
@@ -60,7 +61,8 @@ function blastNotes(game,target){
   return [distance(game.player,target)<=1?t('target-card.blastSelf'):'',friends?`${t('target-card.blastFriends',{friends})}`:''];
 }
 export function targetDetails(game){
-  const target=game.targeted;if(!target)return null;
+  // 3.217.0 (src/concealed.js): a disguised unit shows as the case it looks like, as a rigged case would.
+  const locked=game.targeted;if(!locked)return null;const target=disguised(locked)?disguiseProp(locked):locked;
   const displayTarget={...target,traits:(target.traits||[]).filter(t=>!t.source.startsWith('affix:')||target.affixes?.some(a=>a.revealed&&t.source===`affix:${a.id}`))};
   const melee=game.weapon.melee,enemy=ENEMY_TYPES[target.type],aim=enemy?game.accuracy(game.player,target):{chance:game.fireChance(target),bracedBonus:bracingBonus(game,game.player,target)};
   const light=lightingEffects(game,game.player,target),attack=game.attackStatus?.(game.player,target);

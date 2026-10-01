@@ -144,7 +144,7 @@ export class RendererTelegraphs {
         if((x===p.x&&y===p.y)||distance(p,cell)>w.range||g.grid[y]?.[x]!==1||!g.visible(cell)||!inCone(p,coneAim,cell,w.cone))continue;
         const a=this.project(x,y);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,'#e6a95b24');
       }
-      for(const o of coneTargets(g,p,coneAim,w)){const a=this.projectActor(o),friend=!g.enemies.includes(o);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,friend?'#e9696933':'#e6a95b26',friend?'#f89969cc':'#eacb84aa');}
+      for(const o of coneTargets(g,p,coneAim,w,false,{preview:true})){const a=this.projectActor(o),friend=!g.enemies.includes(o);this.box(a.x-t/2+2,a.y-t/2+2,t-4,t-4,friend?'#e9696933':'#e6a95b26',friend?'#f89969cc':'#eacb84aa');}
     }
     if(this.mode==='suppress'&&this.aim)this.markArea(this.aim,1,'#8fb2ea33','#b8cff5bb','');
     for(const e of g.visibleEnemies.filter(e=>e.charge)) {

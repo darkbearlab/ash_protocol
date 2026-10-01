@@ -5,6 +5,7 @@ import {pinned} from './suppression.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {activeTrait,healActor} from './traits.js';
 import {DIRECTIONS,distance,lineOfSight} from './world.js';
+import {disguised} from './concealed.js';   // 3.217.0 埋伏
 import {sweptGrid,sweptClear} from './line-move.js';
 import {WEAPONS,ENEMY_TYPES} from './data.js';
 import {isDark} from './lighting.js';
@@ -41,7 +42,7 @@ export function meleeReward(g,target,before){const p=g.player,actual=Math.max(0,
  if(target.hp<=0&&activeTrait(p,'battle_spirit'))p.battleSpirit={stacks:Math.min(spiritLimit(p),p.battleSpirit.stacks+1),lastKill:g.turn};
 }
 // Duel: exactly one alert enemy within its sensing range can see the ninja right now. Shared with the status line.
-export const duelActive=g=>{const p=g.player;return activeTrait(p,'duelist')&&g.enemies.filter(e=>e.hp>0&&e.alert&&distance(e,p)<=Math.max(10,ENEMY_TYPES[e.type].range)&&g.sight(e,p)).length===1;};
+export const duelActive=g=>{const p=g.player;return activeTrait(p,'duelist')&&g.enemies.filter(e=>e.hp>0&&e.alert&&!e.concealed&&distance(e,p)<=Math.max(10,ENEMY_TYPES[e.type].range)&&g.sight(e,p)).length===1;};   // concealed: 3.217.0
 export function defensiveEvasion(g,attacker,target){
  if(target!==g.player||!g.enemies.includes(attacker))return 0;
  const p=g.player;let bonus=p.skillState?.camouflage?.remaining>0?MELEE_TUNING.camoEvasion:0;
@@ -51,7 +52,7 @@ export function defensiveEvasion(g,attacker,target){
 export function grapplePlan(g,id=g.target){
  const p=g.player,e=g.enemies.find(e=>e.id===id&&e.hp>0),slot=g.bumpMeleeSlot();
 
- if(!e||distance(p,e)>GRAPPLE_RANGE||(!g.visible(e)||!g.shotClear(p,e)))return {reason:t('melee-classes.grappleTarget',{range:GRAPPLE_RANGE}),why:'target'};
+ if(!e||disguised(e)||distance(p,e)>GRAPPLE_RANGE||(!g.visible(e)||!g.shotClear(p,e)))return {reason:t('melee-classes.grappleTarget',{range:GRAPPLE_RANGE}),why:'target'};
  const dash=activeTrait(e,'large')||isBossClass(e),mover=dash?p:e,anchor=dash?e:p;
  if(dash&&(pinned(p)||p.skillState?.anchor?.remaining))return {reason:t('melee-classes.grappleFixed'),why:'fixed'};
  const point=pullLanding(g,mover,anchor);
@@ -84,7 +85,7 @@ export function hookBladePlan(g,id=g.target,slot=hookSlot(g)){
  const p=g.player,e=g.enemies.find(e=>e.id===id&&e.hp>0),from={x:p.x,y:p.y};
  if(!camoActive(p))return {reason:t('melee-classes.hookCamo'),why:'camo'};
  if(slot===undefined||!g.weaponAt(slot)?.melee||g.weaponAt(slot).thrust)return {reason:t('melee-classes.hookBlade'),why:'blade'};
- if(!e||distance(p,e)>HOOK_BLADE_RANGE||!g.visible(e))return {reason:t('melee-classes.hookTarget',{range:HOOK_BLADE_RANGE}),why:'target'};
+ if(!e||disguised(e)||distance(p,e)>HOOK_BLADE_RANGE||!g.visible(e))return {reason:t('melee-classes.hookTarget',{range:HOOK_BLADE_RANGE}),why:'target'};
  if(!tenchuLine(g,p,e))return {reason:t('melee-classes.hookLine'),why:'line'};
  const fixed=pinned(p)||p.skillState?.anchor?.remaining>0;
  if(distance(p,e)===1){
