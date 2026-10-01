@@ -353,4 +353,3 @@ test('an execution by the enforcer is not your hit either: not in your damage, n
  const yours=new Set(Array.from({length:300},(_,n)=>t('game.hit',{target:enemyDisplayName(v),damage:n})));
  assert.ok(!g.logs.some(l=>yours.has(l.text)),'no line reads as your hit');assert.ok(g.logs.some(l=>l.text===t('swarmBosses.hitOwn',{enemy:enemyDisplayName(boss),target:enemyDisplayName(v),damage:22})||l.text.startsWith(enemyDisplayName(boss))),'the enforcer did it');
 });
-
