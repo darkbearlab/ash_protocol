@@ -4,22 +4,22 @@ import {interruptEnemyIntent} from './enemy-intents.js';
 import {pinned} from './suppression.js';
 import {classPerkRank,CLASS_PERK_TUNING} from './class-perks.js';
 import {activeTrait,healActor} from './traits.js';
-import {DIRECTIONS,distance} from './world.js';
+import {DIRECTIONS,distance,lineOfSight} from './world.js';
 import {sweptGrid,sweptClear} from './line-move.js';
 import {WEAPONS,ENEMY_TYPES} from './data.js';
 import {isDark} from './lighting.js';
 import {presentStep} from './presentation.js';
 import {enemyDisplayName as enemyName} from './enemy-affixes.js';
+import {playerCallout} from './callouts.js';
 // camoMelee (3.210.0): the ninja's melee damage while its camouflage is on, multiplied with the ambush's.
 export const MELEE_TUNING={bloodlust:.2,spiritMax:5,spiritReduction:.05,spiritDelay:5,spiritInterval:2,bladeDamage:.1,bladeReduction:.1,ambush:1.5,ambushCooldown:1,duelist:15,camoEvasion:30,camoMelee:1.5};
 export const GRAPPLE_RANGE=5,GRAPPLE_COOLDOWN=4,CAMO_DURATION=5,CAMO_COOLDOWN=10;
 // 3.210.0 (user decisions 2026-10-01, docs/MELEE_CLASSES.md 迷彩中的連斬). The numbers are Claude's starting points.
 // - 穩刃 sure_blade: the ninja's own melee (blade, bump, hook blade) lands at a fixed SURE_BLADE percent, whatever the
 //   modifiers (evasion, darkness, suppression, a blind swing).
-// - 鉤刃 hook blade: while the camouflage is on, the blade carries a short grapple line that pulls only the ninja. Striking
-//   a visible enemy up to HOOK_BLADE_RANGE tiles away (Manhattan, as the grapple) pulls it in one straight sweep to the
-//   free tile beside the target nearest to it and strikes, all in one action. The sweep is the grapple lines' (walls,
-//   solid props and other units stop it, brood do not; src/line-move.js), and the landing must reach the target in melee.
+// - 天誅 Tenchu (3.211.0; 3.210.0's 鉤刃 hook blade, renamed by the user — the code keeps the hookBlade ids, which run logs
+//   and replays store): while the camouflage is on, the blade carries a short line that pulls only the ninja, then
+//   strikes, all in one action; the ninja shouts 「天誅！」 every time. See hookBladePlan below for the line and the landing.
 export const SURE_BLADE=99,HOOK_BLADE_RANGE=4;
 export const camoActive=p=>(p?.skillState?.camouflage?.remaining||0)>0;
 // The camouflage's own multiplier on a melee hit of yours (never on a bare-handed one, like the ambush).
@@ -69,35 +69,60 @@ export function useGrapple(g,id){
  });
  g.target=enemy.id;return g.strike({id:enemy.id,x:enemy.x,y:enemy.y},slot);
 }
-// 3.210.0 hook blade: what a strike at the locked (or named) enemy would do. A reason (why: camo, blade, target, fixed, room,
-// line) or {enemy, point, slot, from}; point is the ninja's own tile when it already stands next to the target. `slot`
-// is the melee weapon that strikes: the one in hand if it is a blade (not a spear's thrust), else the bump weapon.
+// 3.211.0 天誅 Tenchu (user decisions 2026-10-01, docs/MELEE_CLASSES.md 下一版：天誅): what a strike at the locked (or
+// named) enemy would do. A reason (why: camo, blade, target, line, fixed, room) or {enemy, point, slot, from, swap};
+// `point` is the ninja's own tile when it strikes in place. `slot` is the melee weapon that strikes: the one in hand if
+// it is a blade (not a spear's thrust), else the bump weapon.
+// - The line (tenchuLine) passes through units and cover — crates, solid props, low partitions — but not walls; a
+//   closed door or a full partition counts as a wall. The target is its end.
+// - 2 to HOOK_BLADE_RANGE tiles away: the ninja lands on a free tile beside the target on its own side (tenchuLanding);
+//   with none, it cannot be used and costs nothing.
+// - Next to the target: through it to the tile on its far side when the ninja can stand there and strike from there
+//   (`swap`), else a strike where it stands.
 // Pure: no RNG and no state change, so the button, the map preview and the target card can all read it.
 export function hookBladePlan(g,id=g.target,slot=hookSlot(g)){
- const p=g.player,e=g.enemies.find(e=>e.id===id&&e.hp>0);
+ const p=g.player,e=g.enemies.find(e=>e.id===id&&e.hp>0),from={x:p.x,y:p.y};
  if(!camoActive(p))return {reason:t('melee-classes.hookCamo'),why:'camo'};
  if(slot===undefined||!g.weaponAt(slot)?.melee||g.weaponAt(slot).thrust)return {reason:t('melee-classes.hookBlade'),why:'blade'};
- if(!e||distance(p,e)>HOOK_BLADE_RANGE||!g.visible(e)||!g.shotClear(p,e))return {reason:t('melee-classes.hookTarget',{range:HOOK_BLADE_RANGE}),why:'target'};
- if(distance(p,e)===1&&g.canCross(p,e))return {enemy:e,point:{x:p.x,y:p.y},slot,from:{x:p.x,y:p.y}};
- if(pinned(p)||p.skillState?.anchor?.remaining)return {reason:t('melee-classes.hookFixed'),why:'fixed'};
- const room=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).filter(q=>g.passable(q.x,q.y)&&!(q.x===p.x&&q.y===p.y)&&g.canCross(q,e)&&![...g.enemies.filter(o=>o.hp>0),...g.activeAllies].some(o=>o.x===q.x&&o.y===q.y));
- if(!room.length)return {reason:t('melee-classes.hookRoom'),why:'room'};
- const point=pullLanding(g,p,e);
- if(!point)return {reason:t('melee-classes.hookLine'),why:'line'};
- return {enemy:e,point,slot,from:{x:p.x,y:p.y}};
+ if(!e||distance(p,e)>HOOK_BLADE_RANGE||!g.visible(e))return {reason:t('melee-classes.hookTarget',{range:HOOK_BLADE_RANGE}),why:'target'};
+ if(!tenchuLine(g,p,e))return {reason:t('melee-classes.hookLine'),why:'line'};
+ const fixed=pinned(p)||p.skillState?.anchor?.remaining>0;
+ if(distance(p,e)===1){
+  const far={x:2*e.x-p.x,y:2*e.y-p.y};
+  if(!fixed&&tenchuStand(g,far)&&g.canCross(far,e)&&tenchuLine(g,p,far))return {enemy:e,point:far,slot,from,swap:true};
+  if(g.canCross(p,e))return {enemy:e,point:from,slot,from};
+  return fixed?{reason:t('melee-classes.hookFixed'),why:'fixed'}:{reason:t('melee-classes.hookRoom'),why:'room'};
+ }
+ if(fixed)return {reason:t('melee-classes.hookFixed'),why:'fixed'};
+ const point=tenchuLanding(g,p,e);
+ if(!point)return {reason:t('melee-classes.hookRoom'),why:'room'};
+ return {enemy:e,point,slot,from};
 }
 const hookSlot=g=>{const w=g.weapon;return w?.melee&&!w.thrust?g.player.weapon:g.bumpMeleeSlot();};
-// The hook blade itself (one paid action, from Game.fire or the skill button while camouflaged): the plan is drawn
-// again when the ninja's turn comes, so a target that moved but is still in reach is struck where it stands now; one
-// that is gone, out of reach or boxed in costs the action and nothing happens (as the grapple).
+// The Tenchu line from `a` to `b`: walls stop it, and so do the edges that stop sight (a closed door, a full partition);
+// units, props and low partitions do not.
+export const tenchuLine=(g,a,b)=>lineOfSight(g.grid,a,b,g.barriers,'sight');
+// A tile the ninja can land on: floor it may stand on (no pit, no solid prop) with no living unit on it, brood included.
+const tenchuStand=(g,q)=>g.passable(q.x,q.y)&&![g.player,...g.enemies.filter(o=>o.hp>0),...g.activeAllies].some(o=>o.x===q.x&&o.y===q.y);
+// The landing for a target 2+ tiles away: a neighbour of the target on the ninja's side, the one the line enters it from
+// first (along the longer axis; the horizontal one on an exact diagonal), from which the blade can reach it.
+export function tenchuLanding(g,p,e){
+ const dx=e.x-p.x,dy=e.y-p.y,across=dx?{x:e.x-Math.sign(dx),y:e.y}:null,down=dy?{x:e.x,y:e.y-Math.sign(dy)}:null;
+ return (Math.abs(dy)>Math.abs(dx)?[down,across]:[across,down]).filter(Boolean).find(q=>tenchuStand(g,q)&&g.canCross(q,e)&&tenchuLine(g,p,q))||null;
+}
+// The Tenchu itself (one paid action, from Game.fire or the skill button while camouflaged): the plan is drawn again
+// when the ninja's turn comes, so a target that moved but is still in reach is struck where it stands now; one that is
+// gone, out of reach or boxed in costs the action and nothing happens (as the grapple). When it goes, the ninja shouts.
 export function useHookBlade(g,id,slot){
  const plan=hookBladePlan(g,id,slot);if(plan.reason)return g.fail(plan.reason);
  const {enemy,point,from}=plan,p=g.player;
+ playerCallout(g,'tenchu');
  if(point.x!==from.x||point.y!==from.y)presentStep(g,()=>{
   Object.assign(p,point);p.moved=true;p.moveDelta=[0,0];p.facing=[Math.sign(enemy.x-p.x),Math.sign(enemy.y-p.y)];
-  // The grapple lines' own pull, in the grapple's steel: the line bites beside the target and reels the ninja in.
-  g.effects.push({type:'tonguePull',sourceId:'player',grapple:true,from,to:{...point},origin:{x:enemy.x,y:enemy.y},damage:0});
-  g.log(t('melee-classes.hookPulled',{target:enemyName(enemy)}));g.reveal();
+  // The grapple lines' own pull, in the grapple's steel: the line bites beside the target (or, through it, behind it)
+  // and reels the ninja in.
+  g.effects.push({type:'tonguePull',sourceId:'player',grapple:true,from,to:{...point},origin:plan.swap?{...point}:{x:enemy.x,y:enemy.y},damage:0});
+  g.log(t(plan.swap?'melee-classes.hookThrough':'melee-classes.hookPulled',{target:enemyName(enemy)}));g.reveal();
  });
  g.target=enemy.id;return g.strike({id:enemy.id,x:enemy.x,y:enemy.y},plan.slot);
 }

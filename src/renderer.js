@@ -21,6 +21,7 @@ import {ArtToneCache} from './art-tone.js';
 import {WALL_ATLAS} from './walls.js';
 import './kia-art.js';   // load order only (3.206.3 split)
 import {Splatter} from './gore-art.js';
+import {CorpseLayer} from './corpse-layer.js';
 import {THEMES} from './themes.js';
 import {cameraFrame,zoomStep} from './camera.js';
 import './muzzle-flash.js';   // load order only (3.206.3 split)
@@ -41,7 +42,7 @@ export {EXTRACTION_BEAM} from './renderer-effects.js';
 export class Renderer {
   constructor(canvas,game) {
     this.canvas=canvas;this.ctx=canvas.getContext('2d');this.game=game;this.zoom=1;
-    this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.frameRate=FRAME_RATE_DEFAULT;this.time=0;this.kia=null;this.pace=null;this.kiaZoom=1;this.gore=[];this.splatter=new Splatter();this.goreLevel='full';
+    this.camera={x:game.player.x,y:game.player.y};this.effects=[];this.darkActors=new DarkActorCache();this.hiddenActors=new DarkActorCache(muteCornerPixels);this.last=0;this.frameRate=FRAME_RATE_DEFAULT;this.time=0;this.kia=null;this.pace=null;this.kiaZoom=1;this.gore=[];this.splatter=new Splatter();this.goreLevel='full';this.corpses=new CorpseLayer();   // corpses: 3.211.0, src/corpse-layer.js
     this.shakes=[];this.shakeEnabled=true;this.shift=null;   // screen shake (3.147.0, src/screen-shake.js)
     this.glitches=[];this.objectGlitches=new Map();this.glitchState={};this.glitchEnabled=true;   // signal interference (3.149.0, src/signal-glitch.js)
     this.movementBoundaries=false;this.boundaryOpacity=80;this.targetingEnabled=true;this.callouts=new CalloutBoard();this.aim=null;this.mode=null;this.reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;

@@ -9,7 +9,8 @@ import {CHARGE_VISUAL,EGG_VISUAL,REBEL_FIRE_VISUAL,TONGUE_VISUAL,VENOM_VISUAL,to
 import {CalloutBoard,DIRECTION_ARROWS,bubbleAlpha,bubbleText,edgePoint} from './callout-ui.js';
 import {NEST_ATLAS,drawPortalEffect,drawNestEffect} from './nest-art.js';
 import {isDark} from './lighting.js';
-import {burstLife,enemyBurst,hitBurst} from './gore.js';
+import {burstLife,enemyBurst,hitBurst,meleeFling,corpseTrail} from './gore.js';
+import {CORPSE_TUNING} from './corpse-layer.js';
 import {MUZZLE_FLASHES,flashCells,flashUnit,muzzlePoint} from './muzzle-flash.js';
 import {SIZE,distance} from './engine.js';
 import {VOID} from './data.js';
@@ -143,7 +144,15 @@ export class RendererEffects {
   }
   addEffects(effects,elapsed=0){const start=this.time-Math.max(0,elapsed);
     // 3.175.0 kill gore (src/gore.js): a kill with a direction bursts on the far side; how much follows the setting.
-    for(const e of effects)if(e.type==='fall'&&e.actorType!=='player'&&e.blow&&this.gore&&this.goreLevel!=='off'){const g=this.game,seed=((g.seed|0)*31+(g.turn|0)*977+e.to.x*57+e.to.y)|0,burst=enemyBurst(seed,e.blow,{kind:e.gore,size:e.size,elite:e.elite,level:this.goreLevel,style:e.force?.style,damage:e.force?.damage});if(burst)this.gore.push({start,at:{x:e.to.x,y:e.to.y},burst,life:burstLife(burst)*1000});}
+    // 3.211.0 (docs/KILL_GORE.md 近戰的甩出血光): a melee kill, by anyone, flings its gore instead (src/gore.js meleeFling):
+    // a slash sweeps to the kill's side, a thrust runs through, a saw sprays.
+    const killSeed=e=>((this.game.seed|0)*31+(this.game.turn|0)*977+e.to.x*57+e.to.y)|0;
+    for(const e of effects)if(e.type==='fall'&&e.actorType!=='player'&&e.blow&&this.gore&&this.goreLevel!=='off'){const seed=killSeed(e),o={kind:e.gore,size:e.size,elite:e.elite,level:this.goreLevel,damage:e.force?.damage},burst=e.force?.style==='melee'?meleeFling(seed,e.blow,{...o,cut:e.force.cut,heft:e.force.heft}):enemyBurst(seed,e.blow,{...o,style:e.force?.style});if(burst)this.gore.push({start,at:{x:e.to.x,y:e.to.y},burst,life:burstLife(burst)*1000});}
+    // 3.211.0 (docs/KILL_GORE.md 屍體圖層): an enemy's body is thrown on the corpse layer (src/corpse-layer.js), shaking blood
+    // along its path when it really flies. Off keeps the old fall; reduced motion lays it straight at rest.
+    if(this.corpses)for(const e of effects)if(e.type==='fall'&&e.enemy&&e.actorId!=null){const g=this.game,seed=killSeed(e);this.corpses.use(`${g.seed}:${g.floor}`,this.goreLevel==='off');
+      const body=this.corpses.fall(e,start,this.corpseWorld(),{side:(seed>>>4)&1?1:-1,flat:this.goreLevel==='off',still:this.reduceMotion});
+      if(body&&body.dist>=CORPSE_TUNING.slump&&this.gore&&this.goreLevel!=='off'&&!this.reduceMotion){const trail=corpseTrail(seed,body,{kind:e.gore,size:e.size,level:this.goreLevel});if(trail)this.gore.push({start,at:{x:e.to.x,y:e.to.y},burst:trail,life:burstLife(trail)*1000});}}
     // 3.176.0 hit gore: a small spray for every harmful hit a body lives through.
     for(const e of effects)if(e.type==='impact'&&e.hit?.blow&&this.gore&&this.goreLevel!=='off'){const g=this.game,seed=((g.seed|0)*37+(g.turn|0)*1009+e.to.x*61+e.to.y*7+this.gore.length)|0,burst=hitBurst(seed,e.hit.blow,{kind:e.hit.gore,size:e.hit.size,level:this.goreLevel,style:e.hit.force?.style,damage:e.damage});if(burst)this.gore.push({start,at:{x:e.to.x,y:e.to.y},burst,life:burstLife(burst)*1000});}for(const e of effects)if(e.type==='callout')(this.callouts??=new CalloutBoard()).add(e,start);this.effects.push(...effects.filter(e=>e.type!=='callout').map(e=>({...e,time:start})));this.effects=this.effects.slice(-64);const kicks=shakeImpulses(effects,this.game.player,start);if(this.shakeEnabled)this.shakes=[...liveImpulses(this.shakes,this.time),...kicks].slice(-24);
     if(this.glitchEnabled){const r=effectGlitches(effects,this.game,start,kicks);this.glitches=[...liveGlitches(this.glitches,this.time),...r.screen].slice(-24);for(const o of r.objects)this.objectGlitches.set(o.key,o);if(r.hit)this.onPlayerHit?.();}}

@@ -150,7 +150,7 @@
 | 訊號斷層 | Signal Break | `skills.signal_break.name` |
 | 鉤鎖 | Grapple | `skills.grapple.name` |
 | 光學迷彩 | Optical Camouflage | `skills.camouflage.name` |
-| 鉤刃 | Hook Blade | `melee-ui.hook` |
+| 天誅 | Tenchu | `melee-ui.hook` |
 
 ## 被動特性（47）
 

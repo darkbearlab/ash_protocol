@@ -65,7 +65,7 @@ const LIB=`(async()=>{window.__rsSeed=v=>{let s=v>>>0;Math.random=()=>{s=(s*1664
  const pixels=c=>c.getContext('2d').getImageData(0,0,c.width,c.height).data;
  function reset(g){
   Object.assign(R,{game:g,mode:null,aim:null,placeItem:null,ropeItem:null,effects:[],gore:[],kia:null,extraction:null,pace:null,shakes:[],shift:null,glitches:[],glitchState:{},grapplePreview:null,rangeFlash:null,zoom:1,targetingEnabled:true,smokeQuality:'layers',movementBoundaries:false,boundaryOpacity:80,glitchEnabled:true,kiaZoom:1,sceneFocus:null,time:T});
-  R.objectGlitches.clear();R.callouts=new R.callouts.constructor();R.splatter?.reset();   // a fresh board: its sequence numbers place the bubbles
+  R.objectGlitches.clear();R.callouts=new R.callouts.constructor();R.splatter?.reset();R.corpses?.reset();   // a fresh board: its sequence numbers place the bubbles; corpses: 3.211.0
  }
  // Draw one frame at a fixed time: camera settled from scratch, the dice reseeded, the glitch pass included.
  function frame(time){R.resize();R.cameraScene=null;R.zoomState=null;R.updateCamera(16);R.draw(time);if(R.glitchEnabled)R.glitchFrame();}
@@ -88,7 +88,14 @@ const LIB=`(async()=>{window.__rsSeed=v=>{let s=v>>>0;Math.random=()=>{s=(s*1664
   }
   throw Error('no floor has this feature');
  }
- return {E,R,T,arena,floor,enemy,grantTrait,shot,map,reset,feature};
+ // 3.211.0: an action played as the game shows it — the presentation plan's events (falls with their blows, callouts)
+ // handed to the renderer at their own times — and the time of the first fall, so a scene can be drawn after the kill.
+ const P=await import('./src/presentation.js');
+ function play(g,act){g.effects=[];const {success,steps}=P.captureAction(g,act);g.effects=[];if(!success)throw Error('the action was refused');const events=P.planPresentation(steps).events.map(e=>({time:e.time,effects:e.effects}));return {events,fall:events.find(e=>e.effects.some(f=>f.type==='fall'))?.time??0};}
+ function replay(R,events){for(const ev of events){R.time=T+ev.time;R.addEffects(structuredClone(ev.effects),0);}R.time=T;}
+ // A weapon in hand by id (a melee weapon in the pack when there is room), for the melee kills.
+ function wield(g,id){const slot=g.addWeapon(E.WEAPONS.findIndex(w=>w.id===id));if(slot===false)throw Error('no room for '+id);g.player.weapon=slot;return g;}
+ return {E,R,T,arena,floor,enemy,grantTrait,shot,map,reset,feature,play,replay,wield};
 })();})()`;
 
 // Canvas scenes: name → async body with L (the helpers above) in scope; it returns a hash. Effects are cloned for each
@@ -186,6 +193,24 @@ const CANVAS={
  'stealth-recon':`const g=L.arena({character:'recon'});g.player.skillState.signal_break={remaining:3,cooldown:6};L.enemy(g,'rifleman',14,11);return L.shot(g);`,
  'stealth-ninja':`const g=L.arena({character:'ninja'});g.player.skillState.camouflage={remaining:4,cooldown:0};const e=L.enemy(g,'rifleman',13,10);g.target=e.id;return L.shot(g,R=>{R.grapplePreview={from:${at(10,10)},point:${at(12,10)},dash:true,hook:true};});`,
  'hook-blade':`const g=L.arena({character:'ninja'});g.player.weapon=g.player.owned[0];g.player.skillState.camouflage={remaining:4,cooldown:0};const e=L.enemy(g,'rifleman',14,10,{hp:500});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});g.enemyAct=()=>{};g.effects=[];const at0=g.turn;g.action('fire');if(g.turn!==at0+1)throw Error('no hook');const fx=g.effects;g.effects=[];return L.shot(g,R=>{R.addEffects(structuredClone(fx),0);},{at:110});`,
+ // 3.211.0 (docs/MELEE_CLASSES.md 天誅, docs/KILL_GORE.md 近戰的甩出血光、屍體圖層): Tenchu from range and through an
+ // adjacent enemy, each with its shout; melee kills flinging their gore (a slash's arc to the kill's side, a heavy axe's
+ // wider one, a spear's line, a chainsaw's spray) mid-swing and once it has landed, with the body on the corpse layer; a
+ // rifle kill to compare; a point-blank shotgun and a grenade throwing the body (the grenade's against a wall); bodies
+ // laid down from their ids (no fall known).
+ 'tenchu-range':`const g=L.arena({character:'ninja'});g.player.weapon=g.player.owned[0];g.player.skillState.camouflage={remaining:4,cooldown:0};const e=L.enemy(g,'rifleman',14,10,{hp:500});L.enemy(g,'rifleman',12,10,{hp:500});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('fire'));return L.shot(g,R=>L.replay(R,k.events),{at:160});`,
+ 'tenchu-through':`const g=L.arena({character:'ninja'});g.player.weapon=g.player.owned[0];g.player.skillState.camouflage={remaining:4,cooldown:0};const e=L.enemy(g,'rifleman',11,10,{hp:500});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('usePrepared',{category:'skill'}));if(g.player.x!==12)throw Error('no swap');return L.shot(g,R=>L.replay(R,k.events),{at:200});`,
+ 'kill-rifle':`const g=L.arena(),e=L.enemy(g,'rifleman',13,10,{hp:20});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('fire'));return L.shot(g,R=>L.replay(R,k.events),{at:k.fall+150});`,
+ 'kill-katana':`const g=L.arena({character:'ninja'});g.player.weapon=g.player.owned[0];const e=L.enemy(g,'rifleman',11,10,{hp:20});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('fire'));return L.shot(g,R=>L.replay(R,k.events),{at:k.fall+110});`,
+ 'kill-katana-rest':`const g=L.arena({character:'ninja'});g.player.weapon=g.player.owned[0];const e=L.enemy(g,'rifleman',11,10,{hp:20});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('fire'));return L.shot(g,R=>L.replay(R,k.events),{at:k.fall+1500});`,
+ 'kill-axe':`const g=L.arena({character:'berserker'});g.player.weapon=g.player.owned.find(s=>L.E.WEAPONS[g.player.weaponBases[s]]?.id==='axe')??g.player.owned[0];const e=L.enemy(g,'brute',10,11,{hp:30});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('fire'));return L.shot(g,R=>L.replay(R,k.events),{at:k.fall+110});`,
+ 'kill-axe-rest':`const g=L.arena({character:'berserker'});g.player.weapon=g.player.owned.find(s=>L.E.WEAPONS[g.player.weaponBases[s]]?.id==='axe')??g.player.owned[0];const e=L.enemy(g,'brute',10,11,{hp:30});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('fire'));return L.shot(g,R=>L.replay(R,k.events),{at:k.fall+1500});`,
+ 'kill-spear':`const g=L.wield(L.arena(),'spear'),e=L.enemy(g,'rifleman',11,10,{hp:20});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('fire'));return L.shot(g,R=>L.replay(R,k.events),{at:k.fall+140});`,
+ 'kill-spear-rest':`const g=L.wield(L.arena(),'spear'),e=L.enemy(g,'rifleman',11,10,{hp:20});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('fire'));return L.shot(g,R=>L.replay(R,k.events),{at:k.fall+1500});`,
+ 'kill-chainsaw':`const g=L.wield(L.arena(),'chainsaw'),e=L.enemy(g,'raider',11,10,{hp:40,faction:'swarm'});g.target=e.id;g.rng=Object.assign(()=>.5,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('fire'));return L.shot(g,R=>L.replay(R,k.events),{at:k.fall+260});`,
+ 'kill-shotgun-point-blank':`const g=L.wield(L.arena(),'shotgun'),e=L.enemy(g,'rifleman',11,10,{hp:20});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});Object.defineProperty(g,'enemyAct',{value:()=>{},configurable:true});const k=L.play(g,()=>g.action('fire'));return L.shot(g,R=>L.replay(R,k.events),{at:k.fall+1500});`,
+ 'kill-grenade-wall':`const g=L.arena();for(let y=7;y<=12;y++)g.grid[y][15]=0;g.reveal();L.enemy(g,'rifleman',13,10,{hp:20});L.enemy(g,'rifleman',14,11,{hp:20});const k=L.play(g,()=>g.action('grenade',${at(13,11)}));return L.shot(g,R=>L.replay(R,k.events),{at:k.fall+1500});`,
+ 'corpses-rest-poses':`const g=L.arena();[[12,9],[13,10],[11,12],[8,11],[9,8],[14,13]].forEach(([x,y],i)=>{const e=L.enemy(g,i%2?'raider':'rifleman',x,y,{state:i===2?{elite:true}:{}});e.hp=0;});g.items.push({type:'ammo',x:13,y:10,amount:12},{type:'med',x:11,y:12,amount:1});return L.shot(g);`,
  'bulwark-plates-hit':`const g=L.arena({character:'bulwark'}),e=L.enemy(g,'rifleman',13,10);g.effects=[];g.damagePlayer(30,'qa',e);const fx=g.effects;g.effects=[];return L.shot(g,R=>{R.addEffects(structuredClone(fx),0);},{at:260});`,
 };
 

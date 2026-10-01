@@ -23,6 +23,8 @@ const puff=([r,g,b])=>image(`puff:${r},${g},${b}`,64,64,(c,w)=>{const gr=c.creat
 // What is in the air `since` world ms after the burst, around the tile centre `a` on screen, `t` pixels a tile. While
 // `frozen` (the killed-in-action freeze) only a bright core shows. `shade(dx,dy)` is how bright the tile that far (in
 // tiles) from the burst is (3.175.1: dark rooms darken the blood; the light itself keeps most of its strength there).
+// 3.211.0: a piece may leave late (`t0`, seconds: a melee fling's sweep, a thrown body's trail) and from off the centre
+// (`ox`, `oy`, tiles: along the body's path); each piece runs on its own clock from when it leaves.
 const LIGHT_IN_THE_DARK=.7;
 export function drawBurstAir(c,t,a,b,since,frozen=false,shade=()=>1){
   if(!b)return;
@@ -33,16 +35,16 @@ export function drawBurstAir(c,t,a,b,since,frozen=false,shade=()=>1){
     if(L>0){
       c.globalCompositeOperation='lighter';
       const bf=1-s/.32,img=glow();
-      if(bf>0&&img){const rad=t*G*(.88+.44*(1-Math.exp(-s/.2)));c.globalAlpha=Math.min(1,bf*L);c.drawImage(img,a.x-rad,a.y-rad,rad*2,rad*2);}
+      if(bf>0&&img&&G>0){const rad=t*G*(.88+.44*(1-Math.exp(-s/.2)));c.globalAlpha=Math.min(1,bf*L);c.drawImage(img,a.x-rad,a.y-rad,rad*2,rad*2);}
       const ff=1-s/.25,wedge=flare();
-      if(ff>0&&wedge){const len=t*G*(1.76+.44*(1-b.pop)*(1-Math.exp(-s/.2))),hw=t*.074*G;c.save();c.translate(a.x,a.y);c.rotate(b.away);c.globalAlpha=Math.min(1,ff*.9*L);c.drawImage(wedge,0,-hw,len,hw*2);c.restore();}
+      if(ff>0&&wedge&&G>0){const len=t*G*(1.76+.44*(1-b.pop)*(1-Math.exp(-s/.2))),hw=t*.074*G;c.save();c.translate(a.x,a.y);c.rotate(b.away);c.globalAlpha=Math.min(1,ff*.9*L);c.drawImage(wedge,0,-hw,len,hw*2);c.restore();}
       c.lineWidth=Math.max(1,t*.03);
-      for(const p of b.sparks){const u=s/p.life;if(u>=1)continue;const d=(burstReach(b.pop,p.D,s,.2)+p.v*s*(1-b.pop))*t,x=a.x+Math.cos(p.a)*d,y=a.y+Math.sin(p.a)*d;c.strokeStyle=p.color;c.globalAlpha=1-u;c.beginPath();c.moveTo(x,y);c.lineTo(x-Math.cos(p.a)*p.len*t,y-Math.sin(p.a)*p.len*t);c.stroke();}
+      for(const p of b.sparks){const ps=s-(p.t0||0);if(ps<0)continue;const u=ps/p.life;if(u>=1)continue;const d=(burstReach(b.pop,p.D,ps,.2)+p.v*ps*(1-b.pop))*t,x=a.x+Math.cos(p.a)*d,y=a.y+Math.sin(p.a)*d;c.strokeStyle=p.color;c.globalAlpha=1-u;c.beginPath();c.moveTo(x,y);c.lineTo(x-Math.cos(p.a)*p.len*t,y-Math.sin(p.a)*p.len*t);c.stroke();}
       c.globalCompositeOperation='source-over';
     }
     const cloud=puff(b.mistColor||[150,22,26]);
-    if(cloud)for(const m of b.mist){const u=s/m.life;if(u>=1)continue;const reach=burstReach(b.pop,m.D,s,.3),d=reach*t,rad=m.r0*t*(1+(m.grow-1)*(1-Math.exp(-s/.4)));c.globalAlpha=.45*(1-u)*shade(Math.cos(m.a)*reach,Math.sin(m.a)*reach);c.drawImage(cloud,a.x+Math.cos(m.a)*d-rad,a.y+Math.sin(m.a)*d-rad,rad*2,rad*2);}
-    for(const d of b.drops){if(s>=d.land)continue;const reach=burstReach(b.pop,d.D,s,.15),z=(d.z0+d.vz*s-d.g*s*s/2)*t,w=Math.max(1,d.size*t);c.globalAlpha=shade(Math.cos(d.a)*reach,Math.sin(d.a)*reach);c.fillStyle=d.color;c.fillRect(Math.round(a.x+Math.cos(d.a)*reach*t),Math.round(a.y+Math.sin(d.a)*reach*t-z),w,w);}
+    if(cloud)for(const m of b.mist){const ms=s-(m.t0||0);if(ms<0)continue;const u=ms/m.life;if(u>=1)continue;const reach=burstReach(b.pop,m.D,ms,.3),d=reach*t,rad=m.r0*t*(1+(m.grow-1)*(1-Math.exp(-ms/.4)));c.globalAlpha=.45*(1-u)*shade(Math.cos(m.a)*reach,Math.sin(m.a)*reach);c.drawImage(cloud,a.x+Math.cos(m.a)*d-rad,a.y+Math.sin(m.a)*d-rad,rad*2,rad*2);}
+    for(const d of b.drops){const ds=s-(d.t0||0);if(ds<0||ds>=d.land)continue;const reach=burstReach(b.pop,d.D,ds,.15),ox=d.ox||0,oy=d.oy||0,z=(d.z0+d.vz*ds-d.g*ds*ds/2)*t,w=Math.max(1,d.size*t);c.globalAlpha=shade(ox+Math.cos(d.a)*reach,oy+Math.sin(d.a)*reach);c.fillStyle=d.color;c.fillRect(Math.round(a.x+(ox+Math.cos(d.a)*reach)*t),Math.round(a.y+(oy+Math.sin(d.a)*reach)*t-z),w,w);}
     c.globalAlpha=1;
   }
   c.restore();
@@ -54,19 +56,27 @@ export class Splatter{
   constructor(){this.canvas=null;this.key=null;this.tiles=new Map();}
   reset(){this.canvas=null;this.key=null;this.tiles=new Map();}
   use(key){if(key!==this.key){this.canvas=null;this.key=key;this.tiles=new Map();}}
-  // Stamps the drops of burst `b` (at tile `at`) that have landed by `since` world ms, each once.
+  // Stamps the drops of burst `b` (at tile `at`) that have landed by `since` world ms, each once. 3.211.0: and its floor
+  // smear (a melee fling's arc or streak, a thrown body's drag), each point once its time has come.
   bake(b,at,since){
     if(!b||typeof document==='undefined')return;
     const s=since/1000;let c=null;
+    const pen=()=>{if(!c){if(!this.canvas){this.canvas=document.createElement('canvas');this.canvas.width=this.canvas.height=SIZE*PER_TILE;}c=this.canvas.getContext('2d');c.globalAlpha=.85;}return c;};
+    const mark=(x,y,w,h)=>{for(const tx of [Math.floor(x/PER_TILE),Math.floor((x+w)/PER_TILE)])for(const ty of [Math.floor(y/PER_TILE),Math.floor((y+h)/PER_TILE)])if(tx>=0&&ty>=0&&tx<SIZE&&ty<SIZE)this.tiles.set(tx+','+ty,[tx,ty]);};
     for(const d of b.drops){
-      if(d.done||s<d.land)continue;
-      d.done=true;
-      if(!c){if(!this.canvas){this.canvas=document.createElement('canvas');this.canvas.width=this.canvas.height=SIZE*PER_TILE;}c=this.canvas.getContext('2d');c.globalAlpha=.85;}
-      const reach=burstReach(b.pop,d.D,d.land,.15),x=(at.x+.5+Math.cos(d.a)*reach)*PER_TILE,y=(at.y+.59+Math.sin(d.a)*reach)*PER_TILE;
+      if(d.done||s<(d.t0||0)+d.land)continue;
+      d.done=true;pen();
+      const reach=burstReach(b.pop,d.D,d.land,.15),x=(at.x+.5+(d.ox||0)+Math.cos(d.a)*reach)*PER_TILE,y=(at.y+.59+(d.oy||0)+Math.sin(d.a)*reach)*PER_TILE;
       const w=Math.max(1,Math.round((d.size+d.stain)*PER_TILE)),h=Math.max(1,Math.round((d.size-.015)*PER_TILE));
       c.fillStyle=d.color;c.fillRect(Math.round(x),Math.round(y),w,h);
       // Which tiles now hold blood, so each can be drawn as bright or as dark as the floor under it.
-      for(const tx of [Math.floor(x/PER_TILE),Math.floor((x+w)/PER_TILE)])for(const ty of [Math.floor(y/PER_TILE),Math.floor((y+h)/PER_TILE)])if(tx>=0&&ty>=0&&tx<SIZE&&ty<SIZE)this.tiles.set(tx+','+ty,[tx,ty]);
+      mark(x,y,w,h);
+    }
+    for(const m of b.smear||[]){
+      if(m.done||s<m.t)continue;
+      m.done=true;pen();
+      const w=Math.max(1,Math.round(m.w*PER_TILE)),h=Math.max(1,Math.round(m.w*.7*PER_TILE)),x=Math.round((at.x+.5+m.x)*PER_TILE-w/2),y=Math.round((at.y+.55+m.y)*PER_TILE-h/2);
+      c.globalAlpha=.8;c.fillStyle=m.color;c.fillRect(x,y,w,h);c.globalAlpha=.85;mark(x,y,w,h);
     }
   }
   // `centre` is where tile (0,0)'s centre is on screen; `shade(x,y)` how bright tile x,y is. Only the tiles that hold

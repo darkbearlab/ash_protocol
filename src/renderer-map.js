@@ -14,7 +14,7 @@ import {resolveSprite,themeAt} from './themes.js';
 import {missionObjects,missionTarget} from './missions.js';
 import {MODULE_TYPES,moduleCells,modulePoint} from './modules.js';
 import {CONTAINER_KINDS,isContainer} from './containers.js';
-import {edgeCells} from './barriers.js';
+import {edgeCells,blockedBetween} from './barriers.js';
 import {pointLetter,pointStatus,pointTargeted} from './survival.js';
 import {SIZE,SUPPLY_NAMES,distance,SUPPLY_ROOMS} from './engine.js';
 import {VOID} from './data.js';
@@ -220,7 +220,9 @@ const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ff
       for(const band of floorShading(g,x,y))this.box(left+band.x*t,top+band.y*t,band.w*t,band.h*t,band.color);
       floorCells.push({a,left,top,x,y});c.globalAlpha=1;
     }
-    const fieldCells=[];
+    const fieldCells=[],bodies=[],later=[];
+    // 3.211.0 (docs/KILL_GORE.md 屍體圖層): the floor's bodies by tile, once, for the corpse pass below.
+    const deadAt=new Map();for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised){const k=dead.x+','+dead.y;if(!deadAt.has(k))deadAt.set(k,[]);deadAt.get(k).push(dead);}
     for(const {a,left,top,x,y}of floorCells){
       c.globalAlpha=g.visibleTiles?.has(x+','+y)?1:.36;
       // 3.151.0 blind fire: until the tile is seen again it keeps what it showed before the shot (src/blind-fire.js).
@@ -239,7 +241,14 @@ const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ff
       if(g.exitPoint.x===x&&g.exitPoint.y===y)this.exit(a,time);
       // 3.178.0: what lies in the black, bodies and items, is not seen unless you see in the dark.
       const shown=looked&&(!isBlack(g,{x,y})||seesInDark(g,p));
-      if(shown)for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised&&dead.x===x&&dead.y===y&&(!memo||memo.dead.includes(dead.id)))this.corpse(a,dead.type,undefined,dead);
+      if(shown)for(const dead of deadAt.get(x+','+y)||[])if(!memo||memo.dead.includes(dead.id))bodies.push({dead,alpha:c.globalAlpha});
+      later.push({a,left,top,x,y,memo,shown,burning,alpha:c.globalAlpha});
+    }
+    // 3.211.0: the bodies, each where its throw left it (src/corpse-layer.js), after everything flat on the floor and
+    // before the props and drops of every tile, so loot always shows at its tile's centre.
+    this.drawCorpses(bodies,time);
+    for(const {a,x,y,memo,shown,burning,alpha}of later){
+      c.globalAlpha=alpha;
       if(g.operatorCorpse?.x===x&&g.operatorCorpse.y===y)this.operatorCorpse(a,g.operatorCorpse,time);
       for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
       for(const prop of g.props)if(!isContainer(prop)&&prop.x===x&&prop.y===y)this.glitchDraw(a,prop.id,()=>this.prop(a,prop,time));
@@ -248,7 +257,7 @@ const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ff
       // 3.134.0: toxic mist is green, spore smoke brown; plain smoke keeps its grey. 3.202.0: the vents' light smoke is a
       // thin pale veil and steam white; a Codex sheet (src/fx-sprites.js) replaces the boxes once it is there.
       for(const cloud of g.smoke)if(cloud.cells.some(q=>q.x===x&&q.y===y)){
-        const kind=cloud.kind||'smoke',sheet=fxSheet('smoke'),row=sheet?.rows?.[kind];
+        const kind=cloud.kind||'smoke',sheet=fxSheet('smoke'),row=sheet?.rows?.[kind],left=a.x-t/2,top=a.y-t/2;
         // Smoke as one field (3.202.0): drawn after this pass by cloudField, the count on top of it.
         if(this.smokeField(kind)){fieldCells.push({x,y,kind,alpha:c.globalAlpha,a,label:String(Math.max(1,cloud.expires-g.turn))});continue;}
         // The sprite has transparent margins, so a faint veil of the old fill goes underneath to keep a cloud whole (handoff).
@@ -264,6 +273,26 @@ const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ff
     this.cloudField(fieldCells,time);
     for(const q of fieldCells)if(q.label){c.globalAlpha=q.alpha;this.text(q.label,q.a.x+t*.3,q.a.y+t*.3,'#d3e2ed',8);}c.globalAlpha=1;
     return wallCells;
+  }
+  // 3.211.0 (docs/KILL_GORE.md 屍體圖層): what a thrown body may cross and lie on — floor without a solid prop (no wall,
+  // no pit) — and the edges that stop it (a closed door, a partition, a low partition), read from the state being drawn.
+  corpseWorld(){const g=this.game;return {open:(x,y)=>g.grid[y]?.[x]===1&&!g.solid(x,y),edge:(a,b)=>blockedBetween(g.barriers,a,b)};}
+  // The corpse pass: each body at its pose on the corpse layer (src/corpse-layer.js), at its own tile's fog alpha, dark
+  // where it lies in the dark. A floor with more than CORPSE_TUNING.keep bodies fades its oldest out.
+  // Review (3.211.0): every body is posed (marked drawn) before the cap is settled, so one rebuilt past the cap is hidden
+  // before it shows; with the setting off (`flat`) the layer starts over and the old settling nudge is kept (layer=false).
+  drawCorpses(bodies,time){
+    const g=this.game,c=this.ctx,layer=this.corpses;if(!layer)return;
+    const world=this.corpseWorld(),flat=this.goreLevel==='off';
+    layer.use(`${g.seed}:${g.floor}`,flat);
+    const poses=bodies.map(({dead})=>layer.pose(dead,time,world,{flat}));
+    layer.settle(g.enemies.filter(e=>e.hp<=0&&!e.raised),time);
+    for(const [i,{dead,alpha}]of bodies.entries()){
+      const pose=poses[i],fade=layer.alpha(dead.id,time);if(fade<=0)continue;
+      c.globalAlpha=alpha*fade;
+      this.corpse(this.project(dead.x+pose.x,dead.y+pose.y-pose.lift),dead.type,undefined,dead,pose.angle,!flat);
+    }
+    c.globalAlpha=1;
   }
   // Walls and raised partitions (3.206.3, from Renderer.draw) occlude everything drawn before them.
   drawWalls(wallCells){

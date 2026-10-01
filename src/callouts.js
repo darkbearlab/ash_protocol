@@ -25,7 +25,8 @@ export function receiveCallout(g,actor,kind,detail={}){
 }
 // 3.163.0 (user decision 2026-09-23): the operator's own lines — invalid inputs, and warnings of the next one — as
 // presentation events on the player. Codes only; the wording lives in src/callout-ui.js (PLAYER_LINES). Never logged.
-export const PLAYER_CUES=Object.freeze(['blocked','locked','pinned','anchor_on','anchor_off','anchored','reload_needed','last_magazine','no_ammo','out_of_range','no_target','chambered','not_needed','empty','fatal']);
+// 3.211.0 (user decision 2026-10-01): the ninja's 「天誅！」 every time its Tenchu goes (src/melee-classes.js useHookBlade).
+export const PLAYER_CUES=Object.freeze(['blocked','locked','pinned','anchor_on','anchor_off','anchored','reload_needed','last_magazine','no_ammo','out_of_range','no_target','chambered','not_needed','empty','fatal','tenchu']);
 export const playerCalloutEvent=(cue,detail={})=>({type:'callout',speaker:'player',actorId:'player',cue,...detail,category:'player',priority:'high',visibility:'visible'});
 export function playerCallout(g,cue,detail={}){return presentAnnouncement(g,()=>{const event=playerCalloutEvent(cue,detail);g.effects.push(event);return event;});}
 export function injuryCallout(g,e,before){if(e.hp<=0||e.hp>=before)return;const cue=before>e.maxHp*CALLOUT_TUNING.injuryCritical&&e.hp<=e.maxHp*CALLOUT_TUNING.injuryCritical?'critical':before>e.maxHp*CALLOUT_TUNING.injuryHalf&&e.hp<=e.maxHp*CALLOUT_TUNING.injuryHalf?'wounded':before>=e.maxHp?'hit':null;if(cue)receiveCallout(g,e,'injury',{cue});}

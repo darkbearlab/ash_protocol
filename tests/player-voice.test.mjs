@@ -18,7 +18,7 @@ function refused(g,type,arg,cue,item){
 const spoken=(g,cue)=>g.effects.filter(e=>e.type==='callout'&&e.speaker==='player').map(e=>e.cue).includes(cue);
 
 test('the lines are the user\'s words, never a number, and cover every code the rules send',()=>{
- assert.deepEqual(PLAYER_LINES,{blocked:'被擋住了',locked:'上鎖了',pinned:'被壓制了',anchor_on:'下錨！',anchor_off:'解除下錨！',anchored:'下錨中！',reload_needed:'需要裝填',last_magazine:'最後一個彈匣',no_ammo:'沒彈藥了',out_of_range:'目標在射程外',no_target:'沒有目標',chambered:'已上膛',not_needed:'不需要',fatal:'會死！'});
+ assert.deepEqual(PLAYER_LINES,{blocked:'被擋住了',locked:'上鎖了',pinned:'被壓制了',anchor_on:'下錨！',anchor_off:'解除下錨！',anchored:'下錨中！',reload_needed:'需要裝填',last_magazine:'最後一個彈匣',no_ammo:'沒彈藥了',out_of_range:'目標在射程外',no_target:'沒有目標',chambered:'已上膛',not_needed:'不需要',fatal:'會死！',tenchu:'天誅！'});   // tenchu: 3.211.0, the ninja's shout (tests/tenchu.test.mjs)
  for(const cue of PLAYER_CUES)assert.ok(playerLine({cue,item:'醫療包'}),cue);
  assert.equal(playerLine({cue:'empty',item:'醫療包'}),'醫療包沒了');assert.equal(calloutLine(playerCalloutEvent('blocked')),'被擋住了');
  assert.ok(Object.values(PLAYER_LINES).every(line=>!/[0-9０-９]/.test(line)));

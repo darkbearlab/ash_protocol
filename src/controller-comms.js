@@ -174,7 +174,7 @@ export function bossSceneTick(){
   if(!s.voiced&&since>=s.times.voiceAt){s.voiced=true;if(s.message)sayComms(s.message);}
   if(since>=s.times.endAt)endBossScene();
 }
-export function resetKia(){bossScene=null;kia=null;renderer.kia=null;renderer.pace=null;renderer.gore=[];renderer.splatter.reset();endOutro();resetCourse();}
+export function resetKia(){bossScene=null;kia=null;renderer.kia=null;renderer.pace=null;renderer.gore=[];renderer.splatter.reset();renderer.corpses?.reset();endOutro();resetCourse();}
 // The end of a run in three parts (3.177.0, user design; src/outro.js, docs/STORY.md 8): the officer approves the
 // extraction on the header bar (for a death the scene above has played instead), the field fades to dark, she speaks
 // in the middle of the screen — and when the purge review finds the unit deficient the overseer cuts in with a silence
