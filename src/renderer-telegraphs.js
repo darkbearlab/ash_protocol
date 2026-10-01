@@ -20,7 +20,7 @@ import {areaCells,squareCells} from './throwables.js';
 import {SURVIVAL_TUNING,pointLetter,pointStatus,pointTargeted} from './survival.js';
 import {coneTargets,inCone} from './shotgun.js';
 import {distance,tongueTelegraphs} from './engine.js';
-import {flameCells,liveFlameIntent} from './fire.js';
+import {flameCells,flameWeapon,liveFlameIntent} from './fire.js';
 import {BOSS_TUNING,designated,gunCells,liveGun,liveMarkIntent} from './loyalist-bosses.js';
 import {chargeLanes,eggSacs} from './swarm-bosses.js';
 import {REBEL_BOSS_TUNING,burnCells,liveBurn,liveFireIntent} from './rebel-bosses.js';
@@ -97,7 +97,7 @@ export class RendererTelegraphs {
     for(const m of g.marks)if(m.kind!=='grenade')this.markArea(m,1,m.kind==='ally'?'#e9a2494f':'#e969494f',m.kind==='ally'?'#f8c46977':'#f8996977',String(Math.max(1,m.due-g.turn)));
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);
     // 3.203.0: a flamer's marked cone (src/enemy-behavior.js flamerAct), every tile of it you can see, until it sprays.
-    for(const e of g.enemies)if(liveFlameIntent(e))this.flameArea(flameCells(g,e.flameIntent.origin,e.flameIntent.aim).filter(q=>g.visible(q)),'#f0643c30','#ff8d5ccc');
+    for(const e of g.enemies)if(liveFlameIntent(e))this.flameArea(flameCells(g,e.flameIntent.origin,e.flameIntent.aim,flameWeapon(e)).filter(q=>g.visible(q)),'#f0643c30','#ff8d5ccc');
     // 3.204.0 (src/loyalist-bosses.js): a boss's set-up machine gun — its cone amber while it sets up, red while it sweeps,
     // with the sweeps still to come by the boss.
     // 3.205.0 (src/swarm-bosses.js): a swarm boss's charge lane, every tile of it you can see, and the matriarch's egg sac.

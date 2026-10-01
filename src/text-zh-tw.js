@@ -1120,6 +1120,8 @@ export default Object.freeze({
  "enemyTypes.munition.role":"出現後下一回合以鉤索移到你身邊引爆。退出射程或直接打下來。",
  "enemyTypes.turret.name":"固定砲台",
  "enemyTypes.turret.role":"投放者架起的砲台，不會移動。看得到你就蓄勢一次，之後每回合連射。機械：怕 EMP、不受壓制。離開它的視線，或繞過去打掉它。",
+ "enemyTypes.heavy_flamer.name":"重裝火焰兵",
+ "enemyTypes.heavy_flamer.role":"背著大型燃料罐的重裝步兵：標出 3 格的錐形火焰，下一回合噴出並點燃地板。厚重裝甲：步槍彈不到一半，手槍彈與霰彈幾乎打不動，用能量武器、穿甲或爆炸；不怕火、抗壓制。總是最後才行動：保持 4 格以上就噴不到你，從側面或背後打它。",
  "enemyTypes.civilian.name":"滯留研究員",
  "enemyTypes.civilian.role":"不戰鬥的設施人員。看到你會尖叫並一直逃跑。",
  "enemyTypes.spitter.name":"毒液噴吐蟲",
@@ -1668,6 +1670,7 @@ export default Object.freeze({
  "loyalistNames.raider_armored.name":"突擊兵",
  "loyalistNames.gunner.name":"破門手",
  "loyalistNames.sniper.name":"狙擊手",
+ "loyalistNames.heavy_flamer.name":"重裝火焰兵",
  "loyalistNames.crawler.name":"軍犬",
  // 操作指南（src/controller.js）
  "manual.intro":"部署時選擇任務：六層深入的撤離、單層的生存（試驗中），或無盡深入。點上方任務標題查詢進度。",
@@ -1971,6 +1974,7 @@ export default Object.freeze({
  "rebelNames.gunner.name":"叛變破門手",
  "rebelNames.gunner_elite.name":"叛變破門手",
  "rebelNames.sniper.name":"叛變狙擊手",
+ "rebelNames.heavy_flamer.name":"叛變重裝火焰兵",
  "rebelNames.crawler.name":"叛變軍犬",
  // src/rebels.js
  "rebels.executed":"{enemy}處決了{victim}。",

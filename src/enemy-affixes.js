@@ -1,6 +1,6 @@
 import {t} from './i18n.js';
 import {enemyFaction,factionDef,enemyBaseName} from './factions.js';
-import {hasEnemyTag,isNoncombatant} from './enemy-data.js';
+import {hasEnemyTag,isNoncombatant,enemyDef} from './enemy-data.js';
 import {ENEMY_TYPES} from './data.js';
 import {grantTrait,activeTrait} from './traits.js';
 import {effectiveDepth,curveOf} from './endless.js';
@@ -62,7 +62,7 @@ export const ENEMY_AFFIXES=[
  // stream, so every other affix on every floor stays as it was. Claude's call on who: an armed soldier with no behaviour
  // of its own (not the sniper, the squad leader or the enforcer), not an infected one, and not one already carrying a gun
  // affix (壓制者, 擲彈兵, 投放).
- {id:'flamer',fragment:t('enemyAffixes.flamer.fragment'),order:8,applies:e=>armed(e)&&!ENEMY_TYPES[e.type]?.behavior&&!hasEnemyTag(e,'infected')&&!e.affixes?.some(a=>['suppressor','grenadier','deployer'].includes(a.id)),special:true,reveal:REVEAL_TYPES.effect},
+ {id:'flamer',fragment:t('enemyAffixes.flamer.fragment'),order:8,applies:e=>armed(e)&&!ENEMY_TYPES[e.type]?.behavior&&!ENEMY_TYPES[e.type]?.flamer&&!hasEnemyTag(e,'infected')&&!e.affixes?.some(a=>['suppressor','grenadier','deployer'].includes(a.id)),special:true,reveal:REVEAL_TYPES.effect},
  // 封鎖 (3.213.0, user 2026-09-30, docs/ENEMY_VARIETY.md section 2): a gunman with reach 5 or more and no behaviour card
  // of its own (so not the sniper, the squad leader or the enforcer), never infected, never a flamer (no gun) or a
  // grenadier (one warned step at the top of the turn a unit), never fast (3.213.0 review: acting before you, its one-round
@@ -70,7 +70,8 @@ export const ENEMY_AFFIXES=[
  {id:'lockdown',fragment:t('enemyAffixes.lockdown.fragment'),order:9,applies:e=>armed(e)&&!ENEMY_TYPES[e.type]?.behavior&&!hasEnemyTag(e,'infected')&&(ENEMY_TYPES[e.type]?.range??0)>=AFFIX_TUNING.lockdownRange&&!isFlamer(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
 ];
 export const locksDown=e=>Boolean(e?.affixes?.some(a=>a.id==='lockdown'));
-export const isFlamer=e=>Boolean(e?.affixes?.some(a=>a.id==='flamer'));
+// 3.214.0: or by its card (`flamer`: the heavy flamer, src/data.js).
+export const isFlamer=e=>Boolean(e?.affixes?.some(a=>a.id==='flamer'))||Boolean(enemyDef(e)?.flamer);
 // An enemy's armour: its card's, or a flamer's own when that is more (3.203.0).
 // 3.206.0: an overheated arsonist (src/rebel-bosses.js, `overheat` while it vents) has none at all.
 export const enemyArmor=e=>e?.overheat>0?0:Math.max(ENEMY_TYPES[e?.type]?.armor||0,isFlamer(e)?AFFIX_TUNING.flamerArmor:0);

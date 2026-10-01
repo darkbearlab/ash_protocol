@@ -72,6 +72,8 @@ const SPECIALS={
  deploy:{card:'rifleman',affixes:['deployer'],main:'deployKind',count:'deployCharges',state:()=>({deployKind:'turret',deployCharges:1})},
  // 3.213.0: a lockdown gunman's aimed tile beside its target and its cooldown (src/lockdown.js).
  lockdown:{card:'rifleman',affixes:['lockdown'],main:'lockIntent',count:'lockCooldown',state:(E,T)=>({lockIntent:{origin:at(E),tile:{x:T.x,y:T.y+1}},lockCooldown:1})},
+ // 3.214.0: a flamer by its card (the heavy flamer), its marked cone.
+ heavyFlame:{card:'heavy_flamer',main:'flameIntent',state:(E,T)=>({flameIntent:{origin:at(E),aim:at(T)}})},
 };
 // Units with no special state: what the specials' checks must leave alone. 3.212.0: the fixed turret.
 const PLAIN={turret:{card:'turret'},opSoldier:{card:'delisted_soldier'},opRecon:{card:'delisted_recon'},opEngineer:{card:'delisted_engineer'},opBerserker:{card:'delisted_berserker'},opNinja:{card:'delisted_ninja'},rifleman:{card:'rifleman'},aiming:{card:'rifleman',extra:{charge:true,windup:1,aim:{x:10,y:10}}},flamer:{card:'rifleman',affixes:['flamer']},grenadier:{card:'raider',affixes:['grenadier']},arsonist:{card:'arsonist',faction:'rebel'},beast:{card:'hive_beast',faction:'swarm'},crawler:{card:'crawler',faction:'swarm'},spitter:{card:'spitter',faction:'swarm'},gunline:{card:'gunline',faction:'loyalist'}};

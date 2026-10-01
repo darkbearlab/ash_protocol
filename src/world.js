@@ -2,7 +2,7 @@ import {addSwarmWaves} from './swarm-waves.js';
 import {addNoncombatants} from './civilians.js';
 import {rollEnemyElite} from './elite-enemies.js';
 import {DEFAULT_FACTION,factionPool,factionBoss,factionDef} from './factions.js';
-import {isBossClass,isNoncombatant,enemyDef} from './enemy-data.js';
+import {isBossClass,isNoncombatant,enemyDef,hasEnemyTag} from './enemy-data.js';
 import {drawnOperative,operativeType,operativeCode} from './operative-draw.js';
 import {rollEnemyAffixes} from './enemy-affixes.js';
 import {fillUnknownContainers} from './learning-data.js';
@@ -15,7 +15,7 @@ import {MERGED_RECIPES,selectMergeRecipe,mergePlans,mergeMap} from './map-mergin
 import {OPENING_RECIPES,addOpenings} from './map-openings.js';
 import {ANNEX_RECIPES,addAnnexes,addRequestedAnnexes} from './map-annexes.js';
 import {placePopulation,reservationPosts} from './map-population.js';
-import {extraEnemies,scaleEnemy,floorHpBonus,curveOf} from './endless.js';
+import {extraEnemies,scaleEnemy,floorHpBonus,curveOf,effectiveDepth} from './endless.js';
 import {createLighting,placeLamps} from './lighting.js';
 import {selectSupplyStations,addLivingModules,moduleCells} from './modules.js';
 import {floorTerminalKinds,KIND_ROOMS} from './terminal-kinds.js';
@@ -75,9 +75,24 @@ export function previewSpecial(map,seed,floor,difficulty,faction){
   const old=eligible[(h>>>0)%eligible.length];map.enemies[map.enemies.indexOf(old)]=makeEnemy(type,old.x,old.y,old.id,floor,difficulty,faction);
   return map;
 }
+// 重裝火焰兵 (3.214.0, user 2026-09-30, docs/ENEMY_VARIETY.md sections 3 and 9): one at most a floor, from the curve's
+// varietyStart (hard floor 3, standard floor 5, never in the easy campaign), heavyPerDepth a depth up to heavyCap (Claude's
+// numbers). As the floor-2 preview: an ordinary armed soldier (no behaviour card of its own, and not a rebel hero card that
+// is always elite: the spec's 普通槍兵), picked by a fixed hash, becomes the faction's heavy card (`heavy` in src/faction-catalog.js) in place, before affixes are rolled.
+// The floor rolls for it on a hash of its own, so nothing else on any floor shifts. The swarm has none.
+export const HEAVY_TUNING=Object.freeze({perDepth:.2,cap:.6});
+export const heavyChance=(floor,d)=>Math.min(HEAVY_TUNING.cap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*HEAVY_TUNING.perDepth);
+const fnv=text=>{let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
+export function heavySpecial(map,seed,floor,difficulty,faction){
+  const type=factionDef(faction)?.heavy;if(!type||fnv(`${seed}:${floor}:heavy-v1`)/4294967296>=heavyChance(floor,difficulty))return map;
+  const scout=`${floor}-scout`;
+  const eligible=map.enemies.filter(e=>e.id!==scout&&hasEnemyTag(e.type,'armed')&&!ENEMY_TYPES[e.type]?.behavior&&!ENEMY_TYPES[e.type]?.elite&&!isBossClass(e.type)&&!isNoncombatant(e.type));if(!eligible.length)return map;
+  const old=eligible[fnv(`${seed}:${floor}:heavy-pick-v1`)%eligible.length];map.enemies[map.enemies.indexOf(old)]=makeEnemy(type,old.x,old.y,old.id,floor,difficulty,faction);
+  return map;
+}
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;if(enemyDef(e)?.operative)e.code=operativeCode(seed,floor,e.id);e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeVents(placeLamps(placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor),seed,floor),seed,floor,faction);}   // vents: 3.202.0, after everything else   // lamps: 3.178.0, after everything else stands
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);heavySpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;if(enemyDef(e)?.operative)e.code=operativeCode(seed,floor,e.id);e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeVents(placeLamps(placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor),seed,floor),seed,floor,faction);}   // vents: 3.202.0, after everything else   // lamps: 3.178.0, after everything else stands
 // 3.135.0 (user decision, docs/ITEMS.md): once everything else stands, each of the floor's two terminals takes its kind
 // and moves to the supply room of that kind. Done last, so nothing else on the floor shifts; the room's reserved console
 // corner is tried first, and a terminal that finds no free tile there that keeps the floor safe stays put, still typed.

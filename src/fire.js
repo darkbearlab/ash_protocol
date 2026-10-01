@@ -123,8 +123,10 @@ export function burnUnits(g,attacker,cells,roll){
 // (burnUnits), and then the tiles catch. Returns the tiles, how many units it burned and how many tiles caught.
 // 3.206.0 `makeRoom` (the arsonist's spray): the tiles catch as a boss's fire does (ignite); `displaced` says how many
 // old tiles went out for them.
+// 3.214.0: the flamethrower a unit sprays with - a card's own reach (`flameRange`: the heavy flamer's 3) on the same cone.
+export const flameWeapon=u=>{const r=enemyDef(u)?.flameRange;return r?{...WEAPONS[FLAMETHROWER],range:r}:WEAPONS[FLAMETHROWER];};
 export function sprayFlame(g,attacker,aim,roll,{makeRoom=false}={}){
- const cells=flameCells(g,attacker,aim),w=WEAPONS[FLAMETHROWER];
+ const w=flameWeapon(attacker),cells=flameCells(g,attacker,aim,w);
  g.effects.push({type:'flame',from:{x:attacker.x,y:attacker.y},to:{x:aim.x,y:aim.y},cells:cells.map(({x,y})=>({x,y})),damage:0});
  const hits=burnUnits(g,attacker,cells,roll);
  const caught=ignite(g,cells,{makeRoom}),lit=makeRoom?caught.lit:caught;
@@ -151,7 +153,7 @@ export const liveFlameIntent=e=>Boolean(e?.hp>0&&!e.control?.disabled&&e.flameIn
 // specials, src/enemy-specials.js), and a flamer's marked cone (validFires: both, as tests ask).
 const cell=(q,grid)=>q&&typeof q==='object'&&Object.keys(q).length===2&&Number.isInteger(q.x)&&Number.isInteger(q.y)&&seeThrough(grid?.[q.y]?.[q.x]);
 // 3.206.0: the arsonist (a card that only sprays, `flameOnly`) marks its cone the same way, with no affix to reveal.
-export const validFlameIntent=(e,grid)=>{const i=e.flameIntent;return Boolean(i&&typeof i==='object'&&Object.keys(i).length===2&&cell(i.origin,grid)&&cell(i.aim,grid)&&i.origin.x===e.x&&i.origin.y===e.y&&(i.aim.x!==e.x||i.aim.y!==e.y)&&e.hp>0&&!e.control?.disabled&&(e.affixes?.some(a=>a.id==='flamer'&&a.revealed)||ENEMY_TYPES[e.type]?.flameOnly===true));};
+export const validFlameIntent=(e,grid)=>{const i=e.flameIntent;return Boolean(i&&typeof i==='object'&&Object.keys(i).length===2&&cell(i.origin,grid)&&cell(i.aim,grid)&&i.origin.x===e.x&&i.origin.y===e.y&&(i.aim.x!==e.x||i.aim.y!==e.y)&&e.hp>0&&!e.control?.disabled&&(e.affixes?.some(a=>a.id==='flamer'&&a.revealed)||ENEMY_TYPES[e.type]?.flameOnly===true||ENEMY_TYPES[e.type]?.flamer===true));};
 export function validFireTiles(g){
  for(const f of [g,...Object.values(g.floorStates||{})]){
   if(f.fires!==undefined){

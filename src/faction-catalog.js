@@ -9,9 +9,9 @@ export const DEFAULT_FACTION='legacy';
 // Loyalists are the garrison and say what the unit does; the rebels are the same unit that turned, so 叛變 goes in front.
 // The armoured loyalist variants deliberately share their plain card's name. legacy keeps the ENEMY_TYPES names.
 const LOYALIST_NAMES={squad_leader:{name:t('loyalistNames.squad_leader.name')},rifleman:{name:t('loyalistNames.rifleman.name')},rifleman_armored:{name:t('loyalistNames.rifleman_armored.name')},raider:{name:t('loyalistNames.raider.name')},raider_armored:{name:t('loyalistNames.raider_armored.name')},
- gunner:{name:t('loyalistNames.gunner.name')},sniper:{name:t('loyalistNames.sniper.name')},crawler:{name:t('loyalistNames.crawler.name')}};
+ gunner:{name:t('loyalistNames.gunner.name')},sniper:{name:t('loyalistNames.sniper.name')},crawler:{name:t('loyalistNames.crawler.name')},heavy_flamer:{name:t('loyalistNames.heavy_flamer.name')}};
 const REBEL_NAMES={drone:{name:t('rebelNames.drone.name')},brute:{name:t('rebelNames.brute.name')},rifleman:{name:t('rebelNames.rifleman.name')},raider:{name:t('rebelNames.raider.name')},raider_elite:{name:t('rebelNames.raider_elite.name')},
- gunner:{name:t('rebelNames.gunner.name')},gunner_elite:{name:t('rebelNames.gunner_elite.name')},sniper:{name:t('rebelNames.sniper.name')},crawler:{name:t('rebelNames.crawler.name')}};
+ gunner:{name:t('rebelNames.gunner.name')},gunner_elite:{name:t('rebelNames.gunner_elite.name')},sniper:{name:t('rebelNames.sniper.name')},crawler:{name:t('rebelNames.crawler.name')},heavy_flamer:{name:t('rebelNames.heavy_flamer.name')}};
 // 3.208.0 (user decisions 2026-09-30, docs/SWARM.md section 14): an override may also add traits, each with a rank when
 // it has one. A unit gets them when it is made (src/traits.js startingTraits with its faction; source `faction:<id>`),
 // and every load re-syncs them to this table (src/traits.js syncFactionTraits: a trait added here is added, one removed
@@ -40,7 +40,7 @@ export const FACTIONS={
   personality:{rifleman:'disciplined',rifleman_armored:'disciplined',raider:'disciplined',raider_armored:'disciplined',gunner:'disciplined',sniper:'cunning',squad_leader:'commander',drone:'mindless',civilian:'fleeing'},
   // 3.204.0 (user design 2026-09-29, docs/BOSSES.md section 2): the loyalists' own bosses, 標定官 and 火線官. A floor already
   // generated keeps the boss it has; the legacy mix keeps the warden and the core guard (the rebels had them until 3.206.0).
-  bosses:{3:'designator',6:'gunline'},delisted:true,scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
+  bosses:{3:'designator',6:'gunline'},delisted:true,scout:'rifleman',preview:'sniper',heavy:'heavy_flamer',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:LOYALIST_NAMES},
  rebel:{name:t('factions.rebel.name'),tag:true,pickable:true,voice:'rebel',eliteAffixes:4,roster:{
   early:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',1],['crawler',1],['raider_elite',1],['enforcer',1]],
   late:[['rifleman',1],['raider',2],['gunner',1],['drone',2],['bomber_bot',2],['brute',1],['sniper',1],['crawler',1],['raider_elite',1],['gunner_elite',1],['enforcer',1]],
@@ -52,7 +52,7 @@ export const FACTIONS={
  // delisted operative (3.207.0, docs/BOSSES.md section 5) replaces the floor-6 one by a draw where the floor asks for its
  // boss (factionBoss's caller, src/world.js), so this entry stays what an undrawn floor gets. `delisted` (3.207.0): this
  // faction's floor-6 boss (and every boss floor after it in endless) may be one (src/operative-draw.js).
- bosses:{3:'arsonist',6:'burnline'},delisted:true,scout:'rifleman',preview:'sniper',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:REBEL_NAMES},
+ bosses:{3:'arsonist',6:'burnline'},delisted:true,scout:'rifleman',preview:'sniper',heavy:'heavy_flamer',retreatWave:['rifleman','raider'],fodder:null,nestChild:null,overrides:REBEL_NAMES},
  // Swarm (3.83.0, user): creature cards and infected soldiers, a giant bug, oversized bug bosses and burrow nests only.
  // The venom shot, the tongue pull and the infected affixes come with the Codex rules (docs/SWARM.md).
  swarm:{hordeType:'brood',infectedAffixes:['venomous','brood_host'],name:t('factions.swarm.name'),tag:true,pickable:true,voice:'creature',nestStyle:'burrow',roster:{

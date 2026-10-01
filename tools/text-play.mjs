@@ -25,7 +25,7 @@ import {SKILLS,skillStatus} from '../src/skills.js';
 import {isContainer,containerName} from '../src/containers.js';
 import {isBarrier,barrierBetween} from '../src/barriers.js';
 import {isDark} from '../src/lighting.js';
-import {flameCells,liveFlameIntent} from '../src/fire.js';
+import {flameCells,flameWeapon,liveFlameIntent} from '../src/fire.js';
 import {gunCells,liveGun,liveMarkIntent} from '../src/loyalist-bosses.js';
 import {targetDetails} from '../src/target-card.js';
 import {pelletChance} from '../src/shotgun.js';
@@ -139,7 +139,7 @@ function dangerCells(g){
  const cells=new Set(),add=(c,r=1)=>{for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++)if(Math.abs(dx)+Math.abs(dy)<=r)cells.add(`${c.x+dx},${c.y+dy}`);};
  for(const m of g.marks)if(m.kind!=='grenade')add(m,m.radius??1);
  for(const m of grenadeMarkers(g))add(m,m.radius??1);
- for(const e of g.enemies)if(liveFlameIntent(e))for(const q of flameCells(g,e.flameIntent.origin,e.flameIntent.aim))cells.add(`${q.x},${q.y}`);   // 3.203.0: a flamer's marked cone
+ for(const e of g.enemies)if(liveFlameIntent(e))for(const q of flameCells(g,e.flameIntent.origin,e.flameIntent.aim,flameWeapon(e)))cells.add(`${q.x},${q.y}`);   // 3.203.0: a flamer's marked cone
  for(const e of g.enemies)if(liveGun(e))for(const q of gunCells(g,e.gun.origin,e.gun.aim))cells.add(`${q.x},${q.y}`);   // 3.204.0: a boss's machine-gun cone
  for(const t of tongueTelegraphs(g))for(const q of t.lane)cells.add(`${q.x},${q.y}`);for(const l of chargeLanes(g))for(const q of l.cells)cells.add(`${q.x},${q.y}`);   // 3.205.0: a tongue's line, a charge lane
  for(const e of g.enemies){if(liveFireIntent(e))for(const q of e.fireIntent.cells)cells.add(`${q.x},${q.y}`);if(liveBurn(e))for(const q of burnCells(g,e.burn.origin,e.burn.aim))cells.add(`${q.x},${q.y}`);}   // 3.206.0: a wall or ring of fire, a set-up flamethrower's cone

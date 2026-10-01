@@ -36,7 +36,7 @@
 | 鏈鋸 | Chainsaw | `weapons.chainsaw.name` |
 | 火焰發射器 | Flamethrower | `weapons.flamer.name` |
 
-## 敵人（33）
+## 敵人（34）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -71,6 +71,7 @@
 | 督戰官 | Enforcer | `enemyTypes.enforcer.name` |
 | 浮游彈藥 | Suicide Drone | `enemyTypes.munition.name` |
 | 固定砲台 | Fixed Turret | `enemyTypes.turret.name` |
+| 重裝火焰兵 | Heavy Flamer | `enemyTypes.heavy_flamer.name` |
 | 滯留研究員 | Stranded Researcher | `enemyTypes.civilian.name` |
 | 毒液噴吐蟲 | Venom Spitter | `enemyTypes.spitter.name` |
 

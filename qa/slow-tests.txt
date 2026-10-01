@@ -37,3 +37,5 @@ endless factions and corpse positions are deterministic; encounters never repeat
 human facilities generate only their own units, with no fodder or nests
 the catalog: the rebels get 縱火者 and 焚線官; the legacy mix, the loyalists and the swarm keep theirs; the numbers
 v2 sweep and recovery reserve three distinct reachable non-expendable targets
+start floors: hard from floor 3, standard from floor 5, never in the easy campaign; deterministic
+where: hard from floor 3, standard from floor 5, never in the easy campaign or the swarm; one at most, in place

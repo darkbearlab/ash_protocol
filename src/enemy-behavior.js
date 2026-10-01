@@ -17,7 +17,7 @@ import {activeTrait,recordShot} from './traits.js';
 import {pinned,finishSuppression,meleeSuppression,rapidFireModifiers} from './suppression.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {AFFIX_TUNING,DEPLOY_KINDS,deploys,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
-import {sprayFlame,flameCells,flamerDamage,FLAMETHROWER} from './fire.js';
+import {sprayFlame,flameCells,flamerDamage,flameWeapon,FLAMETHROWER} from './fire.js';
 import {bossSpecial} from './loyalist-bosses.js';
 import {soldierSpecial,drinkBlood,decloak,lastWords} from './delisted-operatives.js';
 import {arsonistTurn,burnlineSpecial} from './rebel-bosses.js';
@@ -38,7 +38,7 @@ import {selfFlank} from './flank.js';
 import {usePounceHooks} from './pounce.js';
 import {useLockdownHooks,lockdownBranch} from './lockdown.js';
 import {releasePayload} from './swarm-fields.js';
-import {runStep,registerStep,registerSpecial,lockedTarget,dropAttack} from './enemy-specials.js';
+import {runStep,registerStep,registerSpecial,lockedTarget,dropAttack,gunless} from './enemy-specials.js';
 import {personalityOf} from './personality.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
@@ -69,9 +69,10 @@ function move({g,e,p,def,los,d}){
         // 3.180.0: the route stops short of a target's own tile, so walking into an unseen target next to it is caught here.
         // 3.209.0 (user 2026-09-30): not only you — whichever of your units it cannot see stands on the tile it knows about
         // (a pet, a drone, a summon that bit or shot it from the black), it attacks blind the same way.
-        const body=!los&&!pinned(e)&&destination?unseenAt(g,e,destination):null;
-        if(!step&&body&&distance(e,body)===1&&g.canCross(e,body)){attack({g,e,p:body,def,blind:true});return;}
-        if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}else if(!los&&key(step)===key(p)&&g.canCross(e,p))attack({g,e,p,def,blind:true});else if(body&&key(step)===key(body)&&g.canCross(e,body))attack({g,e,p:body,def,blind:true});}
+        // 3.214.0 review: a unit with no gun (a flamer, by affix or by card) does not blind-fire a gun it lacks; it holds.
+        const body=!los&&!pinned(e)&&destination?unseenAt(g,e,destination):null,shoots=!gunless(e);
+        if(!step&&body&&distance(e,body)===1&&g.canCross(e,body)){if(shoots)attack({g,e,p:body,def,blind:true});return;}
+        if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}else if(shoots&&!los&&key(step)===key(p)&&g.canCross(e,p))attack({g,e,p,def,blind:true});else if(shoots&&body&&key(step)===key(body)&&g.canCross(e,body))attack({g,e,p:body,def,blind:true});}
 
 }
 function reinforce({g,e,p}){
@@ -124,7 +125,7 @@ function grenade(ctx){const {g,e,p,los}=ctx,intent=e.grenadeIntent;
 // killed in between, the cone is dropped (interruptEnemyIntent; Claude's call, as for the grenade). Out of reach it walks
 // into reach, never firing on the way.
 function flamerAct(ctx){
- const {g,e,p,los}=ctx,intent=e.flameIntent,reach=WEAPONS[FLAMETHROWER].range;
+ const {g,e,p,los}=ctx,intent=e.flameIntent,w=flameWeapon(e),reach=w.range;   // 3.214.0: the heavy flamer's shorter cone
  // 3.203.0 review: no gun to hold on anyone, so no aim is left standing (a watch order's held aim, a squad's 已就緒);
  // a standing charge would let an enforcer's rally fire the old gun and keep the flamer on a burning tile.
  e.charge=false;e.aim=null;e.windup=1;
@@ -132,7 +133,7 @@ function flamerAct(ctx){
   delete e.flameIntent;
   if(distance(e,intent.origin)===0){g.recordExposure(e,intent.aim);g.log(t('flames.flamerSprays',{enemy:enemyName(e)}),true);sprayFlame(g,e,intent.aim,()=>flamerDamage(g));return true;}
  }
- if(los&&distance(e,p)<=reach&&flameCells(g,e,p).some(q=>q.x===p.x&&q.y===p.y)){
+ if(los&&distance(e,p)<=reach&&flameCells(g,e,p,w).some(q=>q.x===p.x&&q.y===p.y)){
   e.flameIntent={origin:{x:e.x,y:e.y},aim:{x:p.x,y:p.y}};revealEnemyAffix(g,e,'flamer');
   g.effects.push({type:'flameTelegraph',from:{x:e.x,y:e.y},to:{x:p.x,y:p.y},damage:0});enemyCallout(g,e,'telegraph',{action:'attack'});
   g.log(t('flames.flamerReady',{enemy:enemyName(e)}),true);return true;

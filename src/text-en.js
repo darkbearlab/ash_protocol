@@ -1119,6 +1119,8 @@ export default Object.freeze({
  "enemyTypes.munition.role":"The turn after it appears it reels itself next to you and explodes. Get out of range or shoot it down.",
  "enemyTypes.turret.name":"Fixed Turret",
  "enemyTypes.turret.role":"Set down by a deployer; never moves. Once it sees you it winds up once, then fires a burst every turn. Mechanical: weak to EMP, immune to suppression. Get out of its sight, or go around and take it out.",
+ "enemyTypes.heavy_flamer.name":"Heavy Flamer",
+ "enemyTypes.heavy_flamer.role":"Heavy infantry with a big fuel tank: marks a 3-tile cone of fire, then sprays it next turn and sets the floor alight. Heavy armour: rifle rounds do under half, pistol rounds and buckshot barely scratch it; use energy, armour-piercing or explosives. Fireproof and resists suppression. Always acts last: stay 4 or more tiles away and it cannot reach you; hit it from the side or behind.",
  "enemyTypes.civilian.name":"Stranded Researcher",
  "enemyTypes.civilian.role":"Non-combatant facility staff. Screams when it sees you and keeps running.",
  "enemyTypes.spitter.name":"Venom Spitter",
@@ -1667,6 +1669,7 @@ export default Object.freeze({
  "loyalistNames.raider_armored.name":"Assault",
  "loyalistNames.gunner.name":"Breacher",
  "loyalistNames.sniper.name":"Sniper",
+ "loyalistNames.heavy_flamer.name":"Heavy Flamer",
  "loyalistNames.crawler.name":"Warhound",
  // 操作指南（src/controller.js）
  "manual.intro":"Choose a mission when you deploy: the six-floor extraction, the one-floor survival (experimental), or the endless descent. Tap the mission title at the top to check your progress.",
@@ -1970,6 +1973,7 @@ export default Object.freeze({
  "rebelNames.gunner.name":"Rogue Breacher",
  "rebelNames.gunner_elite.name":"Rogue Breacher",
  "rebelNames.sniper.name":"Rogue Sniper",
+ "rebelNames.heavy_flamer.name":"Rogue Heavy Flamer",
  "rebelNames.crawler.name":"Rogue Warhound",
  // src/rebels.js
  "rebels.executed":"{enemy} executes {victim}.",

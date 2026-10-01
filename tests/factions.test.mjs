@@ -21,6 +21,8 @@ test('faction catalog validates references and covers every current enemy card',
   // 3.207.0: a faction that meets delisted operatives reaches their cards through the draw (src/operative-draw.js).
   if(d.delisted)for(const cls of OPERATIVE_CLASSES){assert.ok(isBossClass(operativeType(cls)));used.add(operativeType(cls));}
   for(const id of [d.scout,...d.retreatWave,d.fodder,d.nestChild].filter(id=>id!==null)){assert.ok(ENEMY_TYPES[id]);used.add(id);}
+  // 3.214.0: the heavy card a floor may swap in (src/world.js heavySpecial).
+  if(d.heavy){assert.ok(ENEMY_TYPES[d.heavy]?.flamer);used.add(d.heavy);}
   for(const [id,n] of Object.entries(d.affixWeights||{}))assert.ok(ENEMY_AFFIXES.some(a=>a.id===id)&&Number.isFinite(n)&&n>0);
   for(const id of Object.keys(d.overrides||{}))assert.ok(ENEMY_TYPES[id]);
   // 3.128.0: a placed squad's leader and members are reachable from data too.

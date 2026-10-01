@@ -229,3 +229,13 @@ for(const type of ["rifleman_infected","raider_infected","fodder"])ENEMY_TYPES[t
 // The numbers are Claude's, measured against the rifleman and the player's sentry (docs/ENEMY_VARIETY.md section 1).
 // Drawn with the drone sprite in steel grey until it has art of its own, as your sentry is.
 ENEMY_TYPES.turret={sprite:{key:'drone',tint:'#8f9aa6'},drawing:{shape:'drone',color:'#8f9aa6'},glyph:'⊡',projectile:'rifle',casing:'rifle',tags:[],traits:[],behavior:'turret',fixed:true,rounds:4,rapid:true,attackStyle:'bullet',name:t('enemyTypes.turret.name'),hp:70,damage:24,range:7,armor:3,color:'#8f9aa6',xp:1,mechanical:true,role:t('enemyTypes.turret.role')};
+// 重裝火焰兵 (3.214.0, user 2026-09-30, docs/ENEMY_VARIETY.md section 3): 「應該最簡單，但範圍要改小」, the loyalists'
+// too. A flamer by its card (`flamer`: src/enemy-affixes.js isFlamer) — it marks a cone and sprays it the next round, its
+// tank goes up or it leaves its flamethrower when it falls, as the 火焰兵 affix (docs/HAZARDS.md section 4) — with a
+// shorter cone (`flameRange` 3 against the flamethrower's 5), a large, slow, armoured body that shrugs off suppression,
+// heavy armour (direct damage -25% after armour) and no fear of fire. Armour 6, the heavy band: rifle rounds x0.6, pistol
+// rounds and buckshot x0.15, energy full, blades -6 (then the heavy armour's -25%; a blast meets only that -25%). Slow on
+// an enemy is the slow phase: it acts after you and the others, one step a turn. Its numbers are Claude's, measured in
+// qa/results/2026-10-01-claude-3.214.0-heavy-flamer.md. One at most a floor, from the curve's varietyStart (src/world.js
+// heavySpecial); being slow, it never rolls fast (the fast affix skips slow units).
+ENEMY_TYPES.heavy_flamer={sprite:{key:'rifleman',size:1.25,scale:1.25,tint:'#c4733f'},projectile:'rifle',casing:'rifle',tags:['armed'],flashlight:'some',traits:['large','slow','suppression_resistance','heavy_armor'],flamer:true,flameRange:3,fireproof:true,rounds:1,attackStyle:'bullet',loot:{ammo:'ammo'},name:t('enemyTypes.heavy_flamer.name'),hp:70,damage:20,range:3,armor:6,color:'#c4733f',xp:3,role:t('enemyTypes.heavy_flamer.role')};

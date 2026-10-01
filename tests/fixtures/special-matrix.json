@@ -232,6 +232,14 @@
    "suppressed": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
    "bogus": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":1,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"ret\":false,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
   },
+  "heavyFlame": {
+   "death": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "disabled": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "displaced": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "target_lost": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "suppressed": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "bogus": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"hp\":500,\"ret\":false,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
+  },
   "turret": {
    "death": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
    "disabled": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
@@ -676,6 +684,16 @@
    "turnPinned": "{\"aim\":{\"x\":10,\"y\":10},\"charge\":true,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"fx\":[\"callout\"],\"hp\":500,\"lockCooldown\":2,\"logs\":2,\"marks\":[],\"player\":{\"hp\":999,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":475,\"suppression\":3,\"vaultExposed\":false,\"windup\":1,\"x\":13,\"y\":10}",
    "turnStunned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"fireChain\":null,\"fx\":[],\"hp\":500,\"lockCooldown\":2,\"logs\":2,\"marks\":[],\"player\":{\"hp\":999,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":475,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
   },
+  "heavyFlame": {
+   "decoy": "{\"decoy\":{\"expires\":4,\"fooled\":[\"u\"],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
+   "decoyBeside": "{\"decoy\":{\"expires\":4,\"fooled\":[],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
+   "mine": "{\"mines\":[{\"id\":\"mine-1-1\",\"seen\":[\"u\"],\"x\":13,\"y\":13}],\"ret\":false,\"rng\":475}",
+   "stepOff": "{\"ret\":false,\"x\":13,\"y\":10}",
+   "pin": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"hp\":500,\"ret\":4,\"suppression\":4,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "turn": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"fires\":[{\"age\":1,\"x\":12,\"y\":10},{\"age\":1,\"x\":11,\"y\":10},{\"age\":1,\"x\":11,\"y\":9},{\"age\":1,\"x\":10,\"y\":10},{\"age\":1,\"x\":11,\"y\":11}],\"fx\":[\"flame\",\"impact\"],\"hp\":500,\"logs\":4,\"marks\":[],\"player\":{\"hp\":977,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":1831566288,\"vaultExposed\":false,\"windup\":1,\"x\":13,\"y\":10}",
+   "turnPinned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"fires\":[{\"age\":1,\"x\":12,\"y\":10},{\"age\":1,\"x\":11,\"y\":10},{\"age\":1,\"x\":11,\"y\":9},{\"age\":1,\"x\":10,\"y\":10},{\"age\":1,\"x\":11,\"y\":11}],\"fx\":[\"flame\",\"impact\"],\"hp\":500,\"logs\":4,\"marks\":[],\"player\":{\"hp\":977,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":1831566288,\"suppression\":3,\"vaultExposed\":false,\"windup\":1,\"x\":13,\"y\":10}",
+   "turnStunned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"fireChain\":null,\"fx\":[],\"hp\":500,\"logs\":2,\"marks\":[],\"player\":{\"hp\":999,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":475,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
+  },
   "turret": {
    "decoy": "{\"decoy\":{\"expires\":4,\"fooled\":[\"u\"],\"hp\":5,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":true,\"rng\":1831566288}",
    "decoyBeside": "{\"decoy\":{\"expires\":4,\"fooled\":[],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
@@ -1028,6 +1046,13 @@
    "mine": "{\"mines\":[{\"id\":\"mine-1-1\",\"seen\":[\"u\"],\"x\":13,\"y\":13}],\"ret\":false,\"rng\":475}",
    "stepOff": "{\"ret\":false,\"x\":13,\"y\":10}",
    "pin": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"ret\":5,\"suppression\":5,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
+  },
+  "bare:heavyFlame": {
+   "decoy": "{\"decoy\":{\"expires\":4,\"fooled\":[\"u\"],\"hp\":12,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":true,\"rng\":1831566288}",
+   "decoyBeside": "{\"decoy\":{\"expires\":4,\"fooled\":[],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
+   "mine": "{\"mines\":[{\"id\":\"mine-1-1\",\"seen\":[\"u\"],\"x\":13,\"y\":13}],\"ret\":false,\"rng\":475}",
+   "stepOff": "{\"ret\":false,\"x\":13,\"y\":10}",
+   "pin": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"hp\":500,\"ret\":5,\"suppression\":5,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
   },
   "everything": {
    "decoy": "{\"decoy\":{\"expires\":4,\"fooled\":[\"u\"],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
@@ -1837,6 +1862,23 @@
    "wrongCard": "refused",
    "hiddenAffix": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":1,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
   },
+  "heavyFlame": {
+   "asIs": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "moved": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":12}",
+   "dead": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":0,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "stunned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"fireChain\":null,\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "pinned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"hp\":500,\"suppression\":3,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "extraKey": "refused",
+   "nulled": "refused",
+   "number": "refused",
+   "badOrigin": "refused",
+   "numOrigin": "refused",
+   "overMax": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "negative": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "zero": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "wrongCard": "refused",
+   "hiddenAffix": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
+  },
   "actors": {
    "player:grenade": "refused",
    "ally:grenade": "refused",
@@ -2114,6 +2156,15 @@
    "stunned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
    "extraKey": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":1,\"lockIntent\":{\"extra\":1,\"origin\":{\"x\":10,\"y\":2},\"tile\":{\"x\":7,\"y\":3}},\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
    "overMax": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"lockIntent\":{\"origin\":{\"x\":10,\"y\":2},\"tile\":{\"x\":7,\"y\":3}},\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
+   "wrongCard": "refused"
+  },
+  "heavyFlame": {
+   "asIs": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":7,\"y\":2},\"origin\":{\"x\":10,\"y\":2}},\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
+   "moved": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":4}",
+   "dead": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":0,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
+   "stunned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"fireChain\":null,\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
+   "extraKey": "refused",
+   "overMax": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"flameIntent\":{\"aim\":{\"x\":7,\"y\":2},\"origin\":{\"x\":10,\"y\":2}},\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
    "wrongCard": "refused"
   }
  }
