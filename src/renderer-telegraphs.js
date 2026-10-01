@@ -151,6 +151,13 @@ export class RendererTelegraphs {
       const a=this.projectActor(e),b=this.projectActor(chargeLineTarget(g,e));
       c.setLineDash([5,5]);this.line(a.x,a.y,b.x,b.y,unitTree(e).fixedTile?'#efb5cb8f':'#eaaa6855',1);c.setLineDash([]);
     }
+    // 3.215.0 (src/disarm.js): a marksman aiming at your weapon — an amber dashed line from it while you see it, and a small
+    // crosshair on your weapon hand.
+    for(const e of g.enemies)if(e.hp>0&&e.disarmIntent&&p.hp>0){
+      const b=this.projectActor(p),q={x:b.x+t*.22,y:b.y+t*.12};
+      if(g.visibleEnemies.includes(e)){const a=this.projectActor(e);c.setLineDash([3,4]);this.line(a.x,a.y,q.x,q.y,'#ffcf6bcc',1.5);c.setLineDash([]);}
+      this.box(q.x-8,q.y-8,16,16,'#ffcf6b40','#ffd98a');this.line(q.x-11,q.y,q.x+11,q.y,'#ffd98a',1.5);this.line(q.x,q.y-11,q.x,q.y+11,'#ffd98a',1.5);
+    }
     // 3.213.0 (src/lockdown.js): a gunman's locked tile beside you, a crosshair in the sniper's pink wherever you can see the
     // tile, and the dashed line to it while you see the gunman.
     for(const e of g.enemies)if(e.hp>0&&e.lockIntent&&g.visible(e.lockIntent.tile)){

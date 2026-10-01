@@ -15,15 +15,15 @@ export const INTERRUPT_REASONS=F(['death','disabled','displaced','target_lost','
 export const ORDER=F({
  // Every special, in the order an interruption clears them and a save is trimmed. 3.212.0: 'deploy', a deployer's kind
  // and charges (src/enemy-behavior.js; state only, it neither interrupts nor ticks).
- ids:F(['grenade','flame','tongue','pounce','lob','charge','nest','mark','gun','fire','burn','vent','scan','toss','smoke','drones','cloak','deploy','lockdown']),
+ ids:F(['grenade','flame','tongue','pounce','lob','charge','nest','mark','gun','fire','burn','vent','scan','toss','smoke','drones','cloak','deploy','lockdown','disarm']),
  // Game.enemyAct, before the decoy and the mine: each runs (a mark landing, an egg hatching; 3.207.0: a delisted soldier's
  // early warning, a delisted ninja fading back into its camouflage); none is the unit's action.
  start:F(['mark','nest','scan','cloak']),
  // executeEnemyTree, before an order, a survival walk or anything else can move the unit: the first that acts ends the
  // turn. 'rebel' and 'swarm' are the bosses' own steps (src/rebel-bosses.js, src/swarm-bosses.js), each covering several;
  // 'smoke' the delisted recon's throw (3.207.0, src/delisted-operatives.js); 'lockdown' a gunman's aimed tile (3.213.0,
- // src/lockdown.js).
- top:F(['flame','grenade','lockdown','rebel','gun','swarm','pounce','lob','smoke']),
+ // src/lockdown.js); 'disarm' a marksman's shot at your weapon (3.215.0, src/disarm.js).
+ top:F(['flame','grenade','lockdown','disarm','rebel','gun','swarm','pounce','lob','smoke']),
  // After the orders, in place of the affix branches and the shot.
  attack:F(['flame']),
  // The enforcer's rally (src/rebels.js advanceCharge): a special primed to go off early.
@@ -32,9 +32,9 @@ export const ORDER=F({
  // engineer's drone); none is the unit's action.
  end:F(['drones']),
  // The round start (Game.action): one pass over the enemies per group, cooldowns first, then the drops.
- tick:F([F(['tongue']),F(['charge','nest']),F(['pounce']),F(['lob']),F(['scan','toss','smoke','drones']),F(['lockdown'])]),
+ tick:F([F(['tongue']),F(['charge','nest']),F(['pounce']),F(['lob']),F(['scan','toss','smoke','drones']),F(['lockdown']),F(['disarm'])]),
  // The target card's lines, after 「即將攻擊」 (3.206.2: the grenade, the marked cone, the pounce and the lob first).
- card:F(['grenade','flame','pounce','lob','lockdown','mark','gun','tongue','charge','nest','fire','vent','burn','smoke','cloak']),
+ card:F(['grenade','flame','pounce','lob','lockdown','disarm','mark','gun','tongue','charge','nest','fire','vent','burn','smoke','cloak']),
 });
 // A declaration (registerSpecial):
 //  id, intent (the field that holds the warning), carries(e) (the cards or affixes that may hold it),

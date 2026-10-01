@@ -1000,6 +1000,9 @@ export default Object.freeze({
  "deploy-ui.devOnly":"Development",
  "deploy-ui.hard":"Hard",
  "deploy-ui.eliteFrom":" · elites F{floor}+",
+ "disarm.aim":"{enemy} aims at your {weapon}! Switch weapons or get out of its sight.",
+ "disarm.knocked":"{enemy} shoots your {weapon} out of your hands; you switch to {next}. Go get it back!",
+ "disarm.lost":"{enemy}'s shot at your weapon finds nothing.",
  // disposed
  "disposed.title":"Stock destroyed",
  "disposed.restart":"Restart training →",
@@ -1057,6 +1060,7 @@ export default Object.freeze({
  "enemyAffixes.deployer.bomber_bot":"Deployer (bomb bot)",
  "enemyAffixes.flamer.fragment":"Flamer",
  "enemyAffixes.lockdown.fragment":"Lockdown",
+ "enemyAffixes.disarm.fragment":"Disarm",
  // 敵人：名稱與介紹（src/data.js）
  "enemyTypes.fodder.name":"Broken Drifter",
  "enemyTypes.fodder.role":"Slow; acts every other chance. Bare hands will do; a kill with an attack's first round grants a pursuit.",
@@ -2342,6 +2346,7 @@ export default Object.freeze({
  "target-card.flameMarked":"Flame cone marked",
  "target-card.pouncing":"Crouched to pounce",
  "target-card.lockdown":"Locking a tile: fires next round",
+ "target-card.disarm":"Aiming at your weapon: fires next round",
  "target-card.swelling":"Toxic sac swelling",
  "target-card.painting":"Painting you",
  "target-card.gunSet":"Gun set: can't move",

@@ -9,6 +9,7 @@ import {specialDef,ORDER,topCarriers} from '../src/enemy-specials.js';
 import {makeBarrier} from '../src/barriers.js';
 import {cornerRay} from '../src/corner.js';
 import {VOID} from '../src/data.js';
+import {grantTrait} from '../src/traits.js';
 import {addAlly} from '../src/allies.js';
 import {t} from '../src/i18n.js';
 
@@ -185,4 +186,10 @@ test('saves: the aim and the cooldown round-trip; a stale aim is dropped, a malf
  for(const [why,fn] of [['a tile off the map',x=>{x.lockIntent.tile={x:-1,y:3};}],['a tile on a wall',x=>{x.lockIntent.tile={x:10,y:9};}],['not an object',x=>{x.lockIntent='aim';}],['on a gunman without the affix',x=>{x.affixes=x.affixes.filter(a=>a.id!=='lockdown');}],['a fractional cooldown',x=>{x.lockCooldown=1.5;}]])
   assert.equal(tamper(fn),null,why);
  const cut=tamper(x=>{delete x.lockIntent;x.lockCooldown=9;});assert.ok(cut);assert.equal(cut.enemies.find(x=>x.id==='lk').lockCooldown,T.lockdownCooldown);
+});
+
+test('made fast (a squad\u2019s bound, a rebel taunt), it neither aims nor fires the warned burst (3.215.0 review)',()=>{
+ const {g,e}=corner();grantTrait(e,'fast','squad:bound');round(g,e);assert.equal(e.lockIntent,undefined,'no aim while fast');
+ const k=corner();round(k.g,k.e);assert.ok(k.e.lockIntent);grantTrait(k.e,'fast','squad:bound');k.p.y=11;k.g.reveal();
+ k.g.turn++;k.g.enemyAct(k.e);assert.equal(k.e.lockIntent,undefined);assert.ok(!k.g.logs.some(l=>l.text===t('lockdown.empty',{enemy:enemyDisplayName(k.e)})),'the burst is let go');assert.equal(k.p.hp,999,'not shot on the locked tile');
 });

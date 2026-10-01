@@ -23,7 +23,11 @@ export const AFFIX_TUNING={chanceCap:.5,additionalFactor:.5,grenadeChance:.2,gre
  // curve's varietyStart, lockdownPerDepth a depth up to lockdownCap (Claude's numbers, measured in
  // qa/results/2026-10-01-claude-3.213.0-lockdown.md); after it fires, lockdownCooldown rounds counted down at the round
  // start before it may aim again — 2 is one round off (「間隔更短」: the sniper warns two rounds and fires every third).
- lockdownRange:5,lockdownPerDepth:.03,lockdownCap:.24,lockdownCooldown:2};
+ lockdownRange:5,lockdownPerDepth:.03,lockdownCap:.24,lockdownCooldown:2,
+ // 繳械 (3.215.0, docs/ENEMY_VARIETY.md section 4; src/disarm.js): a marksman (the sniper, or a rifle with reach
+ // disarmRange or more), from the curve's varietyStart, disarmPerDepth a depth up to disarmCap; disarmCooldown rounds,
+ // set as it aims and counted down at the round start (the spec's 「每 5 回合最多一次」).
+ disarmRange:7,disarmPerDepth:.03,disarmCap:.24,disarmCooldown:5};
 export const REVEAL_TYPES=Object.freeze({effect:'effect',scan:'scan',failed:'condition_failed'});
 const armed=e=>hasEnemyTag(e,'armed');
 const combatant=e=>!isNoncombatant(e)&&!ENEMY_TYPES[e.type]?.expendable;
@@ -31,6 +35,8 @@ const combatant=e=>!isNoncombatant(e)&&!ENEMY_TYPES[e.type]?.expendable;
 // affix that does not apply does, so every other roll on every floor stays as it was.
 const barred=(e,id)=>Boolean(ENEMY_TYPES[e.type]?.barredAffixes?.includes(id));
 const infected=e=>hasEnemyTag(e,'infected')&&Boolean(factionDef(enemyFaction(e))?.infectedAffixes);
+// 3.215.0 繳械: the sniper, or a rifle with reach disarmRange or more and no behaviour card of its own.
+const marksman=e=>{const d=ENEMY_TYPES[e?.type];return d?.projectile==='sniper'||(d?.projectile==='rifle'&&(d.range??0)>=AFFIX_TUNING.disarmRange&&!d.behavior);};
 // 投放 (3.212.0, docs/ENEMY_VARIETY.md section 1): the one kind a deployer puts out, the cards of the things your engineer
 // makes — a drone, a loitering munition, a fixed turret, a bomb bot. Fixed at birth on a stream of its own
 // ('deployer-kind-v1', so no other draw moves) and saved on the unit (`deployKind`, a card id; only ever appended to),
@@ -43,14 +49,14 @@ export function armDeployer(e,kind){if(!deploys(e)||!DEPLOY_KINDS.includes(kind)
 export const ENEMY_AFFIXES=[
  // 3.213.0 review: never on a lockdown gunman (an elite's top-up): acting before you, it would aim and fire with no warning
  // you could act on (CHECKLIST 2: 不讓詞條破壞解法).
- {id:'fast',fragment:t('enemyAffixes.fast.fragment'),order:0,applies:e=>combatant(e)&&!barred(e,'fast')&&!e.traits.some(t=>['fast','slow'].includes(t.id))&&!locksDown(e),trait:'fast',reveal:REVEAL_TYPES.effect},
+ {id:'fast',fragment:t('enemyAffixes.fast.fragment'),order:0,applies:e=>combatant(e)&&!barred(e,'fast')&&!e.traits.some(t=>['fast','slow'].includes(t.id))&&!locksDown(e)&&!disarms(e),trait:'fast',reveal:REVEAL_TYPES.effect},
  {id:'infrared',fragment:t('enemyAffixes.infrared.fragment'),order:1,applies:e=>combatant(e)&&!barred(e,'infrared')&&!activeTrait(e,'infrared'),trait:'infrared',reveal:REVEAL_TYPES.effect},
  {id:'night_vision',fragment:t('enemyAffixes.night_vision.fragment'),order:2,applies:e=>combatant(e)&&!activeTrait(e,'night_vision'),trait:'night_vision',reveal:REVEAL_TYPES.effect},
  // 3.203.0: a flamer has no gun left to fire faster or a hand free to throw, so an elite flamer's top-up skips these two.
  {id:'suppressor',fragment:t('enemyAffixes.suppressor.fragment'),order:3,applies:e=>armed(e)&&!isFlamer(e),trait:'rapid_fire',reveal:REVEAL_TYPES.effect},
  // 3.213.0: nor on a lockdown gunman (an elite's top-up comes after the special rolls): each has a warned step of its own
  // at the top of the turn, and one unit carries one (src/enemy-specials.js).
- {id:'grenadier',fragment:t('enemyAffixes.grenadier.fragment'),order:4,applies:e=>armed(e)&&!isFlamer(e)&&!locksDown(e),behavior:'grenade',reveal:REVEAL_TYPES.effect},
+ {id:'grenadier',fragment:t('enemyAffixes.grenadier.fragment'),order:4,applies:e=>armed(e)&&!isFlamer(e)&&!locksDown(e)&&!disarms(e),behavior:'grenade',reveal:REVEAL_TYPES.effect},
  {id:'venomous',fragment:t('enemyAffixes.venomous.fragment'),order:5,applies:infected,infection:true,reveal:REVEAL_TYPES.effect},
  {id:'brood_host',fragment:t('enemyAffixes.brood_host.fragment'),order:6,applies:infected,infection:true,reveal:REVEAL_TYPES.effect},
  // Puts out units of its one kind (DEPLOY_KINDS). The range bar keeps it off the raider: a rusher that launches and then
@@ -68,8 +74,14 @@ export const ENEMY_AFFIXES=[
  // grenadier (one warned step at the top of the turn a unit), never fast (3.213.0 review: acting before you, its one-round
  // warning would come too late to act on). Special, rolled last on its own stream ('lockdown-v1').
  {id:'lockdown',fragment:t('enemyAffixes.lockdown.fragment'),order:9,applies:e=>armed(e)&&!ENEMY_TYPES[e.type]?.behavior&&!hasEnemyTag(e,'infected')&&(ENEMY_TYPES[e.type]?.range??0)>=AFFIX_TUNING.lockdownRange&&!isFlamer(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
+ // 繳械 (3.215.0, user 2026-09-30, docs/ENEMY_VARIETY.md section 4): a marksman — the sniper, or a rifle with reach 7 or
+ // more and no behaviour card of its own (not the enforcer) — never a flamer (no gun), a grenadier or a lockdown gunman
+ // (one warned step at the top of the turn a unit) or a fast one (its warning would come too late). Special, rolled last
+ // on its own stream ('disarm-v1').
+ {id:'disarm',fragment:t('enemyAffixes.disarm.fragment'),order:10,applies:e=>armed(e)&&marksman(e)&&!isFlamer(e)&&!locksDown(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
 ];
 export const locksDown=e=>Boolean(e?.affixes?.some(a=>a.id==='lockdown'));
+export const disarms=e=>Boolean(e?.affixes?.some(a=>a.id==='disarm'));
 // 3.214.0: or by its card (`flamer`: the heavy flamer, src/data.js).
 export const isFlamer=e=>Boolean(e?.affixes?.some(a=>a.id==='flamer'))||Boolean(enemyDef(e)?.flamer);
 // An enemy's armour: its card's, or a flamer's own when that is more (3.203.0).
@@ -77,6 +89,7 @@ export const isFlamer=e=>Boolean(e?.affixes?.some(a=>a.id==='flamer'))||Boolean(
 export const enemyArmor=e=>e?.overheat>0?0:Math.max(ENEMY_TYPES[e?.type]?.armor||0,isFlamer(e)?AFFIX_TUNING.flamerArmor:0);
 // 3.137.0: where affixes and deployers begin, and how fast they climb, belong to the difficulty curve (src/endless.js).
 // 3.212.0: deployers from the curve's varietyStart, the start shared by the enemy-variety affixes.
+export const disarmChance=(floor,d)=>Math.min(AFFIX_TUNING.disarmCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.disarmPerDepth);   // 3.215.0
 export const lockdownChance=(floor,d)=>Math.min(AFFIX_TUNING.lockdownCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.lockdownPerDepth);   // 3.213.0
 export const deployerChance=(floor,d)=>Math.min(AFFIX_TUNING.deployerCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.deployerPerDepth);
 export const flamerChance=(floor,d)=>Math.min(AFFIX_TUNING.flamerCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).affixStart+1)*AFFIX_TUNING.flamerPerDepth);
@@ -93,6 +106,7 @@ export function rollEnemyAffixes(e,seed,floor,offset){e.affixes=[];if(isNoncomba
  if(deployer.applies(e)&&birthRandom(seed,floor,e.id,'deployer-v1')()<deployerChance(floor,offset)&&giveEnemyAffix(e,'deployer'))armDeployer(e,deployKindOf(seed,floor,e.id));   // the kind: 3.212.0
  if(ENEMY_AFFIXES.find(d=>d.id==='flamer').applies(e)&&birthRandom(seed,floor,e.id,'flamer-v1')()<flamerChance(floor,offset))giveEnemyAffix(e,'flamer');   // 3.203.0
  if(ENEMY_AFFIXES.find(d=>d.id==='lockdown').applies(e)&&birthRandom(seed,floor,e.id,'lockdown-v1')()<lockdownChance(floor,offset))giveEnemyAffix(e,'lockdown');   // 3.213.0
+ if(ENEMY_AFFIXES.find(d=>d.id==='disarm').applies(e)&&birthRandom(seed,floor,e.id,'disarm-v1')()<disarmChance(floor,offset))giveEnemyAffix(e,'disarm');   // 3.215.0
  return e;}
 // 3.212.0: an affix may name itself per unit (`fragmentOf`: a deployer's kind).
 export const revealedAffixes=e=>ENEMY_AFFIXES.filter(d=>e?.affixes?.some(a=>a.id===d.id&&a.revealed)).map(({id,fragment,fragmentOf,order,reveal})=>({id,fragment:fragmentOf?.(e)??fragment,order,reveal}));
@@ -102,5 +116,5 @@ export const enemyNameParts=e=>({base:enemyBaseName(e),fragments:revealedAffixes
 export const composeEnemyName=({base,fragments,unknown},cut=false)=>t('enemy-affixes.name',{base,affixes:fragments.map(fragment=>t('enemy-affixes.fragment',{fragment})).join(''),cut:cut?t('enemy-affixes.cut'):'',unknown:unknown?t('enemy-affixes.unknown'):''});
 export const enemyDisplayName=e=>composeEnemyName(enemyNameParts(e));
 export function revealEnemyAffix(g,e,id){const a=e.affixes?.find(a=>a.id===id);if(!a||a.revealed)return false;a.revealed=true;g.enemyCallout?.(e,'affix_revealed',{affixId:id});return true;}
-export function validEnemyAffixes(e){if(e.traits?.some(t=>t.source==='endless:elite'))return false;if(e.affixes===undefined)return !e.traits?.some(t=>t.source?.startsWith('affix:'));if(!Array.isArray(e.affixes)||e.affixes.length>ENEMY_AFFIXES.length||new Set(e.affixes.map(a=>a.id)).size!==e.affixes.length)return false;if(isFlamer(e)&&e.affixes.some(a=>['suppressor','grenadier','deployer','lockdown'].includes(a.id)))return false;if(locksDown(e)&&e.affixes.some(a=>['grenadier','fast'].includes(a.id)))return false;return e.affixes.every(a=>{const d=ENEMY_AFFIXES.find(d=>d.id===a.id);return d&&(!d.infection||infected(e))&&typeof a.revealed==='boolean'&&(!['suppressor','grenadier','flamer','lockdown'].includes(a.id)||armed(e))&&(!d.trait||e.traits.some(t=>t.id===d.trait&&t.source===`affix:${a.id}`));})&&e.traits.filter(t=>t.source.startsWith('affix:')).every(t=>e.affixes.some(a=>t.source===`affix:${a.id}`&&ENEMY_AFFIXES.find(d=>d.id===a.id)?.trait===t.id));}
+export function validEnemyAffixes(e){if(e.traits?.some(t=>t.source==='endless:elite'))return false;if(e.affixes===undefined)return !e.traits?.some(t=>t.source?.startsWith('affix:'));if(!Array.isArray(e.affixes)||e.affixes.length>ENEMY_AFFIXES.length||new Set(e.affixes.map(a=>a.id)).size!==e.affixes.length)return false;if(isFlamer(e)&&e.affixes.some(a=>['suppressor','grenadier','deployer','lockdown'].includes(a.id)))return false;if(locksDown(e)&&e.affixes.some(a=>['grenadier','fast'].includes(a.id)))return false;if(disarms(e)&&e.affixes.some(a=>['grenadier','fast','lockdown','flamer'].includes(a.id)))return false;return e.affixes.every(a=>{const d=ENEMY_AFFIXES.find(d=>d.id===a.id);return d&&(!d.infection||infected(e))&&typeof a.revealed==='boolean'&&(!['suppressor','grenadier','flamer','lockdown','disarm'].includes(a.id)||armed(e))&&(!d.trait||e.traits.some(t=>t.id===d.trait&&t.source===`affix:${a.id}`));})&&e.traits.filter(t=>t.source.startsWith('affix:')).every(t=>e.affixes.some(a=>t.source===`affix:${a.id}`&&ENEMY_AFFIXES.find(d=>d.id===a.id)?.trait===t.id));}
 export function migrateEnemyAffixes(g){g.difficultyOffset=0;for(const e of [...g.enemies,...(g.allies||[]),...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])]){const old=(e.traits||[]).filter(t=>t.source==='endless:elite');e.traits=(e.traits||[]).filter(t=>t.source!=='endless:elite');if(old.length)e.affixes=[];for(const t of old)giveEnemyAffix(e,t.id,true);}}

@@ -54,7 +54,7 @@ test('no unit is carried by two top steps: the first that acts would hide the ot
  for(const type of Object.keys(ENEMY_TYPES))for(const faction of ['loyalist','rebel','swarm','legacy']){
   const e=makeEnemy(type,1,1,`t-${type}`,3,0,faction),units=[e];
   // The affixes that bring a top step with them (3.206.2: the grenadier's primed throw).
-  for(const id of ['flamer','grenadier','lockdown'])if(ENEMY_AFFIXES.find(a=>a.id===id).applies(e)){const f=structuredClone(e);giveEnemyAffix(f,id);units.push(f);}
+  for(const id of ['flamer','grenadier','lockdown','disarm'])if(ENEMY_AFFIXES.find(a=>a.id===id).applies(e)){const f=structuredClone(e);giveEnemyAffix(f,id);units.push(f);}
   for(const u of units){const steps=topCarriers(u);assert.ok(steps.length<=1,`${type} (${faction}${u.affixes?.length?`, ${u.affixes.map(a=>a.id)}`:''}): ${steps}`);for(const id of steps)seen.set(id,seen.get(id)+1);}
  }
  for(const [id,n] of seen)assert.ok(n>0,`the top step ${id} carries some unit`);

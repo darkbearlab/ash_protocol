@@ -18,6 +18,7 @@
 import {t} from './i18n.js';
 import {ENEMY_TYPES,SIZE} from './data.js';
 import {pinned} from './suppression.js';
+import {activeTrait} from './traits.js';
 import {interruptEnemyIntent,enemyCallout,tickSpecials} from './enemy-intents.js';
 import {AFFIX_TUNING,locksDown,revealEnemyAffix,enemyDisplayName} from './enemy-affixes.js';
 import {distance,key} from './world.js';
@@ -60,11 +61,13 @@ export function lockdownAction(ctx){
  if(!locksDown(e)||!e.lockIntent)return false;
  if(pinned(e)){interruptEnemyIntent(e,'suppressed');return false;}
  if(key(e.lockIntent.origin)!==key(e)){interruptEnemyIntent(e,'displaced');return false;}
+ // 3.215.0 review: made fast since it aimed (a squad's bound, a rebel taunt), the warning would come too late: let go.
+ if(activeTrait(e,'fast')){delete e.lockIntent;return false;}
  fire(ctx);return true;
 }
 // The affix branch: no dice (`pending`) — it aims whenever it can, you are the turn's target and it is not resting.
 export const lockdownBranch=Object.freeze({id:'lockdown',reveal:'effect',applies:({e})=>locksDown(e),
- trigger:({g,e,p})=>p===g.player&&!e.lockIntent&&!(e.lockCooldown>0)&&!pinned(e)&&Boolean(lockdownPlan(g,e)),
+ trigger:({g,e,p})=>p===g.player&&!e.lockIntent&&!(e.lockCooldown>0)&&!pinned(e)&&!activeTrait(e,'fast')&&Boolean(lockdownPlan(g,e)),
  pending:()=>true,run:startAim});
 function startAim(ctx){
  const {g,e}=ctx,plan=lockdownPlan(g,e);if(!plan)return false;

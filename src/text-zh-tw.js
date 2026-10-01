@@ -1001,6 +1001,9 @@ export default Object.freeze({
  "deploy-ui.devOnly":"開發用",
  "deploy-ui.hard":"困難",
  "deploy-ui.eliteFrom":" · 菁英自第 {floor} 層",
+ "disarm.aim":"{enemy}瞄準你手上的{weapon}！換武器或離開它的視線。",
+ "disarm.knocked":"{enemy}打飛了你的{weapon}，換上{next}。去把它撿回來！",
+ "disarm.lost":"{enemy}瞄準你武器的那一槍落空了。",
  // disposed
  "disposed.title":"銷毀此庫存",
  "disposed.restart":"重新開始訓練 →",
@@ -1058,6 +1061,7 @@ export default Object.freeze({
  "enemyAffixes.deployer.bomber_bot":"投放（自爆機器人）",
  "enemyAffixes.flamer.fragment":"火焰兵",
  "enemyAffixes.lockdown.fragment":"封鎖",
+ "enemyAffixes.disarm.fragment":"繳械",
  // 敵人：名稱與介紹（src/data.js）
  "enemyTypes.fodder.name":"失能遊蕩者",
  "enemyTypes.fodder.role":"緩速、每兩次行動機會活動一次。徒手可清理；攻擊的第一發就打死，獲得追擊。",
@@ -2343,6 +2347,7 @@ export default Object.freeze({
  "target-card.flameMarked":"已標出火焰範圍",
  "target-card.pouncing":"伏低準備撲擊",
  "target-card.lockdown":"封鎖一格：下回合開火",
+ "target-card.disarm":"瞄準你的武器：下回合開火",
  "target-card.swelling":"毒囊鼓起",
  "target-card.painting":"正在標定你",
  "target-card.gunSet":"架槍：不能移動",
