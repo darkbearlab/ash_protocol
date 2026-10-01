@@ -4,7 +4,8 @@
 // controller keeps the run's state, the event listeners and everything that runs at start-up. Its state is imported
 // (live bindings, read-only); a change to it goes through the setter the controller exports for it.
 import {sentences,t} from './i18n.js';
-import {healingAmount} from './traits.js';
+import {activeTrait,healingAmount} from './traits.js';
+import {SURE_BLADE} from './melee-classes.js';
 import {UNIT_BLUEPRINTS,buildReason,deployReason,deployedUnits,mountableSlots,repairReason,repairTargets} from './workshop.js';
 import {ALLY_SKILLS,ENEMY_UNIT_TUNING,REPAIR_TUNING,allyName,allySkillState,allyWeapon,bombardDamage,defaultDroneCell,deployLimit,lineLimit} from './allies.js';
 import {petFeedingState} from './pet-growth.js';
@@ -116,7 +117,7 @@ function pelletSummary(slot){const w=game.weaponAt(slot),d=game.pelletDamage(slo
 export function showWeaponComparison(take,against=game.player.weapon){
   const p=game.player,item=game.nearbyWeapon(take);if(!item||!p.owned.includes(against)){showInventory();return;}
   const old=game.weaponAt(against),next=game.weaponAt(take),a=game.weaponDamage(against),b=game.weaponDamage(take);
-  const shot=w=>clampHit(w.melee?w.hitChance+actorStat(p,'meleeAccuracy'):97+w.accuracyBonus+actorStat(p,'rangedAccuracy')),pierce=w=>`${Math.round(w.pierce*100)}%`;
+  const shot=w=>w.melee&&activeTrait(p,'sure_blade')?SURE_BLADE:clampHit(w.melee?w.hitChance+actorStat(p,'meleeAccuracy'):97+w.accuracyBonus+actorStat(p,'rangedAccuracy')),pierce=w=>`${Math.round(w.pierce*100)}%`;   // 3.210.0: 穩刃
   const close=slot=>{const w=game.weaponAt(slot),d=w.pellets?game.pelletDamage(slot,{x:p.x+1,y:p.y}):game.weaponDamage(slot,{x:p.x+1,y:p.y});return w.pellets?`${t('controller.pack.pellets',{count:d.count,min:d.min,max:d.max})}`:w.closeRange?`${t('controller.pack.closeBand',{min:d.min,max:d.max,closeAccuracy:w.closeAccuracy})}`:t('controller.pack.sameDamage');};
   const single=(slot,d)=>{const w=game.weaponAt(slot);return w.pellets?`${t('controller.pack.perPellet',{v:game.pelletDamage(slot,{x:p.x+1,y:p.y}).min,v2:game.pelletDamage(slot,{x:p.x+1,y:p.y}).max})}`:`${d.min}–${d.max}`;};
   const aimed=(w,moving)=>w.pellets?`${t('controller.pack.perPelletHit',{v:pelletChance(w)})}`:`${shot(moving?{...w,accuracyBonus:w.accuracyBonus-22+w.tracking}:w)}%`;

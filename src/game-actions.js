@@ -21,7 +21,7 @@ import {expireExposure} from './corner.js';
 import {UNARMED_SLOT} from './unarmed.js';
 import {tickNests} from './runtime-enemies.js';
 import {classPerkRank,markValues} from './class-perks.js';
-import {grapplePlan,tickSpirit,useGrapple} from './melee-classes.js';
+import {HOOK_BLADE_RANGE,camoActive,grapplePlan,hookBladePlan,tickSpirit,useGrapple,useHookBlade} from './melee-classes.js';
 import {LINE_ITEMS,lineReason} from './lines.js';
 import {attackSpeed} from './melee-weapons.js';
 import {PREPARED_CATALOG,canPrepare,isWearable,prepareCost,preparedEntry,weaponSwitchTurns,wornEntry} from './prepared.js';
@@ -107,6 +107,8 @@ export class GameActions {
     if(type==='skill'&&arg==='workshop')return this.fail(t('game.workshopPanel'));
     if(type==='skill'&&arg==='suppressive_fire')return this.fail(t('game.suppressNeedsArea'));
     if(type==='skill'&&arg==='grapple'&&canUseSkill(p,arg)){const plan=grapplePlan(this);return !plan.reason||this.fail(plan.reason);}
+    // 3.210.0: while the camouflage is on, its button is the hook blade against the locked enemy (src/melee-classes.js).
+    if(type==='skill'&&arg==='camouflage'&&p.prepared.skill===arg&&camoActive(p)||type==='hookBlade'){const plan=hookBladePlan(this,type==='hookBlade'?arg?.id:this.target);return !plan.reason||this.fail(plan.reason);}
     if(type==='skill')return (ALLY_SKILLS.includes(arg)?canAllySkill(this,arg):canUseSkill(p,arg))||this.fail((arg==='pet_command'&&p.prepared.skill===arg&&petSkillReason(this))||(arg==='raise_dead'&&p.prepared.skill===arg&&!p.control.disabled&&t('game.noSummons'))||t('game.skillUnavailable'));
     if(type==='prepare'&&arg?.id==='exo'&&exoReason(p))return this.fail(sentence(exoReason(p)));
     if(type==='prepare')return Boolean(arg&&canPrepare(p,arg.category,arg.id)&&p.prepared[arg.category]!==arg.id);
@@ -131,7 +133,11 @@ export class GameActions {
     if(type==='recoverObjective')return this.nearbyObjectives.some(t=>t.id===arg)||this.fail(t('game.noObjectiveNear'));
     if(type==='openContainer')return this.nearbyContainers.some(c=>c.id===arg)||this.fail(t('game.noContainerNear'));
     if(type==='door'){const b=arg&&typeof arg.open==='boolean'&&this.nearbyDoors.find(b=>b.id===arg.id&&b.open!==arg.open);if(!b)return false;const locked=arg.open&&lockedReason(this,b);return !locked||this.fail(sentence(locked),'locked');}
-    if(type==='fire'){const e=this.targeted;if(!e)return this.fail(t('game.noTarget'),'no_target');if(distance(p,e)>w.range)return this.fail(t('game.targetOutOfRange'),'out_of_range');if(!this.shotClear(p,e)||(w.melee&&!w.thrust&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?t('game.targetBehindCorner'):t('game.lineBlocked'));return w.melee||p.ammo[p.weapon]>=(w.shotCost||1)||this.fail(p.ammo[p.weapon]>0?t('common.magShort',{n:w.shotCost}):t('game.magEmpty'),this.emptyCue());}
+    if(type==='fire'){const e=this.targeted;if(!e)return this.fail(t('game.noTarget'),'no_target');
+      // 3.210.0: with the camouflage on, a blade reaches an enemy out of reach through the hook blade, or says why it cannot.
+      // Review fix: beyond the hook's reach it is the ordinary out-of-range refusal (the range flash and its callout).
+      if(w.melee&&!w.thrust&&camoActive(p)&&this.enemies.includes(e)&&distance(p,e)>1){const plan=hookBladePlan(this,e.id,p.weapon);return !plan.reason||(plan.why==='target'&&distance(p,e)>HOOK_BLADE_RANGE?this.fail(t('game.targetOutOfRange'),'out_of_range'):this.fail(plan.reason));}
+      if(distance(p,e)>w.range)return this.fail(t('game.targetOutOfRange'),'out_of_range');if(!this.shotClear(p,e)||(w.melee&&!w.thrust&&!isBarrier(e)&&!this.canCross(p,e)))return this.fail(this.attackStatus(p,e).reason==='target_corner_hidden'?t('game.targetBehindCorner'):t('game.lineBlocked'));return w.melee||p.ammo[p.weapon]>=(w.shotCost||1)||this.fail(p.ammo[p.weapon]>0?t('common.magShort',{n:w.shotCost}):t('game.magEmpty'),this.emptyCue());}
     if(type==='reload')return !w.melee&&(p.ammo[p.weapon]<w.mag&&p[this.reserveKey()]>0)||this.fail(t('game.magFullOrNoAmmo'),w.melee?'not_needed':p.ammo[p.weapon]>=w.mag?'chambered':'no_ammo');
     // Consumables (3.106.0). Adrenaline is free to use but may never be the thing that kills you; the reasons
     // live in itemUseReason so the pack can grey the same buttons this would refuse.
@@ -193,6 +199,7 @@ export class GameActions {
     }
     if(type==='skill'&&arg==='suppressive_fire')return this.fail(t('game.suppressNeedsArea'));
     if(type==='skill'&&arg==='grapple'){type='grapple';arg={id:this.target};}
+    if(type==='skill'&&arg==='camouflage'&&camoActive(p)){type='hookBlade';arg={id:this.target,slot:hookBladePlan(this).slot};}
     // Free preparation/equipment commits outside the turn queue and preserves all timed state.
     if(this.actionCost(type,arg)===0){
       if(type==='prepare')this.setPrepared(arg.category,arg.id);
@@ -210,9 +217,9 @@ export class GameActions {
       else if(type==='meleeChoice'){p.meleeSlot=arg;this.log(arg===null?t('game.meleeChoiceDefault'):t('game.meleeChoice',{weapon:this.weaponAt(arg).name}));return true;}
       return true;
     }
-    if(this.pursuit&&!p.recovery&&['fire','blindFire','launch','bumpMelee','grenade','grapple','suppressiveFire'].includes(type)){
+    if(this.pursuit&&!p.recovery&&['fire','blindFire','launch','bumpMelee','grenade','grapple','hookBlade','suppressiveFire'].includes(type)){
       this.pursuit=0;const intent=type==='fire'?{id:this.target,x:this.targeted.x,y:this.targeted.y}:arg;
-      const success=this.executePlayer(type,intent);p.guard=false;p.focus=false;p.evasive=false;p.moved=success&&type==='grapple'&&p.moved;
+      const success=this.executePlayer(type,intent);p.guard=false;p.focus=false;p.evasive=false;p.moved=success&&['grapple','hookBlade','fire'].includes(type)&&p.moved;
       this.settleAttackNotes();this.reveal();if(p.hp<=0){p.hp=0;this.status='dead';}this.finishPursuit();return success;   // 3.209.0: what your attack taught
     }
     this.pursuit=0;
@@ -224,7 +231,7 @@ export class GameActions {
     }
     // 3.136.0: claws strike in the fast phase and the chainsaw in the slow one (src/melee-weapons.js). A chainsaw that bit
     // last turn costs this one, read once so an anchored double attack cannot spend it in the turn it was earned.
-    const phase=doubleAttack?null:attackSpeed(type==='bumpMelee'?this.weaponAt(arg.slot):type==='fire'&&this.weapon.melee?this.weapon:null);
+    const phase=doubleAttack?null:attackSpeed(type==='bumpMelee'||type==='hookBlade'?this.weaponAt(arg.slot):type==='fire'&&this.weapon.melee?this.weapon:null);
     if(phase!==null){queue.find(q=>q.actor===p).speed=phase;queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);}
     const recovering=p.recovery>0;if(recovering)p.recovery=0;
     let playerStunned=false;
@@ -251,7 +258,8 @@ export class GameActions {
         // 3.163.0: the shot that empties the magazine warns before the next press would be refused.
         if(success&&p.weapon===slotWeapon&&this.weapon.ammoType&&!this.weapon.melee&&ammoBefore>0&&p.ammo[p.weapon]<=0)playerCallout(this,this.emptyCue());
         if(!success)this.log(t('game.situationChanged'));
-        p.guard=success&&type==='wait';p.moved=success&&(type==='move'||type==='grapple'&&p.moved);p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
+        // 3.210.0: a hook blade (its button, or a blade swung at range) moved you as the grapple's dash does.
+        p.guard=success&&type==='wait';p.moved=success&&(type==='move'||['grapple','hookBlade','fire'].includes(type)&&p.moved);p.focus=success&&type==='wait';p.evasive=success&&type==='wait';
         // 3.209.0 (src/game-damage.js settleAttackNotes): what your step taught the enemies, once it is over.
         this.settleAttackNotes();petReactions(this);this.reveal();checkMines(this);this.settleAttackNotes();
       }else if(actor.kind){const wasIn=inToxic(this,actor);presentStep(this,()=>{if(isMunition(actor))munitionAct(this,actor);else if(isBomber(actor))bomberAct(this,actor);else allyAct(this,actor);this.settleAttackNotes();this.reveal();},actor);toxicAllyTurn(this,actor,wasIn);}
@@ -339,6 +347,7 @@ export class GameActions {
       case 'buildUnit':success=presentStep(this,()=>buildUnit(this,arg.blueprint,arg.payload,arg.weapon));break;
       case 'skill':success=this.activateSkill(arg);break;
       case 'grapple':success=useGrapple(this,arg.id);break;
+      case 'hookBlade':success=useHookBlade(this,arg.id,arg.slot);break;   // 3.210.0
       case 'deployUnit':success=presentStep(this,()=>deployUnit(this,arg.line,workshopPoint(arg)));break;
       case 'repairUnit':success=presentStep(this,()=>repairUnit(this,arg));break;
       case 'recoverObjective':success=this.recoverObjective(arg);break;

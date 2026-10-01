@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game,SIZE,makeEnemy,WEAPONS} from '../src/engine.js';
 import {defaultPrepared,preparedEntry,preparedOptions,validPrepared,weaponSwitchTurns,PREPARED_CATALOG} from '../src/prepared.js';
 import {grantTrait} from '../src/traits.js';
@@ -79,5 +80,6 @@ test('loading v7 keeps an original QA-only backup and preserves v8 prepared choi
   const memory=new Map([['ash-save','live untouched'],['ash-profile','live profile']]);globalThis.location={search:'?test=1'};
   globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
   const s=await import('../src/storage.js?prepared-qa');const old=JSON.parse(arena().serialize());old.version=7;delete old.data.player.prepared;delete old.data.player.skills;const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);
-  const g=s.loadGame();assert.ok(g);assert.equal(memory.get('qa-ash-save-v7-backup'),raw);prepare(g,'item',null);s.saveGame(g);assert.equal(s.loadGame().player.prepared.item,null);assert.equal(memory.get('qa-ash-save-v7-backup'),raw);assert.equal(memory.get('ash-save'),'live untouched');assert.equal(memory.get('ash-profile'),'live profile');
+  const g=Game.restore(raw);assert.ok(g);assertDropped(s,memory,raw);prepare(g,'item',null);s.saveGame(g);assert.equal(s.loadGame().player.prepared.item,null);assert.equal(memory.get('qa-ash-save-abandoned'),raw);   // 3.210.0: the storage settles an old run
+ assert.equal(memory.get('ash-save'),'live untouched');assert.equal(memory.get('ash-profile'),'live profile');
 });

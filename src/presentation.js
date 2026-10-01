@@ -117,7 +117,7 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const impacts=step.effects.filter(e=>e.type!=='shot'&&e.type!=='enemyShot'&&e.type!=='capSupply'&&e.type!=='callout'&&e.type!=='pickup');
     const travel=Math.max(0,...visuals.map(e=>e.delay+e.travel),...moves.map(e=>e.travel));
     events.push({time,state:step.before,effects:[...moves,...visuals]});
-    for(const e of flights)if(e.damage>0||e.miss)impacts.push({...e,type:e.miss?'miss':'impact',style:undefined,from:e.to});
+    for(const e of flights)if(e.damage>0||e.miss||e.plates>0)impacts.push({...e,type:e.miss?'miss':'impact',style:undefined,from:e.to});   // plates: 3.210.0, a hit the bulwark's plates took whole
     const deaths=[...step.after.enemies,...(step.after.allies||[])].filter(e=>e.kind!=='pet'&&e.hp<=0&&[...step.before.enemies,...(step.before.allies||[])].some(b=>b.id===e.id&&b.hp>0));
     if(step.before.player.hp>0&&step.after.player.hp<=0)deaths.push({...step.after.player,type:'player'});
     // A brief impact flash precedes the grey corpse's settling motion.

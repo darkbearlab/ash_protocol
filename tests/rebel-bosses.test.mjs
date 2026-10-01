@@ -358,7 +358,7 @@ test('priority: a warned wall, ring or sweep goes off first — no decoy, mine, 
 });
 
 test('saves: walls, rings, heat, venting, a marked spray and a set-up flamethrower come back; bad ones are refused',()=>{
-  assert.equal(SAVE_VERSION,86);
+  assert.equal(SAVE_VERSION,87);
   const g=field(),b=boss(g,'arsonist',15,10,'ars'),l=boss(g,'burnline',16,16,'burn');
   b.special='ring';g.enemyAct(b);b.heat=2;l.burn={stage:'sweep',origin:{x:16,y:16},aim:{x:12,y:16},left:2};l.special='mark';l.markReady=g.turn+3;
   const raw=g.serialize(),back=Game.restore(raw);assert.ok(back,'loads');

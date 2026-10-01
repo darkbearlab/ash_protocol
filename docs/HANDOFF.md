@@ -63,7 +63,7 @@
 | 地圖生成 | `world.js`（`generate`）、`map-*.js`、`pits.js`、`vault.js`、`vent-map.js`、`scenery.js`、`runtime-enemies.js` |
 | 危險地形與環境 | `hazard-paths.js`、`fire.js`、`vents.js`、`throwables.js`、`lighting.js`、`flares.js` |
 | 友軍 | `allies.js`、`workshop.js`、`pet-growth.js`、`melee-classes.js` |
-| 存檔與進度 | `storage.js`、`backup.js`、`progression.js`、`retreat.js`（封存樓層）、`run-log.js`、`replay.js` |
+| 存檔與進度 | `storage.js`、`backup.js`、`progression.js`、`stale-runs.js`（3.210.0：舊版本沒打完的任務以放棄結算，`settleRun` 也是放棄任務與結算共用的那一段）、`retreat.js`（封存樓層）、`run-log.js`、`replay.js` |
 | 畫面 | `renderer.js`（Renderer 類別：建構子、畫面迴圈、鏡頭、目標卡位置、`draw` 依序叫各層）、`renderer-map.js`（地板那一層與地上的東西、牆與隔板、門、坑、道具、物品、出口、戰術疊圖、樓層地圖）、`renderer-actors.js`（單位那一層：圖、染色與精英外框、屍體、呼吸、血條）、`renderer-clouds.js`（排煙口、煙霧場兩種品質、燃燒的地板）、`renderer-telegraphs.js`（預告與瞄準：頭目與擲彈兵的預告、瞄準預覽、鎖定框）、`renderer-effects.js`（特效、撤離光束、訊號干擾、喊話泡泡、射程閃爍、最上層）；`render.js`、`fx-sprites.js`（煙霧場、火與格柵圖）、`camera.js`、`presentation.js`、`kia.js` |
 | 偵測警報（3.207.0） | `detection.js`：不 import 任何模組；藏起來的東西登錄偵測器，`comms-events.js` 每次行動後問，範圍內有東西就講它的通訊事件（忍者的 `cloakAlert`；之後裂隙照用） |
 | 介面與通訊 | `controller.js`（狀態、事件監聽、`act`、`modal`、開新局與模擬、回放工具、測試掛勾）、`controller-hud.js`（`update`：戰鬥面板、狀態列、目標卡、按鈕；通知）、`controller-comms.js`（通訊列、訓練課程卡、通訊事件、頭目與陣亡演出、結局）、`controller-aim.js`（移動、各種瞄準、開火、互動、技能、手榴彈、道具、鎖定、熱鍵動作）、`controller-deploy.js`（標題與部署畫面、擊殺屋選單）、`controller-screens.js`（紀錄、任務、地圖、解鎖、升級、檔案、手冊、結算）、`controller-pack.js`（背包、工坊、武器比較、補給終端）、`controller-settings.js`（設定分頁、熱鍵、操作台配置、匯出存檔）；`comms.js`、`comms-events.js`、`target-card.js`、`deploy-ui.js`、`unlock-ui.js` |
@@ -82,7 +82,8 @@
 
 ## 6. 存檔
 
-- 單局 `ash-save`：`SAVE_VERSION` 見 `src/data.js`。每次升版寫遷移；驗證只擋壞資料，過期的預告在讀檔時丟掉，跟平衡數字有關的值修正到目前上限。
+- 單局 `ash-save`：`SAVE_VERSION` 見 `src/data.js`。驗證只擋壞資料，過期的預告在讀檔時丟掉，跟平衡數字有關的值修正到目前上限。
+- 舊任務作廢（3.210.0，使用者 2026-10-01）：存檔版本比 `RUN_SAVE_FLOOR`（`src/data.js`）舊、還沒打完的任務，讀檔時照「放棄任務」結算（`src/stale-runs.js`；不給超過帳本已記的點數），原始存檔盡量留在 `ash-save-abandoned`（空間不夠時不留，結算照做），個人檔案其他部分不動；要作廢時把它設成新的 `SAVE_VERSION`，不寫遷移（CHECKLIST 第 3 節）。3.210.0 起是 87，3.209.0 以前的存檔都作廢。
 - 往返任務把離開的樓層封存在 `floorStates`（`src/retreat.js` 的 `FLOOR_FIELDS`）；`Game.restore` 用假存檔逐層檢查，新樓層欄位要列預設值。
 - 個人紀錄 `ash-profile`：`PROFILE_VERSION` 見 `src/progression.js`；完整備份見 `src/backup.js`。
 - 測試模式的鍵一律加 `qa-`；操作紀錄 `ash-run-log` 不在存檔裡。

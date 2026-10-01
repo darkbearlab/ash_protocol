@@ -180,6 +180,13 @@ const CANVAS={
  'op-ninja-haze':`const g=L.arena({faction:'rebel'});g.smoke.push({kind:'haze',expires:g.turn+2,cells:[${at(14,10)},${at(15,10)},${at(14,11)},${at(15,11)}]});L.enemy(g,'delisted_ninja',14,10,{faction:'rebel',state:{code:'R-0317'}});return L.shot(g,null,{at:500});`,
  'op-classes':`const g=L.arena({faction:'loyalist'});['soldier','recon','engineer','berserker','ninja'].forEach((c,i)=>L.enemy(g,'delisted_'+c,8+i*2,13,{faction:'loyalist',state:{code:'R-0317',decloaked:true}}));['soldier','recon','engineer','berserker','ninja'].forEach((c,i)=>{const e=L.enemy(g,'delisted_'+c,8+i*2,8,{faction:'loyalist',state:{code:'R-0317'}});e.hp=0;});return L.shot(g,null,{at:300});`,
  'op-last-words':`const g=L.arena({faction:'loyalist'}),e=L.enemy(g,'delisted_soldier',13,10,{faction:'loyalist',hp:1,state:{code:'R-0317'}});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});g.effects=[];g.action('fire');const fx=g.effects;g.effects=[];return L.shot(g,R=>{R.addEffects(structuredClone(fx),0);},{at:1200});`,
+ // 3.210.0: your own stealth on your sprite (src/actor-visuals.js stealthLook): the recon under 訊號斷層 nearly gone with a
+ // bright outline, the ninja under its camouflage half there with the same outline; the ninja's hook blade — the pull's
+ // preview to the tile beside the locked enemy, and the line reeling it in mid-strike; a hit the bulwark's plates took whole.
+ 'stealth-recon':`const g=L.arena({character:'recon'});g.player.skillState.signal_break={remaining:3,cooldown:6};L.enemy(g,'rifleman',14,11);return L.shot(g);`,
+ 'stealth-ninja':`const g=L.arena({character:'ninja'});g.player.skillState.camouflage={remaining:4,cooldown:0};const e=L.enemy(g,'rifleman',13,10);g.target=e.id;return L.shot(g,R=>{R.grapplePreview={from:${at(10,10)},point:${at(12,10)},dash:true,hook:true};});`,
+ 'hook-blade':`const g=L.arena({character:'ninja'});g.player.weapon=g.player.owned[0];g.player.skillState.camouflage={remaining:4,cooldown:0};const e=L.enemy(g,'rifleman',14,10,{hp:500});g.target=e.id;g.rng=Object.assign(()=>0,{state:()=>1});g.enemyAct=()=>{};g.effects=[];const at0=g.turn;g.action('fire');if(g.turn!==at0+1)throw Error('no hook');const fx=g.effects;g.effects=[];return L.shot(g,R=>{R.addEffects(structuredClone(fx),0);},{at:110});`,
+ 'bulwark-plates-hit':`const g=L.arena({character:'bulwark'}),e=L.enemy(g,'rifleman',13,10);g.effects=[];g.damagePlayer(30,'qa',e);const fx=g.effects;g.effects=[];return L.shot(g,R=>{R.addEffects(structuredClone(fx),0);},{at:260});`,
 };
 
 // Screens reached through the real UI; each step returns the HTML to keep (or nothing).

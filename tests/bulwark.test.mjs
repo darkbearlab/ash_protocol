@@ -1,6 +1,7 @@
 import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game,SIZE,makeEnemy,WEAPONS} from '../src/engine.js';
 import {activeTrait,grantTrait,initiative} from '../src/traits.js';
 import {weaponSwitchTurns} from '../src/prepared.js';
@@ -13,8 +14,10 @@ import {normalizeProfile} from '../src/progression.js';
 function arena(Type=Game){const g=new Type(314,[],0,'bulwark','onyx');g.barriers=[];g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(row=>row.map(()=>1));Object.assign(g.player,{x:10,y:10});g.enemies=[];g.items=[];g.props=[];g.hazards=[];g.marks=[];g.rng=Object.assign(()=>0,{state:()=>0});g.reveal();return g;}
 function add(g,x=11,y=10){const e=makeEnemy('rifleman',x,y,'enemy');Object.assign(e,{hp:1000,maxHp:1000,alert:true,charge:true});g.enemies.push(e);g.target=e.id;g.reveal();return e;}
 
+// 3.210.0 (docs/BULWARK.md 改版, user 2026-10-01): an ordinary soldier's 100 health inside 120 plates that are its life.
 test('Bulwark starts with independent large, clumsy, slow and armor traits and the two new weapons',()=>{
-  const g=arena();assert.equal(g.player.hp,200);assert.equal(g.player.maxHp,200);assert.equal(g.player.armor,6);assert.equal(g.player.plates,30);
+  const g=arena();assert.equal(g.player.hp,100);assert.equal(g.player.maxHp,100);assert.equal(g.player.armor,6);assert.equal(g.player.plates,120);assert.equal(g.plateCapacity,120);
+  assert.equal(activeTrait(g.player,'plate_life'),true);assert.equal(activeTrait(g.player,'difficult_healing'),false,'難以治療 left the bulwark (3.210.0)');
   assert.deepEqual(g.player.owned,[6,7]);assert.equal(g.player.ammo[6],100);assert.equal(g.player.ammo[7],0);assert.equal(g.weapon.ammoType,'rifle');
   for(const trait of ['large','clumsy','slow','heavy_armor'])assert.equal(activeTrait(g.player,trait),true);
   assert.equal(initiative(g.player),1);const e=add(g,14);assert.equal(g.accuracy(e,g.player).chance,99);
@@ -58,10 +61,13 @@ test('fixed fist cannot be salvaged or exchanged, but upgrades work and ranged w
   assert.equal(g.action('replaceWeapon',{take:item.slot,leave:6}),true);assert.ok(g.player.owned.includes(7));assert.equal(g.player.weapon,7);
   assert.equal(rollAffix(7,'any-seed'),null);assert.equal(weaponStats(7,'longbarrel').range,1);
 });
-test('heavy armor reduces direct damage after flat armor; plates and wait stack, hazards do not',()=>{
-  const g=arena();g.player.plates=0;g.damagePlayer(19,'test');assert.equal(g.player.hp,190,'ceil((19-6)*.75)=10');
-  g.player.hp=200;g.player.guard=true;g.player.plates=30;g.damagePlayer(19,'blast',null,true);assert.equal(g.player.hp,197);assert.equal(g.player.plates,28);
-  g.player.hp=200;g.hazards=[{x:10,y:10,type:'fire'}];g.environmentTurn();assert.equal(g.player.hp,188);
+// 3.210.0: the plates take all of what armour and the wait leave, and the floor's heat comes off them first.
+test('heavy armor reduces direct damage after flat armor; the plates take all that is left, and the floor hits them first',()=>{
+  const g=arena();g.player.plates=0;g.damagePlayer(19,'test');assert.equal(g.player.hp,90,'ceil((19-6)*.75)=10');
+  g.player.hp=100;g.player.guard=true;g.player.plates=120;g.damagePlayer(19,'blast',null,true);assert.equal(g.player.hp,100,'ceil(10*.5)=5, all on the plates');assert.equal(g.player.plates,115);
+  g.player.guard=false;g.player.plates=3;g.damagePlayer(19,'test');assert.equal(g.player.plates,0);assert.equal(g.player.hp,93,'the plates run out: 10 − 3');
+  g.player.hp=100;g.player.plates=120;g.hazards=[{x:10,y:10,type:'fire'}];g.environmentTurn();assert.equal(g.player.hp,100);assert.equal(g.player.plates,108,'heat on the plates first');
+  g.player.plates=5;g.environmentTurn();assert.equal(g.player.plates,0);assert.equal(g.player.hp,93,'5 on the plates, 7 on the body');
   const e=add(g);grantTrait(e,'heavy_armor','test');g.player.weapon=7;g.hitTarget(e,80,g.player);assert.equal(e.hp,940);
 });
 test('LMG spends rifle rounds per real shot, handles partial bursts and reloads from the capped reserve',()=>{
@@ -88,11 +94,11 @@ test('new character and fixed fist survive save, floor and backup; malformed or 
   for(const mutate of [p=>p.owned=[6],p=>p.ammo[7]=1,p=>p.affixes[7]='extended']){const raw=JSON.parse(g.serialize());mutate(raw.data.player);assert.equal(Game.restore(JSON.stringify(raw)),null);}
   const old=new Game(314,[],0,'recon');old.player.smoke=0;old.player.emp=0;old.player.stun=0;const raw=JSON.parse(old.serialize());raw.version=10;oldScaleAmmo(raw.data);const restored=Game.restore(JSON.stringify(raw));assert.deepEqual(restored.player,old.player);assert.equal(restored.rng.state(),old.rng.state());
 });
-test('v10 migration saves an untouched QA original and Bulwark result history is valid in a complete backup',async()=>{
+test('a v10 save is kept untouched as a settled old run (3.210.0), and Bulwark result history is valid in a complete backup',async()=>{
   const memory=new Map();globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
   const storage=await import('../src/storage.js?bulwark');const old=new Game(314,[],0,'recon');
   const raw=JSON.parse(old.serialize());raw.version=10;const text=JSON.stringify(raw);memory.set('qa-ash-save',text);
-  assert.ok(storage.loadGame());assert.equal(memory.get('qa-ash-save-v10-backup'),text);assert.equal(memory.has('ash-save'),false);
+  assertDropped(storage,memory,text);assert.equal(memory.has('ash-save'),false);
   const g=arena();g.status='won';const p=storage.recordResult(g),backup=makeBackup(null,p,'qa');
   assert.equal(decodeBackup(JSON.stringify(backup),'qa').snapshot.profile.history[0].character,'bulwark');
 });

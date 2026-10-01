@@ -2,6 +2,7 @@ import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {actorStat,meleeChance,validCombatModifiers} from '../src/actor-stats.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
@@ -49,8 +50,9 @@ test('new Recon receives smoke and stun, prepares smoke and can immediately thro
   const g=arena('recon');assert.equal(g.player.grenades,0);assert.equal(g.player.smoke,2);assert.equal(g.player.emp,0);assert.equal(g.player.stun,2);assert.equal(g.player.meds,2);
   assert.equal(g.player.prepared.grenade,'smoke');const turn=g.turn;
   assert.equal(g.action('grenade',{x:12,y:10}),true);assert.equal(g.player.smoke,1);assert.equal(g.player.emp,0);assert.equal(g.player.stun,2);assert.equal(g.turn,turn+1);assert.ok(g.smoke.length);
-  for(const [id,hp,armor,plates]of [['soldier',100,0,10],['recon',100,0,0],['bulwark',200,6,30]]){
-    const a=arena(id);assert.equal(a.player.hp,hp);assert.equal(a.player.maxHp,hp);assert.equal(a.player.armor,armor);assert.equal(a.player.plates,plates);assert.equal(a.weaponCapacity,3);assert.equal(a.plateCapacity,30);
+  // 3.210.0 (docs/BULWARK.md 改版): the bulwark is 100 health inside 120 plates, its own cap.
+  for(const [id,hp,armor,plates,cap]of [['soldier',100,0,10,30],['recon',100,0,0,30],['bulwark',100,6,120,120]]){
+    const a=arena(id);assert.equal(a.player.hp,hp);assert.equal(a.player.maxHp,hp);assert.equal(a.player.armor,armor);assert.equal(a.player.plates,plates);assert.equal(a.weaponCapacity,3);assert.equal(a.plateCapacity,cap);
     if(id!=='recon'){assert.equal(a.player.grenades,2);assert.equal(a.player.smoke,0);assert.equal(a.player.emp,0);}
   }
 });
@@ -82,10 +84,10 @@ test('malformed actor modifiers fail restoration instead of changing combat math
     for(const who of ['player','enemy']){const g=arena();const e=enemy(g);(who==='player'?g.player:e).combatModifiers=value;assert.equal(Game.restore(g.serialize()),null);}
   }
 });
-test('first v18 local load keeps the original backup without refilling supplies or touching live storage',async()=>{
+test('a v18 save migrates without refilling supplies; the storage keeps it as a settled old run and leaves live storage alone (3.210.0)',async()=>{
   const memory=new Map();globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
   const storage=await import('../src/storage.js?class-stats');
   const g=arena('recon');g.player.emp=0;g.player.smoke=1;const old=JSON.parse(g.serialize());old.version=18;const raw=JSON.stringify(old);
-  memory.set('qa-ash-save',raw);const restored=storage.loadGame();assert.ok(restored);assert.equal(restored.player.emp,0);assert.equal(restored.player.smoke,1);
-  assert.equal(memory.get('qa-ash-save-v18-backup'),raw);storage.saveGame(restored);storage.loadGame();assert.equal(memory.get('qa-ash-save-v18-backup'),raw);assert.equal(memory.has('ash-save'),false);
+  memory.set('qa-ash-save',raw);const restored=Game.restore(raw);assert.ok(restored);assert.equal(restored.player.emp,0);assert.equal(restored.player.smoke,1);
+  assertDropped(storage,memory,raw);storage.saveGame(restored);assert.ok(storage.loadGame(),'saved again by this version, it loads');assert.equal(memory.get('qa-ash-save-abandoned'),raw);assert.equal(memory.has('ash-save'),false);
 });

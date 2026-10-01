@@ -2,6 +2,7 @@ import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game} from '../src/game.js';
 import {SIZE,ENEMY_LOOT} from '../src/data.js';
 import {makeEnemy,generate,reachable,key,lineOfSight} from '../src/world.js';
@@ -101,5 +102,6 @@ test('world rendering keeps weapon markers above corpses and supplies, sensor do
 test('v21 first read keeps an exact QA original and current intentionally unprepared warning stays empty',async()=>{
  const memory=new Map([['ash-save','untouched']]);globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
  const storage=await import('../src/storage.js?warning329');const old=JSON.parse(arena().serialize());old.version=21;old.data.player.skills=[];old.data.player.skillState={};old.data.player.prepared.skill=null;const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);
- const g=storage.loadGame();assert.ok(g);assert.equal(memory.get('qa-ash-save-v21-backup'),raw);g.action('prepare',{category:'skill',id:null});storage.saveGame(g);assert.equal(storage.loadGame().player.prepared.skill,null);assert.equal(memory.get('ash-save'),'untouched');
+ const g=Game.restore(raw);assert.ok(g);assertDropped(storage,memory,raw);   // 3.210.0: the storage settles an old run
+g.action('prepare',{category:'skill',id:null});storage.saveGame(g);assert.equal(storage.loadGame().player.prepared.skill,null);assert.equal(memory.get('ash-save'),'untouched');
 });

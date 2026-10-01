@@ -1,6 +1,7 @@
 import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game,PERKS} from '../src/engine.js';
 import {drawPerks,eligiblePerks} from '../src/perks.js';
 // 3.138.0 (docs/PERK_GROWTH.md): the direct-number perks give less per rank; tests/perk-growth.test.mjs covers the rules.
@@ -79,5 +80,6 @@ test('accuracy and evasion ranks affect actual shared hit chances without changi
 test('v27 first local load backs up exact bytes and preserves the prepared offer on the next load',async()=>{
  const g=ready();const value=JSON.parse(g.serialize());value.version=27;delete value.data.player.perks;delete value.data.player.perkWeaponBonus;delete value.data.perkPicks;delete value.data.perkDraft;
  const raw=JSON.stringify(value),memory=new Map([['qa-ash-save',raw]]);globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
- const storage=await import('../src/storage.js?perks345');const h=storage.loadGame();assert.ok(h);assert.equal(memory.get('qa-ash-save-v27-backup'),raw);storage.saveGame(h);assert.deepEqual(storage.loadGame().perkChoices,h.perkChoices);assert.equal(memory.get('qa-ash-save-v27-backup'),raw);assert.equal(memory.has('ash-save'),false);
+ const storage=await import('../src/storage.js?perks345');const h=Game.restore(raw);assert.ok(h);assertDropped(storage,memory,raw);storage.saveGame(h);assert.deepEqual(storage.loadGame().perkChoices,h.perkChoices);assert.equal(memory.get('qa-ash-save-abandoned'),raw);   // 3.210.0: the storage settles an old run
+ assert.equal(memory.has('ash-save'),false);
 });

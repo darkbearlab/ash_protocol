@@ -139,7 +139,7 @@
 | 分散檔案 | Scattered Archive | `missions.archive.name` |
 | 無盡深入 | Endless Descent | `missions.endless.name` |
 
-## 主動技能（7）
+## 主動技能（8）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -150,8 +150,9 @@
 | 訊號斷層 | Signal Break | `skills.signal_break.name` |
 | 鉤鎖 | Grapple | `skills.grapple.name` |
 | 光學迷彩 | Optical Camouflage | `skills.camouflage.name` |
+| 鉤刃 | Hook Blade | `melee-ui.hook` |
 
-## 被動特性（45）
+## 被動特性（47）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -200,6 +201,8 @@
 | 被預警掃到 | Scanned | `traits.scanned.name` |
 | 近身投擲 | Close throw | `traits.close_throw.name` |
 | 近戰壓制 | Melee Suppression | `traits.melee_suppression.name` |
+| 裝甲為命 | Armor Is Life | `traits.plate_life.name` |
+| 穩刃 | Sure Blade | `traits.sure_blade.name` |
 
 ## 升級（37）
 

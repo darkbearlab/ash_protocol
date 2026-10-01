@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {CHARACTERS,characterName} from '../src/characters.js';
 import {grantTrait,activeTrait,sidestepPenalty} from '../src/traits.js';
@@ -107,5 +108,5 @@ test('enemies granted correction track consecutive ranged attacks and reset afte
 test('character is included in run history and its backup, without spending profile currency',async()=>{
   const memory=new Map();globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
   const storage=await import('../src/storage.js?characters');const g=arena('recon');g.status='won';const p=storage.recordResult(g);assert.equal(p.history[0].character,'recon');assert.equal(p.protocol.balance,0);assert.equal(decodeBackup(JSON.stringify(makeBackup(null,p,'qa')),'qa').snapshot.profile.history[0].character,'recon');
-  const old=JSON.parse(arena().serialize());old.version=8;delete old.data.player.character;delete old.data.player.moveDelta;delete old.data.player.fireChain;memory.set('qa-ash-save',JSON.stringify(old));assert.ok(storage.loadGame());assert.equal(memory.get('qa-ash-save-v8-backup'),JSON.stringify(old));assert.equal(memory.has('ash-save'),false);
+  const old=JSON.parse(arena().serialize());old.version=8;delete old.data.player.character;delete old.data.player.moveDelta;delete old.data.player.fireChain;memory.set('qa-ash-save',JSON.stringify(old));assert.ok(Game.restore(JSON.stringify(old)));assertDropped(storage,memory,JSON.stringify(old));assert.equal(memory.has('ash-save'),false);   // 3.210.0: an old run is settled, not continued
 });

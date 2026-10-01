@@ -10,7 +10,7 @@ import {tintPixels,tintedSprite} from './operator-color.js';
 import {isDark} from './lighting.js';
 import {spriteSize} from './target-card.js';
 import {ENEMY_TYPES} from './engine.js';
-import {DARK_ACTOR_BRIGHTNESS,cornerHidden} from './actor-visuals.js';
+import {DARK_ACTOR_BRIGHTNESS,cornerHidden,stealthLook} from './actor-visuals.js';
 import {drawKiaGround,drawKiaBody} from './kia-art.js';
 import {isBarrier} from './barriers.js';
 import {missionTarget} from './missions.js';
@@ -74,11 +74,14 @@ export class RendererActors {
       const size=spriteSize(this.tile)*look.size;
       if(player){this.box(a.x-17,a.y-17,34,34,'#e0bb5110','#e8b36e99');if(e.guard){c.strokeStyle='#acd5ca';c.lineWidth=2;c.beginPath();c.arc(a.x,a.y,20,0,Math.PI*2);c.stroke();}}
       // Optical camouflage (3.47.1): the ninja's sprite fades while it is active; the frame and label stay readable.
-      c.save();if(player&&e.skillState?.camouflage?.remaining>0)c.globalAlpha=.42;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;
+      // 3.210.0 (src/actor-visuals.js stealthLook): 訊號斷層 nearly hides the recon and the camouflage halves the ninja, each
+      // with a bright outline drawn at full strength around the class art.
+      const stealth=player?stealthLook(e):null;
+      c.save();if(stealth)c.globalAlpha=stealth.alpha;c.shadowColor='rgba(0,0,0,0.9)';c.shadowBlur=8;
       // 3.207.0: a delisted operative is drawn with the player's class art in its card's colour; the ninja, when it shows at
       // all, as a silhouette of dense noise (OPERATIVE_VISUAL).
       const op=!player&&def?.operative,noise=op==='ninja';
-      const body=()=>{if(noise&&this.cloakNoise(a,size,time,e))return;if(op&&this.classSprite(a,size,op,false,dark,enemyTint(e)||def.color))return;if(!player||!this.classSprite(a,size,e.character,false,dark)){if(player)this.sprite(spriteType,a,size,dark,hidden);else this.enemySprite(spriteType,a,size,dark,hidden,enemyTint(e),e?.elite?ELITE_VISUAL.outline:null);}};
+      const body=()=>{if(noise&&this.cloakNoise(a,size,time,e))return;if(op&&this.classSprite(a,size,op,false,dark,enemyTint(e)||def.color))return;if(player&&this.classSprite(a,size,e.character,false,dark)){if(stealth)this.stealthOutline(a,size,e.character,stealth.outline);return;}if(player)this.sprite(spriteType,a,size,dark,hidden);else this.enemySprite(spriteType,a,size,dark,hidden,enemyTint(e),e?.elite?ELITE_VISUAL.outline:null);};
       const drop=this.breathOffset(e,type,time,size);
       if(!drop)body();
       else{
@@ -116,6 +119,9 @@ export class RendererActors {
     if(!player){this.enemyBars(a,e,def);if(e.charge)this.text(unitTree(e).fixedTile?String(e.windup||1):'!',a.x+this.tile*.38,a.y-9,'#ffc789',14);}
     else this.text('YOU',a.x,a.y+this.tile*.58,'#e8ba81',7);
   }
+  // 3.210.0: the stealth outline around your class art (the elite's ring, from the class atlas cell), at full strength
+  // whatever the sprite's own transparency.
+  stealthOutline(a,size,character,color){const image=this.classSprites;if(!image?.complete||!image.naturalWidth)return;const r=classSpriteRect(character,false),c=this.ctx;c.save();c.globalAlpha=1;this.drawOutline(image,{x:r.x,y:r.y},`class:${character}`,color,a,size);c.restore();}
   // 3.207.0: the delisted ninja's optical camouflage, seen: its class silhouette (the untinted cell's own shape) filled
   // with grey noise that changes every noiseMs of world time (fixed with reduced motion), from a hash of its id — never
   // Math.random, so a frame drawn twice is the same.

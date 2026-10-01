@@ -1,16 +1,20 @@
 import {t} from './i18n.js';
 import {grantUnlock as prepareUnlock,availableCharacters} from './unlock-catalog.js';
+import {settleRun,settleStaleRun,staleRunOf} from './stale-runs.js';
 import {bindUnlocks} from './run-unlocks.js';
 import {isSimulation} from './killhouse-policy.js';
 import {recordTutorial,recordArcade} from './killhouse-profile.js';
-import {deepestFloor} from './missions.js';
 import './ammunition.js';   // kept for load order
 import {Game,createKillhouse} from './engine.js';
-import {normalizeProfile,creditProtocol,recordEndless,PROFILE_VERSION} from './progression.js';
+import {normalizeProfile,creditProtocol,PROFILE_VERSION} from './progression.js';
 import {makeBackup,decodeBackup} from './backup.js';
 import {LEGACY_SAVE_VERSIONS} from './data.js';
 import {nextDuty,validDuty} from './duty.js';
-export const storage={available:true,recoveryPending:false};
+// droppedRun (3.210.0): {version, rewarded} once a stale unfinished run was settled as abandoned on load (src/stale-runs.js),
+// for the title screen to say so; cleared when a new campaign starts.
+export const storage={available:true,recoveryPending:false,droppedRun:null};
+// 3.210.0: where the raw save of a run settled as abandoned is kept (the newest one), never read by the game.
+export const DROPPED_SAVE_KEY='ash-save-abandoned';
 // Browser QA uses a separate namespace, never the user's campaign.
 export const TEST_MODE=typeof location!=='undefined'&&new URLSearchParams(location.search).get('test')==='1';
 const storageKey=key=>TEST_MODE?`qa-${key}`:key;
@@ -38,7 +42,26 @@ export const claimTab=()=>write('ash-active-tab',TAB_ID);
 export const tabKey=()=>storageKey('ash-active-tab');
 export function loadGame(){
   if(!recoverRestore()){try{return decodeBackup(read('ash-restore-journal'),backupNamespace).game;}catch{return null;}}
-  const raw=read('ash-save');if(raw){try{const version=JSON.parse(raw).version;if(LEGACY_SAVE_VERSIONS.includes(version)&&!read(`ash-save-v${version}-backup`)){write(`ash-save-v${version}-backup`,raw);pruneSaveBackups();}}catch{}}const game=Game.restore(raw);if(game){game.setCarryLevel(0);connectUnlocks(game);}return game;
+  const raw=read('ash-save');
+  // 3.210.0 (src/stale-runs.js): a run saved by an older version is settled as abandoned instead of continued.
+  if(raw&&staleRunOf(raw)){dropStaleRun(raw);return null;}
+  if(raw){try{const version=JSON.parse(raw).version;if(LEGACY_SAVE_VERSIONS.includes(version)&&!read(`ash-save-v${version}-backup`)){write(`ash-save-v${version}-backup`,raw);pruneSaveBackups();}}catch{}}const game=Game.restore(raw);if(game){game.setCarryLevel(0);connectUnlocks(game);}return game;
+}
+// The raw save goes to its backup key first (the newest dropped run only); when the browser has no room for it, the
+// previous copy and the old pre-migration copies (`ash-save-v<N>-backup`, whose runs can no longer be continued either) are
+// let go and the write tried once more. The run is settled into the profile either way (review fix,
+// 3.210.0: a full storage must not leave the run neither continued nor settled for the next deploy to overwrite), and the
+// save is removed only once its copy is safe: without a copy it stays where it is until a new run's save replaces it.
+// A failed profile write stops there and leaves the save for the next load, which settles it again without counting it
+// twice (the ledger's `recorded`).
+function dropStaleRun(raw){
+  if(storage.recoveryPending)return false;
+  let kept=writeExtra(DROPPED_SAVE_KEY,raw);
+  if(!kept){removeExtra(DROPPED_SAVE_KEY);pruneSaveBackups(0);kept=writeExtra(DROPPED_SAVE_KEY,raw);}
+  const stale=staleRunOf(raw),settled=settleStaleRun(profile(),raw);
+  if(!write('ash-profile',JSON.stringify(settled.profile)))return false;
+  if(kept)try{localStorage.removeItem(storageKey('ash-save'));}catch{}
+  storage.droppedRun={version:stale.version,rewarded:settled.rewarded,kept};return true;
 }
 // Returns whether everything was written, so the UI can warn when progress is not being kept (3.44).
 export function saveGame(game){
@@ -64,16 +87,8 @@ export function profile(){try{
   }
   return p;
 }catch{return normalizeProfile();}}
-function resultProfile(game,p=profile()){if(isSimulation(game)||game.status==='playing'||storage.recoveryPending)return p;
-  creditProtocol(p,game);const id=game.runId;
-  if(!Object.hasOwn(p.protocolRuns,id))return p;
-  if(p.protocolRuns[id].recorded)return p;
-  if(game.status==='won'&&game.mission.id!=='endless')for(const story of game.pendingStories||[]){const next=prepareUnlock(p,story,'extraction');if(next)Object.assign(p,next);}
-  p.protocolRuns[id].recorded=true;p.runs++;p.wins+=Number(game.status==='won');
-  if(game.mission.id!=='endless')p.bestFloor=Math.min(6,Math.max(p.bestFloor,deepestFloor(game)));recordEndless(p,game);p.bestKills=Math.max(p.bestKills,game.player.kills);
-  p.history.unshift({id,mapGenerations:[...(game.mapGenerations||[game.generation?.version||1])],mission:game.mission.id,portrait:game.player.portrait,character:game.player.character,seed:game.seed,floor:deepestFloor(game),level:game.player.level,kills:game.player.kills,turn:game.turn,won:game.status==='won',outcome:game.status,realMode:game.realMode===true,protocol:game.protocol.earned+(p.protocolRuns[id].realBonus||0),protocolBonus:p.protocolRuns[id].realBonus||0,date:new Date().toISOString()});
-  p.history=p.history.slice(0,10);return p;
-}
+// The settlement itself lives in src/stale-runs.js (3.210.0), shared with the stale-run drop and full backups.
+function resultProfile(game,p=profile()){if(isSimulation(game)||game.status==='playing'||storage.recoveryPending)return p;return settleRun(p,game);}
 
 export function recordResult(game){const p=resultProfile(game);if(!isSimulation(game)&&game.status!=='playing'&&!storage.recoveryPending)write('ash-profile',JSON.stringify(p));return p;}
 
@@ -138,6 +153,7 @@ export function startCampaign({seed,character='soldier',portrait='onyx',mission=
  const p=profile();if(!availableCharacters(p).includes(character))throw Error(t('storage.classLocked'));
  const rota=nextDuty(p.duty);
  const game=connectUnlocks(new Game(seed,p.unlocks.weapons,0,character,portrait,mission,{...options,profile:p,duty:validDuty(duty)?duty:rota.duty}));
+ storage.droppedRun=null;   // 3.210.0: the notice about a settled old run has been seen
  if(!storage.recoveryPending){p.duty=rota.record;write('ash-profile',JSON.stringify(p));}
  return game;
 }

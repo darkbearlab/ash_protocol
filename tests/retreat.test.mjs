@@ -1,6 +1,7 @@
 import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game} from '../src/game.js';
 import {SIZE,SAVE_VERSION} from '../src/data.js';
 import {missionDepth,missionObjects,missionProgress,returning,validMission} from '../src/missions.js';
@@ -151,10 +152,10 @@ test('v20 migration preserves active smoke expiry and Recon skill counters witho
   const r=Game.restore(JSON.stringify(raw));assert.ok(r);assert.deepEqual(r.player,g.player);assert.deepEqual(r.smoke,g.smoke);assert.deepEqual(r.floorStates,{});assert.deepEqual(r.reinforcements,[]);
 });
 
-test('history records deepest floor three after returning to floor one, and v20 original backup is retained',async()=>{
+test('history records deepest floor three after returning to floor one, and a v20 run is kept verbatim as a settled old run',async()=>{
   const memory=new Map([['ash-save','live'],['ash-profile','live profile']]);globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
   const storage=await import('../src/storage.js?retreat');const old=JSON.parse(new Game(5).serialize());old.version=20;delete old.data.floorStates;delete old.data.reinforcements;
-  const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);assert.ok(storage.loadGame());assert.equal(memory.get('qa-ash-save-v20-backup'),raw);
+  const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);assert.ok(Game.restore(raw));assertDropped(storage,memory,raw);   // 3.210.0: the storage settles an old run
   const g=third();clear(g);collect(g);descend(g);descend(g);descend(g);const p=storage.recordResult(g);
   assert.equal(p.history[0].floor,3);assert.equal(p.bestFloor,3);assert.equal(p.history[0].mission,'roundtrip');assert.equal(p.history[0].won,true);
   const abandoned=third(51);clear(abandoned);collect(abandoned);descend(abandoned);descend(abandoned);storage.saveGame(abandoned);assert.equal(storage.abandonRun(abandoned),true);assert.equal(storage.profile().history[0].floor,3);assert.equal(storage.profile().history[0].outcome,'abandoned');

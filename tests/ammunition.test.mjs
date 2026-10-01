@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game,SIZE,WEAPONS} from '../src/engine.js';
 import {AMMUNITION,AMMO_IDS,capacity,carryLevels,splitLegacyRounds,CARRY_COSTS} from '../src/ammunition.js';
 import {normalizeProfile} from '../src/progression.js';
@@ -95,15 +96,15 @@ test('full backups include permanent levels and reconcile campaign caps; v2 prof
   }
 });
 
-test('removed carrying purchase cannot spend; legacy save backup and migration remain isolated',async()=>{
+test('removed carrying purchase cannot spend; legacy saves migrate, and through the storage they are settled as old runs, isolated (3.210.0)',async()=>{
   const memory=new Map([['ash-save','live-save'],['ash-profile','live-profile']]);
   globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
   const {purchaseCarrying,profile,saveGame,loadGame}=await import('../src/storage.js');
   const g=arena(),p=normalizeProfile();p.protocol={balance:200,earned:200};memory.set('qa-ash-profile',JSON.stringify(p));
   assert.throws(()=>purchaseCarrying(g,'rifle',0),/取消/);assert.equal(profile().protocol.balance,200);
   const legacy=JSON.parse(g.serialize());legacy.version=3;legacy.data.player.reserve=48;delete legacy.data.player.pistol;delete legacy.data.player.shell;const legacyRaw=JSON.stringify(legacy);memory.set('qa-ash-save',legacyRaw);
-  const migrated=loadGame();assert.ok(migrated);assert.equal(memory.get('qa-ash-save-v3-backup'),legacyRaw);saveGame(migrated);assert.deepEqual(loadGame().player,migrated.player);
-  const v4=JSON.parse(migrated.serialize());v4.version=4;v4.data.carryLevel=0;delete v4.data.player.weaponBases;delete v4.data.player.affixes;v4.data.player.ammo=v4.data.player.ammo.slice(0,6);v4.data.player.upgrades=v4.data.player.upgrades.slice(0,6);for(const item of v4.data.items)delete item.slot;const v4Raw=JSON.stringify(v4);memory.set('qa-ash-save',v4Raw);assert.ok(loadGame());assert.equal(memory.get('qa-ash-save-v4-backup'),v4Raw);
+  const migrated=Game.restore(legacyRaw);assert.ok(migrated);assertDropped({loadGame},memory,legacyRaw);saveGame(migrated);assert.deepEqual(loadGame().player,migrated.player);
+  const v4=JSON.parse(migrated.serialize());v4.version=4;v4.data.carryLevel=0;delete v4.data.player.weaponBases;delete v4.data.player.affixes;v4.data.player.ammo=v4.data.player.ammo.slice(0,6);v4.data.player.upgrades=v4.data.player.upgrades.slice(0,6);for(const item of v4.data.items)delete item.slot;const v4Raw=JSON.stringify(v4);memory.set('qa-ash-save',v4Raw);assert.ok(Game.restore(v4Raw));assertDropped({loadGame},memory,v4Raw);
   assert.equal(memory.get('ash-save'),'live-save');assert.equal(memory.get('ash-profile'),'live-profile');
   delete globalThis.location;delete globalThis.localStorage;
 });

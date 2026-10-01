@@ -17,7 +17,7 @@ import './learning.js';   // load order only (3.206.3 split)
 import {syncPetSenses,petScanContacts} from './pet-growth.js';
 import {cornerRay,cornerStatus,recordExposure,clearMovedExposure} from './corner.js';
 import {UNARMED_SLOT,UNARMED} from './unarmed.js';
-import {defensiveEvasion,grapplePlan} from './melee-classes.js';
+import {SURE_BLADE,defensiveEvasion,grapplePlan,hookBladePlan} from './melee-classes.js';
 import './lines.js';   // load order only (3.206.3 split)
 import './melee-weapons.js';   // load order only (3.206.3 split)
 import './prepared.js';   // load order only (3.206.3 split)
@@ -100,9 +100,11 @@ export class Game {
   get localAllies(){return localAllies(this);}
   enemyCallout(actor,kind,detail){enemyCallout(this,actor,kind,detail);}
   actorWeapon(actor){return actor.kind?allyWeapon(actor,this.player):enemyWeapon(actor);}
-  meleeAccuracy(a,b,base=97){return meleeChance(a,b,base-this.defensiveEvasion(a,b)+bossAccuracy(this,a,b)+crashBonus(b)+burnFlank(this,a,b));}   // 3.204.0: a boss's mark on you, a set-up gun's flank; 3.205.0: a swarm boss dazed against a wall; 3.206.0: a set-up flamethrower's flank
+  // 3.210.0: the ninja's own melee (穩刃 sure_blade) is a fixed SURE_BLADE percent, before and after every modifier.
+  meleeAccuracy(a,b,base=97){if(a===this.player&&activeTrait(a,'sure_blade'))return SURE_BLADE;return meleeChance(a,b,base-this.defensiveEvasion(a,b)+bossAccuracy(this,a,b)+crashBonus(b)+burnFlank(this,a,b));}   // 3.204.0: a boss's mark on you, a set-up gun's flank; 3.205.0: a swarm boss dazed against a wall; 3.206.0: a set-up flamethrower's flank
   defensiveEvasion(a,b){return defensiveEvasion(this,a,b);}
   grapplePlan(id=this.target){return grapplePlan(this,id);}
+  hookBladePlan(id=this.target){return hookBladePlan(this,id);}   // 3.210.0: the ninja's hook blade (src/melee-classes.js)
   get allyTravelSummary(){const near=carryCandidates(this).length,total=this.activeAllies.length;return total?t('game.allyCarry',{near,left:total-near}):'';}
   get weapon(){return this.weaponAt(this.player.weapon);}
   weaponAt(slot){if(slot===UNARMED_SLOT)return {...UNARMED};return weaponStats(this.player.weaponBases[slot],this.player.affixes[slot],this.player);}

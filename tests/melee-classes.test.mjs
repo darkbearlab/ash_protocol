@@ -88,8 +88,9 @@ test('ambush conditions are ORed, camo alone never triggers, and a miss still sh
  g.smoke=[{cells:[{x:e.x,y:e.y}],expires:g.turn+2}];assert.equal(ambushReady(g,e),true);g.smoke=[{cells:[{x:10,y:10}],expires:g.turn+2}];assert.equal(ambushReady(g,e),true);g.smoke=[];
  e.alert=false;assert.equal(ambushReady(g,e),true);e.alert=true;assert.equal(ambushReady(g,e),false);
 });
-test('ambush scales a melee hit by 1.5 and attacks do not break active camouflage',()=>{
- const g=arena('ninja');noEnemyActions(g);const e=enemy(g);g.lighting[10][10]=0;skill(g);assert.ok(g.action('fire'));assert.equal(e.hp,955);assert.equal(g.player.skillState.camouflage.remaining,4);assert.equal(g.player.skillState.camouflage.cooldown,0);
+// 3.210.0: the camouflage adds its own ×1.5, multiplied with the ambush's: 30 × 1.5 × 1.5 = 67.5, rounded to 68.
+test('ambush scales a melee hit by 1.5, the camouflage by 1.5 more, and attacks do not break active camouflage',()=>{
+ const g=arena('ninja');noEnemyActions(g);const e=enemy(g);g.lighting[10][10]=0;skill(g);assert.ok(g.action('fire'));assert.equal(e.hp,932);assert.equal(g.player.skillState.camouflage.remaining,4);assert.equal(g.player.skillState.camouflage.cooldown,0);
 });
 test('v28 defaults, new state and bound weapon validation, and backup roundtrip',()=>{
  const old=new Game(3470);const raw=JSON.parse(old.serialize());raw.version=28;delete raw.data.player.battleSpirit;const h=Game.restore(JSON.stringify(raw));assert.ok(h);assert.deepEqual(h.player.battleSpirit,freshSpirit());assert.equal(h.player.hp,old.player.hp);

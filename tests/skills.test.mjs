@@ -2,6 +2,7 @@ import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {canUseSkill,skillActive,skillStatus} from '../src/skills.js';
 import {grantTrait} from '../src/traits.js';
@@ -139,12 +140,12 @@ test('save rejects missing, unknown, malformed and out-of-bounds skill timers',(
   }
 });
 
-test('v19 storage migration keeps the original QA backup and leaves live saves untouched',async()=>{
+test('v19 migration; the storage keeps the original as a settled old run and leaves live saves untouched',async()=>{
   const memory=new Map([['ash-save','live campaign'],['ash-profile','live profile']]);globalThis.location={search:'?test=1'};
   globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
   const legacy=JSON.parse(arena().serialize());legacy.version=19;legacy.data.player.skills=[];legacy.data.player.prepared.skill=null;delete legacy.data.player.skillState;
   const raw=JSON.stringify(legacy);memory.set('qa-ash-save',raw);const storage=await import('../src/storage.js?skill-migration');
-  const g=storage.loadGame();assert.ok(g);assert.equal(memory.get('qa-ash-save-v19-backup'),raw);
+  const g=Game.restore(raw);assert.ok(g);assertDropped(storage,memory,raw);   // 3.210.0: the storage settles an old run
   use(g);storage.saveGame(g);assert.deepEqual(state(storage.loadGame()),{remaining:3,cooldown:6});
-  assert.equal(memory.get('qa-ash-save-v19-backup'),raw);assert.equal(memory.get('ash-save'),'live campaign');assert.equal(memory.get('ash-profile'),'live profile');
+  assert.equal(memory.get('qa-ash-save-abandoned'),raw);assert.equal(memory.get('ash-save'),'live campaign');assert.equal(memory.get('ash-profile'),'live profile');
 });

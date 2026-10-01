@@ -1,6 +1,6 @@
 // Display helpers for the melee classes (3.47.1, Claude). Pure reads of a game or presentation view, so tests can reach them without the DOM.
 import {t} from './i18n.js';
-import {MELEE_TUNING,GRAPPLE_RANGE,bladeCount,ambushReady,duelActive} from './melee-classes.js';
+import {MELEE_TUNING,GRAPPLE_RANGE,HOOK_BLADE_RANGE,bladeCount,ambushReady,camoActive,duelActive} from './melee-classes.js';
 import {distance} from './world.js';
 
 // Skill-button word for the hook against the locked target; the refusal reason itself stays the rules layer's.
@@ -8,6 +8,18 @@ export function grappleLabel(view){
   const plan=view.grapplePlan(),locked=view.enemies.find(e=>e.id===view.target&&e.hp>0);
   if(!plan.reason)return plan.dash?t('melee-ui.charge'):t('melee-ui.pull');
   return plan.why==='landing'?t('melee-ui.noLanding'):locked&&distance(view.player,locked)>GRAPPLE_RANGE?t('melee-ui.tooFar'):t('melee-ui.noTarget');
+}
+// 3.210.0: the camouflage button's word while it is on — the hook blade against the locked target, or why not.
+export function hookBladeLabel(view){
+  const plan=view.hookBladePlan(),locked=view.enemies.find(e=>e.id===view.target&&e.hp>0);
+  if(!plan.reason)return t('melee-ui.hook');
+  return plan.why==='fixed'?t('melee-ui.fixed'):plan.why==='room'?t('melee-ui.noLanding'):plan.why==='line'?t('melee-ui.blocked'):plan.why==='blade'?t('melee-ui.noBlade'):locked&&distance(view.player,locked)>HOOK_BLADE_RANGE?t('melee-ui.tooFar'):t('melee-ui.noTarget');
+}
+// 3.210.0: whether a blade swing (the fire button) at the locked enemy would be the hook blade: the camouflage is on, the
+// blade is in hand and the enemy stands out of reach but where the hook can take you.
+export function hookBladeFire(view){
+  const p=view.player,w=view.weapon,e=view.targeted;
+  return Boolean(w?.melee&&!w.thrust&&camoActive(p)&&e&&view.enemies.includes(e)&&distance(p,e)>1&&!view.hookBladePlan().reason);
 }
 // Paid turns until the next battle-spirit stack fades. Stacks tick at the end of a paid turn (tickSpirit), so the
 // first loss lands spiritDelay turns after the kill and then every spiritInterval turns.

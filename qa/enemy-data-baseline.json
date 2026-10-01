@@ -1021,28 +1021,28 @@
   "bulwark:1": {
    "status": "dead",
    "floor": 3,
-   "turn": 515,
+   "turn": 357,
    "hp": 0,
-   "kills": 77,
-   "actions": 618,
+   "kills": 68,
+   "actions": 423,
    "invalid": 0
   },
   "bulwark:2": {
    "status": "dead",
    "floor": 2,
-   "turn": 242,
+   "turn": 218,
    "hp": 0,
-   "kills": 42,
-   "actions": 297,
+   "kills": 38,
+   "actions": 247,
    "invalid": 0
   },
   "bulwark:3": {
    "status": "dead",
    "floor": 6,
-   "turn": 1017,
+   "turn": 1146,
    "hp": 0,
-   "kills": 179,
-   "actions": 1106,
+   "kills": 172,
+   "actions": 1209,
    "invalid": 0
   },
   "recon:1": {

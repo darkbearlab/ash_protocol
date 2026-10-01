@@ -12,6 +12,7 @@ import {CARRY_COSTS,validCarryLevels,carryingSpent} from './ammunition.js';
 import {Game} from './game.js';
 import {normalizeProfile,creditProtocol,PROFILE_VERSION} from './progression.js';
 import {SIZE,SUPPLY_NAMES} from './data.js';
+import {settleStaleRun,staleRunOf} from './stale-runs.js';
 
 export const BACKUP_LIMIT=5_000_000;
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
@@ -60,8 +61,12 @@ export function decodeBackup(raw,namespace){
   requireValue(object(b)&&b.format==='ash-protocol-backup'&&b.version===1,t('backup.notFull'));
   requireValue(b.namespace===namespace,t('backup.wrongMode'));
   requireValue(typeof b.createdAt==='string'&&Number.isFinite(Date.parse(b.createdAt)),t('backup.badDate'));
-  const p=validateProfile(b.profile);let game=null;
-  if(b.campaign!==null){
+  let p=validateProfile(b.profile),game=null,dropped=null;
+  // 3.210.0 (src/stale-runs.js): a campaign saved before RUN_SAVE_FLOOR is settled into the backup's own profile as
+  // abandoned and not restored, so an old backup still brings back the profile instead of being refused for its run.
+  const stale=b.campaign!==null&&object(b.campaign)?staleRunOf(b.campaign):null;
+  if(stale){const settled=settleStaleRun(p,JSON.stringify(b.campaign));p=settled.profile;dropped={version:stale.version,rewarded:settled.rewarded};}
+  else if(b.campaign!==null){
     requireValue(object(b.campaign),t('backup.missionData'));game=Game.restore(JSON.stringify(b.campaign));
     requireValue(game,t('backup.missionSave'));
     game.setCarryLevel(p.upgrades.carrying);
@@ -71,5 +76,5 @@ export function decodeBackup(raw,namespace){
     requireValue(position(game.end)&&Array.isArray(game.rooms)&&game.items.every(o=>position(o)&&Object.hasOwn(SUPPLY_NAMES,o.type)&&(o.type!=='weapon'||game.player.weaponBases[o.slot]===o.weapon))&&game.props.every(o=>position(o)&&['cover','barrel','terminal','container','module','nest'].includes(o.type))&&game.enemies.every(position),t('backup.missionMap'));
     requireValue((p.protocolRuns[game.runId]?.earned||0)>=game.protocol.earned,t('backup.missionGrants'));
   }
-  return {snapshot:{format:b.format,version:1,namespace,createdAt:b.createdAt,profile:p,campaign:game?JSON.parse(game.serialize()):null},game};
+  return {snapshot:{format:b.format,version:1,namespace,createdAt:b.createdAt,profile:p,campaign:game?JSON.parse(game.serialize()):null},game,dropped};
 }

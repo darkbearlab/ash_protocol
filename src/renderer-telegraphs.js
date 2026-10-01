@@ -181,8 +181,9 @@ export class RendererTelegraphs {
     if(p.hp>0&&designated(p)){const r=t*.47;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(pos.x+dx*r,pos.y+dy*r,pos.x+dx*(r-6),pos.y+dy*r,'#ff5a5a',1.5);this.line(pos.x+dx*r,pos.y+dy*r,pos.x+dx*r,pos.y+dy*(r-6),'#ff5a5a',1.5);}}
     if(this.mode==='pet'&&this.aim){const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b52a','#9cedca');this.text('指令',a.x,a.y+4,'#a9f3d5',10);}
     if(this.mode==='drone'&&this.aim){for(const q of droneCells(g)){const a=this.project(q.x,q.y);this.box(a.x-t*.4,a.y-t*.4,t*.8,t*.8,'#7fd8b50f','#7fd8b566');}const a=this.project(this.aim.x,this.aim.y);this.box(a.x-t*.42,a.y-t*.42,t*.84,t*.84,'#7fd8b53a','#9cedca');this.text(tx('renderer.deploy'),a.x,a.y+4,'#a9f3d5',10);}
-    // Grapple preview (3.47.1): the tile the berserker or the pulled enemy lands on before the strike.
-    const hook=this.targetingEnabled?this.grapplePreview:null;if(hook){const a=this.project(hook.from.x,hook.from.y),b=this.project(hook.point.x,hook.point.y);c.setLineDash([4,4]);this.line(a.x,a.y,b.x,b.y,'#e6c07a99',1.5);c.setLineDash([]);this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,'#e6c07a24','#f0cf8a');this.text(hook.dash?tx('renderer.charge'):tx('renderer.pull'),b.x,b.y+4,'#ffe0a3',10);}
+    // Grapple preview (3.47.1): the tile the berserker or the pulled enemy lands on before the strike; 3.210.0: or where the
+    // ninja's hook blade pulls it (`hook`).
+    const hook=this.targetingEnabled?this.grapplePreview:null;if(hook){const a=this.project(hook.from.x,hook.from.y),b=this.project(hook.point.x,hook.point.y);c.setLineDash([4,4]);this.line(a.x,a.y,b.x,b.y,'#e6c07a99',1.5);c.setLineDash([]);this.box(b.x-t*.42,b.y-t*.42,t*.84,t*.84,'#e6c07a24','#f0cf8a');this.text(hook.hook?tx('renderer.hook'):hook.dash?tx('renderer.charge'):tx('renderer.pull'),b.x,b.y+4,'#ffe0a3',10);}
     const target=this.targetingEnabled?g.targeted:null;if(target){const lamp=isLamp(target),a=lamp?this.lampPoint(target):this.projectActor(target),r=lamp?Math.max(9,t*.2):t*.43;for(const [dx,dy]of[[-1,-1],[1,-1],[-1,1],[1,1]]){this.line(a.x+dx*r,a.y+dy*r,a.x+dx*(r-7),a.y+dy*r,'#f1b07c',1.5);this.line(a.x+dx*r,a.y+dy*r,a.x+dx*r,a.y+dy*(r-7),'#f1b07c',1.5);}}
   }
 }

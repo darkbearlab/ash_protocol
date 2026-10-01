@@ -2,6 +2,7 @@ import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game} from '../src/game.js';
 import {SIZE,ENEMY_TYPES} from '../src/data.js';
 import {CHARACTERS} from '../src/characters.js';
@@ -61,11 +62,11 @@ test('the pet chases up to nine tiles from the player while survivors keep the s
  const g=arena('druid'),a=pet(g),e=enemy(g,18,10);e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();for(let i=0;i<9;i++)g.action('wait');assert.ok(e.hp<500);assert.ok(Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=PET_TETHER);
  const n=arena('soldier'),s=addAlly(n,'survivor','crawler',{point:{x:11,y:10}}),f=enemy(n,18,10);f.hp=500;n.enemyAct=()=>{};n.reveal();for(let i=0;i<9;i++)n.action('wait');assert.equal(f.hp,500);
 });
-test('no ally may be packed in a save; a v25 save loads unchanged and its first local read is kept verbatim',async()=>{
+test('no ally may be packed in a save; a v25 save loads unchanged, and through the storage it is settled as an old run (3.210.0)',async()=>{
  const g=arena('necromancer'),s=addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:11,y:10}}),raw=JSON.parse(g.serialize());raw.data.allies[0].status='packed';assert.equal(Game.restore(JSON.stringify(raw)),null);
  const d=arena('druid'),a=pet(d);a.hp=37;const old=JSON.parse(d.serialize());old.version=25;oldScaleAmmo(old.data);const text=JSON.stringify(old),memory=new Map([['qa-ash-save',text],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
- const storage=await import('../src/storage.js?pet337'),restored=storage.loadGame();assert.ok(restored);assert.deepEqual(restored.allies,d.allies);assert.deepEqual(restored.player,d.player);assert.equal(restored.rng.state(),d.rng.state());assert.equal(memory.get('qa-ash-save-v25-backup'),text);assert.equal(memory.get('ash-save'),'untouched');
+ const storage=await import('../src/storage.js?pet337'),restored=Game.restore(text);assert.ok(restored);assert.deepEqual(restored.allies,d.allies);assert.deepEqual(restored.player,d.player);assert.equal(restored.rng.state(),d.rng.state());assertDropped(storage,memory,text);assert.equal(memory.get('ash-save'),'untouched');
 });
 test('a fast lethal hit cancels paid feeding and consumes no medkit',()=>{
  const g=arena('druid'),a=pet(g);a.hp=20;const e=enemy(g,7);e.charge=true;e.windup=1;grantTrait(e,'fast','test:fast');g.player.hp=1;zero(g);g.reveal();const meds=g.player.meds;assert.ok(g.action('feedPet',{optionId:'medkit'}));assert.equal(g.status,'dead');assert.equal(a.status,'active');assert.equal(g.player.meds,meds);
@@ -137,9 +138,9 @@ test('downed pets blocked by an enemy cannot consume medicine or revive on that 
 test('charged sniper keeps its marked tile when allies move; the occupant at impact takes the hit',()=>{
  const g=arena('druid'),a=pet(g,{x:12,y:10}),e=enemy(g,16,10,'sniper');e.charge=true;e.windup=1;e.aim={x:12,y:10};e.focusTarget=a.id;a.x=12;a.y=11;a.order={x:12,y:11};g.player.x=12;g.player.y=10;g.reveal();zero(g);const hp=g.player.hp;g.action('wait');assert.ok(g.player.hp<hp);assert.equal(a.hp,90);
 });
-test('v22 first local read preserves the original QA save before allied schema migration',async()=>{
+test('v22 first local read keeps the original QA save (now as a settled old run, 3.210.0) and leaves live storage alone',async()=>{
  const memory=new Map([['ash-save','live untouched']]);globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
- const storage=await import('../src/storage.js?allies330'),old=JSON.parse(arena('soldier').serialize());old.version=22;delete old.data.allies;delete old.data.allySerial;const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);assert.ok(storage.loadGame());assert.equal(memory.get('qa-ash-save-v22-backup'),raw);assert.equal(memory.get('ash-save'),'live untouched');
+ const storage=await import('../src/storage.js?allies330'),old=JSON.parse(arena('soldier').serialize());old.version=22;delete old.data.allies;delete old.data.allySerial;const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);assert.ok(Game.restore(raw));assertDropped(storage,memory,raw);assert.equal(memory.get('ash-save'),'live untouched');
 });
 test('new class natural-map actions keep legal occupancy and roundtrip-safe saves across seeds',()=>{
  for(const character of ['engineer','druid','necromancer'])for(let seed=1;seed<=3;seed++){
@@ -238,7 +239,7 @@ test('v26 saves refit drones: follow pistol rounds are handed back, 45 HP chassi
  assert.equal(r2.allies[0].armor,SENTRY_ARMOR);assert.ok(!r2.allies[0].traits.some(t=>t.id==='no_cover'));assert.equal(r2.allies[0].ammo,0);assert.equal(r2.player.reserve,s.player.reserve+5);assert.equal(r2.player.pistol,s.player.pistol);
  const text=JSON.stringify(old),memory=new Map([['qa-ash-save',text],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
- const storage=await import('../src/storage.js?drone339');assert.ok(storage.loadGame());assert.equal(memory.get('qa-ash-save-v26-backup'),text);assert.equal(memory.get('ash-save'),'untouched');
+ const storage=await import('../src/storage.js?drone339');assertDropped(storage,memory,text);assert.equal(memory.get('ash-save'),'untouched');
 });
 // 3.36 ally iteration round 1 (closing in when the exact tile is taken, holding fights) and
 // 3.38 swaps: walking into an ally trades places, and allies trade places in narrow ways.
@@ -301,12 +302,12 @@ test('follow drones fire from their tile before closing the idle leash, and stil
 test('a pet whose hold tile is taken fights from where it stands instead of idling',()=>{
  const g=arena('druid'),a=pet(g,{x:12,y:10}),e=enemy(g,13,10);e.hp=500;a.order={x:13,y:10};g.enemyAct=()=>{};zero(g);g.reveal();g.action('wait');assert.ok(e.hp<500);assert.deepEqual([a.x,a.y],[12,10]);
 });
-test('v23 original local save is backed up verbatim; a destroyed follow drone hands its pistol rounds back and resources survive migration',async()=>{
+test('v23 save: a destroyed follow drone hands its pistol rounds back and resources survive migration; the storage keeps it verbatim as a settled old run (3.210.0)',async()=>{
  const g=arena(),a=drone(g);a.ammo=5;g.damageAlly(a,999);const old=JSON.parse(g.serialize());old.version=23;oldScaleAmmo(old.data);const raw=JSON.stringify(old),memory=new Map([['qa-ash-save',raw],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
- const storage=await import('../src/storage.js?repair331'),restored=storage.loadGame();assert.ok(restored);
+ const storage=await import('../src/storage.js?repair331'),restored=Game.restore(raw);assert.ok(restored);
  assert.deepEqual(restored.allies,[]);
- assert.equal(restored.player.pistol,g.player.pistol+5);assert.deepEqual({...restored.player,pistol:g.player.pistol},{...g.player,productionLines:[]});assert.equal(restored.rng.state(),g.rng.state());assert.equal(memory.get('qa-ash-save-v23-backup'),raw);assert.equal(memory.get('ash-save'),'untouched');
+ assert.equal(restored.player.pistol,g.player.pistol+5);assert.deepEqual({...restored.player,pistol:g.player.pistol},{...g.player,productionLines:[]});assert.equal(restored.rng.state(),g.rng.state());assertDropped(storage,memory,raw);assert.equal(memory.get('ash-save'),'untouched');
  restored.player.scrap=UNIT_BLUEPRINTS.drone_follow.cost;assert.ok(restored.action('buildUnit',{blueprint:'drone_follow'}));
 });
 

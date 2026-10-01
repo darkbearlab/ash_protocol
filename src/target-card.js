@@ -19,12 +19,15 @@ import {toxicShot} from './swarm-fields.js';
 import {hazeShot} from './vents.js';
 import {coverEffects} from './cover.js';
 import {fooled} from './field-gear.js';
-import {grapplePlan,ambushReady,MELEE_TUNING} from './melee-classes.js';
+import {grapplePlan,hookBladePlan,ambushReady,camoActive,MELEE_TUNING} from './melee-classes.js';
 import {crashBonus} from './swarm-bosses.js';   // 3.205.0
 import {specialCard} from './enemy-specials.js';   // 3.206.1: each special's lines (a paint, a gun, a tongue, a charge, an egg sac, fire, venting, a flamethrower)
 // Melee-class hints on the card (3.47.1): the hook's pull or dash, and whether an ambush would land.
 const meleeHints=(game,target)=>{const p=game.player,hints=[];
   if(p.prepared.skill==='grapple'&&!p.skillState.grapple?.cooldown){const plan=grapplePlan(game,target.id);if(!plan.reason)hints.push(plan.dash?t('target-card.grappleCharge'):t('target-card.grapplePull'));}
+  // 3.210.0: the hook blade can reach it (camouflage on, out of reach), and the camouflage's own melee multiplier.
+  const hook=camoActive(p)&&distance(p,target)>1&&!hookBladePlan(game,target.id).reason;if(hook)hints.push(t('target-card.hookBlade'));
+  if(camoActive(p)&&(hook||game.weapon.melee))hints.push(t('target-card.camoMelee',{n:MELEE_TUNING.camoMelee}));
   if(ambushReady(game,target))hints.push(`${t('melee-ui.ambush',{ambush:MELEE_TUNING.ambush})}`);return hints;};
 
 // 3.112.0: a cone weapon says how many targets one shell reaches, which damage band the locked one is in, and warns
@@ -64,9 +67,11 @@ export function targetDetails(game){
   // 3.142.0: a gun that spends more than one round a shot says so while the magazine cannot pay for it.
   const short=!melee&&(game.weapon.shotCost||1)>1&&game.player.ammo[game.player.weapon]<game.weapon.shotCost;
   const armor=shownArmor(target);
-  const pellets=pelletLine(game,target),range=distance(game.player,target),withinDistance=range<=game.weapon.range,withinRange=withinDistance&&game.shotClear(game.player,target)&&(!melee||isBarrier(target)||game.canCross(game.player,target));
+  // 3.210.0: a blade in hand reaches an enemy the hook blade can pull you to (camouflage on), at the blade's own chance.
+  const hookReach=melee&&!game.weapon.thrust&&enemy&&camoActive(game.player)&&distance(game.player,target)>1&&!hookBladePlan(game,target.id,game.player.weapon).reason;
+  const pellets=pelletLine(game,target),range=distance(game.player,target),withinDistance=range<=game.weapon.range,withinRange=hookReach||withinDistance&&game.shotClear(game.player,target)&&(!melee||isBarrier(target)||game.canCross(game.player,target));
   const details={name:(enemy?(missionTarget(game,target)?'◇ ':'')+cardEnemyName(target):null)||(isLamp(target)?t('target-card.lamp'):isBarrier(target)?barrierName(target):target.type==='nest'?NEST_STYLES[nestStyle(target,game.facilityFaction)].name:isContainer(target)?containerName(target):target.type==='barrel'?t('target-card.barrel'):FURNITURE[target.style]?.name||t('target-card.breakableCover')),fullName:enemy?enemyDisplayName(target):'',hp:`${isBarrier(target)||isLamp(target)?t('target-card.durability'):'HP'} ${Math.max(0,target.hp)} / ${target.maxHp??target.hp}${enemy&&armor>0?`${t('target-card.armor',{armor})}`:''}`,
-    chance:withinRange?(short?t('target-card.magShort',{n:game.weapon.shotCost}):game.weapon.flame?t('target-card.flameSure'):game.weapon.pointTarget?t('target-card.launcherSure'):pellets||t('target-card.hit',{chance:aim.chance})):melee?t('target-card.noMelee'):t('target-card.noShot'),distance:t('target-card.distance',{range,weaponRange:game.weapon.range,band:aim.band?t('target-card.band',{band:bandLabel(aim.band)}):'',burst:game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?t('target-card.single'):t('target-card.double')):''}),
+    chance:hookReach?t('target-card.hookHit',{chance:aim.chance}):withinRange?(short?t('target-card.magShort',{n:game.weapon.shotCost}):game.weapon.flame?t('target-card.flameSure'):game.weapon.pointTarget?t('target-card.launcherSure'):pellets||t('target-card.hit',{chance:aim.chance})):melee?t('target-card.noMelee'):t('target-card.noShot'),distance:t('target-card.distance',{range,weaponRange:game.weapon.range,band:aim.band?t('target-card.band',{band:bandLabel(aim.band)}):'',burst:game.weapon.burstRange!==undefined&&withinDistance?(range>game.weapon.burstRange?t('target-card.single'):t('target-card.double')):''}),
     traits:enemy?[factionTag(target),target.elite?ELITE_VISUAL.label:'',isNoncombatant(target)?NONCOMBATANT_LABEL:'',...traitLabels(target)].filter(Boolean).join(' · '):'',
     order:enemy&&(initiative(displayTarget)!==0||initiative(game.player)!==0)?(initiative(displayTarget)<initiative(game.player)?t('target-card.actsBefore'):initiative(displayTarget)>initiative(game.player)?t('target-card.actsAfter'):t('target-card.actsSame')):'',
     cover:melee?t('target-card.meleeIgnoresCover'):enemy?(activeTrait(target,'no_cover')?t('target-card.noCoverUse'):aim.cover?(aim.coverEfficiency===.5?t('target-card.half'):'')+(aim.cover.type==='low_partition'?t('target-card.coverLowPartition'):isBarrier(aim.cover)?t('target-card.coverPartition'):aim.cover.type==='wall'?t('target-card.coverCorner'):aim.cover.style?t('target-card.coverFurniture'):t('target-card.coverCrate')):t('target-card.coverNone')):t('target-card.breakable'),

@@ -116,15 +116,18 @@ export class GameEnemyTurn {
     return covered.first;
   }
   environmentTurn() {
-    const p=this.player,hpBefore=p.hp,hazard=this.hazards.find(h=>h.x===p.x&&h.y===p.y);
-    if(hazard){const damage=Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat);p.hp-=damage;if(hazard.type==='acid'&&p.hazmat<8)addPoison(p,SWARM_TUNING.acidStacks);this.log(t(hazard.type==='acid'?'game.acidHurt':'game.heatHurt',{damage}),true,t(hazard.type==='acid'?'game.acidHurtReal':'game.heatHurtReal'));}
+    const p=this.player,hpBefore=p.hp,platesBefore=p.plates,hazard=this.hazards.find(h=>h.x===p.x&&h.y===p.y);
+    // 3.210.0 (docs/BULWARK.md 改版): floorDamage lets the bulwark's plates take the floor's damage first; the log says so.
+    const floorLog=([hurt,plated,source,real],{damage,plates})=>this.log(!plates?t(hurt,{damage}):damage?t(plated,{damage,n:plates}):t('game.floorPlatesOnly',{source:t(source),n:plates}),true,t(real));
+    const ACID=['game.acidHurt','game.acidHurtPlates','game.floorSource.acid','game.acidHurtReal'],HEAT=['game.heatHurt','game.heatHurtPlates','game.floorSource.heat','game.heatHurtReal'];
+    if(hazard){floorLog(hazard.type==='acid'?ACID:HEAT,this.floorDamage(Math.max(0,(hazard.type==='acid'?8:12)-p.hazmat)));if(hazard.type==='acid'&&p.hazmat<8)addPoison(p,SWARM_TUNING.acidStacks);}
     toxicPlayerTurn(this,addPoison);   // 3.134.0 mist: poisoned for a turn ended in it
     // 3.202.0: steam from a vent scalds whoever ends the round in it, flyers aside (docs/HAZARDS.md section 3).
-    if(p.hp>0&&scalding(this,p)){const damage=Math.max(0,VENT_TUNING.damage-p.hazmat);p.hp-=damage;this.log(t('game.steamHurt',{damage}),true,t('game.steamHurtReal'));}
+    if(p.hp>0&&scalding(this,p))floorLog(['game.steamHurt','game.steamHurtPlates','game.floorSource.steam','game.steamHurtReal'],this.floorDamage(Math.max(0,VENT_TUNING.damage-p.hazmat)));
     // 3.203.0 (docs/HAZARDS.md section 2): a burning tile burns whoever ends the round on it, both sides alike; flyers aside.
-    if(p.hp>0&&burningAt(this,p)){const damage=Math.max(0,FIRE_TUNING.damage-p.hazmat);p.hp-=damage;this.log(t('game.fireHurt',{damage}),true,t('game.fireHurtReal'));}
+    if(p.hp>0&&burningAt(this,p))floorLog(['game.fireHurt','game.fireHurtPlates','game.floorSource.fire','game.fireHurtReal'],this.floorDamage(Math.max(0,FIRE_TUNING.damage-p.hazmat)));
     tickPoison(this);
-    if(p.hp<hpBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp,player:true});
+    if(p.hp<hpBefore||p.plates<platesBefore)this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage:hpBefore-p.hp,player:true,...(p.plates<platesBefore?{plates:platesBefore-p.plates}:{})});
     for(const a of this.activeAllies.filter(a=>!hasEnemyTag(a,'flying'))){if(this.hazards.some(h=>h.x===a.x&&h.y===a.y))this.damageAlly(a,6,null,true,true);if(a.hp>0&&scalding(this,a))this.damageAlly(a,VENT_TUNING.damage,null,true,true);if(a.hp>0&&burningAt(this,a))this.damageAlly(a,FIRE_TUNING.damage,null,true,true);}
     petReactions(this);
     // 3.206.0: a fireproof card (the rebel bosses) takes nothing from fire, the fixed fire of floors 5-6 included.

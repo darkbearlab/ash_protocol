@@ -62,6 +62,7 @@ import {engagementHeard,freshCombat,stepCombat,musicTrack} from './music-state.j
 import {landscapeTouch} from './layout.js';
 import {BACKUP_LIMIT} from './backup.js';
 import {read,write,loadGame,saveGame,profile,TEST_MODE,exportBackup,previewBackup,restoreBackup,abandonRun,resetProgress,TAB_ID,claimTab,tabKey} from './storage.js';
+import {staleRunOf} from './stale-runs.js';
 import {mirrorDeck,parseDeckLayout,DECK_GRID} from './deck-layout.js';
 import {replayLog,stateHash,validReplay} from './replay.js';
 import {persistRunLog,lastRunLog,runLogName,noteRunError} from './run-log.js';
@@ -322,7 +323,7 @@ function applyBackup(){
   if(!pendingBackup)return;
   try{
     const next=restoreBackup(pendingBackup,game);pendingBackup=null;
-    adoptSnapshot(next);notify(t('controller.backup.restored'));
+    adoptSnapshot(next);notify(next.dropped?t('controller.backup.restoredOldRun'):t('controller.backup.restored'));   // 3.210.0: its old run was settled
   }catch(error){backupError(error);}
 }
 
@@ -331,7 +332,7 @@ $('#import-backup').addEventListener('change',async e=>{
   try{
     if(file.size>BACKUP_LIMIT)throw new Error(t('controller.backup.tooLarge'));
     const raw=await file.text(),next=previewBackup(raw),p=next.snapshot.profile;pendingBackup=raw;
-    modal(`<div class="eyebrow">RESTORE BACKUP</div><h2>${t('controller.backup.confirmTitle')}</h2><p>${escapeHTML(file.name)}<br>${escapeHTML(new Date(next.snapshot.createdAt).toLocaleString('zh-TW'))}</p><p>${t('controller.backup.protocol',{v:profile().protocol.balance,balance:p.protocol.balance})}<br>${t('controller.backup.records',{runs:p.runs,charactersLength:p.unlocks.characters.length,v:p.unlocks.stories?.length||0})}<br>${next.game?`${t('controller.backup.mission',{seed:next.game.seed,floor:next.game.floor,turn:next.game.turn})}`:t('controller.backup.noMission')}</p><p>${t('controller.backup.replaceNote')}</p><button class="modal-button" data-modal="backupConfirm">${t('controller.backup.confirm')}</button><button class="modal-button secondary" data-modal="backupCancel">${t('controller.cancel')}</button>`);
+    modal(`<div class="eyebrow">RESTORE BACKUP</div><h2>${t('controller.backup.confirmTitle')}</h2><p>${escapeHTML(file.name)}<br>${escapeHTML(new Date(next.snapshot.createdAt).toLocaleString('zh-TW'))}</p><p>${t('controller.backup.protocol',{v:profile().protocol.balance,balance:p.protocol.balance})}<br>${t('controller.backup.records',{runs:p.runs,charactersLength:p.unlocks.characters.length,v:p.unlocks.stories?.length||0})}<br>${next.game?`${t('controller.backup.mission',{seed:next.game.seed,floor:next.game.floor,turn:next.game.turn})}`:next.dropped?t('controller.backup.oldRun',{version:next.dropped.version}):t('controller.backup.noMission')}</p><p>${t('controller.backup.replaceNote')}</p><button class="modal-button" data-modal="backupConfirm">${t('controller.backup.confirm')}</button><button class="modal-button secondary" data-modal="backupCancel">${t('controller.cancel')}</button>`);
   }catch(error){backupError(error);}e.target.value='';
 });
 
@@ -634,7 +635,8 @@ if(TEST_MODE)globalThis.__ashReplay={load:(raw,options)=>loadReplay(typeof raw==
   get recording(){return lastRunLog(game);}};   // 3.186.0: every run records itself (src/run-log.js)
 $('#import-save').addEventListener('change',async e=>{
   const file=e.target.files[0];if(!file)return;
-  try{if(file.size>1000000)throw new Error(t('controller.import.tooLarge'));const imported=Game.restore(await file.text());if(!imported)throw new Error(t('controller.import.incompatible'));const kept=write('ash-save-before-import',game.serialize());game=connectUnlocks(imported);entered=true;resumable=true;game.setCarryLevel(profile().upgrades.carrying);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();resetKia();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify(kept?t('controller.import.done'):t('controller.import.doneNoBackup')); }catch(error){modal(t('controller.import.failedTitle')+escapeHTML(error.message)+t('controller.import.failedClose'));}e.target.value='';
+  // 3.210.0 (src/stale-runs.js): a run saved before RUN_SAVE_FLOOR is not continued, so it is not imported either.
+  try{if(file.size>1000000)throw new Error(t('controller.import.tooLarge'));const text=await file.text();if(staleRunOf(text))throw new Error(t('controller.import.oldRun'));const imported=Game.restore(text);if(!imported)throw new Error(t('controller.import.incompatible'));const kept=write('ash-save-before-import',game.serialize());game=connectUnlocks(imported);entered=true;resumable=true;game.setCarryLevel(profile().upgrades.carrying);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();resetKia();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify(kept?t('controller.import.done'):t('controller.import.doneNoBackup')); }catch(error){modal(t('controller.import.failedTitle')+escapeHTML(error.message)+t('controller.import.failedClose'));}e.target.value='';
 });
 document.addEventListener('selectstart',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(!target?.closest('input,textarea'))e.preventDefault();});
 document.addEventListener('contextmenu',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(target?.closest('.battle-panel'))e.preventDefault();});

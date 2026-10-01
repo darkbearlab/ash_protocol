@@ -25,6 +25,8 @@ export const EXTRACTION_BEAM=Object.freeze({descend:800,expand:400,hold:600,cont
 // thinner, faster and fainter — a hint, not a highlight.
 const RANGE_FLASH=Object.freeze({ms:90,gap:70,alpha:.45,width:1});
 export const itemGlitchKey=i=>`item:${i.type}:${i.x},${i.y}`;
+// 3.210.0: a hit the plates took whole shows its number in the plates' steel blue, so the bulwark sees each hit land.
+const PLATE_NUMBER='#9cc8e6';
 export class RendererEffects {
   // Callout bubbles (3.76.4): drawn last so they sit above walls. A visible line follows its speaker while it stays
   // visible; a heard line only knows a direction, so it hugs that screen edge with an arrow and never marks a tile.
@@ -217,7 +219,9 @@ export class RendererEffects {
         else if(fx.style==='pellet')this.box(q.x-1,q.y-1,3,3,'#ffe1ad');
         else {this.line(q.x-Math.cos(angle)*(fx.style==='tracer'?18:7),q.y-Math.sin(angle)*(fx.style==='tracer'?18:7),q.x,q.y,color,fx.style==='tracer'?2:1);this.effectSprite(fx.style==='plasma'?'plasma':'bullet',q,fx.style==='tracer'?32:16,angle);}
       }
-      if(fx.miss||fx.damage>0&&!this.game.realMode)this.text(fx.miss?'MISS':'−'+fx.damage,b.x,b.y-20-(fx.quiet?0:age*23),color,fx.miss?10:14);c.globalAlpha=1;
+      if(fx.miss||fx.damage>0&&!this.game.realMode)this.text(fx.miss?'MISS':'−'+fx.damage,b.x,b.y-20-(fx.quiet?0:age*23),color,fx.miss?10:14);
+      else if(fx.plates>0&&!this.game.realMode)this.text('−'+fx.plates,b.x,b.y-20-(fx.quiet?0:age*23),PLATE_NUMBER,14);   // 3.210.0: what the bulwark's plates took
+      c.globalAlpha=1;
     }
     this.effects=this.effects.filter(e=>time-e.time<Math.max(700,e.duration||0));
     if(!this.reduceMotion)for(let i=0;i<12;i++){const x=(i*127.3+time*.003)%this.w,y=(i*83.1+Math.sin(time*.0005+i)*10)%this.h;this.box(x,y,1,1,'#c6cda733');}

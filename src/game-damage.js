@@ -217,6 +217,9 @@ export class GameDamage {
     this.effects.push({type:'tonguePull',sourceId:'player',from,to:{...to},origin:{...to},damage:0});
     this.log(t('game.linePull',{item:PREPARED_CATALOG.item[arg.item].name}));this.pickup();this.reveal();return true;
   }
+  // 3.210.0 (docs/BULWARK.md 改版): fire, steam and acid floor damage, after hazmat. The bulwark's plates (plate_life) take it
+  // first and only the rest reaches the body; everyone else takes it all. Returns both parts for the log.
+  floorDamage(damage){const p=this.player,plates=activeTrait(p,'plate_life')?Math.min(p.plates||0,damage):0;if(plates)p.plates-=plates;p.hp-=damage-plates;return {damage:damage-plates,plates};}
   flareLit(point){return Boolean(this.flares?.length)&&this.flares.some(flare=>flareLights(this,flare,point));}
   throwGrenade(pos) {
     const p=this.player,id=pos?.grenade??p.prepared.grenade,def=GRENADES[id];
@@ -300,13 +303,17 @@ export class GameDamage {
     const ammo=attacker&&!blast?PROJECTILE_AMMO[projectile??ENEMY_TYPES[attacker.type]?.projectile]:null,mult=ammo?ammoMultiplier(ammo,p.armor):null;
     damage=reduceDirectDamage(p,meleeDefense(p,Math.max(1,Math.round(mult===null?damage-p.armor:damage*mult))));if(p.guard)damage=Math.max(1,Math.ceil(damage*.5));
     // 3.144.0: a worn exoskeleton's plates take their share of the hit (half of it) before your own plates do.
-    const half=Math.floor(damage/2),frame=exoAbsorb(this,half),absorbed=Math.min(p.plates||0,half-frame);p.plates=(p.plates||0)-absorbed;damage-=frame+absorbed;
+    // 3.210.0 (docs/BULWARK.md 改版): the bulwark's plates (plate_life) take all of what is left, not half.
+    const half=Math.floor(damage/2),frame=exoAbsorb(this,half),absorbed=Math.min(p.plates||0,(activeTrait(p,'plate_life')?damage:half)-frame);p.plates=(p.plates||0)-absorbed;damage-=frame+absorbed;
     p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');const coverNote=cover?t('game.noteCover'):'';
-    this.log(t('game.playerHurt',{source:label,notes:coverNote+(frame?t('game.noteExo',{n:frame}):'')+(absorbed?t('game.notePlates',{n:absorbed}):''),damage}),true,t('game.playerHurtReal',{source:label,notes:coverNote+(frame||absorbed?t('game.noteArmor'):'')}));
+    const notes=coverNote+(frame?t('game.noteExo',{n:frame}):'')+(absorbed?t('game.notePlates',{n:absorbed}):''),real=t('game.playerHurtReal',{source:label,notes:coverNote+(frame||absorbed?t('game.noteArmor'):'')});
+    // 3.210.0: a hit the plates took whole says so, instead of 「生命 −0」.
+    this.log(damage>0||!absorbed?t('game.playerHurt',{source:label,notes,damage}):t('game.playerHurtPlates',{source:label,notes:coverNote+(frame?t('game.noteExo',{n:frame}):''),n:absorbed}),true,real);
     if(frame&&p.exoPlates<=0)breakExo(this);
     if(attacker&&ENEMY_TYPES[attacker.type]?.mechanical&&ENEMY_TYPES[attacker.type].range>1)addTrace(this,p,'scorch');
-    if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:enemyDef(attacker)?.attackStyle||(ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet'),from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage});
-    else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage,player:true});   // player: the screen shake (3.147.0)
+    // plates (3.210.0): what the plates took, shown when nothing reached the body (src/renderer-effects.js).
+    if(attacker)this.effects.push({type:'enemyShot',attackerType:attacker.type,style:enemyDef(attacker)?.attackStyle||(ENEMY_TYPES[attacker.type]?.mechanical?'plasma':'bullet'),from:{x:attacker.x,y:attacker.y},to:{x:p.x,y:p.y},damage,...(absorbed?{plates:absorbed}:{})});
+    else this.effects.push({type:'impact',from:{x:p.x,y:p.y},to:{x:p.x,y:p.y},damage,player:true,...(absorbed?{plates:absorbed}:{})});   // player: the screen shake (3.147.0)
     petReactions(this);syncPetSenses(this);
   }
   damageAlly(a,raw,attacker=null,blast=false,environment=false){

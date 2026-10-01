@@ -86,7 +86,7 @@ test('every carried item stops at five; the rest stays at your feet; the carry l
 });
 
 test('difficult healing halves the medkit alone; the medic bonus is added in full',()=>{
- const g=arena('bulwark'),p=g.player;p.hp=10;p.healBonus=20;assert.ok(g.action('heal'));assert.equal(p.hp,10+22+20);
+ const g=arena('necromancer'),p=g.player;p.hp=10;p.healBonus=20;assert.ok(g.action('heal'));assert.equal(p.hp,10+22+20);   // 3.210.0: the bulwark no longer has it
  const s=arena('soldier');s.player.hp=10;s.player.healBonus=20;assert.ok(s.action('heal'));assert.equal(s.player.hp,75);
 });
 

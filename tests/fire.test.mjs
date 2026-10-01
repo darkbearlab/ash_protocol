@@ -212,7 +212,7 @@ test('saves: fires and a marked cone come back, bad ones are refused, and a save
   // 3.203.0 review: a cone whose flamer was moved or stunned outside its turn is dropped on load, not the whole save.
   for(const change of [d=>d.enemies[0].flameIntent.origin={x:1,y:1},d=>d.enemies[0].control.disabled=2]){
     const raw=JSON.parse(g.serialize());change(raw.data);const back=Game.restore(JSON.stringify(raw));assert.ok(back);assert.equal(back.enemies[0].flameIntent,undefined);}
-  assert.equal(SAVE_VERSION,86);
+  assert.equal(SAVE_VERSION,87);
   const plain=field();const old=JSON.parse(plain.serialize());old.version=80;const loaded=Game.restore(JSON.stringify(old));
   assert.ok(loaded,'a save from 3.202.0 loads');assert.equal(loaded.fires,undefined);
 });
@@ -318,8 +318,10 @@ test('review 7: interruptions clear a marked cone, it is a committed move, and a
     assert.equal(p.ammo.length,p.weaponBases.length);}
 });
 
-test('a pre-existing slip fixed in 3.203.0: plates up to the rack perk cap load',()=>{
+test('a pre-existing slip fixed in 3.203.0: plates up to the rack perk cap load; more are cut to it (3.210.0)',()=>{
   const g=new Game(5,[],0,'soldier','onyx');g.player.perks.plate_rack=1;g.player.plates=g.plateCapacity-5;
   assert.ok(g.player.plates>30);assert.ok(Game.restore(g.serialize()),'plates over the bare class cap, under the rack cap');
-  g.player.plates=g.plateCapacity+1;assert.equal(Game.restore(g.serialize()),null,'still no more than the rack allows');
+  // 3.210.0: the cap is a tuning number (docs/CHECKLIST.md section 3), so plates over it are cut to it on load, not refused.
+  g.player.plates=g.plateCapacity+1;const cut=Game.restore(g.serialize());assert.ok(cut,'over the cap still loads');assert.equal(cut.player.plates,g.plateCapacity,'cut to the cap');
+  g.player.plates=-1;assert.equal(Game.restore(g.serialize()),null,'a negative count is broken data');
 });

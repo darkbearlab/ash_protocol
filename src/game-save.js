@@ -206,7 +206,8 @@ export class GameSave {
       // 3.177.9 (user): the ninja sees through smoke like the recon and is not caught by its own stun grenade or EMP.
       if(p.character==='ninja')for(const id of ['infrared','close_throw'])if(!p.traits.some(t=>t.id===id&&t.source==='character:ninja'))grantTrait(p,id,'character:ninja');
       // Balance-only passive: existing trait schema, preserve HP/resources and avoid duplicate sources.
-      if(['bulwark','necromancer'].includes(p.character)&&!p.traits.some(t=>t.id==='difficult_healing'&&t.source===`character:${p.character}`))grantTrait(p,'difficult_healing',`character:${p.character}`);
+      // 3.210.0: the bulwark no longer has it (docs/BULWARK.md 改版); the class sync at the end drops a stale copy.
+      if(p.character==='necromancer'&&!p.traits.some(t=>t.id==='difficult_healing'&&t.source===`character:${p.character}`))grantTrait(p,'difficult_healing',`character:${p.character}`);
       if(version<29)p.battleSpirit=freshSpirit();
       if(!validMeleeState(version>=29?data.player:p,data.turn))return null;
       if(!validAnchor(p))return null;
@@ -214,7 +215,9 @@ export class GameSave {
       if(!Array.isArray(data.sensorContacts)||data.sensorContacts.length>256||data.sensorContacts.some(q=>!point(q))||(!skillActive(p,'early_warning')&&data.sensorContacts.length))return null;
       // 3.203.0 (a fix for a 3.148.0 slip): the cap is the one the game fills to, 加掛板架 included; a run with the rack
       // and more plates than the bare class cap was refused on load.
-      p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0||p.plates>plateCapacityOf(p))return null;
+      // 3.210.0: the cap is a tuning number (the bulwark's 120 is the knob the user will turn), so a save above it is cut
+      // to it rather than refused (docs/CHECKLIST.md section 3).
+      p.plates=data.player.plates??0;if(!Number.isInteger(p.plates)||p.plates<0)return null;p.plates=Math.min(p.plates,plateCapacityOf(p));
       if(!Number.isInteger(p.x)||!Number.isInteger(p.y)||data.grid[p.y]?.[p.x]!==1||!Number.isFinite(p.hp)||p.hp<=0)return null;
       if(version<5){
         p.weaponBases=CATALOG.map((_,i)=>i);p.affixes=CATALOG.map(()=>null);   // CATALOG: the fresh pack's slots (3.203.0)

@@ -5,6 +5,15 @@ export function muteCornerPixels(data){
   for(let i=0;i<data.length;i+=4){const gray=data[i]*.299+data[i+1]*.587+data[i+2]*.114;for(let k=0;k<3;k++)data[i+k]=Math.round((data[i+k]*.45+gray*.55)*.88);}
   return data;
 }
+// 3.210.0 (user 2026-10-01, docs/SKILLS.md 訊號斷層 外觀, docs/MELEE_CLASSES.md 迷彩中的連斬): your own stealth shows on your
+// sprite. Under 訊號斷層 the recon is almost fully transparent with a bright outline; under the optical camouflage the
+// ninja is half there with the same outline. Presentation only: it reads your own skill state and nothing an enemy uses.
+export const STEALTH_VISUAL=Object.freeze({signalAlpha:.14,camoAlpha:.45,outline:'#b8fbff'});
+export function stealthLook(p){
+  if((p?.skillState?.signal_break?.remaining||0)>0)return {alpha:STEALTH_VISUAL.signalAlpha,outline:STEALTH_VISUAL.outline};
+  if((p?.skillState?.camouflage?.remaining||0)>0)return {alpha:STEALTH_VISUAL.camoAlpha,outline:STEALTH_VISUAL.outline};
+  return null;
+}
 export const MOVE_MS=120;
 export const DARK_ACTOR_BRIGHTNESS=.55;
 const actors=g=>[g.player,...g.enemies,...(g.allies||[]).filter(a=>a.status==='active'&&a.floor===g.floor)];

@@ -2,6 +2,7 @@ import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game,SIZE,makeEnemy,generate} from '../src/engine.js';
 import {fullLighting,createLighting,isDark} from '../src/lighting.js';
 import {grantTrait,activeTrait} from '../src/traits.js';
@@ -126,5 +127,6 @@ test('darkness paints only the floor beneath objects and actors; map uses a dist
 test('first local v17 load preserves original QA backup without touching live data',async()=>{
   const memory=new Map();globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
   const storage=await import('../src/storage.js?lighting'),old=JSON.parse(arena('recon').serialize());old.version=17;delete old.data.lighting;old.data.player.traits=old.data.player.traits.filter(t=>!['night_vision','infrared'].includes(t.id));
-  const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);assert.ok(storage.loadGame());assert.equal(memory.get('qa-ash-save-v17-backup'),raw);assert.equal(memory.has('ash-save'),false);
+  const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);assert.ok(Game.restore(raw));assertDropped(storage,memory,raw);   // 3.210.0: the storage settles an old run
+ assert.equal(memory.has('ash-save'),false);
 });

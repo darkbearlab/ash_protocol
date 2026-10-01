@@ -43,7 +43,7 @@ export function showIntro(){
       ${entry('settings','SETTING',t('controller.title.settings'))}
       ${entry('about','ABOUT',t('controller.title.about'))}
     </nav>
-    ${storage.available?'':t('controller.title.storageWarning')}
+    ${storage.available?'':t('controller.title.storageWarning')}${storage.droppedRun?t(storage.droppedRun.rewarded?'controller.title.oldRunAbandoned':'controller.title.oldRunUnreadable',{version:storage.droppedRun.version,copy:t(storage.droppedRun.kept?'controller.title.oldRunCopy':'controller.title.oldRunNoCopy')}):''}
   </div>`,false,true);
 }
 export const MISSION_IDS=CAMPAIGN_MISSION_IDS;   // 3.177.11: quick and daily games roll only what is still offered

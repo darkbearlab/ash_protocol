@@ -1,6 +1,7 @@
 import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game} from '../src/game.js';
 import {SIZE} from '../src/data.js';
 import {MISSIONS,newMission,prepareMission,validMission,missionObjects,missionProgress,missionTarget} from '../src/missions.js';
@@ -82,6 +83,7 @@ test('target badge and mission progress follow projectile arrival, without compl
 });
 test('v15 local load retains original bytes and mission history survives profile backup',async()=>{
   const memory=new Map();globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
-  const storage=await import('../src/storage.js?missions');const old=JSON.parse(new Game(3).serialize());old.version=15;delete old.data.mission;const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);assert.ok(storage.loadGame());assert.equal(memory.get('qa-ash-save-v15-backup'),raw);assert.equal(memory.has('ash-save'),false);
+  const storage=await import('../src/storage.js?missions');const old=JSON.parse(new Game(3).serialize());old.version=15;delete old.data.mission;const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);assert.ok(Game.restore(raw));assertDropped(storage,memory,raw);   // 3.210.0: the storage settles an old run
+ assert.equal(memory.has('ash-save'),false);
   const g=arena();g.status='dead';g.player.hp=0;const p=storage.recordResult(g);assert.equal(p.history[0].mission,'retrieval');assert.equal(decodeBackup(JSON.stringify(makeBackup(null,p,'qa')),'qa').snapshot.profile.history[0].mission,'retrieval');
 });

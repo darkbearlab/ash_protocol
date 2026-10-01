@@ -1,6 +1,7 @@
 import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game} from '../src/game.js';
 import {SIZE} from '../src/data.js';
 import {makeEnemy} from '../src/world.js';
@@ -61,5 +62,6 @@ test('malformed trace data is rejected, and rendering decorations cannot change 
 });
 test('v16 local first load keeps original bytes in QA without touching live storage',async()=>{
   const memory=new Map();globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
-  const storage=await import('../src/storage.js?traces'),old=JSON.parse(arena().serialize());old.version=16;delete old.data.traces;const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);assert.ok(storage.loadGame());assert.equal(memory.get('qa-ash-save-v16-backup'),raw);assert.equal(memory.has('ash-save'),false);
+  const storage=await import('../src/storage.js?traces'),old=JSON.parse(arena().serialize());old.version=16;delete old.data.traces;const raw=JSON.stringify(old);memory.set('qa-ash-save',raw);assert.ok(Game.restore(raw));assertDropped(storage,memory,raw);   // 3.210.0: the storage settles an old run
+ assert.equal(memory.has('ash-save'),false);
 });

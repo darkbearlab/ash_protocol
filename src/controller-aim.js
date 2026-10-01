@@ -21,6 +21,7 @@ import {courseActive} from './course.js';
 import {FLARE_TUNING,flareReason} from './flares.js';
 import {DECOY_TUNING,MINE_TUNING,placeStart} from './field-gear.js';
 import {LINE_TUNING} from './lines.js';
+import {hookBladeFire} from './melee-ui.js';
 import {$,act,autoRetarget,game,modal,persist,playback,renderer,sayLine,skipEnabled} from './controller.js';
 import {ending} from './controller-comms.js';
 import {drawOperatorSprites} from './controller-deploy.js';
@@ -60,7 +61,7 @@ export function updateAim(view=renderer.game){const blinding=renderer.mode==='bl
   b.querySelector('strong').textContent=view.status!=='playing'?t('controller.interact.result'):blinding?t('controller.interact.confirmBlind'):launching?t(view.weapon?.flame?'controller.interact.confirmSpray':'controller.interact.confirmLaunch'):deploying?t('controller.interact.cancelSetup'):commanding?(renderer.mode==='drone'?t('controller.interact.confirmDeploy'):t('controller.interact.confirmCommand')):aiming?t('controller.interact.confirmThrow'):roping?t('controller.interact.confirmLine'):placing?(renderer.placeItem==='mine'?t('controller.interact.confirmMine'):t('controller.interact.confirmThrow')):flaring?t('controller.interact.confirmFlare'):suppressing?`${t('controller.interact.confirmSuppress',{v:preview?.rounds??0})}`:options.length>1?t('controller.interact.label'):options[0]?.label||t('controller.interact.label');
   b.classList.toggle('aiming',aiming||flaring||launching||commanding||suppressing||deploying);
   const fire=$('[data-action="fire"]');
-  if(fire){fire.classList.toggle('aiming',launching);fire.querySelector('strong').textContent=blinding?t('controller.fire.cancelBlind'):launching?t('controller.fire.cancelLaunch'):view.weapon?.melee?t('controller.fire.punch'):t('controller.fire.label');}$('[data-action="skill"]')?.classList.toggle('aiming',suppressing);b.title=view.allyTravelSummary||'';
+  if(fire){fire.classList.toggle('aiming',launching);fire.querySelector('strong').textContent=blinding?t('controller.fire.cancelBlind'):launching?t('controller.fire.cancelLaunch'):hookBladeFire(view)?t('controller.fire.hook'):view.weapon?.melee?t('controller.fire.punch'):t('controller.fire.label');}$('[data-action="skill"]')?.classList.toggle('aiming',suppressing);b.title=view.allyTravelSummary||'';
   const item=$('[data-action="item"]');
   if(item){item.classList.toggle('aiming',deploying||flaring);item.querySelector('strong').textContent=deploying?t('controller.interact.cancelSetup'):roping?t('controller.item.cancelLine'):placing?t('controller.item.cancel'):flaring?t('controller.item.cancelFlare'):slotLabel(view,'item');}
   for(const key of ['0,-1','0,1','-1,0','1,0'])$(`[data-move="${key}"]`)?.classList.toggle('aiming',deploying);

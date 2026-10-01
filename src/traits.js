@@ -64,6 +64,13 @@ export const TRAITS={
   // many suppression stacks as the rank (src/suppression.js meleeSuppression). Only the swarm's biters carry it, through
   // their faction's override (src/faction-catalog.js), which also holds the rank.
   melee_suppression:{name:t('traits.melee_suppression.name'),text:t('traits.melee_suppression.text')},
+  // 3.210.0 (user decision 2026-10-01, docs/BULWARK.md 改版): the bulwark's plates are its life. They take all of a direct
+  // hit left after armour (src/game-damage.js damagePlayer), fire, steam and acid floor hit them first (src/game-enemies.js
+  // environmentTurn), and while any are left the suit is one more rank of poison resistance (src/poison.js).
+  plate_life:{name:t('traits.plate_life.name'),text:t('traits.plate_life.text')},
+  // 3.210.0 (user decision 2026-10-01, docs/MELEE_CLASSES.md 迷彩中的連斬): the ninja's own melee always lands at a fixed
+  // 99% (src/game.js meleeAccuracy, src/melee-classes.js SURE_BLADE).
+  sure_blade:{name:t('traits.sure_blade.name'),text:t('traits.sure_blade.text')},
 };
 export function hasTrait(actor,id){return (actor?.traits||[]).some(t=>t.id===id);}
 export function activeTrait(actor,id){return hasTrait(actor,id)&&!hasTrait(actor,TRAITS[id]?.opposite);}

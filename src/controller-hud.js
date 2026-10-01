@@ -19,7 +19,8 @@ import {missionDefinition,missionDepth,missionProgress,returning} from './missio
 import {ammoName} from './weapons.js';
 import {PREPARED_CATEGORIES,preparedEntry} from './prepared.js';
 import {levelCost} from './perks.js';
-import {grappleLabel,meleeChips} from './melee-ui.js';
+import {grappleLabel,hookBladeFire,hookBladeLabel,meleeChips} from './melee-ui.js';
+import {camoActive} from './melee-classes.js';
 import {isEndless} from './endless.js';
 import {depthLabel,endlessFloorText,growthLabel,levelLabel,levelTitle} from './endless-ui.js';
 import {ENEMY_TYPES,distance,floorInfo,isSimulation} from './engine.js';
@@ -63,6 +64,7 @@ function lowHealth(p){
 function skillLabel(view,id){
   if(ALLY_SKILLS.includes(id))return allySkillState(view,id);
   if(id==='grapple'&&!view.player.skillState.grapple?.cooldown)return grappleLabel(view);
+  if(id==='camouflage'&&camoActive(view.player))return hookBladeLabel(view);   // 3.210.0: the button is the hook blade now
   return skillStatus(view.player,id);
 }
 export function update(view=renderer.game) {
@@ -106,6 +108,8 @@ export function update(view=renderer.game) {
   // Grapple preview: only while the hook is ready and the locked target is a legal pull or dash.
   renderer.grapplePreview=null;
   if(p.prepared.skill==='grapple'&&!p.skillState.grapple?.cooldown&&!p.control.disabled&&view.status==='playing'){const plan=view.grapplePlan();if(!plan.reason)renderer.grapplePreview={from:{x:plan.mover.x,y:plan.mover.y},point:plan.point,dash:plan.dash};}
+  // 3.210.0: the hook blade's pull, while the camouflage is on and the locked enemy is one it can reach (not one beside you).
+  if(camoActive(p)&&!p.control.disabled&&view.status==='playing'){const plan=view.hookBladePlan();if(!plan.reason&&(plan.point.x!==p.x||plan.point.y!==p.y))renderer.grapplePreview={from:{x:p.x,y:p.y},point:plan.point,dash:true,hook:true};}
   // 3.178.0: the flashlight switch shows whether it is on.
   const lightButton=$('[data-action="flashlight"]');if(lightButton){lightButton.setAttribute('aria-pressed',String(Boolean(p.flashlight)));lightButton.setAttribute('aria-label',p.flashlight?t('controller.flashlight.off'):t('controller.flashlight.on'));}
   const aimingButton=$('[data-action="toggleTargeting"]');
@@ -119,13 +123,13 @@ export function update(view=renderer.game) {
   // backpack tab, and a long press always does. They only look unavailable.
   for(const b of document.querySelectorAll('.control-deck button')){
     const slot=Object.hasOwn(PREPARED_CATEGORIES,b.dataset.action);
-    const unusable=(b.dataset.action==='skill'&&(!(ALLY_SKILLS.includes(lp.prepared.skill)?canAllySkill(lv,lp.prepared.skill):canUseSkill(lp,lp.prepared.skill))||lp.control.disabled))||(b.dataset.action==='reload'&&w.melee)||(slot&&(!preparedEntry(lp,b.dataset.action)||!preparedEntry(lp,b.dataset.action).action||(preparedEntry(lp,b.dataset.action).resource&&lp[preparedEntry(lp,b.dataset.action).resource]<=0)));
+    const unusable=(b.dataset.action==='skill'&&(!(ALLY_SKILLS.includes(lp.prepared.skill)?canAllySkill(lv,lp.prepared.skill):canUseSkill(lp,lp.prepared.skill)||lp.prepared.skill==='camouflage'&&camoActive(lp))||lp.control.disabled))||(b.dataset.action==='reload'&&w.melee)||(slot&&(!preparedEntry(lp,b.dataset.action)||!preparedEntry(lp,b.dataset.action).action||(preparedEntry(lp,b.dataset.action).resource&&lp[preparedEntry(lp,b.dataset.action).resource]<=0)));
     b.disabled=(Boolean(playback)&&!skipEnabled())||view.status!=='playing'||(!slot&&unusable);
     // 3.161.0: a skill has no `resource`, so for it `unusable` came out undefined rather than false — and toggle() with
     // no second argument flips the class on every redraw. That was the dim-but-working skill button.
     b.classList.toggle('unavailable',Boolean(slot&&unusable));
   }
-  $('[data-action="fire"] strong').textContent=w.melee?t('controller.fire.punch'):t('controller.fire.label');
+  $('[data-action="fire"] strong').textContent=hookBladeFire(view)?t('controller.fire.hook'):w.melee?t('controller.fire.punch'):t('controller.fire.label');
   updateAim(view);
   if(playback)return;
   if(view.floor!==previousFloor){setPreviousFloor(view.floor);floorToast();}

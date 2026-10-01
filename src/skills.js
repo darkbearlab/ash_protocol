@@ -1,5 +1,5 @@
 import {t} from './i18n.js';
-import {GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN,MELEE_TUNING} from './melee-classes.js';
+import {GRAPPLE_RANGE,GRAPPLE_COOLDOWN,CAMO_DURATION,CAMO_COOLDOWN,HOOK_BLADE_RANGE,MELEE_TUNING} from './melee-classes.js';
 import {grantTrait,removeTraitSource} from './traits.js';
 import {TETHER,CARRY_DISTANCE,SUMMON_LIMIT,SUMMON_INTERVAL,SUMMON_TETHER,RALLY_TURNS,PET_TETHER,DRONE_HP,SENTRY_ARMOR,WORKSHOP_TUNING,MUNITION_TUNING,ENEMY_UNIT_TUNING,REPAIR_TUNING,allyWeapon,summonInterval,summonLimit} from './allies.js';
 import {classPerkRank,CLASS_PERK_TUNING,markValues} from './class-perks.js';
@@ -9,7 +9,7 @@ const FOLLOW=allyWeapon({kind:'drone',sourceId:'drone_follow'}),SENTRY=allyWeapo
 const SKILL_TEXTS={
  early_warning:v=>t('skills.earlyWarning',{radius:v.radius,markTurns:v.mark.duration,accuracy:v.mark.accuracy,damage:Math.round(v.mark.damage*100),evasion:v.mark.evasion?t('skills.warningEvasion',{n:v.mark.evasion}):'',cooldown:v.cooldown}),
  signal_break:v=>t('skills.signalBreak',{turns:v.duration,cooldown:v.cooldown}),
- camouflage:v=>t('skills.camouflage',{turns:v.duration,evasion:MELEE_TUNING.camoEvasion,cooldown:v.cooldown}),
+ camouflage:v=>t('skills.camouflage',{turns:v.duration,evasion:MELEE_TUNING.camoEvasion,cooldown:v.cooldown,hook:HOOK_BLADE_RANGE,damage:MELEE_TUNING.camoMelee}),   // hook, damage: 3.210.0
  raise_dead:v=>`被動：每 ${v.interval} 回合自動從本層倒下過的非頭目、非機械敵人中抽一隻起身（倒下越多的種類越常出現，屍體不消耗），最多 ${v.limit} 隻，出現在你身邊、下回合才行動；生命同該物種（32～150），傷害取物種基礎值（不含深層加成），沒有裝甲；主動追擊離你 ${SUMMON_TETHER} 格內看得到的敵人。按技能免費集結：${RALLY_TURNS} 回合內召喚物停止追擊、回到你身邊，換層前使用。未同行者換層消失。`,
 },SKILL_CARDS={raise_dead:v=>`每 ${v.interval} 回合自動起身 · 集結免費`};
 // Active skills are separate from passive traits and item quantities.

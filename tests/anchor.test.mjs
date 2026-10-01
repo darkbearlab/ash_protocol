@@ -1,6 +1,7 @@
 import {clearGeneratedMap} from './helpers/arena.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {skillActive,skillStatus,ANCHOR_SOURCE} from '../src/skills.js';
 import {grantTrait,activeTrait} from '../src/traits.js';
@@ -11,7 +12,7 @@ import {captureAction,planPresentation} from '../src/presentation.js';
 import {makeBackup,decodeBackup} from '../src/backup.js';
 import {normalizeProfile} from '../src/progression.js';
 
-function arena(){const g=new Game(335,[],0,'bulwark','onyx');g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());g.seen=g.grid.map(r=>r.map(()=>true));for(const k of ['allies','enemies','props','items','barriers','hazards','marks','rooms','traces','smoke'])g[k]=[];clearGeneratedMap(g);Object.assign(g.player,{x:10,y:10,hp:200,maxHp:200});g.start={x:5,y:5};g.end={x:20,y:20};g.reveal();return g;}
+function arena(){const g=new Game(335,[],0,'bulwark','onyx');g.grid=Array.from({length:SIZE},()=>Array(SIZE).fill(1));g.lighting=g.grid.map(r=>r.slice());g.seen=g.grid.map(r=>r.map(()=>true));for(const k of ['allies','enemies','props','items','barriers','hazards','marks','rooms','traces','smoke'])g[k]=[];clearGeneratedMap(g);Object.assign(g.player,{x:10,y:10,hp:100,maxHp:100});g.start={x:5,y:5};g.end={x:20,y:20};g.reveal();return g;}
 const toggle=g=>g.action('usePrepared',{category:'skill'});
 function foe(g,{x=14,y=10,speed=0}={}){const e=makeEnemy('rifleman',x,y,'anchor-enemy-'+g.enemies.length);Object.assign(e,{hp:1000,maxHp:1000,alert:true});if(speed)grantTrait(e,speed<0?'fast':'slow','test:anchor');g.enemies.push(e);g.reveal();g.target=e.id;return e;}
 function anchored(){const g=arena();assert.ok(toggle(g));return g;}
@@ -81,7 +82,7 @@ test('mid-round disruption cancels the slow attack without clearing anchor, and 
 });
 test('anchor does not duplicate allies, healing, reload, waits or free weapon swaps and cannot be disabled by unpreparing',()=>{
  const g=anchored(),p=g.player,e=foe(g),a=addAlly(g,'drone','drone',{sourceId:'drone_sentry',point:{x:11,y:10}});a.ammo=8;a.bornTurn=1;g.enemyAct=()=>{};g.rng=Object.assign(()=>0,{state:()=>0});const shots=g.effects.filter(x=>x.type==='shot').length;g.action('fire');assert.equal(g.effects.filter(x=>x.type==='shot').length>shots,true,'the sentry fired once, on its own rounds');
- p.hp=80;const meds=p.meds,t=g.turn;g.action('heal');assert.equal(p.meds,meds-1);assert.equal(p.hp,102);assert.equal(g.turn,t+1);
+ p.hp=40;const meds=p.meds,t=g.turn;g.action('heal');assert.equal(p.meds,meds-1);assert.equal(p.hp,85,'one medkit, once (3.210.0: no 難以治療 on the bulwark)');assert.equal(g.turn,t+1);
  const turns=g.turn;g.action('weapon',7);g.action('weapon',6);g.action('prepare',{category:'skill',id:null});assert.equal(g.turn,turns);assert.ok(skillActive(p,'anchor'));assert.equal(g.action('move',[0,1]),false);assert.equal(toggle(g),false);
  g.action('wait');assert.ok(p.guard);assert.ok(skillActive(p,'anchor'));assert.equal(g.turn,turns+1);
 });
@@ -94,10 +95,10 @@ test('toggle state and skill-sourced clumsy roundtrip, remain through time and b
  assert.deepEqual(decodeBackup(JSON.stringify(makeBackup(g,normalizeProfile(),'qa')),'qa').game.player,g.player);
  for(const mutate of [p=>p.skillState.anchor.remaining=2,p=>p.skillState.anchor.cooldown=1,p=>p.traits=p.traits.filter(t=>t.source!==ANCHOR_SOURCE),p=>p.skillState.anchor.remaining=0]){const raw=JSON.parse(g.serialize());mutate(raw.data.player);assert.equal(Game.restore(JSON.stringify(raw)),null);}
 });
-test('v24 Bulwark receives an inactive prepared anchor without changing resources, RNG or other units; first load backs up exact bytes',async()=>{
+test('v24 Bulwark receives an inactive prepared anchor without changing resources, RNG or other units; the storage keeps the exact bytes of the settled old run (3.210.0)',async()=>{
  const g=arena(),raw=JSON.parse(g.serialize());raw.version=24;raw.data.player.skills=[];raw.data.player.prepared.skill=null;raw.data.player.skillState={};raw.data.player.hp=81;raw.data.player.ammo[6]=7;const text=JSON.stringify(raw),memory=new Map([['qa-ash-save',text],['ash-save','untouched']]);
  globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
- const storage=await import('../src/storage.js?anchor335'),restored=storage.loadGame();assert.ok(restored);assert.equal(restored.player.hp,81);assert.equal(restored.player.ammo[6],7);assert.deepEqual(restored.allies,g.allies);assert.equal(restored.rng.state(),g.rng.state());assert.equal(restored.player.prepared.skill,'anchor');assert.ok(!skillActive(restored.player,'anchor'));assert.equal(memory.get('qa-ash-save-v24-backup'),text);assert.equal(memory.get('ash-save'),'untouched');
+ const storage=await import('../src/storage.js?anchor335'),restored=Game.restore(text);assert.ok(restored);assert.equal(restored.player.hp,81);assert.equal(restored.player.ammo[6],7);assert.deepEqual(restored.allies,g.allies);assert.equal(restored.rng.state(),g.rng.state());assert.equal(restored.player.prepared.skill,'anchor');assert.ok(!skillActive(restored.player,'anchor'));assertDropped(storage,memory,text);assert.equal(memory.get('ash-save'),'untouched');
 });
 test('playback keeps normal burst, enemy counterattack and slow burst in that order with no pre-impact death',()=>{
  const g=anchored(),e=foe(g);g.rng=Object.assign(()=>0,{state:()=>0});e.charge=true;e.windup=1;

@@ -1,6 +1,7 @@
 import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {readFileSync} from 'node:fs';
 import {Game,SIZE,makeEnemy} from '../src/engine.js';
 import {PORTRAITS,pickPortrait,deploymentPortraits,portraitForLegacy,portraitPath,portraitMarkup} from '../src/portraits.js';
@@ -52,8 +53,10 @@ test('KIA applies only to death; paths are allowlisted and all portraits ship of
 test('v9 original is backed up in QA and portrait history survives full profile backup',async()=>{
   const memory=new Map();globalThis.location={search:'?test=1'};globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v),removeItem:k=>memory.delete(k)};
   const storage=await import('../src/storage.js?portraits');const g=new Game(313,[],0,'recon','cedar');
-  const raw=JSON.parse(g.serialize());raw.version=9;delete raw.data.player.portrait;const text=JSON.stringify(raw);
-  memory.set('qa-ash-save',text);assert.ok(storage.loadGame());assert.equal(memory.get('qa-ash-save-v9-backup'),text);assert.equal(memory.has('ash-save'),false);
+  // 3.210.0: the old save is another run, so settling it as abandoned does not close g's own ledger entry.
+  const raw=JSON.parse(new Game(313,[],0,'recon','cedar').serialize());raw.version=9;delete raw.data.player.portrait;const text=JSON.stringify(raw);
+  memory.set('qa-ash-save',text);assert.ok(Game.restore(text));assertDropped(storage,memory,text);   // 3.210.0: the storage settles an old run
+ assert.equal(memory.has('ash-save'),false);
   g.status='dead';const profile=storage.recordResult(g);assert.equal(profile.history[0].portrait,'cedar');
   const backup=makeBackup(null,profile,'qa');assert.equal(decodeBackup(JSON.stringify(backup),'qa').snapshot.profile.history[0].portrait,'cedar');
   backup.profile.history[0].portrait='invalid';assert.throws(()=>decodeBackup(JSON.stringify(backup),'qa'));

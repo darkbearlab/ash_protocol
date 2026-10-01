@@ -8,7 +8,7 @@ import {enemyArmor} from './enemy-affixes.js';
 import {SUPPRESSION_TUNING,finishSuppression,pinned} from './suppression.js';
 import {roundCost,singleShotAt,volleyShots} from './weapons.js';
 import {CLASS_PERK_TUNING,classPerkRank} from './class-perks.js';
-import {ambushMultiplier,ambushReady,bladeMultiplier,shortenCamo} from './melee-classes.js';
+import {ambushMultiplier,ambushReady,bladeMultiplier,camoActive,camoMultiplier,shortenCamo,useHookBlade} from './melee-classes.js';
 import {thrustTargets} from './melee-weapons.js';
 import {toxicShot} from './swarm-fields.js';
 import {hazeShot} from './vents.js';
@@ -92,6 +92,8 @@ export class GameAttacks {
   }
   fire(intent=null) {
     const p=this.player,e=this.targeted,w=this.weapon;
+    // 3.210.0: a blade swung at an enemy out of reach while the camouflage is on is the hook blade (src/melee-classes.js).
+    if(w.melee&&!w.thrust&&camoActive(p)&&this.enemies.includes(e)&&distance(p,e)>1)return useHookBlade(this,e.id,p.weapon);
     if(w.melee)return w.thrust?this.thrust(intent):this.strike(intent);
     // A committed shot still fires at the last confirmed tile if its target is lost.
     if(intent&&w.cone&&(!e||distance(p,e)>w.range||!this.shotClear(p,e)))return this.fireCone(intent);
@@ -182,7 +184,7 @@ export class GameAttacks {
     if(!intent&&(!target||distance(p,target)>1))return this.fail(t('game.meleeAdjacent'));
     const valid=target&&distance(p,target)<=1&&this.shotClear(p,target)&&(isBarrier(target)||this.canCross(p,target)),to=valid?target:intent;
     p.fireChain=null;p.facing=[Math.sign(to.x-p.x),Math.sign(to.y-p.y)];if(valid&&this.enemies.includes(target))noticeAttack(this,target);
-    let landed=false,ambush=false;
+    let landed=false,ambush=false;const camo=camoMultiplier(p,w);
     presentStep(this,()=>{
       ambush=!w.unarmed&&Boolean(valid)&&ambushReady(this,target);if(ambush&&!this.shadowBonus)shortenCamo(p);
       const blind=Boolean(valid)&&!isBarrier(target)&&!this.teamVisible(target);if(blind)this.log(t('game.blindMelee',{penalty:BLIND_TUNING.penalty}));
@@ -193,7 +195,8 @@ export class GameAttacks {
       // 3.136.0 (src/melee-weapons.js): claws bite harder on an unarmoured enemy; the sabre's blow splashes onto the
       // target's visible neighbours; the chainsaw costs your next action once it bites.
       const foe=this.enemies.includes(target),bare=w.bareBonus&&foe&&!(enemyArmor(target)>0)?1+w.bareBonus:1;
-      const d=this.weaponDamage(slot),damage=Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)*bare);this.hitTarget(target,damage,p,w.pierce||0,w);
+      // 3.210.0: the camouflage's own ×camoMelee multiplies with the ambush's.
+      const d=this.weaponDamage(slot),damage=Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)*camo*bare);this.hitTarget(target,damage,p,w.pierce||0,w);
       if(w.splash&&foe)for(const other of this.enemies.filter(o=>o.hp>0&&o!==target&&distance(o,target)<=1&&this.visible(o)))this.hitTarget(other,Math.round(damage*w.splash),p,w.pierce||0,w);
       if(w.recovery){p.recovery=1;this.log(t('game.recovery',{weapon:w.name}));}
       const shadow=classPerkRank(p,'ninja_shadowstep');if(ambush&&shadow&&!this.shadowBonus){this.shadowSteps=shadow>=2?2:1;this.log(t('game.shadowReady',{n:this.shadowSteps}));}
@@ -202,7 +205,7 @@ export class GameAttacks {
     // 3.208.0 (src/pursuit.js): each cut after the first is a follow-up round.
     if(landed&&w.hits>1&&this.enemies.includes(target))for(let i=1;i<w.hits&&target.hp>0&&p.hp>0;i++)presentStep(this,()=>attackRound(this,i,()=>{
       const d=this.weaponDamage(slot);this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:target.x,y:target.y},damage:0,miss:false});
-      this.hitTarget(target,Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)),p,w.pierce||0,w);
+      this.hitTarget(target,Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)*camo),p,w.pierce||0,w);
     }));
     return true;
   }
@@ -221,7 +224,7 @@ export class GameAttacks {
         if(ambush&&!this.shadowBonus)shortenCamo(p);
         this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:o.x,y:o.y},damage:0,miss:!hit});
         if(!hit){this.log(t('game.thrustMiss',{weapon:w.name,chance}),false,t('game.thrustMissReal',{weapon:w.name}));continue;}
-        const d=this.weaponDamage(p.weapon),damage=Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1));
+        const d=this.weaponDamage(p.weapon),damage=Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)*camoMultiplier(p,w));
         if(this.activeAllies.includes(o))this.damageAlly(o,damage,p);else this.hitTarget(o,damage,p,w.pierce||0,w);
       }
     });

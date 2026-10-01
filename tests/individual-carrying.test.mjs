@@ -2,6 +2,7 @@ import {oldScaleAmmo,oldSaveText} from './helpers/old-ammo.mjs';
 import {PROFILE_VERSION} from '../src/progression.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {assertDropped} from './helpers/stale-load.mjs';
 import {Game} from '../src/game.js';
 import {AMMUNITION,carryLevels,capacity,CARRY_COSTS} from '../src/ammunition.js';
 import {normalizeProfile} from '../src/progression.js';
@@ -37,15 +38,17 @@ test('failed migration write keeps the old profile and blocks unlock purchase un
 test('loading a v5 campaign refunds profile upgrades and preserves excess stock on the ground',async()=>{
   const {storage:s,memory}=await storageHarness(),g=new Game(39,[],3);
   for(const [id,info] of Object.entries(AMMUNITION))g.player[info.key]=capacity(id,3);
-  const raw=JSON.parse(g.serialize());raw.version=5;oldScaleAmmo(raw.data);raw.data.carryLevel=3;memory.set('qa-ash-save',JSON.stringify(raw));memory.set('qa-ash-profile',JSON.stringify(legacyProfile()));
-  const restored=s.loadGame();assert.ok(restored);assert.equal(s.profile().protocol.balance,200);assert.deepEqual(restored.carryLevel,carryLevels(0));
+  const raw=JSON.parse(g.serialize());raw.version=5;oldScaleAmmo(raw.data);raw.data.carryLevel=3;const text=JSON.stringify(raw);memory.set('qa-ash-save',text);memory.set('qa-ash-profile',JSON.stringify(legacyProfile()));
+  // 3.210.0: the storage settles an old run instead of continuing it; the migration itself is Game.restore's, and the
+  // loader's carry reset is applied by hand.
+  assertDropped(s,memory,text);const restored=Game.restore(text);assert.ok(restored);restored.setCarryLevel(0);assert.equal(s.profile().protocol.balance,200);assert.deepEqual(restored.carryLevel,carryLevels(0));
   for(const [id,info] of Object.entries(AMMUNITION)){
     assert.equal(restored.player[info.key],info.base);
     const feet=restored.items.filter(o=>o.x===restored.player.x&&o.y===restored.player.y&&o.type===info.item).reduce((sum,o)=>sum+o.amount,0);
     assert.equal(feet,info.step*3);
   }
   assert.equal(restored.turn,g.turn);assert.equal(restored.rng.state(),g.rng.state());assert.deepEqual(restored.player.owned,g.player.owned);
-  s.saveGame(restored);assert.deepEqual(s.loadGame().items,restored.items);assert.ok(memory.has('qa-ash-save-v5-backup'));
+  s.saveGame(restored);assert.deepEqual(s.loadGame().items,restored.items);assert.equal(memory.get('qa-ash-save-abandoned'),text);
 });
 test('old full backups refund group spending; new backups preserve independent levels and reject bad maps',()=>{
   const p=normalizeProfile();p.protocol={earned:200,balance:200};const original=makeBackup(new Game(9),p,'qa');original.profile=legacyProfile();

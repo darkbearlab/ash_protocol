@@ -46,7 +46,7 @@ test('no eligible melee falls back to unarmed, closed door opens first, partitio
   const base=g.weaponAt.bind(g);g.barriers=[];g.weaponAt=slot=>({...base(slot),integrated:false});assert.equal(g.weaponAt(g.bumpMeleeSlot()).unarmed,undefined);assert.ok(g.weaponAt(g.bumpMeleeSlot()).melee);
 });
 test('death or disability before bump prevents the strike; fast player can strike first and death presentation precedes upgrade',()=>{
-  const g=arena();add(g);g.player.hp=1;assert.ok(g.action('move',[1,0]));assert.equal(g.status,'dead');assert.ok(!g.effects.some(f=>f.weaponId==='powerfist'));
+  const g=arena();add(g);g.player.hp=1;g.player.plates=0;assert.ok(g.action('move',[1,0]));assert.equal(g.status,'dead');   // plates: 3.210.0, they would take the whole hitassert.ok(!g.effects.some(f=>f.weaponId==='powerfist'));
   const disabled=arena();add(disabled);disabled.player.control.disabled=1;assert.ok(disabled.action('move',[1,0]));assert.ok(!disabled.effects.some(f=>f.weaponId==='powerfist'));
   const quick=arena();const e=add(quick);e.hp=1;quick.player.traits=quick.player.traits.filter(t=>t.id!=='slow');grantTrait(quick.player,'fast','test');quick.player.xp=levelCost(quick,1)-1;/* 3.138.0: level costs come from levelCost */
   const {steps}=captureAction(quick,()=>quick.action('move',[1,0]));const shot=steps.find(s=>s.effects.some(f=>f.weaponId==='powerfist'));assert.ok(shot);assert.equal(shot.before.pendingPerks,0);assert.ok(shot.after.pendingPerks>0);
