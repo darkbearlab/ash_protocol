@@ -13,10 +13,11 @@ export function exposedUntil(a,dir,turn){
  return s&&key(s.origin)===key(a)&&s.until[dir]>=turn?s.until[dir]:null;
 }
 // Observation still uses symmetric leaning. Only an actor's exposed endpoints are shootable.
-export function cornerRay(g,a,b,{tile=false}={}){
+// `centre` (3.213.0, src/lockdown.js): a tile judged as a body standing on it that has not leaned out — its centre only.
+export function cornerRay(g,a,b,{tile=false,centre=false}={}){
  const grid=objectSightGrid(g,a,b),edges=isBarrier(b)?g.barriers.filter(e=>e!==b):g.barriers;
  if(lineOfSight(grid,a,b,edges,'shot'))return {clear:true,origin:{x:a.x,y:a.y},target:{x:b.x,y:b.y},peekDirection:null,targetDirection:null};
- const origins=anchors(grid,a,edges,'shot'),targets=anchors(grid,b,edges,'shot');
+ const origins=anchors(grid,a,edges,'shot'),targets=centre?[{x:b.x,y:b.y}]:anchors(grid,b,edges,'shot');
  const restricted=!tile&&actorTarget(g,b);
  for(const origin of origins)for(const target of targets){
   const targetLean=key(target)!==key(b),dir=targetLean?direction(b,target):null;

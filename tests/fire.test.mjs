@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,SIZE,makeEnemy,generate,giveEnemyAffix,rollEnemyAffixes,rollEnemyElite,ENEMY_TYPES} from '../src/engine.js';
 import {WEAPONS,SAVE_VERSION,floorInfo} from '../src/data.js';
-import {FIRE_TUNING,FLAMETHROWER,fireOdds,fireDie,tickFires,ignite,flameCells,sprayFlame,flamerTank,validFires,fireRow,burningAt} from '../src/fire.js';
+import {FIRE_TUNING,FLAMETHROWER,fireOdds,fireDie,tickFires,ignite,flameCells,sprayFlame,flamerTank,validFires,fireRow,burningAt,burnUnits} from '../src/fire.js';
+import {t} from '../src/i18n.js';
+import {enemyDisplayName} from '../src/enemy-affixes.js';
 import {AFFIX_TUNING,ENEMY_AFFIXES,flamerChance,isFlamer,enemyArmor,birthRandom} from '../src/enemy-affixes.js';
 import {hazardTile,HAZARD_TUNING} from '../src/hazard-paths.js';
 import {hazeShot} from '../src/vents.js';
@@ -212,7 +214,7 @@ test('saves: fires and a marked cone come back, bad ones are refused, and a save
   // 3.203.0 review: a cone whose flamer was moved or stunned outside its turn is dropped on load, not the whole save.
   for(const change of [d=>d.enemies[0].flameIntent.origin={x:1,y:1},d=>d.enemies[0].control.disabled=2]){
     const raw=JSON.parse(g.serialize());change(raw.data);const back=Game.restore(JSON.stringify(raw));assert.ok(back);assert.equal(back.enemies[0].flameIntent,undefined);}
-  assert.equal(SAVE_VERSION,88);
+  assert.equal(SAVE_VERSION,89);
   const plain=field();const old=JSON.parse(plain.serialize());old.version=80;const loaded=Game.restore(JSON.stringify(old));
   assert.ok(loaded,'a save from 3.202.0 loads');assert.equal(loaded.fires,undefined);
 });
@@ -325,3 +327,30 @@ test('a pre-existing slip fixed in 3.203.0: plates up to the rack perk cap load;
   g.player.plates=g.plateCapacity+1;const cut=Game.restore(g.serialize());assert.ok(cut,'over the cap still loads');assert.equal(cut.player.plates,g.plateCapacity,'cut to the cap');
   g.player.plates=-1;assert.equal(Game.restore(g.serialize()),null,'a negative count is broken data');
 });
+
+// 3.213.0 (docs/CHECKLIST.md 2, 打到自己人): an enemy flamer's spray that kills another enemy is not your kill — no kill
+// count, xp or scrap — and the log says who did it; your own spray still pays you.
+test('an enemy flamer burning one of its own is not your kill',()=>{
+ const g=affixArena();clearGeneratedMap(g);g.fires=undefined;Object.assign(g.player,{x:3,y:3});
+ const f=makeEnemy('rifleman',12,10,'fl',6,{curve:'hard',offset:0},'loyalist');giveEnemyAffix(f,'flamer');f.alert=true;
+ const v=makeEnemy('rifleman',10,10,'victim',6,{curve:'hard',offset:0},'loyalist');v.hp=1;g.enemies.push(f,v);g.reveal();
+ const p=g.player,before={kills:p.kills,xp:p.xp,scrap:p.scrap,damage:p.stats.damage};
+ burnUnits(g,f,[{x:10,y:10}],()=>20);
+ assert.ok(v.hp<=0,'burned down');
+ assert.deepEqual({kills:p.kills,xp:p.xp,scrap:p.scrap,damage:p.stats.damage},before,'nothing of it is yours');
+ const said=new Set(Array.from({length:40},(_,n)=>t('swarmBosses.hitOwn',{enemy:enemyDisplayName(f),target:enemyDisplayName(v),damage:n+1})));
+ assert.ok(g.logs.some(l=>said.has(l.text)),'the log names the flamer');
+ const w=makeEnemy('rifleman',10,11,'mine',6,{curve:'hard',offset:0},'loyalist');w.hp=1;g.enemies.push(w);const k=p.kills;
+ burnUnits(g,p,[{x:10,y:11}],()=>20);assert.equal(p.kills,k+1,'your own spray is your kill');
+});
+
+test('an execution by the enforcer is not your hit either: not in your damage, not logged as yours',()=>{
+ const g=affixArena();clearGeneratedMap(g);Object.assign(g.player,{x:3,y:3});
+ const boss=makeEnemy('enforcer',12,10,'enf',6,{curve:'hard',offset:0},'rebel'),v=makeEnemy('rifleman',10,10,'shot',6,{curve:'hard',offset:0},'rebel');g.enemies.push(boss,v);g.reveal();
+ const p=g.player,before={kills:p.kills,xp:p.xp,scrap:p.scrap,damage:p.stats.damage};
+ execute(g,boss,v);assert.ok(v.hp<=0);
+ assert.deepEqual({kills:p.kills,xp:p.xp,scrap:p.scrap,damage:p.stats.damage},before);
+ const yours=new Set(Array.from({length:300},(_,n)=>t('game.hit',{target:enemyDisplayName(v),damage:n})));
+ assert.ok(!g.logs.some(l=>yours.has(l.text)),'no line reads as your hit');assert.ok(g.logs.some(l=>l.text===t('swarmBosses.hitOwn',{enemy:enemyDisplayName(boss),target:enemyDisplayName(v),damage:22})||l.text.startsWith(enemyDisplayName(boss))),'the enforcer did it');
+});
+

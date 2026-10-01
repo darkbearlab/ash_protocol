@@ -151,6 +151,13 @@ export class RendererTelegraphs {
       const a=this.projectActor(e),b=this.projectActor(chargeLineTarget(g,e));
       c.setLineDash([5,5]);this.line(a.x,a.y,b.x,b.y,unitTree(e).fixedTile?'#efb5cb8f':'#eaaa6855',1);c.setLineDash([]);
     }
+    // 3.213.0 (src/lockdown.js): a gunman's locked tile beside you, a crosshair in the sniper's pink wherever you can see the
+    // tile, and the dashed line to it while you see the gunman.
+    for(const e of g.enemies)if(e.hp>0&&e.lockIntent&&g.visible(e.lockIntent.tile)){
+      const q=this.project(e.lockIntent.tile.x,e.lockIntent.tile.y);
+      this.box(q.x-t*.42,q.y-t*.42,t*.84,t*.84,'#efb5cb22','#efb5cbcc');this.line(q.x-t*.3,q.y,q.x+t*.3,q.y,'#efb5cbcc',1.5);this.line(q.x,q.y-t*.3,q.x,q.y+t*.3,'#efb5cbcc',1.5);
+      if(g.visibleEnemies.includes(e)){const a=this.projectActor(e);c.setLineDash([5,5]);this.line(a.x,a.y,q.x,q.y,'#efb5cb8f',1);c.setLineDash([]);}
+    }
     // Tongue pulls (3.84.1): the announced line to the grabbed tile and the landing tile, only for bosses the player can see.
     for(const tongue of tongueTelegraphs(g)){
       const source=g.visibleEnemies.find(e=>e.id===tongue.sourceId);if(!source)continue;

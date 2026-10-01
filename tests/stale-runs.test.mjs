@@ -29,7 +29,7 @@ function profileWith(g){
 function oldRun(version=RUN_SAVE_FLOOR-1){const g=new Game(4242,[],0,'bulwark','onyx');g.protocol.earned=5;g.turn=17;const raw=JSON.parse(g.serialize());raw.version=version;return {g,raw:JSON.stringify(raw)};}
 
 test('the floor is this version: every save written before 3.212.0 is an old run, a current one is not',()=>{
- assert.equal(SAVE_VERSION,88);assert.equal(RUN_SAVE_FLOOR,88,'saves of 3.211.0 and earlier (87 and below) are dropped (3.212.0)');
+ assert.equal(SAVE_VERSION,89);assert.equal(RUN_SAVE_FLOOR,88,'saves of 3.211.0 and earlier (87 and below) are dropped (3.212.0)');
  const {g,raw}=oldRun(87);assert.deepEqual(staleRunOf(raw),{version:87,runId:g.runId});
  assert.equal(staleRunOf(g.serialize()),null,'a run saved by this version continues');
  const done=JSON.parse(raw);done.data.status='dead';assert.equal(staleRunOf(JSON.stringify(done)),null,'only an unfinished run');

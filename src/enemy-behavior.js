@@ -36,6 +36,7 @@ import {runOrder} from './orders.js';
 import {selfAmbush,selfHold} from './ambush.js';
 import {selfFlank} from './flank.js';
 import {usePounceHooks} from './pounce.js';
+import {useLockdownHooks,lockdownBranch} from './lockdown.js';
 import {releasePayload} from './swarm-fields.js';
 import {runStep,registerStep,registerSpecial,lockedTarget,dropAttack} from './enemy-specials.js';
 import {personalityOf} from './personality.js';
@@ -205,6 +206,8 @@ registerAffixBranch({id:'deployer',reveal:'effect',applies:({e})=>deploys(e),
  // blocks it, to keep one enemy from carrying two intents at once. 3.212.0: a charge left, and none of its own up.
  trigger:({g,e,p,los})=>e.deployCharges>0&&!e.grenadeIntent&&los&&distance(e,p)<=AFFIX_TUNING.deployerRange&&distance(e,p)>munitionRange()&&ownDeployed(g,e).filter(d=>d.hp>0).length<AFFIX_TUNING.deployerLive,
  get chance(){return AFFIX_TUNING.deployerFire;},run:deploy});
+// 3.213.0 封鎖 (src/lockdown.js): the aim starts here, after the orders and the hazard step; the burst goes off at the top.
+registerAffixBranch(lockdownBranch);
 // The kind and the charges left: state only, so no `intent` (no warning: a deployment happens on the turn it is decided,
 // and nothing that asks whether a unit is mid-warning should count a deployer). Saves: both on every deployer and only on
 // one; a kind is a card it may deploy; charges past today's tuning are cut to it (SAVE 87 runs: src/game-save.js).
@@ -284,7 +287,7 @@ useSquadAttack(attack);
 registerUnitTree('enforcer',{before:enforcerAct});
 // 3.131.0: a rebel's hiding is its retreat order now (src/rebels.js), run with the other orders before the affixes.
 useRebelHooks({attack});
-usePounceHooks({attack});useTongueHooks({attack});   // 3.205.0: the tongue bites what it catches
+usePounceHooks({attack});useTongueHooks({attack});useLockdownHooks({attack});   // 3.213.0: a locked tile is shot as any target   // 3.205.0: the tongue bites what it catches
 // 3.133.0 personality (docs/ORDERS.md §8.1): a unit with no order checks the kinds its personality accepts, in that
 // order, and takes the first whose moment has come. Units of a faction without a table keep the old checks.
 const SELF={retreat:selfRetreat,ambush:selfAmbush,hold:selfHold,flank:selfFlank};

@@ -135,6 +135,7 @@ const CANVAS={
  'arsonist-heat':`const g=L.arena({faction:'rebel'});L.enemy(g,'arsonist',14,10,{faction:'rebel',state:{heat:2}});L.enemy(g,'arsonist',14,12,{faction:'rebel',state:{overheat:2}});return L.shot(g,null,{at:300});`,
  'flamer-cone':`const g=L.arena();L.enemy(g,'rifleman',14,10,{affixes:['flamer'],state:{flameIntent:{origin:${at(14,10)},aim:${at(10,10)}}}});return L.shot(g);`,
  'grenadier':`const g=L.arena();L.enemy(g,'raider',14,10,{affixes:['grenadier'],state:{grenadeIntent:{stage:'prepare',targetId:'player',x:10,y:10,origin:${at(14,10)}}}});return L.shot(g);`,
+ 'lockdown':`const g=L.arena();L.enemy(g,'rifleman',14,10,{affixes:['lockdown'],state:{lockIntent:{origin:${at(14,10)},tile:${at(10,11)}}}});return L.shot(g);`,   // 3.213.0
  'smoke-layers':`const g=L.arena();for(const [kind,x,y] of [['smoke',11,8],['toxic',14,11],['spore',8,12],['haze',12,13],['steam',7,8]])g.smoke.push({kind,expires:g.turn+3,cells:[${at('x','y')},{x:x+1,y},{x,y:y+1},{x:x+1,y:y+1}]});g.reveal();return L.shot(g,R=>{R.smokeQuality='layers';},{at:500});`,
  'smoke-baked':`const g=L.arena();for(const [kind,x,y] of [['smoke',11,8],['toxic',14,11],['spore',8,12],['haze',12,13],['steam',7,8]])g.smoke.push({kind,expires:g.turn+3,cells:[${at('x','y')},{x:x+1,y},{x,y:y+1},{x:x+1,y:y+1}]});g.reveal();return L.shot(g,R=>{R.smokeQuality='baked';},{at:500});`,
  'fire':`const g=L.arena();g.fires=[{x:12,y:9,age:1},{x:13,y:9,age:2},{x:12,y:10,age:3},{x:9,y:12,age:1}];return L.shot(g,null,{at:210});`,

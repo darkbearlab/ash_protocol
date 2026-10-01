@@ -1056,6 +1056,7 @@ export default Object.freeze({
  "enemyAffixes.deployer.turret":"Deployer (turret)",
  "enemyAffixes.deployer.bomber_bot":"Deployer (bomb bot)",
  "enemyAffixes.flamer.fragment":"Flamer",
+ "enemyAffixes.lockdown.fragment":"Lockdown",
  // 敵人：名稱與介紹（src/data.js）
  "enemyTypes.fodder.name":"Broken Drifter",
  "enemyTypes.fodder.role":"Slow; acts every other chance. Bare hands will do; a kill with an attack's first round grants a pursuit.",
@@ -1655,6 +1656,9 @@ export default Object.freeze({
  "lines.pickFloor":"Pick a visible floor tile first",
  "lines.notYourTile":"Pick a floor tile you are not on",
  "lines.lineBlocked":"Something blocks the line's path",
+ "lockdown.aim":"{enemy} aims at the tile beside you: don't step out!",
+ "lockdown.empty":"{enemy} fires into the locked tile, hitting none of yours.",
+ "lockdown.blocked":"{enemy}'s rounds are stopped by a door or partition.",
  // loyalistNames
  "loyalistNames.squad_leader.name":"Squad Leader",
  "loyalistNames.rifleman.name":"Rifleman",
@@ -2333,6 +2337,7 @@ export default Object.freeze({
  "target-card.stunReady":"Stun grenade ready",
  "target-card.flameMarked":"Flame cone marked",
  "target-card.pouncing":"Crouched to pounce",
+ "target-card.lockdown":"Locking a tile: fires next round",
  "target-card.swelling":"Toxic sac swelling",
  "target-card.painting":"Painting you",
  "target-card.gunSet":"Gun set: can't move",

@@ -126,7 +126,10 @@ export class GameDamage {
     // 3.205.0: a swarm boss's bite or charge on one of its own (src/swarm-bosses.js, 敵我不分) is not yours: not in your
     // damage count (review), not your kill, xp or scrap (below), and the log says who did it.
     // 3.206.0: nor any enemy boss's (a rebel boss's fire burns whoever stands in it, src/rebel-bosses.js).
-    const ownKind=Boolean(attacker&&attacker!==e&&this.enemies.includes(attacker)&&(enemyDef(attacker)?.tongue||isBossClass(attacker)));
+    // 3.213.0 (docs/CHECKLIST.md 2, 打到自己人): nor any other enemy's — an enemy flamer's spray (src/fire.js burnUnits) used
+    // to pay you the kill, xp and scrap; the enforcer's execution (its own line in src/rebels.js) used to count in your damage
+    // and log as your hit. Blasts with no attacker (an enemy grenade, a bomber, a tank) are not covered yet.
+    const ownKind=Boolean(attacker&&attacker!==e&&this.enemies.includes(attacker));
     const beforeHp=e.hp;e.hp-=damage;injuryCallout(this,e,beforeHp);if(damage>0)orderHit(this,e);if(!ownKind)this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
     // 3.202.0: a hazard's damage is logged only for an enemy you can see; the floor does not report on the ones you cannot.

@@ -224,6 +224,14 @@
    "suppressed": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"deployCharges\":1,\"deployKind\":\"turret\",\"fireChain\":null,\"hp\":500,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
    "bogus": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"deployCharges\":1,\"deployKind\":\"turret\",\"fireChain\":null,\"hp\":500,\"ret\":false,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
   },
+  "lockdown": {
+   "death": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "disabled": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "displaced": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "target_lost": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":1,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "suppressed": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "bogus": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":1,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"ret\":false,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
+  },
   "turret": {
    "death": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
    "disabled": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"ret\":true,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
@@ -345,12 +353,12 @@
    "bogus": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"ret\":false,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
   },
   "everything": {
-   "death": "{\"aim\":null,\"charge\":false,\"chargeCooldown\":3,\"crashed\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"grenadeCooldown\":3,\"heat\":2,\"hp\":1,\"lobCooldown\":10,\"markReady\":4,\"nestCooldown\":6,\"overheat\":2,\"pounceCooldown\":3,\"ret\":true,\"scanCooldown\":2,\"smokeCooldown\":7,\"special\":\"burn\",\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0}",
-   "disabled": "{\"aim\":null,\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":false,\"chargeCooldown\":3,\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"grenadeCooldown\":3,\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":1,\"lobCooldown\":10,\"markReady\":4,\"nestCooldown\":6,\"overheat\":2,\"pounceCooldown\":3,\"ret\":true,\"scanCooldown\":2,\"smokeCooldown\":7,\"special\":\"burn\",\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0}",
-   "displaced": "{\"aim\":null,\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":false,\"chargeCooldown\":3,\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"grenadeCooldown\":3,\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":1,\"lobCooldown\":10,\"markReady\":4,\"nestCooldown\":1,\"nestIntent\":{\"x\":10,\"y\":13},\"overheat\":2,\"pounceCooldown\":3,\"ret\":true,\"scanCooldown\":2,\"smokeCooldown\":7,\"special\":\"burn\",\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0}",
-   "target_lost": "{\"aim\":null,\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":false,\"chargeCooldown\":3,\"chargeIntent\":{\"dir\":{\"x\":-1,\"y\":0},\"origin\":{\"x\":13,\"y\":10}},\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"fireIntent\":{\"cells\":[{\"x\":8,\"y\":10}],\"center\":{\"x\":10,\"y\":10},\"gaps\":[{\"x\":9,\"y\":10}],\"kind\":\"ring\",\"origin\":{\"x\":13,\"y\":10}},\"grenadeCooldown\":3,\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":1,\"lobCooldown\":10,\"markIntent\":{\"since\":1},\"markReady\":4,\"nestCooldown\":1,\"nestIntent\":{\"x\":10,\"y\":13},\"overheat\":2,\"pounceCooldown\":3,\"ret\":true,\"scanCooldown\":2,\"smokeCooldown\":1,\"smokeIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":11,\"y\":10}},\"special\":\"burn\",\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0}",
-   "suppressed": "{\"aim\":null,\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":false,\"chargeCooldown\":3,\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"fireIntent\":{\"cells\":[{\"x\":8,\"y\":10}],\"center\":{\"x\":10,\"y\":10},\"gaps\":[{\"x\":9,\"y\":10}],\"kind\":\"ring\",\"origin\":{\"x\":13,\"y\":10}},\"grenadeCooldown\":3,\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":1,\"lobCooldown\":10,\"markIntent\":{\"since\":1},\"markReady\":4,\"nestCooldown\":1,\"nestIntent\":{\"x\":10,\"y\":13},\"overheat\":2,\"pounceCooldown\":3,\"ret\":true,\"scanCooldown\":2,\"smokeCooldown\":7,\"special\":\"burn\",\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0}",
-   "bogus": "{\"aim\":{\"x\":1,\"y\":1},\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":true,\"chargeCooldown\":3,\"chargeIntent\":{\"dir\":{\"x\":-1,\"y\":0},\"origin\":{\"x\":13,\"y\":10}},\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":{\"count\":1},\"fireIntent\":{\"cells\":[{\"x\":8,\"y\":10}],\"center\":{\"x\":10,\"y\":10},\"gaps\":[{\"x\":9,\"y\":10}],\"kind\":\"ring\",\"origin\":{\"x\":13,\"y\":10}},\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"grenadeCooldown\":3,\"grenadeIntent\":{\"origin\":{\"x\":13,\"y\":10},\"stage\":\"prepare\",\"targetId\":\"player\",\"x\":10,\"y\":10},\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":1,\"lobCooldown\":1,\"lobIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":10,\"y\":10}},\"markIntent\":{\"since\":1},\"markReady\":4,\"nestCooldown\":1,\"nestIntent\":{\"x\":10,\"y\":13},\"overheat\":2,\"pounceCooldown\":1,\"pounceIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":11,\"y\":10},\"target\":{\"x\":10,\"y\":10}},\"ret\":false,\"scanCooldown\":2,\"smokeCooldown\":1,\"smokeIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":11,\"y\":10}},\"special\":\"burn\",\"tongueCooldown\":1,\"tongueIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":12,\"y\":10},\"target\":{\"x\":10,\"y\":10}},\"vaultExposed\":true,\"windup\":2}"
+   "death": "{\"aim\":null,\"charge\":false,\"chargeCooldown\":3,\"crashed\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"grenadeCooldown\":3,\"heat\":2,\"hp\":1,\"lobCooldown\":10,\"lockCooldown\":2,\"markReady\":4,\"nestCooldown\":6,\"overheat\":2,\"pounceCooldown\":3,\"ret\":true,\"scanCooldown\":2,\"smokeCooldown\":7,\"special\":\"burn\",\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0}",
+   "disabled": "{\"aim\":null,\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":false,\"chargeCooldown\":3,\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"grenadeCooldown\":3,\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":1,\"lobCooldown\":10,\"lockCooldown\":2,\"markReady\":4,\"nestCooldown\":6,\"overheat\":2,\"pounceCooldown\":3,\"ret\":true,\"scanCooldown\":2,\"smokeCooldown\":7,\"special\":\"burn\",\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0}",
+   "displaced": "{\"aim\":null,\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":false,\"chargeCooldown\":3,\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"grenadeCooldown\":3,\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":1,\"lobCooldown\":10,\"lockCooldown\":2,\"markReady\":4,\"nestCooldown\":1,\"nestIntent\":{\"x\":10,\"y\":13},\"overheat\":2,\"pounceCooldown\":3,\"ret\":true,\"scanCooldown\":2,\"smokeCooldown\":7,\"special\":\"burn\",\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0}",
+   "target_lost": "{\"aim\":null,\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":false,\"chargeCooldown\":3,\"chargeIntent\":{\"dir\":{\"x\":-1,\"y\":0},\"origin\":{\"x\":13,\"y\":10}},\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"fireIntent\":{\"cells\":[{\"x\":8,\"y\":10}],\"center\":{\"x\":10,\"y\":10},\"gaps\":[{\"x\":9,\"y\":10}],\"kind\":\"ring\",\"origin\":{\"x\":13,\"y\":10}},\"grenadeCooldown\":3,\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":1,\"lobCooldown\":10,\"lockCooldown\":1,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"markIntent\":{\"since\":1},\"markReady\":4,\"nestCooldown\":1,\"nestIntent\":{\"x\":10,\"y\":13},\"overheat\":2,\"pounceCooldown\":3,\"ret\":true,\"scanCooldown\":2,\"smokeCooldown\":1,\"smokeIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":11,\"y\":10}},\"special\":\"burn\",\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0}",
+   "suppressed": "{\"aim\":null,\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":false,\"chargeCooldown\":3,\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"fireIntent\":{\"cells\":[{\"x\":8,\"y\":10}],\"center\":{\"x\":10,\"y\":10},\"gaps\":[{\"x\":9,\"y\":10}],\"kind\":\"ring\",\"origin\":{\"x\":13,\"y\":10}},\"grenadeCooldown\":3,\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":1,\"lobCooldown\":10,\"lockCooldown\":2,\"markIntent\":{\"since\":1},\"markReady\":4,\"nestCooldown\":1,\"nestIntent\":{\"x\":10,\"y\":13},\"overheat\":2,\"pounceCooldown\":3,\"ret\":true,\"scanCooldown\":2,\"smokeCooldown\":7,\"special\":\"burn\",\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0}",
+   "bogus": "{\"aim\":{\"x\":1,\"y\":1},\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":true,\"chargeCooldown\":3,\"chargeIntent\":{\"dir\":{\"x\":-1,\"y\":0},\"origin\":{\"x\":13,\"y\":10}},\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":{\"count\":1},\"fireIntent\":{\"cells\":[{\"x\":8,\"y\":10}],\"center\":{\"x\":10,\"y\":10},\"gaps\":[{\"x\":9,\"y\":10}],\"kind\":\"ring\",\"origin\":{\"x\":13,\"y\":10}},\"flameIntent\":{\"aim\":{\"x\":10,\"y\":10},\"origin\":{\"x\":13,\"y\":10}},\"grenadeCooldown\":3,\"grenadeIntent\":{\"origin\":{\"x\":13,\"y\":10},\"stage\":\"prepare\",\"targetId\":\"player\",\"x\":10,\"y\":10},\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":1,\"lobCooldown\":1,\"lobIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":10,\"y\":10}},\"lockCooldown\":1,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"markIntent\":{\"since\":1},\"markReady\":4,\"nestCooldown\":1,\"nestIntent\":{\"x\":10,\"y\":13},\"overheat\":2,\"pounceCooldown\":1,\"pounceIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":11,\"y\":10},\"target\":{\"x\":10,\"y\":10}},\"ret\":false,\"scanCooldown\":2,\"smokeCooldown\":1,\"smokeIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":11,\"y\":10}},\"special\":\"burn\",\"tongueCooldown\":1,\"tongueIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":12,\"y\":10},\"target\":{\"x\":10,\"y\":10}},\"vaultExposed\":true,\"windup\":2}"
   },
   "gunPackSpent": {
    "death": "{\"aim\":null,\"charge\":false,\"fireChain\":null,\"ret\":true,\"windup\":0}",
@@ -657,6 +665,16 @@
    "turn": "{\"aim\":{\"x\":10,\"y\":10},\"charge\":true,\"control\":{\"disabled\":0,\"immune\":0},\"deployCharges\":1,\"deployKind\":\"turret\",\"fireChain\":null,\"fx\":[\"callout\"],\"hp\":500,\"logs\":2,\"marks\":[],\"player\":{\"hp\":999,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":475,\"vaultExposed\":false,\"windup\":1,\"x\":13,\"y\":10}",
    "turnPinned": "{\"aim\":{\"x\":10,\"y\":10},\"charge\":true,\"control\":{\"disabled\":0,\"immune\":0},\"deployCharges\":1,\"deployKind\":\"turret\",\"fireChain\":null,\"fx\":[\"callout\"],\"hp\":500,\"logs\":2,\"marks\":[],\"player\":{\"hp\":999,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":475,\"suppression\":3,\"vaultExposed\":false,\"windup\":1,\"x\":13,\"y\":10}",
    "turnStunned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"deployCharges\":1,\"deployKind\":\"turret\",\"fireChain\":null,\"fx\":[],\"hp\":500,\"logs\":2,\"marks\":[],\"player\":{\"hp\":999,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":475,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
+  },
+  "lockdown": {
+   "decoy": "{\"decoy\":{\"expires\":4,\"fooled\":[\"u\"],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
+   "decoyBeside": "{\"decoy\":{\"expires\":4,\"fooled\":[],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
+   "mine": "{\"mines\":[{\"id\":\"mine-1-1\",\"seen\":[\"u\"],\"x\":13,\"y\":13}],\"ret\":false,\"rng\":475}",
+   "stepOff": "{\"ret\":false,\"x\":13,\"y\":10}",
+   "pin": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"ret\":5,\"suppression\":5,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "turn": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"fx\":[\"enemyShot\"],\"hp\":500,\"lockCooldown\":2,\"logs\":3,\"marks\":[],\"player\":{\"hp\":999,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":475,\"vaultExposed\":false,\"windup\":1,\"x\":13,\"y\":10}",
+   "turnPinned": "{\"aim\":{\"x\":10,\"y\":10},\"charge\":true,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"fx\":[\"callout\"],\"hp\":500,\"lockCooldown\":2,\"logs\":2,\"marks\":[],\"player\":{\"hp\":999,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":475,\"suppression\":3,\"vaultExposed\":false,\"windup\":1,\"x\":13,\"y\":10}",
+   "turnStunned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"fireChain\":null,\"fx\":[],\"hp\":500,\"lockCooldown\":2,\"logs\":2,\"marks\":[],\"player\":{\"hp\":999,\"traits\":[\"biological\",\"braced\",\"correction\"],\"x\":10,\"y\":10},\"rng\":475,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
   },
   "turret": {
    "decoy": "{\"decoy\":{\"expires\":4,\"fooled\":[\"u\"],\"hp\":5,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":true,\"rng\":1831566288}",
@@ -1004,12 +1022,19 @@
    "stepOff": "{\"ret\":true,\"x\":12,\"y\":10}",
    "pin": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"deployCharges\":1,\"deployKind\":\"turret\",\"fireChain\":null,\"hp\":500,\"ret\":5,\"suppression\":5,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
   },
+  "bare:lockdown": {
+   "decoy": "{\"decoy\":{\"expires\":4,\"fooled\":[\"u\"],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
+   "decoyBeside": "{\"decoy\":{\"expires\":4,\"fooled\":[],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
+   "mine": "{\"mines\":[{\"id\":\"mine-1-1\",\"seen\":[\"u\"],\"x\":13,\"y\":13}],\"ret\":false,\"rng\":475}",
+   "stepOff": "{\"ret\":false,\"x\":13,\"y\":10}",
+   "pin": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"ret\":5,\"suppression\":5,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
+  },
   "everything": {
    "decoy": "{\"decoy\":{\"expires\":4,\"fooled\":[\"u\"],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
    "decoyBeside": "{\"decoy\":{\"expires\":4,\"fooled\":[],\"hp\":30,\"maxHp\":30,\"x\":13,\"y\":11},\"ret\":false,\"rng\":475}",
    "mine": "{\"mines\":[{\"id\":\"mine-1-1\",\"seen\":[\"u\"],\"x\":13,\"y\":13}],\"ret\":false,\"rng\":475}",
    "stepOff": "{\"ret\":false,\"x\":13,\"y\":10}",
-   "pin": "{\"aim\":null,\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":false,\"chargeCooldown\":3,\"control\":{\"disabled\":0,\"immune\":0},\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"fireIntent\":{\"cells\":[{\"x\":8,\"y\":10}],\"center\":{\"x\":10,\"y\":10},\"gaps\":[{\"x\":9,\"y\":10}],\"kind\":\"ring\",\"origin\":{\"x\":13,\"y\":10}},\"grenadeCooldown\":3,\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":500,\"lobCooldown\":10,\"markIntent\":{\"since\":1},\"markReady\":4,\"nestCooldown\":1,\"nestIntent\":{\"x\":10,\"y\":13},\"overheat\":2,\"pounceCooldown\":3,\"ret\":5,\"scanCooldown\":2,\"smokeCooldown\":7,\"special\":\"burn\",\"suppression\":5,\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0,\"x\":13,\"y\":10}"
+   "pin": "{\"aim\":null,\"burn\":{\"left\":2,\"stage\":\"pack\"},\"charge\":false,\"chargeCooldown\":3,\"control\":{\"disabled\":0,\"immune\":0},\"crashed\":true,\"decloaked\":true,\"deployCharges\":1,\"deployKind\":\"turret\",\"droneCooldown\":1,\"fireChain\":null,\"fireIntent\":{\"cells\":[{\"x\":8,\"y\":10}],\"center\":{\"x\":10,\"y\":10},\"gaps\":[{\"x\":9,\"y\":10}],\"kind\":\"ring\",\"origin\":{\"x\":13,\"y\":10}},\"grenadeCooldown\":3,\"gun\":{\"left\":1,\"stage\":\"pack\"},\"heat\":2,\"hp\":500,\"lobCooldown\":10,\"lockCooldown\":2,\"markIntent\":{\"since\":1},\"markReady\":4,\"nestCooldown\":1,\"nestIntent\":{\"x\":10,\"y\":13},\"overheat\":2,\"pounceCooldown\":3,\"ret\":5,\"scanCooldown\":2,\"smokeCooldown\":7,\"special\":\"burn\",\"suppression\":5,\"tongueCooldown\":4,\"vaultExposed\":true,\"windup\":0,\"x\":13,\"y\":10}"
   }
  },
  "tick": {
@@ -1236,6 +1261,22 @@
   "opSoldier:dead": {
    "exports": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"grenadeCooldown\":1,\"grenadeIntent\":{\"origin\":{\"x\":13,\"y\":10},\"stage\":\"prepare\",\"targetId\":\"player\",\"x\":10,\"y\":10},\"hp\":0,\"scanCooldown\":1,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
    "round": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"grenadeCooldown\":1,\"grenadeIntent\":{\"origin\":{\"x\":13,\"y\":10},\"stage\":\"prepare\",\"targetId\":\"player\",\"x\":10,\"y\":10},\"hp\":0,\"props\":0,\"scanCooldown\":1,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
+  },
+  "lockdown:fit": {
+   "exports": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":0,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "round": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"props\":0,\"vaultExposed\":false,\"windup\":1,\"x\":13,\"y\":10}"
+  },
+  "lockdown:stunned": {
+   "exports": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "round": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":2},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"props\":0,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
+  },
+  "lockdown:pinned": {
+   "exports": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"suppression\":3,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "round": "{\"aim\":{\"x\":10,\"y\":10},\"charge\":true,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"props\":0,\"suppression\":2,\"vaultExposed\":false,\"windup\":1,\"x\":13,\"y\":10}"
+  },
+  "lockdown:dead": {
+   "exports": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":0,\"lockCooldown\":2,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "round": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":0,\"lockCooldown\":2,\"props\":0,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
   },
   "opRecon:fit": {
    "exports": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"smokeCooldown\":0,\"smokeIntent\":{\"origin\":{\"x\":13,\"y\":10},\"point\":{\"x\":11,\"y\":10}},\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
@@ -1779,6 +1820,23 @@
    "wrongCard": "refused",
    "hiddenAffix": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"deployCharges\":1,\"deployKind\":\"turret\",\"fireChain\":null,\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
   },
+  "lockdown": {
+   "asIs": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":1,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "moved": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":12}",
+   "dead": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":0,\"lockCooldown\":2,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "stunned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "pinned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"suppression\":3,\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "extraKey": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":1,\"lockIntent\":{\"extra\":1,\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "nulled": "refused",
+   "number": "refused",
+   "badOrigin": "refused",
+   "numOrigin": "refused",
+   "overMax": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "negative": "refused",
+   "zero": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":0,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}",
+   "wrongCard": "refused",
+   "hiddenAffix": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":1,\"lockIntent\":{\"origin\":{\"x\":13,\"y\":10},\"tile\":{\"x\":10,\"y\":11}},\"vaultExposed\":false,\"windup\":0,\"x\":13,\"y\":10}"
+  },
   "actors": {
    "player:grenade": "refused",
    "ally:grenade": "refused",
@@ -2047,6 +2105,15 @@
    "stunned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"deployCharges\":1,\"deployKind\":\"turret\",\"fireChain\":null,\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
    "extraKey": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"deployCharges\":1,\"deployKind\":\"turret\",\"fireChain\":null,\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
    "overMax": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"deployCharges\":2,\"deployKind\":\"turret\",\"fireChain\":null,\"hp\":500,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
+   "wrongCard": "refused"
+  },
+  "lockdown": {
+   "asIs": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":1,\"lockIntent\":{\"origin\":{\"x\":10,\"y\":2},\"tile\":{\"x\":7,\"y\":3}},\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
+   "moved": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":4}",
+   "dead": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":0,\"lockCooldown\":2,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
+   "stunned": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":1,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
+   "extraKey": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":1,\"lockIntent\":{\"extra\":1,\"origin\":{\"x\":10,\"y\":2},\"tile\":{\"x\":7,\"y\":3}},\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
+   "overMax": "{\"aim\":null,\"charge\":false,\"control\":{\"disabled\":0,\"immune\":0},\"fireChain\":null,\"hp\":500,\"lockCooldown\":2,\"lockIntent\":{\"origin\":{\"x\":10,\"y\":2},\"tile\":{\"x\":7,\"y\":3}},\"vaultExposed\":false,\"windup\":0,\"x\":10,\"y\":2}",
    "wrongCard": "refused"
   }
  }

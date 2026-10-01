@@ -145,6 +145,7 @@ function dangerCells(g){
  for(const e of g.enemies){if(liveFireIntent(e))for(const q of e.fireIntent.cells)cells.add(`${q.x},${q.y}`);if(liveBurn(e))for(const q of burnCells(g,e.burn.origin,e.burn.aim))cells.add(`${q.x},${q.y}`);}   // 3.206.0: a wall or ring of fire, a set-up flamethrower's cone
  // 3.206.2: a crouched pounce (the tile it will land on whoever stays there), a swelling spitter's mist, an egg sac.
  for(const e of g.enemies)if(e.hp>0&&e.pounceIntent)cells.add(`${e.pounceIntent.target.x},${e.pounceIntent.target.y}`);
+ for(const e of g.enemies)if(e.hp>0&&e.lockIntent)cells.add(`${e.lockIntent.tile.x},${e.lockIntent.tile.y}`);   // 3.213.0
  for(const e of g.enemies)if(e.hp>0&&e.lobIntent)for(const q of areaCells(g.grid,e.lobIntent.point,FIELD_TUNING.radius,g.barriers,g).filter(q=>g.grid[q.y]?.[q.x]===1))cells.add(`${q.x},${q.y}`);
  for(const s of eggSacs(g))cells.add(`${s.x},${s.y}`);
  for(const s of smokeTelegraphs(g))for(const q of s.cells)cells.add(`${q.x},${q.y}`);   // 3.207.0: a delisted recon's warned smoke
@@ -226,6 +227,7 @@ function surroundings(g){
   ...chargeLanes(g).map(l=>`衝鋒：${l.sourceId} 下回合衝到 ${at(l.cells.at(-1)||l.origin)}，線上的人被撞開${l.crash?'；會撞牆暈 1 回合':''}`),
   ...eggSacs(g).map(s=>`卵囊：${at(s)} 下回合孵成蟲巢`),
   ...g.enemies.filter(e=>e.hp>0&&e.pounceIntent).map(e=>`撲擊：${e.id} 下回合撲向 ${at(e.pounceIntent.target)}，離開那一格就撲空`),   // 3.206.2
+  ...g.enemies.filter(e=>e.hp>0&&e.lockIntent).map(e=>`封鎖：${e.id} 下回合打 ${at(e.lockIntent.tile)}，別踏上那一格`),   // 3.213.0
   ...g.enemies.filter(e=>e.hp>0&&e.lobIntent).map(e=>`毒霧：${e.id} 下回合把毒霧拋到 ${at(e.lobIntent.point)} 一帶`),
   ...smokeTelegraphs(g).map(s=>`煙霧彈：${s.sourceId} 下回合把煙霧彈丟到 ${at(s.point)}（半徑 2），它看得穿煙`),   // 3.207.0
   ...g.enemies.filter(liveMarkIntent).map(e=>`標定：${e.id} 的雷射指著你，下回合標定`),   // 3.204.0

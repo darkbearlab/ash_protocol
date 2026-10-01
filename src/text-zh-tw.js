@@ -1057,6 +1057,7 @@ export default Object.freeze({
  "enemyAffixes.deployer.turret":"投放（砲台）",
  "enemyAffixes.deployer.bomber_bot":"投放（自爆機器人）",
  "enemyAffixes.flamer.fragment":"火焰兵",
+ "enemyAffixes.lockdown.fragment":"封鎖",
  // 敵人：名稱與介紹（src/data.js）
  "enemyTypes.fodder.name":"失能遊蕩者",
  "enemyTypes.fodder.role":"緩速、每兩次行動機會活動一次。徒手可清理；攻擊的第一發就打死，獲得追擊。",
@@ -1656,6 +1657,9 @@ export default Object.freeze({
  "lines.pickFloor":"先選擇看得見的地板",
  "lines.notYourTile":"選一格你不在的地板",
  "lines.lineBlocked":"繩索的直線被擋住了",
+ "lockdown.aim":"{enemy}瞄準你旁邊的格子：別踏出去！",
+ "lockdown.empty":"{enemy}朝封鎖的格子開火，沒打到你這一方。",
+ "lockdown.blocked":"{enemy}的子彈被門或隔板擋下。",
  // loyalistNames
  "loyalistNames.squad_leader.name":"小隊長",
  "loyalistNames.rifleman.name":"步槍兵",
@@ -2334,6 +2338,7 @@ export default Object.freeze({
  "target-card.stunReady":"準備投震撼彈",
  "target-card.flameMarked":"已標出火焰範圍",
  "target-card.pouncing":"伏低準備撲擊",
+ "target-card.lockdown":"封鎖一格：下回合開火",
  "target-card.swelling":"毒囊鼓起",
  "target-card.painting":"正在標定你",
  "target-card.gunSet":"架槍：不能移動",
