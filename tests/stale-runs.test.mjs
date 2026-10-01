@@ -133,7 +133,7 @@ test('review: a full storage keeps the settlement — the run is counted once ev
 });
 
 test('review: a readable save from before run ids is settled under the id the loader gives it',async()=>{
- const raw=readFileSync(new URL('../qa/fixtures/legacy-3.1.2-save.json',import.meta.url),'utf8');
+ const raw=readFileSync(new URL('./fixtures/legacy-3.1.2-save.json',import.meta.url),'utf8');
  assert.equal(JSON.parse(raw).data.runId,undefined);assert.deepEqual(staleRunOf(raw),{version:JSON.parse(raw).version,runId:null});
  const id=Game.restore(raw).runId,p=settleStaleRun(normalizeProfile({version:7,runs:2}),raw);
  assert.equal(p.rewarded,true,'read, so counted with its record');assert.equal(p.profile.runs,3);assert.equal(p.profile.history[0].id,id);assert.equal(p.profile.history[0].outcome,'abandoned');assert.equal(p.profile.protocolRuns[id].recorded,true);

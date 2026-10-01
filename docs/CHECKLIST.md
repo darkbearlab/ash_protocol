@@ -20,6 +20,8 @@
 
 不改行為的重構（例如 3.206.1、3.206.3）：身分基準、招式對照表與存檔隨機測試的記錄都要完全一致，不用 `--accept`、`--write`；動到畫面或介面時，畫面快照（`qa/render-snapshots.mjs`）也要完全一致。沒改過的程式可以用 `git archive HEAD` 匯出到暫存目錄，在那裡開伺服器，用 `--base` 錄基準。
 
+**測試只能讀有進版控的檔案**：`qa/fixtures/`、`qa/node/` 被 `qa/.gitignore` 忽略，只存在本機，GitHub 的持續整合沒有它們。3.210.0 第一次推送就因為一項測試讀了 `qa/fixtures/legacy-3.1.2-save.json` 而部署失敗。測試要用的檔案放進 `tests/fixtures/`。推送前可以用 `git archive $(git write-tree)` 解出只有版控檔案的副本，在那裡跑一次 `node --test tests/*.test.mjs` 確認。
+
 ## 2. 新增敵人招式、預告或特殊行動
 
 3.206.1 起每個招式在 `src/enemy-specials.js` 登錄一次（`registerSpecial`）。宣告放在擁有這個招式、匯出它的包裝函式的模組裡（火焰在 `src/fire.js`、鉤舌在 `src/swarm.js`、衝鋒與卵囊在 `src/swarm-bosses.js`……）。回合、回合開頭、誘餌與地雷、踩危險格、壓制、打斷、讀檔與目標卡都去問登錄表，不要在別的地方再抄一份欄位清單。新招式：
