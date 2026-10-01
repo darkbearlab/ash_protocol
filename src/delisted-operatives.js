@@ -155,10 +155,10 @@ export function deployDrone(g,e){
  if(!deploysDrones(e)||!live(e)||!e.alert||(e.droneCooldown||0)>0||g.player.hp<=0||enemyRoom(g)<=0)return false;
  const mine=ownDrones(g,e);if(mine.filter(d=>d.hp>0).length>=T.drones.live)return false;
  const spot=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).find(q=>g.passable(q.x,q.y)&&g.canCross(e,q)&&!occupied(g,q)&&!hazardTile(g,q.x,q.y));if(!spot)return false;
- const n=mine.length,d=g.spawnEnemy(droneKind(g,e,n),spot.x,spot.y,`${dronePrefix(e)}${n}`);
  // 3.207.0 review (Claude's call): an engineer that launches forever must not be a farm. Its drones pay nothing — no
- // xp, scrap, drops or protocol — as the matriarch's brood (expendable reinforcements, Game.hurt).
- d.expendable=true;d.reinforcement=true;
+ // xp, scrap, drops or protocol — as the matriarch's brood (expendable reinforcements, Game.hurt). 3.212.0 review: marked
+ // before the rolls, so a drone never rolls elite.
+ const n=mine.length,d=g.spawnEnemy(droneKind(g,e,n),spot.x,spot.y,`${dronePrefix(e)}${n}`,{expendable:true,reinforcement:true});
  d.alert=true;d.lastKnown=e.lastKnown?{...e.lastKnown}:{x:g.player.x,y:g.player.y};if(enemyDef(d)?.behavior==='munition')d.spawnTurn=g.turn;
  g.enemies.push(d);e.droneCooldown=T.drones.every;
  g.effects.push({type:'enemyTelegraph',phase:'flight',from:{x:e.x,y:e.y},to:{...spot},damage:0});

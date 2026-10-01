@@ -28,7 +28,8 @@ test('faction catalog validates references and covers every current enemy card',
  }
  for(const d of Object.values(ENEMY_TYPES))if(d.reinforcement)used.add(d.reinforcement);
  // An affix that puts a card on the board keeps that card reachable from data, same as a roster entry does.
- for(const a of ENEMY_AFFIXES)if(a.spawns){assert.ok(ENEMY_TYPES[a.spawns]);used.add(a.spawns);}
+ // 3.212.0: a deployer may put out any of several cards (its kind).
+ for(const a of ENEMY_AFFIXES)for(const id of [a.spawns||[]].flat()){assert.ok(ENEMY_TYPES[id],id);used.add(id);}
  assert.deepEqual([...used].sort(),Object.keys(ENEMY_TYPES).sort());
 });
 test('legacy roster order, duplicate weights and compatibility views match the old tables',()=>{

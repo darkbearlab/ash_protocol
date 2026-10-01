@@ -17,7 +17,7 @@ import {migrateFactions,validFactions} from './factions.js';
 import {lockRealMode} from './real-mode.js';
 import {validEnemyMarks} from './enemy-intents.js';
 import {dropStaleSpecials,validActorSpecials,validSpecials} from './enemy-specials.js';
-import {migrateEnemyAffixes,validEnemyAffixes} from './enemy-affixes.js';
+import {migrateEnemyAffixes,validEnemyAffixes,deploys} from './enemy-affixes.js';
 import {migrateResistance,migrateSuppression} from './suppression.js';
 import {PROTOCOL_EVENT_LIMIT,floorLimit,perkLimit,validCurve,validDifficultyOffset} from './endless.js';
 import {validLearningInventory} from './learning.js';
@@ -179,6 +179,9 @@ export class GameSave {
         if(!e.order)e.order={kind:s.role==='move'?'bound':'post',by:s.leader,at:s.goal,set:s.set,since:Number.isSafeInteger(data.turn)?data.turn:0,patience:null,breakOn:[]};
         delete s.goal;delete s.set;delete s.role;
       }
+      // 3.212.0 (SAVE 88): a deployer carries its kind and charges. An older run is only read to be settled as abandoned
+      // (src/stale-runs.js), so its deployers keep what they had: one loitering munition, spent or not.
+      if(version<88)for(const e of [...data.enemies,...Object.values(data.floorStates||{}).flatMap(f=>f.enemies||[])])if(deploys(e)&&e.deployKind===undefined){e.deployKind='munition';e.deployCharges=e.munitionSpent?0:1;}
       if(version<60)for(const e of [...data.enemies,...Object.values(data.floorStates||{}).flatMap(f=>f.enemies||[])])if(e.cowerAt&&!e.order){e.order={kind:'retreat',by:'self',at:e.cowerAt,since:Number.isSafeInteger(data.turn)?data.turn:0,patience:null,breakOn:[]};delete e.cowerAt;}
       if(version<9){p.character='soldier';p.moveDelta=[0,0];p.fireChain=null;grantCharacterTraits(p);for(const e of data.enemies){e.moveDelta=[0,0];e.fireChain=null;}}
       if(!validCharacter(version>=9?data.player.character:p.character)||!validCombatMemory(version>=9?data.player:p,data.turn)||data.enemies.some(e=>!validCombatMemory(e,data.turn)))return null;

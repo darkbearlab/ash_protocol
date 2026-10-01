@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {affixArena,sceneEnemy} from '../qa/enemy-affix-scenes.mjs';
 import {ENEMY_TYPES} from '../src/data.js';
-import {ENEMY_AFFIXES,AFFIX_TUNING,deployerChance} from '../src/enemy-affixes.js';
+import {ENEMY_AFFIXES,AFFIX_TUNING,deployerChance,armDeployer} from '../src/enemy-affixes.js';
 import {distance} from '../src/world.js';
 
 const STRIKE=ENEMY_TYPES.munition.range;
 // A launcher far enough away that the munition has room to appear between it and the player.
 function scene(){
  const g=affixArena(),p=g.player;
- const e=sceneEnemy(g,'rifleman',['deployer'],p.x+AFFIX_TUNING.deployerRange,p.y);
+ const e=sceneEnemy(g,'rifleman',['deployer'],p.x+AFFIX_TUNING.deployerRange,p.y);armDeployer(e,'munition');   // 3.212.0: one kind each
  e.alert=true;e.lastKnown={x:p.x,y:p.y};
  return {g,p,e};
 }
@@ -20,9 +20,9 @@ test('投放 only lands on enemies that already fight at range',()=>{
  assert.ok(def.special,'must stay out of the ordinary affix pool');
  for(const type of ['rifleman','sniper','gunner'])assert.ok(def.applies({type,traits:[],tags:ENEMY_TYPES[type].tags}));
  for(const type of ['raider','raider_armored','civilian','bomber'])assert.equal(Boolean(def.applies({type,traits:[],tags:ENEMY_TYPES[type].tags})),false);
- // 3.137.0: from depth 8 on easy (as before), 7 on standard.
+ // 3.137.0: from depth 8 on easy (as before); 3.212.0: from floor 5 on standard (docs/ENEMY_VARIETY.md section 9).
  assert.equal(deployerChance(7,{curve:'easy',offset:0}),0);assert.ok(deployerChance(8,{curve:'easy',offset:0})>0);
- assert.equal(deployerChance(6),0);assert.ok(deployerChance(7)>0&&deployerChance(20)<=AFFIX_TUNING.deployerCap);
+ assert.equal(deployerChance(4),0);assert.ok(deployerChance(5)>0&&deployerChance(20)<=AFFIX_TUNING.deployerCap);
 });
 
 test('the launch puts the munition at exactly strike range, in sight of the player',()=>{
@@ -33,9 +33,9 @@ test('the launch puts the munition at exactly strike range, in sight of the play
  assert.ok(m,'a munition should have been launched');
  assert.equal(distance(m,p),STRIKE);
  assert.ok(g.visible(m),'the player must be able to see it appear');
- assert.equal(e.munitionSpent,true);
+ assert.equal(e.deployCharges,AFFIX_TUNING.deployerCharges-1,'3.212.0: a charge is spent');
  assert.ok(e.affixes.find(a=>a.id==='deployer').revealed,'launching reveals the affix');
- // One each: a second turn does not produce a second munition.
+ // 3.212.0: one of its own up at a time — a second turn does not produce a second munition while the first hovers.
  g.turn++;g.enemyAct(e);
  assert.equal(munitions(g).length,1);
 });

@@ -28,7 +28,8 @@ import {ENEMY_TYPES,SIZE} from './data.js';
 import {DIRECTIONS,distance,key,makeEnemy} from './world.js';
 export const LUNGE_TRAIT='lunge',LUNGE_TUNING=Object.freeze({reach:3});
 export class GameEnemyTurn {
-  spawnEnemy(type,x,y,id){const d=this.difficultySpec;return rollEnemyElite(rollEnemyAffixes(makeEnemy(type,x,y,id,this.floor,d,this.facilityFaction),this.seed,this.floor,d),this.seed,this.floor,d);}
+  // 3.212.0 review: `marks` (expendable, reinforcement) go on before the rolls, so a deployed unit never rolls elite.
+  spawnEnemy(type,x,y,id,marks=null){const d=this.difficultySpec;return rollEnemyElite(rollEnemyAffixes(Object.assign(makeEnemy(type,x,y,id,this.floor,d,this.facilityFaction),marks),this.seed,this.floor,d),this.seed,this.floor,d);}
   enemyTarget(e){
     if(isNoncombatant(e))return this.player;
     const options=[this.player,...this.activeAllies].filter(a=>a.hp>0&&distance(e,a)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,a));

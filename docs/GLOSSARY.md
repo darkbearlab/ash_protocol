@@ -36,7 +36,7 @@
 | 鏈鋸 | Chainsaw | `weapons.chainsaw.name` |
 | 火焰發射器 | Flamethrower | `weapons.flamer.name` |
 
-## 敵人（32）
+## 敵人（33）
 
 | 中文 | English | 代號 |
 | --- | --- | --- |
@@ -70,6 +70,7 @@
 | 小隊長 | Squad Leader | `enemyTypes.squad_leader.name` |
 | 督戰官 | Enforcer | `enemyTypes.enforcer.name` |
 | 浮游彈藥 | Suicide Drone | `enemyTypes.munition.name` |
+| 固定砲台 | Fixed Turret | `enemyTypes.turret.name` |
 | 滯留研究員 | Stranded Researcher | `enemyTypes.civilian.name` |
 | 毒液噴吐蟲 | Venom Spitter | `enemyTypes.spitter.name` |
 

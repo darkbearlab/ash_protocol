@@ -16,7 +16,7 @@ function enemyOverpen(g,e,p,damage,chance){
 import {activeTrait,recordShot} from './traits.js';
 import {pinned,finishSuppression,meleeSuppression,rapidFireModifiers} from './suppression.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
-import {AFFIX_TUNING,ENEMY_AFFIXES,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
+import {AFFIX_TUNING,DEPLOY_KINDS,deploys,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {sprayFlame,flameCells,flamerDamage,FLAMETHROWER} from './fire.js';
 import {bossSpecial} from './loyalist-bosses.js';
 import {soldierSpecial,drinkBlood,decloak,lastWords} from './delisted-operatives.js';
@@ -37,7 +37,7 @@ import {selfAmbush,selfHold} from './ambush.js';
 import {selfFlank} from './flank.js';
 import {usePounceHooks} from './pounce.js';
 import {releasePayload} from './swarm-fields.js';
-import {runStep,registerStep,lockedTarget,dropAttack} from './enemy-specials.js';
+import {runStep,registerStep,registerSpecial,lockedTarget,dropAttack} from './enemy-specials.js';
 import {personalityOf} from './personality.js';
 import {spentCase} from './traces.js';
 import {lightingEffects} from './lighting.js';
@@ -168,22 +168,53 @@ function munitionSpot(g,e,p){
  }
  return spots.sort((a,b)=>distance(e,a)-distance(e,b)||key(a).localeCompare(key(b)))[0]||null;
 }
-function deployMunition(ctx){
- const {g,e,p}=ctx,spot=munitionSpot(g,e,p);
- if(!spot)return false;
- e.munitionSpent=true;revealEnemyAffix(g,e,'deployer');
- const munition=g.spawnEnemy(ENEMY_AFFIXES.find(a=>a.id==='deployer').spawns,spot.x,spot.y,`${e.id}-munition`);
- munition.alert=true;munition.spawnTurn=g.turn;munition.lastKnown={x:p.x,y:p.y};
- g.enemies.push(munition);
+// 投放 (3.212.0 rework, user 2026-09-30, docs/ENEMY_VARIETY.md section 1): a deployer puts out the one kind it was born
+// with (src/enemy-affixes.js `deployKind`) — a drone, a loitering munition, a fixed turret or a bomb bot — two in all
+// (`deployCharges`; 「只是不能無限生」), at most one of its own up at a time. Its units are ordinary enemies with ids of
+// its own (`<its id>-deploy-<n>`, never reused), expendable reinforcements that pay nothing when they fall — no xp,
+// scrap, drops or protocol, as the delisted engineer's drones (3.207.0), so they cannot be farmed. Where they go: the
+// munition as before, at its strike range in your sight; a drone or a bomb bot on a free tile beside the deployer; a
+// turret on a free tile beside it that sees you and is in the turret's range (Claude's call: a turret set down out of
+// reach would stand there for ever). No such tile, or no room on the floor: no deployment and no charge spent; the
+// unit fights as usual this turn. The trigger is 3.103.0's.
+const deployPrefix=e=>`${e.id}-deploy-`;
+export const ownDeployed=(g,e)=>(g.enemies||[]).filter(d=>d.id.startsWith(deployPrefix(e)));
+// 3.212.0 review: the tile is judged for the deployer (`passable` with it: a mine it has seen, a survival point it is not
+// sent to), and a turret's tile by a turret standing there — a machine finds you in the black, an empty tile does not —
+// with a clear shot, not only sight, so it never stands idle round a corner.
+const besideSpots=(g,e)=>DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).filter(q=>g.passable(q.x,q.y,e)&&g.canCross(e,q)&&!occupied(g,q)&&!hazardTile(g,q.x,q.y));
+export function deploySpot(g,e,p,kind=e.deployKind){
+ if(kind==='munition')return munitionSpot(g,e,p);
+ const spots=besideSpots(g,e);
+ if(kind==='turret')return spots.find(q=>{const turret={x:q.x,y:q.y,type:'turret',traits:[],faction:e.faction};return distance(q,p)<=ENEMY_TYPES.turret.range&&g.sight(turret,p)&&g.shotClear(turret,p);})||null;
+ return spots[0]||null;
+}
+function deploy(ctx){
+ const {g,e,p}=ctx,kind=e.deployKind;
+ if(!DEPLOY_KINDS.includes(kind)||!(e.deployCharges>0)||enemyRoom(g)<=0)return false;
+ const spot=deploySpot(g,e,p,kind);if(!spot)return false;
+ const unit=g.spawnEnemy(kind,spot.x,spot.y,`${deployPrefix(e)}${ownDeployed(g,e).length}`,{expendable:true,reinforcement:true});
+ unit.alert=true;unit.lastKnown={x:p.x,y:p.y};if(enemyDef(unit)?.behavior==='munition')unit.spawnTurn=g.turn;
+ g.enemies.push(unit);e.deployCharges--;revealEnemyAffix(g,e,'deployer');
  g.effects.push({type:'enemyTelegraph',phase:'flight',from:{x:e.x,y:e.y},to:{x:spot.x,y:spot.y},damage:0});
- g.log(t('enemy-behavior.munitionLaunch',{name:enemyName(e)}),true);
+ g.log(kind==='munition'?t('enemy-behavior.munitionLaunch',{name:enemyName(e)}):t('enemy-behavior.deployUnit',{name:enemyName(e),unit:enemyName(unit)}),true);
  return true;
 }
-registerAffixBranch({id:'deployer',reveal:'effect',applies:({e})=>e.affixes?.some(a=>a.id==='deployer'),
- // Launching replaces this turn's shot, so an enemy already lining one up may still do it; only a pending grenade
- // blocks it, to keep one enemy from carrying two intents at once.
- trigger:({e,p,los})=>!e.munitionSpent&&!e.grenadeIntent&&los&&distance(e,p)<=AFFIX_TUNING.deployerRange&&distance(e,p)>munitionRange(),
- get chance(){return AFFIX_TUNING.deployerFire;},run:deployMunition});
+registerAffixBranch({id:'deployer',reveal:'effect',applies:({e})=>deploys(e),
+ // Deploying replaces this turn's shot, so an enemy already lining one up may still do it; only a pending grenade
+ // blocks it, to keep one enemy from carrying two intents at once. 3.212.0: a charge left, and none of its own up.
+ trigger:({g,e,p,los})=>e.deployCharges>0&&!e.grenadeIntent&&los&&distance(e,p)<=AFFIX_TUNING.deployerRange&&distance(e,p)>munitionRange()&&ownDeployed(g,e).filter(d=>d.hp>0).length<AFFIX_TUNING.deployerLive,
+ get chance(){return AFFIX_TUNING.deployerFire;},run:deploy});
+// The kind and the charges left: state only, so no `intent` (no warning: a deployment happens on the turn it is decided,
+// and nothing that asks whether a unit is mid-warning should count a deployer). Saves: both on every deployer and only on
+// one; a kind is a card it may deploy; charges past today's tuning are cut to it (SAVE 87 runs: src/game-save.js).
+registerSpecial({id:'deploy',carries:deploys,
+ fields:{
+  deployKind:{valid:(v,e)=>deploys(e)&&DEPLOY_KINDS.includes(v)},
+  deployCharges:{count:{max:()=>AFFIX_TUNING.deployerCharges,carrier:true,clamp:'cut'}},
+ },
+ load:{enemy:e=>!deploys(e)||e.deployKind!==undefined&&e.deployCharges!==undefined},
+});
 function munitionAct(ctx){
  const {g,e,p}=ctx;
  // The turn it arrives it only hovers, so the player always gets exactly one action before it strikes.
@@ -198,6 +229,20 @@ function munitionAct(ctx){
 // Shooting it down sets it off where it stands, exactly like a barrel or a rigged case; at its strike range the blast
 // cannot reach the player, which is what makes shooting it the safe answer.
 registerUnitTree('munition',{before:munitionAct,death:({g,e})=>g.explode(e,MUNITION_RADIUS,scaleEnemy(ENEMY_TYPES.munition.damage,g.floor,'damage',g.difficultySpec))});
+// Fixed turret (3.212.0, docs/ENEMY_VARIETY.md section 1; its card in src/data.js): it takes its whole turn here and never
+// moves — no order, hazard step, cover or walk can take it anywhere. With its target in sight, in range and a clear line
+// it winds up once (「!」) and then fires every round (`rapid`, as a rifleman keeps firing); otherwise it lets the
+// wound-up shot go and waits.
+function turretAct(ctx){
+ const {g,e,p,def,los,d}=ctx;
+ observeEnemy(g,e,los);revealSenses(g,e,p);if(los)e.lastKnown={x:p.x,y:p.y};
+ if(!(los&&d<=def.range&&g.shotClear(e,p))){interruptEnemyIntent(e,'target_lost');return true;}
+ if(!e.charge){e.charge=true;e.focusTarget=p.id||'player';e.windup=1;e.aim={x:p.x,y:p.y};enemyCallout(g,e,'telegraph',{action:'attack'});return true;}
+ e.windup=(e.windup||1)-1;if(e.windup>0)return true;
+ attack(ctx);e.charge=Boolean(def.rapid);e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
+ return true;
+}
+registerUnitTree('turret',{before:turretAct});
 registerUnitTree('civilian',{before:civilianAction});
 registerUnitTree('sniper',{windup:2,fixedTile:true});
 registerUnitTree('boss',{beforeAttack:({g,e,p})=>{if((e.attackCount||0)%2!==1||e.charge)return false;g.marks.push({x:p.x,y:p.y,due:g.turn+2});e.attackCount++;enemyCallout(g,e,'telegraph',{action:'bombard'});g.log(t('enemy-behavior.bossBombard'),true);return true;},after:reinforce});

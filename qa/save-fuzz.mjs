@@ -10,6 +10,8 @@
 //                                                         meets a delisted operative, seed n the (n-1)th class of
 //                                                         soldier, recon, engineer, berserker, ninja; or name one class
 //   node qa/save-fuzz.mjs --seed-from 3 --seeds 3         only seed 3, to reproduce one run
+//   node qa/save-fuzz.mjs --difficulty hard --floors 3,6  3.212.0: another curve (default standard), e.g. to meet the
+//                                                         enemy-variety affixes from their start floors (投放 from hard 3)
 //   node qa/save-fuzz.mjs --out <dir>                     write each failing save there as JSON to reproduce it
 //   node qa/save-fuzz.mjs --trace <file>                  also record every step: the state hash (logs included), the
 //                                                         effect types and the target-card state of each enemy in view
@@ -33,7 +35,7 @@ const arg=(name,fallback)=>{const i=process.argv.indexOf('--'+name);return i<0?f
 const list=(name,fallback)=>String(arg(name,fallback)).split(',').map(s=>s.trim()).filter(Boolean);
 const FACTIONS=list('faction','loyalist,rebel,swarm,legacy'),FLOORS=list('floors','1,2,3,4,5,6').map(Number);
 const SEEDS=Number(arg('seeds',4)),FROM=Number(arg('seed-from',1)),STEPS=Number(arg('steps',80)),CLASSES=list('classes','soldier,recon,engineer');
-const NEAR_BOSS=process.argv.includes('--near-boss'),OUT=arg('out',null),TRACE=arg('trace',null),AGAINST=arg('against',null),OPERATIVE=arg('operative',null);
+const DIFFICULTY=arg('difficulty',null),NEAR_BOSS=process.argv.includes('--near-boss'),OUT=arg('out',null),TRACE=arg('trace',null),AGAINST=arg('against',null),OPERATIVE=arg('operative',null);
 // 3.207.0: the draw forced through its QA hook (src/operative-draw.js setOperativeDraw), so the run meets each class.
 if(OPERATIVE)setOperativeDraw(seed=>OPERATIVE==='cycle'?OPERATIVE_CLASSES[(Number(seed)-1)%OPERATIVE_CLASSES.length]:OPERATIVE);
 // The first line where two traces part ways (true when they match, or when there is nothing to compare).
@@ -87,7 +89,7 @@ function pickAction(g,rng){
 }
 for(const faction of FACTIONS)for(const floor of FLOORS)for(let seed=FROM;seed<=SEEDS;seed++)for(const cls of CLASSES){
  let g;
- try{g=new Game(seed,[],0,cls,'onyx','extraction',{facilityFaction:faction});g.floor=floor;g.loadFloor();}
+ try{g=new Game(seed,[],0,cls,'onyx','extraction',{facilityFaction:faction,...(DIFFICULTY?{difficulty:DIFFICULTY}:{})});g.floor=floor;g.loadFloor();}
  catch{stats.skipped++;continue;}
  stats.runs++;
  Object.assign(g.player,{hp:5000,maxHp:5000});

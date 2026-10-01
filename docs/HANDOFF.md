@@ -59,7 +59,7 @@
 | 資料 | `data.js`（武器、敵人卡、`SAVE_VERSION`）、`enemy-data.js`、`characters.js`、`weapons.js`、`ammunition.js`、`factions.js`、`faction-catalog.js`（3.208.0 起派系的 `overrides` 也能加特性與階數，單位產生時經 `startingTraits` 拿到，階數由 `factionTraitRank` 從表讀） |
 | 敵人行為 | `enemy-behavior.js`（`executeEnemyTree`）、`enemy-intents.js`、`enemy-affixes.js`、`tactics.js`、`squad.js`、`orders.js`、`ambush.js`、`flank.js`、`rebels.js`、`swarm*.js`、`pounce.js` |
 | 頭目 | `loyalist-bosses.js`、`swarm-bosses.js`、`rebel-bosses.js`、`delisted-operatives.js`（3.207.0 除名幹員：五個職業的招式、忍者的迷彩、遺言）、`operative-draw.js`（抽選與編號，地圖生成只 import 這個）、`boss-scenes.js`（出場與擊殺演出） |
-| 敵人招式登錄表（3.206.1） | `enemy-specials.js`：不 import 任何模組；每個預告招式宣告一次（欄位、打斷、回合開頭、誘餌／地雷／危險格／壓制、讀檔修剪與檢查、目標卡），`ORDER` 定所有順序。宣告在擁有招式的模組（`fire.js`、`swarm.js`、`pounce.js`、`swarm-fields.js`、`swarm-bosses.js`、`loyalist-bosses.js`、`rebel-bosses.js`、`delisted-operatives.js`、手榴彈在 `enemy-intents.js`）；3.207.0 起多一個 `ORDER.end`（`Game.enemyAct` 在單位的回合之後）；`interruptEnemyIntent`、`tickSpecials` 在 `enemy-intents.js`。見 CHECKLIST 第 2 節 |
+| 敵人招式登錄表（3.206.1） | `enemy-specials.js`：不 import 任何模組；每個預告招式宣告一次（欄位、打斷、回合開頭、誘餌／地雷／危險格／壓制、讀檔修剪與檢查、目標卡），`ORDER` 定所有順序。宣告在擁有招式的模組（`fire.js`、`swarm.js`、`pounce.js`、`swarm-fields.js`、`swarm-bosses.js`、`loyalist-bosses.js`、`rebel-bosses.js`、`delisted-operatives.js`、手榴彈在 `enemy-intents.js`、3.212.0 投放的種類與次數在 `enemy-behavior.js`）；3.207.0 起多一個 `ORDER.end`（`Game.enemyAct` 在單位的回合之後）；`interruptEnemyIntent`、`tickSpecials` 在 `enemy-intents.js`。見 CHECKLIST 第 2 節 |
 | 地圖生成 | `world.js`（`generate`）、`map-*.js`、`pits.js`、`vault.js`、`vent-map.js`、`scenery.js`、`runtime-enemies.js` |
 | 危險地形與環境 | `hazard-paths.js`、`fire.js`、`vents.js`、`throwables.js`、`lighting.js`、`flares.js` |
 | 友軍 | `allies.js`、`workshop.js`、`pet-growth.js`、`melee-classes.js` |
@@ -83,7 +83,7 @@
 ## 6. 存檔
 
 - 單局 `ash-save`：`SAVE_VERSION` 見 `src/data.js`。驗證只擋壞資料，過期的預告在讀檔時丟掉，跟平衡數字有關的值修正到目前上限。
-- 舊任務作廢（3.210.0，使用者 2026-10-01）：存檔版本比 `RUN_SAVE_FLOOR`（`src/data.js`）舊、還沒打完的任務，讀檔時照「放棄任務」結算（`src/stale-runs.js`；不給超過帳本已記的點數），原始存檔盡量留在 `ash-save-abandoned`（空間不夠時不留，結算照做），個人檔案其他部分不動；要作廢時把它設成新的 `SAVE_VERSION`，不寫遷移（CHECKLIST 第 3 節）。3.210.0 起是 87，3.209.0 以前的存檔都作廢。
+- 舊任務作廢（3.210.0，使用者 2026-10-01）：存檔版本比 `RUN_SAVE_FLOOR`（`src/data.js`）舊、還沒打完的任務，讀檔時照「放棄任務」結算（`src/stale-runs.js`；不給超過帳本已記的點數），原始存檔盡量留在 `ash-save-abandoned`（空間不夠時不留，結算照做），個人檔案其他部分不動；要作廢時把它設成新的 `SAVE_VERSION`，不寫遷移（CHECKLIST 第 3 節）。3.210.0 起是 87，3.209.0 以前的存檔都作廢；3.212.0 起是 88（投放改版：投放者的 `deployKind`、`deployCharges` 與固定砲台卡），3.211.0 以前的存檔都作廢。
 - 往返任務把離開的樓層封存在 `floorStates`（`src/retreat.js` 的 `FLOOR_FIELDS`）；`Game.restore` 用假存檔逐層檢查，新樓層欄位要列預設值。
 - 個人紀錄 `ash-profile`：`PROFILE_VERSION` 見 `src/progression.js`；完整備份見 `src/backup.js`。
 - 測試模式的鍵一律加 `qa-`；操作紀錄 `ash-run-log` 不在存檔裡。

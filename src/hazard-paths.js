@@ -1,5 +1,5 @@
 import {DIRECTIONS,key} from './world.js';
-import {hasEnemyTag,fireproof} from './enemy-data.js';
+import {hasEnemyTag,fireproof,enemyDef} from './enemy-data.js';
 import {barrierBetween,edgeBlocks,vaultable} from './barriers.js';
 import {roomContains} from './map-geometry.js';
 import {blocked} from './enemy-specials.js';
@@ -62,8 +62,9 @@ export function costToGoal(g,actor,goal,limit=Infinity){
 // just the same. Not while pinned, resting (fodder), or committed to a telegraphed move: a wound-up shot, or a special
 // whose declaration says so (src/enemy-specials.js `blocks.stepOff`: a grenade, a tongue, a pounce, a lob, a marked cone,
 // a charge, a wall or ring). Noncombatants are left to their own flight. Returns true when it moved.
+// 3.212.0: nor a unit whose card is `fixed` (the fixed turret never moves; it burns where it stands).
 export function stepOffHazard(g,e,goal,{pinned=()=>false,occupied=()=>false}={}){
- if(!avoidsHazards(e)||!hazardTile(g,e.x,e.y,e)||pinned(e)||e.actionDelay>0||e.charge||blocked(e,'stepOff'))return false;
+ if(!avoidsHazards(e)||enemyDef(e)?.fixed||!hazardTile(g,e.x,e.y,e)||pinned(e)||e.actionDelay>0||e.charge||blocked(e,'stepOff'))return false;
  const costs=goal?costToGoal(g,e,goal):null,here=costs?.get(key(e))??Infinity,cost=q=>costs?.get(key(q))??Infinity;
  const spots=DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).filter(n=>{
   const edge=barrierBetween(g.barriers,e,n);

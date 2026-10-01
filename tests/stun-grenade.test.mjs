@@ -50,7 +50,8 @@ test('walls shield the square; saves keep a stun throw; a stun mark with damage 
 test('hard: standard numbers, affixes from the first floor and more of them, elites from floor 4',()=>{
   const hard={curve:'hard',offset:0},standard={curve:'standard',offset:0};
   assert.deepEqual(DIFFICULTY_OPTIONS.map(o=>o.id),['easy','standard','hard']);assert.equal(runOptions({difficulty:'hard'}).difficulty,'hard');
-  for(const k of ['hpStep','damageStep','hpGrowth','damageGrowth','deployerStart','preview'])assert.equal(DIFFICULTY_CURVES.hard[k],DIFFICULTY_CURVES.standard[k],k);
+  for(const k of ['hpStep','damageStep','hpGrowth','damageGrowth','preview'])assert.equal(DIFFICULTY_CURVES.hard[k],DIFFICULTY_CURVES.standard[k],k);
+  assert.deepEqual([DIFFICULTY_CURVES.hard.varietyStart,DIFFICULTY_CURVES.standard.varietyStart],[3,5],'3.212.0: the variety affixes start earlier on hard');
   for(const floor of [1,4,9])assert.deepEqual([floorHpBonus(floor,hard),floorDamageBonus(floor,hard),scaleEnemy(100,floor,'hp',hard)],[floorHpBonus(floor,standard),floorDamageBonus(floor,standard),scaleEnemy(100,floor,'hp',standard)]);
   assert.deepEqual([1,3,6].map(f=>+affixChance(f,hard).toFixed(2)),[.07,.21,.42]);assert.deepEqual([1,3,6].map(f=>+affixChance(f,standard).toFixed(2)),[0,.05,.2]);
   assert.equal(eliteChance(3,hard),0);assert.ok(eliteChance(4,hard)>0);assert.equal(eliteChance(6,standard),0);

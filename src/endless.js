@@ -20,16 +20,21 @@ export const validDifficultyOffset=n=>Number.isInteger(n)&&n>=DIFFICULTY_TUNING.
 // 3.137.0 (user decisions 2026-09-19, docs/DIFFICULTY.md): a difficulty is a curve plus the knob's offset.
 // - 簡單 (easy): enemy numbers grow slowly — hit points +2 a floor from floor 3, damage +1 a floor, and past floor 6
 //   ×1.04 / ×1.03 a floor — and nothing else changes.
-// - 標準 (standard): the same slow numbers, but ordinary affixes from floor 3 (5% a floor), elites and deployers from
-//   depth 7, and one special enemy previewed on floor 2.
+// - 標準 (standard): the same slow numbers, but ordinary affixes from floor 3 (5% a floor), elites from depth 7, and one
+//   special enemy previewed on floor 2.
 // - classic: the curve before 3.137.0 (+4 / +2 a floor, ×1.07 / ×1.04, affixes from depth 7, elites 9, deployers 8).
 //   Runs started earlier keep it, so nothing changes mid-run; it is never offered.
+// varietyStart (3.212.0, docs/ENEMY_VARIETY.md section 9; Claude's call, user 2026-09-30: 難度旋鈕聽你的): the
+// effective depth from which the special affixes of the enemy-variety line appear — 投放 now, and 封鎖, 繳械, 疾行 and 埋伏
+// as they land; each keeps its own chance per depth. One rule for all of them: hard from floor 3, standard from floor 5,
+// easy at depth 8 (never in the six-floor campaign; endless still reaches it). It takes over from 3.137.0's start for
+// deployers alone (standard and hard 7, easy 8); classic keeps 8.
 export const DIFFICULTY_CURVES=Object.freeze({
- easy:Object.freeze({hpStep:2,damageStep:1,hpGrowth:.04,damageGrowth:.03,affixStart:7,affixPerDepth:.04,eliteStart:9,deployerStart:8,preview:false}),
- standard:Object.freeze({hpStep:2,damageStep:1,hpGrowth:.04,damageGrowth:.03,affixStart:3,affixPerDepth:.05,eliteStart:7,deployerStart:7,preview:true}),
+ easy:Object.freeze({hpStep:2,damageStep:1,hpGrowth:.04,damageGrowth:.03,affixStart:7,affixPerDepth:.04,eliteStart:9,varietyStart:8,preview:false}),
+ standard:Object.freeze({hpStep:2,damageStep:1,hpGrowth:.04,damageGrowth:.03,affixStart:3,affixPerDepth:.05,eliteStart:7,varietyStart:5,preview:true}),
  // 3.188.0 (user): hard is standard's numbers with affixes from the first floor and more of them, and elites from floor 4.
- hard:Object.freeze({hpStep:2,damageStep:1,hpGrowth:.04,damageGrowth:.03,affixStart:1,affixPerDepth:.07,eliteStart:4,deployerStart:7,preview:true}),
- classic:Object.freeze({hpStep:4,damageStep:2,hpGrowth:.07,damageGrowth:.04,affixStart:7,affixPerDepth:.04,eliteStart:9,deployerStart:8,preview:false}),
+ hard:Object.freeze({hpStep:2,damageStep:1,hpGrowth:.04,damageGrowth:.03,affixStart:1,affixPerDepth:.07,eliteStart:4,varietyStart:3,preview:true}),
+ classic:Object.freeze({hpStep:4,damageStep:2,hpGrowth:.07,damageGrowth:.04,affixStart:7,affixPerDepth:.04,eliteStart:9,varietyStart:8,preview:false}),
 });
 export const DEFAULT_CURVE='standard';
 export const validCurve=id=>typeof id==='string'&&Object.hasOwn(DIFFICULTY_CURVES,id);

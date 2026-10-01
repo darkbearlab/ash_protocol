@@ -24,11 +24,17 @@ test('two curves are offered, standard by default; both grow numbers the same sl
  assert.deepEqual([3,6,18].map(f=>makeEnemy('brute',1,1,'x',f,standard).maxHp),[92,98,195]);assert.deepEqual([3,6,18].map(f=>makeEnemy('brute',1,1,'x',f,classic).maxHp),[94,106,347]);
 });
 
-test('standard brings affixes from floor 3, elites and deployers from depth 7; easy keeps them where they were',()=>{
+// 3.212.0 (docs/ENEMY_VARIETY.md section 9): deployers, and the enemy-variety affixes after them, start at the curve's
+// varietyStart — hard floor 3, standard floor 5, easy depth 8 (never in the campaign), classic 8 as before.
+test('standard brings affixes from floor 3, elites from depth 7 and deployers from floor 5; easy keeps them where they were',()=>{
  assert.deepEqual([2,3,4,6].map(f=>affixChance(f,standard)),[0,.05,.1,.2]);
  assert.deepEqual([6,7,8].map(f=>affixChance(f,easy)),[0,.04,.08]);
  assert.equal(eliteChance(6,standard),0);assert.equal(eliteChance(7,standard),.02);assert.equal(eliteChance(8,easy),0);assert.equal(eliteChance(9,easy),.02);
- assert.equal(deployerChance(6,standard),0);assert.ok(deployerChance(7,standard)>0);assert.equal(deployerChance(7,easy),0);assert.ok(deployerChance(8,easy)>0);
+ assert.equal(deployerChance(4,standard),0);assert.equal(deployerChance(5,standard),.03);assert.equal(deployerChance(6,standard),.06);
+ assert.equal(deployerChance(7,easy),0);assert.equal(deployerChance(8,easy),.03);assert.equal(deployerChance(7,classic),0);assert.equal(deployerChance(8,classic),.03);
+ assert.deepEqual(Object.fromEntries(Object.entries(DIFFICULTY_CURVES).map(([id,c])=>[id,c.varietyStart])),{easy:8,standard:5,hard:3,classic:8});
+ // The knob moves it like every other start: an offset of +2 on standard brings deployers to floor 3.
+ assert.equal(deployerChance(2,{curve:'standard',offset:2}),0);assert.equal(deployerChance(3,{curve:'standard',offset:2}),.03);
 });
 
 test('floor 2 on standard previews exactly one special enemy in place of an ordinary one; easy and other floors do not',()=>{

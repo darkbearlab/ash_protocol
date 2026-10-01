@@ -29,7 +29,7 @@ import {tickOperatives} from '../src/delisted-operatives.js';
 
 export const MATRIX_FIXTURE=new URL('../tests/fixtures/special-matrix.json',import.meta.url);
 const REASONS=['death','disabled','displaced','target_lost','suppressed','bogus'];
-const FIELDS=['grenadeIntent','flameIntent','tongueIntent','tongueCooldown','pounceIntent','pounceCooldown','lobIntent','lobCooldown','chargeIntent','chargeCooldown','crashed','nestIntent','nestCooldown','markIntent','markReady','gun','special','fireIntent','heat','overheat','burn','scanCooldown','grenadeCooldown','smokeIntent','smokeCooldown','droneCooldown','decloaked','charge','aim','windup','fireChain','x','y','hp','control','suppression','vaultExposed'];   // 3.207.0: the delisted operatives' fields
+const FIELDS=['grenadeIntent','flameIntent','tongueIntent','tongueCooldown','pounceIntent','pounceCooldown','lobIntent','lobCooldown','chargeIntent','chargeCooldown','crashed','nestIntent','nestCooldown','markIntent','markReady','gun','special','fireIntent','heat','overheat','burn','scanCooldown','grenadeCooldown','smokeIntent','smokeCooldown','droneCooldown','decloaked','deployKind','deployCharges','charge','aim','windup','fireChain','x','y','hp','control','suppression','vaultExposed'];   // 3.207.0: the delisted operatives' fields; 3.212.0: a deployer's
 const canon=v=>Array.isArray(v)?v.map(canon):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canon(v[k])])):v;
 const fields=u=>canon(Object.fromEntries(FIELDS.filter(k=>u?.[k]!==undefined).map(k=>[k,u[k]])));
 const cell=v=>JSON.stringify(canon(v));
@@ -67,9 +67,11 @@ const SPECIALS={
  drones:{card:'delisted_engineer',main:'droneCooldown',count:'droneCooldown',state:()=>({droneCooldown:1})},
  cloak:{card:'delisted_ninja',main:'decloaked',state:()=>({decloaked:true})},
  grapple:{card:'delisted_berserker',main:'tongueIntent',count:'tongueCooldown',state:(E,T)=>({tongueIntent:{origin:at(E),target:at(T),point:{x:E.x-1,y:E.y}},tongueCooldown:1})},
+ // 3.212.0: a deployer's kind and charges left (state only; src/enemy-behavior.js).
+ deploy:{card:'rifleman',affixes:['deployer'],main:'deployKind',count:'deployCharges',state:()=>({deployKind:'turret',deployCharges:1})},
 };
-// Units with no special state: what the specials' checks must leave alone.
-const PLAIN={opSoldier:{card:'delisted_soldier'},opRecon:{card:'delisted_recon'},opEngineer:{card:'delisted_engineer'},opBerserker:{card:'delisted_berserker'},opNinja:{card:'delisted_ninja'},rifleman:{card:'rifleman'},aiming:{card:'rifleman',extra:{charge:true,windup:1,aim:{x:10,y:10}}},flamer:{card:'rifleman',affixes:['flamer']},grenadier:{card:'raider',affixes:['grenadier']},arsonist:{card:'arsonist',faction:'rebel'},beast:{card:'hive_beast',faction:'swarm'},crawler:{card:'crawler',faction:'swarm'},spitter:{card:'spitter',faction:'swarm'},gunline:{card:'gunline',faction:'loyalist'}};
+// Units with no special state: what the specials' checks must leave alone. 3.212.0: the fixed turret.
+const PLAIN={turret:{card:'turret'},opSoldier:{card:'delisted_soldier'},opRecon:{card:'delisted_recon'},opEngineer:{card:'delisted_engineer'},opBerserker:{card:'delisted_berserker'},opNinja:{card:'delisted_ninja'},rifleman:{card:'rifleman'},aiming:{card:'rifleman',extra:{charge:true,windup:1,aim:{x:10,y:10}}},flamer:{card:'rifleman',affixes:['flamer']},grenadier:{card:'raider',affixes:['grenadier']},arsonist:{card:'arsonist',faction:'rebel'},beast:{card:'hive_beast',faction:'swarm'},crawler:{card:'crawler',faction:'swarm'},spitter:{card:'spitter',faction:'swarm'},gunline:{card:'gunline',faction:'loyalist'}};
 
 const E0={x:13,y:10},T0={x:10,y:10},N0={x:10,y:13};
 function arena(){const g=affixArena();clearGeneratedMap(g);g.fires=undefined;g.flares=[];Object.assign(g.player,{hp:999,maxHp:999,plates:0,armor:0,guard:false});g.reveal();return g;}

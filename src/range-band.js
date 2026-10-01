@@ -14,7 +14,7 @@ export const WEAPON_BANDS=Object.freeze({rifle:[3,5],smg:[2,4],sniper:[4,10],pla
 // By enemy type; a variant (rifleman_armored) falls back to its base type.
 // 3.153.0 (faction review): every far edge is now at most one tile short of the card's range. Four cards sat two short,
 // which left a dead zone where the unit had a clean shot and walked instead of taking a −4 (docs/WEAPONS.md 有效距離).
-export const ENEMY_BANDS=Object.freeze({rifleman:[3,6],raider:[1,4],gunner:[2,5],drone:[2,4],sniper:[4,10],warden:[2,5],boss:[3,6],squad_leader:[2,5],enforcer:[4,10],designator:[2,5],gunline:[3,6],burnline:[3,6],delisted_soldier:[3,6],delisted_recon:[3,7],delisted_engineer:[2,4],delisted_ninja:[1,4]});   // 3.204.0: the loyalist bosses shoot like the chassis they share; 3.206.0: 焚線官 too (the arsonist has no gun: its reach is the flamethrower's); 3.207.0: the delisted operatives (the ninja closes in; the berserker has no gun)
+export const ENEMY_BANDS=Object.freeze({rifleman:[3,6],raider:[1,4],gunner:[2,5],drone:[2,4],sniper:[4,10],warden:[2,5],boss:[3,6],squad_leader:[2,5],enforcer:[4,10],designator:[2,5],gunline:[3,6],burnline:[3,6],delisted_soldier:[3,6],delisted_recon:[3,7],delisted_engineer:[2,4],delisted_ninja:[1,4],turret:[3,6]});   // 3.212.0: the fixed turret, as the rifleman (it never moves, so only its aim feels it); 3.204.0: the loyalist bosses shoot like the chassis they share; 3.206.0: 焚線官 too (the arsonist has no gun: its reach is the flamethrower's); 3.207.0: the delisted operatives (the ninja closes in; the berserker has no gun)
 
 export const weaponBand=weapon=>weapon?.band??(weapon?.melee?null:WEAPON_BANDS[weapon?.id]??null);
 export const enemyBand=type=>ENEMY_BANDS[type]??ENEMY_BANDS[String(type).split('_')[0]]??null;

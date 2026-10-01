@@ -285,7 +285,7 @@ test('saves: operatives, their serials, cooldowns and warnings come back; stale 
   const g=field(),s=op(g,'soldier',16,10),r=op(g,'recon',16,14),n=op(g,'ninja',18,6),en2=op(g,'engineer',20,10);
   Object.assign(s,{scanCooldown:3,grenadeCooldown:2,grenadeIntent:{stage:'prepare',targetId:'player',x:10,y:10,origin:{x:16,y:10}}});
   Object.assign(r,{smokeIntent:{origin:{x:16,y:14},point:{x:13,y:12}},smokeCooldown:4});n.decloaked=true;en2.droneCooldown=1;grantTrait(g.player,SCANNED,'boss:scan',2);
-  const raw=g.serialize(),copy=Game.restore(raw);assert.ok(copy);assert.deepEqual(copy.enemies,g.enemies);assert.equal(JSON.parse(raw).version,SAVE_VERSION);assert.equal(SAVE_VERSION,87);
+  const raw=g.serialize(),copy=Game.restore(raw);assert.ok(copy);assert.deepEqual(copy.enemies,g.enemies);assert.equal(JSON.parse(raw).version,SAVE_VERSION);assert.equal(SAVE_VERSION,88);
   const load=change=>{const d=JSON.parse(raw);change(d.data);return Game.restore(JSON.stringify(d));};
   const find=(c,id)=>c.enemies.find(e=>e.id===id);
   // Stale: moved, fallen, stunned, pinned while it warned: the throw is dropped and its cooldown restarts.
