@@ -23,7 +23,9 @@ test('independent elite stream preserves every nonelite and fills only applicabl
   rollEnemyElite(e,seed,60);assert.deepEqual(e,rollEnemyElite(structuredClone(before),seed,60));
   if(!e.elite){normal++;assert.deepEqual(e,before);continue;}
   elites++;assert.ok(!['boss','warden','fodder','brood'].includes(type));
-  assert.ok(e.affixes.length>=ELITE_TUNING.minAffixes||ENEMY_AFFIXES.every(d=>e.affixes.some(a=>a.id===d.id)||!d.applies(e)));
+  // The top-up draws ordinary affixes only (special ones roll on their own streams: 投放, 火焰兵, 封鎖, 繳械, 疾行).
+  const ordinary=e.affixes.filter(a=>!ENEMY_AFFIXES.find(d=>d.id===a.id)?.special).length;
+  assert.ok(ordinary>=ELITE_TUNING.minAffixes||ENEMY_AFFIXES.filter(d=>!d.special).every(d=>e.affixes.some(a=>a.id===d.id)||!d.applies(e)));
   assert.equal(new Set(e.affixes.map(a=>a.id)).size,e.affixes.length);
   assert.deepEqual(revealedAffixes(e),[]);assert.equal(enemyDisplayName(e),ENEMY_TYPES[type].name+'？');
   assert.deepEqual(e.affixes.slice(0,before.affixes.length),before.affixes);

@@ -1061,6 +1061,7 @@ export default Object.freeze({
  "enemyAffixes.flamer.fragment":"Flamer",
  "enemyAffixes.lockdown.fragment":"Lockdown",
  "enemyAffixes.disarm.fragment":"Disarm",
+ "enemyAffixes.sprint.fragment":"Sprint",
  // 敵人：名稱與介紹（src/data.js）
  "enemyTypes.fodder.name":"Broken Drifter",
  "enemyTypes.fodder.role":"Slow; acts every other chance. Bare hands will do; a kill with an attack's first round grants a pursuit.",

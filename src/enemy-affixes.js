@@ -1,6 +1,6 @@
 import {t} from './i18n.js';
 import {enemyFaction,factionDef,enemyBaseName} from './factions.js';
-import {hasEnemyTag,isNoncombatant,enemyDef} from './enemy-data.js';
+import {hasEnemyTag,isNoncombatant,enemyDef,isBossClass} from './enemy-data.js';
 import {ENEMY_TYPES} from './data.js';
 import {grantTrait,activeTrait} from './traits.js';
 import {effectiveDepth,curveOf} from './endless.js';
@@ -27,7 +27,10 @@ export const AFFIX_TUNING={chanceCap:.5,additionalFactor:.5,grenadeChance:.2,gre
  // 繳械 (3.215.0, docs/ENEMY_VARIETY.md section 4; src/disarm.js): a marksman (the sniper, or a rifle with reach
  // disarmRange or more), from the curve's varietyStart, disarmPerDepth a depth up to disarmCap; disarmCooldown rounds,
  // set as it aims and counted down at the round start (the spec's 「每 5 回合最多一次」).
- disarmRange:7,disarmPerDepth:.03,disarmCap:.24,disarmCooldown:5};
+ disarmRange:7,disarmPerDepth:.03,disarmCap:.24,disarmCooldown:5,
+ // 疾行 (3.216.0, docs/ENEMY_VARIETY.md section 5; src/enemy-behavior.js move): from the curve's varietyStart,
+ // sprintPerDepth a depth up to sprintCap (Claude's numbers, measured in qa/results/2026-10-02-claude-3.216.0-sprint.md).
+ sprintPerDepth:.02,sprintCap:.16};
 export const REVEAL_TYPES=Object.freeze({effect:'effect',scan:'scan',failed:'condition_failed'});
 const armed=e=>hasEnemyTag(e,'armed');
 const combatant=e=>!isNoncombatant(e)&&!ENEMY_TYPES[e.type]?.expendable;
@@ -78,10 +81,15 @@ export const ENEMY_AFFIXES=[
  // more and no behaviour card of its own (not the enforcer) — never a flamer (no gun), a grenadier or a lockdown gunman
  // (one warned step at the top of the turn a unit) or a fast one (its warning would come too late). Special, rolled last
  // on its own stream ('disarm-v1').
+ // 疾行 (3.216.0, user 2026-09-30, docs/ENEMY_VARIETY.md section 5): 「不是一回合一格的敵人」. Any fighting unit whose
+ // walk is the ordinary one: no boss, no behaviour card of its own (no sniper, no bomber), never a flamer (it walks to
+ // its cone); the fixed turret has a behaviour card. Special, rolled after 繳械 on its own stream ('sprint-v1').
+ {id:'sprint',fragment:t('enemyAffixes.sprint.fragment'),order:11,applies:e=>combatant(e)&&!isBossClass(e)&&!ENEMY_TYPES[e.type]?.behavior&&!isFlamer(e),special:true,reveal:REVEAL_TYPES.effect},
  {id:'disarm',fragment:t('enemyAffixes.disarm.fragment'),order:10,applies:e=>armed(e)&&marksman(e)&&!isFlamer(e)&&!locksDown(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
 ];
 export const locksDown=e=>Boolean(e?.affixes?.some(a=>a.id==='lockdown'));
 export const disarms=e=>Boolean(e?.affixes?.some(a=>a.id==='disarm'));
+export const sprints=e=>Boolean(e?.affixes?.some(a=>a.id==='sprint'));
 // 3.214.0: or by its card (`flamer`: the heavy flamer, src/data.js).
 export const isFlamer=e=>Boolean(e?.affixes?.some(a=>a.id==='flamer'))||Boolean(enemyDef(e)?.flamer);
 // An enemy's armour: its card's, or a flamer's own when that is more (3.203.0).
@@ -89,6 +97,7 @@ export const isFlamer=e=>Boolean(e?.affixes?.some(a=>a.id==='flamer'))||Boolean(
 export const enemyArmor=e=>e?.overheat>0?0:Math.max(ENEMY_TYPES[e?.type]?.armor||0,isFlamer(e)?AFFIX_TUNING.flamerArmor:0);
 // 3.137.0: where affixes and deployers begin, and how fast they climb, belong to the difficulty curve (src/endless.js).
 // 3.212.0: deployers from the curve's varietyStart, the start shared by the enemy-variety affixes.
+export const sprintChance=(floor,d)=>Math.min(AFFIX_TUNING.sprintCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.sprintPerDepth);   // 3.216.0
 export const disarmChance=(floor,d)=>Math.min(AFFIX_TUNING.disarmCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.disarmPerDepth);   // 3.215.0
 export const lockdownChance=(floor,d)=>Math.min(AFFIX_TUNING.lockdownCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.lockdownPerDepth);   // 3.213.0
 export const deployerChance=(floor,d)=>Math.min(AFFIX_TUNING.deployerCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.deployerPerDepth);
@@ -107,6 +116,7 @@ export function rollEnemyAffixes(e,seed,floor,offset){e.affixes=[];if(isNoncomba
  if(ENEMY_AFFIXES.find(d=>d.id==='flamer').applies(e)&&birthRandom(seed,floor,e.id,'flamer-v1')()<flamerChance(floor,offset))giveEnemyAffix(e,'flamer');   // 3.203.0
  if(ENEMY_AFFIXES.find(d=>d.id==='lockdown').applies(e)&&birthRandom(seed,floor,e.id,'lockdown-v1')()<lockdownChance(floor,offset))giveEnemyAffix(e,'lockdown');   // 3.213.0
  if(ENEMY_AFFIXES.find(d=>d.id==='disarm').applies(e)&&birthRandom(seed,floor,e.id,'disarm-v1')()<disarmChance(floor,offset))giveEnemyAffix(e,'disarm');   // 3.215.0
+ if(ENEMY_AFFIXES.find(d=>d.id==='sprint').applies(e)&&birthRandom(seed,floor,e.id,'sprint-v1')()<sprintChance(floor,offset))giveEnemyAffix(e,'sprint');   // 3.216.0
  return e;}
 // 3.212.0: an affix may name itself per unit (`fragmentOf`: a deployer's kind).
 export const revealedAffixes=e=>ENEMY_AFFIXES.filter(d=>e?.affixes?.some(a=>a.id===d.id&&a.revealed)).map(({id,fragment,fragmentOf,order,reveal})=>({id,fragment:fragmentOf?.(e)??fragment,order,reveal}));

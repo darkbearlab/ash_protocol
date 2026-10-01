@@ -16,7 +16,7 @@ function enemyOverpen(g,e,p,damage,chance){
 import {activeTrait,recordShot} from './traits.js';
 import {pinned,finishSuppression,meleeSuppression,rapidFireModifiers} from './suppression.js';
 import {scaleEnemy,floorDamageBonus} from './endless.js';
-import {AFFIX_TUNING,DEPLOY_KINDS,deploys,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
+import {AFFIX_TUNING,DEPLOY_KINDS,deploys,sprints,revealEnemyAffix,isFlamer,enemyDisplayName as enemyName} from './enemy-affixes.js';
 import {sprayFlame,flameCells,flamerDamage,flameWeapon,FLAMETHROWER} from './fire.js';
 import {bossSpecial} from './loyalist-bosses.js';
 import {soldierSpecial,drinkBlood,decloak,lastWords} from './delisted-operatives.js';
@@ -59,22 +59,48 @@ return false;
 }
 // 3.209.0: the unit of yours on `tile` that `e` cannot see, if any (you first).
 const unseenAt=(g,e,tile)=>[g.player,...g.activeAllies].find(a=>a.hp>0&&key(a)===key(tile)&&!g.sight(e,a))||null;
-function move({g,e,p,def,los,d}){
+// `stepOnly` (3.216.0 review, a sprint's second step): only a step — no blind blow or shot, no prop battered, no lunge.
+function walk({g,e,p,def,los,d,stepOnly=false}){
         if(g.survival&&g.holdsPoint(e))return;
         const destination=los?p:e.lastKnown,band=def.range>1?enemyBand(e.type):null;
         // 3.152.0 有效距離: a shooter looks for a tile inside its band, so it also backs off when it stands too close.
         const plan=los&&!(def.range===1&&d<=1)?combatStep(g,e,p,{range:band?Math.min(def.range,band[1]):def.range,min:band?band[0]:0,melee:def.range===1,peers:g.enemies.filter(b=>b.hp>0&&b.alert),hold:true}):null;
         // Walking closer would only make a too-close shot worse, so it stays where it is and fires from there.
         const tooClose=Boolean(band&&los&&d<band[0]);
-        const step=pinned(e)||plan?.hold?null:plan?.step||(tooClose?null:destination&&distance(e,destination)>0?g.nextStep(e,destination):null);
+        const step=pinned(e)||plan?.hold?null:plan?.step||(tooClose?null:destination&&distance(e,destination)>0?g.nextStep(e,destination,{lunge:!stepOnly}):null);
         // 3.180.0: the route stops short of a target's own tile, so walking into an unseen target next to it is caught here.
         // 3.209.0 (user 2026-09-30): not only you — whichever of your units it cannot see stands on the tile it knows about
         // (a pet, a drone, a summon that bit or shot it from the black), it attacks blind the same way.
         // 3.214.0 review: a unit with no gun (a flamer, by affix or by card) does not blind-fire a gun it lacks; it holds.
         const body=!los&&!pinned(e)&&destination?unseenAt(g,e,destination):null,shoots=!gunless(e);
-        if(!step&&body&&distance(e,body)===1&&g.canCross(e,body)){if(shoots)attack({g,e,p:body,def,blind:true});return;}
-        if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker'))g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}else if(shoots&&!los&&key(step)===key(p)&&g.canCross(e,p))attack({g,e,p,def,blind:true});else if(shoots&&body&&key(step)===key(body)&&g.canCross(e,body))attack({g,e,p:body,def,blind:true});}
+        if(!step&&body&&distance(e,body)===1&&g.canCross(e,body)){if(shoots&&!stepOnly)attack({g,e,p:body,def,blind:true});return;}
+        if(step){const edge=barrierBetween(g.barriers,e,step);if(vaultable(edge)){if(distance(step,p)>0&&!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;e.vaultExposed=true;}else if(distance(step,p)===0&&!stepOnly)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else if(edgeBlocks(edge)){if(hasEnemyTag(e,'breaker')){if(!stepOnly)g.damageProp(edge,scaleEnemy(Math.max(15,def.damage),g.floor,'damage',g.difficultySpec));}else g.setDoor(edge,true);}else if(!occupied(g,step,e)){e.x=step.x;e.y=step.y;e.moved=true;}else if(shoots&&!stepOnly&&!los&&key(step)===key(p)&&g.canCross(e,p))attack({g,e,p,def,blind:true});else if(shoots&&!stepOnly&&body&&key(step)===key(body)&&g.canCross(e,body))attack({g,e,p:body,def,blind:true});}
 
+}
+// 疾行 (3.216.0, user 2026-09-30, docs/ENEMY_VARIETY.md section 5): 「不是一回合一格的敵人」. A sprinter that walked one
+// ordinary step this turn takes a second along its route (each step by the walk's own rules: doors, vaults, hazards,
+// taken tiles; never while pinned). Next to its target after the first, a unit that bites or slashes readies the blow
+// instead — the usual wind-up (「!」), so it strikes next turn and stepping away still dodges it (Claude's call: every
+// enemy attack is warned). A gunman's second step is a step, so it never fires on a sprint. A lunge (突進: a sweep of up
+// to three tiles) is the whole move: no second step after one. The affix shows on the first sprint.
+// 3.216.0 review: the second step keeps the first's route — toward you only if it still sees you (it stops when it lost
+// you), else on to where it was walking (where it last saw you, a survival point) — and it is only a step (`stepOnly`).
+// It stops instead on a mine (it goes off at the end of the turn, as for anyone stepping on one), stunned, or, a gunman,
+// already where it would fire from (in sight, in its line, within its reach and band: 有效距離). The affix shows when the
+// second step does something: a step taken or the blow readied.
+function move(ctx){
+ const {g,e}=ctx,from={x:e.x,y:e.y};walk(ctx);
+ if(!e.moved||e.hp<=0||!sprints(e)||distance(from,e)!==1)return;   // pinned, it took no first step
+ if(e.control?.disabled||(g.mines||[]).some(m=>m.x===e.x&&m.y===e.y))return;
+ const {p,def}=ctx,los=Boolean(ctx.los&&g.sight(e,p));if(ctx.los&&!los)return;
+ const d=los?distance(e,p):(e.lastKnown?distance(e,e.lastKnown):Infinity);
+ if(def.range===1&&los&&d<=1&&g.canCross(e,p)){
+  if(!e.charge){e.charge=true;e.focusTarget=p.id||'player';e.windup=unitTree(e).windup||1;e.aim={x:p.x,y:p.y};enemyCallout(g,e,'telegraph',{action:'attack'});revealEnemyAffix(g,e,'sprint');}
+  return;
+ }
+ if(def.range>1&&los&&g.shotClear(e,p)&&d<=def.range&&inBand(enemyBand(e.type),d))return;
+ const at={x:e.x,y:e.y};walk({...ctx,los,d,stepOnly:true});e.moved=true;
+ if(e.x!==at.x||e.y!==at.y)revealEnemyAffix(g,e,'sprint');
 }
 function reinforce({g,e,p}){
       if(e.hp<e.maxHp*.5&&!e.reinforced&&enemyRoom(g)>0) {

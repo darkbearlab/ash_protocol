@@ -54,10 +54,11 @@ export class GameEnemyTurn {
   }
   enemyOpportunity(e){return enemyOpportunity(this,e);}
   executeEnemy(e){return executeEnemyTree(this,e);}
-  nextStep(e,target) {
+  // `lunge` (3.216.0 review): false for a sprint's second step, so a step and a lunge never stack.
+  nextStep(e,target,{lunge=true}={}) {
     // 3.129.0 迂迴: a unit with the trait walks the covered route to any destination but you (docs/DETOUR.md).
     // 3.132.0 突進: along its route it covers up to three tiles in one straight sweep (src/line-move.js).
-    if(activeTrait(e,LUNGE_TRAIT)){const leap=this.lungeStep(e,target);if(leap)return leap;}
+    if(lunge&&activeTrait(e,LUNGE_TRAIT)){const leap=this.lungeStep(e,target);if(leap)return leap;}
     if(activeTrait(e,DETOUR_TRAIT)&&distance(target,this.player)>0){const step=this.coveredStep(e,target);if(step!==undefined)return step;}
     // 3.201.0: a uniform-cost search, so a hazard tile costs HAZARD_TUNING.stepCost extra (src/hazard-paths.js). With no
     // hazard on the way every step costs 1 and it expands in exactly the order the old breadth-first search did.

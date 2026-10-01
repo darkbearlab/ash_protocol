@@ -1062,6 +1062,7 @@ export default Object.freeze({
  "enemyAffixes.flamer.fragment":"火焰兵",
  "enemyAffixes.lockdown.fragment":"封鎖",
  "enemyAffixes.disarm.fragment":"繳械",
+ "enemyAffixes.sprint.fragment":"疾行",
  // 敵人：名稱與介紹（src/data.js）
  "enemyTypes.fodder.name":"失能遊蕩者",
  "enemyTypes.fodder.role":"緩速、每兩次行動機會活動一次。徒手可清理；攻擊的第一發就打死，獲得追擊。",
