@@ -72,4 +72,6 @@ test('the page wires the spacings: the top one pads the screen, the deck one onl
  assert.ok(source.includes('id="top-spacing"')&&source.includes('id="deck-spacing"'),'both sliders on the display tab');
  assert.ok(css.includes('padding:calc(env(safe-area-inset-top) + var(--top-spacing,0px))'));
  assert.ok(css.includes('grid-template-areas:"header" "board" "deckgap" "loadout" "controls";grid-template-rows:auto auto var(--deck-gap,0px) auto auto;'));
+ // 3.222.0 review: the dialogs and the title screen move down with it too.
+ assert.ok(!/#modal[^{]*\{[^}]*[^(]env\(safe-area-inset-top\)(?! \+ var)/.test(css.replace(/calc\(env\(safe-area-inset-top\) \+ var\(--top-spacing,0px\)\)/g,'')),'no dialog reads the inset alone');assert.ok(css.includes('padding:calc(24px + var(--top-spacing,0px)) 20px'));
 });

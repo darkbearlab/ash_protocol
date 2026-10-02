@@ -470,7 +470,7 @@ function main(argv){
   if(!CHARACTERS[character])fail(`未知職業 ${character}。`);if(!MISSIONS[mission])fail(`未知任務 ${mission}。`);
   const faction=o.faction||'random',facilityFaction=faction==='random'?rollFacilityFaction(seed):faction;
   if(faction!=='random'&&!factionDef(facilityFaction))fail(`未知派系 ${faction}。`);
-  const difficulty=o.difficulty||'standard';if(!['easy','standard'].includes(difficulty))fail(`未知難度 ${difficulty}（easy 或 standard）。`);
+  const difficulty=o.difficulty||'hard';if(!['easy','standard','hard','brutal'].includes(difficulty))fail(`未知難度 ${difficulty}（standard 野餐、hard 普通、brutal 困難；easy 是舊制）。`);   // 3.222.0
   const fresh=new Game(seed,[],0,character,'onyx',mission,{facilityFaction,realMode:false,difficulty});
   const {log,game}=createReplay(fresh,{seed,character,mission,facilityFaction,difficulty,tool:'text-play'});
   save(file,log,game);console.log([`已建立 ${file}（種子 ${seed}）。`,...look(game),LEGEND,'輸入 help 看指令。'].join('\n'));return;

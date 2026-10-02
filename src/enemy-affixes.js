@@ -3,7 +3,7 @@ import {enemyFaction,factionDef,enemyBaseName} from './factions.js';
 import {hasEnemyTag,isNoncombatant,enemyDef,isBossClass} from './enemy-data.js';
 import {ENEMY_TYPES} from './data.js';
 import {grantTrait,activeTrait} from './traits.js';
-import {effectiveDepth,curveOf} from './endless.js';
+import {scaledChance,effectiveDepth,curveOf} from './endless.js';
 // stunShare (3.188.0, user): the share of a grenadier's throws that are stun grenades (docs/ENEMY_AFFIXES.md).
 export const AFFIX_TUNING={chanceCap:.5,additionalFactor:.5,grenadeChance:.2,grenadeRange:5,grenadeRadius:1,grenadeDamage:32,stunShare:1/3,
  // 投放 (3.103.0, user request) rolls on its own stream so the existing affix draws, and every map already
@@ -112,12 +112,12 @@ export const isFlamer=e=>Boolean(e?.affixes?.some(a=>a.id==='flamer'))||Boolean(
 export const enemyArmor=e=>e?.overheat>0?0:Math.max(ENEMY_TYPES[e?.type]?.armor||0,isFlamer(e)?AFFIX_TUNING.flamerArmor:0);
 // 3.137.0: where affixes and deployers begin, and how fast they climb, belong to the difficulty curve (src/endless.js).
 // 3.212.0: deployers from the curve's varietyStart, the start shared by the enemy-variety affixes.
-export const sprintChance=(floor,d)=>Math.min(AFFIX_TUNING.sprintCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.sprintPerDepth);   // 3.216.0
-export const disarmChance=(floor,d)=>Math.min(AFFIX_TUNING.disarmCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.disarmPerDepth);   // 3.215.0
-export const lockdownChance=(floor,d)=>Math.min(AFFIX_TUNING.lockdownCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.lockdownPerDepth);   // 3.213.0
-export const deployerChance=(floor,d)=>Math.min(AFFIX_TUNING.deployerCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*AFFIX_TUNING.deployerPerDepth);
-export const flamerChance=(floor,d)=>Math.min(AFFIX_TUNING.flamerCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).affixStart+1)*AFFIX_TUNING.flamerPerDepth);
-export const affixChance=(floor,d)=>Math.min(AFFIX_TUNING.chanceCap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).affixStart+1)*curveOf(d).affixPerDepth);
+export const sprintChance=(floor,d)=>scaledChance(d,AFFIX_TUNING.sprintCap,AFFIX_TUNING.sprintPerDepth,effectiveDepth(floor,d)-curveOf(d).varietyStart+1);   // 3.216.0
+export const disarmChance=(floor,d)=>scaledChance(d,AFFIX_TUNING.disarmCap,AFFIX_TUNING.disarmPerDepth,effectiveDepth(floor,d)-curveOf(d).varietyStart+1);   // 3.215.0
+export const lockdownChance=(floor,d)=>scaledChance(d,AFFIX_TUNING.lockdownCap,AFFIX_TUNING.lockdownPerDepth,effectiveDepth(floor,d)-curveOf(d).varietyStart+1);   // 3.213.0
+export const deployerChance=(floor,d)=>scaledChance(d,AFFIX_TUNING.deployerCap,AFFIX_TUNING.deployerPerDepth,effectiveDepth(floor,d)-curveOf(d).varietyStart+1);
+export const flamerChance=(floor,d)=>scaledChance(d,AFFIX_TUNING.flamerCap,AFFIX_TUNING.flamerPerDepth,effectiveDepth(floor,d)-curveOf(d).affixStart+1);
+export const affixChance=(floor,d)=>scaledChance(d,AFFIX_TUNING.chanceCap,curveOf(d).affixPerDepth,effectiveDepth(floor,d)-curveOf(d).affixStart+1);   // scaledChance: 3.222.0
 export function birthRandom(seed,floor,id,salt='enemy-v10'){let h=2166136261;for(const c of `${seed}:${floor}:${id}:${salt}`){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return ()=>{h=(h+0x6D2B79F5)>>>0;let t=Math.imul(h^h>>>15,h|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296;};}
 export function giveEnemyAffix(e,id,revealed=false){const d=ENEMY_AFFIXES.find(a=>a.id===id);if(!d||(e.affixes||[]).some(a=>a.id===id))return false;e.affixes=[...(e.affixes||[]),{id,revealed}];if(d.trait)grantTrait(e,d.trait,`affix:${id}`);return true;}
 export function affixPickIndex(pool,draw,weights){

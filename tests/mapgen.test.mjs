@@ -14,6 +14,8 @@ import {normalizeProfile} from '../src/progression.js';
 
 test('empty recipe pool preserves 24 pre-refactor v1 maps byte-for-byte, including the entrance scout',()=>{
   const fixtures=JSON.parse(readFileSync(new URL('./fixtures/mapgen-v1.json',import.meta.url)));
+  // 3.222.0 (無盡改版, docs/ENDLESS.md): the 12 maps on floors 7, 12 and 60 were rehashed for the endless freeze, the
+  // later extra enemy and the drawn boss; with those three reverted all 24 still match (qa/results 3.222.0 report).
   // Later additions are taken back out before hashing: the suppression trait, and 3.178.0's wall lamps, light model and
   // the glowsticks in the armour room's case (docs/LIGHTING.md), so everything else is still byte-for-byte the old map.
   // 3.185.0's ammunition room holds 60 rifle and 48 pistol rounds where it held 20 and 24; those go back too.

@@ -16,7 +16,7 @@ import {ENEMY_TYPES} from '../src/data.js';
 import {scaleEnemy,extraEnemies,ENDLESS_TUNING} from '../src/endless.js';
 
 const ROUTE_ROOMS=3;
-for(const arg of process.argv.slice(2)){const [k,v]=arg.split('=');const key={hp:'hpGrowth',dmg:'damageGrowth',density:'densityMax'}[k];if(key&&Number.isFinite(Number(v)))ENDLESS_TUNING[key]=Number(v);}
+for(const arg of process.argv.slice(2)){const [k,v]=arg.split('=');const key={hp:'hpGrowth',dmg:'damageGrowth',density:'densityExtra'}[k];if(key&&Number.isFinite(Number(v)))ENDLESS_TUNING[key]=Number(v);}
 const hpOf=(type,f)=>{const d=ENEMY_TYPES[type],boss=type==='boss'||type==='warden';return scaleEnemy(d.hp+(boss?0:Math.max(0,f-2)*(d.fragile?2:4)),f,'hp');};
 const hitOf=(type,f)=>scaleEnemy(ENEMY_TYPES[type].damage+f*2,f,'damage');
 const BUILDS=[
@@ -38,7 +38,7 @@ function clearChance(b,f,p){const n=Math.round(3+extraEnemies(f)+.45),s=Math.max
 const firstBelow=(b,p,limit)=>{for(let f=7;f<=200;f++)if(clearChance(b,f,p)<limit)return f;return null;};
 const oneShot=(b,cover)=>{for(let f=7;f<=200;f++)if(hitsToDie(b,hitOf('rifleman',f),cover)===1)return f;return null;};
 
-console.log(`ENDLESS_TUNING hp ×${1+ENDLESS_TUNING.hpGrowth}/層、攻擊 ×${1+ENDLESS_TUNING.damageGrowth}/層、密度每 ${ENDLESS_TUNING.densityEvery} 層 +1（上限 +${ENDLESS_TUNING.densityMax}）`);
+console.log(`ENDLESS_TUNING hp ×${1+ENDLESS_TUNING.hpGrowth}/層、攻擊 ×${1+ENDLESS_TUNING.damageGrowth}/層、密度第 ${ENDLESS_TUNING.densityStart} 層 +1（上限 +${ENDLESS_TUNING.densityExtra}）`);
 console.log('職業 | 通過率<50%（命中25% / 10%） | 通過率<1%（25% / 10%） | 步槍兵一槍斃命（開闊 / 掩體）');
 for(const b of BUILDS)console.log(`${b.id} | ${firstBelow(b,.25,.5)} / ${firstBelow(b,.1,.5)} | ${firstBelow(b,.25,.01)} / ${firstBelow(b,.1,.01)} | ${oneShot(b,false)} / ${oneShot(b,true)}   (${b.note})`);
 console.log('\n一般職業逐層（命中 10% / 25%）：');

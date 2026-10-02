@@ -5,17 +5,23 @@ import {DIFFICULTY_TUNING,DIFFICULTY_CURVES,validDifficultyOffset} from './endle
 import {REAL_MODE_TUNING} from './real-mode.js';
 import {FACTIONS,factionDef} from './factions.js';
 
-// 3.137.0 (user decisions, docs/DIFFICULTY.md): easy and standard curves; standard is the default. The step renders
-// whatever is listed; an option is a curve plus the knob's offset.
+// 3.137.0 (user decisions, docs/DIFFICULTY.md): the step renders whatever is listed; an option is a curve plus the knob's
+// offset. 3.222.0 (user 2026-10-02): the ladder moves up a step, every id keeping its strength (「照實際強度對應」): the
+// curve that was 標準 is now 野餐, the one that was 困難 is 普通, and a new 困難 doubles its affix chances (the `brutal`
+// curve). The numbers-only 簡單 left the list; a profile that chose it plays 野餐, and a run already on it still loads
+// under its old name (difficultyLabel). 普通 is the default for a new profile.
 export const DIFFICULTY_OPTIONS=Object.freeze([
- Object.freeze({id:'easy',name:t('deploy-ui.easy'),curve:'easy',offset:DIFFICULTY_TUNING.defaultOffset}),
  Object.freeze({id:'standard',name:t('deploy-ui.standard'),curve:'standard',offset:DIFFICULTY_TUNING.defaultOffset}),
  Object.freeze({id:'hard',name:t('deploy-ui.hard'),curve:'hard',offset:DIFFICULTY_TUNING.defaultOffset}),   // 3.188.0
+ Object.freeze({id:'brutal',name:t('deploy-ui.brutal'),curve:'brutal',offset:DIFFICULTY_TUNING.defaultOffset}),   // 3.222.0
 ]);
-export const DEFAULT_DIFFICULTY='standard';
-export const difficultyOption=id=>DIFFICULTY_OPTIONS.find(d=>d.id===id)||DIFFICULTY_OPTIONS.find(d=>d.id===DEFAULT_DIFFICULTY);
+export const DEFAULT_DIFFICULTY='hard';
+const RETIRED={easy:'standard'};
+export const difficultyOption=id=>DIFFICULTY_OPTIONS.find(d=>d.id===(RETIRED[id]??id))||DIFFICULTY_OPTIONS.find(d=>d.id===DEFAULT_DIFFICULTY);
+// The name a run's own curve goes by: a run begun on the retired 簡單 keeps that name.
+export const difficultyLabel=curve=>curve==='easy'?t('deploy-ui.easy'):curve==='classic'?t('deploy-ui.classic'):difficultyOption(curve).name;
 // 3.188.0: elites are named too when they start within a campaign's six floors (hard).
-export const difficultyMeta=d=>{const c=DIFFICULTY_CURVES[d.curve],elite=Math.max(1,c.eliteStart-d.offset);return t(c.preview?'deploy-ui.affixFromPreview':'deploy-ui.affixFrom',{floor:Math.max(1,c.affixStart-d.offset)})+(elite<=6?t('deploy-ui.eliteFrom',{floor:elite}):'');};
+export const difficultyMeta=d=>{const c=DIFFICULTY_CURVES[d.curve],elite=Math.max(1,c.eliteStart-d.offset);return t(c.preview?'deploy-ui.affixFromPreview':'deploy-ui.affixFrom',{floor:Math.max(1,c.affixStart-d.offset)})+(elite<=6?t('deploy-ui.eliteFrom',{floor:elite}):'')+((c.affixScale??1)>1?t('deploy-ui.affixDouble'):'');};   // affixDouble: 3.222.0
 export const realModeMeta=()=>`${t('deploy-ui.realBonus',{protocolPercent:REAL_MODE_TUNING.protocolPercent})}`;
 export const REAL_MODE_NOTE=t('deploy-ui.realNote');
 

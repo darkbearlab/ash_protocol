@@ -12,8 +12,9 @@ test('elite depth curve starts at 9 on easy and 7 on standard, uses offset, and 
  const easy={curve:'easy',offset:0},easyAt=(f,o=0)=>eliteChance(f,{curve:'easy',offset:o});
  for(let f=1;f<9;f++)assert.equal(eliteChance(f,easy),0);
  assert.equal(easyAt(9),.02);assert.equal(easyAt(3,6),.02);
- assert.equal(easyAt(15),.14);assert.equal(easyAt(16),.15);assert.equal(easyAt(999),.15);
- for(let f=1;f<7;f++)assert.equal(eliteChance(f),0);assert.equal(eliteChance(7),.02);assert.equal(eliteChance(14),.15);
+ // 3.222.0: the floor freezes at 9 (src/endless.js), so the depth past it comes from the offset alone.
+ assert.equal(easyAt(9,6),.14);assert.equal(easyAt(9,7),.15);assert.equal(easyAt(999,990),.15);assert.equal(easyAt(15),easyAt(9),'no growth past the freeze');
+ for(let f=1;f<7;f++)assert.equal(eliteChance(f),0);assert.equal(eliteChance(7),.02);assert.equal(eliteChance(9,{curve:'standard',offset:5}),.15);assert.equal(eliteChance(14),eliteChance(9),'frozen past 9');   // 3.222.0
  assert.equal(eliteChance(9,{curve:'classic',offset:0}),.02);
 });
 test('independent elite stream preserves every nonelite and fills only applicable hidden affixes',()=>{
@@ -50,9 +51,11 @@ test('elite generation preserves every terrain, loot and base-stat value at deep
   if(actual.generation.version===11)actual.generation=actual.generation.base;
   for(let i=0;i<actual.enemies.length;i++){
    const e=actual.enemies[i],before=original.enemies[i];
-   if(!e.elite){assert.deepEqual(e,before);continue;}
+   // The keycard goes to an elite when there is one (src/vault.js), so with no elites it may sit on someone else.
+   if(!e.elite){const {keycard:_a,...x}=e,{keycard:_b,...y}=before;assert.deepEqual(x,y);continue;}
    delete e.elite;e.affixes=before.affixes;e.traits=before.traits;
   }
+  for(const m of [actual,original])for(const e of m.enemies)delete e.keycard;
   assert.deepEqual(actual,original);
  }
 });

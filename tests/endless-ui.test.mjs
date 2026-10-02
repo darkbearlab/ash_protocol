@@ -1,6 +1,7 @@
 import {AFFIX_TUNING} from '../src/enemy-affixes.js';
 // 3.49.1 endless / level-cap interface (Claude): labels, notices and texts read the shared constants.
 import test from 'node:test';
+import {makeEnemy} from '../src/engine.js';
 import assert from 'node:assert/strict';
 import {Game} from '../src/engine.js';
 import {MAX_LEVEL,CAP_SUPPLY,ENDLESS_DISPLAY_FLOORS,ENDLESS_MAX_FLOOR,ENDLESS_TUNING,capSupplyText,giveCapSupply} from '../src/endless.js';
@@ -32,10 +33,13 @@ test('endless arrival text: no tutorial line past floor 6 and no extraction word
 });
 
 test('rules texts quote the tuning constants',()=>{
- assert.ok(endlessRules().includes(`最多 +${ENDLESS_TUNING.densityMax}`));assert.ok(endlessRules().includes(`${Math.round(AFFIX_TUNING.chanceCap*100)}%`));
+ assert.ok(endlessRules().includes('野餐 35%、普通 50%、困難 100%'),'the affix chance where it freezes, per tier');assert.ok(endlessRules().includes(`第 ${ENDLESS_TUNING.freeze+1} 層起每三層`));
+ assert.ok(endlessRules().includes(`第 ${ENDLESS_TUNING.freeze} 層`)&&endlessRules().includes(`第 ${ENDLESS_TUNING.densityStart} 層`)&&endlessRules().includes(`${Math.round(ENDLESS_TUNING.attritionFloor*100)}%`));   // 3.222.0assert.ok(endlessRules().includes(`${Math.round(AFFIX_TUNING.chanceCap*100)}%`));
  assert.ok(levelCapRules().includes(`整局最多 ${MAX_LEVEL-1} 次`));
- assert.equal(growthLabel(6),'');assert.equal(growthLabel(12),`敵人生命 ×${(1.04**6).toFixed(2)}、攻擊 ×${(1.03**6).toFixed(2)}`);   // 3.137.0 standard
- assert.equal(growthLabel(12,{curve:'classic',offset:0}),`敵人生命 ×${(1.07**6).toFixed(2)}、攻擊 ×${(1.04**6).toFixed(2)}`);
+ // 3.222.0: frozen at 9, half pace past it — the toast reads what the enemies get.
+ assert.equal(growthLabel(6),'');assert.equal(growthLabel(9),`敵人生命 ×${(1.04**3).toFixed(2)}、攻擊 ×${(1.03**3).toFixed(2)}`);assert.equal(growthLabel(12),`敵人生命 ×${(1.04**3*1.02**3).toFixed(2)}、攻擊 ×${(1.03**3*1.015**3).toFixed(2)}`);   // 3.137.0 standard
+ assert.equal(growthLabel(12,{curve:'classic',offset:0}),`敵人生命 ×${(1.07**3*1.035**3).toFixed(2)}、攻擊 ×${(1.04**3*1.02**3).toFixed(2)}`);
+ for(const f of [15,20,30]){const g=makeEnemy('boss',1,1,'x',f).maxHp/makeEnemy('boss',1,1,'x',6).maxHp;assert.ok(Math.abs(Number(growthLabel(f).match(/×([\d.]+)/)[1])-g)<.02,`floor ${f}: the toast matches a boss's real growth`);}
 });
 
 test('record rows: overall best with 666 label, classes sorted by depth, unknown ids skipped; record-run check',()=>{

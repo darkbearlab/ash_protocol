@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {concealChance} from '../src/concealed.js';
+import {heavyChance} from '../src/world.js';
 import assert from 'node:assert/strict';
 import {Game,generate,makeEnemy,ENEMY_TYPES} from '../src/engine.js';
 import {DIFFICULTY_CURVES,DEFAULT_CURVE} from '../src/endless.js';
@@ -14,14 +16,14 @@ import {factionDef} from '../src/faction-catalog.js';
 // this release ('classic') is kept for runs started earlier and is never offered.
 const easy={curve:'easy',offset:0},standard={curve:'standard',offset:0},classic={curve:'classic',offset:0};
 
-test('two curves are offered, standard by default; both grow numbers the same slow way',()=>{
- assert.equal(DEFAULT_CURVE,'standard');assert.deepEqual(DIFFICULTY_OPTIONS.map(d=>d.curve),['easy','standard','hard']);assert.equal(runOptions().difficulty,'standard');
+test('three curves are offered, 普通 (hard) by default; they grow numbers the same slow way',()=>{
+ assert.equal(DEFAULT_CURVE,'standard');assert.deepEqual(DIFFICULTY_OPTIONS.map(d=>d.curve),['standard','hard','brutal']);assert.equal(runOptions().difficulty,'hard');   // 3.222.0
  for(const key of ['hpStep','damageStep','hpGrowth','damageGrowth'])assert.equal(DIFFICULTY_CURVES.easy[key],DIFFICULTY_CURVES.standard[key],key);
  const hp=(f,d)=>makeEnemy('rifleman',1,1,'x',f,d).maxHp;
  // Riflemen are fragile cards (half the per-floor step); the brute is not.
- assert.deepEqual([1,3,6,12,18].map(f=>hp(f,standard)),[22,23,26,40,61]);assert.deepEqual([1,3,6,12,18].map(f=>hp(f,easy)),[22,23,26,40,61]);
- assert.deepEqual([1,3,6,12,18].map(f=>hp(f,classic)),[22,24,30,63,122],'the classic curve is unchanged');
- assert.deepEqual([3,6,18].map(f=>makeEnemy('brute',1,1,'x',f,standard).maxHp),[92,98,195]);assert.deepEqual([3,6,18].map(f=>makeEnemy('brute',1,1,'x',f,classic).maxHp),[94,106,347]);
+ assert.deepEqual([1,3,6,12,18].map(f=>hp(f,standard)),[22,23,26,36,45]);assert.deepEqual([1,3,6,12,18].map(f=>hp(f,easy)),[22,23,26,36,45]);   // 3.222.0: frozen at 9, half pace past it
+ assert.deepEqual([1,3,6,9].map(f=>hp(f,classic)),[22,24,30,44],'the classic curve is unchanged up to the freeze');assert.deepEqual([12,18].map(f=>hp(f,classic)),[53,75],'3.222.0: frozen at 9 on every curve');
+ assert.deepEqual([3,6,18].map(f=>makeEnemy('brute',1,1,'x',f,standard).maxHp),[92,98,152]);assert.deepEqual([3,6,18].map(f=>makeEnemy('brute',1,1,'x',f,classic).maxHp),[94,106,227]);   // 18: 3.222.0, frozen at 9
 });
 
 // 3.212.0 (docs/ENEMY_VARIETY.md section 9): deployers, and the enemy-variety affixes after them, start at the curve's
@@ -32,7 +34,7 @@ test('standard brings affixes from floor 3, elites from depth 7 and deployers fr
  assert.equal(eliteChance(6,standard),0);assert.equal(eliteChance(7,standard),.02);assert.equal(eliteChance(8,easy),0);assert.equal(eliteChance(9,easy),.02);
  assert.equal(deployerChance(4,standard),0);assert.equal(deployerChance(5,standard),.03);assert.equal(deployerChance(6,standard),.06);
  assert.equal(deployerChance(7,easy),0);assert.equal(deployerChance(8,easy),.03);assert.equal(deployerChance(7,classic),0);assert.equal(deployerChance(8,classic),.03);
- assert.deepEqual(Object.fromEntries(Object.entries(DIFFICULTY_CURVES).map(([id,c])=>[id,c.varietyStart])),{easy:8,standard:5,hard:3,classic:8});
+ assert.deepEqual(Object.fromEntries(Object.entries(DIFFICULTY_CURVES).map(([id,c])=>[id,c.varietyStart])),{easy:8,standard:5,hard:3,brutal:3,classic:8});
  // The knob moves it like every other start: an offset of +2 on standard brings deployers to floor 3.
  assert.equal(deployerChance(2,{curve:'standard',offset:2}),0);assert.equal(deployerChance(3,{curve:'standard',offset:2}),.03);
 });
@@ -60,8 +62,17 @@ test('enemy damage follows the curve; allies never do',()=>{
 
 test('the curve is saved; a run from before 3.137.0 keeps the classic curve; an unknown curve is refused',()=>{
  const g=new Game(7,[],0,'soldier','onyx','extraction',{difficulty:'easy'});
- assert.equal(Game.restore(g.serialize()).difficulty,'easy');assert.equal(retryPlan(g).options.difficulty,'easy');
+ assert.equal(Game.restore(g.serialize()).difficulty,'easy');assert.equal(retryPlan(g).options.difficulty,'standard','3.222.0: retrying a 簡單 run plays 野餐');
  const old=JSON.parse(g.serialize());old.version=63;delete old.data.difficulty;assert.equal(Game.restore(JSON.stringify(old)).difficulty,'classic');
  const bad=JSON.parse(g.serialize());bad.data.difficulty='nightmare';assert.equal(Game.restore(JSON.stringify(bad)),null);
  assert.throws(()=>new Game(7,[],0,'soldier','onyx','extraction',{difficulty:'nightmare'}));
+});
+
+// 3.222.0 (user 2026-10-02): the new 困難 is hard's curve with every affix chance and cap doubled, never past certainty.
+test('the new 困難 doubles every affix chance of 普通 and its cap, up to certainty',()=>{
+ const hard={curve:'hard',offset:0},brutal={curve:'brutal',offset:0};
+ for(const f of [1,3,6])for(const fn of [affixChance,deployerChance])assert.equal(fn(f,brutal),Math.min(1,fn(f,hard)*2),`${fn.name} ${f}`);
+ assert.equal(affixChance(9,brutal),1,'the cap doubles to certainty');
+ assert.equal(concealChance(9,brutal),1,'埋伏 caps at .75: doubled it stops at certainty');assert.equal(heavyChance(9,brutal),1,'so does the heavy flamer (.6)');
+ const {hpGrowth,damageGrowth,affixStart,eliteStart,varietyStart}=DIFFICULTY_CURVES.hard;assert.deepEqual({hpGrowth,damageGrowth,affixStart,eliteStart,varietyStart},(({hpGrowth,damageGrowth,affixStart,eliteStart,varietyStart})=>({hpGrowth,damageGrowth,affixStart,eliteStart,varietyStart}))(DIFFICULTY_CURVES.brutal),'the same numbers otherwise');
 });

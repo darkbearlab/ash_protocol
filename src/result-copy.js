@@ -1,3 +1,4 @@
+import {difficultyOption} from './deploy-ui.js';
 import {t} from './i18n.js';
 import {purgeReview} from './purge-review.js';
 import {isEndless} from './endless.js';
@@ -43,6 +44,6 @@ export function resultCopy(g){
 export function retryPlan(g){
   return {
     mission:g.mission.id,seed:g.seed,character:g.player.character,
-    options:{realMode:g.realMode===true,difficulty:g.difficulty,difficultyOffset:g.difficultyOffset,facilityFaction:g.facilityFaction===rollFacilityFaction(g.seed)?'random':g.facilityFaction},
+    options:{realMode:g.realMode===true,difficulty:difficultyOption(g.difficulty).curve,difficultyOffset:g.difficultyOffset,facilityFaction:g.facilityFaction===rollFacilityFaction(g.seed)?'random':g.facilityFaction},
   };
 }

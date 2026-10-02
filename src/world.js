@@ -4,7 +4,7 @@ import {addNoncombatants} from './civilians.js';
 import {rollEnemyElite} from './elite-enemies.js';
 import {DEFAULT_FACTION,factionPool,factionBoss,factionDef} from './factions.js';
 import {isBossClass,isNoncombatant,enemyDef,hasEnemyTag} from './enemy-data.js';
-import {drawnOperative,operativeType,operativeCode} from './operative-draw.js';
+import {floorBoss,operativeType,operativeCode} from './operative-draw.js';
 import {rollEnemyAffixes} from './enemy-affixes.js';
 import {fillUnknownContainers} from './learning-data.js';
 import {addRuntimePopulation} from './runtime-enemies.js';
@@ -16,7 +16,8 @@ import {MERGED_RECIPES,selectMergeRecipe,mergePlans,mergeMap} from './map-mergin
 import {OPENING_RECIPES,addOpenings} from './map-openings.js';
 import {ANNEX_RECIPES,addAnnexes,addRequestedAnnexes} from './map-annexes.js';
 import {placePopulation,reservationPosts} from './map-population.js';
-import {extraEnemies,scaleEnemy,floorHpBonus,curveOf,effectiveDepth} from './endless.js';
+import {scaledChance,supplyShare,extraEnemies,scaleEnemy,floorHpBonus,curveOf,effectiveDepth} from './endless.js';
+import {TERMINAL_TUNING} from './terminal.js';   // 3.222.0: a terminal's credit past the freeze
 import {createLighting,placeLamps} from './lighting.js';
 import {selectSupplyStations,addLivingModules,moduleCells} from './modules.js';
 import {floorTerminalKinds,KIND_ROOMS} from './terminal-kinds.js';
@@ -82,7 +83,7 @@ export function previewSpecial(map,seed,floor,difficulty,faction){
 // is always elite: the spec's 普通槍兵), picked by a fixed hash, becomes the faction's heavy card (`heavy` in src/faction-catalog.js) in place, before affixes are rolled.
 // The floor rolls for it on a hash of its own, so nothing else on any floor shifts. The swarm has none.
 export const HEAVY_TUNING=Object.freeze({perDepth:.2,cap:.6});
-export const heavyChance=(floor,d)=>Math.min(HEAVY_TUNING.cap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*HEAVY_TUNING.perDepth);
+export const heavyChance=(floor,d)=>scaledChance(d,HEAVY_TUNING.cap,HEAVY_TUNING.perDepth,effectiveDepth(floor,d)-curveOf(d).varietyStart+1);
 const fnv=text=>{let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 export function heavySpecial(map,seed,floor,difficulty,faction){
   const type=factionDef(faction)?.heavy;if(!type||fnv(`${seed}:${floor}:heavy-v1`)/4294967296>=heavyChance(floor,difficulty))return map;
@@ -93,7 +94,7 @@ export function heavySpecial(map,seed,floor,difficulty,faction){
 }
 // Phase one has one built-in skeleton. Empty pools explicitly select v1.
 export const PHASE_ONE_RECIPES=Object.freeze([Object.freeze({id:'grid-v2'})]);
-export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);heavySpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;if(enemyDef(e)?.operative)e.code=operativeCode(seed,floor,e.id);e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}concealSpecial(map,seed,floor,offset,faction);if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return placeVents(placeLamps(placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor),seed,floor),seed,floor,faction);}   // vents: 3.202.0, after everything else   // lamps: 3.178.0, after everything else stands
+export function generate(seed,floor=1,unlocks=[],offset=0,faction=DEFAULT_FACTION){const map=fillUnknownContainers(addRuntimePopulation(generateWithRecipes(seed,floor,unlocks,MAP_RECIPES,faction),seed,floor,generationSafe,faction),seed,floor);previewSpecial(map,seed,floor,offset,faction);heavySpecial(map,seed,floor,offset,faction);for(const e of map.enemies){e.faction=faction;const fresh=makeEnemy(e.type,e.x,e.y,e.id,floor,offset,faction);e.hp=fresh.hp;e.maxHp=fresh.maxHp;if(enemyDef(e)?.operative)e.code=operativeCode(seed,floor,e.id);e.traits=e.traits.filter(t=>t.source!=='endless:elite');rollEnemyAffixes(e,seed,floor,offset);rollEnemyElite(e,seed,floor,offset);}concealSpecial(map,seed,floor,offset,faction);if(map.generation)map.generation={version:10,recipeId:'enemies-v10',base:map.generation};if(map.generation&&map.enemies.some(e=>e.elite))map.generation={version:11,recipeId:'elites-v11',base:map.generation};return thinSupplies(placeVents(placeLamps(placeVault(themeTerminals(addSwarmWaves(addNoncombatants(placePit(map,seed,floor,generationSafe),seed,floor,faction),seed,floor,faction),seed,floor),seed,floor),seed,floor),seed,floor,faction),seed,floor);}   // vents: 3.202.0, after everything else   // lamps: 3.178.0, after everything else stands
 // 3.135.0 (user decision, docs/ITEMS.md): once everything else stands, each of the floor's two terminals takes its kind
 // and moves to the supply room of that kind. Done last, so nothing else on the floor shifts; the room's reserved console
 // corner is tried first, and a terminal that finds no free tile there that keeps the floor safe stays put, still typed.
@@ -193,7 +194,8 @@ function generateBase(seed,floor,unlocks,v2,endpoints=null,groups=null,faction=D
     if(i!==startRoom)for(let j=0;j<(3+extraEnemies(floor)+(floor>=3&&rng()<.45?1:0));j++) {
       // 3.207.0 (docs/BOSSES.md section 5): the boss's post may go to a delisted operative instead, by a hash of the seed and
       // the floor (src/operative-draw.js), so no dice are spent either way and the rest of the floor draws the same.
-      const boss=i===endRoom&&j===0&&factionBoss(faction,info.cycleFloor),operative=boss?drawnOperative(seed,floor,faction):null;
+      // 3.222.0: past the campaign the boss is drawn (src/operative-draw.js floorBoss).
+      const own=i===endRoom&&j===0&&factionBoss(faction,info.cycleFloor),{boss,operative}=floorBoss(seed,floor,faction,own||null);
       const drawn=boss?operative?operativeType(operative):boss:pool[Math.floor(rng()*pool.length)];
       // A card may cap how many of it a floor can hold (3.125.0: one squad leader). The draw is never repeated, so the
       // seeded stream is identical; the card that is over its cap becomes the faction's plain scout.
@@ -314,4 +316,18 @@ export function generationSafe(map){
   return destinations.every(p=>Number.isInteger(p.x)&&Number.isInteger(p.y)&&seen.has(key(p)))&&all.size===map.grid.flat().filter(n=>n===1).length&&
     new Set(map.enemies.map(e=>e.id)).size===map.enemies.length&&new Set(map.enemies.map(key)).size===map.enemies.length&&
     ![...map.props.filter(p=>p.hp>0),...map.hazards].some(p=>corridors.has(key(p)));
+}
+// 3.222.0 無盡改版 (docs/ENDLESS.md): past the freeze every case keeps only supplyShare of its contents (each item kept or
+// not by a hash of its own, so nothing else on the floor shifts) and each terminal starts with that share of its credit.
+// The vault and unidentified crates are left whole.
+function thinSupplies(map,seed,floor){
+ const keep=supplyShare(floor);if(keep>=1)return map;
+ const h=text=>{let x=2166136261;for(const c of text){x^=c.charCodeAt(0);x=Math.imul(x,16777619);}return (x>>>0)/4294967296;};
+ for(const o of map.props){
+  // A case left with nothing is shown already opened (scavenged); an unidentified crate keeps its one item. The rebels'
+  // traps are set later (loadFloor, rigContainers), among the cases with something left.
+  if(o.type==='container'&&!['vault','unknown'].includes(o.kind)&&Array.isArray(o.contents)){o.contents=o.contents.filter((c,i)=>h(`${seed}:${floor}:${o.id}:${i}:supply-share-v1`)<keep);if(!o.contents.length)o.opened=true;}
+  if(o.type==='terminal')o.spent=Math.round(TERMINAL_TUNING.credit*(1-keep));
+ }
+ return map;
 }

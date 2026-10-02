@@ -25,7 +25,7 @@ import {ENEMY_TYPES} from './data.js';
 import {hasEnemyTag,isBossClass,isNoncombatant} from './enemy-data.js';
 import {giveEnemyAffix,revealEnemyAffix,isFlamer,enemyDisplayName} from './enemy-affixes.js';
 import {CONTAINER_KINDS,RIG_TUNING} from './containers.js';
-import {effectiveDepth,curveOf} from './endless.js';
+import {effectiveDepth,curveOf,scaledChance} from './endless.js';
 import {activeTrait} from './traits.js';
 import {distance,key} from './world.js';
 import {enemyCallout,interruptEnemyIntent} from './enemy-intents.js';
@@ -35,7 +35,7 @@ export const CONCEAL_TUNING=Object.freeze({perDepth:.25,cap:.75,perFloor:2,human
 export const FEIGN_TUNING=Object.freeze({turns:2});
 // Read when used, not at load: containers.js sits in an import cycle with the map modules that load this one.
 export const disguiseKinds=()=>Object.keys(CONTAINER_KINDS).filter(k=>k!=='vault');
-export const concealChance=(floor,d)=>Math.min(CONCEAL_TUNING.cap,Math.max(0,effectiveDepth(floor,d)-curveOf(d).varietyStart+1)*CONCEAL_TUNING.perDepth);
+export const concealChance=(floor,d)=>scaledChance(d,CONCEAL_TUNING.cap,CONCEAL_TUNING.perDepth,effectiveDepth(floor,d)-curveOf(d).varietyStart+1);
 const fnv=text=>{let h=2166136261;for(const c of text){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;};
 // The infected (fodder) are an expendable crowd on a card of their own, so they never hide (3.217.0 review).
 const BITERS=Object.freeze(['crawler','giant_bug']);

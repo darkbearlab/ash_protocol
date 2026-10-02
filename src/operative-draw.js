@@ -32,3 +32,15 @@ export const operativeCode=(seed,floor,id)=>cloneDesignation(`${seed}:${floor}:$
 export const validOperativeCode=code=>typeof code==='string'&&/^[A-HJ-NPR-Z]-\d{4}$/.test(code);
 // The serial the game reads out: the unit's own, or (one made outside a generated floor: tests, tools) one from its id.
 export const unitCode=e=>validOperativeCode(e?.code)?e.code:operativeCode('unit',0,e?.id??'');
+// 3.222.0 無盡改版 (user 2026-10-02: 「不知道每三層碰到的王是什麼」): past the campaign's six floors every boss floor draws
+// its boss by a hash of the seed and the floor — either of the facility's two (its floor-3 one and its floor-6 one) or,
+// where it has them, a delisted operative, a third each. The campaign keeps its own: the floor's boss, and on floor 6 the
+// operative draw above. The QA hook (setOperativeDraw) still decides the drawing floors when it is set.
+export const BOSS_DRAW_FROM=7;
+export function floorBoss(seed,floor,faction,own){
+ if(!own)return {boss:null,operative:null};
+ if(floor<BOSS_DRAW_FROM||override)return {boss:own,operative:drawnOperative(seed,floor,faction)};
+ const def=factionDef(faction),pool=[...new Set([def?.bosses?.[3],def?.bosses?.[6]].filter(Boolean)),...(def?.delisted?['operative']:[])];
+ const pick=pool[hash(`${seed}:${floor}:boss-draw-v1`)%pool.length];
+ return pick==='operative'?{boss:own,operative:OPERATIVE_CLASSES[hash(`${seed}:${floor}:delisted-class-v1`)%OPERATIVE_CLASSES.length]}:{boss:pick,operative:null};
+}

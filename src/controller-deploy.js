@@ -22,7 +22,7 @@ import {WEAPONS,isSimulation} from './engine.js';
 import {killhouseMenuMarkup,simulationLabel} from './killhouse-ui.js';
 import {dailySeed} from './daily.js';
 import {capacity} from './ammunition.js';
-import {DIFFICULTY_OPTIONS,FACILITY_OPTIONS,REAL_MODE_NOTE,difficultyMeta,difficultyOption,facilityOption,realModeMeta} from './deploy-ui.js';
+import {DIFFICULTY_OPTIONS,FACILITY_OPTIONS,REAL_MODE_NOTE,difficultyMeta,difficultyOption,facilityOption,realModeMeta,runOptions} from './deploy-ui.js';
 import {SURVIVAL_TUNING} from './survival.js';
 import {$,deployDraft,deploymentFaces,entered,exitSimulation,game,modal,newGame,renderer,resumable,setDeployDraft,setDeploymentFaces,setTitleFlow,titleFlow} from './controller.js';
 import {startingKit} from './controller-screens.js';
@@ -67,7 +67,7 @@ export const MISSION_NOTES={
 export function startQuick(){
   const seed=randomSeed(),mission=pick(MISSION_IDS);
   setDeployDraft({mode:'quick',mission,seed});
-  newGame(seed,pick(availableCharacters(profile())),mission);
+  newGame(seed,pick(availableCharacters(profile())),mission,runOptions());   // 3.222.0: the menu's default difficulty (普通)
 }
 export function showDeployment(){
   setDeploymentFaces(deploymentPortraits(Object.keys(CHARACTERS)));

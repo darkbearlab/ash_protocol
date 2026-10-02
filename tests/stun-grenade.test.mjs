@@ -49,12 +49,12 @@ test('walls shield the square; saves keep a stun throw; a stun mark with damage 
 
 test('hard: standard numbers, affixes from the first floor and more of them, elites from floor 4',()=>{
   const hard={curve:'hard',offset:0},standard={curve:'standard',offset:0};
-  assert.deepEqual(DIFFICULTY_OPTIONS.map(o=>o.id),['easy','standard','hard']);assert.equal(runOptions({difficulty:'hard'}).difficulty,'hard');
+  assert.deepEqual(DIFFICULTY_OPTIONS.map(o=>o.id),['standard','hard','brutal']);assert.equal(runOptions({difficulty:'hard'}).difficulty,'hard');   // 3.222.0
   for(const k of ['hpStep','damageStep','hpGrowth','damageGrowth','preview'])assert.equal(DIFFICULTY_CURVES.hard[k],DIFFICULTY_CURVES.standard[k],k);
   assert.deepEqual([DIFFICULTY_CURVES.hard.varietyStart,DIFFICULTY_CURVES.standard.varietyStart],[3,5],'3.212.0: the variety affixes start earlier on hard');
   for(const floor of [1,4,9])assert.deepEqual([floorHpBonus(floor,hard),floorDamageBonus(floor,hard),scaleEnemy(100,floor,'hp',hard)],[floorHpBonus(floor,standard),floorDamageBonus(floor,standard),scaleEnemy(100,floor,'hp',standard)]);
   assert.deepEqual([1,3,6].map(f=>+affixChance(f,hard).toFixed(2)),[.07,.21,.42]);assert.deepEqual([1,3,6].map(f=>+affixChance(f,standard).toFixed(2)),[0,.05,.2]);
   assert.equal(eliteChance(3,hard),0);assert.ok(eliteChance(4,hard)>0);assert.equal(eliteChance(6,standard),0);
-  assert.equal(difficultyMeta(DIFFICULTY_OPTIONS[2]),'詞條自第 1 層 · 第 2 層起出現特殊敵人 · 菁英自第 4 層');
+  assert.equal(difficultyMeta(DIFFICULTY_OPTIONS.find(o=>o.id==='hard')),'詞條自第 1 層 · 第 2 層起出現特殊敵人 · 菁英自第 4 層');   // 3.222.0: by id, 困難 is third now
   const g=new Game(8,[],0,'soldier','onyx','extraction',{difficulty:'hard'});assert.equal(g.difficulty,'hard');assert.equal(Game.restore(g.serialize()).difficulty,'hard');
 });

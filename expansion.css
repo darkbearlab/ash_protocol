@@ -150,7 +150,7 @@ input,textarea{-webkit-user-select:text;user-select:text;-webkit-touch-callout:d
 #modal.title{max-width:none;width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;padding:0;background:#0d1211;box-shadow:none;overflow:hidden}
 #modal.title::backdrop{background:#0d1211}
 #modal.title #modal-content{height:100%}
-.title-screen{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:24px 20px calc(24px + env(safe-area-inset-bottom));box-sizing:border-box}
+.title-screen{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:calc(24px + var(--top-spacing,0px)) 20px calc(24px + env(safe-area-inset-bottom));box-sizing:border-box}
 .title-mark{color:var(--orange);width:min(38vw,150px);margin-bottom:18px;filter:drop-shadow(0 0 22px #ee945c33)}
 .title-mark svg{display:block;width:100%;height:auto}
 .title-word{font:600 clamp(26px,8.5vw,40px)/1 var(--display);letter-spacing:.22em;text-indent:.22em;color:var(--text);margin:0 0 4px;text-align:center}
@@ -425,20 +425,20 @@ dialog .pack-weapon .pack-actions button{min-height:40px}
 dialog .modal-footer{flex-wrap:wrap}
 dialog .modal-footer>[role="tablist"],dialog .modal-footer>.journal-tabs{flex:1 0 100%;margin:0}
 @media(max-width:600px){
- #modal:not(.title){width:100%;max-width:none;margin:auto 0 0;border-left:0;border-right:0;border-bottom:0;max-height:calc(100dvh - max(12px,env(safe-area-inset-top)))}
- #modal.tabbed:not(.title){height:calc(100dvh - max(12px,env(safe-area-inset-top)))}
+ #modal:not(.title){width:100%;max-width:none;margin:auto 0 0;border-left:0;border-right:0;border-bottom:0;max-height:calc(100dvh - max(12px,calc(env(safe-area-inset-top) + var(--top-spacing,0px))))}
+ #modal.tabbed:not(.title){height:calc(100dvh - max(12px,calc(env(safe-area-inset-top) + var(--top-spacing,0px))))}
  /* A full-height sheet needs the bar pushed down: sticky alone leaves it mid-sheet when the content is short. */
  #modal.tabbed:not(.title) #modal-content{display:flex;flex-direction:column;min-height:100%}
  #modal.tabbed:not(.title) .modal-footer{margin-top:auto}
  /* The upgrade pick is the one sheet that opens on its own (3.97.3, user report): it lands under a thumb that is still
     tapping, and a queued tap on a bottom-anchored card spends the level-up by accident. Anchor it to the top edge instead,
     so that tap hits the backdrop. */
- #modal.raised:not(.title){margin:0 0 auto;border-top:0;border-bottom:1px solid #5a604b;padding-top:calc(var(--dialog-pad-y) + env(safe-area-inset-top));max-height:calc(100dvh - max(12px,env(safe-area-inset-bottom)))}
+ #modal.raised:not(.title){margin:0 0 auto;border-top:0;border-bottom:1px solid #5a604b;padding-top:calc(var(--dialog-pad-y) + calc(env(safe-area-inset-top) + var(--top-spacing,0px)));max-height:calc(100dvh - max(12px,env(safe-area-inset-bottom)))}
  dialog .modal-footer{padding-bottom:calc(var(--dialog-pad-y) + env(safe-area-inset-bottom))}
 }
 /* Menus reached from the title screen (3.98.1, user report): as bottom sheets they left the finished run visible above
    them, and only looked covered. They take the title screen's own full-screen opaque treatment instead. */
-#modal.standalone:not(.title){max-width:none;width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;background:#0d1211;box-shadow:none;padding-top:calc(var(--dialog-pad-y) + env(safe-area-inset-top))}
+#modal.standalone:not(.title){max-width:none;width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;background:#0d1211;box-shadow:none;padding-top:calc(var(--dialog-pad-y) + calc(env(safe-area-inset-top) + var(--top-spacing,0px)))}
 #modal.standalone:not(.title)::backdrop{background:#0d1211}
 #modal.standalone:not(.title) #modal-content{display:flex;flex-direction:column;min-height:100%;width:100%;max-width:470px;margin-inline:auto}
 #modal.standalone.wide:not(.title) #modal-content{max-width:650px}
@@ -522,7 +522,7 @@ html.hotkey-hints [data-hotkey]:disabled::before{opacity:.55}
 
 /* Mission briefing and the controller channel (3.168.0, user request). Terminal look: mono type, thin rules, the
    transmission orange. The briefing fills the screen; the channel sits on top and is reused wherever she speaks. */
-#modal.briefing:not(.title){max-width:none;width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;background:#0a0f0ef2;box-shadow:none;padding-top:calc(var(--dialog-pad-y) + env(safe-area-inset-top))}
+#modal.briefing:not(.title){max-width:none;width:100%;height:100dvh;max-height:100dvh;margin:0;border:0;background:#0a0f0ef2;box-shadow:none;padding-top:calc(var(--dialog-pad-y) + calc(env(safe-area-inset-top) + var(--top-spacing,0px)))}
 #modal.briefing::backdrop{background:#030607d9}
 #modal.briefing #modal-content{display:flex;flex-direction:column;min-height:100%;width:100%;max-width:470px;margin-inline:auto}
 #modal.briefing .modal-footer{margin-top:auto;background:#0a0f0e}

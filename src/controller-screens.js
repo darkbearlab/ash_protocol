@@ -29,7 +29,7 @@ import {ENEMY_TYPES,PERKS,enemyName,floorInfo,isSimulation,protocolSettlement} f
 import {KILLHOUSE_SCORE,arcadeResultMarkup,bestRecord,disposedMarkup,killhouseScore,nextPrompt,roomPromptMarkup,simulationBrief,simulationLabel,tutorialResultMarkup} from './killhouse-ui.js';
 import {PACK_LIMIT} from './data.js';
 import {VERSION} from './version.js';
-import {DIFFICULTY_OPTIONS,difficultyOption} from './deploy-ui.js';
+import {difficultyLabel,DIFFICULTY_OPTIONS,difficultyOption} from './deploy-ui.js';
 import {armComms,commsLine,commsMarkup,dutySpeaker} from './comms.js';
 import {courseActive} from './course.js';
 import {COURSE_RESULT_LINE} from './course-script.js';
@@ -61,7 +61,7 @@ export function showMission(){if(isSimulation(game)){modal(`<div class="eyebrow"
 // channel above it. Resuming a run, the kill house and replays go straight to the field; the mission title still opens
 // the shorter briefing (showMission) at any time.
 export function showBriefing(){
-  const def=missionDefinition(game),difficulty=difficultyOption(game.difficulty).name;
+  const def=missionDefinition(game),difficulty=difficultyLabel(game.difficulty);
   const rows=[['briefing.objective',sentences(def.text,MISSION_NOTES[game.mission.id])],['briefing.facility',factionDef(game.facilityFaction)?.name||''],['briefing.difficulty',game.realMode?`${difficulty} · ${t('controller.deploy.realMode')}`:difficulty]].filter(([,v])=>v);
   modal(`<div class="briefing">${commsMarkup(commsLine(dutySpeaker({game}),'briefing')||{line:'comms.briefing'},{context:{game}})}<section class="briefing-card" aria-labelledby="briefing-title"><div class="eyebrow">MISSION / SECTOR ${pad(game.floor)}</div><h2 id="briefing-title">${def.name}</h2><p class="briefing-sector">${floorInfo(game.floor).name}</p><dl class="briefing-rows">${rows.map(([k,v])=>`<dt>${t(k)}</dt><dd>${v}</dd>`).join('')}</dl></section></div><div class="modal-footer"><button class="modal-button" data-modal="close">${t('briefing.start')}</button></div>`);
   armComms($('#modal-content .comms'));
@@ -130,7 +130,7 @@ export function showHelp(){modal(`<div class="eyebrow">FIELD MANUAL / BUILD ${VE
 // on the dark screen. Opening them stops whatever of that is still playing; reopening them later is just the report.
 // 3.186.0 (user request): the mode, the seed and the run's operation log (src/run-log.js), so the run can be replayed.
 function runRecordMarkup(g){
-  const log=runLogFor(g),difficulty=DIFFICULTY_OPTIONS.find(o=>o.curve===g.difficulty)?.name??g.difficulty;
+  const log=runLogFor(g),difficulty=difficultyLabel(g.difficulty);
   const line=t('controller.result.record',{mission:MISSIONS[g.mission.id]?.name??g.mission.id,difficulty,real:g.realMode?t('controller.result.recordReal'):'',faction:factionDef(g.facilityFaction)?.name??g.facilityFaction,seed:g.seed,build:VERSION});
   const note=!log?t('controller.runLog.none'):log.partial?t('controller.runLog.partial',{turn:log.partial}):'';
   return `<p class="result-record">${escapeHTML(line)}${note?`<br>${escapeHTML(note)}`:''}</p>${log?`<div class="modal-row"><button class="modal-button secondary" data-modal="runLog">${t('controller.runLog.download')}</button></div>`:''}`;
