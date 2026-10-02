@@ -25,10 +25,10 @@ import {barrierBetween,edgeBlocks} from './barriers.js';
 import {occupied,allyName} from './allies.js';
 import {pinned,meleeSuppression} from './suppression.js';
 import {interruptEnemyIntent,enemyCallout,tickSpecials} from './enemy-intents.js';
-import {enemyDisplayName as enemyName,enemyArmor} from './enemy-affixes.js';
+import {enemyDisplayName as enemyName,enemyArmor,revealEnemyAffix} from './enemy-affixes.js';
 import {scaleEnemy} from './endless.js';
 import {reduceDirectDamage} from './traits.js';
-import {tongueAction} from './swarm.js';
+import {tongueAction,tongues} from './swarm.js';
 import {RUNTIME_TUNING} from './runtime-enemies.js';
 import {isSimulation} from './killhouse-policy.js';
 import {registerSpecial,registerStep,dropStaleSpecials,validSpecials} from './enemy-specials.js';
@@ -36,7 +36,13 @@ import {registerSpecial,registerStep,dropStaleSpecials,validSpecials} from './en
 const C=SWARM_BOSS_TUNING.charge,N=SWARM_BOSS_TUNING.nest;
 const specials=e=>enemyDef(e)?.specials||[];
 export const chargesLane=e=>specials(e).includes('charge');
-export const laysNests=e=>specials(e).includes('nest');
+// 產卵 Breeding (3.220.0; docs/ENEMY_VARIETY.md 10.5): the matriarch's egg made small for an ordinary bug — seeing you within
+// SPAWN_TUNING.range, it lays a sac beside it that hatches next round into a nest of SPAWN_TUNING.brood larvae; at most
+// SPAWN_TUNING.live standing and SPAWN_TUNING.charges in all. The affix shows as it lays the first.
+export const SPAWN_TUNING=Object.freeze({range:7,brood:2,live:1,charges:2});
+export const spawns=e=>Boolean(e?.affixes?.some(a=>a.id==='spawn'));
+export const laysNests=e=>specials(e).includes('nest')||spawns(e);
+const mother=e=>specials(e).includes('nest');
 // The matriarch charges only below half her health (the card's `chargeBelow`); the beast always can.
 export const chargeReady=e=>chargesLane(e)&&(!enemyDef(e)?.chargeBelow||e.hp<e.maxHp*C.below);
 const live=e=>e?.hp>0&&!e.control?.disabled;
@@ -144,11 +150,13 @@ export function eggSpot(g,e){
 }
 function layEgg({g,e}){
  const p=g.player;
- if(!laysNests(e)||e.nestIntent||(e.nestCooldown||0)>0||isSimulation(g)||p.hp<=0||!g.sight(e,p)||standing(g,e)>=N.live)return false;
+ if(!laysNests(e)||e.nestIntent||(e.nestCooldown||0)>0||isSimulation(g)||p.hp<=0||!g.sight(e,p)||standing(g,e)>=(mother(e)?N.live:SPAWN_TUNING.live))return false;
+ if(!mother(e)&&(distance(e,p)>SPAWN_TUNING.range||laidNests(g,e).length>=SPAWN_TUNING.charges))return false;   // 產卵
  const q=eggSpot(g,e);if(!q)return false;
  interruptEnemyIntent(e,'target_lost');   // laying is this round's action: no blow is left wound up
  e.nestIntent={x:q.x,y:q.y};
  g.effects.push({type:'bossTelegraph',kind:'egg',from:{x:e.x,y:e.y},to:{...q},damage:0});
+ if(!mother(e))revealEnemyAffix(g,e,'spawn');
  enemyCallout(g,e,'telegraph',{action:'aim'});g.log(t('swarmBosses.eggLaid',{enemy:enemyName(e)}),true);
  return true;
 }
@@ -159,7 +167,7 @@ export function hatchEgg(g,e){
  if(!live(e))return false;
  if(!eggFree(g,q)){g.effects.push({type:'bossTelegraph',kind:'eggLost',from:{...q},to:{...q},damage:0});g.log(t('swarmBosses.eggLost'),true);return false;}
  const n=laidNests(g,e).length;
- g.props.push({id:`${nestPrefix(e)}${n}`,type:'nest',x:q.x,y:q.y,hp:RUNTIME_TUNING.nestHp,maxHp:RUNTIME_TUNING.nestHp,nest:{active:false,total:N.brood,interval:RUNTIME_TUNING.interval,remaining:N.brood,cooldown:0,serial:0}});
+ g.props.push({id:`${nestPrefix(e)}${n}`,type:'nest',x:q.x,y:q.y,hp:RUNTIME_TUNING.nestHp,maxHp:RUNTIME_TUNING.nestHp,nest:{active:false,total:mother(e)?N.brood:SPAWN_TUNING.brood,interval:RUNTIME_TUNING.interval,remaining:mother(e)?N.brood:SPAWN_TUNING.brood,cooldown:0,serial:0}});
  g.effects.push({type:'bossTelegraph',kind:'hatch',from:{...q},to:{...q},damage:0});g.log(t('swarmBosses.nestHatched'),true);g.reveal();
  return true;
 }
@@ -170,12 +178,12 @@ export const eggSacs=g=>g.enemies.filter(e=>e.hp>0&&e.nestIntent).map(e=>({sourc
 export function swarmBossAction(ctx){
  const {e}=ctx;
  if(e.chargeIntent)return pinned(e)?(interruptEnemyIntent(e,'suppressed'),false):rush(ctx);
- if(!enemyDef(e)?.specials)return tongueAction(ctx);
+ if(!enemyDef(e)?.specials)return tongueAction(ctx)||layEgg(ctx);   // 3.220.0: an ordinary bug's 鉤舌, then its 產卵
  if(e.tongueIntent)return tongueAction(ctx);
  for(const kind of specials(e))if(kind==='charge'?startCharge(ctx):kind==='nest'?layEgg(ctx):kind==='tongue'&&tongueAction(ctx))return true;
  return false;
 }
-registerStep('top','swarm',swarmBossAction,e=>Boolean(enemyDef(e)?.tongue)||chargesLane(e)||laysNests(e));
+registerStep('top','swarm',swarmBossAction,e=>tongues(e)||chargesLane(e)||laysNests(e));
 registerStep('start','nest',hatchEgg);
 // Round start (Game.action, after the tongue's): both cooldowns count down, then a warning whose boss has fallen, been
 // stunned or pinned is dropped (one pass for the two: src/enemy-specials.js ORDER.tick).

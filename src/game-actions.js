@@ -26,7 +26,7 @@ import {HOOK_BLADE_RANGE,camoActive,grapplePlan,hookBladePlan,tickSpirit,useGrap
 import {LINE_ITEMS,lineReason} from './lines.js';
 import {attackSpeed} from './melee-weapons.js';
 import {PREPARED_CATALOG,canPrepare,isWearable,prepareCost,preparedEntry,weaponSwitchTurns,wornEntry} from './prepared.js';
-import {inToxic,toxicAllyTurn} from './swarm-fields.js';
+import {inToxic,toxicAllyTurn,dryAcid} from './swarm-fields.js';
 import {tickVents} from './vents.js';
 import {tickFires} from './fire.js';
 import {ALLY_SKILLS,allyAct,canAllySkill,commandPet,petSkillReason,swapReason,swapWithPlayer,tickSummons,useAllySkill} from './allies.js';
@@ -236,7 +236,7 @@ export class GameActions {
     if(phase!==null){queue.find(q=>q.actor===p).speed=phase;queue.sort((a,b)=>a.speed-b.speed||a.index-b.index);}
     const recovering=p.recovery>0;if(recovering)p.recovery=0;
     let playerStunned=false;
-    this.turn++;tickSpecials(this);tickVents(this);tickFires(this);   // vents: 3.202.0; burning floor: 3.203.0; the specials' cooldowns and drops: src/enemy-specials.js ORDER.tick (3.206.1)
+    this.turn++;tickSpecials(this);tickVents(this);tickFires(this);dryAcid(this);   // dryAcid: 3.220.0, 酸血 dries up   // vents: 3.202.0; burning floor: 3.203.0; the specials' cooldowns and drops: src/enemy-specials.js ORDER.tick (3.206.1)
     // 3.145.0 (user decision): suppression wears off (src/suppression.js decayedStacks) when the unit's own turn is over, player and
     // enemies alike, so the stacks it took since its last turn are all felt on this one. The `finally` runs on every skip
     // (`continue`) too: a stunned unit's turn has still passed. A unit with two slots (an anchored double attack) ticks

@@ -218,6 +218,7 @@ export default Object.freeze({
  "volatile.belt":"{enemy}身上的手榴彈要炸了！快離開那一圈！",
  "volatile.sac":"{enemy}的氣囊鼓了起來！快離開那一圈！",
  "feign.rise":"{enemy}爬了起來——剛才是裝死！",
+ "acid.spill":"{enemy}的酸血濺了一地！",
  "comms.aria":"管制員通訊",
  "comms.briefing":"連線確認。本次指令如下，照簡報執行。",
  "comms.speaker.egret":"白鷺 · CONTROL",
@@ -1080,6 +1081,9 @@ export default Object.freeze({
  "enemyAffixes.alarm.fragment":"通報",
  "enemyAffixes.volatile.fragment":"殉爆",
  "enemyAffixes.feign.fragment":"裝死",
+ "enemyAffixes.spawn.fragment":"產卵",
+ "enemyAffixes.hook.fragment":"鉤舌",
+ "enemyAffixes.acid_blood.fragment":"酸血",
  // 敵人：名稱與介紹（src/data.js）
  "enemyTypes.fodder.name":"失能遊蕩者",
  "enemyTypes.fodder.role":"緩速、每兩次行動機會活動一次。徒手可清理；攻擊的第一發就打死，獲得追擊。",

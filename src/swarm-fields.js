@@ -11,10 +11,10 @@ import {areaCells,SMOKE_DURATION} from './throwables.js';
 import {SWARM_TUNING} from './swarm-tuning.js';
 import {pinned} from './suppression.js';
 import {interruptEnemyIntent,enemyCallout,tickSpecials} from './enemy-intents.js';
-import {enemyDisplayName} from './enemy-affixes.js';
+import {enemyDisplayName,revealEnemyAffix} from './enemy-affixes.js';
 import {activeTrait} from './traits.js';
 import {enemyDef} from './enemy-data.js';
-import {distance,key,swarmPayload} from './world.js';
+import {distance,key,swarmPayload,DIRECTIONS} from './world.js';
 import {registerSpecial,registerStep,validSpecials,frames,INTERRUPT_REASONS,dropAttack} from './enemy-specials.js';
 
 export const FIELD_TUNING=Object.freeze({radius:1,lobRange:6,lobCooldown:10,screenFrom:3});
@@ -38,6 +38,16 @@ export function toxicShot(g,attacker,target,weapon){
  return lineCells(attacker,target).some(q=>mist.has(key(q)));
 }
 
+// 酸血 Acid blood (3.220.0; docs/ENEMY_VARIETY.md 10.7): where it dies, acid on its tile and the four beside it (floor
+// with nothing standing in as a hazard already), for ACID_BLOOD.turns rounds (`expires`; the spitter's pools stay). The
+// usual acid rules: hurt and poisoned at the round's end on it, hazmat as ever. The affix shows as it spills.
+export const ACID_BLOOD=Object.freeze({turns:4});
+export function acidBloodDeath(g,e){
+ if(!e?.affixes?.some(a=>a.id==='acid_blood'))return;revealEnemyAffix(g,e,'acid_blood');
+ for(const q of [{x:e.x,y:e.y},...DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy}))])if(g.grid[q.y]?.[q.x]===1&&!g.solid(q.x,q.y)&&!g.hazards.some(h=>h.x===q.x&&h.y===q.y))g.hazards.push({x:q.x,y:q.y,type:'acid',expires:g.turn+ACID_BLOOD.turns});
+ g.log(t('acid.spill',{enemy:enemyDisplayName(e)}),true);
+}
+export const dryAcid=g=>{g.hazards=g.hazards.filter(h=>!Number.isInteger(h.expires)||h.expires>g.turn);};
 export function spawnField(g,kind,center){
  if(kind==='acid'){
   if(g.grid[center.y]?.[center.x]===1&&!g.hazards.some(h=>h.x===center.x&&h.y===center.y))g.hazards.push({x:center.x,y:center.y,type:'acid'});

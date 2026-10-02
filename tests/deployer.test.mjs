@@ -138,7 +138,7 @@ test('what it deploys pays nothing when it falls: no xp, scrap, drops or protoco
 });
 
 test('saves: the kind and charges round-trip; broken data is refused, charges past the tuning are cut',()=>{
- assert.equal(SAVE_VERSION,92);assert.equal(RUN_SAVE_FLOOR,88);
+ assert.equal(SAVE_VERSION,93);assert.equal(RUN_SAVE_FLOOR,88);
  assert.ok(ORDER.ids.includes('deploy'));assert.deepEqual(Object.keys(specialDef('deploy').fields).sort(),['deployCharges','deployKind']);
  const g=field(),e=deployer(g,'turret',16,10);g.enemyAct(e);assert.equal(live(g,e).length,1);
  g.rng=new Game(1,[],0,'soldier','onyx').rng;

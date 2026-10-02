@@ -34,6 +34,8 @@ export const AFFIX_TUNING={chanceCap:.5,additionalFactor:.5,grenadeChance:.2,gre
 export const REVEAL_TYPES=Object.freeze({effect:'effect',scan:'scan',failed:'condition_failed'});
 const armed=e=>hasEnemyTag(e,'armed');
 const combatant=e=>!isNoncombatant(e)&&!ENEMY_TYPES[e.type]?.expendable;
+// 3.220.0: one of the swarm's own that bleeds — no boss, no machine, no suicide bug.
+const swarmBody=e=>combatant(e)&&!isBossClass(e)&&enemyFaction(e)==='swarm'&&!activeTrait(e,'mechanical')&&!['bomber','munition'].includes(ENEMY_TYPES[e.type]?.behavior);
 // 3.204.0 review: a card may bar an affix (the loyalist bosses bar 快速 and 紅外線). The pick still spends its draw, as any
 // affix that does not apply does, so every other roll on every floor stays as it was.
 const barred=(e,id)=>Boolean(ENEMY_TYPES[e.type]?.barredAffixes?.includes(id));
@@ -91,6 +93,12 @@ export const ENEMY_AFFIXES=[
  // leaves a marked blast where it falls (enemyDeath); 裝死 falls as a body at its first 0 hp and gets up (src/concealed.js).
  {id:'alarm',fragment:t('enemyAffixes.alarm.fragment'),order:13,applies:e=>combatant(e)&&!isBossClass(e),reveal:REVEAL_TYPES.effect},
  {id:'volatile',fragment:t('enemyAffixes.volatile.fragment'),order:14,applies:e=>combatant(e)&&!isBossClass(e)&&!isFlamer(e)&&!['bomber','munition'].includes(ENEMY_TYPES[e.type]?.behavior),reveal:REVEAL_TYPES.effect},
+ // 3.220.0 (user 2026-10-01, docs/ENEMY_VARIETY.md 10.5-10.7): three ordinary affixes for the swarm's own (no boss, no
+ // machine, no suicide bug). 產卵 lays a sac that hatches larvae (src/swarm-bosses.js, the matriarch's egg made small);
+ // 鉤舌 hooks you in from four tiles (src/swarm.js, the boss tongue made small); 酸血 spills acid where it dies.
+ {id:'spawn',fragment:t('enemyAffixes.spawn.fragment'),order:16,applies:e=>swarmBody(e)&&!hasEnemyTag(e,'infected'),reveal:REVEAL_TYPES.effect},
+ {id:'hook',fragment:t('enemyAffixes.hook.fragment'),order:17,applies:e=>swarmBody(e)&&!hasEnemyTag(e,'infected')&&ENEMY_TYPES[e.type]?.range===1,reveal:REVEAL_TYPES.effect},
+ {id:'acid_blood',fragment:t('enemyAffixes.acid_blood.fragment'),order:18,applies:swarmBody,reveal:REVEAL_TYPES.effect},
  {id:'feign',fragment:t('enemyAffixes.feign.fragment'),order:15,applies:e=>combatant(e)&&!isBossClass(e)&&!['bomber','munition'].includes(ENEMY_TYPES[e.type]?.behavior),reveal:REVEAL_TYPES.effect},
  {id:'disarm',fragment:t('enemyAffixes.disarm.fragment'),order:10,applies:e=>armed(e)&&!isFlamer(e)&&!locksDown(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
 ];

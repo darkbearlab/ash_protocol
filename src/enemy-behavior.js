@@ -39,7 +39,7 @@ import {usePounceHooks} from './pounce.js';
 import {useLockdownHooks,lockdownBranch} from './lockdown.js';
 import {useDisarmHooks,disarmBranch} from './disarm.js';
 import {useConcealedHooks} from './concealed.js';
-import {releasePayload} from './swarm-fields.js';
+import {releasePayload,acidBloodDeath} from './swarm-fields.js';
 import {runStep,registerStep,registerSpecial,lockedTarget,dropAttack,gunless} from './enemy-specials.js';
 import {personalityOf} from './personality.js';
 import {spentCase} from './traces.js';
@@ -368,7 +368,7 @@ function selfOrders(ctx){
 registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>{g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultySpec));releasePayload(g,e);}});
 registerUnitTree('fodder',{before:({e})=>{if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return true;}e.actionDelay=1;return false;}});
 registerUnitTree('brood',{});
-export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);lastWords(g,e);volatileDeath(g,e);}   // volatile: 3.219.0   // lastWords: 3.207.0, a delisted operative's
+export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);lastWords(g,e);volatileDeath(g,e);acidBloodDeath(g,e);}   // volatile: 3.219.0; acid blood: 3.220.0   // lastWords: 3.207.0, a delisted operative's
 export function executeEnemyTree(g,e){const locked=lockedTarget(e),p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
  // Warned specials go off first, from where they were warned, before an order, a survival walk or a hazard could move

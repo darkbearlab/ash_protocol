@@ -217,6 +217,7 @@ export default Object.freeze({
  "volatile.belt":"{enemy}'s grenades are about to go off! Get out of the ring!",
  "volatile.sac":"{enemy}'s gas sac is swelling! Get out of the ring!",
  "feign.rise":"{enemy} gets back up. It was playing dead!",
+ "acid.spill":"{enemy}'s acid blood spills across the floor!",
  "comms.aria":"Controller channel",
  "comms.briefing":"Link confirmed. Your orders are below; follow the briefing.",
  "comms.speaker.egret":"EGRET · CONTROL",
@@ -1079,6 +1080,9 @@ export default Object.freeze({
  "enemyAffixes.alarm.fragment":"Alarm",
  "enemyAffixes.volatile.fragment":"Volatile",
  "enemyAffixes.feign.fragment":"Feigning",
+ "enemyAffixes.spawn.fragment":"Breeding",
+ "enemyAffixes.hook.fragment":"Hooktongue",
+ "enemyAffixes.acid_blood.fragment":"Acid-blooded",
  // 敵人：名稱與介紹（src/data.js）
  "enemyTypes.fodder.name":"Broken Drifter",
  "enemyTypes.fodder.role":"Slow; acts every other chance. Bare hands will do; a kill with an attack's first round grants a pursuit.",
