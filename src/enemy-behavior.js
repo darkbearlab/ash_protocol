@@ -250,6 +250,30 @@ registerAffixBranch({id:'deployer',reveal:'effect',applies:({e})=>deploys(e),
 registerAffixBranch(lockdownBranch);
 // 3.215.0 繳械 (src/disarm.js): the aim at your weapon starts here too; its shot goes off at the top.
 registerAffixBranch(disarmBranch);
+// 通報 Alarm (3.219.0; user 2026-10-01, docs/ENEMY_VARIETY.md 10.2): seeing you, it spends its action telling everyone within
+// ALARM_TUNING.radius where you stand — a radio call, or a bug's shriek — and they come to look, as for an attack they
+// learned the origin of (3.209.0, Game.learnAttack). Once every ALARM_TUNING.cooldown rounds (Claude's simplification of
+// the spec: no fresh-sighting rule, the cooldown alone); never pinned, winding up or hidden. The affix shows on the first call.
+export const ALARM_TUNING=Object.freeze({radius:10,cooldown:10});
+export const alarms=e=>Boolean(e?.affixes?.some(a=>a.id==='alarm'));
+registerAffixBranch({id:'alarm',reveal:'effect',applies:({e})=>alarms(e),
+ trigger:({g,e,p,los})=>p===g.player&&los&&!e.charge&&!(e.callCooldown>0)&&!pinned(e)&&!e.concealed,pending:()=>true,
+ run:({g,e,p})=>{
+  e.callCooldown=ALARM_TUNING.cooldown;e.moved=false;revealEnemyAffix(g,e,'alarm');enemyCallout(g,e,'telegraph',{action:'alarm'});
+  g.log(t(e.faction==='swarm'?'alarm.screech':'alarm.radio',{enemy:enemyName(e)}),true);
+  for(const o of g.enemies)if(o!==e&&o.hp>0&&!o.concealed&&distance(o,e)<=ALARM_TUNING.radius)g.learnAttack(o,p,null);
+  return true;
+ }});
+registerSpecial({id:'alarm',carries:alarms,fields:{callCooldown:{count:{max:()=>ALARM_TUNING.cooldown,carrier:true,clamp:'cut'}}},tick:{cooldown:'callCooldown',drop:()=>null}});
+// 殉爆 Volatile (3.219.0; docs/ENEMY_VARIETY.md 10.3): where it falls, a marked blast (3x3, the enemy grenade's damage) goes
+// off at the end of the next round (Game.marks; a round's actions come before its marks): you have one action to step out.
+// It hurts whoever stands there, you, your allies and its own side alike; a grenade belt on a soldier, a gas sac on a bug.
+export const volatile=e=>Boolean(e?.affixes?.some(a=>a.id==='volatile'));
+function volatileDeath(g,e){
+ if(!volatile(e))return;revealEnemyAffix(g,e,'volatile');
+ g.marks.push({kind:'volatile',sourceId:e.id,x:e.x,y:e.y,radius:1,damage:scaleEnemy(AFFIX_TUNING.grenadeDamage,g.floor,'damage',g.difficultySpec),due:g.turn+1});
+ g.log(t(e.faction==='swarm'?'volatile.sac':'volatile.belt',{enemy:enemyName(e)}),true);
+}
 // The kind and the charges left: state only, so no `intent` (no warning: a deployment happens on the turn it is decided,
 // and nothing that asks whether a unit is mid-warning should count a deployer). Saves: both on every deployer and only on
 // one; a kind is a card it may deploy; charges past today's tuning are cut to it (SAVE 87 runs: src/game-save.js).
@@ -344,7 +368,7 @@ function selfOrders(ctx){
 registerUnitTree('bomber',{attack:({g,e})=>{g.hurt(e,e.hp,e);return false;},death:({g,e})=>{g.explode(e,1,scaleEnemy(30,g.floor,'damage',g.difficultySpec));releasePayload(g,e);}});
 registerUnitTree('fodder',{before:({e})=>{if(e.actionDelay>0){e.actionDelay--;e.moved=false;e.moveDelta=[0,0];return true;}e.actionDelay=1;return false;}});
 registerUnitTree('brood',{});
-export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);lastWords(g,e);}   // lastWords: 3.207.0, a delisted operative's
+export function enemyDeath(g,e){interruptEnemyIntent(e,'death');unitTree(e).death?.({g,e});infectedDeath(g,e);lastWords(g,e);volatileDeath(g,e);}   // volatile: 3.219.0   // lastWords: 3.207.0, a delisted operative's
 export function executeEnemyTree(g,e){const locked=lockedTarget(e),p=(locked?[g.player,...g.activeAllies].find(a=>(a.id||'player')===locked&&a.hp>0):null)||g.enemyTarget(e),def=ENEMY_TYPES[e.type],tree=unitTree(e);e.moved=false;e.moveDelta=[0,0];if(e.hp<=0||!e.alert||p.hp<=0)return;if(e.control?.disabled){interruptEnemyIntent(e,'disabled');return;}
  const los=g.sight(e,p),known=los?p:e.lastKnown||e.aim,d=los?distance(e,p):(known?distance(e,known):Infinity),ctx={g,e,p,def,los,d};
  // Warned specials go off first, from where they were warned, before an order, a survival walk or a hazard could move

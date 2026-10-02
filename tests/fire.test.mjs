@@ -214,7 +214,7 @@ test('saves: fires and a marked cone come back, bad ones are refused, and a save
   // 3.203.0 review: a cone whose flamer was moved or stunned outside its turn is dropped on load, not the whole save.
   for(const change of [d=>d.enemies[0].flameIntent.origin={x:1,y:1},d=>d.enemies[0].control.disabled=2]){
     const raw=JSON.parse(g.serialize());change(raw.data);const back=Game.restore(JSON.stringify(raw));assert.ok(back);assert.equal(back.enemies[0].flameIntent,undefined);}
-  assert.equal(SAVE_VERSION,91);
+  assert.equal(SAVE_VERSION,92);
   const plain=field();const old=JSON.parse(plain.serialize());old.version=80;const loaded=Game.restore(JSON.stringify(old));
   assert.ok(loaded,'a save from 3.202.0 loads');assert.equal(loaded.fires,undefined);
 });

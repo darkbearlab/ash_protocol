@@ -15,7 +15,7 @@ export const INTERRUPT_REASONS=F(['death','disabled','displaced','target_lost','
 export const ORDER=F({
  // Every special, in the order an interruption clears them and a save is trimmed. 3.212.0: 'deploy', a deployer's kind
  // and charges (src/enemy-behavior.js; state only, it neither interrupts nor ticks).
- ids:F(['grenade','flame','tongue','pounce','lob','charge','nest','mark','gun','fire','burn','vent','scan','toss','smoke','drones','cloak','deploy','lockdown','disarm','conceal']),
+ ids:F(['grenade','flame','tongue','pounce','lob','charge','nest','mark','gun','fire','burn','vent','scan','toss','smoke','drones','cloak','deploy','lockdown','disarm','conceal','alarm']),
  // Game.enemyAct, before the decoy and the mine: each runs (a mark landing, an egg hatching; 3.207.0: a delisted soldier's
  // early warning, a delisted ninja fading back into its camouflage); none is the unit's action.
  start:F(['mark','nest','scan','cloak']),
@@ -32,7 +32,7 @@ export const ORDER=F({
  // engineer's drone); none is the unit's action.
  end:F(['drones']),
  // The round start (Game.action): one pass over the enemies per group, cooldowns first, then the drops.
- tick:F([F(['tongue']),F(['charge','nest']),F(['pounce']),F(['lob']),F(['scan','toss','smoke','drones']),F(['lockdown']),F(['disarm'])]),
+ tick:F([F(['tongue']),F(['charge','nest']),F(['pounce']),F(['lob']),F(['scan','toss','smoke','drones']),F(['lockdown']),F(['disarm']),F(['alarm'])]),
  // The target card's lines, after 「即將攻擊」 (3.206.2: the grenade, the marked cone, the pounce and the lob first).
  card:F(['grenade','flame','pounce','lob','lockdown','disarm','mark','gun','tongue','charge','nest','fire','vent','burn','smoke','cloak']),
 });

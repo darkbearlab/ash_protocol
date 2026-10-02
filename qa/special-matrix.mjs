@@ -31,7 +31,7 @@ import {tickOperatives} from '../src/delisted-operatives.js';
 
 export const MATRIX_FIXTURE=new URL('../tests/fixtures/special-matrix.json',import.meta.url);
 const REASONS=['death','disabled','displaced','target_lost','suppressed','bogus'];
-const FIELDS=['grenadeIntent','flameIntent','tongueIntent','tongueCooldown','pounceIntent','pounceCooldown','lobIntent','lobCooldown','chargeIntent','chargeCooldown','crashed','nestIntent','nestCooldown','markIntent','markReady','gun','special','fireIntent','heat','overheat','burn','scanCooldown','grenadeCooldown','smokeIntent','smokeCooldown','droneCooldown','decloaked','deployKind','deployCharges','lockIntent','lockCooldown','disarmIntent','disarmCooldown','concealed','charge','aim','windup','fireChain','x','y','hp','control','suppression','vaultExposed'];   // 3.207.0: the delisted operatives' fields; 3.212.0: a deployer's
+const FIELDS=['callCooldown','grenadeIntent','flameIntent','tongueIntent','tongueCooldown','pounceIntent','pounceCooldown','lobIntent','lobCooldown','chargeIntent','chargeCooldown','crashed','nestIntent','nestCooldown','markIntent','markReady','gun','special','fireIntent','heat','overheat','burn','scanCooldown','grenadeCooldown','smokeIntent','smokeCooldown','droneCooldown','decloaked','deployKind','deployCharges','lockIntent','lockCooldown','disarmIntent','disarmCooldown','concealed','charge','aim','windup','fireChain','x','y','hp','control','suppression','vaultExposed'];   // 3.207.0: the delisted operatives' fields; 3.212.0: a deployer's
 const canon=v=>Array.isArray(v)?v.map(canon):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canon(v[k])])):v;
 const fields=u=>canon(Object.fromEntries(FIELDS.filter(k=>u?.[k]!==undefined).map(k=>[k,u[k]])));
 const cell=v=>JSON.stringify(canon(v));
@@ -77,6 +77,8 @@ const SPECIALS={
  disarm:{card:'rifleman',affixes:['disarm'],main:'disarmIntent',count:'disarmCooldown',state:E=>({disarmIntent:{origin:at(E)},disarmCooldown:3})},
  // 3.217.0: a hidden unit's shape (src/concealed.js; state only).
  conceal:{card:'rifleman',affixes:['concealed'],main:'concealed',state:()=>({concealed:{as:'case',kind:'ammo'}})},
+ // 3.219.0: an alarm's cooldown (src/enemy-behavior.js; state only).
+ alarm:{card:'rifleman',affixes:['alarm'],main:'callCooldown',state:()=>({callCooldown:3})},
  // 3.214.0: a flamer by its card (the heavy flamer), its marked cone.
  heavyFlame:{card:'heavy_flamer',main:'flameIntent',state:(E,T)=>({flameIntent:{origin:at(E),aim:at(T)}})},
 };

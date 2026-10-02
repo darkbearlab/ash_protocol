@@ -29,7 +29,7 @@ import {bracingBonus} from './combat.js';
 import {enemyName} from './game.js';
 import {launchReason} from './game-actions.js';
 import {attackRound} from './pursuit.js';
-import {disguised} from './concealed.js';   // 3.217.0 埋伏
+import {disguised,downed} from './concealed.js';   // 3.217.0 埋伏, 3.219.0 裝死
 // 3.179.0: a shot from a gun with the flash hider makes no muzzle flash (src/lighting.js, src/presentation.js).
 const flashHidden=w=>w.noFlash?{suppressed:true}:{};
 export class GameAttacks {
@@ -122,7 +122,7 @@ export class GameAttacks {
     let rounds=0;const hits=new Set();
     // 3.208.0 (src/pursuit.js): each round is a round of its own; only the first can earn pursuit.
     for(let i=0;i<shots;i++) {
-      if(e.hp<=0||p.hp<=0)break;
+      if(e.hp<=0||downed(e)||p.hp<=0)break;   // downed: 3.219.0, a body that fell feigning takes no more of the volley, as a dead one
       presentStep(this,()=>attackRound(this,i,()=>{
         const round=rounds;this.recordExposure(p,e);p.ammo[p.weapon]-=roundCost(w,round);p.stats.shots++;rounds++;spentCase(this,p,w.ammoType);
         const range=this.weaponDamage(p.weapon,e),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));
@@ -204,7 +204,7 @@ export class GameAttacks {
     });
     // 3.136.0 chainsaw: the rest of its cuts, each in a presentation step of its own so every number shows.
     // 3.208.0 (src/pursuit.js): each cut after the first is a follow-up round.
-    if(landed&&w.hits>1&&this.enemies.includes(target))for(let i=1;i<w.hits&&target.hp>0&&p.hp>0;i++)presentStep(this,()=>attackRound(this,i,()=>{
+    if(landed&&w.hits>1&&this.enemies.includes(target))for(let i=1;i<w.hits&&target.hp>0&&!downed(target)&&p.hp>0;i++)presentStep(this,()=>attackRound(this,i,()=>{
       const d=this.weaponDamage(slot);this.effects.push({type:'shot',weaponId:w.id,style:'slash',from:{x:p.x,y:p.y},to:{x:target.x,y:target.y},damage:0,miss:false});
       this.hitTarget(target,Math.round((d.min+Math.floor(this.rng()*(d.max-d.min+1)))*(ambush?ambushMultiplier(p):1)*camo),p,w.pierce||0,w);
     }));

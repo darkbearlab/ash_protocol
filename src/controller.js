@@ -1,5 +1,5 @@
 import {t,language,languageChoice,LANGUAGES} from './i18n.js';
-import {disguised} from './concealed.js';   // 3.217.0 埋伏
+import {disguised,downed} from './concealed.js';   // 3.217.0 埋伏, 3.219.0 裝死
 import {localizeDocument} from './localize-dom.js';
 import './story-data.js';   // load order only (3.206.3 split)
 import {playerCalloutEvent} from './callouts.js';
@@ -523,8 +523,9 @@ $('#battle').addEventListener('pointerup',e=>{
   const lamp=renderer.hitLamp(e.clientX-r.left,e.clientY-r.top);
   if(lamp){game.target=lamp.id;if(!renderer.targetingEnabled)toggleTargeting();else update();return;}
   // 3.217.0 (src/concealed.js): a disguised unit is picked like a rigged case — the tap locks it (auto-target never does).
-  const target=[...game.visibleEnemies,...game.enemies.filter(e=>e.hp>0&&disguised(e)&&game.visible(e)),...game.props.filter(p=>p.hp>0&&game.visible(p))].find(o=>distance(o,pos)===0);
-  if(target){game.target=target.id;if(game.enemies.includes(target)&&!disguised(target)&&!renderer.targetingEnabled)toggleTargeting();else update();return;}
+  // 3.219.0: so is a body that is only feigning (a real one, on the corpse layer, never locks).
+  const target=[...game.visibleEnemies,...game.enemies.filter(e=>e.hp>0&&(disguised(e)||downed(e))&&game.visible(e)),...game.props.filter(p=>p.hp>0&&game.visible(p))].find(o=>distance(o,pos)===0);
+  if(target){game.target=target.id;if(game.enemies.includes(target)&&!disguised(target)&&!downed(target)&&!renderer.targetingEnabled)toggleTargeting();else update();return;}
   const supply=game.props.find(o=>isContainer(o)&&!o.opened&&distance(o,pos)===0&&game.visible(o));
   if(supply){notify(`${t('controller.crateInfo',{v:containerName(supply),v2:game.canTouch(supply)?t('controller.crate.openNow'):t('controller.crate.openNear')})}`);return;}
   const corpse=game.operatorCorpse;if(corpse&&!corpse.recovered&&!isSimulation(game)&&distance(pos,corpse)===0&&game.visible(corpse)){if(operatorReady(game))recoverCorpse();else notify(`${t('controller.corpseInfo',{v:CHARACTERS[corpse.character]?.label||t('controller.operative')})}`);return;}

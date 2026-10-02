@@ -29,7 +29,7 @@ export function suppressiveFire(g,point){
  // 3.208.0 (src/pursuit.js): each round is a round of its own; only the first can earn pursuit.
  for(let i=0;i<shots&&p.hp>0;i++)presentStep(g,()=>attackRound(g,i,()=>{
   // 3.207.0 (review): a cloaked delisted ninja is no target you can track (Game.cloakedFrom); its rounds go to the point.
-  const available=targets.filter(e=>e.hp>0&&distance(p,e)<=w.range&&g.sight(p,e)&&!g.cloakedFrom?.(p,e)&&g.shotClear(p,e));
+  const available=targets.filter(e=>e.hp>0&&knownEnemy(e)&&distance(p,e)<=w.range&&g.sight(p,e)&&!g.cloakedFrom?.(p,e)&&g.shotClear(p,e));
   const target=available.length?available[cursor++%available.length]:null,to=target||point;
   p.facing=[Math.sign(to.x-p.x),Math.sign(to.y-p.y)];g.recordExposure(p,to);p.ammo[p.weapon]--;p.stats.shots++;rounds++;spentCase(g,p,w.ammoType);
   const chance=target?Math.max(10,g.fireChance(target)-T.skillAccuracy):0,hit=Boolean(target&&g.rng()*100<chance);

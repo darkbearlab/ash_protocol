@@ -2,7 +2,7 @@
 // modules, ground items and keycards, hazards, the exit, the tactical overlay and the floor map.
 // Methods of Renderer (src/renderer.js), which copies them onto Renderer.prototype (src/mixin.js, 3.206.3): `this` is
 // the renderer, `this.game` the state being drawn and `this.ctx` the canvas.
-import {disguised,disguiseProp} from './concealed.js';   // 3.217.0 埋伏
+import {disguised,disguiseProp,downed} from './concealed.js';   // 3.217.0 埋伏, 3.219.0 裝死
 import {LOOT_ATLAS,LOOT_ICON,drawLootIcon,lootCell} from './loot-icons.js';
 import {mapStyle} from './map-styles.js';
 import {TERMINAL_TUNING,terminalRemaining} from './terminal.js';
@@ -223,7 +223,7 @@ const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ff
     }
     const fieldCells=[],bodies=[],later=[];
     // 3.211.0 (docs/KILL_GORE.md 屍體圖層): the floor's bodies by tile, once, for the corpse pass below.
-    const deadAt=new Map();for(const dead of g.enemies)if(dead.hp<=0&&!dead.raised){const k=dead.x+','+dead.y;if(!deadAt.has(k))deadAt.set(k,[]);deadAt.get(k).push(dead);}
+    const deadAt=new Map();for(const dead of g.enemies)if((dead.hp<=0||downed(dead))&&!dead.raised){const k=dead.x+','+dead.y;if(!deadAt.has(k))deadAt.set(k,[]);deadAt.get(k).push(dead);}
     for(const {a,left,top,x,y}of floorCells){
       c.globalAlpha=g.visibleTiles?.has(x+','+y)?1:.36;
       // 3.151.0 blind fire: until the tile is seen again it keeps what it showed before the shot (src/blind-fire.js).
@@ -289,7 +289,7 @@ const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ff
     const world=this.corpseWorld(),flat=this.goreLevel==='off';
     layer.use(`${g.seed}:${g.floor}`,flat);
     const poses=bodies.map(({dead})=>layer.pose(dead,time,world,{flat}));
-    layer.settle(g.enemies.filter(e=>e.hp<=0&&!e.raised),time);
+    layer.settle(g.enemies.filter(e=>(e.hp<=0||downed(e))&&!e.raised),time);
     for(const [i,{dead,alpha}]of bodies.entries()){
       const pose=poses[i],fade=layer.alpha(dead.id,time);if(fade<=0)continue;
       c.globalAlpha=alpha*fade;

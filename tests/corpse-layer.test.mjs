@@ -91,7 +91,7 @@ test('a raised or revived body leaves the layer; past the cap the oldest fade ou
  layer.use('7:1');assert.equal(layer.bodies.size,4,'the same floor keeps its bodies');layer.use('7:2');assert.equal(layer.bodies.size,0,'another floor starts empty');
  // Drawn on its own pass, before every tile's props and drops (loot shows at the centre), for bodies the rules keep.
  const map=sourceFamily('renderer'),pass=map.indexOf('this.drawCorpses(bodies,time);'),props=map.indexOf("for(const prop of g.props)if(isContainer(prop)&&prop.x===x&&prop.y===y)");
- assert.ok(pass>0&&props>pass,'bodies before props and drops');assert.ok(map.includes('this.drawCorpses(bodies,time);\n    for(const {a,x,y,memo,shown,burning,alpha}of later){'),'one pass for all bodies, before the props of any tile');assert.match(map,/dead\.hp<=0&&!dead\.raised/);
+ assert.ok(pass>0&&props>pass,'bodies before props and drops');assert.ok(map.includes('this.drawCorpses(bodies,time);\n    for(const {a,x,y,memo,shown,burning,alpha}of later){'),'one pass for all bodies, before the props of any tile');assert.match(map,/\(dead\.hp<=0\|\|downed\(dead\)\)&&!dead\.raised/);   // 3.219.0: a feigning body lies with the rest
  assert.match(sourceFamily('controller'),/renderer\.corpses\?\.reset\(\)/,'cleared with the blood: new run, load, replay');
 });
 

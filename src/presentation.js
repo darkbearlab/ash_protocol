@@ -1,3 +1,4 @@
+import {downed} from './concealed.js';   // 3.219.0 裝死
 import {WEAPONS} from './data.js';
 import {enemyProjectile,enemyMeleeStyle} from './enemy-visuals.js';
 import {NEST_EFFECT_MS,PORTAL_EFFECT_MS} from './nest-art.js';
@@ -118,7 +119,8 @@ export function planPresentation(steps,{reduceMotion=false}={}){
     const travel=Math.max(0,...visuals.map(e=>e.delay+e.travel),...moves.map(e=>e.travel));
     events.push({time,state:step.before,effects:[...moves,...visuals]});
     for(const e of flights)if(e.damage>0||e.miss||e.plates>0)impacts.push({...e,type:e.miss?'miss':'impact',style:undefined,from:e.to});   // plates: 3.210.0, a hit the bulwark's plates took whole
-    const deaths=[...step.after.enemies,...(step.after.allies||[])].filter(e=>e.kind!=='pet'&&e.hp<=0&&[...step.before.enemies,...(step.before.allies||[])].some(b=>b.id===e.id&&b.hp>0));
+    // 3.219.0 裝死 (src/concealed.js): a unit that drops as a body falls as one.
+    const deaths=[...step.after.enemies,...(step.after.allies||[])].filter(e=>e.kind!=='pet'&&(e.hp<=0||downed(e))&&[...step.before.enemies,...(step.before.allies||[])].some(b=>b.id===e.id&&b.hp>0&&!downed(b)));
     if(step.before.player.hp>0&&step.after.player.hp<=0)deaths.push({...step.after.player,type:'player'});
     // A brief impact flash precedes the grey corpse's settling motion.
     // 3.174.0: the operative's fall carries the killing blow's direction for the killed-in-action scene (src/kia.js);

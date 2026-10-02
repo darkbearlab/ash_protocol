@@ -57,7 +57,7 @@ export function commsEvents({game,before=null,logs=[],memory}){
  const visible=(game.visibleEnemies||[]).filter(e=>e.hp>0),hostile=visible.filter(e=>!isNoncombatant(e));
  if(hostile.length&&!memory.contactFloors.includes(floor)){memory.contactFloors.push(floor);push('contact');}
  // 3.217.0: a floor that holds a hidden threat, once (a memory from before 3.217.0 has no list yet).
- if((game.enemies||[]).some(e=>e.hp>0&&e.concealed)&&!(memory.hiddenFloors??=[]).includes(floor)){memory.hiddenFloors.push(floor);push('hiddenThreat');}
+ if((game.enemies||[]).some(e=>e.hp>0&&e.concealed&&e.concealed.as!=='corpse')&&!(memory.hiddenFloors??=[]).includes(floor)){memory.hiddenFloors.push(floor);push('hiddenThreat');}
  // 3.207.0: a delisted operative's serial goes with it (`code`, its intro lines read it out).
  for(const e of hostile)if(isBossClass(e)&&!memory.bosses.includes(e.id)){memory.bosses.push(e.id);push('boss',{name:enemyDisplayName(e),...(enemyDef(e)?.operative?{code:unitCode(e)}:{})},{actor:{id:e.id,type:e.type,x:e.x,y:e.y}});}
  // 3.207.0 (src/detection.js): something hidden from your side near you — a cloaked delisted ninja — once in a while.

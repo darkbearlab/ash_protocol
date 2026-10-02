@@ -86,6 +86,12 @@ export const ENEMY_AFFIXES=[
  // 埋伏 (3.217.0, user 2026-09-30, docs/ENEMY_VARIETY.md section 6; src/concealed.js): never rolled per unit — a floor pass
  // gives it to one or two (concealSpecial), with the hiding's shape (`concealed`). Shown when the unit reveals itself.
  {id:'concealed',fragment:t('enemyAffixes.concealed.fragment'),order:12,applies:()=>false,special:true,reveal:REVEAL_TYPES.effect},
+ // 3.219.0 (user 2026-10-01, docs/ENEMY_VARIETY.md 10.2-10.4): three ordinary affixes any fighter can draw, bosses aside.
+ // 通報 radios (or shrieks) your position to everyone within reach on sight (src/enemy-behavior.js alarmBranch); 殉爆
+ // leaves a marked blast where it falls (enemyDeath); 裝死 falls as a body at its first 0 hp and gets up (src/concealed.js).
+ {id:'alarm',fragment:t('enemyAffixes.alarm.fragment'),order:13,applies:e=>combatant(e)&&!isBossClass(e),reveal:REVEAL_TYPES.effect},
+ {id:'volatile',fragment:t('enemyAffixes.volatile.fragment'),order:14,applies:e=>combatant(e)&&!isBossClass(e)&&!isFlamer(e)&&!['bomber','munition'].includes(ENEMY_TYPES[e.type]?.behavior),reveal:REVEAL_TYPES.effect},
+ {id:'feign',fragment:t('enemyAffixes.feign.fragment'),order:15,applies:e=>combatant(e)&&!isBossClass(e)&&!['bomber','munition'].includes(ENEMY_TYPES[e.type]?.behavior),reveal:REVEAL_TYPES.effect},
  {id:'disarm',fragment:t('enemyAffixes.disarm.fragment'),order:10,applies:e=>armed(e)&&!isFlamer(e)&&!locksDown(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
 ];
 export const locksDown=e=>Boolean(e?.affixes?.some(a=>a.id==='lockdown'));

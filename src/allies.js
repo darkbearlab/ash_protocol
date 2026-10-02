@@ -237,7 +237,7 @@ function actAlly(g,a){
   const shots=a.kind==='drone'&&w.mounted?Math.max(1,Math.min(volleyAt(w,distance(a,e)),a.ammo)):(w.shots||1);
   for(let i=0;i<shots;i++){
    // Stop if the attacker itself was destroyed mid-volley (e.g. by a chain reaction); its weapon has already dropped.
-   if(e.hp<=0||a.hp<=0||a.status!=='active')break;
+   if(e.hp<=0||e.concealed||a.hp<=0||a.status!=='active')break;   // concealed: 3.219.0, a body that fell feigning (src/concealed.js)
    const chance=w.melee?g.meleeAccuracy(a,e,w.hitChance):g.accuracy(a,e).chance;
    if(a.kind==='pet'&&!w.melee){const cost=petFuelCost(g.player,'shot');if(g.player.petBond.fuel<cost)break;g.player.petBond.fuel-=cost;}
    if(!w.melee){rounds++;g.recordExposure(a,e);}

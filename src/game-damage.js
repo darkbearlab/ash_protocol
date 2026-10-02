@@ -1,7 +1,7 @@
 // Hits and damage (3.206.3 split): cover, hitting and hurting any body, what an enemy drops, props and rigged cases,
 // throwables and explosions, and damage to the player and allies.
 // Methods of Game (src/game.js), which copies them onto Game.prototype (src/mixin.js, 3.206.3): `this` is the game.
-import {revealConcealed} from './concealed.js';   // 3.217.0 埋伏
+import {revealConcealed,downed,feignDown} from './concealed.js';   // 3.217.0 埋伏, 3.219.0 裝死
 import {sentence,t} from './i18n.js';
 import {simulationDrops,simulationUpgrades} from './killhouse-policy.js';
 import {isEnforcer,witnessDeath} from './rebels.js';
@@ -10,7 +10,7 @@ import {enemyKillXp} from './elite-enemies.js';
 import {enemyDef,hasEnemyTag,isBossClass,isNoncombatant} from './enemy-data.js';
 import {injuryCallout} from './callouts.js';
 import {enemyDeath} from './enemy-behavior.js';
-import {enemyArmor,isFlamer} from './enemy-affixes.js';
+import {enemyArmor,isFlamer,revealEnemyAffix} from './enemy-affixes.js';
 import {shotDamageAllowed} from './suppression.js';
 import {followUpRound} from './pursuit.js';
 import {petCombat,petDeath,petDefense,petHit,petRank,petReactions,petSurvives,syncPetSenses} from './pet-growth.js';
@@ -122,7 +122,9 @@ export class GameDamage {
   // 3.166.0: cause is the hazard id ('acid' or 'heat'); the sentence lives in the language table.
   hurt(e,damage,attacker=null,cause=null) {
     if(e.hp<=0||!shotDamageAllowed(this,e))return;
-    if(e.concealed)revealConcealed(this,e);   // 3.217.0: any damage (a shot, a blast, burning floor) shows a hidden unit
+    // 3.219.0 裝死: a body that is not one dies of any damage, and shows what it was.
+    if(downed(e)){if(!(damage>0))return;delete e.concealed;revealEnemyAffix(this,e,'feign');damage=Math.max(damage,e.hp);}
+    else if(e.concealed)revealConcealed(this,e);   // 3.217.0: any damage (a shot, a blast, burning floor) shows a hidden unit
     if(attacker===this.player)noticeAttack(this,e,this.attackOrigin(attacker));
     if(damage>0&&(this.ownSide(attacker)||notesOf(this).ours)&&this.enemies.includes(e))this.noticeHit(e,attacker);   // 3.209.0
     // 3.205.0: a swarm boss's bite or charge on one of its own (src/swarm-bosses.js, 敵我不分) is not yours: not in your
@@ -138,6 +140,7 @@ export class GameDamage {
     if(cause){if(this.teamVisible(e))this.log(t(`game.stepped.${cause}`,{target:enemyName(e),damage}),false,t(`game.stepped.${cause}Real`,{target:enemyName(e)}));}else if(ownKind)this.log(t('swarmBosses.hitOwn',{enemy:enemyName(attacker),target:enemyName(e),damage}),false,t('swarmBosses.hitOwnReal',{enemy:enemyName(attacker),target:enemyName(e)}));else this.log(t('game.hit',{target:enemyName(e),damage}),false,t('game.hitReal',{target:enemyName(e)}));
     if(e.hp>0)return;
     if(isNoncombatant(e)){this.log(t('game.civilianDown',{target:enemyName(e)}));enemyDeath(this,e);return;}
+    if(feignDown(this,e)){this.log(t('game.killed',{target:enemyName(e)}));return;}   // 3.219.0 裝死: it reads as a kill, and pays nothing yet
     // 3.208.0 (src/pursuit.js): only a kill on the first round of the attack earns it.
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus&&!followUpRound(this))this.pursuitPending=true;
     // 3.127.0: an enforcer's execution is not the player's kill, and a conscript pays out nothing.

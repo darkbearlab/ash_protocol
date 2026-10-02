@@ -212,6 +212,11 @@ export default Object.freeze({
  // src/comms.js
  "concealed.drop":"{enemy} drops its disguise!",
  "concealed.burst":"{enemy} bursts out of the floor!",
+ "alarm.radio":"{enemy} radios your position!",
+ "alarm.screech":"{enemy} shrieks, and every bug nearby hears it!",
+ "volatile.belt":"{enemy}'s grenades are about to go off! Get out of the ring!",
+ "volatile.sac":"{enemy}'s gas sac is swelling! Get out of the ring!",
+ "feign.rise":"{enemy} gets back up. It was playing dead!",
  "comms.aria":"Controller channel",
  "comms.briefing":"Link confirmed. Your orders are below; follow the briefing.",
  "comms.speaker.egret":"EGRET · CONTROL",
@@ -1071,6 +1076,9 @@ export default Object.freeze({
  "enemyAffixes.disarm.fragment":"Disarm",
  "enemyAffixes.sprint.fragment":"Sprint",
  "enemyAffixes.concealed.fragment":"Concealed",
+ "enemyAffixes.alarm.fragment":"Alarm",
+ "enemyAffixes.volatile.fragment":"Volatile",
+ "enemyAffixes.feign.fragment":"Feigning",
  // 敵人：名稱與介紹（src/data.js）
  "enemyTypes.fodder.name":"Broken Drifter",
  "enemyTypes.fodder.role":"Slow; acts every other chance. Bare hands will do; a kill with an attack's first round grants a pursuit.",
