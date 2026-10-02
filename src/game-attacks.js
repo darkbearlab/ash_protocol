@@ -122,7 +122,7 @@ export class GameAttacks {
     let rounds=0;const hits=new Set();
     // 3.208.0 (src/pursuit.js): each round is a round of its own; only the first can earn pursuit.
     for(let i=0;i<shots;i++) {
-      if(e.hp<=0||downed(e)||p.hp<=0)break;   // downed: 3.219.0, a body that fell feigning takes no more of the volley, as a dead one
+      if(e.hp<=0||i>0&&downed(e)||p.hp<=0)break;   // downed: 3.219.0, a body that fell feigning mid-volley takes no more of it, as a dead one (a shot at the body itself goes out)
       presentStep(this,()=>attackRound(this,i,()=>{
         const round=rounds;this.recordExposure(p,e);p.ammo[p.weapon]-=roundCost(w,round);p.stats.shots++;rounds++;spentCase(this,p,w.ammoType);
         const range=this.weaponDamage(p.weapon,e),damage=range.min+Math.floor(this.rng()*(range.max-range.min+1));

@@ -141,6 +141,11 @@ function keepsRoutes(g,q,before){
  const after=reachable({grid:g.grid,barriers:g.barriers,props:[...g.props,{type:'nest',x:q.x,y:q.y,hp:1}]},g.player,{keys:true});
  return after.size===before.size-(before.has(key(q))?1:0);
 }
+// 3.220.0 產卵: a free tile beside the bug that cuts off no route.
+function besideSpot(g,e){
+ const before=reachable(g,g.player,{keys:true});
+ return DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy})).filter(q=>eggFree(g,q)&&g.canCross(e,q)&&g.visible(q)).find(q=>keepsRoutes(g,q,before))||null;
+}
 export function eggSpot(g,e){
  const p=g.player,spots=[];
  for(let y=p.y-N.far;y<=p.y+N.far;y++)for(let x=p.x-N.far;x<=p.x+N.far;x++){const q={x,y},d=distance(p,q);if(d>=N.near&&d<=N.far&&eggFree(g,q)&&g.visible(q))spots.push(q);}
@@ -152,7 +157,7 @@ function layEgg({g,e}){
  const p=g.player;
  if(!laysNests(e)||e.nestIntent||(e.nestCooldown||0)>0||isSimulation(g)||p.hp<=0||!g.sight(e,p)||standing(g,e)>=(mother(e)?N.live:SPAWN_TUNING.live))return false;
  if(!mother(e)&&(distance(e,p)>SPAWN_TUNING.range||laidNests(g,e).length>=SPAWN_TUNING.charges))return false;   // 產卵
- const q=eggSpot(g,e);if(!q)return false;
+ const q=mother(e)?eggSpot(g,e):besideSpot(g,e);if(!q)return false;   // 產卵: beside the bug (review)
  interruptEnemyIntent(e,'target_lost');   // laying is this round's action: no blow is left wound up
  e.nestIntent={x:q.x,y:q.y};
  g.effects.push({type:'bossTelegraph',kind:'egg',from:{x:e.x,y:e.y},to:{...q},damage:0});

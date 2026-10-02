@@ -176,7 +176,7 @@ export function makeReady(g,leader,members){
 // report is new; a shooter who stays on one tile does not keep a squad holding for ever (Claude's call). A leader hit
 // reports to itself.
 export function radioHit(g,member,origin){
- const leader=isSquadLeader(member)&&member.squad?member:member.squad&&g.enemies.find(o=>o.id===member.squad.leader&&o.hp>0&&isSquadLeader(o)&&o.squad);
+ const leader=isSquadLeader(member)&&member.squad?member:member.squad&&g.enemies.find(o=>o.id===member.squad.leader&&o.hp>0&&!o.concealed&&isSquadLeader(o)&&o.squad);   // concealed: 3.219.0, a leader feigning leads no one
  if(!leader)return false;
  const s=leader.squad,fresh=!s.last||s.last.x!==origin.x||s.last.y!==origin.y;
  s.last={x:origin.x,y:origin.y};if(fresh)s.patience=SQUAD_TUNING.patience;
@@ -284,7 +284,7 @@ export function suppressFrom(g,member,player,leader){
 // duty orders share it; a bounding member is fast until it arrives, then turns to cover (a post where it stands).
 function dutyAct(ctx,order){
  const {g,e,p}=ctx,state=e.squad;
- const leader=state&&g.enemies.find(o=>o.id===state.leader&&o.hp>0&&isSquadLeader(o));
+ const leader=state&&g.enemies.find(o=>o.id===state.leader&&o.hp>0&&!o.concealed&&isSquadLeader(o));
  if(!leader){delete e.squad;endOrder(g,e,'leaderless');return false;}
  if(p!==g.player)return false;
  if(!order.set){

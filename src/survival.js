@@ -34,7 +34,7 @@ export const isSurvival=g=>g?.mission?.id==='survival';
 export const pointLetter=i=>String.fromCharCode(65+i);
 const pointIndex=pt=>Number(pt.id.slice(6));
 export const pointName=pt=>t('survival.pointName',{letter:pointLetter(pointIndex(pt))});
-const combatant=e=>e.hp>0&&!isNoncombatant(e);
+const combatant=e=>e.hp>0&&!e.concealed&&!isNoncombatant(e);   // concealed: 3.219.0, a body feigning (or anyone hidden) holds no point
 // 3.191.0 (user): a point is held while an enemy stands on it; you (or an ally) standing there keeps it.
 export const pressedBy=(g,pt)=>g.enemies.some(e=>combatant(e)&&e.x===pt.x&&e.y===pt.y);
 // The run keeps its own length (set when it starts), so a later change to the tuning leaves a run in progress alone.

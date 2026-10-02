@@ -9,6 +9,7 @@ import {FEIGN_TUNING,downed} from '../src/concealed.js';
 import {applySuppression} from '../src/suppression.js';
 import {commsEvents,newCommsMemory} from '../src/comms-events.js';
 import {t} from '../src/i18n.js';
+import {mineReason} from '../src/field-gear.js';
 
 // 3.219.0 (user 2026-10-01, docs/ENEMY_VARIETY.md 10.2-10.4): three ordinary affixes any fighter can draw.
 // 通報 calls your position out on sight; 殉爆 leaves a marked blast where it falls; 裝死 falls as a body once and gets up.
@@ -68,4 +69,15 @@ test('裝死: any damage on the body kills it for real, and pays then; a broken 
  const k=field(),f=unit(k,'rifleman',13,10,'feign');f.hp=1;k.hurt(f,5,k.player);k.rng=new Game(1,[],0,'soldier','onyx').rng;const raw=k.serialize();
  const tamper=fn=>{const d=JSON.parse(raw);fn(d.data.enemies.find(x=>x.id===f.id));return Game.restore(JSON.stringify(d));};
  for(const [why,fn] of [['too long down',x=>{x.concealed.turns=FEIGN_TUNING.turns+1;}],['the affix already shown',x=>{x.affixes.find(a=>a.id==='feign').revealed=true;}],['without the affix',x=>{x.affixes=x.affixes.filter(a=>a.id!=='feign');}]])assert.equal(tamper(fn),null,why);
+});
+
+// 3.219.0 review: the body can be finished with any gun; the lock lets go of it as of a kill; no hunt target or keycard
+// carrier feigns; a flamer never carries 殉爆; a mine goes on a body as on any body.
+test('review: finishing the body, the lock, the keycard carrier, the flamer, the mine',()=>{
+ const g=field(),p=g.player,e=unit(g,'rifleman',13,10,'feign'),next=unit(g,'rifleman',15,12,null,'loyalist','next');e.hp=1;g.target=e.id;g.enemyAct=()=>{};
+ g.action('fire');assert.ok(downed(e));assert.notEqual(g.target,e.id,'the lock moves on, as for a kill');
+ g.target=e.id;const kills=p.kills;assert.ok(g.action('fire'));assert.ok(e.hp<=0,'a rifle finishes the body');assert.equal(p.kills,kills+1);
+ const k=field(),c=unit(k,'rifleman',13,10,'feign');c.keycard=true;c.hp=1;k.hurt(c,5,k.player);assert.ok(c.hp<=0,'the keycard carrier dies for real');
+ const flamer=ENEMY_AFFIXES.find(a=>a.id==='flamer'),u=makeEnemy('rifleman',1,1,'x',6,hard,'rebel');giveEnemyAffix(u,'volatile');assert.equal(flamer.applies(u),false,'no flamer on a volatile unit');
+ const m=field(),b=unit(m,'rifleman',12,10,'feign');b.hp=1;m.hurt(b,5,m.player);m.player.mines=1;assert.equal(mineReason(m,{x:12,y:10}),'','a mine goes on the body');
 });

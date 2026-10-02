@@ -31,6 +31,7 @@ export function resumedFloor(frame,turn){
   const state={swarmWaves:undefined,mapStyle:undefined,flares:[],glowsticks:[],lamps:undefined,lightModel:undefined,vents:undefined,fires:undefined,...Object.fromEntries(MAP_FIELDS.map(k=>[k,undefined])),...structuredClone(frame)},elapsed=turn-state.savedTurn;delete state.savedTurn;
   for(const cloud of state.smoke)cloud.expires+=elapsed;
   for(const flare of state.flares)flare.expires+=elapsed;
+  for(const h of state.hazards||[])if(Number.isInteger(h.expires))h.expires+=elapsed;   // 3.220.0: 酸血 acid dries on the floor's own clock
   for(const mark of state.marks)mark.due+=elapsed;
   for(const spawn of state.reinforcements)spawn.due+=elapsed;
   for(const spawn of state.swarmWaves?.pending||[])spawn.due+=elapsed;

@@ -44,7 +44,7 @@ export function toxicShot(g,attacker,target,weapon){
 export const ACID_BLOOD=Object.freeze({turns:4});
 export function acidBloodDeath(g,e){
  if(!e?.affixes?.some(a=>a.id==='acid_blood'))return;revealEnemyAffix(g,e,'acid_blood');
- for(const q of [{x:e.x,y:e.y},...DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy}))])if(g.grid[q.y]?.[q.x]===1&&!g.solid(q.x,q.y)&&!g.hazards.some(h=>h.x===q.x&&h.y===q.y))g.hazards.push({x:q.x,y:q.y,type:'acid',expires:g.turn+ACID_BLOOD.turns});
+ for(const q of [{x:e.x,y:e.y},...DIRECTIONS.map(([dx,dy])=>({x:e.x+dx,y:e.y+dy}))])if(g.grid[q.y]?.[q.x]===1&&!g.solid(q.x,q.y)&&(key(q)===key(e)||g.canCross(e,q))&&!g.hazards.some(h=>h.x===q.x&&h.y===q.y))g.hazards.push({x:q.x,y:q.y,type:'acid',expires:g.turn+ACID_BLOOD.turns});
  g.log(t('acid.spill',{enemy:enemyDisplayName(e)}),true);
 }
 export const dryAcid=g=>{g.hazards=g.hazards.filter(h=>!Number.isInteger(h.expires)||h.expires>g.turn);};

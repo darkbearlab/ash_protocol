@@ -90,7 +90,7 @@ function lashTongue(ctx,s){
  }
  // Review: dragged, or bitten where it stands (already beside the boss).
  if(grapple(e)){if(point)g.log(body===g.player?t('operatives.grapplePulled'):t('operatives.grappleCaught',{name:bodyName(g,body)}),true);else g.log(body===g.player?t('operatives.grappleCuts'):t('operatives.grappleCutsOther',{name:bodyName(g,body)}),true);}
- else if(point)g.log(body===g.player?t('swarm.tonguePulled'):t('swarm.tongueCaught',{name:bodyName(g,body)}),true);
+ else if(point)g.log(body===g.player?(boss?t('swarm.tonguePulled'):t('hook.pulled',{enemy:enemyDisplayName(e)})):t('swarm.tongueCaught',{name:bodyName(g,body)}),true);
  else if(boss)g.log(body===g.player?t('swarm.tongueBites'):t('swarm.tongueBitesOther',{name:bodyName(g,body)}),true);
  g.reveal();
  if(boss){biteBody(ctx,body);e.attackCount=(e.attackCount||0)+1;}   // 鉤舌 only pulls
@@ -106,7 +106,7 @@ export function tongueAction(ctx){
  const plan=tonguePlan(g,e,ctx.p||g.player);
  if(!plan)return false;
  interruptEnemyIntent(e,'target_lost');e.tongueIntent=plan;if(!enemyDef(e)?.tongue)revealEnemyAffix(g,e,'hook');
- g.effects.push({type:'tongueTelegraph',sourceId:e.id,from:{...plan.origin},to:{...plan.target},landing:{...plan.point},damage:0,...hooked(grapple(e))});g.log(t(grapple(e)?'operatives.grappleTaut':'swarm.tongueTaut'),true);return true;
+ g.effects.push({type:'tongueTelegraph',sourceId:e.id,from:{...plan.origin},to:{...plan.target},landing:{...plan.point},damage:0,...hooked(grapple(e))});g.log(grapple(e)?t('operatives.grappleTaut'):enemyDef(e)?.tongue?t('swarm.tongueTaut'):t('hook.taut',{enemy:enemyDisplayName(e)}),true);return true;
 }
 // 3.205.0: with the lane it will fly along, as the game stands now (the renderer shades the tiles you can see).
 export const tongueTelegraphs=g=>g.enemies.filter(e=>e.hp>0&&e.tongueIntent).map(e=>({kind:'tongue',sourceId:e.id,origin:{...e.tongueIntent.origin},target:{...e.tongueIntent.target},landing:{...e.tongueIntent.point},lane:tongueLane(g,e.tongueIntent.origin,e.tongueIntent.target,reachOf(e)),interruptible:true,...hooked(grapple(e))}));

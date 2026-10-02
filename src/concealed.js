@@ -87,7 +87,7 @@ export function revealConcealed(g,e,{quiet=false,call=true}={}){
  const was=e.concealed.as;delete e.concealed;e.alert=true;revealEnemyAffix(g,e,was==='corpse'?'feign':'concealed');
  g.effects.push({type:'pulse',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},radius:.6,color:was==='burrow'?'#c9a36a':'#e8b26a',damage:0});
  if(!quiet)g.log(t(was==='burrow'?'concealed.burst':was==='corpse'?'feign.rise':'concealed.drop',{enemy:enemyDisplayName(e)}),true);
- if(call)enemyCallout(g,e,'telegraph',{action:'attack'});
+ if(call&&was!=='corpse')enemyCallout(g,e,'telegraph',{action:'attack'});   // a body getting up has no blow wound up
  return true;
 }
 let strike=null,step=null;

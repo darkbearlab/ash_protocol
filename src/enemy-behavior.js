@@ -1,7 +1,7 @@
 import {t} from './i18n.js';
 import {poisonHit,useTongueHooks,infectedDeath} from './swarm.js';
 import {civilianAction} from './civilians.js';
-import {hasEnemyTag,enemyDef} from './enemy-data.js';
+import {hasEnemyTag,enemyDef,isNoncombatant} from './enemy-data.js';
 import {observeEnemy} from './callouts.js';
 import {ENEMY_TYPES,WEAPONS} from './data.js';
 import {DIRECTIONS,distance,key} from './world.js';
@@ -261,7 +261,7 @@ registerAffixBranch({id:'alarm',reveal:'effect',applies:({e})=>alarms(e),
  run:({g,e,p})=>{
   e.callCooldown=ALARM_TUNING.cooldown;e.moved=false;revealEnemyAffix(g,e,'alarm');enemyCallout(g,e,'telegraph',{action:'alarm'});
   g.log(t(e.faction==='swarm'?'alarm.screech':'alarm.radio',{enemy:enemyName(e)}),true);
-  for(const o of g.enemies)if(o!==e&&o.hp>0&&!o.concealed&&distance(o,e)<=ALARM_TUNING.radius)g.learnAttack(o,p,null);
+  for(const o of g.enemies)if(o!==e&&o.hp>0&&!o.concealed&&!isNoncombatant(o)&&!g.isFooled?.(o)&&distance(o,e)<=ALARM_TUNING.radius)g.learnAttack(o,p,null);   // as a witness would: no civilian, none the decoy holds
   return true;
  }});
 registerSpecial({id:'alarm',carries:alarms,fields:{callCooldown:{count:{max:()=>ALARM_TUNING.cooldown,carrier:true,clamp:'cut'}}},tick:{cooldown:'callCooldown',drop:()=>null}});
@@ -272,7 +272,7 @@ export const volatile=e=>Boolean(e?.affixes?.some(a=>a.id==='volatile'));
 function volatileDeath(g,e){
  if(!volatile(e))return;revealEnemyAffix(g,e,'volatile');
  g.marks.push({kind:'volatile',sourceId:e.id,x:e.x,y:e.y,radius:1,damage:scaleEnemy(AFFIX_TUNING.grenadeDamage,g.floor,'damage',g.difficultySpec),due:g.turn+1});
- g.log(t(e.faction==='swarm'?'volatile.sac':'volatile.belt',{enemy:enemyName(e)}),true);
+ g.log(t(e.faction==='swarm'?'volatile.sac':enemyDef(e)?.mechanical?'volatile.core':'volatile.belt',{enemy:enemyName(e)}),true);
 }
 // The kind and the charges left: state only, so no `intent` (no warning: a deployment happens on the turn it is decided,
 // and nothing that asks whether a unit is mid-warning should count a deployer). Saves: both on every deployer and only on

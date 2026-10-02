@@ -30,7 +30,8 @@ export const EXO_TUNING=Object.freeze({plates:50,accuracy:EXO_ACCURACY,melee:1.2
 
 const floorTile=(g,pos)=>Boolean(pos)&&Number.isInteger(pos.x)&&Number.isInteger(pos.y)&&g.grid[pos.y]?.[pos.x]===1;
 // 3.217.0: a burrowed bug is no one standing there (a mine on it goes off under it); a disguise blocks as its case would.
-const standing=(g,pos)=>[g.player,...g.enemies.filter(e=>e.hp>0&&e.concealed?.as!=='burrow'),...g.activeAllies].some(a=>a.x===pos.x&&a.y===pos.y);
+// 3.219.0: nor is a body feigning (a real body never blocks a mine).
+const standing=(g,pos)=>[g.player,...g.enemies.filter(e=>e.hp>0&&!['burrow','corpse'].includes(e.concealed?.as)),...g.activeAllies].some(a=>a.x===pos.x&&a.y===pos.y);
 
 // ---- 誘餌 ------------------------------------------------------------------------------------------------------------
 // Only enemies that fight the ordinary way can be drawn off: bosses see through it, and suicide units and munitions

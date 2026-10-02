@@ -140,7 +140,9 @@ export class GameDamage {
     if(cause){if(this.teamVisible(e))this.log(t(`game.stepped.${cause}`,{target:enemyName(e),damage}),false,t(`game.stepped.${cause}Real`,{target:enemyName(e)}));}else if(ownKind)this.log(t('swarmBosses.hitOwn',{enemy:enemyName(attacker),target:enemyName(e),damage}),false,t('swarmBosses.hitOwnReal',{enemy:enemyName(attacker),target:enemyName(e)}));else this.log(t('game.hit',{target:enemyName(e),damage}),false,t('game.hitReal',{target:enemyName(e)}));
     if(e.hp>0)return;
     if(isNoncombatant(e)){this.log(t('game.civilianDown',{target:enemyName(e)}));enemyDeath(this,e);return;}
-    if(feignDown(this,e)){this.log(t('game.killed',{target:enemyName(e)}));return;}   // 3.219.0 裝死: it reads as a kill, and pays nothing yet
+    // 3.219.0 裝死: it reads as a kill, and pays nothing yet; the lock moves on as for a kill (review). A hunt target or the
+    // keycard carrier never feigns: the mission tally and the keycard would give it away.
+    if(!missionTarget(this,e)&&e.keycard!==true&&feignDown(this,e)){if(this.target===e.id)this.target=null;this.log(t('game.killed',{target:enemyName(e)}));return;}
     // 3.208.0 (src/pursuit.js): only a kill on the first round of the attack earns it.
     if(e.expendable&&attacker===this.player&&!this.shadowSteps&&!this.shadowBonus&&!followUpRound(this))this.pursuitPending=true;
     // 3.127.0: an enforcer's execution is not the player's kill, and a conscript pays out nothing.
