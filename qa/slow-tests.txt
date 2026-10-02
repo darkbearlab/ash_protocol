@@ -11,7 +11,7 @@ v2 campaigns terminate without invalid actions across both starter simulations
 600 floors retain one or two distinct modules and exactly one main-route and one side-route station
 annexes use real outer margins through floor 60 and preserve all original content and routes
 all generated cases remain reachable and contain unchanged classified rewards across 144 floors
-review 5: no 快速 or 紅外線 on the loyalist bosses; every other roll stays the same
+review 5: no 快速 or 紅外線 on the loyalist bosses; they still carry affixes as often as the warden
 generation: about half the floors dig one pit, 2x2 to 5x5, inside a room, never on anything, and the floor stays whole
 generation through 60 preserves room graph, content and threat while adding only legal floor cells
 recipe maps through floor 60 satisfy all eight topology invariants with three distinct target rooms

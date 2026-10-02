@@ -62,3 +62,16 @@ test('reveal waits for an actual extra round or an actual dark accuracy check',(
  const g=affixArena(),e=sceneEnemy(g,'raider',['suppressor']);e.charge=true;e.windup=1;g.player.hp=1;sure(g);g.enemyAct(e);assert.equal(e.affixes[0].revealed,false);assert.ok(!g.logs.some(l=>l.text.includes('壓制者')));
  const h=affixArena(),s=sceneEnemy(h,'sniper',['night_vision']);s.charge=true;s.windup=1;s.aim={x:h.player.x,y:h.player.y};h.lighting=h.grid.map(r=>r.map(()=>0));h.shotClear=()=>false;h.enemyAct(s);assert.equal(s.affixes[0].revealed,false);
 });
+
+// 3.218.0 重抽 (user 2026-10-01, docs/ENEMY_VARIETY.md 10.1): each draw is made among the ordinary affixes that fit, so a
+// biter (no gun, dark-sighted) carries one at the nominal chance instead of a fraction of it.
+test('redraw: every ordinary draw fits the unit, so a biter is affixed at the nominal chance',()=>{
+ const hard={curve:'hard',offset:0},ordinary=a=>{const d=ENEMY_AFFIXES.find(x=>x.id===a.id);return !d.special&&!d.infection;};
+ for(const [type,faction] of [['crawler','swarm'],['rifleman','loyalist']]){
+  let hit=0;const n=600;
+  for(let i=0;i<n;i++){const e=makeEnemy(type,1,1,`r${i}`,6,hard,faction);rollEnemyAffixes(e,11,6,hard);if(e.affixes.some(ordinary))hit++;}
+  assert.ok(Math.abs(hit/n-affixChance(6,hard))<.05,`${type}: ${hit}/${n} against ${affixChance(6,hard)}`);
+ }
+ // Nothing fits: no draw at all (an expendable larva takes no affix; a noncombatant none either).
+ const brood=makeEnemy('brood',1,1,'b',6,hard,'swarm');rollEnemyAffixes(brood,11,6,hard);assert.equal(brood.affixes.filter(ordinary).length,0);
+});

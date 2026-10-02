@@ -151,7 +151,7 @@ export class RendererTelegraphs {
       const a=this.projectActor(e),b=this.projectActor(chargeLineTarget(g,e));
       c.setLineDash([5,5]);this.line(a.x,a.y,b.x,b.y,unitTree(e).fixedTile?'#efb5cb8f':'#eaaa6855',1);c.setLineDash([]);
     }
-    // 3.215.0 (src/disarm.js): a marksman aiming at your weapon — an amber dashed line from it while you see it, and a small
+    // 3.215.0 (src/disarm.js): a gunman aiming at your weapon — an amber dashed line from it while you see it, and a small
     // crosshair on your weapon hand.
     for(const e of g.enemies)if(e.hp>0&&e.disarmIntent&&p.hp>0){
       const b=this.projectActor(p),q={x:b.x+t*.22,y:b.y+t*.12};

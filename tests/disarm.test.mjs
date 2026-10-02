@@ -22,12 +22,14 @@ function marksman(g,type='rifleman',x=15,y=10){const e=makeEnemy(type,x,y,'dz',6
 const round=(g,e)=>{g.turn++;tickDisarms(g);g.enemyAct(e);};
 const knocked=g=>g.items.filter(i=>i.type==='weapon');
 
-test('who: the sniper or a rifle with reach 7+ and no behaviour of its own; never a flamer, grenadier, lockdown or fast unit',()=>{
+// 3.218.0 (user 2026-10-02: 「有槍的大家都可以抽」): any gun that is not a boss or a fixed turret.
+test('who: any gun but a boss or a fixed turret; never a flamer, grenadier, lockdown or fast unit',()=>{
  const def=ENEMY_AFFIXES.find(a=>a.id==='disarm'),of=(type,faction='loyalist')=>makeEnemy(type,1,1,'x',6,hard,faction);
  assert.equal(def.special,true);
- for(const type of ['rifleman','rifleman_armored','sniper'])assert.ok(def.applies(of(type)),type);
- assert.ok(def.applies(of('rifleman_infected','swarm')),'infected riflemen too (the swarm has marksmen)');
- for(const type of ['raider','gunner','enforcer','squad_leader','turret','crawler'])assert.equal(def.applies(of(type,type==='crawler'?'swarm':'loyalist')),false,type);
+ for(const type of ['rifleman','rifleman_armored','sniper','raider','gunner','enforcer','squad_leader'])assert.ok(def.applies(of(type)),type);
+ assert.ok(def.applies(of('rifleman_infected','swarm')),'infected riflemen too');
+ for(const type of ['turret','crawler'])assert.equal(def.applies(of(type,type==='crawler'?'swarm':'loyalist')),false,type);
+ for(const type of ['designator','warden','delisted_soldier'])assert.equal(def.applies(of(type)),false,`${type}: no boss`);
  for(const id of ['flamer','grenadier','lockdown','fast']){const u=of('rifleman');giveEnemyAffix(u,id);assert.equal(def.applies(u),false,id);}
  const d=of('rifleman');giveEnemyAffix(d,'disarm');
  for(const id of ['grenadier','fast'])assert.equal(ENEMY_AFFIXES.find(a=>a.id===id).applies(d),false,`no ${id} top-up`);

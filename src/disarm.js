@@ -1,6 +1,6 @@
 // 繳械 Disarm (3.215.0; user 2026-09-30, docs/ENEMY_VARIETY.md section 4): 「打掉槍就只能打掉裝備中的」, and
 // 「繳械打中還是要扣血」.
-// - Who: a marksman — the sniper, or a rifleman-type gun with reach 7 or more and no behaviour card of its own — never a
+// - Who: any armed unit, so no boss or fixed turret (3.218.0, user 2026-10-02: 「有槍的大家都可以抽」) — never a
 //   flamer, a grenadier, a lockdown gunman or a fast one (src/enemy-affixes.js); a special affix from the curve's
 //   varietyStart.
 // - When: it sees you, you are in its reach and in its line, you hold a weapon and carry another (Claude's call: with your

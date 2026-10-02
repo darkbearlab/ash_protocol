@@ -22,7 +22,7 @@ export const ORDER=F({
  // executeEnemyTree, before an order, a survival walk or anything else can move the unit: the first that acts ends the
  // turn. 'rebel' and 'swarm' are the bosses' own steps (src/rebel-bosses.js, src/swarm-bosses.js), each covering several;
  // 'smoke' the delisted recon's throw (3.207.0, src/delisted-operatives.js); 'lockdown' a gunman's aimed tile (3.213.0,
- // src/lockdown.js); 'disarm' a marksman's shot at your weapon (3.215.0, src/disarm.js).
+ // src/lockdown.js); 'disarm' a gunman's shot at your weapon (3.215.0, src/disarm.js).
  top:F(['flame','grenade','lockdown','disarm','rebel','gun','swarm','pounce','lob','smoke']),
  // After the orders, in place of the affix branches and the shot.
  attack:F(['flame']),

@@ -82,13 +82,24 @@ function walk({g,e,p,def,los,d,stepOnly=false}){
 // ordinary step this turn takes a second along its route (each step by the walk's own rules: doors, vaults, hazards,
 // taken tiles; never while pinned). Next to its target after the first, a unit that bites or slashes readies the blow
 // instead — the usual wind-up (「!」), so it strikes next turn and stepping away still dodges it (Claude's call: every
-// enemy attack is warned). A gunman's second step is a step, so it never fires on a sprint. A lunge (突進: a sweep of up
+// enemy attack is warned). 3.218.0 (user 2026-10-02: 「直接咬 還蓄勢就沒意義了」): it bites at once (貼身直擊, below).
+// A gunman's second step is a step, so it never fires on a sprint. A lunge (突進: a sweep of up
 // to three tiles) is the whole move: no second step after one. The affix shows on the first sprint.
 // 3.216.0 review: the second step keeps the first's route — toward you only if it still sees you (it stops when it lost
 // you), else on to where it was walking (where it last saw you, a survival point) — and it is only a step (`stepOnly`).
 // It stops instead on a mine (it goes off at the end of the turn, as for anyone stepping on one), stunned, or, a gunman,
 // already where it would fire from (in sight, in its line, within its reach and band: 有效距離). The affix shows when the
-// second step does something: a step taken or the blow readied.
+// second step does something: a step taken or the blow struck.
+// 貼身直擊 (3.218.0; user 2026-10-02: 「這種貼身後的下一個近戰不蓄勢的邏輯也請普通化 因為以後不少近戰敵人也要適用」): a melee
+// unit in contact with its target strikes at once, with no wind-up — a shared rule units opt into (CONTACT_RULE). Today
+// only the sprint: its second step bites when the first put it beside you, and its blows there come unwarned too.
+const CONTACT_RULE=[sprints];
+export const strikesOnContact=e=>CONTACT_RULE.some(f=>f(e));
+function contactBlow(ctx){
+ const {g,e,p,def}=ctx;if(def.range!==1||!strikesOnContact(e)||!ctx.los||distance(e,p)>1||!g.canCross(e,p))return false;
+ e.focusTarget=p.id||'player';const tree=unitTree(e);if(tree.attack)tree.attack({...ctx,d:1});else attack({...ctx,d:1});
+ e.charge=false;e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;return true;
+}
 function move(ctx){
  const {g,e}=ctx,from={x:e.x,y:e.y};walk(ctx);
  if(!e.moved||e.hp<=0||!sprints(e)||distance(from,e)!==1)return;   // pinned, it took no first step
@@ -96,7 +107,7 @@ function move(ctx){
  const {p,def}=ctx,los=Boolean(ctx.los&&g.sight(e,p));if(ctx.los&&!los)return;
  const d=los?distance(e,p):(e.lastKnown?distance(e,e.lastKnown):Infinity);
  if(def.range===1&&los&&d<=1&&g.canCross(e,p)){
-  if(!e.charge){e.charge=true;e.focusTarget=p.id||'player';e.windup=unitTree(e).windup||1;e.aim={x:p.x,y:p.y};enemyCallout(g,e,'telegraph',{action:'attack'});revealEnemyAffix(g,e,'sprint');}
+  if(!e.charge&&contactBlow({...ctx,los,d}))revealEnemyAffix(g,e,'sprint');
   return;
  }
  if(def.range>1&&los&&g.shotClear(e,p)&&d<=def.range&&inBand(enemyBand(e.type),d))return;
@@ -375,7 +386,7 @@ export function executeEnemyTree(g,e){const locked=lockedTarget(e),p=(locked?[g.
  }
  if(engage){
  e.tactics=null;if(tree.beforeAttack?.(ctx))return;
- if(!e.charge){e.charge=true;e.focusTarget=p.id||'player';e.windup=tree.windup||1;e.aim={x:p.x,y:p.y};enemyCallout(g,e,'telegraph',{action:tree.fixedTile?'aim':'attack'});return;}
+ if(!e.charge){if(contactBlow(ctx))return false;e.charge=true;e.focusTarget=p.id||'player';e.windup=tree.windup||1;e.aim={x:p.x,y:p.y};enemyCallout(g,e,'telegraph',{action:tree.fixedTile?'aim':'attack'});return;}
  e.windup=(e.windup||1)-1;if(e.windup>0)return;
  if(tree.attack)return tree.attack(ctx);fired=attack(ctx);e.charge=Boolean(def.rapid);e.windup=1;e.aim=null;e.attackCount=(e.attackCount||0)+1;
  }

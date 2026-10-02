@@ -45,13 +45,14 @@ test('a gunman covers two tiles a turn toward you and never fires while sprintin
  const plain=field(),q=sprinter(plain,'rifleman',22,10,'loyalist',false);turn(plain,q);assert.deepEqual([q.x,q.y],[21,10],'one step without it');
 });
 
-test('next to you after the first step, a biter readies its blow (the usual warning) instead of a second step',()=>{
+// 3.218.0 貼身直擊 (user 2026-10-02: 「直接咬 還蓄勢就沒意義了」; a shared rule, src/enemy-behavior.js strikesOnContact).
+test('next to you after the first step, a biter bites at once, unwarned; beside you its next blow is unwarned too',()=>{
  const g=field(),p=g.player,e=sprinter(g,'giant_bug',12,10,'swarm');
- turn(g,e);assert.deepEqual([e.x,e.y],[11,10],'one step, now beside you');assert.ok(e.charge,'the 「!」 wind-up, this turn');assert.equal(p.hp,999,'no bite yet');
- assert.equal(e.focusTarget,'player');assert.deepEqual(e.aim,{x:10,y:10});
- const hp=p.hp;turn(g,e);assert.ok(p.hp<hp,'it bites next turn');
- // Step away during the warning and it misses you, as any wind-up.
- const k=field(),f=sprinter(k,'giant_bug',12,10,'swarm');turn(k,f);k.player.x=8;k.reveal();turn(k,f);assert.equal(k.player.hp,999);
+ turn(g,e);assert.deepEqual([e.x,e.y],[11,10],'one step, now beside you');assert.ok(p.hp<999,'and the bite, this turn');assert.equal(e.charge,false,'no wind-up');
+ assert.equal(e.focusTarget,'player');assert.ok(e.affixes.find(a=>a.id==='sprint').revealed);
+ const hp=p.hp;turn(g,e);assert.ok(p.hp<hp,'it bites again');assert.equal(e.charge,false);
+ // Without the sprint the rule does not apply: beside you, a biter still winds up first.
+ const k=field(),f=sprinter(k,'giant_bug',11,10,'swarm',false);turn(k,f);assert.ok(f.charge,'the usual wind-up');assert.equal(k.player.hp,999);
 });
 
 test('each step keeps the walk’s rules: never onto a taken tile; a shut door is opened, not passed; pinned, no step',()=>{

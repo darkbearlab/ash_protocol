@@ -287,15 +287,16 @@ test('review 2: a boss with its gun set up, sweeping or packing up never fires a
   assert.ok(k.action('wait'));assert.equal(k.mines.length,0);
 });
 
-test('review 5: no 快速 or 紅外線 on the loyalist bosses; every other roll stays the same',()=>{
+test('review 5: no 快速 or 紅外線 on the loyalist bosses; they still carry affixes as often as the warden',()=>{
   const fast=ENEMY_AFFIXES.find(a=>a.id==='fast'),infrared=ENEMY_AFFIXES.find(a=>a.id==='infrared');
   for(const type of ['designator','gunline']){const e=makeEnemy(type,5,5,'x',6,0,'loyalist');assert.equal(fast.applies(e),false);assert.equal(infrared.applies(e),false);assert.deepEqual(ENEMY_TYPES[type].barredAffixes,['fast','infrared']);}
   assert.equal(fast.applies(makeEnemy('warden',5,5,'x',6,0,'loyalist')),true,'the warden keeps its rolls');
-  // The same id, seed and floor: the designator gets exactly the warden's affixes but 快速 (the warden has native infrared).
+  // The same id, seed and floor. 3.218.0 重抽 (docs/ENEMY_VARIETY.md 10.1): a barred affix is never drawn, so the designator
+  // takes its affixes from the rest — never 快速 or 紅外線 — and carries one exactly when the warden does (same first roll).
   let compared=0;
   for(let seed=1;seed<=400;seed++){
     const d=rollEnemyAffixes(makeEnemy('designator',5,5,'3-boss',9,0,'loyalist'),seed,9,6),w=rollEnemyAffixes(makeEnemy('warden',5,5,'3-boss',9,0,'loyalist'),seed,9,6);
-    const ids=e=>e.affixes.map(a=>a.id);assert.deepEqual(ids(d),ids(w).filter(id=>id!=='fast'),String(seed));if(ids(w).length)compared++;
+    const ids=e=>e.affixes.map(a=>a.id);assert.ok(!ids(d).some(id=>['fast','infrared'].includes(id)),String(seed));assert.equal(ids(d).length>0,ids(w).length>0,String(seed));if(ids(w).length)compared++;
   }
   assert.ok(compared>20,`${compared} seeds rolled something`);
   for(let seed=1;seed<=60;seed++)for(const floor of [3,6,9,12])for(const e of generate(seed,floor,[],0,'loyalist').enemies)if(['designator','gunline'].includes(e.type))assert.ok(!e.affixes.some(a=>['fast','infrared'].includes(a.id)),`${seed}:${floor}`);

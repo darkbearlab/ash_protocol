@@ -248,7 +248,7 @@ export default Object.freeze({
  "comms.egret.opKill.2":"{code}……確認銷毀。紀錄已更新。",
  "comms.egret.cloakAlert.1":"偵測到不尋常的訊號。附近有看不見的東西。",
  "comms.egret.cloakAlert.2":"感測器有反應，但影像上什麼都沒有。注意周圍。",
- "comms.egret.hiddenThreat.1":"……這一層有點不對勁。說不上來，但請比平常更小心。",
+ "comms.egret.hiddenThreat.1":"……有點不對勁。說不上來，但請比平常更小心。",
  "comms.egret.hiddenThreat.2":"感測器沒有異常。……只是，我有不好的預感。",
  "comms.egret.hiddenThreat.3":"讀數都很正常。正常得讓人不安。請放慢腳步。",
  "comms.egret.flank.1":"側後方出現敵人。你被包夾了。",
