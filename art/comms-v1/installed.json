@@ -19,7 +19,28 @@
   }
  },
  "wren": {
-  "from": "art/comms-v1/wren/sheet.png",
-  "sha256": "7c695601711ab91218c2a5fab84699c224afe0037b0a783bc27508df4e7f1488"
+  "from": "art/comms-v1/manual/wren_flipped-2026-10-02.png",
+  "sha256": "c99a6067cc0ca0c25bde1c4c06f272fd1cde0b567eb0bbb0c60e8cacb58dfd6d",
+  "packed": {
+   "label": "2026-10-03-before-manual-edit",
+   "source_sha256": "c2cfad46deb83f0d1f96f44e0529743db2a8d1a144d45633ee0d3751b9b06aaa",
+   "cells": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+   ],
+   "archive": "art/comms-v1/archive/2026-10-03-before-manual-edit"
+  }
  }
 }

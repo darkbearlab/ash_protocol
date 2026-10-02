@@ -19,14 +19,17 @@ export const commsDuration=text=>{
 // with shows her neutral face. 3.173.0: `short` is the name the slim field box starts the line with, and `face` the
 // top-left corner of the 43x43 window on the face that box shows (unscaled, so the pixels stay square).
 const SHEET=id=>`./assets/pixel/comms-v1/${id}.png`;
-const cells=names=>Object.freeze(Object.fromEntries(names.map((name,i)=>[name,i])));
 // 3.177.4 (user): Egret's hand-retouched sheet keeps only the faces her lines use, eight cells in two rows
 // (tools/pack_comms_sheet.py). Some names share a face: listening was serious one pixel off, relieved and gentle were
 // drawn the same. The six faces no line used are gone with their names; a name she was not drawn with shows cell 0.
 const EGRET_FACES=Object.freeze({serious:0,listening:0,relieved:1,gentle:1,speaking:2,concerned:3,worried:4,alarmed:5,sad:6,closed:7});
+// 3.222.1 (user): Wren's sheet is her hand-retouched one, every face mirrored to look the other way and the hair, headset
+// and shoulders made the same in all of them; fourteen cells. Determined and sad were too close to the faces above them,
+// so the user dropped them: determined shows serious, sad shows annoyed.
+const WREN_FACES=Object.freeze({neutral:0,grin:1,speaking:2,wink:3,bored:4,annoyed:5,serious:6,alarmed:7,surprised:8,sheepish:9,worried:10,smug:11,laughing:12,sigh:13,determined:6,sad:5});
 export const COMMS_SPEAKERS=Object.freeze({
  egret:Object.freeze({name:t('comms.speaker.egret'),short:t('comms.short.egret'),sheet:SHEET('egret'),face:[11,11],expressions:EGRET_FACES}),   // 白鷺
- wren:Object.freeze({name:t('comms.speaker.wren'),short:t('comms.short.wren'),sheet:SHEET('wren'),face:[11,10],expressions:cells(['neutral','grin','speaking','wink','bored','annoyed','serious','alarmed','surprised','sheepish','worried','smug','laughing','sigh','determined','sad'])}),   // 鷦鷯
+ wren:Object.freeze({name:t('comms.speaker.wren'),short:t('comms.short.wren'),sheet:SHEET('wren'),face:[10,10],expressions:WREN_FACES}),   // 鷦鷯; face window: 3.222.1 one column left with the mirrored face
  overseer:Object.freeze({name:t('comms.speaker.overseer'),short:t('comms.short.overseer')}),   // 監視官, no face, no name
 });
 export const DEFAULT_EXPRESSION='neutral';

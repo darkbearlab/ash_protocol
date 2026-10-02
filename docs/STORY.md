@@ -155,7 +155,7 @@
   - 白鷺的語氣補充（2026-09-24 使用者）：洗腦教育一樣教她除掉研究員，但她只提醒風險，讓她溫柔一點。
 - **3.170.0 臉譜**（2026-09-24 使用者授權以 GPT Image 各產一組 4×4 像素臉譜：「先將相似色統整成單一色，然後壓進 Mega Drive 的色票，然後真像素化」；審稿後白鷺重產一次，鷦鷯只用色盤調淡膚色；「就這樣用吧」）：
   - 素材 `assets/pixel/comms-v1/egret.png`、`wren.png`：256×256，4×4 格、每格 64×64，每人一條 16 色的 Mega Drive 色盤。原圖、提示詞、處理流程與已知取捨在 `art/comms-v1/`（README.md、PROMPT.md），工具 `tools/pixelize_comms_portraits.py`。
-  - 格子順序（由左而右、由上而下）：白鷺 3.177.4 起是使用者手修、縮成 4×2 的 8 格：serious 嚴肅（listening 聆聽共用）、relieved 放心（gentle 真誠的笑共用）、speaking 說話、concerned 關切、worried 擔心、alarmed 警覺、sad 難過、closed 閉眼；沒有台詞用到的平靜、淺笑、驚訝、思考、堅定、害羞連同名稱一起拿掉（使用者：以後真的用到再說），沒畫到的表情用第 1 格。原本 16 格的順序是 neutral 平靜、smile 淺笑、speaking 說話、listening 聆聽、serious 嚴肅、concerned 關切、worried 擔心、alarmed 警覺、surprised 驚訝、sad 難過、relieved 放心、thinking 思考、closed 閉眼、determined 堅定、flustered 害羞、gentle 真誠的笑。鷦鷯 neutral、grin 咧嘴笑、speaking、wink 眨眼、bored 無聊、annoyed 不耐、serious、alarmed、surprised、sheepish 傻笑、worried、smug 得意、laughing 大笑、sigh 嘆氣、determined、sad。沒畫到的表情用平靜的臉。
+  - 格子順序（由左而右、由上而下）：白鷺 3.177.4 起是使用者手修、縮成 4×2 的 8 格：serious 嚴肅（listening 聆聽共用）、relieved 放心（gentle 真誠的笑共用）、speaking 說話、concerned 關切、worried 擔心、alarmed 警覺、sad 難過、closed 閉眼；沒有台詞用到的平靜、淺笑、驚訝、思考、堅定、害羞連同名稱一起拿掉（使用者：以後真的用到再說），沒畫到的表情用第 1 格。原本 16 格的順序是 neutral 平靜、smile 淺笑、speaking 說話、listening 聆聽、serious 嚴肅、concerned 關切、worried 擔心、alarmed 警覺、surprised 驚訝、sad 難過、relieved 放心、thinking 思考、closed 閉眼、determined 堅定、flustered 害羞、gentle 真誠的笑。鷦鷯 3.222.1 起是使用者手修的 14 格（每格左右反轉、頭髮耳機肩膀統一）：neutral、grin 咧嘴笑、speaking、wink 眨眼、bored 無聊、annoyed 不耐、serious、alarmed、surprised、sheepish 傻笑、worried、smug 得意、laughing 大笑、sigh 嘆氣；原本的 determined 與 sad 和上面的臉太像，使用者拿掉，堅定改用嚴肅（第 7 格）、難過改用不耐（第 6 格）（`src/comms.js` 的 `WREN_FACES`）。沒畫到的表情用平靜的臉。
   - 白鷺各事件的表情（`COMMS_EXPRESSIONS`）：開場 speaking、重部署 serious、已就緒 concerned、投彈 alarmed、頭目 serious（第二句 worried，台詞自帶）、被包抄 alarmed、研究員 concerned。鷦鷯的臉已經能用，台詞寫好時再配表情。
   - 顯示：方框 66px（含 1px 邊框），臉 1:1 不縮放（像素保持方正），上面一層淡掃描線保留通訊的感覺。監視官沒有臉，維持暗紅色的 SOUND ONLY。
   - 使用者手動修像素（2026-09-24 說明）：直接改 `assets/pixel/comms-v1/*.png`，保持 16 色索引、色值在 Mega Drive 八階上（測試會檢查）；改完告訴 Claude。重跑 `--install` 時，被手動改過的檔案會被拒絕覆蓋。
@@ -167,7 +167,7 @@
   - 臉譜（使用者：「主管制員的頭像歪掉了沒置中」「讓她稍微放大到下緣可以碰到框」）：處理工具改成框人物而不是框取樣的格子——拿掉鄰格滲進來的碎片、頭部水平置中、同一張圖所有臉的頭頂同高、人物下緣貼齊框。白鷺放大約 1.12 倍：因為像素圖只能整數倍放大，改成重複 6 列與 3 對左右對稱的欄，挑重複後最不明顯的線（每張臉都要看不出來，所以眉毛、眼睛不會被拉粗）。鷦鷯只往下移 1 格。
 - **3.173.0 戰場通訊框改成細條**（使用者：「對話框更小、更往上貼，蓋住原本 log 欄也沒關係，高度和 log 欄差不多，現在蓋住地圖上面太吵了」；看過示意圖 <https://claude.ai/artifact/JdfPF9dUnan6em66PEsJmR> 後選方案 B）：
   - 戰場上的通訊框蓋住整條標題列（log、回合數與選單），高 44px，跟標題列一樣；地圖與生命護甲完全不被蓋。字多時往下長（使用者：「超過的部分就自動往下長應該還好」）。
-  - 內容：左邊 44px 的臉（64 格臉譜取臉部 43×43 的窗，原尺寸；白鷺從第 11 欄第 11 列起，鷦鷯第 11 欄第 10 列起，`COMMS_SPEAKERS` 的 `face`），接著短名（白鷺、鷦鷯、監視官；英文 EGRET、WREN、OVERSEER，語言表 `comms.short.*`）與台詞，一般一到兩行。倒數白線貼在標題列下緣。中文 12px、英文 11px。
+  - 內容：左邊 44px 的臉（64 格臉譜取臉部 43×43 的窗，原尺寸；白鷺從第 11 欄第 11 列起，鷦鷯第 10 欄第 10 列起（3.222.1 臉反轉後左移一欄），`COMMS_SPEAKERS` 的 `face`），接著短名（白鷺、鷦鷯、監視官；英文 EGRET、WREN、OVERSEER，語言表 `comms.short.*`）與台詞，一般一到兩行。倒數白線貼在標題列下緣。中文 12px、英文 11px。
   - 量過現有台詞：戰場上中文 23 句都在 44px 內（17 句一行、6 句兩行）；英文只有鷦鷯研究員第二句要三行（高 55px）。最長的是開場台詞，只在簡報出現。
   - 任務簡報維持原本的大通訊框（使用者：「戰鬥前的簡報應該還是維持現狀」）。
   - 3.172.0 的「貼齊戰場上緣、半透明模糊」由這一版取代；點一下關閉、`seconds`、倒數速度照舊。

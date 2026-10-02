@@ -53,6 +53,7 @@ test('the drawn speakers have a face for every expression, on a 16-colour Mega D
  const levels=new Set([0,52,87,116,144,172,206,255]);
  const sw=readFileSync(new URL('../sw.js',import.meta.url),'utf8');
  const server=readFileSync(new URL('../server.mjs',import.meta.url),'utf8');
+ const installed=JSON.parse(readFileSync(new URL('../art/comms-v1/installed.json',import.meta.url),'utf8'));
  assert.match(server,/comms-v1/,'the dev server serves the sheets');
  for(const id of ['egret','wren']){
   const {sheet,expressions}=COMMS_SPEAKERS[id];
@@ -61,7 +62,10 @@ test('the drawn speakers have a face for every expression, on a 16-colour Mega D
   const png=readFileSync(new URL(`../${sheet}`,import.meta.url)),rows=png.readUInt32BE(20)/64;
   assert.equal(png.readUInt32BE(16),256);assert.ok(Number.isInteger(rows)&&rows>=1&&rows<=4,`${id}: whole rows of four faces`);assert.equal(png[25],3,'indexed colour');
   // 3.177.4: every cell is some expression's face; Egret's packed sheet has eight, and names may share a cell.
-  assert.deepEqual([...new Set(Object.values(expressions))].sort((a,b)=>a-b),[...Array(rows*4).keys()],`${id}: every cell has a name`);
+  // 3.222.1: Wren's has fourteen, so her last row ends in two blank cells (tools/pack_comms_sheet.py fills them with the
+  // background): the named cells are the packed ones (art/comms-v1/installed.json), from the first with no gap.
+  const named=[...new Set(Object.values(expressions))].sort((a,b)=>a-b),drawn=installed[id].packed?.cells.length??16;
+  assert.deepEqual(named,[...Array(drawn).keys()],`${id}: every drawn cell has a name, and no name points at a blank one`);assert.ok(drawn>(rows-1)*4&&drawn<=rows*4,`${id}: no blank row`);
   assert.equal(expressions[DEFAULT_EXPRESSION]??0,0,'a face she was not drawn with shows the first cell');
   let pos=8,palette=null;
   while(pos<png.length){const len=png.readUInt32BE(pos),type=png.toString('ascii',pos+4,pos+8);if(type==='PLTE')palette=[...png.subarray(pos+8,pos+8+len)];pos+=12+len;}
@@ -167,7 +171,7 @@ test('the slim field box shows a window on the face, the short name and the line
  assert.match(commsMarkup({text:'x',seconds:3},{compact:true}),/data-ms="3000"/);
  assert.doesNotMatch(box,/comms-name/);
  const wren=commsMarkup({speaker:'wren',expression:'speaking',text:'x'},{compact:true});
- assert.match(wren,/background-position:-139px -10px/);
+ assert.match(wren,/background-position:-138px -10px/,'3.222.1: the window moved a column left with her mirrored face');
  const overseer=commsMarkup({speaker:'overseer',text:'x'},{compact:true});
  assert.match(overseer,/SOUND<\/span><span>ONLY/);
  assert.match(overseer,new RegExp(`comms-who">${t('comms.short.overseer')}<`));

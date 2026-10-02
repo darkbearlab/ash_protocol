@@ -74,3 +74,17 @@
 - `.comms-portrait` 的背景改用圖的原尺寸，所以 4×4（鷦鷯）和 4×2（白鷺）的臉譜都能用。
 - `pixelize_comms_portraits.py --install egret` 看到 `packed` 就拒絕，要回到生成版才加 `--force`，而且要一起改回 `src/comms.js` 的對照。
 - 之後要加表情：在手修原檔補一格，換一個 `--label`、在 `--cells` 加上那一格重跑，再到 `EGRET_FACES` 加名稱。
+
+## 3.222.1 鷦鷯手修版，左右反轉、14 格
+
+- 2026-10-02 使用者要先把鷦鷯每一格左右反轉（Claude 用遊戲裡的 `wren.png` 逐格反轉，色盤不變），2026-10-03 在反轉檔上手修：[manual/wren_flipped-2026-10-02.png](manual/wren_flipped-2026-10-02.png)。
+  - 前 14 格的頭髮、耳機、肩膀、衣領逐像素統一（臉部第 22～44 列以外完全相同），換表情時頭不會跳；
+  - 不好意思的汗滴、嘆氣吐出的那口氣拿掉；
+  - 第 15、16 格（堅定、難過）清空：使用者說和上面的臉太像。
+- `python tools/pack_comms_sheet.py wren art/comms-v1/manual/wren_flipped-2026-10-02.png --cells 1,2,3,4,5,6,7,8,9,10,11,12,13,14 --label 2026-10-03-before-manual-edit`：
+  - 舊的 `wren.png` 封存到 [archive/2026-10-03-before-manual-edit/](archive/2026-10-03-before-manual-edit/)；
+  - 新表 256×256，最後一列的兩格是背景；
+  - `installed.json` 記錄 `packed`。
+- 對照在 `src/comms.js` 的 `WREN_FACES`：堅定指向嚴肅（第 7 格）、難過指向不耐（第 6 格），照使用者指定。
+- 臉反轉後臉部中心從第 32.5 欄移到第 31 欄，簡短通訊框的 43×43 窗 `face` 從 `[11,10]` 改成 `[10,10]`，窗的中心對齊臉。
+- `tests/comms.test.mjs` 的格子檢查改讀 `installed.json` 的 `packed.cells`：每個畫了的格子都有名稱，沒有名稱指向空白格。
