@@ -54,6 +54,8 @@ Pages 設定使用 **GitHub Actions** 作為來源。完成一次設定後，後
 
 使用者 2026-09-29：itch.io 上的凍結版從現在起不再更新，除非有特殊理由。main 的新功能（3.200.0 起）只部署到 GitHub Pages，不重新打包上傳。
 
+使用者 2026-10-03：itch.io 換成 3.222.1（「再封一個上傳itch.io的版本」）。標籤 `v3.222.1`，Release 附 `ash-protocol-3.222.1-itch.zip`；之後的修補照下面的做法從這個標籤開 `release/3.222` 分支。main 照舊往前走。
+
 - **凍結版就是上傳到 itch.io 的 zip**：
   - itch.io 保存上傳的檔案，要等下次上傳才會變。
   - 不另開 repo，也不在 repo 裡放凍結目錄。
