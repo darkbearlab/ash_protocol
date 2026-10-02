@@ -19,7 +19,7 @@ import {iconSvg} from './ui-icons.js';
 import {blindReason} from './blind-fire.js';
 import {boundaryOpacityPercent} from './movement-boundaries.js';
 import {smokeQuality} from './fx-sprites.js';
-import {screenBrightnessPercent} from './screen-tone.js';
+import {screenBrightnessPercent,topSpacingPx,deckSpacingPx,applySpacing} from './screen-tone.js';
 import './pixel-text.js';   // load order only (3.206.3 split)
 import {offeredMission,validMissionId} from './missions.js';
 import {isContainer,containerName} from './containers.js';
@@ -109,6 +109,9 @@ let hotkeys=parseBindings(read('ash-hotkeys')),hotkeyMap=keyLookup(hotkeys),hotk
 // backdrop-filter layers do it, the same way as the VHS layers; at 100% they are not drawn at all.
 let screenBrightness=screenBrightnessPercent(read('ash-brightness'));
 applyBrightness();
+// 3.221.0 (user request): the top spacing and the deck spacing (src/screen-tone.js).
+let topSpacing=topSpacingPx(read('ash-top-spacing')),deckSpacing=deckSpacingPx(read('ash-deck-spacing'));
+applySpacing(topSpacing);
 // The level-up transmission (showLevelUp) is shown once per level of a run.
 let transmissionSeen=null;
 const transmissionKey=()=>`${game.runId}:${game.player.level}`;
@@ -283,7 +286,9 @@ function updateOrientation(raise=false){
 // Reserve external HUD height; battlefield remains square in the portrait column.
 function fitLayout(){const panel=$('.battle-panel'),hud=$('.tactical-panel'),width=panel.clientWidth,style=getComputedStyle($('.app')),height=window.innerHeight-2-parseFloat(style.paddingTop)-parseFloat(style.paddingBottom);
   const hudHeight=[...hud.children].reduce((n,el)=>n+el.getBoundingClientRect().height,0);
-  const side=Math.min(width,height-hudHeight);
+  // 3.221.0: the controls move down only into room a full-width field does not need — the field is never squeezed for it.
+  const deckGap=Math.max(0,Math.min(deckSpacing,Math.floor(height-hudHeight-width)));panel.style.setProperty('--deck-gap',`${deckGap}px`);
+  const side=Math.min(width,height-hudHeight-deckGap);
   panel.style.setProperty('--board-size',`${Math.max(128,Math.floor(side))}px`);
   // Handheld feel (3.97.0, user request): once the battle screen fits, the page is locked against scrolling and bounce;
   // a layout that cannot fit (such as the landscape override) still scrolls.
@@ -346,6 +351,9 @@ document.addEventListener('change',e=>{
 document.addEventListener('input',e=>{
   if(e.target.id==='music-volume'||e.target.id==='sfx-volume'){const music=e.target.id==='music-volume',percent=volumePercent(e.target.value,music?AUDIO_TUNING.musicDefault:AUDIO_TUNING.sfxDefault);
     audio.setVolumes(music?{music:percent/100}:{sfx:percent/100});write(music?'ash-music-volume':'ash-sfx-volume',String(percent));const out=$(`#${e.target.id}-value`);if(out)out.textContent=percent+'%';return;}
+  if(e.target.id==='top-spacing'||e.target.id==='deck-spacing'){const top=e.target.id==='top-spacing';
+    if(top){topSpacing=topSpacingPx(e.target.value);write('ash-top-spacing',String(topSpacing));}else{deckSpacing=deckSpacingPx(e.target.value);write('ash-deck-spacing',String(deckSpacing));}
+    applySpacing(topSpacing);fitLayout();const out=$(`#${e.target.id}-value`);if(out)out.textContent=`${top?topSpacing:deckSpacing}px`;return;}
   if(e.target.id==='screen-brightness'){screenBrightness=screenBrightnessPercent(e.target.value);write('ash-brightness',String(screenBrightness));applyBrightness();const out=$('#screen-brightness-value');if(out)out.textContent=screenBrightness+'%';return;}
   if(e.target.id!=='boundary-opacity')return;
   renderer.boundaryOpacity=boundaryOpacityPercent(e.target.value);write('ash-boundary-opacity',String(renderer.boundaryOpacity));
@@ -664,4 +672,4 @@ function setDeckPick(value){deckPick=value;}
 function setCommsMemory(value){commsMemory=value;}
 function setDeployDraft(value){deployDraft=value;}
 // What the topic modules (src/controller-*.js) use from here (3.206.3 split).
-export {$,act,audio,autoRetarget,close,commsBefore,commsLayer,commsMemory,deckLayout,deckPick,deployDraft,deploymentFaces,effectsOpen,entered,escapeHTML,exitSimulation,fitLayout,game,goreChoice,hotkeyCapture,hotkeyHints,hotkeyMap,hotkeys,lastActionLogs,lastStatus,logButton,modal,newGame,notice,outroShade,pad,padCell,padLayout,persist,playback,previousFloor,renderer,replay,resumable,saveWarningDue,sayLine,screenBrightness,showSaveWarning,simulationResults,skipEnabled,skipPresentation,syncMusic,titleFlow,transmissionKey,transmissionSeen,vhsFilter,setDeploymentFaces,setTitleFlow,setLastStatus,setPreviousFloor,setHotkeys,setHotkeyMap,setHotkeyCapture,setDeckLayout,setDeckPick,setCommsMemory,setDeployDraft};
+export {$,act,audio,topSpacing,deckSpacing,autoRetarget,close,commsBefore,commsLayer,commsMemory,deckLayout,deckPick,deployDraft,deploymentFaces,effectsOpen,entered,escapeHTML,exitSimulation,fitLayout,game,goreChoice,hotkeyCapture,hotkeyHints,hotkeyMap,hotkeys,lastActionLogs,lastStatus,logButton,modal,newGame,notice,outroShade,pad,padCell,padLayout,persist,playback,previousFloor,renderer,replay,resumable,saveWarningDue,sayLine,screenBrightness,showSaveWarning,simulationResults,skipEnabled,skipPresentation,syncMusic,titleFlow,transmissionKey,transmissionSeen,vhsFilter,setDeploymentFaces,setTitleFlow,setLastStatus,setPreviousFloor,setHotkeys,setHotkeyMap,setHotkeyCapture,setDeckLayout,setDeckPick,setCommsMemory,setDeployDraft};

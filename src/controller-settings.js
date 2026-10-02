@@ -5,7 +5,7 @@
 // (live bindings, read-only); a change to it goes through the setter the controller exports for it.
 import {LANGUAGE_NAMES,LANGUAGE_STATUS,language,t} from './i18n.js';
 import {TEST_MODE,profile,read,storage,write} from './storage.js';
-import {SCREEN_BRIGHTNESS} from './screen-tone.js';
+import {SCREEN_BRIGHTNESS,TOP_SPACING,DECK_SPACING} from './screen-tone.js';
 import {characterName} from './characters.js';
 import {isSimulation} from './engine.js';
 import {simulationLabel} from './killhouse-ui.js';
@@ -13,7 +13,7 @@ import {VERSION} from './version.js';
 import {HOTKEY_ACTIONS,HOTKEY_BUTTONS,HOTKEY_SLOTS,actionLabel,bindKey,clearKey,keyLabel,keyLookup,normalizeKey,primaryKey} from './hotkeys.js';
 import {DECK_COLUMNS,DECK_GLYPHS,DECK_LABELS,deckPlacement,swapSlots} from './deck-layout.js';
 import {lastRunLog} from './run-log.js';
-import {$,audio,autoRetarget,deckLayout,deckPick,fitLayout,game,goreChoice,hotkeyCapture,hotkeyHints,hotkeyMap,hotkeys,modal,padCell,padLayout,renderer,screenBrightness,setDeckLayout,setDeckPick,setHotkeyCapture,setHotkeyMap,setHotkeys,skipPresentation,vhsFilter} from './controller.js';
+import {$,audio,autoRetarget,deckLayout,deckPick,fitLayout,game,goreChoice,hotkeyCapture,hotkeyHints,hotkeyMap,hotkeys,modal,padCell,padLayout,renderer,screenBrightness,topSpacing,deckSpacing,setDeckLayout,setDeckPick,setHotkeyCapture,setHotkeyMap,setHotkeys,skipPresentation,vhsFilter} from './controller.js';
 import {runIsLive} from './controller-deploy.js';
 import {notify} from './controller-hud.js';
 import {runPerks} from './controller-screens.js';
@@ -105,6 +105,10 @@ ${simulating?'':`${sec(t('settings.dangerSection'))}
 <button class="modal-button secondary" data-modal="resetProgress">${t('settings.reset')}</button>`}`,
     display:()=>`<label class="boundary-opacity" for="screen-brightness">${t('settings.brightnessLabel')} <output id="screen-brightness-value" for="screen-brightness">${screenBrightness}%</output><input id="screen-brightness" type="range" min="${SCREEN_BRIGHTNESS.min}" max="${SCREEN_BRIGHTNESS.max}" step="${SCREEN_BRIGHTNESS.step}" value="${screenBrightness}" aria-describedby="screen-brightness-help"></label>
 <p id="screen-brightness-help">${t('settings.brightness')}</p>
+<label class="boundary-opacity" for="top-spacing">${t('settings.topSpacingLabel')} <output id="top-spacing-value" for="top-spacing">${topSpacing}px</output><input id="top-spacing" type="range" min="${TOP_SPACING.min}" max="${TOP_SPACING.max}" step="${TOP_SPACING.step}" value="${topSpacing}" aria-describedby="top-spacing-help"></label>
+<p id="top-spacing-help">${t('settings.topSpacing')}</p>
+<label class="boundary-opacity" for="deck-spacing">${t('settings.deckSpacingLabel')} <output id="deck-spacing-value" for="deck-spacing">${deckSpacing}px</output><input id="deck-spacing" type="range" min="${DECK_SPACING.min}" max="${DECK_SPACING.max}" step="${DECK_SPACING.step}" value="${deckSpacing}" aria-describedby="deck-spacing-help"></label>
+<p id="deck-spacing-help">${t('settings.deckSpacing')}</p>
 <button class="modal-button secondary" data-modal="frameRate" aria-pressed="${renderer.frameRate!==60}">${t('settings.fpsLabel',{frameRate:renderer.frameRate})}</button>
 <p>${t('settings.fps')}</p>
 <button class="modal-button secondary" data-modal="smokeQuality" aria-pressed="${renderer.smokeQuality!=='layers'}">${t('settings.smokeLabel',{v:t(renderer.smokeQuality==='baked'?'settings.smokeBaked':'settings.smokeLayers')})}</button>

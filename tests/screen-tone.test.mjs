@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sourceFamily} from './helpers/source.mjs';
 import {readFile} from 'node:fs/promises';
-import {SCREEN_BRIGHTNESS,OPERATOR_TINT,screenBrightnessPercent,operatorTintPercent} from '../src/screen-tone.js';
+import {SCREEN_BRIGHTNESS,OPERATOR_TINT,screenBrightnessPercent,operatorTintPercent,TOP_SPACING,DECK_SPACING,topSpacingPx,deckSpacingPx} from '../src/screen-tone.js';
 import {tintPixels,OPERATOR_COLORS} from '../src/operator-color.js';
 import {hardenText,TINY_TEXT} from '../src/pixel-text.js';
 
@@ -57,4 +57,19 @@ test('the transmission heading is tiny real text with hard pixels and a one-pixe
   assert.equal(data[7],0,'faint anti-aliasing is dropped');
   assert.deepEqual([...data.slice(16,20)],[58,36,18,255],'the shadow sits down and right of a lit pixel');
   assert.equal(data[23],0,'a shadow never wraps past the right edge');assert.equal(data[15],0,'nothing below-left');
+});
+
+// 3.221.0 (user request, 2026-10-02): a top spacing and a deck spacing fit the battle screen to a device.
+test('the two spacings settle on their steps and stay in range; nothing moves until the player asks',()=>{
+ assert.deepEqual([TOP_SPACING.initial,DECK_SPACING.initial],[0,0]);
+ for(const [v,top,deck] of [[undefined,0,0],['',0,0],['abc',0,0],[-20,0,0],[13,12,12],[42,44,44],[999,TOP_SPACING.max,DECK_SPACING.max],['100',TOP_SPACING.max,100]])
+  assert.deepEqual([topSpacingPx(v),deckSpacingPx(v)],[top,deck],String(v));
+});
+test('the page wires the spacings: the top one pads the screen, the deck one only takes room the field does not need',async()=>{
+ const source=sourceFamily('controller'),css=await read('../expansion.css');
+ assert.ok(source.includes("let topSpacing=topSpacingPx(read('ash-top-spacing')),deckSpacing=deckSpacingPx(read('ash-deck-spacing'));"));
+ assert.ok(source.includes('const deckGap=Math.max(0,Math.min(deckSpacing,Math.floor(height-hudHeight-width)));'),'never squeezing the field');
+ assert.ok(source.includes('id="top-spacing"')&&source.includes('id="deck-spacing"'),'both sliders on the display tab');
+ assert.ok(css.includes('padding:calc(env(safe-area-inset-top) + var(--top-spacing,0px))'));
+ assert.ok(css.includes('grid-template-areas:"header" "board" "deckgap" "loadout" "controls";grid-template-rows:auto auto var(--deck-gap,0px) auto auto;'));
 });
