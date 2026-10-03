@@ -16,6 +16,7 @@
 | 頭目、危險地形、派系 | [BOSSES.md](BOSSES.md)、[HAZARDS.md](HAZARDS.md)、[FACTIONS.md](FACTIONS.md) |
 | 故事與管制員 | [STORY.md](STORY.md)；設施紀錄內容在 `content/stories/` |
 | 聲音、美術素材的規格（開給 Codex） | [AUDIO.md](AUDIO.md)、[FX_SPRITES_BRIEF.md](FX_SPRITES_BRIEF.md)、[PIXEL_ART.md](PIXEL_ART.md)、`art/` |
+| 拿這個遊戲做變體：哪些系統可以插拔、美術換皮規格 | [REUSE.md](REUSE.md) |
 | 舊文件原文 | [archive/](archive/README.md) |
 
 ## 2. 分工
