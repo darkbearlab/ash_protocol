@@ -2,6 +2,7 @@
 // variants; callout-ui picks one by hashing the event. The English table (src/voices-en.js) has the same variants, line
 // for line (3.177.7). 3.177.7 (user): the loyalist advance no longer names a numbered squad (第一班 / First squad).
 const HUMAN={
+ alarm:['發現敵人，全員集合！','這裡有敵人，都過來！'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  // 3.130.0 draft: in place for an ambush. Vague by the user's rule — never says what it is doing.
  lurk:['安靜……','就這裡，等著。'],
  grenade:['手榴彈！','丟雷了！','投彈，找掩護！'],bombard:['標定座標！','轟炸就位！'],aim:['鎖定目標。','瞄準中……','別動……'],attack:['衝上去！','準備開火！','壓上去！'],
@@ -11,6 +12,7 @@ const HUMAN={
  spotted:['發現目標！','在那裡！'],lost:['跟丟了。','人呢？'],search:['搜索這一區。','他跑不遠。'],
 };
 const MACHINE={
+ alarm:['〔警報廣播〕'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['〔靜默待命〕','〔等待〕'],
  grenade:['〔投擲程序〕'],bombard:['〔轟炸座標鎖定〕'],aim:['〔鎖定〕'],attack:['〔攻擊程序〕'],
  affix_fast:['〔加速模組〕'],affix_infrared:['〔紅外線模組〕'],affix_night_vision:['〔夜視模組〕'],affix_suppressor:['〔連射模組〕'],affix_grenadier:['〔投擲模組〕'],
@@ -18,11 +20,13 @@ const MACHINE={
  hit:['〔受損〕'],wounded:['〔損傷擴大〕'],critical:['〔系統危急〕'],suppressed:['〔訊號干擾〕'],pinned:['〔行動受阻〕'],
  spotted:['〔目標確認〕'],lost:['〔目標遺失〕'],search:['〔掃描中〕'],
 };
-// Creatures only make noises, so their lines follow the category rather than the exact cue.
-const CREATURE={danger:['嘶嘶——！','咯咯咯！'],affix:['嘶——！'],tactical:['嘶……','咯……'],injury:['嘎——！','嗚……'],perception:['嘶？','咯……']};
+// Creatures only make noises, so their lines follow the category rather than the exact cue; a cue that must be read
+// (3.222.2, the Alarm affix: user "讓玩家讀得出來") gets a described sound instead.
+const CREATURE={alarm:['（警戒嘶吼）'],danger:['嘶嘶——！','咯咯咯！'],affix:['嘶——！'],tactical:['嘶……','咯……'],injury:['嘎——！','嗚……'],perception:['嘶？','咯……']};
 
 // Voice ids index these tables; creature noises follow the category instead (3.79.1). Factions add their own ids.
 const LOYALIST={
+ alarm:['接敵！回報座標，各單位向我集結！','發現敵人，請求全員支援！'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['都別出聲。','就位，保持安靜。'],
  grenade:['投擲破片，隱蔽！','手榴彈出手，注意！'],bombard:['請求火力覆蓋！','座標回報，轟炸開始！'],aim:['目標鎖定，待命射擊。','狙擊位就緒。'],attack:['接敵，開火！','前進接戰！'],
  affix_fast:['加速推進！','機動班跟上！'],affix_infrared:['熱源掃描啟動。','紅外線確認目標。'],affix_night_vision:['夜視裝備就位。','暗區無礙，持續搜索。'],affix_suppressor:['壓制火力，掩護推進！','持續壓制！'],affix_grenadier:['擲彈手就位。','準備投擲支援。'],
@@ -31,6 +35,7 @@ const LOYALIST={
  spotted:['發現敵人，回報位置！','接觸！目標確認！'],lost:['目標脫離視線。','失去接觸，回報最後位置。'],search:['分區搜索，保持聯絡。','搜索前進，注意死角。'],
 };
 const REBEL={
+ alarm:['人在這裡！全都給我過來！','找到他了！兄弟們，上！'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['噓……別出聲。','就等在這。'],
  grenade:['吃我一顆雷！','炸飛你這混蛋！'],bombard:['轟爛他們！','給我炸！'],aim:['別動，你這活靶……','瞄好了，等著吃子彈吧。'],attack:['衝啊，宰了他！','上！上！上！'],
  affix_fast:['跟不上就去死吧！','快點，別拖拖拉拉！'],affix_infrared:['躲煙裡也沒用！','看得一清二楚！'],affix_night_vision:['摸黑？我照樣看得見！','黑漆漆的正好。'],affix_suppressor:['給我狠狠地打！','子彈不要錢，掃！'],affix_grenadier:['來嚐嚐這個！','抱著炸藥去死吧！'],
@@ -43,6 +48,7 @@ const REBEL={
 // 3.127.1 drafts (user request: conscripts sounded as fierce as the rebels who dragged them in). Frightened, reluctant,
 // apologising while they shoot. The user rewrites the voice.
 const CONSCRIPT={
+ alarm:['這、這裡有人！快來人啊！','他在這裡……誰來幫幫我！'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['我、我在這等……','拜託別往這邊來……'],
  grenade:['我、我丟了！','對不起，快躲開！'],bombard:['要炸了，快跑！','別怪我……'],aim:['我瞄準了……拜託別動……','別逼我開槍……'],attack:['對不起！','我不想這樣……'],
  affix_fast:['我只想快點離開這裡！','別追我！'],affix_infrared:['煙裡也看得到你……求你別過來。','我看得到你……'],affix_night_vision:['這副眼鏡是他們硬塞給我的……','黑暗裡也看得見……'],affix_suppressor:['手在抖，停不下來！','子彈一直出來……'],affix_grenadier:['這東西會炸……','拜託別炸到我自己……'],
@@ -70,6 +76,7 @@ const CIVILIAN={
 // Faction voices (3.80.0): loyalists report like a front line, rebels shout and curse. Machines keep MACHINE.
 // Infected soldiers (3.83.0): the parasite is winning, so they mutter broken fragments of their old orders.
 const INFECTED={
+ alarm:['……這裡……都來……','……找到了……過來……過來……'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['……等……等著……','……安靜……'],
  grenade:['……丟……丟出去……','炸……炸開牠們……'],bombard:['……座標……座標……'],aim:['……看……看得見……','別動……別……'],attack:['殺……殺……！','開火……開火開火……！'],
  affix_fast:['快……好快……'],affix_infrared:['……熱的……好熱……'],affix_night_vision:['黑……黑暗裡……看得見……'],affix_suppressor:['打……一直打……！'],affix_grenadier:['……炸藥……給我……'],

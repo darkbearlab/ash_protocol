@@ -7,7 +7,7 @@ const seen=(cue,actorId='a1',enemyType='rifleman')=>({type:'callout',cue,...CALL
 const heard=(cue,direction='east')=>({type:'callout',cue,...CALLOUT_CUES[cue],visibility:'heard',direction});
 
 test('every cue has number-free lines in each voice, picked without randomness',()=>{
- const own=['scream','flee','alarm','execute','rally'];   // spoken only by the voices that own them
+ const own=['scream','flee','execute','rally'];   // spoken only by the voices that own them; alarm by every combat voice since 3.222.2
  for(const cue of Object.keys(CALLOUT_CUES).filter(c=>!own.includes(c)))for(const type of ['rifleman','drone','crawler']){
   const event=seen(cue,'a1',type),line=calloutLine(event);
   assert.ok(line.length>0,`${cue}/${type}`);assert.ok(!/[0-9%×]/.test(line),line);assert.equal(calloutLine(event),line,'same event, same line');
@@ -19,7 +19,7 @@ test('every cue has number-free lines in each voice, picked without randomness',
 
 // 3.127.1: conscripts get their own frightened set, the enforcer its own; rebels and conscripts announce a rally.
 test('conscripts and the enforcer speak their own lines, seen or heard',()=>{
- const combat=Object.keys(CALLOUT_CUES).filter(c=>!['scream','alarm','execute'].includes(c));
+ const combat=Object.keys(CALLOUT_CUES).filter(c=>!['scream','execute'].includes(c));
  for(const cue of combat)for(const event of [seen(cue),heard(cue)]){
   const line=calloutLine({...event,voice:'conscript'});assert.ok(line.length>0,`conscript/${cue}`);assert.ok(!/[0-9%×]/.test(line),line);
   assert.equal(calloutVoice({...event,voice:'conscript'}),'conscript');
@@ -27,6 +27,23 @@ test('conscripts and the enforcer speak their own lines, seen or heard',()=>{
  assert.notEqual(calloutLine({...seen('attack'),voice:'conscript'}),calloutLine({...seen('attack'),faction:'rebel'}));
  for(const cue of ['alarm','execute'])assert.ok(calloutLine({...heard(cue),voice:'enforcer'}).length>0,cue);
  assert.ok(calloutLine({...seen('rally'),faction:'rebel'}).length>0,'a rebel rallies out loud');
+});
+
+// 3.222.2 (user report): the Alarm affix (3.219.0) gave every combat unit the enforcer's `alarm` cue, and every voice but
+// the enforcer's showed an empty bubble. Each voice that can carry the affix now has lines, and a line a voice lacks
+// shows no bubble at all.
+test('the alarm cue has a line in every combat voice, and a missing line shows no bubble',()=>{
+ for(const voice of ['human','machine','loyalist','rebel','conscript','infected','enforcer']){
+  for(const event of [{...seen('alarm'),voice},{...heard('alarm'),voice}])assert.ok(calloutLine(event).length>0,voice);
+ }
+ for(const [type,faction] of [['rifleman','loyalist'],['rifleman','rebel'],['drone','loyalist'],['crawler','swarm'],['rifleman','legacy']])
+  assert.ok(calloutLine({...seen('alarm','a1',type),faction}).length>0,`${type}/${faction}`);
+ // A bug's alarm is a described sound the player can read (user), seen or heard; its other cues stay plain noises.
+ for(const event of [{...seen('alarm','b1','crawler'),faction:'swarm'},{...heard('alarm'),faction:'swarm'}])assert.equal(calloutLine(event),'（警戒嘶吼）');
+ assert.notEqual(calloutLine({...seen('attack','b1','crawler'),faction:'swarm'}),'（警戒嘶吼）');
+ const b=new CalloutBoard();
+ assert.equal(b.add({...seen('scream'),faction:'loyalist'},0),null,'a soldier has no scream line: no bubble');assert.equal(b.active(0).length,0);
+ assert.ok(b.add({...seen('alarm'),faction:'loyalist'},0)?.text,'the alarm shows its line');
 });
 
 test('lifetimes are 2.5s general, 4s danger and shorter when only heard; timing starts when the board receives the event',()=>{

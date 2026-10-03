@@ -1,6 +1,7 @@
 // English enemy voice lines (3.167.0, docs/TEXT_INVENTORY.md). 3.177.7 (user request): the same variants as the Chinese
 // table (src/voices-zh-tw.js), line for line in the same order, so both languages vary as much. Same voices, same cues.
 const HUMAN={
+ alarm:['Enemy here, everyone converge!','Contact here, all of you, on me!'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['Quiet…','Right here. Wait.'],
  grenade:['Grenade!','Frag out!','Throwing, take cover!'],bombard:['Coordinates marked!','Barrage ready!'],aim:['Got you in my sights.','Aiming…','Hold still…'],attack:['Move in!','Ready to fire!','Press them!'],
  affix_fast:['Keep up!','Move it!'],affix_infrared:['Heat signature…','Infrared on.'],affix_night_vision:['Night vision on.','Dark won\'t hide you.'],affix_suppressor:['Suppressing fire!','Keep his head down!'],affix_grenadier:['Got explosives.','Ready to throw.'],
@@ -9,6 +10,7 @@ const HUMAN={
  spotted:['Contact!','Over there!'],lost:['Lost them.','Where\'d they go?'],search:['Search the area.','He can\'t have gone far.'],
 };
 const MACHINE={
+ alarm:['[ALERT BROADCAST]'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['[STANDBY]','[WAITING]'],
  grenade:['[THROW ROUTINE]'],bombard:['[BOMBARD LOCK]'],aim:['[TARGET LOCK]'],attack:['[ATTACK ROUTINE]'],
  affix_fast:['[BOOST MODULE]'],affix_infrared:['[IR MODULE]'],affix_night_vision:['[NV MODULE]'],affix_suppressor:['[AUTOFIRE MODULE]'],affix_grenadier:['[THROW MODULE]'],
@@ -16,9 +18,11 @@ const MACHINE={
  hit:['[DAMAGED]'],wounded:['[DAMAGE SPREADING]'],critical:['[SYSTEM CRITICAL]'],suppressed:['[SIGNAL JAMMED]'],pinned:['[MOVEMENT BLOCKED]'],
  spotted:['[TARGET CONFIRMED]'],lost:['[TARGET LOST]'],search:['[SCANNING]'],
 };
-// Creatures only make noises, so their lines follow the category rather than the exact cue.
-const CREATURE={danger:['Hsss—!','Krrk-krrk!'],affix:['Hsss—!'],tactical:['Hss…','Krk…'],injury:['Gah—!','Hnnn…'],perception:['Hss?','Krk…']};
+// Creatures only make noises, so their lines follow the category rather than the exact cue; a cue that must be read
+// (3.222.2, the Alarm affix: user "讓玩家讀得出來") gets a described sound instead.
+const CREATURE={alarm:['(warning scream)'],danger:['Hsss—!','Krrk-krrk!'],affix:['Hsss—!'],tactical:['Hss…','Krk…'],injury:['Gah—!','Hnnn…'],perception:['Hss?','Krk…']};
 const LOYALIST={
+ alarm:['Contact! Sending coordinates, all units converge on me!','Enemy sighted, requesting all units!'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['Silence, all of you.','In position. Stay quiet.'],
  grenade:['Frag out, get down!','Grenade away, heads up!'],bombard:['Requesting fire support!','Coordinates sent, barrage incoming!'],aim:['Target locked, standing by.','Marksman in position.'],attack:['Contact, open fire!','Advance and engage!'],
  affix_fast:['Pick up the pace!','Mobile team, keep up!'],affix_infrared:['Thermal scan up.','Infrared confirms target.'],affix_night_vision:['Night vision ready.','Darkness is no problem, keep searching.'],affix_suppressor:['Suppressing, cover the advance!','Keep up the suppression!'],affix_grenadier:['Grenadier in position.','Grenade support ready.'],
@@ -27,6 +31,7 @@ const LOYALIST={
  spotted:['Enemy sighted, reporting!','Contact! Target confirmed!'],lost:['Lost visual.','Contact lost, reporting last position.'],search:['Sweep by sector, stay in contact.','Search forward, watch the corners.'],
 };
 const REBEL={
+ alarm:['He\'s here! Everybody get over here!','Found him! Come on, all of you!'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['Shh… not a word.','We wait right here.'],
  grenade:['Eat this grenade!','Blow up, you bastard!'],bombard:['Blow them to pieces!','Bomb them!'],aim:['Hold still, target practice…','Lined up. Hope you like lead.'],attack:['Charge! Kill him!','Go! Go! Go!'],
  affix_fast:['Keep up or die!','Move it, stop dragging!'],affix_infrared:['Smoke won\'t save you!','I see you plain as day!'],affix_night_vision:['In the dark? I still see you!','Pitch black. Perfect.'],affix_suppressor:['Light them up!','Bullets are free, spray!'],affix_grenadier:['Taste this!','Hug this and die!'],
@@ -36,6 +41,7 @@ const REBEL={
  flee:['I\'m done with this!','Cover me, I\'m pulling out!'],rally:['All right, don\'t shoot!','I\'m back, don\'t look at me!'],
 };
 const CONSCRIPT={
+ alarm:['S-someone\'s here! Somebody come!','He\'s here… somebody help me!'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['I-I\'ll wait here…','Please don\'t come this way…'],
  grenade:['I-I\'m throwing it!','S-sorry, get down!'],bombard:['It\'s gonna blow, run!','Don\'t blame me…'],aim:['I\'m aiming… please don\'t move…','Don\'t make me shoot…'],attack:['I\'m sorry!','I don\'t want this…'],
  affix_fast:['I just want out of here!','Don\'t chase me!'],affix_infrared:['I can see you in the smoke… please stay back.','I can see you…'],affix_night_vision:['They made me wear these…','I can see in the dark…'],affix_suppressor:['My hands won\'t stop!','The bullets keep coming out…'],affix_grenadier:['This thing explodes…','Please don\'t blow me up…'],
@@ -57,6 +63,7 @@ const CIVILIAN={
  suppressed:['Stop, I\'m down!','Don\'t shoot, I\'m not moving!'],pinned:['I can\'t move… don\'t kill me!','Please, let me go…'],
 };
 const INFECTED={
+ alarm:['…here… all of you… here…','…found… come… come…'],   // 3.222.2: the Alarm affix (3.219.0) radios with the same cue the enforcer owns
  lurk:['…wait… wait…','…quiet…'],
  grenade:['…throw… throw it…','Blow… blow them apart…'],bombard:['…coordinates… coordinates…'],aim:['…see… I see…','Don\'t move… don\'t…'],attack:['Kill… kill…!','Fire… fire fire…!'],
  affix_fast:['Fast… so fast…'],affix_infrared:['…hot… so hot…'],affix_night_vision:['…dark… still see…'],affix_suppressor:['Shoot… keep shooting…!'],affix_grenadier:['…explosives… give…'],

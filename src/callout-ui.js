@@ -32,7 +32,7 @@ export const playerLine=event=>event.cue==='empty'?t('callout-ui.empty',{item:ev
 export function calloutLine(event,variant=0){
  if(event.speaker==='player')return playerLine(event);
  if(event.lastWords)return t(event.line);   // 3.207.0: a delisted operative's last words (src/delisted-operatives.js)
- const voice=calloutVoice(event),lines=voice==='creature'?CREATURE[event.category]:(VOICE_LINES[voice]||HUMAN)[event.cue];
+ const voice=calloutVoice(event),lines=voice==='creature'?CREATURE[event.cue]||CREATURE[event.category]:(VOICE_LINES[voice]||HUMAN)[event.cue];
  return lines?.length?lines[hash(`${event.actorId||event.direction||''}:${event.cue}:${variant}`)%lines.length]:'';
 }
 
@@ -46,6 +46,7 @@ export class CalloutBoard{
  duration(event){const t=this.tuning;if(event.speaker==='player')return t.playerMs;const base=event.priority==='high'?t.dangerMs:t.generalMs;return Math.round(event.visibility==='visible'?base:base*t.heardFactor);}
  add(event,now){
   if(event?.type!=='callout'||!event.cue)return null;
+  if(!calloutLine(event))return null;   // 3.222.2: a cue this voice has no line for shows no bubble, never an empty one
   this.prune(now);
   // 3.207.0: last words (`delayMs`) rise a moment after the fall, and keep their own place beside a line the body said alive.
   const key=event.lastWords?`last:${event.actorId}`:event.visibility==='visible'?`actor:${event.actorId}`:`dir:${event.direction}`,start=now+(event.delayMs>0?event.delayMs:0),expires=start+this.duration(event);
