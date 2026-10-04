@@ -1,6 +1,6 @@
 # 真點陣素材製程
 
-> **美術待辦（3.39.0 記錄）**：工程師的放置哨兵現在可以利用掩體、有裝甲 5，但仍沿用懸浮巡弋無人機（`drone`）的精靈，視覺上說不通。之後應為哨兵模式另做一張地面砲台外觀的精靈，追隨模式維持懸浮無人機。規則側已完成，只需換圖。見 [ALLIES.md](ALLIES.md)「工程師」。
+> **美術待辦（3.39.0 記錄）**：工程師的放置哨兵仍沿用懸浮巡弋無人機（`drone`）的精靈，應另做地面砲台外觀。**3.223.0 已完成**：定點砲台改用 `units-v2` 的 `turret`（見文末「3.223.0」）。
 
 3.13.0 新增四張 64×64 日系頭像，最多 32 色，原圖／提示與 RGB555 處理程序見 [PORTRAITS.md](PORTRAITS.md)。後續擴充依使用者建議採 4×4 圖集切割。
 
@@ -64,3 +64,15 @@ python tools/pixelize.py --source art/source-aftermath.png --aftermath --remove-
 - 重製：`generator.lua`（Aseprite 批次）讀的是 `assets/pixel/` 的正式圖集，**現在正式圖已有外框**，重跑前要先把來源改指向同資料夾的 `source/`（本次修改前的三張正式圖），否則會重複加框。
 - 各角色的單張 PNG（`assets/pixel/*.png`、`classes-v1/*.png`）與它們的 json 雜湊沒有跟著換，遊戲只讀圖集；測試仍檢查那些單張檔。
 - 交接與逐格核對見 [SPRITE_OUTLINE_HANDOFF.md](SPRITE_OUTLINE_HANDOFF.md) 與 qa/results/2026-09-17-claude-3.122.0-sprite-outline.md。
+
+## 3.223.0 專用單位圖（units-v2，Codex 美術，使用者手修）
+
+原本借用別人圖格的 22 個單位改用自己的圖：頭目 6 個、軍犬、被感染者、幼蟲、巨型蟲、固定砲台、浮游彈藥、自爆機器人、重裝火焰兵、督戰官、小隊長、破門手、被感染槍兵與突擊兵、伴生獵獸、加甲步槍兵與突擊兵。規格見 [UNIT_SPRITES_BRIEF.md](UNIT_SPRITES_BRIEF.md)，交件見 [UNIT_SPRITES_HANDOFF.md](UNIT_SPRITES_HANDOFF.md)。
+
+- 格式和上面相同：32×32、4-bit 索引、最多 16 色含透明、RGB5；外框 `(12,14,18)` 是使用者核准的唯一例外。
+- **製程鏈**（都在專案根目錄執行）：
+  1. `python art/units-v2/manual/pack.py`：從 Codex 交的 v1（`art/units-v2/codex-v1/`，44 張與 sprites.json）套上使用者的手修圖 `art/units-v2/manual/units-v2-edit-2026-10-04.png`（清理輪廓，44 格改了 41 格），寫出 `assets/pixel/units-v2/`。使用者用的純黑換成外框色，其他顏色照畫的；沒改的 3 格就是 Codex 的檔案。
+  2. `python tools/append_units_v2.py`：把 22 個站姿追加到 `atlas.png`、22 個屍體追加到 `aftermath.png`，排在原有 18 格之後（兩張都變成 128×320）。舊格逐像素不變，重跑結果相同。
+- v1 本身由 Codex 的 `python art/units-v2/process.py` 從 `art/units-v2/sources/` 確定性產生，只有換來源圖時才需要重跑。它直接寫進 `assets/pixel/units-v2/`、蓋掉手修版，所以重跑之後要把那 44 張與 sprites.json 複製到 `codex-v1/`，再跑上面兩步。
+- `art/units-v2/validate.py` 是 Codex 交件時的檢查，其中一項確認正式圖集沒變，接入之後就不成立了。接入後改由 `tests/unit-sprites.test.mjs` 檢查格式、雜湊、圖集順序，以及每個單位對到的圖格。
+- 遊戲端：`SPRITE_NAMES`／`AFTERMATH_NAMES` 照同一順序追加（`UNIT_SPRITES_V2`），卡片拿掉借來的 `key` 與染色。軍犬、定點砲台、浮游彈藥、伴生獵獸依單位本身換圖（`enemySprite(type, actor)`，[ENEMY_DATA.md](ENEMY_DATA.md) 4.5）。

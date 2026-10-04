@@ -8,11 +8,13 @@ import {projectileVisuals,WEAPON_VISUALS} from '../src/presentation.js';
 import {SPRITE_NAMES,AFTERMATH_NAMES,DRAWING_SHAPES,ENEMY_PROJECTILES,enemySprite,enemyDrawing,enemyProjectile,enemyMeleeStyle,enemyGlyph,enemyVoice,floorTraitNote} from '../src/enemy-visuals.js';
 
 // The hard-coded mappings as they stood in 3.77.0 (renderer, presentation, controller, callout-ui, enemy-behavior).
+// 3.223.0: fodder, brood and gunner draw their own cells (units-v2) instead of the rifleman's and the crawler's; the
+// fodder is no longer shrunk (it is a person now, not a small rifleman), the brood still is.
 const OLD={
- sprite:id=>id==='gunner'||id==='fodder'?'rifleman':id==='brood'?'crawler':id,
- size:id=>id==='brood'?.65:id==='fodder'?.8:1,
+ sprite:id=>id,
+ size:id=>id==='brood'?.65:1,
  scale:id=>id==='boss'||id==='warden'?1.15:1,
- corpse:id=>({fodder:'rifleman',brood:'crawler',gunner:'rifleman'})[id]||id,
+ corpse:id=>id,
  critter:id=>id==='crawler'||id==='bomber',
  heavy:id=>id==='brute'||id==='boss'||id==='warden',
  projectile:{fodder:'melee',brood:'melee',rifleman:'rifle',raider:'smg',gunner:'shotgun',sniper:'sniper',drone:'plasma',warden:'plasma',boss:'plasma',crawler:'melee',brute:'melee'},

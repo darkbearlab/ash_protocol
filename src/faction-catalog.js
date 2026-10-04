@@ -8,10 +8,12 @@ export const DEFAULT_FACTION='legacy';
 // Faction names (3.104.0, user request): the two human factions field the same cards, so they get their own names.
 // Loyalists are the garrison and say what the unit does; the rebels are the same unit that turned, so 叛變 goes in front.
 // The armoured loyalist variants deliberately share their plain card's name. legacy keeps the ENEMY_TYPES names.
+// 3.223.0: `sprite` draws a card with another atlas cell for this faction (src/enemy-visuals.js enemySprite): the crawler
+// card is a military dog for the loyalists and the rebels; the swarm's hunter keeps the bug.
 const LOYALIST_NAMES={squad_leader:{name:t('loyalistNames.squad_leader.name')},rifleman:{name:t('loyalistNames.rifleman.name')},rifleman_armored:{name:t('loyalistNames.rifleman_armored.name')},raider:{name:t('loyalistNames.raider.name')},raider_armored:{name:t('loyalistNames.raider_armored.name')},
- gunner:{name:t('loyalistNames.gunner.name')},sniper:{name:t('loyalistNames.sniper.name')},crawler:{name:t('loyalistNames.crawler.name')},heavy_flamer:{name:t('loyalistNames.heavy_flamer.name')}};
+ gunner:{name:t('loyalistNames.gunner.name')},sniper:{name:t('loyalistNames.sniper.name')},crawler:{name:t('loyalistNames.crawler.name'),sprite:'dog'},heavy_flamer:{name:t('loyalistNames.heavy_flamer.name')}};
 const REBEL_NAMES={drone:{name:t('rebelNames.drone.name')},brute:{name:t('rebelNames.brute.name')},rifleman:{name:t('rebelNames.rifleman.name')},raider:{name:t('rebelNames.raider.name')},raider_elite:{name:t('rebelNames.raider_elite.name')},
- gunner:{name:t('rebelNames.gunner.name')},gunner_elite:{name:t('rebelNames.gunner_elite.name')},sniper:{name:t('rebelNames.sniper.name')},crawler:{name:t('rebelNames.crawler.name')},heavy_flamer:{name:t('rebelNames.heavy_flamer.name')}};
+ gunner:{name:t('rebelNames.gunner.name')},gunner_elite:{name:t('rebelNames.gunner_elite.name')},sniper:{name:t('rebelNames.sniper.name')},crawler:{name:t('rebelNames.crawler.name'),sprite:'dog'},heavy_flamer:{name:t('rebelNames.heavy_flamer.name')}};
 // 3.208.0 (user decisions 2026-09-30, docs/SWARM.md section 14): an override may also add traits, each with a rank when
 // it has one. A unit gets them when it is made (src/traits.js startingTraits with its faction; source `faction:<id>`),
 // and every load re-syncs them to this table (src/traits.js syncFactionTraits: a trait added here is added, one removed

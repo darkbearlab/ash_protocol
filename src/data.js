@@ -75,15 +75,15 @@ export const FLOOR_INFO = [
 ];
 export function floorInfo(floor){const index=((floor-1)%FLOORS.length+FLOORS.length)%FLOORS.length;return {...FLOOR_INFO[index],name:FLOORS[index],cycleFloor:index+1,weapon:[2,3,4,5,3,4][index]};}
 export const ENEMY_TYPES = {
-  fodder:{sprite:{key:'rifleman',size:.8},projectile:'melee',voice:'creature',tags:[],traits:['slow','no_cover'],behavior:'fodder',rounds:1,attackStyle:'bullet',name:t('enemyTypes.fodder.name'),hp:6,damage:2,range:1,armor:0,color:'#a0a184',xp:0,expendable:true,role:t('enemyTypes.fodder.role')},
-  brood:{sprite:{key:'crawler',size:.65},projectile:'melee',voice:'creature',tags:[],traits:['fast','no_cover','underfoot'],behavior:'brood',rounds:1,attackStyle:'bullet',name:t('enemyTypes.brood.name'),hp:6,damage:4,range:1,armor:0,color:'#cfac7c',xp:0,expendable:true,role:t('enemyTypes.brood.role')},
+  fodder:{sprite:{},projectile:'melee',voice:'creature',tags:[],traits:['slow','no_cover'],behavior:'fodder',rounds:1,attackStyle:'bullet',name:t('enemyTypes.fodder.name'),hp:6,damage:2,range:1,armor:0,color:'#a0a184',xp:0,expendable:true,role:t('enemyTypes.fodder.role')},
+  brood:{sprite:{size:.65},projectile:'melee',voice:'creature',tags:[],traits:['fast','no_cover','underfoot'],behavior:'brood',rounds:1,attackStyle:'bullet',name:t('enemyTypes.brood.name'),hp:6,damage:4,range:1,armor:0,color:'#cfac7c',xp:0,expendable:true,role:t('enemyTypes.brood.role')},
   // flashlight (3.181.0, src/lighting.js): 'some' humans carry one (a third, by hash), 'always' ones always do.
   // 3.185.0 (user, plan C; docs/WEAPONS.md): an enemy gun fires its weapon's burst — the rifle 3, the SMG 4 — with the
   // attack's damage (unchanged) split over the rounds, each rolled on its own.
   rifleman:{projectile:'rifle',casing:'rifle',tags:['armed'],flashlight:'some',traits:[],rounds:3,attackStyle:'bullet',loot:{weapon:0,chance:.20,ammo:'ammo'},name:t('enemyTypes.rifleman.name'),hp:22,damage:17,range:7,armor:0,color:'#9fba81',xp:1,fragile:true,rapid:true,seekCover:true,role:t('enemyTypes.rifleman.role')},
   raider:{projectile:'smg',casing:'pistol',tags:['armed'],flashlight:'some',traits:[],rounds:4,attackStyle:'bullet',loot:{weapon:2,chance:.18,ammo:'pistol'},name:t('enemyTypes.raider.name'),hp:18,damage:21,range:5,armor:0,color:'#d4b185',xp:1,fragile:true,rapid:true,seekCover:true,role:t('enemyTypes.raider.role')},
   crawler:{drawing:{shape:'critter',color:'#ba966d'},projectile:'melee',voice:'creature',tags:['breaker'],traits:[],floorTraits:[{id:'fast',minFloor:4}],rounds:1,attackStyle:'claw', name:t('enemyTypes.crawler.name'), hp:32, damage:9, range:1, armor:0, color:'#bd9667', xp:1, role:t('enemyTypes.crawler.role') },
-  gunner:{sprite:{key:'rifleman'},projectile:'shotgun',casing:'shell',tags:['armed'],flashlight:'some',traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:1,chance:.14,ammo:'shell'}, name:t('enemyTypes.gunner.name'), hp:42, damage:11, range:6, armor:0, color:'#92a480', xp:1, role:t('enemyTypes.gunner.role') },
+  gunner:{sprite:{},projectile:'shotgun',casing:'shell',tags:['armed'],flashlight:'some',traits:[],rounds:1,attackStyle:'bullet',loot:{weapon:1,chance:.14,ammo:'shell'}, name:t('enemyTypes.gunner.name'), hp:42, damage:11, range:6, armor:0, color:'#92a480', xp:1, role:t('enemyTypes.gunner.role') },
   drone:{drawing:{shape:'drone'},projectile:'plasma',glyph:'◇',tags:['flying'],traits:['no_cover'],rounds:1,attackStyle:'plasma',loot:{ammo:'energy'}, name:t('enemyTypes.drone.name'), hp:28, damage:9, range:5, armor:0, color:'#85c4c0', xp:1, mechanical:true, role:t('enemyTypes.drone.role') },
   brute:{drawing:{heavy:true},projectile:'melee',tags:['breaker'],flashlight:'some',traits:['large','suppression_resistance'],rounds:1,attackStyle:'slash',loot:{rareWeapon:8,rareChance:.1}, name:t('enemyTypes.brute.name'), hp:90, damage:20, range:1, armor:7, color:'#b99573', xp:2, role:t('enemyTypes.brute.role') },
   sniper:{drawing:{longBarrel:true},projectile:'sniper',casing:'rifle',tags:['armed'],flashlight:'some',traits:['night_vision'],behavior:'sniper',accepts:['ambush'],dropsGoggles:true,rounds:1,attackStyle:'bullet',loot:{weapon:3,chance:.2,ammo:'ammo'}, name:t('enemyTypes.sniper.name'), hp:45, damage:23, range:10, armor:1, color:'#b3adcb', xp:2, role:t('enemyTypes.sniper.role') },
@@ -91,7 +91,7 @@ export const ENEMY_TYPES = {
   warden:{sprite:{scale:1.15},drawing:{heavy:true},projectile:'plasma',tags:['boss'],traits:['infrared','suppression_resistance'],behavior:'warden',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{weapon:4,chance:1,ammo:'energy',rareWeapon:8,rareChance:.15}, name:t('enemyTypes.warden.name'), hp:180, damage:19, range:6, armor:5, color:'#d9aa70', xp:4, mechanical:true, role:t('enemyTypes.warden.role') },
   boss:{sprite:{scale:1.15},drawing:{heavy:true},projectile:'plasma',glyph:'Ω',tags:['boss','breaker'],traits:['suppression_resistance'],behavior:'boss',rounds:1,attackStyle:'plasma',reinforcement:'drone',loot:{ammo:'ordnance'}, name:t('enemyTypes.boss.name'), hp:280, damage:22, range:7, armor:7, color:'#df785f', xp:6, mechanical:true, role:t('enemyTypes.boss.role') },
   // Rebel suicide robot (3.80.0): the bomber behaviour on a mechanical body, borrowing the drone sprite with a rust tint.
-  bomber_bot:{sprite:{key:'drone',tint:'#d9894a'},drawing:{shape:'drone'},tags:['breaker'],traits:[],behavior:'bomber',rounds:1,attackStyle:'plasma',name:t('enemyTypes.bomber_bot.name'),hp:30,damage:30,range:1,armor:0,color:'#c98f55',xp:1,mechanical:true,role:t('enemyTypes.bomber_bot.role')},
+  bomber_bot:{sprite:{},drawing:{shape:'drone'},tags:['breaker'],traits:[],behavior:'bomber',rounds:1,attackStyle:'plasma',name:t('enemyTypes.bomber_bot.name'),hp:30,damage:30,range:1,armor:0,color:'#c98f55',xp:1,mechanical:true,role:t('enemyTypes.bomber_bot.role')},
 };
 // Compatibility view keeps the historical key order; loot has one authoritative home.
 export const ENEMY_LOOT=Object.freeze(Object.fromEntries(['rifleman','raider','gunner','sniper','drone','brute','warden','boss'].map(id=>[id,Object.freeze(ENEMY_TYPES[id].loot)])));
@@ -100,12 +100,12 @@ export const ENEMY_LOOT=Object.freeze(Object.fromEntries(['rifleman','raider','g
 // troops wear armour 1 (3.81.0, docs/FACTION_DATA.md 15).
 const variantCard=(base,patch)=>({...ENEMY_TYPES[base],sprite:{...ENEMY_TYPES[base].sprite,key:ENEMY_TYPES[base].sprite?.key||base},variantOf:base,...patch});
 for(const base of ['raider','gunner'])ENEMY_TYPES[`${base}_elite`]=variantCard(base,{elite:true});
-for(const base of ['rifleman','raider'])ENEMY_TYPES[`${base}_armored`]=variantCard(base,{armor:1});
-// Swarm (3.83.0, docs/FACTION_DATA.md 16): a giant bug with huge HP and no armour, oversized bug bosses on the crawler
-// art, and infected soldiers that fire more rounds with far worse aim (card combat becomes the unit's combatModifiers).
-ENEMY_TYPES.giant_bug={sprite:{key:'crawler',size:1.3,scale:1.3,tint:'#9a7a52'},drawing:{shape:'critter',color:'#9a7a52'},projectile:'melee',voice:'creature',tags:['breaker'],traits:['large','suppression_resistance'],rounds:1,attackStyle:'claw',name:t('enemyTypes.giant_bug.name'),hp:150,damage:22,range:1,armor:0,color:'#9a7a52',xp:3,role:t('enemyTypes.giant_bug.role')};
-ENEMY_TYPES.hive_beast={...ENEMY_TYPES.giant_bug,sprite:{key:'crawler',size:1.55,scale:1.55,tint:'#80603f'},drawing:{shape:'critter',color:'#80603f'},tags:['boss','breaker'],name:t('enemyTypes.hive_beast.name'),hp:420,damage:26,xp:4,role:t('enemyTypes.hive_beast.role')};
-ENEMY_TYPES.hive_matriarch={...ENEMY_TYPES.hive_beast,sprite:{key:'crawler',size:1.7,scale:1.7,tint:'#6e4a5a'},drawing:{shape:'critter',color:'#6e4a5a'},name:t('enemyTypes.hive_matriarch.name'),hp:600,damage:30,xp:5,role:t('enemyTypes.hive_matriarch.role')};
+for(const base of ['rifleman','raider'])ENEMY_TYPES[`${base}_armored`]=variantCard(base,{armor:1,sprite:{key:`${base}_armored`}});   // 3.223.0: plates of their own
+// Swarm (3.83.0, docs/FACTION_DATA.md 16): a giant bug with huge HP and no armour, oversized bug bosses (on the crawler
+// art until 3.223.0 gave each its own), and infected soldiers that fire more rounds with far worse aim (card combat becomes the unit's combatModifiers).
+ENEMY_TYPES.giant_bug={sprite:{size:1.3,scale:1.3},drawing:{shape:'critter',color:'#9a7a52'},projectile:'melee',voice:'creature',tags:['breaker'],traits:['large','suppression_resistance'],rounds:1,attackStyle:'claw',name:t('enemyTypes.giant_bug.name'),hp:150,damage:22,range:1,armor:0,color:'#9a7a52',xp:3,role:t('enemyTypes.giant_bug.role')};
+ENEMY_TYPES.hive_beast={...ENEMY_TYPES.giant_bug,sprite:{size:1.55,scale:1.55},drawing:{shape:'critter',color:'#80603f'},tags:['boss','breaker'],name:t('enemyTypes.hive_beast.name'),hp:420,damage:26,xp:4,role:t('enemyTypes.hive_beast.role')};
+ENEMY_TYPES.hive_matriarch={...ENEMY_TYPES.hive_beast,sprite:{size:1.7,scale:1.7},drawing:{shape:'critter',color:'#6e4a5a'},name:t('enemyTypes.hive_matriarch.name'),hp:600,damage:30,xp:5,role:t('enemyTypes.hive_matriarch.role')};
 // Loyalist bosses (3.204.0, user design 2026-09-29, docs/BOSSES.md sections 1-2): the soldier's early warning turned on
 // you. Floor 3 only marks (標定); floor 6 marks and sets up a machine gun (架槍), taking turns. Same chassis, hit points
 // and armour as the warden and the core guard (user: stats like them), whose cards stay for the legacy facility (and,
@@ -113,8 +113,8 @@ ENEMY_TYPES.hive_matriarch={...ENEMY_TYPES.hive_beast,sprite:{key:'crawler',size
 // keeps a new mark from being painted (Claude's call) — once painted it cannot be shaken off. `barredAffixes` (3.204.0
 // review, Claude's call): no 快速, which would let the paint land and the first sweep fire before you could answer, and
 // no 紅外線, which would undo the smoke answer above (src/enemy-affixes.js; the draw is still taken, so nothing else moves).
-ENEMY_TYPES.designator={...ENEMY_TYPES.warden,sprite:{key:'warden',scale:1.15,tint:'#b9c486'},traits:['suppression_resistance'],behavior:'designator',specials:['mark'],intro:'introLoyal3',barredAffixes:['fast','infrared'],name:t('enemyTypes.designator.name'),color:'#b9c486',role:t('enemyTypes.designator.role')};
-ENEMY_TYPES.gunline={...ENEMY_TYPES.boss,sprite:{key:'boss',scale:1.15,tint:'#c9a15e'},behavior:'gunline',specials:['mark','gun'],intro:'introLoyal6',barredAffixes:['fast','infrared'],name:t('enemyTypes.gunline.name'),color:'#c9a15e',role:t('enemyTypes.gunline.role')};
+ENEMY_TYPES.designator={...ENEMY_TYPES.warden,sprite:{scale:1.15},traits:['suppression_resistance'],behavior:'designator',specials:['mark'],intro:'introLoyal3',barredAffixes:['fast','infrared'],name:t('enemyTypes.designator.name'),color:'#b9c486',role:t('enemyTypes.designator.role')};
+ENEMY_TYPES.gunline={...ENEMY_TYPES.boss,sprite:{scale:1.15},behavior:'gunline',specials:['mark','gun'],intro:'introLoyal6',barredAffixes:['fast','infrared'],name:t('enemyTypes.gunline.name'),color:'#c9a15e',role:t('enemyTypes.gunline.role')};
 // Rebel bosses (3.206.0, user design 2026-09-29, docs/BOSSES.md section 3; src/rebel-bosses.js): fire that drives you.
 // 縱火者 (floor 3) sets lines and rings of fire and sprays between them (`flameOnly`: its flamethrower is its only weapon,
 // so its range is the flamethrower's 5); after three fires it vents, armour 0. 焚線官 (floor 6, names tentative) is 火線官
@@ -122,8 +122,8 @@ ENEMY_TYPES.gunline={...ENEMY_TYPES.boss,sprite:{key:'boss',scale:1.15,tint:'#c9
 // guard's chassis, hit points and armour as the loyalist pair (Claude's call: the same loot, protocol and blueprints), no
 // infrared (smoke keeps a new telegraph from being started, as for 標定官), and no 快速 or 紅外線 affix for the same
 // reasons as the loyalist bosses. The warden and the core guard stay for the legacy mix.
-ENEMY_TYPES.arsonist={...ENEMY_TYPES.warden,sprite:{key:'warden',scale:1.15,tint:'#e0763a'},traits:['suppression_resistance'],behavior:'arsonist',specials:['wall','ring'],flameOnly:true,fireproof:true,range:5,intro:'introRebel3',barredAffixes:['fast','infrared'],name:t('enemyTypes.arsonist.name'),color:'#e0763a',role:t('enemyTypes.arsonist.role')};
-ENEMY_TYPES.burnline={...ENEMY_TYPES.boss,sprite:{key:'boss',scale:1.15,tint:'#d9563a'},behavior:'burnline',specials:['mark','burn'],fireproof:true,intro:'introRebel6',barredAffixes:['fast','infrared'],name:t('enemyTypes.burnline.name'),color:'#d9563a',role:t('enemyTypes.burnline.role')};
+ENEMY_TYPES.arsonist={...ENEMY_TYPES.warden,sprite:{scale:1.15},traits:['suppression_resistance'],behavior:'arsonist',specials:['wall','ring'],flameOnly:true,fireproof:true,range:5,intro:'introRebel3',barredAffixes:['fast','infrared'],name:t('enemyTypes.arsonist.name'),color:'#e0763a',role:t('enemyTypes.arsonist.role')};
+ENEMY_TYPES.burnline={...ENEMY_TYPES.boss,sprite:{scale:1.15},behavior:'burnline',specials:['mark','burn'],fireproof:true,intro:'introRebel6',barredAffixes:['fast','infrared'],name:t('enemyTypes.burnline.name'),color:'#d9563a',role:t('enemyTypes.burnline.role')};
 // Delisted operatives (3.207.0, user design 2026-09-29, docs/BOSSES.md section 5; src/delisted-operatives.js): clone
 // operatives out of the victors' control, met in place of a loyalist or rebel floor-6 boss (src/operative-draw.js). Drawn
 // with the player's class art in their own tint; human (flesh, a stun grenade works, an EMP does not); no drones at half
@@ -143,14 +143,14 @@ ENEMY_TYPES.delisted_recon=operative('recon',{projectile:'rifle',casing:'rifle',
 ENEMY_TYPES.delisted_engineer=operative('engineer',{projectile:'smg',casing:'pistol',flashlight:'always',rounds:4,rapid:true,loot:{weapon:2,chance:1,ammo:'pistol'},name:t('enemyTypes.delisted_engineer.name'),hp:240,damage:20,range:5,role:t('enemyTypes.delisted_engineer.role')});
 ENEMY_TYPES.delisted_berserker=operative('berserker',{projectile:'melee',tags:['boss','breaker'],attackStyle:'slash',rapid:true,specials:['charge','tongue'],tongue:true,grapple:true,loot:{ammo:'shell'},name:t('enemyTypes.delisted_berserker.name'),hp:380,damage:32,range:1,armor:3,role:t('enemyTypes.delisted_berserker.role')});
 ENEMY_TYPES.delisted_ninja=operative('ninja',{projectile:'smg',casing:'pistol',rounds:4,rapid:true,knife:36,loot:{weapon:2,chance:1,ammo:'pistol'},name:t('enemyTypes.delisted_ninja.name'),hp:200,damage:28,range:5,role:t('enemyTypes.delisted_ninja.role')});
-for(const [base,rounds,ammo,tint,name] of [['rifleman',5,'ammo','#8fa06a',t('enemyTypes.rifleman_infected.name')],['raider',6,'pistol','#a0925e',t('enemyTypes.raider_infected.name')]])
- ENEMY_TYPES[`${base}_infected`]=variantCard(base,{name,rounds,combat:{rangedAccuracy:-35},loot:{ammo},voice:'infected',sprite:{key:base,tint},role:t('enemyTypes.infected.role')});   // 3.185.0: two rounds past their base's burst, which also clears the suppression threshold
+for(const [base,rounds,ammo,name] of [['rifleman',5,'ammo',t('enemyTypes.rifleman_infected.name')],['raider',6,'pistol',t('enemyTypes.raider_infected.name')]])
+ ENEMY_TYPES[`${base}_infected`]=variantCard(base,{name,rounds,combat:{rangedAccuracy:-35},loot:{ammo},voice:'infected',sprite:{},role:t('enemyTypes.infected.role')});   // 3.185.0: two rounds past their base's burst, which also clears the suppression threshold
 // Squad leader (3.125.0, user design): support first, rifle second. It identifies the player's weapon, sends the squad
 // to positions that answer it, and spends its own action keeping them 已就緒, so it is the unit to shoot first.
-ENEMY_TYPES.squad_leader={sprite:{key:'rifleman',tint:'#c7b06a'},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],flashlight:'always',traits:['suppression_resistance','night_vision','infrared'],dropsInfrared:true,rounds:3,attackStyle:'bullet',behavior:'squad_leader',loot:{weapon:0,chance:.2,ammo:'ammo'},name:t('enemyTypes.squad_leader.name'),hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:t('enemyTypes.squad_leader.role')};
+ENEMY_TYPES.squad_leader={sprite:{},drawing:{shape:'humanoid',color:'#c7b06a'},projectile:'rifle',casing:'rifle',tags:['armed'],flashlight:'always',traits:['suppression_resistance','night_vision','infrared'],dropsInfrared:true,rounds:3,attackStyle:'bullet',behavior:'squad_leader',loot:{weapon:0,chance:.2,ammo:'ammo'},name:t('enemyTypes.squad_leader.name'),hp:34,damage:12,range:6,armor:1,color:'#c7b06a',xp:2,role:t('enemyTypes.squad_leader.role')};
 // Enforcer (3.127.0, user design, docs/REBELS.md): slow, with a long and hopeless gun; its real work is executing the
 // rebels who hide, which throws the whole unit back into the fight. Two a floor, three from floor 7.
-ENEMY_TYPES.enforcer={sprite:{key:'rifleman',tint:'#8a3a34'},drawing:{shape:'humanoid',color:'#8a3a34'},projectile:'rifle',casing:'pistol',tags:['armed'],flashlight:'always',traits:['slow'],rounds:1,attackStyle:'bullet',behavior:'enforcer',speaksAs:'enforcer',maxPerFloor:2,maxPerFloorDeep:3,combat:{rangedAccuracy:-40},loot:{weapon:2,chance:.18,ammo:'pistol'},name:t('enemyTypes.enforcer.name'),hp:40,damage:10,range:10,armor:1,color:'#8a3a34',xp:2,role:t('enemyTypes.enforcer.role')};
+ENEMY_TYPES.enforcer={sprite:{},drawing:{shape:'humanoid',color:'#8a3a34'},projectile:'rifle',casing:'pistol',tags:['armed'],flashlight:'always',traits:['slow'],rounds:1,attackStyle:'bullet',behavior:'enforcer',speaksAs:'enforcer',maxPerFloor:2,maxPerFloorDeep:3,combat:{rangedAccuracy:-40},loot:{weapon:2,chance:.18,ammo:'pistol'},name:t('enemyTypes.enforcer.name'),hp:40,damage:10,range:10,armor:1,color:'#8a3a34',xp:2,role:t('enemyTypes.enforcer.role')};
 // Stable IDs; append content without changing saved offers. null cap means consumable reward.
 // 3.138.0 (user decisions 2026-09-19, docs/PERK_GROWTH.md): the direct-number perks give less per rank. `classic` holds the
 // values a run started before 3.138.0 keeps (src/perks.js perkDef); the utility perks are unchanged.
@@ -210,7 +210,7 @@ PERKS.push({id:'ammo_recovery',name:t('perks.ammo_recovery.name'),cap:3,effect:'
 // Loitering munition (3.103.0, user request): launched by a 投放 enemy, it appears exactly at its strike range so one
 // step back escapes it, and on its next turn it hooks itself to the player's side and detonates. Low hp on purpose —
 // shooting it down has to be reliable, or the one turn of warning is not really a choice.
-ENEMY_TYPES.munition={sprite:{key:'drone'},drawing:{shape:'drone',color:'#e0a65c',glow:'#f0b06a44'},glyph:'◈',tags:['flying'],traits:['no_cover'],behavior:'munition',rounds:1,attackStyle:'plasma',projectile:'plasma',
+ENEMY_TYPES.munition={sprite:{},drawing:{shape:'drone',color:'#e0a65c',glow:'#f0b06a44'},glyph:'◈',tags:['flying'],traits:['no_cover'],behavior:'munition',rounds:1,attackStyle:'plasma',projectile:'plasma',
  // revealRange matches range on purpose: you see it exactly when it is close enough to hook you (3.105.0, user request).
  name:t('enemyTypes.munition.name'),hp:10,damage:34,range:3,revealRange:3,armor:0,color:'#e0a65c',xp:1,mechanical:true,expendable:true,
  role:t('enemyTypes.munition.role')};
@@ -231,7 +231,7 @@ for(const type of ["rifleman_infected","raider_infected","fodder"])ENEMY_TYPES[t
 // (cover counts for it), mechanical (an EMP stops it, suppression does not), not `armed` (no gun affix: 壓制者, 擲彈兵, 投放).
 // The numbers are Claude's, measured against the rifleman and the player's sentry (docs/ENEMY_VARIETY.md section 1).
 // Drawn with the drone sprite in steel grey until it has art of its own, as your sentry is.
-ENEMY_TYPES.turret={sprite:{key:'drone',tint:'#8f9aa6'},drawing:{shape:'drone',color:'#8f9aa6'},glyph:'⊡',projectile:'rifle',casing:'rifle',tags:[],traits:[],behavior:'turret',fixed:true,rounds:4,rapid:true,attackStyle:'bullet',name:t('enemyTypes.turret.name'),hp:70,damage:24,range:7,armor:3,color:'#8f9aa6',xp:1,mechanical:true,role:t('enemyTypes.turret.role')};
+ENEMY_TYPES.turret={sprite:{},drawing:{shape:'drone',color:'#8f9aa6'},glyph:'⊡',projectile:'rifle',casing:'rifle',tags:[],traits:[],behavior:'turret',fixed:true,rounds:4,rapid:true,attackStyle:'bullet',name:t('enemyTypes.turret.name'),hp:70,damage:24,range:7,armor:3,color:'#8f9aa6',xp:1,mechanical:true,role:t('enemyTypes.turret.role')};
 // 重裝火焰兵 (3.214.0, user 2026-09-30, docs/ENEMY_VARIETY.md section 3): 「應該最簡單，但範圍要改小」, the loyalists'
 // too. A flamer by its card (`flamer`: src/enemy-affixes.js isFlamer) — it marks a cone and sprays it the next round, its
 // tank goes up or it leaves its flamethrower when it falls, as the 火焰兵 affix (docs/HAZARDS.md section 4) — with a
@@ -241,4 +241,4 @@ ENEMY_TYPES.turret={sprite:{key:'drone',tint:'#8f9aa6'},drawing:{shape:'drone',c
 // an enemy is the slow phase: it acts after you and the others, one step a turn. Its numbers are Claude's, measured in
 // qa/results/2026-10-01-claude-3.214.0-heavy-flamer.md. One at most a floor, from the curve's varietyStart (src/world.js
 // heavySpecial); being slow, it never rolls fast (the fast affix skips slow units).
-ENEMY_TYPES.heavy_flamer={sprite:{key:'rifleman',size:1.25,scale:1.25,tint:'#c4733f'},projectile:'rifle',casing:'rifle',tags:['armed'],flashlight:'some',traits:['large','slow','suppression_resistance','heavy_armor'],flamer:true,flameRange:3,fireproof:true,rounds:1,attackStyle:'bullet',loot:{ammo:'ammo'},name:t('enemyTypes.heavy_flamer.name'),hp:70,damage:20,range:3,armor:6,color:'#c4733f',xp:3,role:t('enemyTypes.heavy_flamer.role')};
+ENEMY_TYPES.heavy_flamer={sprite:{size:1.25,scale:1.25},projectile:'rifle',casing:'rifle',tags:['armed'],flashlight:'some',traits:['large','slow','suppression_resistance','heavy_armor'],flamer:true,flameRange:3,fireproof:true,rounds:1,attackStyle:'bullet',loot:{ammo:'ammo'},name:t('enemyTypes.heavy_flamer.name'),hp:70,damage:20,range:3,armor:6,color:'#c4733f',xp:3,role:t('enemyTypes.heavy_flamer.role')};

@@ -60,7 +60,7 @@ export class RendererActors {
   // 3.211.0: an enemy's body on the corpse layer (`layer`, src/corpse-layer.js) is drawn where its throw left it, turned by
   // `angle`, without the old settling nudge; `shade` carries the dark of the tile it lies on into the turned drawing.
   corpse(a,type,character,actor,angle=0,layer=false,shade=null){const fall=layer?null:this.effects.find(e=>e.type==='fall'&&e.actorType===type&&this.time-e.time<140&&this.project(e.to.x,e.to.y).x===a.x&&this.project(e.to.x,e.to.y).y===a.y);if(fall&&!this.reduceMotion){const progress=Math.max(0,Math.min(1,(this.time-fall.time)/140));a={x:a.x+Math.round((1-progress)*3),y:a.y-Math.round((1-progress)*4)};}const size=spriteSize(this.tile),dark=shade??isDark(this.game,this.unproject(a.x,a.y));
-    if(angle){const c=this.ctx;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);this.corpse({x:0,y:0},type,character,actor,0,true,dark);c.restore();return;}const c=this.ctx;c.save();const op=ENEMY_TYPES[type]?.operative,drawn=(type==='player'&&this.classSprite(a,size,character,true,dark))||(op&&this.classSprite(a,size,op,true,dark,enemyTint({type})||ENEMY_TYPES[type].color))||(this.effectSprite('dead-'+enemySprite(type).corpse,a,size,0,dark)&&(actor?.elite&&this.deadOutline('dead-'+enemySprite(type).corpse,a,size,ELITE_VISUAL.corpseOutline),true));c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
+    if(angle){const c=this.ctx;c.save();c.translate(Math.round(a.x),Math.round(a.y));c.rotate(angle);this.corpse({x:0,y:0},type,character,actor,0,true,dark);c.restore();return;}const c=this.ctx;c.save();const op=ENEMY_TYPES[type]?.operative,drawn=(type==='player'&&this.classSprite(a,size,character,true,dark))||(op&&this.classSprite(a,size,op,true,dark,enemyTint({type})||ENEMY_TYPES[type].color))||(this.effectSprite('dead-'+enemySprite(type,actor).corpse,a,size,0,dark)&&(actor?.elite&&this.deadOutline('dead-'+enemySprite(type,actor).corpse,a,size,ELITE_VISUAL.corpseOutline),true));c.restore();if(drawn)return;this.box(a.x-9,a.y-5,18,10,'#4e302780');this.line(a.x-7,a.y-4,a.x+8,a.y+5,'#8c78536b',3);}
   // Idle breathing (3.104.0, user request): the sprite is cut at the waist and the top half settles two source pixels
   // and comes back. Phases are staggered by actor id so a room does not rise and fall in unison, machines do not
   // breathe, and reduced motion turns it off entirely.
@@ -71,7 +71,7 @@ export class RendererActors {
     return Math.round((1-Math.cos(t*Math.PI*2))/2*BREATH_DROP*size/32);
   }
   actor(a,type,time,e,hidden=false) {
-    const c=this.ctx,dark=isDark(this.game,this.unproject(a.x,a.y)),player=type==='player',def=ENEMY_TYPES[type],look=enemySprite(type),drawing=enemyDrawing(type),s=this.tile/45*look.scale;
+    const c=this.ctx,dark=isDark(this.game,this.unproject(a.x,a.y)),player=type==='player',def=ENEMY_TYPES[type],look=enemySprite(type,e),drawing=enemyDrawing(type),s=this.tile/45*look.scale;
     const spriteType=look.key;
     if(this.sprites.complete&&this.sprites.naturalWidth&&this.spriteNames.includes(spriteType)){
       const size=spriteSize(this.tile)*look.size;

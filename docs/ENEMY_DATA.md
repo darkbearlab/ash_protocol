@@ -279,7 +279,7 @@ ENEMY_SPAWNS = {
 
 | 欄位 | 內容 | 目前使用 |
 | --- | --- | --- |
-| `sprite` | `key` 圖集格（預設為兵種代號）；`corpse` 屍體圖（預設同 `key`）；`size` 精靈圖倍率；`scale` 沒有圖時的繪製倍率 | 遊蕩者、哨兵借用步槍兵；幼蟲借用獵犬；封鎖官與核心守衛放大 1.15 |
+| `sprite` | `key` 圖集格（預設為兵種代號）；`corpse` 屍體圖（預設同 `key`）；`size` 精靈圖倍率；`scale` 沒有圖時的繪製倍率 | 3.223.0 起每張卡都有自己的圖格（`units-v2`，[UNIT_SPRITES_HANDOFF.md](UNIT_SPRITES_HANDOFF.md)），只有精英沿用基底圖、除名幹員用職業圖；幼蟲 0.65、重裝火焰兵 1.25、巨型蟲 1.3、巢穴巨獸 1.55、母后 1.7 倍；封鎖官與核心守衛放大 1.15 |
 | `drawing` | 沒有圖時的形狀 `humanoid`／`critter`／`drone`，以及 `color`、`glow`、`heavy`（護肩）、`longBarrel`（長槍管） | 獵犬、自爆體為蟲形；無人機；破壞者、封鎖官、核心守衛有護肩；狙擊手有長槍管 |
 | `projectile` | 敵人射擊的演出武器，對應 `WEAPON_VISUALS` | 沒填時沿用步槍 |
 | `casing` | 射擊後留下的彈殼痕跡 | 步槍兵、突擊兵、哨兵、狙擊手 |
@@ -289,6 +289,7 @@ ENEMY_SPAWNS = {
 **查詢函式**：`src/enemy-visuals.js` 匯出以下內容。
 
 - 外觀：`enemySprite`、`enemyDrawing`、`enemyProjectile`、`enemyGlyph`、`enemyVoice`。
+  - 3.223.0：`enemySprite(type, actor)` 給了單位本身時，可以換一個圖格（大小照卡片）：派系覆寫的 `sprite`（忠誠方與叛軍的獵犬卡畫成軍犬 `dog`，蟲族的獵殺蟲照舊）、工程師的定點砲台 `turret` 與浮游彈藥 `munition`（規則型別是無人機）、德魯伊的伴生獵獸 `pet`（規則基底是獵犬卡）。站姿與屍體都用它。
 - `enemyMeleeStyle`：讀規則欄位 `attackStyle`，決定近戰是爪擊還是揮砍。
 - `floorTraitNote`：產生圖鑑的「第 N 層起」註記。
 - 圖集名稱清單 `SPRITE_NAMES`、`AFTERMATH_NAMES`：**只能往後加，不能重排**，順序就是圖片的格子位置。

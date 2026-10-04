@@ -1,0 +1,4754 @@
+{
+  "tileSize": 32,
+  "rgbBits": 5,
+  "rgb5Exceptions": [
+    {
+      "color": [
+        12,
+        14,
+        18
+      ],
+      "reason": "Existing outline; explicitly approved by user 2026-10-04"
+    }
+  ],
+  "dither": false,
+  "bitDepth": 4,
+  "colorType": 3,
+  "alpha": "binary",
+  "sprites": {
+    "designator": {
+      "file": "designator.png",
+      "unit": "designator",
+      "pose": "standing",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 14,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          140,
+          132,
+          82
+        ],
+        [
+          132,
+          115,
+          66
+        ],
+        [
+          132,
+          107,
+          49
+        ],
+        [
+          115,
+          107,
+          74
+        ],
+        [
+          99,
+          90,
+          58
+        ],
+        [
+          74,
+          74,
+          58
+        ],
+        [
+          58,
+          58,
+          49
+        ],
+        [
+          49,
+          49,
+          41
+        ],
+        [
+          49,
+          41,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "a99e35aeeb1e3ef8b47218ce3244392ef010f00ff8f3ae12c30e40634e52eaa7",
+      "source": "art/units-v2/sources/designator.png",
+      "source_sha256": "335d0fe4d3a9b521d45f0b39178f7b644859cbec7000aa36b97737d02d82d61c",
+      "processing": {
+        "sourceCrop": [
+          245,
+          159,
+          637,
+          748
+        ],
+        "scaledBody": [
+          17,
+          26
+        ],
+        "removedSourceRimPixels": 37,
+        "outlinePixels": 82
+      }
+    },
+    "dead-designator": {
+      "file": "dead-designator.png",
+      "unit": "designator",
+      "pose": "corpse",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 14,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          140,
+          132,
+          82
+        ],
+        [
+          107,
+          107,
+          82
+        ],
+        [
+          99,
+          99,
+          66
+        ],
+        [
+          82,
+          74,
+          58
+        ],
+        [
+          66,
+          66,
+          49
+        ],
+        [
+          58,
+          58,
+          49
+        ],
+        [
+          49,
+          49,
+          41
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          41,
+          16,
+          16
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "edd5d56b05a9f55ddd2b68c06e0b6ecff4e361a95ebb7204d7b08fc662f344e2",
+      "source": "art/units-v2/sources/designator.png",
+      "source_sha256": "335d0fe4d3a9b521d45f0b39178f7b644859cbec7000aa36b97737d02d82d61c",
+      "processing": {
+        "sourceCrop": [
+          77,
+          374,
+          749,
+          811
+        ],
+        "scaledBody": [
+          26,
+          17
+        ],
+        "removedSourceRimPixels": 40,
+        "outlinePixels": 80
+      }
+    },
+    "gunline": {
+      "file": "gunline.png",
+      "unit": "gunline",
+      "pose": "standing",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          165,
+          132,
+          74
+        ],
+        [
+          148,
+          123,
+          74
+        ],
+        [
+          140,
+          107,
+          58
+        ],
+        [
+          123,
+          99,
+          66
+        ],
+        [
+          107,
+          90,
+          49
+        ],
+        [
+          74,
+          66,
+          58
+        ],
+        [
+          58,
+          49,
+          41
+        ],
+        [
+          49,
+          49,
+          49
+        ],
+        [
+          49,
+          41,
+          33
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          33,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          25
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "7393d2908050defd5c876b2545264577275fe191140a80f917940e57b04157de",
+      "source": "art/units-v2/sources/gunline.png",
+      "source_sha256": "e45b3a2dd14421ad2f796b8416f465e78075bf3d8af3b5c362e8047ff241b608",
+      "processing": {
+        "sourceCrop": [
+          138,
+          109,
+          723,
+          777
+        ],
+        "scaledBody": [
+          23,
+          26
+        ],
+        "removedSourceRimPixels": 40,
+        "outlinePixels": 102
+      }
+    },
+    "dead-gunline": {
+      "file": "dead-gunline.png",
+      "unit": "gunline",
+      "pose": "corpse",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          148,
+          123,
+          74
+        ],
+        [
+          140,
+          107,
+          58
+        ],
+        [
+          132,
+          107,
+          58
+        ],
+        [
+          123,
+          99,
+          66
+        ],
+        [
+          115,
+          90,
+          66
+        ],
+        [
+          82,
+          74,
+          58
+        ],
+        [
+          66,
+          58,
+          49
+        ],
+        [
+          58,
+          49,
+          49
+        ],
+        [
+          58,
+          49,
+          41
+        ],
+        [
+          49,
+          41,
+          41
+        ],
+        [
+          41,
+          33,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          49,
+          8,
+          16
+        ],
+        [
+          25,
+          16,
+          25
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "dc367a687bb19e5725dd651a5ae659ca7397f42963b2de08bd5f146c1572b77a",
+      "source": "art/units-v2/sources/gunline.png",
+      "source_sha256": "e45b3a2dd14421ad2f796b8416f465e78075bf3d8af3b5c362e8047ff241b608",
+      "processing": {
+        "sourceCrop": [
+          42,
+          345,
+          777,
+          833
+        ],
+        "scaledBody": [
+          26,
+          17
+        ],
+        "removedSourceRimPixels": 32,
+        "outlinePixels": 90
+      }
+    },
+    "arsonist": {
+      "file": "arsonist.png",
+      "unit": "arsonist",
+      "pose": "standing",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          222,
+          123,
+          33
+        ],
+        [
+          206,
+          107,
+          33
+        ],
+        [
+          197,
+          99,
+          25
+        ],
+        [
+          189,
+          90,
+          25
+        ],
+        [
+          156,
+          99,
+          41
+        ],
+        [
+          173,
+          82,
+          25
+        ],
+        [
+          140,
+          74,
+          41
+        ],
+        [
+          156,
+          74,
+          25
+        ],
+        [
+          148,
+          66,
+          25
+        ],
+        [
+          123,
+          66,
+          25
+        ],
+        [
+          66,
+          58,
+          49
+        ],
+        [
+          66,
+          41,
+          25
+        ],
+        [
+          33,
+          25,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "0dcfbd230bf015d000c9dddd0912dc3ec62f278dd2c40d6d7bbfb7f225925780",
+      "source": "art/units-v2/sources/arsonist.png",
+      "source_sha256": "4d393d13b54dfa578b17ff3a02aaaefb841d90cdffab86729c1386152390c2aa",
+      "processing": {
+        "sourceCrop": [
+          208,
+          171,
+          651,
+          748
+        ],
+        "scaledBody": [
+          20,
+          26
+        ],
+        "removedSourceRimPixels": 42,
+        "outlinePixels": 91
+      }
+    },
+    "dead-arsonist": {
+      "file": "dead-arsonist.png",
+      "unit": "arsonist",
+      "pose": "corpse",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          214,
+          115,
+          33
+        ],
+        [
+          206,
+          107,
+          25
+        ],
+        [
+          189,
+          99,
+          25
+        ],
+        [
+          189,
+          90,
+          25
+        ],
+        [
+          165,
+          99,
+          58
+        ],
+        [
+          156,
+          82,
+          25
+        ],
+        [
+          148,
+          74,
+          25
+        ],
+        [
+          140,
+          66,
+          25
+        ],
+        [
+          132,
+          66,
+          16
+        ],
+        [
+          99,
+          49,
+          25
+        ],
+        [
+          58,
+          49,
+          41
+        ],
+        [
+          49,
+          33,
+          25
+        ],
+        [
+          41,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "2b50f906eafaf57835fad0ddd418d944d6977cf7f647d9385c3278049af58c19",
+      "source": "art/units-v2/sources/arsonist.png",
+      "source_sha256": "4d393d13b54dfa578b17ff3a02aaaefb841d90cdffab86729c1386152390c2aa",
+      "processing": {
+        "sourceCrop": [
+          122,
+          333,
+          846,
+          789
+        ],
+        "scaledBody": [
+          26,
+          16
+        ],
+        "removedSourceRimPixels": 35,
+        "outlinePixels": 84
+      }
+    },
+    "burnline": {
+      "file": "burnline.png",
+      "unit": "burnline",
+      "pose": "standing",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          74,
+          66,
+          58
+        ],
+        [
+          132,
+          49,
+          41
+        ],
+        [
+          107,
+          49,
+          41
+        ],
+        [
+          123,
+          49,
+          41
+        ],
+        [
+          123,
+          41,
+          41
+        ],
+        [
+          82,
+          41,
+          41
+        ],
+        [
+          99,
+          33,
+          33
+        ],
+        [
+          66,
+          33,
+          25
+        ],
+        [
+          49,
+          33,
+          33
+        ],
+        [
+          49,
+          25,
+          25
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          33,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "d81be01d7152ce786f92854a112bfacb9b7be40d242772d4241195ee2b3cd938",
+      "source": "art/units-v2/sources/burnline.png",
+      "source_sha256": "73888d8d16afb31aa7c3135bc1049abc2e159f9faf956792a8f545643c91706c",
+      "processing": {
+        "sourceCrop": [
+          177,
+          159,
+          740,
+          775
+        ],
+        "scaledBody": [
+          24,
+          26
+        ],
+        "removedSourceRimPixels": 29,
+        "outlinePixels": 93
+      }
+    },
+    "dead-burnline": {
+      "file": "dead-burnline.png",
+      "unit": "burnline",
+      "pose": "corpse",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 14,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          74,
+          74,
+          66
+        ],
+        [
+          123,
+          49,
+          41
+        ],
+        [
+          107,
+          41,
+          33
+        ],
+        [
+          74,
+          33,
+          33
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          74,
+          33,
+          25
+        ],
+        [
+          58,
+          25,
+          25
+        ],
+        [
+          49,
+          25,
+          25
+        ],
+        [
+          41,
+          16,
+          16
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "af01122ea0c016556b0c6cf04208642bccf40a68b4b9c8b9585db7cd06deeb79",
+      "source": "art/units-v2/sources/burnline.png",
+      "source_sha256": "73888d8d16afb31aa7c3135bc1049abc2e159f9faf956792a8f545643c91706c",
+      "processing": {
+        "sourceCrop": [
+          76,
+          397,
+          762,
+          845
+        ],
+        "scaledBody": [
+          26,
+          17
+        ],
+        "removedSourceRimPixels": 24,
+        "outlinePixels": 80
+      }
+    },
+    "hive_beast": {
+      "file": "hive_beast.png",
+      "unit": "hive_beast",
+      "pose": "standing",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 14,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          181,
+          123,
+          66
+        ],
+        [
+          173,
+          115,
+          58
+        ],
+        [
+          165,
+          115,
+          58
+        ],
+        [
+          156,
+          107,
+          49
+        ],
+        [
+          148,
+          99,
+          49
+        ],
+        [
+          140,
+          90,
+          41
+        ],
+        [
+          132,
+          90,
+          41
+        ],
+        [
+          107,
+          74,
+          41
+        ],
+        [
+          74,
+          49,
+          41
+        ],
+        [
+          49,
+          41,
+          33
+        ],
+        [
+          41,
+          33,
+          25
+        ],
+        [
+          25,
+          25,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "cd4d29539fcd4c7bd9a93b4ea53beb187b989d6ceceb29f3935389682c568383",
+      "source": "art/units-v2/sources/hive_beast.png",
+      "source_sha256": "9439cd15fcf7e869d69fe08dd6da74556a5bff94bc0da61e2073a225f8aab160",
+      "processing": {
+        "sourceCrop": [
+          86,
+          137,
+          802,
+          743
+        ],
+        "scaledBody": [
+          26,
+          22
+        ],
+        "removedSourceRimPixels": 25,
+        "outlinePixels": 101
+      }
+    },
+    "dead-hive_beast": {
+      "file": "dead-hive_beast.png",
+      "unit": "hive_beast",
+      "pose": "corpse",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          181,
+          123,
+          58
+        ],
+        [
+          156,
+          107,
+          49
+        ],
+        [
+          148,
+          99,
+          49
+        ],
+        [
+          148,
+          99,
+          41
+        ],
+        [
+          140,
+          90,
+          41
+        ],
+        [
+          132,
+          90,
+          41
+        ],
+        [
+          123,
+          82,
+          41
+        ],
+        [
+          107,
+          74,
+          41
+        ],
+        [
+          90,
+          58,
+          33
+        ],
+        [
+          66,
+          49,
+          41
+        ],
+        [
+          58,
+          41,
+          33
+        ],
+        [
+          41,
+          33,
+          33
+        ],
+        [
+          25,
+          25,
+          25
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "feecc92e5a80d8453f717826fdc85b8fd955b128f8934297111b8d3f53e8cdd0",
+      "source": "art/units-v2/sources/hive_beast.png",
+      "source_sha256": "9439cd15fcf7e869d69fe08dd6da74556a5bff94bc0da61e2073a225f8aab160",
+      "processing": {
+        "sourceCrop": [
+          108,
+          291,
+          830,
+          827
+        ],
+        "scaledBody": [
+          26,
+          19
+        ],
+        "removedSourceRimPixels": 41,
+        "outlinePixels": 94
+      }
+    },
+    "hive_matriarch": {
+      "file": "hive_matriarch.png",
+      "unit": "hive_matriarch",
+      "pose": "standing",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          206,
+          165,
+          156
+        ],
+        [
+          197,
+          148,
+          140
+        ],
+        [
+          189,
+          132,
+          132
+        ],
+        [
+          173,
+          115,
+          115
+        ],
+        [
+          165,
+          107,
+          115
+        ],
+        [
+          148,
+          99,
+          99
+        ],
+        [
+          140,
+          90,
+          82
+        ],
+        [
+          115,
+          74,
+          74
+        ],
+        [
+          99,
+          58,
+          66
+        ],
+        [
+          82,
+          58,
+          58
+        ],
+        [
+          74,
+          41,
+          49
+        ],
+        [
+          58,
+          33,
+          41
+        ],
+        [
+          49,
+          25,
+          33
+        ],
+        [
+          25,
+          16,
+          25
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "6c4467b2100c0dee8cf841d7cdc52e0d7fd7ec3b4ccdf1eb10bd68ef638cd669",
+      "source": "art/units-v2/sources/hive_matriarch.png",
+      "source_sha256": "eea8c2710ee4f4efeddb119ee59123cfe541e9d97de67bacd2cc3f4ba9c3dd0a",
+      "processing": {
+        "sourceCrop": [
+          140,
+          121,
+          722,
+          799
+        ],
+        "scaledBody": [
+          22,
+          26
+        ],
+        "removedSourceRimPixels": 28,
+        "outlinePixels": 103
+      }
+    },
+    "dead-hive_matriarch": {
+      "file": "dead-hive_matriarch.png",
+      "unit": "hive_matriarch",
+      "pose": "corpse",
+      "batch": 1,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          197,
+          148,
+          140
+        ],
+        [
+          181,
+          123,
+          123
+        ],
+        [
+          173,
+          115,
+          115
+        ],
+        [
+          156,
+          99,
+          107
+        ],
+        [
+          140,
+          90,
+          90
+        ],
+        [
+          107,
+          66,
+          66
+        ],
+        [
+          90,
+          58,
+          58
+        ],
+        [
+          82,
+          49,
+          58
+        ],
+        [
+          66,
+          41,
+          49
+        ],
+        [
+          66,
+          33,
+          41
+        ],
+        [
+          58,
+          25,
+          41
+        ],
+        [
+          41,
+          25,
+          33
+        ],
+        [
+          25,
+          16,
+          25
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "f39c625c79ebb99c1e274b7e530c062df27f6933a36f271e79b3eb74dd9d80fd",
+      "source": "art/units-v2/sources/hive_matriarch.png",
+      "source_sha256": "eea8c2710ee4f4efeddb119ee59123cfe541e9d97de67bacd2cc3f4ba9c3dd0a",
+      "processing": {
+        "sourceCrop": [
+          70,
+          262,
+          778,
+          791
+        ],
+        "scaledBody": [
+          26,
+          19
+        ],
+        "removedSourceRimPixels": 37,
+        "outlinePixels": 84
+      }
+    },
+    "dog": {
+      "file": "dog.png",
+      "unit": "dog",
+      "pose": "standing",
+      "batch": 2,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          189,
+          132,
+          74
+        ],
+        [
+          181,
+          123,
+          74
+        ],
+        [
+          173,
+          123,
+          74
+        ],
+        [
+          165,
+          115,
+          66
+        ],
+        [
+          156,
+          107,
+          66
+        ],
+        [
+          148,
+          99,
+          58
+        ],
+        [
+          132,
+          90,
+          58
+        ],
+        [
+          132,
+          82,
+          58
+        ],
+        [
+          115,
+          82,
+          49
+        ],
+        [
+          82,
+          66,
+          49
+        ],
+        [
+          74,
+          49,
+          41
+        ],
+        [
+          58,
+          41,
+          33
+        ],
+        [
+          41,
+          33,
+          25
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "91fcb743efac0013001325d275a743bf9b7a3dc3eef793ca10205113259195c4",
+      "source": "art/units-v2/sources/dog.png",
+      "source_sha256": "0eeff3c84ef2fdf3a1b7a79fb741c1f7683ca58b58bde78074bcf913939c2146",
+      "processing": {
+        "sourceCrop": [
+          228,
+          186,
+          593,
+          717
+        ],
+        "scaledBody": [
+          18,
+          26
+        ],
+        "removedSourceRimPixels": 53,
+        "outlinePixels": 89
+      }
+    },
+    "dead-dog": {
+      "file": "dead-dog.png",
+      "unit": "dog",
+      "pose": "corpse",
+      "batch": 2,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          189,
+          140,
+          82
+        ],
+        [
+          181,
+          132,
+          74
+        ],
+        [
+          173,
+          123,
+          74
+        ],
+        [
+          165,
+          115,
+          74
+        ],
+        [
+          156,
+          107,
+          66
+        ],
+        [
+          140,
+          99,
+          58
+        ],
+        [
+          123,
+          82,
+          58
+        ],
+        [
+          115,
+          82,
+          49
+        ],
+        [
+          82,
+          74,
+          49
+        ],
+        [
+          82,
+          58,
+          41
+        ],
+        [
+          66,
+          41,
+          33
+        ],
+        [
+          49,
+          33,
+          25
+        ],
+        [
+          25,
+          25,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "e4e0dc794f682d6a564adb07b85f9c4cb4c7948aee0be441455c33aa844233a6",
+      "source": "art/units-v2/sources/dog.png",
+      "source_sha256": "0eeff3c84ef2fdf3a1b7a79fb741c1f7683ca58b58bde78074bcf913939c2146",
+      "processing": {
+        "sourceCrop": [
+          41,
+          318,
+          751,
+          758
+        ],
+        "scaledBody": [
+          26,
+          16
+        ],
+        "removedSourceRimPixels": 29,
+        "outlinePixels": 80
+      }
+    },
+    "fodder": {
+      "file": "fodder.png",
+      "unit": "fodder",
+      "pose": "standing",
+      "batch": 2,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          181,
+          156,
+          132
+        ],
+        [
+          148,
+          132,
+          82
+        ],
+        [
+          123,
+          115,
+          74
+        ],
+        [
+          107,
+          99,
+          82
+        ],
+        [
+          99,
+          90,
+          74
+        ],
+        [
+          90,
+          82,
+          66
+        ],
+        [
+          82,
+          74,
+          58
+        ],
+        [
+          74,
+          66,
+          58
+        ],
+        [
+          66,
+          58,
+          49
+        ],
+        [
+          58,
+          49,
+          41
+        ],
+        [
+          49,
+          41,
+          41
+        ],
+        [
+          41,
+          33,
+          33
+        ],
+        [
+          33,
+          33,
+          25
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "27dc37e3f3b981f03e0eb1045c0ee5aa0176ff4c1695e149bd1f9142ee99ce92",
+      "source": "art/units-v2/sources/fodder.png",
+      "source_sha256": "fce71a1300b2347e321c8b2667a23a88d89f0154735ecf72f98fcd4dc7f60d64",
+      "processing": {
+        "sourceCrop": [
+          227,
+          136,
+          625,
+          758
+        ],
+        "scaledBody": [
+          17,
+          26
+        ],
+        "removedSourceRimPixels": 55,
+        "outlinePixels": 99
+      }
+    },
+    "dead-fodder": {
+      "file": "dead-fodder.png",
+      "unit": "fodder",
+      "pose": "corpse",
+      "batch": 2,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          173,
+          148,
+          123
+        ],
+        [
+          140,
+          123,
+          82
+        ],
+        [
+          115,
+          107,
+          90
+        ],
+        [
+          99,
+          90,
+          74
+        ],
+        [
+          90,
+          82,
+          66
+        ],
+        [
+          82,
+          74,
+          66
+        ],
+        [
+          74,
+          66,
+          58
+        ],
+        [
+          66,
+          58,
+          49
+        ],
+        [
+          66,
+          58,
+          41
+        ],
+        [
+          58,
+          49,
+          41
+        ],
+        [
+          49,
+          41,
+          33
+        ],
+        [
+          49,
+          33,
+          33
+        ],
+        [
+          41,
+          33,
+          25
+        ],
+        [
+          33,
+          25,
+          25
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "862e27e12089cc9222046f5be63dc574fac77aa8b4f6dab37a58e7f5ae53c580",
+      "source": "art/units-v2/sources/fodder.png",
+      "source_sha256": "fce71a1300b2347e321c8b2667a23a88d89f0154735ecf72f98fcd4dc7f60d64",
+      "processing": {
+        "sourceCrop": [
+          55,
+          395,
+          773,
+          787
+        ],
+        "scaledBody": [
+          26,
+          14
+        ],
+        "removedSourceRimPixels": 23,
+        "outlinePixels": 77
+      }
+    },
+    "brood": {
+      "file": "brood.png",
+      "unit": "brood",
+      "pose": "standing",
+      "batch": 2,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          165,
+          107,
+          66
+        ],
+        [
+          123,
+          99,
+          74
+        ],
+        [
+          148,
+          82,
+          49
+        ],
+        [
+          115,
+          82,
+          58
+        ],
+        [
+          132,
+          74,
+          49
+        ],
+        [
+          123,
+          66,
+          41
+        ],
+        [
+          82,
+          74,
+          49
+        ],
+        [
+          107,
+          58,
+          33
+        ],
+        [
+          74,
+          41,
+          33
+        ],
+        [
+          58,
+          58,
+          33
+        ],
+        [
+          58,
+          33,
+          25
+        ],
+        [
+          41,
+          33,
+          25
+        ],
+        [
+          33,
+          25,
+          25
+        ],
+        [
+          33,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "88ee85d478e13f1512d3db37937378a8f9158e8779abeda12b5efc0f1db8b33d",
+      "source": "art/units-v2/sources/brood.png",
+      "source_sha256": "c5fcf31238468c5e03856f5da09eab0e0f540b0d60b19d3e545a789835d825b7",
+      "processing": {
+        "sourceCrop": [
+          332,
+          159,
+          639,
+          734
+        ],
+        "scaledBody": [
+          14,
+          26
+        ],
+        "removedSourceRimPixels": 51,
+        "outlinePixels": 84
+      }
+    },
+    "dead-brood": {
+      "file": "dead-brood.png",
+      "unit": "brood",
+      "pose": "corpse",
+      "batch": 2,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          156,
+          82,
+          49
+        ],
+        [
+          148,
+          82,
+          49
+        ],
+        [
+          140,
+          74,
+          49
+        ],
+        [
+          132,
+          66,
+          41
+        ],
+        [
+          107,
+          90,
+          58
+        ],
+        [
+          82,
+          74,
+          49
+        ],
+        [
+          107,
+          66,
+          41
+        ],
+        [
+          107,
+          49,
+          33
+        ],
+        [
+          82,
+          41,
+          33
+        ],
+        [
+          58,
+          41,
+          33
+        ],
+        [
+          41,
+          33,
+          25
+        ],
+        [
+          41,
+          25,
+          25
+        ],
+        [
+          33,
+          25,
+          16
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "6229496803fb2618687b46e59051d98c39f6f4a6062d206192c758d4ee75c8d9",
+      "source": "art/units-v2/sources/brood.png",
+      "source_sha256": "c5fcf31238468c5e03856f5da09eab0e0f540b0d60b19d3e545a789835d825b7",
+      "processing": {
+        "sourceCrop": [
+          138,
+          374,
+          732,
+          721
+        ],
+        "scaledBody": [
+          26,
+          15
+        ],
+        "removedSourceRimPixels": 47,
+        "outlinePixels": 85
+      }
+    },
+    "giant_bug": {
+      "file": "giant_bug.png",
+      "unit": "giant_bug",
+      "pose": "standing",
+      "batch": 2,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          222,
+          181,
+          156
+        ],
+        [
+          214,
+          181,
+          156
+        ],
+        [
+          214,
+          173,
+          148
+        ],
+        [
+          206,
+          156,
+          140
+        ],
+        [
+          197,
+          156,
+          132
+        ],
+        [
+          197,
+          148,
+          123
+        ],
+        [
+          189,
+          140,
+          123
+        ],
+        [
+          181,
+          132,
+          115
+        ],
+        [
+          173,
+          123,
+          107
+        ],
+        [
+          165,
+          107,
+          99
+        ],
+        [
+          156,
+          107,
+          90
+        ],
+        [
+          140,
+          90,
+          74
+        ],
+        [
+          123,
+          74,
+          66
+        ],
+        [
+          74,
+          41,
+          41
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "e0111108d233164e55c20cbc46c911b0d57b62400dc47301e18b73b5d3d4fe59",
+      "source": "art/units-v2/sources/giant_bug.png",
+      "source_sha256": "49e4c4b4a4efd4faaed4ce962077589ec545ff808f8da0e7e42bc200edea3d00",
+      "processing": {
+        "sourceCrop": [
+          148,
+          120,
+          750,
+          742
+        ],
+        "scaledBody": [
+          25,
+          26
+        ],
+        "removedSourceRimPixels": 0,
+        "outlinePixels": 96
+      }
+    },
+    "dead-giant_bug": {
+      "file": "dead-giant_bug.png",
+      "unit": "giant_bug",
+      "pose": "corpse",
+      "batch": 2,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          222,
+          181,
+          156
+        ],
+        [
+          214,
+          181,
+          156
+        ],
+        [
+          214,
+          173,
+          148
+        ],
+        [
+          206,
+          165,
+          140
+        ],
+        [
+          206,
+          156,
+          132
+        ],
+        [
+          197,
+          148,
+          123
+        ],
+        [
+          189,
+          132,
+          115
+        ],
+        [
+          173,
+          115,
+          107
+        ],
+        [
+          156,
+          115,
+          99
+        ],
+        [
+          148,
+          99,
+          90
+        ],
+        [
+          140,
+          90,
+          82
+        ],
+        [
+          132,
+          82,
+          66
+        ],
+        [
+          115,
+          66,
+          58
+        ],
+        [
+          66,
+          33,
+          33
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "35d4c8f4b06088d0df06633319641b5453be1cc2bde222811759991f4d9d82f6",
+      "source": "art/units-v2/sources/giant_bug.png",
+      "source_sha256": "49e4c4b4a4efd4faaed4ce962077589ec545ff808f8da0e7e42bc200edea3d00",
+      "processing": {
+        "sourceCrop": [
+          50,
+          317,
+          832,
+          785
+        ],
+        "scaledBody": [
+          26,
+          16
+        ],
+        "removedSourceRimPixels": 0,
+        "outlinePixels": 66
+      }
+    },
+    "turret": {
+      "file": "turret.png",
+      "unit": "turret",
+      "pose": "standing",
+      "batch": 3,
+      "w": 32,
+      "h": 32,
+      "colors": 13,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          107,
+          99,
+          74
+        ],
+        [
+          90,
+          90,
+          82
+        ],
+        [
+          82,
+          82,
+          74
+        ],
+        [
+          74,
+          74,
+          66
+        ],
+        [
+          66,
+          66,
+          66
+        ],
+        [
+          66,
+          66,
+          58
+        ],
+        [
+          58,
+          49,
+          49
+        ],
+        [
+          41,
+          41,
+          41
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "be25583694f3a1b56032db814432eff9065e242f3777d5ffbf03a6e6d164a9d8",
+      "source": "art/units-v2/sources/turret.png",
+      "source_sha256": "6ed61bbfd54290844afb161fd202987df998a6f269af9b4d4b76c537e09bfa3f",
+      "processing": {
+        "sourceCrop": [
+          192,
+          203,
+          692,
+          713
+        ],
+        "scaledBody": [
+          25,
+          26
+        ],
+        "removedSourceRimPixels": 72,
+        "outlinePixels": 125
+      }
+    },
+    "dead-turret": {
+      "file": "dead-turret.png",
+      "unit": "turret",
+      "pose": "corpse",
+      "batch": 3,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          99,
+          99,
+          82
+        ],
+        [
+          82,
+          82,
+          74
+        ],
+        [
+          74,
+          74,
+          58
+        ],
+        [
+          66,
+          66,
+          58
+        ],
+        [
+          58,
+          58,
+          58
+        ],
+        [
+          58,
+          49,
+          41
+        ],
+        [
+          49,
+          49,
+          49
+        ],
+        [
+          41,
+          41,
+          41
+        ],
+        [
+          41,
+          33,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          33,
+          25,
+          33
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "1d01ffd4e5704f6209d2fa3231b9e626d1a52b43088a3041aa9f3941cc25ac3c",
+      "source": "art/units-v2/sources/turret.png",
+      "source_sha256": "6ed61bbfd54290844afb161fd202987df998a6f269af9b4d4b76c537e09bfa3f",
+      "processing": {
+        "sourceCrop": [
+          124,
+          289,
+          805,
+          780
+        ],
+        "scaledBody": [
+          26,
+          19
+        ],
+        "removedSourceRimPixels": 47,
+        "outlinePixels": 99
+      }
+    },
+    "munition": {
+      "file": "munition.png",
+      "unit": "munition",
+      "pose": "standing",
+      "batch": 3,
+      "w": 32,
+      "h": 32,
+      "colors": 14,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          90,
+          90,
+          74
+        ],
+        [
+          74,
+          74,
+          66
+        ],
+        [
+          58,
+          58,
+          58
+        ],
+        [
+          140,
+          49,
+          41
+        ],
+        [
+          66,
+          49,
+          49
+        ],
+        [
+          49,
+          49,
+          49
+        ],
+        [
+          123,
+          41,
+          33
+        ],
+        [
+          90,
+          33,
+          25
+        ],
+        [
+          41,
+          41,
+          41
+        ],
+        [
+          58,
+          25,
+          25
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "12e1b02e94230fb20920722fc38ce7fbab956cb0397b6ff4a554821cc0f307a3",
+      "source": "art/units-v2/sources/munition.png",
+      "source_sha256": "3b608bd9a5eeb145a5a797fd6751f7a94bddfc25d83019a983675cfc1e257a94",
+      "processing": {
+        "sourceCrop": [
+          87,
+          288,
+          799,
+          644
+        ],
+        "scaledBody": [
+          26,
+          13
+        ],
+        "removedSourceRimPixels": 24,
+        "outlinePixels": 66
+      }
+    },
+    "dead-munition": {
+      "file": "dead-munition.png",
+      "unit": "munition",
+      "pose": "corpse",
+      "batch": 3,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          90,
+          90,
+          74
+        ],
+        [
+          74,
+          74,
+          66
+        ],
+        [
+          99,
+          58,
+          49
+        ],
+        [
+          58,
+          58,
+          49
+        ],
+        [
+          140,
+          49,
+          41
+        ],
+        [
+          58,
+          49,
+          49
+        ],
+        [
+          49,
+          49,
+          41
+        ],
+        [
+          41,
+          41,
+          41
+        ],
+        [
+          74,
+          33,
+          25
+        ],
+        [
+          41,
+          33,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "963f4c9405e6723ba73b9cc66bfbc3cf7affd6154e6b3cea02a928529aa060b2",
+      "source": "art/units-v2/sources/munition.png",
+      "source_sha256": "3b608bd9a5eeb145a5a797fd6751f7a94bddfc25d83019a983675cfc1e257a94",
+      "processing": {
+        "sourceCrop": [
+          65,
+          344,
+          821,
+          699
+        ],
+        "scaledBody": [
+          26,
+          12
+        ],
+        "removedSourceRimPixels": 27,
+        "outlinePixels": 72
+      }
+    },
+    "bomber_bot": {
+      "file": "bomber_bot.png",
+      "unit": "bomber_bot",
+      "pose": "standing",
+      "batch": 3,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          230,
+          132,
+          66
+        ],
+        [
+          222,
+          107,
+          41
+        ],
+        [
+          148,
+          123,
+          90
+        ],
+        [
+          165,
+          90,
+          49
+        ],
+        [
+          197,
+          82,
+          33
+        ],
+        [
+          181,
+          74,
+          25
+        ],
+        [
+          173,
+          74,
+          33
+        ],
+        [
+          90,
+          82,
+          66
+        ],
+        [
+          156,
+          66,
+          25
+        ],
+        [
+          140,
+          49,
+          25
+        ],
+        [
+          74,
+          58,
+          49
+        ],
+        [
+          49,
+          49,
+          49
+        ],
+        [
+          41,
+          41,
+          41
+        ],
+        [
+          25,
+          25,
+          25
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "48c822d5c2c0d0919929956838122c5b2e76e717a93aa09247f14c451bfc8ac7",
+      "source": "art/units-v2/sources/bomber_bot.png",
+      "source_sha256": "538ce5dbeb60bb5f97ad88552ca3751c8570fd1cf04ab990edb57821fb5553a0",
+      "processing": {
+        "sourceCrop": [
+          209,
+          228,
+          679,
+          680
+        ],
+        "scaledBody": [
+          26,
+          25
+        ],
+        "removedSourceRimPixels": 22,
+        "outlinePixels": 85
+      }
+    },
+    "dead-bomber_bot": {
+      "file": "dead-bomber_bot.png",
+      "unit": "bomber_bot",
+      "pose": "corpse",
+      "batch": 3,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          222,
+          115,
+          49
+        ],
+        [
+          206,
+          99,
+          41
+        ],
+        [
+          189,
+          82,
+          25
+        ],
+        [
+          181,
+          74,
+          25
+        ],
+        [
+          132,
+          107,
+          90
+        ],
+        [
+          123,
+          74,
+          58
+        ],
+        [
+          165,
+          74,
+          25
+        ],
+        [
+          148,
+          66,
+          33
+        ],
+        [
+          132,
+          58,
+          25
+        ],
+        [
+          82,
+          58,
+          41
+        ],
+        [
+          49,
+          49,
+          49
+        ],
+        [
+          41,
+          41,
+          41
+        ],
+        [
+          25,
+          25,
+          25
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "6270020ca3b1bbba9dd343d697f0699c976ffbe2529d15f69760a9d142e3642b",
+      "source": "art/units-v2/sources/bomber_bot.png",
+      "source_sha256": "538ce5dbeb60bb5f97ad88552ca3751c8570fd1cf04ab990edb57821fb5553a0",
+      "processing": {
+        "sourceCrop": [
+          69,
+          341,
+          790,
+          735
+        ],
+        "scaledBody": [
+          26,
+          14
+        ],
+        "removedSourceRimPixels": 21,
+        "outlinePixels": 77
+      }
+    },
+    "heavy_flamer": {
+      "file": "heavy_flamer.png",
+      "unit": "heavy_flamer",
+      "pose": "standing",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          181,
+          82,
+          25
+        ],
+        [
+          181,
+          74,
+          16
+        ],
+        [
+          173,
+          74,
+          16
+        ],
+        [
+          156,
+          66,
+          25
+        ],
+        [
+          156,
+          66,
+          16
+        ],
+        [
+          148,
+          58,
+          16
+        ],
+        [
+          132,
+          58,
+          16
+        ],
+        [
+          107,
+          58,
+          33
+        ],
+        [
+          66,
+          58,
+          49
+        ],
+        [
+          66,
+          41,
+          25
+        ],
+        [
+          66,
+          33,
+          16
+        ],
+        [
+          41,
+          33,
+          33
+        ],
+        [
+          33,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "063683d047ac3bb9863bfb54815084841db362b5daae52c9306bf4717c78ab33",
+      "source": "art/units-v2/sources/heavy_flamer.png",
+      "source_sha256": "8cb24ebbc48a03b7bd2612642b8a8a0469470f4b98081ded8707c9394f942874",
+      "processing": {
+        "sourceCrop": [
+          243,
+          155,
+          716,
+          774
+        ],
+        "scaledBody": [
+          20,
+          26
+        ],
+        "removedSourceRimPixels": 40,
+        "outlinePixels": 90
+      }
+    },
+    "dead-heavy_flamer": {
+      "file": "dead-heavy_flamer.png",
+      "unit": "heavy_flamer",
+      "pose": "corpse",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          181,
+          82,
+          25
+        ],
+        [
+          181,
+          74,
+          16
+        ],
+        [
+          173,
+          74,
+          16
+        ],
+        [
+          156,
+          66,
+          25
+        ],
+        [
+          148,
+          58,
+          16
+        ],
+        [
+          140,
+          58,
+          16
+        ],
+        [
+          123,
+          58,
+          16
+        ],
+        [
+          74,
+          58,
+          49
+        ],
+        [
+          66,
+          49,
+          33
+        ],
+        [
+          74,
+          41,
+          25
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          41,
+          33,
+          25
+        ],
+        [
+          33,
+          25,
+          25
+        ],
+        [
+          33,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "ccd26f08fdf3cb035004f0d6d5725a7a0a87173ef170956d67854380abaca809",
+      "source": "art/units-v2/sources/heavy_flamer.png",
+      "source_sha256": "8cb24ebbc48a03b7bd2612642b8a8a0469470f4b98081ded8707c9394f942874",
+      "processing": {
+        "sourceCrop": [
+          63,
+          356,
+          794,
+          790
+        ],
+        "scaledBody": [
+          26,
+          15
+        ],
+        "removedSourceRimPixels": 26,
+        "outlinePixels": 70
+      }
+    },
+    "enforcer": {
+      "file": "enforcer.png",
+      "unit": "enforcer",
+      "pose": "standing",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          74,
+          66,
+          66
+        ],
+        [
+          58,
+          49,
+          49
+        ],
+        [
+          123,
+          49,
+          49
+        ],
+        [
+          49,
+          49,
+          49
+        ],
+        [
+          99,
+          41,
+          41
+        ],
+        [
+          49,
+          41,
+          41
+        ],
+        [
+          41,
+          33,
+          41
+        ],
+        [
+          58,
+          25,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          33,
+          25,
+          25
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          16
+        ],
+        [
+          16,
+          16,
+          16
+        ],
+        [
+          16,
+          8,
+          8
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "892e75427f57b7c243a1616191f13abecde6ff1a37c0bf6e58fe9d2e6b2597c2",
+      "source": "art/units-v2/sources/enforcer.png",
+      "source_sha256": "d28f02d3404a3cace8226f070a75e7c9a9c1e26c93bb11f4e1fb86b017fdb646",
+      "processing": {
+        "sourceCrop": [
+          250,
+          138,
+          666,
+          776
+        ],
+        "scaledBody": [
+          17,
+          26
+        ],
+        "removedSourceRimPixels": 33,
+        "outlinePixels": 85
+      }
+    },
+    "dead-enforcer": {
+      "file": "dead-enforcer.png",
+      "unit": "enforcer",
+      "pose": "corpse",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 14,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          74,
+          66,
+          66
+        ],
+        [
+          90,
+          49,
+          49
+        ],
+        [
+          66,
+          41,
+          49
+        ],
+        [
+          66,
+          41,
+          41
+        ],
+        [
+          41,
+          33,
+          41
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          41,
+          25,
+          33
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          41,
+          16,
+          16
+        ],
+        [
+          25,
+          16,
+          25
+        ],
+        [
+          16,
+          16,
+          16
+        ],
+        [
+          8,
+          8,
+          8
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "4aa3014941e0da2791f50ee5e77bfedc6dc247fdfc1eefaf14632c044d79af76",
+      "source": "art/units-v2/sources/enforcer.png",
+      "source_sha256": "d28f02d3404a3cace8226f070a75e7c9a9c1e26c93bb11f4e1fb86b017fdb646",
+      "processing": {
+        "sourceCrop": [
+          111,
+          291,
+          749,
+          804
+        ],
+        "scaledBody": [
+          26,
+          21
+        ],
+        "removedSourceRimPixels": 30,
+        "outlinePixels": 115
+      }
+    },
+    "squad_leader": {
+      "file": "squad_leader.png",
+      "unit": "squad_leader",
+      "pose": "standing",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          173,
+          148,
+          115
+        ],
+        [
+          115,
+          107,
+          74
+        ],
+        [
+          107,
+          90,
+          49
+        ],
+        [
+          82,
+          82,
+          58
+        ],
+        [
+          74,
+          74,
+          49
+        ],
+        [
+          66,
+          58,
+          49
+        ],
+        [
+          58,
+          49,
+          41
+        ],
+        [
+          49,
+          41,
+          41
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          41,
+          33,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          33,
+          33,
+          25
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          25
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "2afc5307cefef156794955a773d5e1fc38c0ddf393f5f1294a6a718e9625e301",
+      "source": "art/units-v2/sources/squad_leader.png",
+      "source_sha256": "41bfe2d4c53785d37343d9f49df9367a6e42e88b985ebd5e6aa4ac838731a3d2",
+      "processing": {
+        "sourceCrop": [
+          236,
+          125,
+          652,
+          818
+        ],
+        "scaledBody": [
+          16,
+          26
+        ],
+        "removedSourceRimPixels": 40,
+        "outlinePixels": 84
+      }
+    },
+    "dead-squad_leader": {
+      "file": "dead-squad_leader.png",
+      "unit": "squad_leader",
+      "pose": "corpse",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 14,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          173,
+          148,
+          107
+        ],
+        [
+          132,
+          107,
+          58
+        ],
+        [
+          90,
+          90,
+          58
+        ],
+        [
+          74,
+          74,
+          49
+        ],
+        [
+          66,
+          58,
+          49
+        ],
+        [
+          58,
+          49,
+          41
+        ],
+        [
+          49,
+          49,
+          41
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          41,
+          25,
+          25
+        ],
+        [
+          33,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "3097bfa449e26e3cca16dea83301692d27bed648be591e7693be0eff8031b82a",
+      "source": "art/units-v2/sources/squad_leader.png",
+      "source_sha256": "41bfe2d4c53785d37343d9f49df9367a6e42e88b985ebd5e6aa4ac838731a3d2",
+      "processing": {
+        "sourceCrop": [
+          70,
+          416,
+          749,
+          859
+        ],
+        "scaledBody": [
+          26,
+          17
+        ],
+        "removedSourceRimPixels": 26,
+        "outlinePixels": 77
+      }
+    },
+    "gunner": {
+      "file": "gunner.png",
+      "unit": "gunner",
+      "pose": "standing",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          140,
+          123,
+          82
+        ],
+        [
+          107,
+          107,
+          82
+        ],
+        [
+          90,
+          90,
+          74
+        ],
+        [
+          82,
+          82,
+          66
+        ],
+        [
+          74,
+          66,
+          58
+        ],
+        [
+          58,
+          58,
+          49
+        ],
+        [
+          49,
+          49,
+          49
+        ],
+        [
+          41,
+          41,
+          41
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          25
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "e269ca86e4575bd2d084cc92aa0eb79c57f85ee5789d017babcf58d5cc553004",
+      "source": "art/units-v2/sources/gunner.png",
+      "source_sha256": "458e14119ef69906d84c43ef708901fb3aab12aba3a6d82d89238f5af6a5b28e",
+      "processing": {
+        "sourceCrop": [
+          207,
+          134,
+          667,
+          778
+        ],
+        "scaledBody": [
+          19,
+          26
+        ],
+        "removedSourceRimPixels": 38,
+        "outlinePixels": 85
+      }
+    },
+    "dead-gunner": {
+      "file": "dead-gunner.png",
+      "unit": "gunner",
+      "pose": "corpse",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 14,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          148,
+          123,
+          90
+        ],
+        [
+          107,
+          107,
+          82
+        ],
+        [
+          90,
+          90,
+          74
+        ],
+        [
+          74,
+          74,
+          58
+        ],
+        [
+          66,
+          66,
+          49
+        ],
+        [
+          58,
+          49,
+          49
+        ],
+        [
+          49,
+          49,
+          41
+        ],
+        [
+          49,
+          33,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          25
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "9ac1b930e30b948285ac25e00545a246472c812bf1644f745a9f9b88b3108921",
+      "source": "art/units-v2/sources/gunner.png",
+      "source_sha256": "458e14119ef69906d84c43ef708901fb3aab12aba3a6d82d89238f5af6a5b28e",
+      "processing": {
+        "sourceCrop": [
+          75,
+          278,
+          752,
+          818
+        ],
+        "scaledBody": [
+          26,
+          21
+        ],
+        "removedSourceRimPixels": 33,
+        "outlinePixels": 80
+      }
+    },
+    "rifleman_infected": {
+      "file": "rifleman_infected.png",
+      "unit": "rifleman_infected",
+      "pose": "standing",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          165,
+          165,
+          99
+        ],
+        [
+          140,
+          140,
+          82
+        ],
+        [
+          123,
+          115,
+          74
+        ],
+        [
+          99,
+          90,
+          58
+        ],
+        [
+          82,
+          82,
+          49
+        ],
+        [
+          74,
+          66,
+          41
+        ],
+        [
+          58,
+          58,
+          41
+        ],
+        [
+          49,
+          49,
+          33
+        ],
+        [
+          49,
+          41,
+          33
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          33,
+          33,
+          25
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "c6f09ae5f5686c6ab693f9e8f03b803b9a523d0eb681c5aa411af265af1d4b6f",
+      "source": "art/units-v2/sources/rifleman_infected.png",
+      "source_sha256": "c1bf505df4c44c8f7b3347f22be5557c33c35694f699ca56e472ff5016c24c0b",
+      "processing": {
+        "sourceCrop": [
+          227,
+          153,
+          665,
+          749
+        ],
+        "scaledBody": [
+          19,
+          26
+        ],
+        "removedSourceRimPixels": 25,
+        "outlinePixels": 78
+      }
+    },
+    "dead-rifleman_infected": {
+      "file": "dead-rifleman_infected.png",
+      "unit": "rifleman_infected",
+      "pose": "corpse",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 15,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          165,
+          173,
+          99
+        ],
+        [
+          148,
+          148,
+          82
+        ],
+        [
+          132,
+          132,
+          74
+        ],
+        [
+          107,
+          107,
+          66
+        ],
+        [
+          90,
+          82,
+          49
+        ],
+        [
+          74,
+          74,
+          41
+        ],
+        [
+          66,
+          58,
+          41
+        ],
+        [
+          49,
+          41,
+          33
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          33,
+          33,
+          25
+        ],
+        [
+          41,
+          25,
+          16
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          16,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "9f0c47aefd9cccd1582cb5f69e6b494df88ca72c42bf89d64cd204eb1265a7af",
+      "source": "art/units-v2/sources/rifleman_infected.png",
+      "source_sha256": "c1bf505df4c44c8f7b3347f22be5557c33c35694f699ca56e472ff5016c24c0b",
+      "processing": {
+        "sourceCrop": [
+          49,
+          354,
+          790,
+          763
+        ],
+        "scaledBody": [
+          26,
+          14
+        ],
+        "removedSourceRimPixels": 21,
+        "outlinePixels": 77
+      }
+    },
+    "raider_infected": {
+      "file": "raider_infected.png",
+      "unit": "raider_infected",
+      "pose": "standing",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          181,
+          140,
+          99
+        ],
+        [
+          156,
+          115,
+          82
+        ],
+        [
+          148,
+          107,
+          82
+        ],
+        [
+          140,
+          99,
+          74
+        ],
+        [
+          140,
+          90,
+          58
+        ],
+        [
+          123,
+          99,
+          66
+        ],
+        [
+          123,
+          82,
+          58
+        ],
+        [
+          115,
+          74,
+          49
+        ],
+        [
+          107,
+          58,
+          41
+        ],
+        [
+          74,
+          58,
+          41
+        ],
+        [
+          58,
+          41,
+          33
+        ],
+        [
+          66,
+          33,
+          33
+        ],
+        [
+          49,
+          33,
+          25
+        ],
+        [
+          33,
+          25,
+          25
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "c8019b615545c0ed23310223be7e30d7ca7096cc45bada00b16b6ebe77712a17",
+      "source": "art/units-v2/sources/raider_infected.png",
+      "source_sha256": "adb7990be0efcaeb1bfb9e4492ba0306746b49fef0fe1bbc5c410c39f789508f",
+      "processing": {
+        "sourceCrop": [
+          153,
+          153,
+          624,
+          776
+        ],
+        "scaledBody": [
+          20,
+          26
+        ],
+        "removedSourceRimPixels": 31,
+        "outlinePixels": 85
+      }
+    },
+    "dead-raider_infected": {
+      "file": "dead-raider_infected.png",
+      "unit": "raider_infected",
+      "pose": "corpse",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          165,
+          123,
+          90
+        ],
+        [
+          148,
+          107,
+          82
+        ],
+        [
+          132,
+          99,
+          74
+        ],
+        [
+          132,
+          99,
+          66
+        ],
+        [
+          140,
+          90,
+          58
+        ],
+        [
+          132,
+          74,
+          49
+        ],
+        [
+          123,
+          82,
+          58
+        ],
+        [
+          107,
+          74,
+          49
+        ],
+        [
+          115,
+          49,
+          41
+        ],
+        [
+          74,
+          58,
+          41
+        ],
+        [
+          58,
+          41,
+          33
+        ],
+        [
+          58,
+          33,
+          25
+        ],
+        [
+          41,
+          25,
+          25
+        ],
+        [
+          33,
+          25,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "5ea09a01177e8acdbf48dbd669bc32588df6493341d690c7ec73481b66428dba",
+      "source": "art/units-v2/sources/raider_infected.png",
+      "source_sha256": "adb7990be0efcaeb1bfb9e4492ba0306746b49fef0fe1bbc5c410c39f789508f",
+      "processing": {
+        "sourceCrop": [
+          84,
+          416,
+          791,
+          818
+        ],
+        "scaledBody": [
+          26,
+          15
+        ],
+        "removedSourceRimPixels": 37,
+        "outlinePixels": 82
+      }
+    },
+    "pet": {
+      "file": "pet.png",
+      "unit": "pet",
+      "pose": "standing",
+      "batch": 5,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          148,
+          140,
+          140
+        ],
+        [
+          132,
+          123,
+          123
+        ],
+        [
+          115,
+          107,
+          107
+        ],
+        [
+          99,
+          90,
+          99
+        ],
+        [
+          82,
+          82,
+          82
+        ],
+        [
+          74,
+          82,
+          82
+        ],
+        [
+          74,
+          74,
+          74
+        ],
+        [
+          74,
+          66,
+          66
+        ],
+        [
+          66,
+          58,
+          58
+        ],
+        [
+          41,
+          66,
+          66
+        ],
+        [
+          49,
+          49,
+          58
+        ],
+        [
+          41,
+          41,
+          49
+        ],
+        [
+          33,
+          41,
+          41
+        ],
+        [
+          25,
+          25,
+          33
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "82b0a8e33c334883a886d806b0dbd05439f3d36a1f5ebee73aee27edd9f5c0b9",
+      "source": "art/units-v2/sources/pet.png",
+      "source_sha256": "d658af5aba3450ad7e078409e7f75312595053cccd962599bb0fa5dc1e352a2b",
+      "processing": {
+        "sourceCrop": [
+          239,
+          128,
+          662,
+          803
+        ],
+        "scaledBody": [
+          16,
+          26
+        ],
+        "removedSourceRimPixels": 35,
+        "outlinePixels": 78
+      }
+    },
+    "dead-pet": {
+      "file": "dead-pet.png",
+      "unit": "pet",
+      "pose": "corpse",
+      "batch": 5,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          156,
+          148,
+          148
+        ],
+        [
+          132,
+          123,
+          123
+        ],
+        [
+          123,
+          115,
+          115
+        ],
+        [
+          107,
+          107,
+          107
+        ],
+        [
+          99,
+          90,
+          90
+        ],
+        [
+          90,
+          82,
+          82
+        ],
+        [
+          82,
+          74,
+          74
+        ],
+        [
+          58,
+          74,
+          74
+        ],
+        [
+          66,
+          58,
+          66
+        ],
+        [
+          49,
+          58,
+          66
+        ],
+        [
+          49,
+          49,
+          58
+        ],
+        [
+          41,
+          41,
+          41
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          25,
+          25,
+          25
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "dc6eeb77eec043c148e3cee59e2a2add2e9e905a6d59501f8ccbe67a120fd52a",
+      "source": "art/units-v2/sources/pet.png",
+      "source_sha256": "d658af5aba3450ad7e078409e7f75312595053cccd962599bb0fa5dc1e352a2b",
+      "processing": {
+        "sourceCrop": [
+          38,
+          380,
+          807,
+          787
+        ],
+        "scaledBody": [
+          26,
+          14
+        ],
+        "removedSourceRimPixels": 39,
+        "outlinePixels": 66
+      }
+    },
+    "rifleman_armored": {
+      "file": "rifleman_armored.png",
+      "unit": "rifleman_armored",
+      "pose": "standing",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          140,
+          140,
+          115
+        ],
+        [
+          107,
+          107,
+          74
+        ],
+        [
+          90,
+          90,
+          66
+        ],
+        [
+          82,
+          82,
+          66
+        ],
+        [
+          74,
+          74,
+          58
+        ],
+        [
+          66,
+          66,
+          58
+        ],
+        [
+          58,
+          58,
+          49
+        ],
+        [
+          49,
+          49,
+          41
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          41,
+          33,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          33,
+          33,
+          25
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          25,
+          25,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "3da611129678060bdece5b3e2d236539f6f4c0f39854cdb95a936a507b1a52ef",
+      "source": "art/units-v2/sources/rifleman_armored.png",
+      "source_sha256": "bb6fae9a5f6469e49bbd3c6ba53aba47b7e7b521c10c6e9fb4d4012346c3ff91",
+      "processing": {
+        "sourceCrop": [
+          220,
+          158,
+          674,
+          777
+        ],
+        "scaledBody": [
+          19,
+          26
+        ],
+        "removedSourceRimPixels": 50,
+        "outlinePixels": 89
+      }
+    },
+    "dead-rifleman_armored": {
+      "file": "dead-rifleman_armored.png",
+      "unit": "rifleman_armored",
+      "pose": "corpse",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          140,
+          132,
+          107
+        ],
+        [
+          99,
+          99,
+          74
+        ],
+        [
+          82,
+          82,
+          66
+        ],
+        [
+          74,
+          74,
+          58
+        ],
+        [
+          66,
+          66,
+          49
+        ],
+        [
+          66,
+          58,
+          49
+        ],
+        [
+          58,
+          58,
+          41
+        ],
+        [
+          49,
+          49,
+          41
+        ],
+        [
+          49,
+          41,
+          41
+        ],
+        [
+          41,
+          41,
+          33
+        ],
+        [
+          33,
+          33,
+          33
+        ],
+        [
+          41,
+          25,
+          25
+        ],
+        [
+          25,
+          25,
+          25
+        ],
+        [
+          25,
+          25,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "c0fe9eb1364f6b2d1069b91a6b033009f2a3c4bdd68b61ceedd996e6628a87c2",
+      "source": "art/units-v2/sources/rifleman_armored.png",
+      "source_sha256": "bb6fae9a5f6469e49bbd3c6ba53aba47b7e7b521c10c6e9fb4d4012346c3ff91",
+      "processing": {
+        "sourceCrop": [
+          72,
+          399,
+          775,
+          806
+        ],
+        "scaledBody": [
+          26,
+          15
+        ],
+        "removedSourceRimPixels": 32,
+        "outlinePixels": 84
+      }
+    },
+    "raider_armored": {
+      "file": "raider_armored.png",
+      "unit": "raider_armored",
+      "pose": "standing",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          173,
+          140,
+          99
+        ],
+        [
+          165,
+          123,
+          90
+        ],
+        [
+          140,
+          107,
+          74
+        ],
+        [
+          123,
+          107,
+          82
+        ],
+        [
+          132,
+          90,
+          66
+        ],
+        [
+          115,
+          99,
+          74
+        ],
+        [
+          107,
+          74,
+          58
+        ],
+        [
+          74,
+          66,
+          66
+        ],
+        [
+          66,
+          49,
+          41
+        ],
+        [
+          66,
+          41,
+          33
+        ],
+        [
+          49,
+          41,
+          41
+        ],
+        [
+          41,
+          33,
+          25
+        ],
+        [
+          33,
+          33,
+          25
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "a866f751a80ebb207eb9734f460b0bd2172276a1e14658b91429b3ffdfc578bd",
+      "source": "art/units-v2/sources/raider_armored.png",
+      "source_sha256": "fc8a1c8d75d59ef51616e2a371cf07205445bddf9f062d76c7703961f9c44c6b",
+      "processing": {
+        "sourceCrop": [
+          276,
+          180,
+          654,
+          721
+        ],
+        "scaledBody": [
+          18,
+          26
+        ],
+        "removedSourceRimPixels": 47,
+        "outlinePixels": 81
+      }
+    },
+    "dead-raider_armored": {
+      "file": "dead-raider_armored.png",
+      "unit": "raider_armored",
+      "pose": "corpse",
+      "batch": 4,
+      "w": 32,
+      "h": 32,
+      "colors": 16,
+      "palette": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          12,
+          14,
+          18
+        ],
+        [
+          165,
+          132,
+          90
+        ],
+        [
+          132,
+          107,
+          90
+        ],
+        [
+          132,
+          90,
+          66
+        ],
+        [
+          115,
+          99,
+          66
+        ],
+        [
+          115,
+          82,
+          58
+        ],
+        [
+          107,
+          74,
+          49
+        ],
+        [
+          82,
+          74,
+          66
+        ],
+        [
+          74,
+          58,
+          49
+        ],
+        [
+          66,
+          49,
+          41
+        ],
+        [
+          58,
+          41,
+          33
+        ],
+        [
+          41,
+          33,
+          33
+        ],
+        [
+          58,
+          25,
+          16
+        ],
+        [
+          33,
+          25,
+          16
+        ],
+        [
+          25,
+          16,
+          16
+        ]
+      ],
+      "paletteIncludesTransparency": true,
+      "transparentIndex": 0,
+      "outlineIndex": 1,
+      "sha256": "a2a63194f60d8b89fe3e7d6254e480739079f33f97ac1c54f78467724acf0376",
+      "source": "art/units-v2/sources/raider_armored.png",
+      "source_sha256": "fc8a1c8d75d59ef51616e2a371cf07205445bddf9f062d76c7703961f9c44c6b",
+      "processing": {
+        "sourceCrop": [
+          138,
+          344,
+          694,
+          776
+        ],
+        "scaledBody": [
+          26,
+          20
+        ],
+        "removedSourceRimPixels": 49,
+        "outlinePixels": 98
+      }
+    }
+  }
+}

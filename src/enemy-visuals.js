@@ -5,8 +5,11 @@ import {enemyDef} from './enemy-data.js';
 import {factionDef,enemyFaction,factionOverride} from './factions.js';
 
 // Atlas cell order is the image layout: append only, never reorder.
-export const SPRITE_NAMES=Object.freeze(['player','rifleman','raider','sniper','brute','drone','warden','boss','crawler','bomber','cover','barrel','med','ammo','grenade','terminal','civilian','spitter']);
-export const AFTERMATH_NAMES=Object.freeze(['dead-player','dead-rifleman','dead-raider','dead-sniper','dead-brute','dead-drone','dead-warden','dead-boss','dead-crawler','dead-bomber','muzzle','bullet','plasma','slash','claw','impact','dead-civilian','dead-spitter']);
+// 3.223.0: the units that used to borrow another's cell (docs/UNIT_SPRITES_HANDOFF.md; Codex's art, outlines cleaned by
+// the user), appended in this order to both atlases by tools/append_units_v2.py.
+export const UNIT_SPRITES_V2=Object.freeze(['designator','gunline','arsonist','burnline','hive_beast','hive_matriarch','dog','fodder','brood','giant_bug','turret','munition','bomber_bot','heavy_flamer','enforcer','squad_leader','gunner','rifleman_infected','raider_infected','pet','rifleman_armored','raider_armored']);
+export const SPRITE_NAMES=Object.freeze(['player','rifleman','raider','sniper','brute','drone','warden','boss','crawler','bomber','cover','barrel','med','ammo','grenade','terminal','civilian','spitter',...UNIT_SPRITES_V2]);
+export const AFTERMATH_NAMES=Object.freeze(['dead-player','dead-rifleman','dead-raider','dead-sniper','dead-brute','dead-drone','dead-warden','dead-boss','dead-crawler','dead-bomber','muzzle','bullet','plasma','slash','claw','impact','dead-civilian','dead-spitter',...UNIT_SPRITES_V2.map(id=>`dead-${id}`)]);
 // Tone role per atlas cell (3.82.1): props are dimmed, actors brightened. Keyed by name, so cells appended after the
 // original sixteen (civilian) keep the actor tone; the original cells map exactly as the old index<10 rule did.
 export const PROP_SPRITE_NAMES=Object.freeze(['cover','barrel','med','ammo','grenade','terminal']);
@@ -15,7 +18,13 @@ export const DRAWING_SHAPES=Object.freeze(['humanoid','critter','drone']);
 export const ENEMY_PROJECTILES=Object.freeze(['melee','rifle','smg','shotgun','sniper','plasma','venom']);
 
 // key: atlas cell; corpse: aftermath cell (defaults to key); size: sprite multiplier; scale: fallback drawing scale.
-export function enemySprite(type){const s=enemyDef(type)?.sprite||{},key=s.key||type;return {key,corpse:s.corpse||key,size:s.size??1,scale:s.scale??1};}
+// 3.223.0: given the unit itself, who it is can pick another cell than its card (its size stays the card's): a faction's
+// own look (`sprite` in the faction's override: the loyalist and rebel crawler card is a military dog, the swarm's keeps the
+// bug), the engineer's sentry and munition (their rules type is the drone), and the druid's companion beast (its rules
+// base is the crawler card).
+const ALLY_SPRITES=Object.freeze({drone_sentry:'turret',drone_munition:'munition'});
+const unitSprite=a=>a.kind==='pet'?'pet':a.kind==='drone'?ALLY_SPRITES[a.sourceId]||null:factionOverride(a).sprite||null;
+export function enemySprite(type,actor=null){const s=enemyDef(type)?.sprite||{},own=actor?unitSprite(actor):null,key=own||s.key||type;return {key,corpse:own||s.corpse||key,size:s.size??1,scale:s.scale??1};}
 // Canvas fallback when the atlas is missing: shape plus optional colour, glow, shoulder plates and long barrel.
 export const enemyDrawing=type=>({shape:'humanoid',...enemyDef(type)?.drawing});
 export const enemyProjectile=type=>enemyDef(type)?.projectile;

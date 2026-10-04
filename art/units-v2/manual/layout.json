@@ -1,0 +1,182 @@
+{
+ "cell": 32,
+ "source": "art/units-v2/codex-v1",
+ "sprites": {
+  "designator": {
+   "x": 0,
+   "y": 0
+  },
+  "dead-designator": {
+   "x": 32,
+   "y": 0
+  },
+  "gunline": {
+   "x": 64,
+   "y": 0
+  },
+  "dead-gunline": {
+   "x": 96,
+   "y": 0
+  },
+  "squad_leader": {
+   "x": 128,
+   "y": 0
+  },
+  "dead-squad_leader": {
+   "x": 160,
+   "y": 0
+  },
+  "gunner": {
+   "x": 192,
+   "y": 0
+  },
+  "dead-gunner": {
+   "x": 224,
+   "y": 0
+  },
+  "rifleman_armored": {
+   "x": 0,
+   "y": 32
+  },
+  "dead-rifleman_armored": {
+   "x": 32,
+   "y": 32
+  },
+  "raider_armored": {
+   "x": 64,
+   "y": 32
+  },
+  "dead-raider_armored": {
+   "x": 96,
+   "y": 32
+  },
+  "rifleman_infected": {
+   "x": 128,
+   "y": 32
+  },
+  "dead-rifleman_infected": {
+   "x": 160,
+   "y": 32
+  },
+  "raider_infected": {
+   "x": 192,
+   "y": 32
+  },
+  "dead-raider_infected": {
+   "x": 224,
+   "y": 32
+  },
+  "arsonist": {
+   "x": 0,
+   "y": 64
+  },
+  "dead-arsonist": {
+   "x": 32,
+   "y": 64
+  },
+  "burnline": {
+   "x": 64,
+   "y": 64
+  },
+  "dead-burnline": {
+   "x": 96,
+   "y": 64
+  },
+  "heavy_flamer": {
+   "x": 128,
+   "y": 64
+  },
+  "dead-heavy_flamer": {
+   "x": 160,
+   "y": 64
+  },
+  "enforcer": {
+   "x": 192,
+   "y": 64
+  },
+  "dead-enforcer": {
+   "x": 224,
+   "y": 64
+  },
+  "hive_beast": {
+   "x": 0,
+   "y": 96
+  },
+  "dead-hive_beast": {
+   "x": 32,
+   "y": 96
+  },
+  "hive_matriarch": {
+   "x": 64,
+   "y": 96
+  },
+  "dead-hive_matriarch": {
+   "x": 96,
+   "y": 96
+  },
+  "giant_bug": {
+   "x": 128,
+   "y": 96
+  },
+  "dead-giant_bug": {
+   "x": 160,
+   "y": 96
+  },
+  "brood": {
+   "x": 192,
+   "y": 96
+  },
+  "dead-brood": {
+   "x": 224,
+   "y": 96
+  },
+  "dog": {
+   "x": 0,
+   "y": 128
+  },
+  "dead-dog": {
+   "x": 32,
+   "y": 128
+  },
+  "fodder": {
+   "x": 64,
+   "y": 128
+  },
+  "dead-fodder": {
+   "x": 96,
+   "y": 128
+  },
+  "pet": {
+   "x": 128,
+   "y": 128
+  },
+  "dead-pet": {
+   "x": 160,
+   "y": 128
+  },
+  "turret": {
+   "x": 192,
+   "y": 128
+  },
+  "dead-turret": {
+   "x": 224,
+   "y": 128
+  },
+  "munition": {
+   "x": 0,
+   "y": 160
+  },
+  "dead-munition": {
+   "x": 32,
+   "y": 160
+  },
+  "bomber_bot": {
+   "x": 64,
+   "y": 160
+  },
+  "dead-bomber_bot": {
+   "x": 96,
+   "y": 160
+  }
+ }
+}

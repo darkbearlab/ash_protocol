@@ -61,7 +61,7 @@ export const FACTIONS = {
     fodder: 'fodder',                     // 執行期雜兵
     nestChild: 'brood',                   // 蟲巢產物（地洞與傳送門兩種外觀都用它）
     // affixWeights: { 詞條代號: 權重 }   未填 = 沿用現在的均勻抽選（第 7 節）
-    // overrides: { 兵種代號: { name, role, tint, voice } }
+    // overrides: { 兵種代號: { name, role, tint, voice, sprite } }   sprite: 3.223.0，換一個圖集格（軍犬 'dog'）
     // voice: 聲線代號                    未填 = 沿用兵種卡的聲線（第 8 節）
   },
 };
@@ -122,6 +122,8 @@ export const FACTIONS = {
 - **染色**：
   - 對敵人圖集格染色，沿用玩家塗裝的染色快取。
   - 顏色來源優先順序：派系覆寫的 `tint`，再來是兵種卡的 `sprite.tint`；都沒有就不染。
+  - 3.223.0：借圖時代的染色都拿掉了（顏色畫在 `units-v2` 的圖裡），現在只剩除名幹員的卡片色。
+- **換圖**（3.223.0）：派系覆寫的 `sprite` 讓同一張卡在這個派系下用另一個圖集格。目前只有忠誠方與叛軍的獵犬卡畫成軍犬（`dog`），蟲族的獵殺蟲照舊用 `crawler`。
   - 之後小菁英會在敵人實例上再疊一層。
 - **喊話聲線**：依派系選擇（第 8 節）。
 - **台詞清單**：依 FACTIONS.md 第 7 節，把聲線整理成一份清單，派系用代號引用聲線。

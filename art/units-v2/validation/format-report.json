@@ -1,0 +1,468 @@
+{
+  "units": 22,
+  "sprites": {
+    "designator": {
+      "sha256": "a99e35aeeb1e3ef8b47218ce3244392ef010f00ff8f3ae12c30e40634e52eaa7",
+      "colors": 14,
+      "bounds": [
+        6,
+        2,
+        25,
+        30
+      ]
+    },
+    "dead-designator": {
+      "sha256": "edd5d56b05a9f55ddd2b68c06e0b6ecff4e361a95ebb7204d7b08fc662f344e2",
+      "colors": 14,
+      "bounds": [
+        2,
+        7,
+        30,
+        25
+      ]
+    },
+    "gunline": {
+      "sha256": "7393d2908050defd5c876b2545264577275fe191140a80f917940e57b04157de",
+      "colors": 16,
+      "bounds": [
+        3,
+        2,
+        28,
+        30
+      ]
+    },
+    "dead-gunline": {
+      "sha256": "dc367a687bb19e5725dd651a5ae659ca7397f42963b2de08bd5f146c1572b77a",
+      "colors": 16,
+      "bounds": [
+        2,
+        6,
+        29,
+        25
+      ]
+    },
+    "arsonist": {
+      "sha256": "0dcfbd230bf015d000c9dddd0912dc3ec62f278dd2c40d6d7bbfb7f225925780",
+      "colors": 15,
+      "bounds": [
+        5,
+        2,
+        27,
+        30
+      ]
+    },
+    "dead-arsonist": {
+      "sha256": "2b50f906eafaf57835fad0ddd418d944d6977cf7f647d9385c3278049af58c19",
+      "colors": 16,
+      "bounds": [
+        2,
+        7,
+        30,
+        25
+      ]
+    },
+    "burnline": {
+      "sha256": "d81be01d7152ce786f92854a112bfacb9b7be40d242772d4241195ee2b3cd938",
+      "colors": 15,
+      "bounds": [
+        3,
+        2,
+        29,
+        29
+      ]
+    },
+    "dead-burnline": {
+      "sha256": "af01122ea0c016556b0c6cf04208642bccf40a68b4b9c8b9585db7cd06deeb79",
+      "colors": 14,
+      "bounds": [
+        2,
+        6,
+        30,
+        25
+      ]
+    },
+    "hive_beast": {
+      "sha256": "cd4d29539fcd4c7bd9a93b4ea53beb187b989d6ceceb29f3935389682c568383",
+      "colors": 14,
+      "bounds": [
+        2,
+        4,
+        30,
+        28
+      ]
+    },
+    "dead-hive_beast": {
+      "sha256": "feecc92e5a80d8453f717826fdc85b8fd955b128f8934297111b8d3f53e8cdd0",
+      "colors": 15,
+      "bounds": [
+        2,
+        5,
+        30,
+        26
+      ]
+    },
+    "hive_matriarch": {
+      "sha256": "6c4467b2100c0dee8cf841d7cdc52e0d7fd7ec3b4ccdf1eb10bd68ef638cd669",
+      "colors": 16,
+      "bounds": [
+        4,
+        2,
+        28,
+        30
+      ]
+    },
+    "dead-hive_matriarch": {
+      "sha256": "f39c625c79ebb99c1e274b7e530c062df27f6933a36f271e79b3eb74dd9d80fd",
+      "colors": 15,
+      "bounds": [
+        2,
+        5,
+        30,
+        26
+      ]
+    },
+    "dog": {
+      "sha256": "91fcb743efac0013001325d275a743bf9b7a3dc3eef793ca10205113259195c4",
+      "colors": 16,
+      "bounds": [
+        6,
+        2,
+        26,
+        30
+      ]
+    },
+    "dead-dog": {
+      "sha256": "e4e0dc794f682d6a564adb07b85f9c4cb4c7948aee0be441455c33aa844233a6",
+      "colors": 15,
+      "bounds": [
+        2,
+        7,
+        30,
+        25
+      ]
+    },
+    "fodder": {
+      "sha256": "27dc37e3f3b981f03e0eb1045c0ee5aa0176ff4c1695e149bd1f9142ee99ce92",
+      "colors": 16,
+      "bounds": [
+        6,
+        2,
+        25,
+        29
+      ]
+    },
+    "dead-fodder": {
+      "sha256": "862e27e12089cc9222046f5be63dc574fac77aa8b4f6dab37a58e7f5ae53c580",
+      "colors": 16,
+      "bounds": [
+        2,
+        8,
+        29,
+        24
+      ]
+    },
+    "brood": {
+      "sha256": "88ee85d478e13f1512d3db37937378a8f9158e8779abeda12b5efc0f1db8b33d",
+      "colors": 16,
+      "bounds": [
+        8,
+        3,
+        24,
+        30
+      ]
+    },
+    "dead-brood": {
+      "sha256": "6229496803fb2618687b46e59051d98c39f6f4a6062d206192c758d4ee75c8d9",
+      "colors": 16,
+      "bounds": [
+        3,
+        7,
+        28,
+        24
+      ]
+    },
+    "giant_bug": {
+      "sha256": "e0111108d233164e55c20cbc46c911b0d57b62400dc47301e18b73b5d3d4fe59",
+      "colors": 16,
+      "bounds": [
+        2,
+        2,
+        29,
+        30
+      ]
+    },
+    "dead-giant_bug": {
+      "sha256": "35d4c8f4b06088d0df06633319641b5453be1cc2bde222811759991f4d9d82f6",
+      "colors": 16,
+      "bounds": [
+        2,
+        7,
+        29,
+        24
+      ]
+    },
+    "turret": {
+      "sha256": "be25583694f3a1b56032db814432eff9065e242f3777d5ffbf03a6e6d164a9d8",
+      "colors": 13,
+      "bounds": [
+        2,
+        3,
+        29,
+        30
+      ]
+    },
+    "dead-turret": {
+      "sha256": "1d01ffd4e5704f6209d2fa3231b9e626d1a52b43088a3041aa9f3941cc25ac3c",
+      "colors": 15,
+      "bounds": [
+        2,
+        6,
+        30,
+        26
+      ]
+    },
+    "munition": {
+      "sha256": "12e1b02e94230fb20920722fc38ce7fbab956cb0397b6ff4a554821cc0f307a3",
+      "colors": 14,
+      "bounds": [
+        2,
+        8,
+        30,
+        22
+      ]
+    },
+    "dead-munition": {
+      "sha256": "963f4c9405e6723ba73b9cc66bfbc3cf7affd6154e6b3cea02a928529aa060b2",
+      "colors": 15,
+      "bounds": [
+        2,
+        9,
+        30,
+        23
+      ]
+    },
+    "bomber_bot": {
+      "sha256": "48c822d5c2c0d0919929956838122c5b2e76e717a93aa09247f14c451bfc8ac7",
+      "colors": 16,
+      "bounds": [
+        2,
+        2,
+        30,
+        29
+      ]
+    },
+    "dead-bomber_bot": {
+      "sha256": "6270020ca3b1bbba9dd343d697f0699c976ffbe2529d15f69760a9d142e3642b",
+      "colors": 15,
+      "bounds": [
+        2,
+        8,
+        30,
+        24
+      ]
+    },
+    "heavy_flamer": {
+      "sha256": "063683d047ac3bb9863bfb54815084841db362b5daae52c9306bf4717c78ab33",
+      "colors": 16,
+      "bounds": [
+        5,
+        2,
+        27,
+        29
+      ]
+    },
+    "dead-heavy_flamer": {
+      "sha256": "ccd26f08fdf3cb035004f0d6d5725a7a0a87173ef170956d67854380abaca809",
+      "colors": 16,
+      "bounds": [
+        2,
+        8,
+        29,
+        24
+      ]
+    },
+    "enforcer": {
+      "sha256": "892e75427f57b7c243a1616191f13abecde6ff1a37c0bf6e58fe9d2e6b2597c2",
+      "colors": 16,
+      "bounds": [
+        6,
+        2,
+        25,
+        30
+      ]
+    },
+    "dead-enforcer": {
+      "sha256": "4aa3014941e0da2791f50ee5e77bfedc6dc247fdfc1eefaf14632c044d79af76",
+      "colors": 14,
+      "bounds": [
+        2,
+        4,
+        30,
+        27
+      ]
+    },
+    "squad_leader": {
+      "sha256": "2afc5307cefef156794955a773d5e1fc38c0ddf393f5f1294a6a718e9625e301",
+      "colors": 16,
+      "bounds": [
+        8,
+        2,
+        25,
+        30
+      ]
+    },
+    "dead-squad_leader": {
+      "sha256": "3097bfa449e26e3cca16dea83301692d27bed648be591e7693be0eff8031b82a",
+      "colors": 14,
+      "bounds": [
+        3,
+        6,
+        30,
+        25
+      ]
+    },
+    "gunner": {
+      "sha256": "e269ca86e4575bd2d084cc92aa0eb79c57f85ee5789d017babcf58d5cc553004",
+      "colors": 15,
+      "bounds": [
+        5,
+        3,
+        26,
+        30
+      ]
+    },
+    "dead-gunner": {
+      "sha256": "9ac1b930e30b948285ac25e00545a246472c812bf1644f745a9f9b88b3108921",
+      "colors": 14,
+      "bounds": [
+        2,
+        4,
+        30,
+        27
+      ]
+    },
+    "rifleman_infected": {
+      "sha256": "c6f09ae5f5686c6ab693f9e8f03b803b9a523d0eb681c5aa411af265af1d4b6f",
+      "colors": 15,
+      "bounds": [
+        6,
+        2,
+        26,
+        30
+      ]
+    },
+    "dead-rifleman_infected": {
+      "sha256": "9f0c47aefd9cccd1582cb5f69e6b494df88ca72c42bf89d64cd204eb1265a7af",
+      "colors": 15,
+      "bounds": [
+        2,
+        8,
+        29,
+        24
+      ]
+    },
+    "raider_infected": {
+      "sha256": "c8019b615545c0ed23310223be7e30d7ca7096cc45bada00b16b6ebe77712a17",
+      "colors": 16,
+      "bounds": [
+        5,
+        2,
+        27,
+        29
+      ]
+    },
+    "dead-raider_infected": {
+      "sha256": "5ea09a01177e8acdbf48dbd669bc32588df6493341d690c7ec73481b66428dba",
+      "colors": 16,
+      "bounds": [
+        2,
+        7,
+        30,
+        23
+      ]
+    },
+    "pet": {
+      "sha256": "82b0a8e33c334883a886d806b0dbd05439f3d36a1f5ebee73aee27edd9f5c0b9",
+      "colors": 16,
+      "bounds": [
+        7,
+        2,
+        25,
+        29
+      ]
+    },
+    "dead-pet": {
+      "sha256": "dc6eeb77eec043c148e3cee59e2a2add2e9e905a6d59501f8ccbe67a120fd52a",
+      "colors": 16,
+      "bounds": [
+        3,
+        8,
+        30,
+        23
+      ]
+    },
+    "rifleman_armored": {
+      "sha256": "3da611129678060bdece5b3e2d236539f6f4c0f39854cdb95a936a507b1a52ef",
+      "colors": 16,
+      "bounds": [
+        5,
+        3,
+        25,
+        30
+      ]
+    },
+    "dead-rifleman_armored": {
+      "sha256": "c0fe9eb1364f6b2d1069b91a6b033009f2a3c4bdd68b61ceedd996e6628a87c2",
+      "colors": 16,
+      "bounds": [
+        2,
+        7,
+        30,
+        24
+      ]
+    },
+    "raider_armored": {
+      "sha256": "a866f751a80ebb207eb9734f460b0bd2172276a1e14658b91429b3ffdfc578bd",
+      "colors": 16,
+      "bounds": [
+        6,
+        2,
+        25,
+        30
+      ]
+    },
+    "dead-raider_armored": {
+      "sha256": "a2a63194f60d8b89fe3e7d6254e480739079f33f97ac1c54f78467724acf0376",
+      "colors": 16,
+      "bounds": [
+        2,
+        6,
+        30,
+        26
+      ]
+    }
+  },
+  "format": "32x32 indexed PNG, bit depth 4, binary alpha, <=16 used colors",
+  "rgb5Exception": [
+    12,
+    14,
+    18
+  ],
+  "python": "3.12.14",
+  "pillow": "12.3.0",
+  "numpy": "2.3.5",
+  "oldAtlasesUnchanged": [
+    {
+      "path": "assets/pixel/atlas.png",
+      "sha256": "657db14a55102c98beca4af5412216852b485e4bccbf9b6c498dd81da2c454d0"
+    },
+    {
+      "path": "assets/pixel/aftermath.png",
+      "sha256": "2935faa14a2a5e6dc3a227952059b8ced0762f41eb56427b057b5e38fafd4ecd"
+    },
+    {
+      "path": "assets/pixel/classes-v1/atlas.png",
+      "sha256": "6b572255427e4f60b9faaf8eb73cd2e976ad80564fb25a34dbefca7a0532ee8d"
+    }
+  ]
+}
