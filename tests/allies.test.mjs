@@ -274,6 +274,17 @@ test('a drone or summon across a low partition crosses to the player, so it can 
   g.action('wait');assert.ok(g.canCross(a,g.player)&&Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=1,`${cls} ${a.x},${a.y}`);
  }
 });
+test('a pocket fenced by low partitions never traps the player: a follower with no room on the player side steps off the rail',()=>{
+ // Pocket (10,10)-(11,10), walled above and to the west; every way out is a low partition (the clear bot's engineer,
+ // rebel, seed 108, floor 5, with four follower drones).
+ const g=arena('engineer');zero(g);g.enemyAct=()=>{};rooms(g,[[10,10,14,14]]);
+ g.barriers=[['10,10','10,11'],['11,10','11,11'],['11,10','12,10']].map(([a,b],i)=>{const [ax,ay]=a.split(',').map(Number),[bx,by]=b.split(',').map(Number);return makeBarrier('low_partition',{x:ax,y:ay},{x:bx,y:by},`pocket-${i}`);});
+ const inside=drone(g,{x:11,y:10}),below=drone(g,{x:10,y:11});drone(g,{x:11,y:11});drone(g,{x:12,y:10});
+ assert.equal(g.action('move',[0,1]),false);assert.equal(g.refusal.cue,'blocked');
+ g.action('wait');assert.notDeepEqual([below.x,below.y],[10,11]);assert.ok(!g.activeAllies.some(a=>a.x===10&&a.y===11));
+ assert.ok(g.action('move',[0,1]));assert.deepEqual([g.player.x,g.player.y],[10,11]);
+ assert.ok(g.activeAllies.includes(inside));
+});
 test('a faster ally that already acted gives up its next action instead, and the rest marker round-trips',()=>{
  const g=arena('necromancer'),a=addAlly(g,'summon','raider',{sourceId:'raise_dead',point:{x:11,y:10}}),e=enemy(g,13,10);grantTrait(a,'fast','test:swap');e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
  assert.ok(g.action('move',[1,0]));assert.deepEqual([g.player.x,a.x],[11,10]);assert.ok(e.hp<500);assert.equal(a.restTurn,g.turn+1);assert.ok(Game.restore(g.serialize()));

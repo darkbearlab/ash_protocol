@@ -282,8 +282,17 @@ function actAlly(g,a){
   if(plan?.step){const next=plan.step,edge=barrierBetween(g.barriers,a,next);if(edgeBlocks(edge)&&!vaultable(edge)){g.setDoor(edge,true);return;}const old={x:a.x,y:a.y};Object.assign(a,next);a.moveDelta=[a.x-old.x,a.y-old.y];a.moved=true;a.vaultExposed=vaultable(edge);a.cornerExposure=null;return;}
   stepToward(g,a,chase,q=>distance(q,chase)<=w.range&&g.sight({...a,...q},chase)&&g.shotClear({...a,...q},chase)&&(!w.melee||g.canCross(q,chase)),linked,true);return;
  }
- const apart=distance(a,g.player);
- if((a.kind==='drone'||!a.order)&&(apart>(FOLLOW_RANGE[a.kind]??FOLLOW_RANGE.other)||apart===1&&!g.canCross(a,g.player)))stepToward(g,a,g.player,beside(g.player),linked);
+ const apart=distance(a,g.player),across=apart===1&&!g.canCross(a,g.player);
+ if((a.kind==='drone'||!a.order)&&(apart>(FOLLOW_RANGE[a.kind]??FOLLOW_RANGE.other)||across)&&!stepToward(g,a,g.player,beside(g.player),linked)&&across)makeWay(g,a);
+}
+// 3.222.3: a follower across a rail from the player with no free tile on the player's side (a two-tile pocket fenced by
+// low partitions, the other tile taken by another ally) steps back off the rail, so the tile the player would vault onto
+// is free. It does not come back across: stepToward never closes in onto a tile across a rail beside the player.
+function makeWay(g,a){
+ if(pinned(a))return false;
+ const p=g.player,q=DIRECTIONS.map(([dx,dy])=>({x:a.x+dx,y:a.y+dy})).filter(q=>distance(q,p)>=2&&g.passable(q.x,q.y,a)&&!occupied(g,q,a)&&g.canCross(a,q)).sort((b,c)=>distance(b,p)-distance(c,p))[0];
+ if(!q)return false;
+ const old={x:a.x,y:a.y};Object.assign(a,q);a.moveDelta=[q.x-old.x,q.y-old.y];a.moved=true;a.vaultExposed=false;return true;
 }
 // One step toward a tile that satisfies reached. When none is reachable (taken, or behind another ally),
 // close in on goal by walking distance instead of freezing; never step to a tile that is no closer.
@@ -296,7 +305,9 @@ function stepToward(g,a,goal,reached,linked,swap=false){
  let dest=cells.filter(reached).sort((b,c)=>rank(b)-rank(c))[0];
  if(!dest){
   const walk=new Map(routeCells(g,goal,{actor:a,ignoreActors:true,weighted}).map(q=>[key(q),rank(q)])),far=q=>walk.get(key(q))??Infinity,here=far(a);
-  dest=cells.filter(q=>far(q)<here).sort((b,c)=>far(b)-far(c)||rank(b)-rank(c))[0];
+  // 3.222.3: closing in on the player never ends across a rail beside the player (no swap crosses it; see makeWay).
+  const acrossPlayer=q=>goal===g.player&&distance(q,goal)===1&&!g.canCross(q,goal);
+  dest=cells.filter(q=>far(q)<here&&!acrossPlayer(q)).sort((b,c)=>far(b)-far(c)||rank(b)-rank(c))[0];
   // Still no progress: the way on is another ally's tile. Trade places when that costs the other ally nothing it is doing.
   if(!dest)return swap&&swapPast(g,a,far,here,linked);
  }
