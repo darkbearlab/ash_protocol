@@ -975,20 +975,20 @@
   },
   "necromancer:2": {
    "status": "dead",
-   "floor": 2,
-   "turn": 171,
+   "floor": 1,
+   "turn": 105,
    "hp": 0,
-   "kills": 39,
-   "actions": 200,
+   "kills": 22,
+   "actions": 118,
    "invalid": 0
   },
   "necromancer:3": {
    "status": "dead",
    "floor": 6,
-   "turn": 763,
+   "turn": 847,
    "hp": 0,
-   "kills": 175,
-   "actions": 812,
+   "kills": 179,
+   "actions": 920,
    "invalid": 0
   },
   "soldier:1": {

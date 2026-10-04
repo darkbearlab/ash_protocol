@@ -252,7 +252,10 @@ function actAlly(g,a){
   if(!w.melee)finishSuppression([e],hits,rounds,a.kind==='pet'&&petRank(g.player,'turret')>=2&&rounds>0?1:0,g);
  };
  if(pinned(a)){if(shot)attack(shot);return;}
- const beside=goal=>q=>distance(q,goal)<=1;
+ // 3.222.3 (user, 2026-10-04): beside means a step away. A follower across a low partition (or a closed door) from the
+ // player is not beside it: no swap crosses a partition, so a drone that kept to the tile opposite (the nearest
+ // "beside" tile) moved along with every step the player took down the partition, and the player could never vault.
+ const beside=goal=>q=>distance(q,goal)<=1&&g.canCross(q,goal);
  // Drones reload themselves from the player's rounds within carry range (3.39, user decision): when empty, or when
  // idle at half a magazine or less. It spends the drone's own action, never the player's.
  const reserve=AMMUNITION[w.ammoType]?.key;
@@ -279,7 +282,8 @@ function actAlly(g,a){
   if(plan?.step){const next=plan.step,edge=barrierBetween(g.barriers,a,next);if(edgeBlocks(edge)&&!vaultable(edge)){g.setDoor(edge,true);return;}const old={x:a.x,y:a.y};Object.assign(a,next);a.moveDelta=[a.x-old.x,a.y-old.y];a.moved=true;a.vaultExposed=vaultable(edge);a.cornerExposure=null;return;}
   stepToward(g,a,chase,q=>distance(q,chase)<=w.range&&g.sight({...a,...q},chase)&&g.shotClear({...a,...q},chase)&&(!w.melee||g.canCross(q,chase)),linked,true);return;
  }
- if((a.kind==='drone'||!a.order)&&distance(a,g.player)>(FOLLOW_RANGE[a.kind]??FOLLOW_RANGE.other))stepToward(g,a,g.player,beside(g.player),linked);
+ const apart=distance(a,g.player);
+ if((a.kind==='drone'||!a.order)&&(apart>(FOLLOW_RANGE[a.kind]??FOLLOW_RANGE.other)||apart===1&&!g.canCross(a,g.player)))stepToward(g,a,g.player,beside(g.player),linked);
 }
 // One step toward a tile that satisfies reached. When none is reachable (taken, or behind another ally),
 // close in on goal by walking distance instead of freezing; never step to a tile that is no closer.
@@ -324,7 +328,7 @@ function swapPast(g,a,far,here,linked){
 }
 // Walking into an ally trades places with it (NetHack-style). The ally lands on the tile the player is leaving,
 // which is always free, so allies can never box the player in. Refused for fixed sentries, disabled allies and
-// across rails; the ally gives up one action.
+// across rails (a follower does not stay across a rail from the player: allyAct's `beside`); the ally gives up one action.
 export function swapReason(g,a){
  if(pinned(a)||pinned(g.player))return t('allies.pinnedNoSwap');
  if(a.kind==='drone'&&a.sourceId==='drone_sentry')return t('allies.sentryFixed');

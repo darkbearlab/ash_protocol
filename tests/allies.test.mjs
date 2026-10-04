@@ -261,6 +261,19 @@ test('sentries, disabled allies, low rails and an anchored bulwark refuse a swap
  s.control.disabled=0;g.barriers=[makeBarrier('low_partition',{x:10,y:10},{x:11,y:10},'swap-rail')];assert.equal(g.action('move',[1,0]),false);assert.equal(g.turn,1);assert.equal(s.x,11);
  const b=arena('bulwark');assert.ok(use(b));addAlly(b,'survivor','rifleman',{point:{x:11,y:10}});const turn=b.turn;assert.equal(b.action('move',[1,0]),false);assert.equal(b.refusal.cue,'anchored');assert.match(b.refusal.text,/下錨/);assert.equal(b.turn,turn);
 });
+// 3.222.3 (user, 2026-10-04; found by the clear bot): a follower across a low partition is not beside the player.
+test('a drone or summon across a low partition crosses to the player, so it can never keep the player from vaulting',()=>{
+ for(const [cls,add] of [['engineer',g=>drone(g,{x:10,y:10})],['necromancer',g=>addAlly(g,'summon','rifleman',{sourceId:'raise_dead',point:{x:10,y:10}})]]){
+  const g=arena(cls);zero(g);g.enemyAct=()=>{};g.player.y=11;
+  g.barriers=Array.from({length:11},(_,i)=>makeBarrier('low_partition',{x:5+i,y:10},{x:5+i,y:11},`rail-${i}`));
+  const a=add(g);assert.equal(g.action('move',[0,-1]),false,cls);assert.equal(g.refusal.cue,'blocked');
+  // Walking down the partition: before 3.222.3 the follower took the tile opposite after every step.
+  assert.ok(g.action('move',[1,0]));assert.ok(g.canCross(a,g.player),`${cls} ${a.x},${a.y}`);
+  assert.ok(g.action('move',[0,-1]),cls);assert.deepEqual([g.player.x,g.player.y],[11,10]);
+  // Over the rail the follower is across again, and comes over again.
+  g.action('wait');assert.ok(g.canCross(a,g.player)&&Math.abs(a.x-g.player.x)+Math.abs(a.y-g.player.y)<=1,`${cls} ${a.x},${a.y}`);
+ }
+});
 test('a faster ally that already acted gives up its next action instead, and the rest marker round-trips',()=>{
  const g=arena('necromancer'),a=addAlly(g,'summon','raider',{sourceId:'raise_dead',point:{x:11,y:10}}),e=enemy(g,13,10);grantTrait(a,'fast','test:swap');e.hp=500;g.enemyAct=()=>{};zero(g);g.reveal();
  assert.ok(g.action('move',[1,0]));assert.deepEqual([g.player.x,a.x],[11,10]);assert.ok(e.hp<500);assert.equal(a.restTurn,g.turn+1);assert.ok(Game.restore(g.serialize()));
