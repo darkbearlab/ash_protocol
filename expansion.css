@@ -615,3 +615,23 @@ html[lang="en"] .comms.compact .comms-who{line-height:15px}
 .course-result{margin-bottom:12px}
 #modal > .comms-layer{position:fixed;top:var(--comms-top,0);left:var(--comms-left,0);width:var(--comms-width,100%);right:auto;z-index:10;margin:0}
 #modal > .comms-layer:empty{display:none}   /* 3.198.0 (user): with a course card open the comms bar stays at the top of the screen, above the card and its backdrop; it is in the dialog but outside #modal-content, so no filter re-anchors it */
+/* 3.224.0 ranked daily (src/ranked-ui.js): the arcade callsign, the board and the result screen's line */
+.ranked-name{display:block;margin:18px 0 8px}
+.ranked-name input{display:block;width:100%;max-width:230px;margin:0 auto;padding:10px 0 10px .55em;background:#0f1512;border:1px solid #536143;color:var(--orange);font:600 44px var(--mono);letter-spacing:.55em;text-align:center;text-transform:uppercase}
+.ranked-name input:focus{outline:2px solid var(--orange);outline-offset:2px}
+.ranked-name input::placeholder{color:#3c4838}
+.ranked-board{list-style:none;margin:14px 0 8px;padding:0;font:11px var(--mono)}
+.ranked-board li{display:grid;grid-template-columns:2em minmax(0,1.3fr) minmax(0,1fr) minmax(0,1.2fr) 3.3em 3.1em;gap:5px;align-items:baseline;padding:7px 2px;border-bottom:1px solid #2a332c;color:#bccbac}
+.ranked-board li>*{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ranked-board li b{color:var(--orange);font-weight:600}
+.ranked-board li>span:nth-child(n+5){text-align:right}
+.ranked-board .ranked-head{color:var(--muted);font-size:10px;border-bottom-color:#3c4838}
+.ranked-board li.mine{background:#2a3522;color:var(--text)}
+.ranked-callsign{letter-spacing:2px;color:var(--text)}
+.ranked-callsign small{letter-spacing:0;color:var(--muted);margin-left:2px;font-size:9px}
+@media (max-width:420px){.ranked-board{font-size:10px}.ranked-board li{gap:4px}}
+.ranked-me{font:11px var(--mono)}
+.ranked-build{padding:4px 8px;margin:2px;border:1px solid #536143;background:#293425;color:#bccbac;font:10px var(--mono)}
+.journal-tabs button[aria-pressed="true"]{background:#4d6338;color:var(--text)}
+.ranked-result{border-top:1px solid #3c4838;margin-top:12px;padding-top:4px}
+.ranked-result b{font:10px var(--mono);color:var(--orange);letter-spacing:2px;margin-right:6px}

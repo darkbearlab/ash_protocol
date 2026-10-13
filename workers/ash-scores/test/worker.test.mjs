@@ -12,7 +12,7 @@ const NOW=Date.parse('2026-10-13T06:00:00Z');let clock=NOW;Date.now=()=>clock;
 const worker=(await import('../src/index.js')).default;
 const {ENGINES}=await import('../src/engines.generated.js');
 const migrations=fileURLToPath(new URL('../migrations',import.meta.url));
-const fixtureGz=readFileSync(new URL('./fixtures/ranked-3.223.0-bulwark-dead-f2.json.gz',import.meta.url));
+const fixtureGz=readFileSync(new URL('./fixtures/ranked-3.224.0-bulwark-dead-f2.json.gz',import.meta.url));
 const fixture=JSON.parse(gunzipSync(fixtureGz).toString());
 const version=fixture.log.build;
 const skip=ENGINES[version]?false:`no engine ${version} in engines.json`;
@@ -114,7 +114,7 @@ test('a player may open thirty runs a day',async()=>{
 });
 
 test('a worse run never replaces the best; hidden players leave the board',async()=>{
- const env=setup(),board={day:'2026-10-13',variant:'standard',version:'3.223.0'};
+ const env=setup(),board={day:'2026-10-13',variant:'standard',version};
  for(const [id,p,key] of [[1,'a'.repeat(32),500],[2,'a'.repeat(32),400],[3,'b'.repeat(32),450]]){
   env.DB.raw.prepare(`INSERT INTO runs (id,day,variant,version,player_id,ticket_id,name,channel,language,character,status,deepest,turns,kills,level,score_key,duration_s,ops,log_sha256,verified,created_at)
    VALUES (?,?,?,?,?,?,'AAA','web','en','soldier','dead',1,1,1,1,?,1,1,'x',1,?)`).run(id,board.day,board.variant,board.version,p,`t${id}`,key,id);

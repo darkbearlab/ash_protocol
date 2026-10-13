@@ -6,6 +6,7 @@ import {carryLevels,carryingSpent} from './ammunition.js';
 import {ENDLESS_MAX_FLOOR} from './endless.js';
 import {validCharacter} from './characters.js';
 import {validDutyRecord} from './duty.js';
+import {validRankedProfile} from './ranked-profile.js';
 // Stable IDs for weapon-pool / character unlocks and permanent equipment upgrades.
 export const PROTOCOL_REWARDS={floor:4,lore:3,warden:8,boss:12,hive_beast:8,hive_matriarch:12,designator:8,gunline:12,arsonist:8,burnline:12,delisted_soldier:12,delisted_recon:12,delisted_engineer:12,delisted_berserker:12,delisted_ninja:12,extraction:16};   // designator, gunline: 3.204.0, as the bosses they replace; arsonist, burnline: 3.206.0, likewise; the delisted operatives: 3.207.0, as the floor-6 boss they stand in for
 export const newRunId=()=>globalThis.crypto?.randomUUID?.()||`run-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -32,7 +33,9 @@ export function normalizeProfile(raw={}) {
     unlocks:{weapons:Array.isArray(p.unlocks?.weapons)?p.unlocks.weapons.filter(id=>typeof id==='string'):[],characters,stories},unlockLedger:{characters:[...characters],stories:[...stories]},
     protocolRuns:p.protocolRuns&&typeof p.protocolRuns==='object'&&!Array.isArray(p.protocolRuns)?p.protocolRuns:{},
     // 3.169.0: the day and the missions deployed on it, for the comms rota; a damaged record starts the day over.
-    duty:validDutyRecord(p.duty)?{date:p.duty.date,count:p.duty.count}:undefined};
+    duty:validDutyRecord(p.duty)?{date:p.duty.date,count:p.duty.count}:undefined,
+    // 3.224.0: the ranked daily key and name (src/ranked-profile.js); a damaged one is dropped and asked for again.
+    ranked:validRankedProfile(p.ranked)?{key:p.ranked.key,name:p.ranked.name}:undefined};
 }
 // Cumulative high-water marks survive history trimming and importing an older save.
 // Keep this ledger: removing entries would allow the same run to be credited twice.

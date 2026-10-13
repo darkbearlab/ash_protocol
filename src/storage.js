@@ -100,7 +100,13 @@ function commitUnlock(game,id,source){
 }
 // The public entry only buys. Corpse finds commit through the run binding, stories through resultProfile (3.90.0 review).
 export const grantUnlock=(game,id)=>commitUnlock(game,id,'purchase');
-export function connectUnlocks(game){return bindUnlocks(game,{profile,grant:(id,source)=>commitUnlock(game,id,source)});}
+// 3.224.0 (docs/LEADERBOARD.md): the ranked daily run in play, {runId, ticket, spec, submitBy, language}
+// (src/ranked-client.js). Its game is never bound to the profile's unlocks: it sees only its own start, as the
+// leaderboard server's playback does (src/replay.js), so a story found on the way is picked the same on both sides.
+export const RANKED_RUN_KEY='ash-ranked-run';
+export function rankedRun(){try{const r=JSON.parse(readExtra(RANKED_RUN_KEY)||'null');return r&&typeof r==='object'&&!Array.isArray(r)?r:null;}catch{return null;}}
+export const isRankedRun=game=>Boolean(game?.runId)&&!isSimulation(game)&&rankedRun()?.runId===game.runId;
+export function connectUnlocks(game){return isRankedRun(game)?game:bindUnlocks(game,{profile,grant:(id,source)=>commitUnlock(game,id,source)});}
 // Removed public operations remain inert for older tools; no purchase/reset path exists.
 export function purchaseCarrying(){throw Error(t('storage.carryCancelled'));}
 export function resetCarrying(){throw Error(t('storage.carryCancelled'));}

@@ -23,10 +23,11 @@ function keep(){
  lost=current.game.runId;removeExtra(RUN_LOG_KEY);current=null;return false;
 }
 // Start recording this game, or pick its stored log up again. Calling it again for the same game does nothing.
-export function trackRun(g){
+// params: what a new log says about the run (3.224.0: a ranked daily run adds its day, src/ranked-daily.js rankedParams).
+export function trackRun(g,params=runParams(g)){
  if(current?.game===g)return current.log;
  if(lost===g.runId)return null;
- const stored=storedRunLog(),log=continues(stored,g)?stored:{...createReplay(g,runParams(g)).log,runId:g.runId,partial:g.turn>1?g.turn:false};
+ const stored=storedRunLog(),log=continues(stored,g)?stored:{...createReplay(g,params).log,runId:g.runId,partial:g.turn>1?g.turn:false};
  current={game:g,log,...recordReplay(g,log)};keep();return current?.log??null;
 }
 // After each save: the target change the log has not seen yet, and the result once the run is over.

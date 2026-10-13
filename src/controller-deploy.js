@@ -24,6 +24,10 @@ import {dailySeed} from './daily.js';
 import {capacity} from './ammunition.js';
 import {DIFFICULTY_OPTIONS,FACILITY_OPTIONS,REAL_MODE_NOTE,difficultyMeta,difficultyOption,facilityOption,realModeMeta,runOptions} from './deploy-ui.js';
 import {SURVIVAL_TUNING} from './survival.js';
+import {VERSION} from './version.js';
+import {validRankedProfile} from './ranked-profile.js';
+import {fetchBoard,fetchBoards,fetchTicket,rankedStatus,taipeiDay} from './ranked-client.js';
+import {rankedBoardMarkup,rankedConnectingMarkup,rankedFailedMarkup,rankedNameMarkup,rankedResultMarkup,rankedSummary} from './ranked-ui.js';
 import {$,deployDraft,deploymentFaces,entered,exitSimulation,game,modal,newGame,renderer,resumable,setDeployDraft,setDeploymentFaces,setTitleFlow,titleFlow} from './controller.js';
 import {startingKit} from './controller-screens.js';
 export function showIntro(){
@@ -76,8 +80,10 @@ export function showDeployment(){
   modal(`<div class="eyebrow">DEPLOYMENT</div><h2>${t('controller.deploy.newMission')}</h2>${deployNotice()}
 <nav class="title-menu deploy-menu">
 ${row('deployNormal','NORMAL GAME',t('controller.deploy.custom'))}
+${row('deployRanked','RANKED DAILY',t('ranked.menuNote'))}
 ${row('deployDaily','DAILY GAME',`${t('controller.deploy.daily',{dailySeed:dailySeed()})}`)}
 ${row('deployQuick','QUICK GAME',t('controller.deploy.quick'))}
+${row('rankedBoard','LEADERBOARD',t('ranked.boardNote'))}
 </nav>
 <button class="modal-button secondary" data-modal="${runIsLive()?'settings':'intro'}">${t('controller.cancel')}</button>`,true);
 }
@@ -90,12 +96,12 @@ export function showDeployMission(){
 <div class="modal-footer"><button class="modal-button secondary" data-modal="deploy">${t('controller.back')}</button><button class="modal-button" data-modal="deployOperator">${t('controller.deploy.nextOperator')}</button></div>`,true);
 }
 export function showDeployOperator(){
-  const {mission,seed,mode}=deployDraft,label={normal:'NORMAL',daily:'DAILY',quick:'QUICK',retry:'REDEPLOY'}[mode]||'NORMAL',retry=mode==='retry';
-  modal(`<div class="eyebrow">${retry?'REDEPLOYMENT / SAME SEED':'DEPLOYMENT / 2 OF 3'}</div><h2>${t('controller.deploy.pickOperator')}</h2>
-<p>${t('controller.deploy.summary',{label,missionName:MISSIONS[mission].name,v:seedLabel(seed)})}</p>${deployNotice()}
+  const {mission,seed,mode}=deployDraft,label={normal:'NORMAL',daily:'DAILY',quick:'QUICK',retry:'REDEPLOY'}[mode]||'NORMAL',retry=mode==='retry',ranked=mode==='ranked';
+  modal(`<div class="eyebrow">${retry?'REDEPLOYMENT / SAME SEED':ranked?'RANKED DAILY / OPERATOR':'DEPLOYMENT / 2 OF 3'}</div><h2>${t('controller.deploy.pickOperator')}</h2>
+${ranked?`<p>${rankedSummary(deployDraft.ranked.spec)}</p><p class="term-note">${t('ranked.rules')}</p>`:`<p>${t('controller.deploy.summary',{label,missionName:MISSIONS[mission].name,v:seedLabel(seed)})}</p>`}${deployNotice()}
 <fieldset class="term-list operator-list"><legend>SELECT OPERATOR</legend>${orderedCharacters().map(id=>{const c=CHARACTERS[id];return `<div class="term-row"><label class="term-pick"><input type="radio" name="character" value="${id}" ${id===(deployDraft.character||game.player.character)?'checked':''}><span class="term-caret" aria-hidden="true">&gt;</span><span class="term-face">${portraitMarkup(deploymentFaces[id])}</span><span class="term-sprite"><canvas data-class-sprite="${id}" width="32" height="32" aria-hidden="true"></canvas></span><span class="term-body"><span class="term-name">${c.label}</span><span class="term-meta">${c.name.toUpperCase()} · ${c.hp||100}/${c.armor||0}</span></span></label><p class="term-note">${c.text}</p><details class="term-detail"><summary>${t('controller.deploy.details')}</summary><div class="term-detail-body"><small>${c.weapons.map(slot=>WEAPONS[slot].name).join(t('controller.slash'))}</small><small>${t('controller.deploy.stats1',{v:c.plates||0,v2:combatStatSummary({character:id}),v3:capacity('grenade')+classCarryBonus(id,'grenade')})}</small><small>${t('controller.deploy.stats2',{v:startingSupplies(id).meds,v2:Object.values(GRENADES).filter(g=>startingSupplies(id)[g.resource]>0).map(g=>g.short+' ×'+startingSupplies(id)[g.resource]).join(t('controller.slash')),v3:startingKit(id)})}</small>${(c.skills||[]).map(sid=>`<small><b>${SKILLS[sid].name}</b>${t('controller.deploy.skillText',{sidText:SKILLS[sid].text})}</small>`).join('')}${c.traits.map(tid=>`<small><b>${TRAITS[tid].name}</b>${t('controller.deploy.traitText',{tidText:TRAITS[tid].text})}</small>`).join('')}</div></details></div>`;}).join('')}${lockedCharacters().map(id=>lockedOperatorRow(id)).join('')}</fieldset>
 ${operatorColorPicker()}
-<div class="modal-footer"><button class="modal-button secondary" data-modal="${retry?'result':mode==='normal'?'deployNormal':'deploy'}">${t('controller.back')}</button><button class="modal-button" data-modal="${retry?'retryStart':'deployDifficulty'}">${retry?t('controller.deploy.go'):t('controller.deploy.nextDifficulty')}</button></div>`,true);
+<div class="modal-footer"><button class="modal-button secondary" data-modal="${retry?'result':mode==='normal'?'deployNormal':'deploy'}">${t('controller.back')}</button><button class="modal-button" data-modal="${retry?'retryStart':ranked?'rankedStart':'deployDifficulty'}">${retry?t('controller.deploy.go'):ranked?`${runIsLive()?t('controller.deploy.abandonAndGo'):t('controller.deploy.start')} →`:t('controller.deploy.nextDifficulty')}</button></div>`,true);
   mountColorPicker($('#modal .color-list'),drawOperatorSprites);drawOperatorSprites();
 }
 // Step 3 (3.76.2): the difficulty knob's reserved slot and the real-mode switch, which locks when the run starts.
@@ -129,3 +135,35 @@ export function drawOperatorSprites(){
 // operator that owns them, so a class without a skill simply contributes none.
 const OPERATOR_ORDER=['soldier','recon','engineer','necromancer','druid','bulwark','berserker','ninja'];
 export function showKillhouseMenu(){modal(killhouseMenuMarkup(profile(),orderedCharacters(),lockedCharacters()));}
+
+// Ranked daily (3.224.0, docs/LEADERBOARD.md). Opening it asks the server for a ticket and the day's spec; a ticket not
+// yet spent is kept for the day, so stepping back and in again costs none of the day's tickets.
+let rankedTicket=null,rankedBoardState=null;
+export const spendRankedTicket=()=>{rankedTicket=null;};
+const waiting=()=>Boolean(document.getElementById('ranked-wait'));
+export async function openRanked(){
+  const me=profile().ranked;
+  if(!validRankedProfile(me)){showRankedName('deploy');return;}
+  if(rankedTicket&&rankedTicket.spec.day===taipeiDay()){deployRanked(rankedTicket);return;}
+  modal(rankedConnectingMarkup());
+  try{const ticket=await fetchTicket(me.key);if(!waiting())return;rankedTicket=ticket;deployRanked(ticket);}
+  catch(error){if(waiting())modal(rankedFailedMarkup(error.code));}
+}
+function deployRanked(ticket){
+  setDeploymentFaces(deploymentPortraits(Object.keys(CHARACTERS)));
+  setDeployDraft({mode:'ranked',mission:ticket.spec.mission,seed:ticket.spec.seed,ranked:ticket});showDeployOperator();
+}
+// back: where 返回 goes ('deploy', or 'rankedBoard' when the name is changed from the board).
+export function showRankedName(back='deploy'){modal(rankedNameMarkup(profile().ranked?.name||'',back));$('#ranked-name')?.focus({preventScroll:true});}
+// The board: today's or yesterday's, for this build unless another is picked. from: where 返回 goes.
+export async function showRankedBoard({back=0,version=VERSION,from}={}){
+  const day=taipeiDay(Date.now(),back),state={day,back,version,from:from??rankedBoardState?.from??'deploy',name:profile().ranked?.name||''};
+  rankedBoardState=state;modal(rankedBoardMarkup({...state,loading:true}),true);
+  let data=null,versions=[],error=null;
+  try{[data,versions]=await Promise.all([fetchBoard({day,version}),fetchBoards(day).then(d=>d.boards||[]).catch(()=>[])]);}catch(e){error=e.code;}
+  if(rankedBoardState!==state||!$('#modal').open)return;
+  modal(rankedBoardMarkup({...state,data,versions,error}),true);
+}
+export const rankedBoardReturn=()=>rankedBoardState?.from||'deploy';
+// The result screen's ranked line, once the server has answered.
+export function refreshRankedResult(){const el=document.getElementById('ranked-result'),html=rankedResultMarkup(rankedStatus(game));if(el&&html)el.outerHTML=html;}

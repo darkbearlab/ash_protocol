@@ -4,7 +4,7 @@
 // controller keeps the run's state, the event listeners and everything that runs at start-up. Its state is imported
 // (live bindings, read-only); a change to it goes through the setter the controller exports for it.
 import {LANGUAGE_NAMES,LANGUAGE_STATUS,language,t} from './i18n.js';
-import {TEST_MODE,profile,read,storage,write} from './storage.js';
+import {TEST_MODE,isRankedRun,profile,read,storage,write} from './storage.js';
 import {SCREEN_BRIGHTNESS,TOP_SPACING,DECK_SPACING} from './screen-tone.js';
 import {characterName} from './characters.js';
 import {isSimulation} from './engine.js';
@@ -15,6 +15,8 @@ import {DECK_COLUMNS,DECK_GLYPHS,DECK_LABELS,deckPlacement,swapSlots} from './de
 import {lastRunLog} from './run-log.js';
 import {$,audio,autoRetarget,deckLayout,deckPick,fitLayout,game,goreChoice,hotkeyCapture,hotkeyHints,hotkeyMap,hotkeys,modal,padCell,padLayout,renderer,screenBrightness,topSpacing,deckSpacing,setDeckLayout,setDeckPick,setHotkeyCapture,setHotkeyMap,setHotkeys,skipPresentation,vhsFilter} from './controller.js';
 import {runIsLive} from './controller-deploy.js';
+// 3.224.0: a ranked daily run in play keeps its language (docs/LEADERBOARD.md).
+const rankedLock=()=>runIsLive()&&isRankedRun(game);
 import {notify} from './controller-hud.js';
 import {runPerks} from './controller-screens.js';
 const GORE_LABELS={full:()=>t('settings.gore.full'),simple:()=>t('settings.gore.simple'),off:()=>t('settings.gore.off')};
@@ -90,8 +92,8 @@ ${inRun?t('settings.inRunButtons'):''}
 <button class="modal-button secondary" data-modal="journal">${t('settings.journal')}</button>
 ${simulating?'':`${sec(t('settings.runSection'))}<button class="modal-button secondary" data-modal="abandon" ${game.status!=='playing'?'disabled':''}>${t('settings.abandon')}</button><button class="modal-button secondary" data-modal="restart">${t('settings.redeploy')}</button>`}`,
     general:()=>`${sec(t('settings.languageSection'))}
-<button class="modal-button secondary" data-modal="language" lang="en">${t('settings.languageLabel',{name:LANGUAGE_STATUS[language()]?`${LANGUAGE_NAMES[language()]} (${LANGUAGE_STATUS[language()]})`:LANGUAGE_NAMES[language()]})}</button>
-<p>${t('settings.languageNote')}<br>${t('settings.languageWip')}</p>
+<button class="modal-button secondary" data-modal="language" lang="en"${rankedLock()?' disabled':''}>${t('settings.languageLabel',{name:LANGUAGE_STATUS[language()]?`${LANGUAGE_NAMES[language()]} (${LANGUAGE_STATUS[language()]})`:LANGUAGE_NAMES[language()]})}</button>
+<p>${rankedLock()?`${t('ranked.languageLocked')}<br>`:''}${t('settings.languageNote')}<br>${t('settings.languageWip')}</p>
 ${sec(t('settings.saveSection'))}
 <div class="modal-row"><button class="modal-button secondary" data-modal="backupExport">${t('settings.fullBackup')}</button>${simulating?'':t('settings.restore')}</div>
 <div class="modal-row"><button class="modal-button secondary" data-modal="runLog" ${lastRunLog(game)?'':'disabled'}>${t('controller.runLog.download')}</button></div>

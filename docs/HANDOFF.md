@@ -66,7 +66,7 @@
 | 地圖生成 | `world.js`（`generate`）、`map-*.js`、`pits.js`、`vault.js`、`vent-map.js`、`scenery.js`、`runtime-enemies.js` |
 | 危險地形與環境 | `hazard-paths.js`、`fire.js`、`vents.js`、`throwables.js`、`lighting.js`、`flares.js` |
 | 友軍 | `allies.js`、`workshop.js`、`pet-growth.js`、`melee-classes.js` |
-| 存檔與進度 | `storage.js`、`backup.js`、`progression.js`、`stale-runs.js`（3.210.0：舊版本沒打完的任務以放棄結算，`settleRun` 也是放棄任務與結算共用的那一段）、`retreat.js`（封存樓層）、`run-log.js`、`replay.js`、`ranked-daily.js`（排名每日：瀏覽器與排行榜伺服器共用的開局與重播驗證，docs/LEADERBOARD.md） |
+| 存檔與進度 | `storage.js`、`backup.js`、`progression.js`、`stale-runs.js`（3.210.0：舊版本沒打完的任務以放棄結算，`settleRun` 也是放棄任務與結算共用的那一段）、`retreat.js`（封存樓層）、`run-log.js`、`replay.js`、`ranked-daily.js`（排名每日：瀏覽器與排行榜伺服器共用的開局與重播驗證，docs/LEADERBOARD.md）、`ranked-profile.js`（排行榜身分）、`ranked-client.js`（3.224.0：出擊票、進行中的排名局、送分佇列）、`ranked-ui.js`（代號、榜單、結算那一行） |
 | 畫面 | `renderer.js`（Renderer 類別：建構子、畫面迴圈、鏡頭、目標卡位置、`draw` 依序叫各層）、`renderer-map.js`（地板那一層與地上的東西、牆與隔板、門、坑、道具、物品、出口、戰術疊圖、樓層地圖；3.211.0 起地面這一層分兩趟：先畫平貼地面的東西，接著 `drawCorpses` 畫屍體圖層，最後才畫每格的物件、掉落物與煙）、`renderer-actors.js`（單位那一層：圖、染色與精英外框、屍體、呼吸、血條）、`renderer-clouds.js`（排煙口、煙霧場兩種品質、燃燒的地板）、`renderer-telegraphs.js`（預告與瞄準：頭目與擲彈兵的預告、瞄準預覽、鎖定框）、`renderer-effects.js`（特效、撤離光束、訊號干擾、喊話泡泡、射程閃爍、最上層）；`render.js`、`fx-sprites.js`（煙霧場、火與格柵圖）、`camera.js`、`presentation.js`、`kia.js`、`gore.js`／`gore-art.js`（擊殺血光，3.211.0 起含近戰的甩出血光）、`corpse-layer.js`（3.211.0 屍體圖層：倒下的敵人在畫面上被打飛、碰牆停下、偏離格子中心；只在畫面，不碰遊戲狀態：唯一的 import 是 `gore.js`（讀卡片與武器資料算力道），規則與存檔仍讀原格子的敵人紀錄；讀檔後用編號算固定姿勢；docs/KILL_GORE.md） |
 | 偵測警報（3.207.0） | `detection.js`：不 import 任何模組；藏起來的東西登錄偵測器，`comms-events.js` 每次行動後問，範圍內有東西就講它的通訊事件（忍者的 `cloakAlert`；之後裂隙照用） |
 | 介面與通訊 | `controller.js`（狀態、事件監聽、`act`、`modal`、開新局與模擬、回放工具、測試掛勾）、`controller-hud.js`（`update`：戰鬥面板、狀態列、目標卡、按鈕；通知）、`controller-comms.js`（通訊列、訓練課程卡、通訊事件、頭目與陣亡演出、結局）、`controller-aim.js`（移動、各種瞄準、開火、互動、技能、手榴彈、道具、鎖定、熱鍵動作）、`controller-deploy.js`（標題與部署畫面、擊殺屋選單）、`controller-screens.js`（紀錄、任務、地圖、解鎖、升級、檔案、手冊、結算）、`controller-pack.js`（背包、工坊、武器比較、補給終端）、`controller-settings.js`（設定分頁、熱鍵、操作台配置、匯出存檔）；`comms.js`、`comms-events.js`、`target-card.js`、`deploy-ui.js`、`unlock-ui.js` |
@@ -90,6 +90,7 @@
 - 往返任務把離開的樓層封存在 `floorStates`（`src/retreat.js` 的 `FLOOR_FIELDS`）；`Game.restore` 用假存檔逐層檢查，新樓層欄位要列預設值。
 - 個人紀錄 `ash-profile`：`PROFILE_VERSION` 見 `src/progression.js`；完整備份見 `src/backup.js`。
 - 測試模式的鍵一律加 `qa-`；操作紀錄 `ash-run-log` 不在存檔裡。
+- 排名每日（3.224.0，docs/LEADERBOARD.md）：個人紀錄的 `ranked: {key, name}`（排行榜身分，完整備份會帶走）；`ash-ranked-run`（進行中的排名局：票、當天設定、語言）、`ash-ranked-queue`（打完待送的局，gzip 後的操作紀錄）、`ash-ranked-verdicts`（伺服器對最近幾局的回覆）。排名局的遊戲不接個人紀錄的解鎖（`connectUnlocks` 跳過），和伺服器重播一致。
 - 設定（例如「煙霧」`ash-smoke-quality`）存在各自裝置，不進存檔。
 
 ## 7. 發版

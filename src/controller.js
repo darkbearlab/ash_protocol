@@ -5,7 +5,7 @@ import './story-data.js';   // load order only (3.206.3 split)
 import {playerCalloutEvent} from './callouts.js';
 import './signal-glitch.js';   // load order only (3.206.3 split)
 import {availableCharacters} from './unlock-catalog.js';
-import {connectUnlocks,startCampaign,startKillhouse} from './storage.js';
+import {connectUnlocks,isRankedRun,startCampaign,startKillhouse} from './storage.js';
 import './unlock-ui.js';   // load order only (3.206.3 split)
 import {isNoncombatant} from './enemy-data.js';
 import {repairTargets} from './workshop.js';
@@ -66,12 +66,15 @@ import {read,write,loadGame,saveGame,profile,TEST_MODE,exportBackup,previewBacku
 import {staleRunOf} from './stale-runs.js';
 import {mirrorDeck,parseDeckLayout,DECK_GRID} from './deck-layout.js';
 import {replayLog,stateHash,validReplay} from './replay.js';
-import {persistRunLog,lastRunLog,runLogName,noteRunError} from './run-log.js';
+import {persistRunLog,lastRunLog,runLogName,noteRunError,trackRun} from './run-log.js';
+import {rankedParams} from './ranked-daily.js';
+import {flushRanked,rankedStatus,saveRankedName,settleRankedRun,startRankedCampaign} from './ranked-client.js';
+import {rankedName,validRankedName} from './ranked-profile.js';
 // 3.206.3: the topic modules (declarations only; they load before this file's start-up code runs).
 import {floorToast,notify,notifyLatest,renderEffects,update} from './controller-hud.js';
 import {bossScene,bossSceneTick,closeCourseCard,courseCard,courseHolds,courseNext,courseWaiting,endRecordComms,kia,kiaTick,playRecordComms,recordComms,resetKia,sayComms,setCourseWaiting,startBossDeath,startKia} from './controller-comms.js';
 import {HOTKEY_RUN,cancelAim,centerCamera,cycleTarget,fireWeapon,grenade,interact,move,operatorReady,recoverCorpse,retarget,setAim,setBlindAim,setDroneAim,setPetAim,setSuppressAim,skill,startBlindAim,startDeploy,startThrowAim,toggleTargeting,useItem,zoomBy} from './controller-aim.js';
-import {MISSION_IDS,drawOperatorSprites,runIsLive,showDeployDifficulty,showDeployMission,showDeployOperator,showDeployment,showIntro,showKillhouseMenu,startQuick} from './controller-deploy.js';
+import {MISSION_IDS,drawOperatorSprites,openRanked,rankedBoardReturn,refreshRankedResult,runIsLive,showDeployDifficulty,showDeployMission,showDeployOperator,showDeployment,showIntro,showKillhouseMenu,showRankedBoard,showRankedName,spendRankedTicket,startQuick} from './controller-deploy.js';
 import {bestiary,buyUnlock,confirmUnlock,showBriefing,showHelp,showJournal,showLevelUp,showLog,showMap,showMission,showPerks,showResult,showUnlocks} from './controller-screens.js';
 import {INVENTORY_TABS,inventoryTab,refreshTerminalDeal,setTerminalDraft,showBlueprints,showInventory,showTerminal,showTerminalDeal,showWeaponComparison,showWorkshop,startDeployAim,terminalDraft} from './controller-pack.js';
 import {DECK_LAYOUTS,PAD_SIZES,applyBrightness,applyDeck,applyHotkeyHints,captureHotkey,downloadJSON,exportSave,pickDeckSlot,saveDeckLayout,saveHotkeys,settings,showDeckEditor,showHotkeys,showSettingsTab,sizeDeck} from './controller-settings.js';
@@ -161,7 +164,7 @@ let saveWarned=false,saveWarningDue=false;
 // 3.150.0: the tab opened last owns the save; one that has been overtaken stops saving and says so.
 let tabLost=false;claimTab();
 addEventListener('storage',e=>{if(e.key!==tabKey()||!e.newValue||e.newValue===TAB_ID||tabLost)return;tabLost=true;modal(t('controller.otherTab'));});
-function persist(){if(tabLost)return false;const ok=saveGame(game);persistRunLog(game);$('#save-warning').hidden=ok;if(!ok&&!saveWarned){saveWarned=true;saveWarningDue=true;}return ok;}
+function persist(){if(tabLost)return false;const ok=saveGame(game);persistRunLog(game);if(game.status!=='playing'&&isRankedRun(game))sendRanked();$('#save-warning').hidden=ok;if(!ok&&!saveWarned){saveWarned=true;saveWarningDue=true;}return ok;}
 function showSaveWarning(){saveWarningDue=false;modal(t('controller.saveFailed'));}
 const pad=n=>String(n).padStart(2,'0');
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -318,7 +321,21 @@ function exitSimulation(){
   ({game,entered,resumable}=simulationReturn||{game:saved||new Game(undefined,profile().unlocks.weapons,profile().upgrades.carrying),entered:false,resumable:Boolean(saved)});
   simulationReturn=null;playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();resetKia();cancelAim();lastStatus=game.status;previousFloor=game.floor;update();
 }
-function newGame(seed,character,mission,options={facilityFaction:'random'}){if(isSimulation(game))exitSimulation();const portrait=deploymentFaces[character];if(!availableCharacters(profile()).includes(character)||!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify(t('controller.pickValidCharacter'));return;}if(game.status==='playing'&&(entered||resumable)){try{abandonRun(game);}catch(error){backupError(error);return;}}entered=true;resumable=false;game=startCampaign({seed,character,portrait,mission,options,duty:TEST_MODE?dutyOverride:undefined});dutyOverride=null;commsMemory=null;commsBefore=null;playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();resetKia();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();showBriefing();}
+function newGame(seed,character,mission,options={facilityFaction:'random'}){if(isSimulation(game))exitSimulation();const portrait=deploymentFaces[character];if(!availableCharacters(profile()).includes(character)||!validCharacter(character)||!validPortrait(portrait)||!validMissionId(mission)){notify(t('controller.pickValidCharacter'));return;}beginRun(()=>startCampaign({seed,character,portrait,mission,options,duty:TEST_MODE?dutyOverride:undefined}));}
+// 3.224.0 (docs/LEADERBOARD.md): the ranked daily run, from the ticket fetched when 排名每日 opened; its log says which
+// day it was played for, and it is sent when it ends.
+function newRankedGame(character){
+  if(isSimulation(game))exitSimulation();const portrait=deploymentFaces[character],ticket=deployDraft.ranked;
+  if(!ticket||!availableCharacters(profile()).includes(character)||!validCharacter(character)||!validPortrait(portrait)){notify(t('controller.pickValidCharacter'));return;}
+  if(beginRun(()=>{const g=startRankedCampaign(ticket,{character,portrait,duty:TEST_MODE?dutyOverride:undefined});trackRun(g,rankedParams(ticket.spec,g));return g;}))spendRankedTicket();
+}
+// The run in play is settled as abandoned, the one start() makes takes its place and its briefing opens.
+function beginRun(start){if(game.status==='playing'&&(entered||resumable)){const ranked=isRankedRun(game);try{abandonRun(game);}catch(error){backupError(error);return false;}if(ranked){persistRunLog(game);settleRankedRun(game);}}let next;try{next=start();}catch(error){notify(error.message,{danger:true});return false;}entered=true;resumable=false;game=next;dutyOverride=null;commsMemory=null;commsBefore=null;playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();resetKia();cancelAim();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();floorToast();showBriefing();return true;}
+// A finished ranked run goes into the queue, the queue is sent, and the result screen's line follows (src/ranked-client.js).
+let rankedRetry=0;
+async function sendRanked(){
+  try{if(await settleRankedRun(game))refreshRankedResult();const {sent,retryIn}=await flushRanked();if(sent)refreshRankedResult();clearTimeout(rankedRetry);if(retryIn)rankedRetry=setTimeout(sendRanked,retryIn);}catch{}
+}
 function backupError(error){modal(`<h2>${t('controller.backup.failedTitle')}</h2><p>${escapeHTML(error.message)}</p><button class="modal-button" data-modal="backupCancel">${t('controller.backToSettings')}</button>`);}
 function adoptSnapshot(next){
   game=next.game?connectUnlocks(next.game):new Game(undefined,profile().unlocks.weapons,profile().upgrades.carrying);entered=Boolean(next.game);resumable=Boolean(next.game);
@@ -424,12 +441,14 @@ document.addEventListener('click',e=>{
   if(b.dataset.tradeStep&&terminalDraft){const id=b.dataset.tradeStep,max=tradeHoldings(game).find(row=>row.id===id)?.max||0,next=Math.max(0,Math.min(max,(terminalDraft.trade[id]||0)+Number(b.dataset.step)));if(next)terminalDraft.trade[id]=next;else delete terminalDraft.trade[id];refreshTerminalDeal();return;}
   if(b.dataset.terminalConfirm!==undefined&&terminalDraft){const {buy,trade}=terminalDraft;setTerminalDraft(null);modalAction('terminal',{buy,trade});return;}
   if(b.dataset.terminalBack!==undefined){showTerminal();return;}
+  if(b.dataset.rankedDay!==undefined||b.dataset.rankedVersion){showRankedBoard({back:Number(b.dataset.rankedDay??b.dataset.rankedBack)||0,version:b.dataset.rankedVersion});return;}
   if(b.dataset.modal){switch(b.dataset.modal){
     case 'lastBattle':$('#modal').close();break;case 'enter':entered=true;$('#modal').close();update();floorToast();break;case 'intro':showIntro();break;case 'mission':showMission();break;case 'close':close();break;case 'bag':showInventory();break;case 'journal':showJournal();break;case 'bestiary':bestiary();break;case 'help':showHelp();break;case 'about':modal(aboutMarkup(),true);break;case 'log':showLog();break;
     case 'unlocks':showUnlocks();break;
     case 'result':showResult();break;
     // 3.114.0 (user request): after a loss, the same mission, seed and options with only the operative chosen again.
-    case 'redeploySame':{const plan=retryPlan(game);deploymentFaces=deploymentPortraits(Object.keys(CHARACTERS));deployDraft={mode:'retry',mission:offeredMission(plan.mission),seed:plan.seed,character:plan.character,retry:plan.options};showDeployOperator();break;}
+    // 3.224.0: after a ranked daily run it is another ranked run, with a new ticket.
+    case 'redeploySame':{if(rankedStatus(game)){openRanked();break;}const plan=retryPlan(game);deploymentFaces=deploymentPortraits(Object.keys(CHARACTERS));deployDraft={mode:'retry',mission:offeredMission(plan.mission),seed:plan.seed,character:plan.character,retry:plan.options};showDeployOperator();break;}
     case 'retryStart':{const character=$('input[name="character"]:checked')?.value,color=$('input[name="operator-color"]:checked')?.value;
       if(!validCharacter(character)){notify(t('controller.pickValidOperator'));return;}
       if(validOperatorColor(color)){renderer.operatorColor=color;write('ash-operator-color',color);}
@@ -450,7 +469,8 @@ document.addEventListener('click',e=>{
     case 'glitch':renderer.glitchEnabled=!renderer.glitchEnabled;renderer.glitches=[];renderer.objectGlitches.clear();write('ash-glitch',renderer.glitchEnabled?'on':'off');settings();break;
     case 'reclaimTab':location.reload();return;
     // 3.167.0: the language is chosen when the page loads, so switching saves the choice and reloads (the run is saved).
-    case 'language':{const next=LANGUAGES[(LANGUAGES.indexOf(language())+1)%LANGUAGES.length];if(runIsLive())persist();if(languageChoice(next))location.reload();else notify(t('settings.languageFailed'));break;}
+    // 3.224.0: not during a ranked daily run — its log has to replay in one language (docs/LEADERBOARD.md).
+    case 'language':{if(runIsLive()&&isRankedRun(game)){notify(t('ranked.languageLocked'));break;}const next=LANGUAGES[(LANGUAGES.indexOf(language())+1)%LANGUAGES.length];if(runIsLive())persist();if(languageChoice(next))location.reload();else notify(t('settings.languageFailed'));break;}
     case 'vhs':vhsFilter=!vhsFilter;write('ash-vhs',vhsFilter?'on':'off');document.documentElement.classList.toggle('vhs',vhsFilter);settings();break;
     case 'transmission':transmissionSeen=transmissionKey();showPerks();break;
     case 'hotkeyHints':hotkeyHints=!hotkeyHints;write('ash-hotkey-hints',hotkeyHints?'on':'off');applyHotkeyHints();settings();break;
@@ -480,6 +500,18 @@ document.addEventListener('click',e=>{
       const mission=$('input[name="mission"]:checked')?.value;
       if(!validMissionId(mission)){notify(t('controller.deploy.pickValidMission'));return;}
       deployDraft={mode:'normal',mission,seed};showDeployOperator();break;}
+    case 'deployRanked':openRanked();break;
+    case 'rankedName':{const name=rankedName($('#ranked-name')?.value);
+      if(!validRankedName(name)){notify(t('ranked.name.invalid'));return;}
+      if(!saveRankedName(name)){notify(t('ranked.name.notSaved'),{danger:true});return;}
+      if(b.dataset.back==='rankedBoard')showRankedBoard();else openRanked();break;}
+    case 'rankedRename':showRankedName('rankedBoard');break;
+    case 'rankedBoard':showRankedBoard({from:b.closest('#ranked-result')?'result':b.closest('.deploy-menu')?'deploy':undefined});break;
+    case 'rankedBack':if(rankedBoardReturn()==='result'&&entered&&game.status!=='playing')showResult();else showDeployment();break;
+    case 'rankedStart':{const character=$('input[name="character"]:checked')?.value,color=$('input[name="operator-color"]:checked')?.value;
+      if(!validCharacter(character)){notify(t('controller.pickValidCharacter'));return;}
+      if(validOperatorColor(color)){renderer.operatorColor=color;write('ash-operator-color',color);}
+      newRankedGame(character);break;}
     case 'deployDaily':{const seed=dailySeed();deployDraft={mode:'daily',mission:dailyMission(seed,MISSION_IDS),seed};showDeployOperator();break;}
     case 'deployQuick':if(runIsLive()){modal(t('controller.deploy.quickAbandon'));}else startQuick();break;
     case 'deployQuickStart':startQuick();break;
@@ -649,6 +681,10 @@ $('#import-save').addEventListener('change',async e=>{
   // 3.210.0 (src/stale-runs.js): a run saved before RUN_SAVE_FLOOR is not continued, so it is not imported either.
   try{if(file.size>1000000)throw new Error(t('controller.import.tooLarge'));const text=await file.text();if(staleRunOf(text))throw new Error(t('controller.import.oldRun'));const imported=Game.restore(text);if(!imported)throw new Error(t('controller.import.incompatible'));const kept=write('ash-save-before-import',game.serialize());game=connectUnlocks(imported);entered=true;resumable=true;game.setCarryLevel(profile().upgrades.carrying);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();resetKia();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify(kept?t('controller.import.done'):t('controller.import.doneNoBackup')); }catch(error){modal(t('controller.import.failedTitle')+escapeHTML(error.message)+t('controller.import.failedClose'));}e.target.value='';
 });
+// The callsign field keeps only what a callsign can hold, in capitals; Enter confirms it (3.224.0).
+const tidyCallsign=e=>{if(e.target.id!=='ranked-name'||e.isComposing)return;const v=rankedName(e.target.value);if(v!==e.target.value)e.target.value=v;};
+document.addEventListener('input',tidyCallsign);document.addEventListener('compositionend',tidyCallsign);
+document.addEventListener('keydown',e=>{if(e.target.id==='ranked-name'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();$('[data-modal="rankedName"]')?.click();}});
 document.addEventListener('selectstart',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(!target?.closest('input,textarea'))e.preventDefault();});
 document.addEventListener('contextmenu',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(target?.closest('.battle-panel'))e.preventDefault();});
 // Older iOS Safari still pans or bounces a locked page; stop drags outside menus, which keep their own scrolling.
@@ -656,6 +692,8 @@ document.addEventListener('touchmove',e=>{if(document.documentElement.classList.
 // No pinch zoom (3.98.1, user request): iOS Safari ignores user-scalable=no, so block the WebKit gesture events too.
 for(const type of ['gesturestart','gesturechange','gestureend'])document.addEventListener(type,e=>e.preventDefault(),{passive:false});
 window.addEventListener('pagehide',()=>{if(entered){saveGame(game);persistRunLog(game);}});update();showIntro();
+// 3.224.0: a ranked run that ended while the page was closed, and runs still waiting to be sent (src/ranked-client.js).
+sendRanked();window.addEventListener('online',()=>sendRanked());
 // The title modal is open by now, so revealing the shell cannot flash the battle UI.
 document.body.classList.remove('booting');
 if('serviceWorker'in navigator)navigator.serviceWorker.register(new URL('../sw.js',import.meta.url)).catch(()=>{});
