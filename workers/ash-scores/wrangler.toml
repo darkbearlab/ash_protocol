@@ -1,0 +1,38 @@
+# ash-scores: the ranked-daily leaderboard backend (README.md in this folder).
+# Its own Worker and its own D1 database on the DarkBearLab account, with no binding to anything else there. Run every
+# wrangler command for it from this folder (npm run dry-run / deploy / migrate:remote), never with --name. From
+# anywhere else the build step below fails and nothing is deployed.
+name = "ash-scores"
+main = "src/index.js"
+account_id = "beb6f869ff9d765dbf31116243c5b348"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# Copies the game engine of every supported version into .engines/ and writes src/engines.generated.js.
+[build]
+command = "node scripts/engines.mjs"
+
+# Some game modules build asset URLs from import.meta.url when they load (art atlases the rules never draw); in the
+# bundle that is no URL, so give it a placeholder.
+[define]
+"import.meta.url" = "\"https://ash-scores.invalid/src/engine.js\""
+
+# Workers Paid: a full six-floor run takes several seconds of CPU to play back.
+[limits]
+cpu_ms = 120000
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ash-scores-db"
+database_id = "REPLACE_WITH_THE_ID_FROM_wrangler_d1_create"
+migrations_dir = "migrations"
+
+[vars]
+ALLOWED_ORIGINS = "https://darkbearlab.github.io,https://html-classic.itch.zone"
+VARIANTS = "standard"
+MIN_MS_PER_OP = "150"
+SUBMIT_GRACE_HOURS = "6"
+
+# 03:30 in Taipei: clear old rate counters, unused tickets and stored logs older than 30 days.
+[triggers]
+crons = ["30 19 * * *"]

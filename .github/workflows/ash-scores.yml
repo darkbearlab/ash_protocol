@@ -1,0 +1,42 @@
+name: Test and deploy the leaderboard Worker (ash-scores)
+# Only the ash-scores Worker and its D1 database (workers/ash-scores/README.md). Every wrangler command here runs in
+# workers/ash-scores with its wrangler.toml; nothing touches any other Worker on the account. Deploys only when the
+# repository has the CLOUDFLARE_API_TOKEN secret; without it the job tests and stops.
+on:
+  push:
+    branches: [main]
+    paths: ['workers/ash-scores/**', 'src/ranked-daily.js', '.github/workflows/ash-scores.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: ash-scores
+  cancel-in-progress: false
+jobs:
+  ash-scores:
+    runs-on: ubuntu-latest
+    env:
+      HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+    defaults:
+      run:
+        working-directory: workers/ash-scores
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # engines.json names release tags
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm test
+        env:
+          ENGINES_ALLOW_WORKTREE: '1'
+      - name: Migrate, check the name and deploy
+        if: env.HAS_TOKEN == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          grep -q '^name = "ash-scores"$' wrangler.toml
+          npm run dry-run
+          npm run migrate:remote
+          npm run deploy
