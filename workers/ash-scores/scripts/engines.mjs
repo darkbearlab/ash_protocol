@@ -21,9 +21,15 @@ for(const [version,ref] of Object.entries(versions)){
   if(process.env.CI&&!process.env.ENGINES_ALLOW_WORKTREE)throw new Error(`engines.json: ${version} points at WORKTREE, which is for local development only`);
   cpSync(join(repo,'src'),join(first,'src'),{recursive:true});
  }else{
-  const tar=join(out,`${version}.tar`);
-  execFileSync('git',['-C',repo,'archive','--format=tar','-o',tar,ref,'src']);
-  execFileSync('tar',[...(process.platform==='win32'?['--force-local']:[]),'-xf',tar,'-C',first]);rmSync(tar);
+  // Read the ref's src/ straight from git (no tar: Git Bash's GNU tar mangles Windows paths).
+  const entries=execFileSync('git',['-C',repo,'ls-tree','-r','-z',ref,'src'],{encoding:'utf8'}).split('\0').filter(Boolean).map(line=>{const [meta,path]=line.split('\t');return {id:meta.split(' ')[2],path};});
+  if(!entries.length)throw new Error(`engines.json: ${ref} has no src/`);
+  const batch=execFileSync('git',['-C',repo,'cat-file','--batch'],{input:entries.map(e=>e.id).join('\n')+'\n',maxBuffer:1<<28});
+  let at=0;
+  for(const {path} of entries){
+   const eol=batch.indexOf(10,at),size=Number(batch.subarray(at,eol).toString().split(' ')[2]);
+   const file=join(first,path);mkdirSync(dirname(file),{recursive:true});writeFileSync(file,batch.subarray(eol+1,eol+1+size));at=eol+2+size;
+  }
  }
  const shipped=readFileSync(join(first,'src','version.js'),'utf8').match(/VERSION='([^']+)'/)?.[1];
  if(shipped!==version)throw new Error(`engines.json: ${ref} is version ${shipped}, not ${version}`);

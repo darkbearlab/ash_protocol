@@ -8,9 +8,9 @@
 - 所有 wrangler 指令都在**這個資料夾**用 `npm run …` 執行（`wrangler.toml` 的 `name = "ash-scores"`）；不要用 `--name`。在別的資料夾執行時，建置步驟會失敗，什麼都不會部署。
 - 不碰 `chimera` Worker、它的 Durable Object 與任何資料；不讀 hex-world repo。
 
-## 第一次設定（你來做）
+## 第一次設定
 
-在 `workers/ash-scores/` 裡：
+**已完成（2026-10-13，Claude 在使用者的電腦上做）**：資料庫 `ash-scores-db`（`9506726e-…`，APAC）、建表、部署、`DAILY_SECRET`（隨機 32 位元組，沒有留存，不需要知道）。以下是步驟紀錄，重新建一套時照做。在 `workers/ash-scores/` 裡（PowerShell 5.1 不認得 `&&`，指令要分開打或用 `;`）：
 
 1. `npm ci`
 2. `npx wrangler login`
@@ -29,7 +29,7 @@
 { "versions": { "3.224.0": "v3.224.0" } }
 ```
 
-值是那一版的 git tag（或 commit）。目前是 `"3.224.0": "WORKTREE"`（本機開發與測試用）；3.224.0 打上 tag 之後改成 `"v3.224.0"` 再部署。每個版本會打包中、英兩份引擎（遊戲的文字表在載入時就決定語言）。版本太多時打包會變大（每版約 0.8 MB gzip），停用的舊版可以拿掉，那一版的榜就不再收新成績。`WORKTREE` 只供本機開發，CI 部署時會被擋下。
+值是那一版的 git tag（或 commit）。目前是 `"3.224.0": "df11e0f"`（3.224.0 的提交；以後的版本用 tag 或提交都可以，部署的機器上要有那個提交）。引擎直接從 git 讀出那個提交的 `src/`。每個版本會打包中、英兩份引擎（遊戲的文字表在載入時就決定語言）。版本太多時打包會變大（每版約 0.8 MB gzip），停用的舊版可以拿掉，那一版的榜就不再收新成績。`WORKTREE` 只供本機開發，CI 部署時會被擋下。
 
 ## 本機開發
 
@@ -59,4 +59,4 @@ MIN_MS_PER_OP=0
 | GET | `/v1/daily/leaderboard?day=&variant=&version=&limit=&player=` | 榜單；`player` 是 `sha256("ash-player|"+playerKey)` 的前 32 個十六進位字 |
 | GET | `/v1/daily/boards?day=&variant=` | 當天有哪些版本的榜 |
 
-錯誤一律是 `{ok:false, error, reason?}`：`rate`（429）、`ticket-used`（409）、`closed`（410）、`too-fast` / `rejected`（422，`reason` 是重播驗證的結果：`start`、`replay`、`params`、`unfinished`、`partial`、`version`、`language`…）。
+錯誤一律是 `{ok:false, error, reason?}`：`rate`（429）、`ticket-used`（409：同一張票正在檢查；已經存下成績的票再送會回 200 與 `repeat: true`）、`closed`（410）、`too-fast` / `rejected`（422，`reason` 是重播驗證的結果：`start`、`replay`、`params`、`unfinished`、`partial`、`version`、`language`…）。

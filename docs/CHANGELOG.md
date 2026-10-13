@@ -11,7 +11,7 @@
   - 排名局進行中不能切換語言（紀錄要用同一種語言重播）。
 - 排名局不接個人紀錄的解鎖，讀檔接續時撿到的故事和伺服器重播挑的一樣；獎勵照常結算。
 - 一般任務的規則、存檔不變（怪物資料比對完全一致）。個人紀錄多一個選填欄位 `ranked`；新的本機鍵 `ash-ranked-run`、`ash-ranked-queue`、`ash-ranked-verdicts`。
-- 後端：`workers/ash-scores` 改收 3.224.0（`engines.json`），測試用的對局重新用通關機器人在 3.224.0 打一局。**還沒部署**：部署步驟在 `workers/ash-scores/README.md`；itch 版要重新打包才有排行榜。
+- 後端：`workers/ash-scores` 改收 3.224.0（`engines.json` 指到 3.224.0 的提交），測試用的對局重新用通關機器人在 3.224.0 打一局。**2026-10-13 已部署**到 `https://ash-scores.darkbearlab.workers.dev`（使用者：「你可以直接幫我做」）。正式伺服器重播一局六層約 35 秒，所以遊戲送分最多等 150 秒；同一張票再送會拿到同樣的回覆，檢查中斷的票 3 分鐘後可以再送。itch 版要重新打包才有排行榜。
 - 測試 `tests/ranked-client.test.mjs`（7 項）。報告：qa/results/2026-10-13-claude-3.224.0-ranked-daily.md。
 - 試玩重點：伺服器部署後，在 GitHub 版和 itch 版各打一局排名每日（輸入代號 → 選職業 → 打完看結算那一行和榜單）；打到一半重新整理再接著打，打完要能正常上榜；排名局中語言按鈕是停用的。
 

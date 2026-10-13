@@ -33,11 +33,17 @@ export async function addTicket(env,{id,player,day,variant,iat}){
  await env.DB.prepare('INSERT INTO tickets (id,player_id,day,variant,issued_at) VALUES (?,?,?,?,?)').bind(id,player,day,variant,iat).run();
 }
 // Marks the ticket used; false when it is unknown, someone else's, or already used.
+// A claim whose run was never stored (the request died during the replay, or the run was refused) can be claimed again
+// after RECLAIM_MS; a stored run keeps its ticket for good.
+export const RECLAIM_MS=3*60000;
 export async function claimTicket(env,t,now=Date.now()){
- const r=await env.DB.prepare('UPDATE tickets SET used_at=? WHERE id=? AND player_id=? AND day=? AND variant=? AND issued_at=? AND used_at IS NULL')
-  .bind(now,t.id,t.player,t.day,t.variant,t.iat).run();
+ const r=await env.DB.prepare(`UPDATE tickets SET used_at=? WHERE id=? AND player_id=? AND day=? AND variant=? AND issued_at=?
+  AND (used_at IS NULL OR (used_at<? AND NOT EXISTS (SELECT 1 FROM runs WHERE runs.ticket_id=tickets.id)))`)
+  .bind(now,t.id,t.player,t.day,t.variant,t.iat,now-RECLAIM_MS).run();
  return r.meta.changes===1;
 }
+// The run already stored for a ticket, if any (a sender whose answer was lost asks again).
+export const runForTicket=(env,ticket)=>env.DB.prepare('SELECT * FROM runs WHERE ticket_id=?').bind(ticket).first();
 
 export async function addRun(env,r){
  const res=await env.DB.prepare(`INSERT INTO runs (day,variant,version,player_id,ticket_id,name,channel,language,character,status,deepest,turns,kills,level,

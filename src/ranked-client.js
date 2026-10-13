@@ -18,7 +18,8 @@ export const SCORES_URL='https://ash-scores.darkbearlab.workers.dev';
 export const LOCAL_SCORES_URL='http://localhost:8787';
 export const RANKED_VARIANT='standard';
 export const RANKED_QUEUE_KEY='ash-ranked-queue',RANKED_VERDICTS_KEY='ash-ranked-verdicts';
-const QUEUE_LIMIT=5,VERDICT_LIMIT=8,TIMEOUT=20000,DAY=86400000,TAIPEI=8*3600000;
+// SUBMIT_TIMEOUT: the server plays the whole run back before it answers (about 35 s for six floors on the live Worker).
+const QUEUE_LIMIT=5,VERDICT_LIMIT=8,TIMEOUT=20000,SUBMIT_TIMEOUT=150000,DAY=86400000,TAIPEI=8*3600000;
 // Test mode (?test=1) talks to a local server (workers/ash-scores: npm run dev) unless ?scores=live; ?scores=off turns
 // the leaderboard off anywhere.
 export function scoresBase(search=globalThis.location?.search||'',test=TEST_MODE){
@@ -44,9 +45,9 @@ export async function packLog(log){
 
 const rankedError=(code,extra={})=>Object.assign(new Error(code),{code,...extra});
 // One request; a failure throws {code, status, reason}: the server's error, or 'network' / 'off'.
-async function call(path,{method='GET',body}={}){
+async function call(path,{method='GET',body,timeout=TIMEOUT}={}){
  const base=scoresBase();if(!base)throw rankedError('off');
- const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),TIMEOUT);let response;
+ const abort=new AbortController(),timer=setTimeout(()=>abort.abort(),timeout);let response;
  try{response=await fetch(base+path,{method,headers:body?{'content-type':'application/json'}:{},body:body&&JSON.stringify(body),signal:abort.signal,cache:'no-store'});}
  catch{throw rankedError('network');}finally{clearTimeout(timer);}
  let data=null;try{data=await response.json();}catch{}
@@ -119,7 +120,8 @@ export async function settleRankedRun(game){
   noteVerdict(run.runId,{...verdict,day:run.spec?.day});removeExtra(RANKED_RUN_KEY);return true;
  }finally{settling=false;}
 }
-// Sends the queue, oldest first. Resolves to {sent, retryIn}: retryIn (ms) when the server asked to wait.
+// Sends the queue, oldest first. Resolves to {sent, retryIn}: retryIn (ms) when it is worth trying again while the page
+// stays open (otherwise the next run's end, the next load or the browser coming back online sends it).
 let flushing=null;
 export function flushRanked(host=globalThis.location?.hostname){if(!flushing)flushing=sendQueue(host).finally(()=>{flushing=null;});return flushing;}
 async function sendQueue(host){
@@ -129,14 +131,17 @@ async function sendQueue(host){
   const drop=verdict=>{saveQueue(rankedQueue().filter(e=>e.runId!==entry.runId));noteVerdict(entry.runId,{...verdict,day:entry.day});sent++;};
   if(Date.now()>entry.submitBy){drop({state:'expired'});continue;}
   try{
-   const d=await call('/v1/daily/runs',{method:'POST',body:{ticket:entry.ticket,playerKey:me.key,name:me.name,version:entry.version,channel:channelOf(host),language:entry.language,log:entry.log}});
+   // A run sent again after its answer was lost gets the same answer (repeat).
+   const d=await call('/v1/daily/runs',{method:'POST',timeout:SUBMIT_TIMEOUT,body:{ticket:entry.ticket,playerKey:me.key,name:me.name,version:entry.version,channel:channelOf(host),language:entry.language,log:entry.log}});
    drop({state:'sent',rank:d.best?.rank??null,newBest:Boolean(d.newBest),version:d.board?.version,result:d.result});
   }catch(error){
+   // Kept for later (until submitBy): the server asked to wait, is still checking an earlier send of this run
+   // (ticket-used), cannot be reached, failed, or does not know this version yet.
    if(error.code==='rate')return {sent,retryIn:31000};
-   // Kept for later: no connection, a server fault, or a server not yet updated for this version (until submitBy).
-   if(['network','off','server','not-configured','version'].includes(error.code)||error.status>=500)return {sent,retryIn:0};
-   // ticket-used: an earlier send got through and its answer was lost.
-   drop(error.code==='ticket-used'?{state:'sent',rank:null}:error.code==='closed'?{state:'expired'}:{state:'rejected',reason:error.reason||error.code});
+   if(error.code==='ticket-used')return {sent,retryIn:90000};
+   if(error.code==='network'||error.code==='server'||error.status>=500)return {sent,retryIn:60000};
+   if(['off','not-configured','version'].includes(error.code))return {sent,retryIn:0};
+   drop(error.code==='closed'?{state:'expired'}:{state:'rejected',reason:error.reason||error.code});
   }
  }
  return {sent,retryIn:0};

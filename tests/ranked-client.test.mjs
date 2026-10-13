@@ -82,15 +82,18 @@ test('the queue keeps runs through a lost connection, a server fault or a busy s
   const entry=id=>({runId:id,ticket:id,day:SPEC.day,submitBy:Date.now()+3600000,language:'en',version:VERSION,log:'H4sI'});
   localStorage.setItem(RANKED_QUEUE_KEY,JSON.stringify([{...entry('late'),submitBy:Date.now()-1},entry('a'),entry('b'),entry('c')]));
   let answers=[];globalThis.fetch=async()=>{const a=answers.shift();if(a==='down')throw new TypeError('offline');return new Response(JSON.stringify(a.body),{status:a.status});};
-  answers=['down'];assert.deepEqual(await flushRanked('localhost'),{sent:1,retryIn:0});
+  answers=['down'];assert.deepEqual(await flushRanked('localhost'),{sent:1,retryIn:60000});
   assert.equal(rankedVerdicts().late.state,'expired','past its deadline: never sent');assert.deepEqual(rankedQueue().map(e=>e.runId),['a','b','c']);
   answers=[{status:422,body:{ok:false,error:'rejected',reason:'replay'}},{status:410,body:{ok:false,error:'closed'}},{status:429,body:{ok:false,error:'rate'}}];
   assert.deepEqual(await flushRanked('localhost'),{sent:2,retryIn:31000});
   assert.deepEqual(rankedVerdicts().a,{state:'rejected',reason:'replay',day:SPEC.day,at:rankedVerdicts().a.at});
   assert.equal(rankedVerdicts().b.state,'expired');assert.deepEqual(rankedQueue().map(e=>e.runId),['c']);
   answers=[{status:400,body:{ok:false,error:'version'}}];assert.deepEqual(await flushRanked('localhost'),{sent:0,retryIn:0});assert.equal(rankedQueue().length,1,'kept until the server knows this build');
-  answers=[{status:409,body:{ok:false,error:'ticket-used'}}];await flushRanked('localhost');
-  assert.deepEqual(rankedQueue(),[]);assert.equal(rankedVerdicts().c.state,'sent','an earlier send got through');
+  answers=[{status:409,body:{ok:false,error:'ticket-used'}}];assert.deepEqual(await flushRanked('localhost'),{sent:0,retryIn:90000});
+  assert.equal(rankedQueue().length,1,'an earlier send is still being checked');
+  answers=[{status:500,body:{ok:false,error:'server'}}];assert.deepEqual(await flushRanked('localhost'),{sent:0,retryIn:60000});
+  answers=[{status:200,body:{ok:true,repeat:true,best:{rank:4},newBest:false,board:{version:VERSION},result:{}}}];await flushRanked('localhost');
+  assert.deepEqual(rankedQueue(),[]);assert.equal(rankedVerdicts().c.rank,4,'its lost answer, given again');
 });
 
 test('an abandoned ranked run is not sent, and nothing is sent without a callsign',async()=>{

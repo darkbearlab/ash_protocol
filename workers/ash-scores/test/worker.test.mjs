@@ -69,9 +69,20 @@ test('one ticket, one run, one player',{skip},async()=>{
  const env=setup();
  const t=await ticket(env);
  assert.equal((await submit(env,t,{playerKey:OTHER})).status,403);
- assert.equal((await submit(env,t)).status,200);
+ const first=await submit(env,t);assert.equal(first.status,200);
  clock+=60000;
- assert.equal((await submit(env,t)).status,409);
+ const again=await submit(env,t);assert.equal(again.status,200,'sent again after a lost answer: the same answer');
+ assert.equal(again.data.repeat,true);assert.deepEqual(again.data.best,first.data.best);assert.equal(again.data.newBest,true);
+ assert.equal(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM runs').get().n,1,'stored once');
+});
+
+test('a ticket whose check died can be claimed again after three minutes; one being checked cannot',{skip},async()=>{
+ const env=setup(),t=await ticket(env),id=JSON.parse(Buffer.from(t.split('.')[0],'base64url')).id;
+ clock+=fixture.log.ops.length*150+1000;
+ env.DB.raw.prepare('UPDATE tickets SET used_at=? WHERE id=?').run(clock,id);   // a request claimed it and died
+ assert.equal((await submit(env,t)).status,409,'still being checked');
+ clock+=3*60000+1;
+ assert.equal((await submit(env,t)).status,200);
 });
 
 test('altered logs are refused, and so are runs made too fast',{skip},async()=>{

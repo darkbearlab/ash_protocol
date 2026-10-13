@@ -24,7 +24,7 @@ cpu_ms = 120000
 [[d1_databases]]
 binding = "DB"
 database_name = "ash-scores-db"
-database_id = "REPLACE_WITH_THE_ID_FROM_wrangler_d1_create"
+database_id = "9506726e-0e08-472d-b616-fd953d362afd"
 migrations_dir = "migrations"
 
 [vars]

@@ -74,7 +74,13 @@ async function runs(env,request){
  let gz,log;
  try{gz=b64Decode(b.log);if(gz.length>MAX_LOG_GZ)throw 0;log=JSON.parse(await gunzipText(gz,MAX_LOG_JSON));}catch{return fail(env,request,400,'log');}
  if(!log||!Array.isArray(log.ops))return fail(env,request,400,'log');
- if(!await db.claimTicket(env,t,now))return fail(env,request,409,'ticket-used');
+ if(!await db.claimTicket(env,t,now)){
+  // Sent again after its answer was lost: the same answer. Otherwise it is being checked right now (409).
+  const done=await db.runForTicket(env,t.id);if(!done)return fail(env,request,409,'ticket-used');
+  const board={day:done.day,variant:done.variant,version:done.version},me=await db.standing(env,{...board,player});
+  const result={status:done.status,deepest:done.deepest,floor:done.deepest,turns:done.turns,kills:done.kills,character:done.character,level:done.level};
+  return json(env,request,200,{ok:true,board,result,best:me&&publicRow(me),newBest:Boolean(me)&&me.score_key===done.score_key&&me.created_at===done.created_at,repeat:true});
+ }
  // A run takes time to play by hand: refuse logs far faster than anyone plays (MIN_MS_PER_OP per step).
  const durationS=Math.round((now-t.iat)/1000);
  if(now-t.iat<log.ops.length*Number(env.MIN_MS_PER_OP||150))return fail(env,request,422,'too-fast');

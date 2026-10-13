@@ -2035,7 +2035,7 @@ export default Object.freeze({
  "ranked.result.sent":"已送出。",
  "ranked.result.rejected":"成績沒有被採用（{reason}）。",
  "ranked.result.settling":"整理操作紀錄中…",
- "ranked.result.queued":"等待送出：連上網路後會自動送。",
+ "ranked.result.queued":"送出中：伺服器會把整局重播一遍來驗證，約半分鐘；沒有網路時，連上後會自動再送。",
  "ranked.result.expired":"超過送分時間（隔天早上 6 點），沒有上榜。",
  "ranked.result.nolog":"這局的操作紀錄不完整，不能上榜。",
  "ranked.result.abandoned":"放棄的任務不上榜。",

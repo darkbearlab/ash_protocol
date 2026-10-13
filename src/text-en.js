@@ -2034,7 +2034,7 @@ export default Object.freeze({
  "ranked.result.sent":"Sent.",
  "ranked.result.rejected":"The run wasn't accepted ({reason}).",
  "ranked.result.settling":"Packing the operation log…",
- "ranked.result.queued":"Waiting to send; it goes out once you're online.",
+ "ranked.result.queued":"Sending: the server replays the whole run to check it, about half a minute. If you're offline, it goes out once you're back.",
  "ranked.result.expired":"Too late to send (the deadline is 06:00 Taipei time the next day), so it isn't ranked.",
  "ranked.result.nolog":"This run's operation log is incomplete, so it can't be ranked.",
  "ranked.result.abandoned":"Abandoned missions aren't ranked.",
