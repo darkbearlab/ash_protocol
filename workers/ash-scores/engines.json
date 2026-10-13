@@ -1,6 +1,6 @@
 {
   "_note": "Game versions this server can check: version -> git ref of that release (a tag such as v3.224.0, or a commit). 'WORKTREE' copies ../../src as it is now and is for local development only; scripts/engines.mjs refuses it when CI is set.",
   "versions": {
-    "3.224.0": "df11e0f"
+    "3.224.0": "094607d"
   }
 }
