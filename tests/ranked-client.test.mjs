@@ -11,7 +11,7 @@ globalThis.localStorage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.se
 const {saveGame,loadGame,startCampaign,profile,isRankedRun,rankedRun,RANKED_RUN_KEY,abandonRun}=await import('../src/storage.js');
 const {trackRun,persistRunLog,storedRunLog}=await import('../src/run-log.js');
 const {rankedParams,verifyRankedRun}=await import('../src/ranked-daily.js');
-const {SCORES_URL,LOCAL_SCORES_URL,RANKED_QUEUE_KEY,channelOf,flushRanked,playerIdOf,rankedQueue,rankedStatus,rankedVerdicts,saveRankedName,scoresBase,settleRankedRun,startRankedCampaign,taipeiDay}=await import('../src/ranked-client.js');
+const {SCORES_URL,LOCAL_SCORES_URL,RANKED_QUEUE_KEY,channelOf,flushRanked,playerIdOf,rankedKey,rankedQueue,rankedStatus,rankedVerdicts,saveRankedName,scoresBase,settleRankedRun,startRankedCampaign,submitRankedReport,taipeiDay,unsentReports}=await import('../src/ranked-client.js');
 const {newRankedKey,rankedName,validRankedKey,validRankedName}=await import('../src/ranked-profile.js');
 const {normalizeProfile}=await import('../src/progression.js');
 const {makeBackup,decodeBackup}=await import('../src/backup.js');
@@ -25,21 +25,24 @@ const turn=(g,type,arg)=>{g.action(type,arg);saveGame(g);persistRunLog(g);};
 function play(g,steps){for(let i=0;i<steps&&g.status==='playing';i++)turn(g,...[['move',[1,0]],['wait'],['move',[0,1]],['wait'],['move',[-1,0]]][i%5]);}
 const unpack=async b64=>JSON.parse(await new Response(new Blob([Buffer.from(b64,'base64')]).stream().pipeThrough(new DecompressionStream('gzip'))).text());
 function rankedRunToEnd(status){
-  memory.clear();saveRankedName('ACE');
+  memory.clear();rankedKey();
   const g=startRankedCampaign(TICKET,{character:'soldier',portrait:'onyx'});trackRun(g,rankedParams(SPEC,g));play(g,6);
   g.status=status;saveGame(g);persistRunLog(g);return g;
 }
 
-test('the callsign keeps three capitals or digits; the key is random and the profile and a backup keep both',()=>{
+test('the callsign keeps three capitals or digits; the key comes first, and the profile and a backup keep both',()=>{
   assert.equal(rankedName(' ab-c9z '),'ABC');assert.equal(rankedName('名字x1'),'X1');
   assert.ok(validRankedName('A1Z'));for(const bad of ['ab1','ABCD','AB','A B',null])assert.ok(!validRankedName(bad));
   const key=newRankedKey();assert.ok(validRankedKey(key));assert.equal(key.length,32);assert.notEqual(newRankedKey(),key);
   const p=normalizeProfile({ranked:{key,name:'ACE',extra:1}});assert.deepEqual(p.ranked,{key,name:'ACE'});
-  assert.equal(normalizeProfile({ranked:{key:'short',name:'ACE'}}).ranked,undefined,'a damaged identity is asked for again');
+  assert.equal(normalizeProfile({ranked:{key:'short',name:'ACE'}}).ranked,undefined,'a damaged key is made again');
+  assert.deepEqual(normalizeProfile({ranked:{key,name:'<b>'}}).ranked,{key},'a damaged callsign is asked for again; the player stays');
+  assert.deepEqual(decodeBackup(JSON.stringify(makeBackup(null,normalizeProfile({ranked:{key}}),'qa')),'qa').snapshot.profile.ranked,{key},'a key without a callsign yet');
   const backup=makeBackup(null,p,'qa');assert.deepEqual(decodeBackup(JSON.stringify(backup),'qa').snapshot.profile.ranked,{key,name:'ACE'});
   const bad=JSON.parse(JSON.stringify(backup));bad.profile.ranked={key,name:'<b>'};assert.throws(()=>decodeBackup(JSON.stringify(bad),'qa'));
-  memory.clear();const first=saveRankedName('ACE');assert.ok(validRankedKey(first.key));
-  assert.equal(saveRankedName('BOB').key,first.key,'renaming keeps the key');assert.deepEqual(profile().ranked,{key:first.key,name:'BOB'});
+  memory.clear();const first=rankedKey();assert.ok(validRankedKey(first));assert.deepEqual(profile().ranked,{key:first},'no callsign before a report');
+  assert.equal(rankedKey(),first);assert.equal(saveRankedName('BOB').key,first,'a callsign keeps the key');assert.deepEqual(profile().ranked,{key:first,name:'BOB'});
+  assert.equal(saveRankedName('bo'),false);
 });
 
 test('the server address, the channel, the Taipei day and the player id match the server',async()=>{
@@ -63,12 +66,17 @@ test('a ranked run recorded by the client passes the server check, and a reload 
   assert.equal(isRankedRun(normal),false);assert.equal(collectStory(normal,{x:1,y:1,floor:1}),null,'a normal run is');
 });
 
-test('a finished ranked run is packed into the queue and sent; the result screen follows the answer',async()=>{
-  const g=rankedRunToEnd('dead');assert.deepEqual(rankedStatus(g),{state:'settling'});
+test('a finished ranked run waits in the queue for its report, then is sent with that callsign; the result screen follows',async()=>{
+  const g=rankedRunToEnd('dead');assert.deepEqual(rankedStatus(g),{state:'settling',runId:g.runId});
   assert.equal(await settleRankedRun(g),true);assert.equal(rankedRun(),null);assert.equal(await settleRankedRun(g),false,'once');
-  assert.equal(rankedStatus(g).state,'queued');const [entry]=rankedQueue();
+  assert.deepEqual(rankedStatus(g),{state:'unsent',day:SPEC.day,at:rankedStatus(g).at,runId:g.runId});const [entry]=rankedQueue();
   assert.deepEqual(await unpack(entry.log),storedRunLog(),'the whole log, gzipped');
+  assert.equal(entry.character,'soldier');assert.equal(entry.result.status,'dead');assert.deepEqual(unsentReports().map(e=>e.runId),[g.runId]);
   const calls=[];globalThis.fetch=async(url,init)=>{calls.push({url,body:JSON.parse(init.body)});return new Response(JSON.stringify({ok:true,board:{version:VERSION},best:{rank:3},newBest:true,result:{status:'dead'}}),{status:200});};
+  assert.deepEqual(await flushRanked('html-classic.itch.zone'),{sent:0,retryIn:0});assert.equal(calls.length,0,'nothing goes before its report');
+  assert.equal(submitRankedReport(g.runId,'a'),'invalid');assert.equal(submitRankedReport('other',' a-ce '),'gone');
+  assert.equal(submitRankedReport(g.runId,' a-ce '),'');assert.equal(rankedStatus(g).state,'queued');assert.deepEqual(unsentReports(),[]);
+  assert.equal(profile().ranked.name,'ACE','offered again next time');
   assert.deepEqual(await flushRanked('html-classic.itch.zone'),{sent:1,retryIn:0});
   assert.equal(calls[0].url,`${SCORES_URL}/v1/daily/runs`);
   const {log,...body}=calls[0].body;assert.equal(log,entry.log);
@@ -79,7 +87,7 @@ test('a finished ranked run is packed into the queue and sent; the result screen
 
 test('the queue keeps runs through a lost connection, a server fault or a busy server, and drops what the server refuses',async()=>{
   rankedRunToEnd('won');
-  const entry=id=>({runId:id,ticket:id,day:SPEC.day,submitBy:Date.now()+3600000,language:'en',version:VERSION,log:'H4sI'});
+  const entry=id=>({runId:id,ticket:id,day:SPEC.day,submitBy:Date.now()+3600000,language:'en',version:VERSION,name:'ACE',log:'H4sI'});
   localStorage.setItem(RANKED_QUEUE_KEY,JSON.stringify([{...entry('late'),submitBy:Date.now()-1},entry('a'),entry('b'),entry('c')]));
   let answers=[];globalThis.fetch=async()=>{const a=answers.shift();if(a==='down')throw new TypeError('offline');return new Response(JSON.stringify(a.body),{status:a.status});};
   answers=['down'];assert.deepEqual(await flushRanked('localhost'),{sent:1,retryIn:60000});
@@ -96,21 +104,30 @@ test('the queue keeps runs through a lost connection, a server fault or a busy s
   assert.deepEqual(rankedQueue(),[]);assert.equal(rankedVerdicts().c.rank,4,'its lost answer, given again');
 });
 
-test('an abandoned ranked run is not sent, and nothing is sent without a callsign',async()=>{
+test('an abandoned ranked run is not sent, nothing is sent without a key, and an unsent report expires',async()=>{
   memory.clear();const g=startRankedCampaign(TICKET,{character:'soldier',portrait:'onyx'});trackRun(g,rankedParams(SPEC,g));play(g,3);
   abandonRun(g);persistRunLog(g);assert.equal(await settleRankedRun(g),true);
   assert.equal(rankedStatus(g).state,'abandoned');assert.deepEqual(rankedQueue(),[]);
-  localStorage.setItem(RANKED_QUEUE_KEY,JSON.stringify([{runId:'x',submitBy:Date.now()+1000}]));
+  localStorage.setItem(RANKED_QUEUE_KEY,JSON.stringify([{runId:'x',name:'ACE',submitBy:Date.now()+1000}]));
   globalThis.fetch=async()=>assert.fail('no request without an identity');
   assert.deepEqual(await flushRanked('localhost'),{sent:0,retryIn:0});
+  rankedKey();localStorage.setItem(RANKED_QUEUE_KEY,JSON.stringify([{runId:'y',day:SPEC.day,submitBy:Date.now()-1}]));
+  assert.deepEqual(unsentReports(),[]);assert.deepEqual(await flushRanked('localhost'),{sent:1,retryIn:0});assert.equal(rankedVerdicts().y.state,'expired');
 });
 
-test('controller wiring: the ranked start records the day, a finished run is sent, and its language is locked',()=>{
+test('controller wiring: the ranked start records the day, a report sends its run, the language is locked, the offline daily is hidden',async()=>{
   const source=sourceFamily('controller');
   assert.ok(source.includes('trackRun(g,rankedParams(ticket.spec,g))'));
   assert.match(source,/function persist\(\)\{if\(tabLost\)return false;const ok=saveGame\(game\);persistRunLog\(game\);if\(game\.status!=='playing'&&isRankedRun\(game\)\)sendRanked\(\);/);
   assert.ok(source.includes("case 'language':{if(runIsLive()&&isRankedRun(game)){notify(t('ranked.languageLocked'));break;}"));
   assert.ok(source.includes('data-modal="language" lang="en"${rankedLock()?\' disabled\':\'\'}'));
   assert.ok(source.includes("sendRanked();window.addEventListener('online',()=>sendRanked());"));
-  assert.ok(source.includes('${rankedResultMarkup(rankedStatus(g))}'));
+  const result=source.slice(source.indexOf('function showResult'),source.indexOf('function showResult')+4000);assert.ok(result.includes('${rankedResultBlock(game)}<p>'),'right under the numbers of the run');
+  assert.ok(source.includes("case 'rankedReport':{const why=submitRankedReport(b.dataset.run,$('#ranked-name')?.value);"));
+  assert.ok(source.includes("${OFFLINE_DAILY?row('deployDaily'"));
+  const {OFFLINE_DAILY,rankedFailedMarkup,rankedResultMarkup}=await import('../src/ranked-ui.js');
+  assert.equal(OFFLINE_DAILY,false);assert.ok(!rankedFailedMarkup('network').includes('deployDaily'));
+  const unsent=rankedResultMarkup({state:'unsent',runId:'r1'},'ACE');
+  assert.match(unsent,/id="ranked-name" value="ACE"/);assert.match(unsent,/data-modal="rankedReport" data-run="r1" data-back="result"/);
+  assert.ok(!rankedResultMarkup({state:'sent',rank:2,runId:'r1'},'ACE').includes('ranked-name'),'no field once the report is in');
 });

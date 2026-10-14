@@ -90,7 +90,7 @@
 - 往返任務把離開的樓層封存在 `floorStates`（`src/retreat.js` 的 `FLOOR_FIELDS`）；`Game.restore` 用假存檔逐層檢查，新樓層欄位要列預設值。
 - 個人紀錄 `ash-profile`：`PROFILE_VERSION` 見 `src/progression.js`；完整備份見 `src/backup.js`。
 - 測試模式的鍵一律加 `qa-`；操作紀錄 `ash-run-log` 不在存檔裡。
-- 排名每日（3.224.0，docs/LEADERBOARD.md）：個人紀錄的 `ranked: {key, name}`（排行榜身分，完整備份會帶走）；`ash-ranked-run`（進行中的排名局：票、當天設定、語言）、`ash-ranked-queue`（打完待送的局，gzip 後的操作紀錄）、`ash-ranked-verdicts`（伺服器對最近幾局的回覆）。排名局的遊戲不接個人紀錄的解鎖（`connectUnlocks` 跳過），和伺服器重播一致。
+- 排名每日（3.224.0，docs/LEADERBOARD.md）：個人紀錄的 `ranked: {key, name?}`（排行榜身分與上次的代號，完整備份會帶走）；`ash-ranked-run`（進行中的排名局：票、當天設定、語言）、`ash-ranked-queue`（打完的局，gzip 後的操作紀錄；送出報告後帶著代號送出）、`ash-ranked-verdicts`（伺服器對最近幾局的回覆）。排名局的遊戲不接個人紀錄的解鎖（`connectUnlocks` 跳過），和伺服器重播一致。
 - 設定（例如「煙霧」`ash-smoke-quality`）存在各自裝置，不進存檔。
 
 ## 7. 發版

@@ -25,9 +25,8 @@ import {capacity} from './ammunition.js';
 import {DIFFICULTY_OPTIONS,FACILITY_OPTIONS,REAL_MODE_NOTE,difficultyMeta,difficultyOption,facilityOption,realModeMeta,runOptions} from './deploy-ui.js';
 import {SURVIVAL_TUNING} from './survival.js';
 import {VERSION} from './version.js';
-import {validRankedProfile} from './ranked-profile.js';
-import {fetchBoard,fetchBoards,fetchTicket,rankedStatus,taipeiDay} from './ranked-client.js';
-import {rankedBoardMarkup,rankedConnectingMarkup,rankedFailedMarkup,rankedNameMarkup,rankedResultMarkup,rankedSummary} from './ranked-ui.js';
+import {fetchBoard,fetchBoards,fetchTicket,rankedKey,rankedStatus,taipeiDay,unsentReports} from './ranked-client.js';
+import {OFFLINE_DAILY,rankedBoardMarkup,rankedConnectingMarkup,rankedFailedMarkup,rankedReportMarkup,rankedResultMarkup,rankedSummary} from './ranked-ui.js';
 import {$,deployDraft,deploymentFaces,entered,exitSimulation,game,modal,newGame,renderer,resumable,setDeployDraft,setDeploymentFaces,setTitleFlow,titleFlow} from './controller.js';
 import {startingKit} from './controller-screens.js';
 export function showIntro(){
@@ -81,7 +80,7 @@ export function showDeployment(){
 <nav class="title-menu deploy-menu">
 ${row('deployNormal','NORMAL GAME',t('controller.deploy.custom'))}
 ${row('deployRanked','RANKED DAILY',t('ranked.menuNote'))}
-${row('deployDaily','DAILY GAME',`${t('controller.deploy.daily',{dailySeed:dailySeed()})}`)}
+${OFFLINE_DAILY?row('deployDaily','DAILY GAME',`${t('controller.deploy.daily',{dailySeed:dailySeed()})}`):''}
 ${row('deployQuick','QUICK GAME',t('controller.deploy.quick'))}
 ${row('rankedBoard','LEADERBOARD',t('ranked.boardNote'))}
 </nav>
@@ -137,27 +136,33 @@ const OPERATOR_ORDER=['soldier','recon','engineer','necromancer','druid','bulwar
 export function showKillhouseMenu(){modal(killhouseMenuMarkup(profile(),orderedCharacters(),lockedCharacters()));}
 
 // Ranked daily (3.224.0, docs/LEADERBOARD.md). Opening it asks the server for a ticket and the day's spec; a ticket not
-// yet spent is kept for the day, so stepping back and in again costs none of the day's tickets.
-let rankedTicket=null,rankedBoardState=null;
+// yet spent is kept for the day, so stepping back and in again costs none of the day's tickets. A report left unsent on
+// an earlier run is offered first (3.225.0), once per visit to the menu if the player puts it off.
+let rankedTicket=null,rankedBoardState=null,reportsPutOff=false;
 export const spendRankedTicket=()=>{rankedTicket=null;};
+export const putOffReports=()=>{reportsPutOff=true;};
 const waiting=()=>Boolean(document.getElementById('ranked-wait'));
 export async function openRanked(){
-  const me=profile().ranked;
-  if(!validRankedProfile(me)){showRankedName('deploy');return;}
+  const unsent=unsentReports()[0];
+  if(unsent&&!reportsPutOff){showRankedReport(unsent,'deployRanked');return;}
+  const key=rankedKey();if(!key){modal(rankedFailedMarkup('storage'));return;}
   if(rankedTicket&&rankedTicket.spec.day===taipeiDay()){deployRanked(rankedTicket);return;}
   modal(rankedConnectingMarkup());
-  try{const ticket=await fetchTicket(me.key);if(!waiting())return;rankedTicket=ticket;deployRanked(ticket);}
+  try{const ticket=await fetchTicket(key);if(!waiting())return;rankedTicket=ticket;deployRanked(ticket);}
   catch(error){if(waiting())modal(rankedFailedMarkup(error.code));}
 }
 function deployRanked(ticket){
-  setDeploymentFaces(deploymentPortraits(Object.keys(CHARACTERS)));
+  reportsPutOff=false;setDeploymentFaces(deploymentPortraits(Object.keys(CHARACTERS)));
   setDeployDraft({mode:'ranked',mission:ticket.spec.mission,seed:ticket.spec.seed,ranked:ticket});showDeployOperator();
 }
-// back: where 返回 goes ('deploy', or 'rankedBoard' when the name is changed from the board).
-export function showRankedName(back='deploy'){modal(rankedNameMarkup(profile().ranked?.name||'',back));$('#ranked-name')?.focus({preventScroll:true});}
+// An unsent report on its own screen; back: 'rankedBoard', or 'deployRanked' when 排名每日 carries on after it.
+export function showRankedReport(entry=unsentReports()[0],back='rankedBoard'){
+  if(!entry){if(back==='rankedBoard')showRankedBoard();else openRanked();return;}
+  modal(rankedReportMarkup(entry,profile().ranked?.name||'',back));
+}
 // The board: today's or yesterday's, for this build unless another is picked. from: where 返回 goes.
 export async function showRankedBoard({back=0,version=VERSION,from}={}){
-  const day=taipeiDay(Date.now(),back),state={day,back,version,from:from??rankedBoardState?.from??'deploy',name:profile().ranked?.name||''};
+  const day=taipeiDay(Date.now(),back),state={day,back,version,from:from??rankedBoardState?.from??'deploy',unsent:unsentReports().length};
   rankedBoardState=state;modal(rankedBoardMarkup({...state,loading:true}),true);
   let data=null,versions=[],error=null;
   try{[data,versions]=await Promise.all([fetchBoard({day,version}),fetchBoards(day).then(d=>d.boards||[]).catch(()=>[])]);}catch(e){error=e.code;}
@@ -165,5 +170,8 @@ export async function showRankedBoard({back=0,version=VERSION,from}={}){
   modal(rankedBoardMarkup({...state,data,versions,error}),true);
 }
 export const rankedBoardReturn=()=>rankedBoardState?.from||'deploy';
-// The result screen's ranked line, once the server has answered.
-export function refreshRankedResult(){const el=document.getElementById('ranked-result'),html=rankedResultMarkup(rankedStatus(game));if(el&&html)el.outerHTML=html;}
+// After a run was sent: the board on screen loads again.
+export function refreshRankedBoard(){if(document.getElementById('ranked-board-view')&&rankedBoardState)showRankedBoard({back:rankedBoardState.back,version:rankedBoardState.version});}
+// The result screen's ranked part (the report, then what the server said); refreshed in place.
+export const rankedResultBlock=g=>rankedResultMarkup(rankedStatus(g),profile().ranked?.name||'');
+export function refreshRankedResult(){const el=document.getElementById('ranked-result'),html=rankedResultBlock(game);if(el&&html)el.outerHTML=html;}

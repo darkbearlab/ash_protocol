@@ -3,7 +3,8 @@
 // - A ticket (with the day's spec) is fetched when the player opens 排名每日 and spent when the run starts; the run in
 //   play is kept under RANKED_RUN_KEY (src/storage.js) until it ends.
 // - A finished run's log is compressed into the queue at once, so a new run (which starts a new log) or a closed tab
-//   loses nothing. The queue is sent when a run ends, when the game loads and when the browser comes back online.
+//   loses nothing. It waits there for its report (3.225.0, user): the callsign typed on the result screen. A run with
+//   its report is sent at once, and again when the game loads and when the browser comes back online.
 // - What the server said about each run (the last few) is kept for the result screen.
 import {language,t} from './i18n.js';
 import {VERSION} from './version.js';
@@ -12,7 +13,7 @@ import {availableCharacters} from './unlock-catalog.js';
 import {createRankedDailyGame,rankedSpecProblem} from './ranked-daily.js';
 import {nextDuty,validDuty} from './duty.js';
 import {storedRunLog} from './run-log.js';
-import {newRankedKey,validRankedKey,validRankedProfile} from './ranked-profile.js';
+import {newRankedKey,rankedName,validRankedKey,validRankedName} from './ranked-profile.js';
 
 export const SCORES_URL='https://ash-scores.darkbearlab.workers.dev';
 export const LOCAL_SCORES_URL='http://localhost:8787';
@@ -66,11 +67,16 @@ export async function fetchBoard({day,version=VERSION,limit=50}={}){
 }
 export const fetchBoards=day=>call(`/v1/daily/boards?${new URLSearchParams({variant:RANKED_VARIANT,...(day?{day}:{})})}`);
 
-// The leaderboard identity: the key is made once and kept; the name can change.
+// The leaderboard identity: the key is made the first time the player opens ranked daily and kept; the callsign is the
+// one of the last report, offered again for the next.
+export function rankedKey(){
+ const p=profile();if(validRankedKey(p.ranked?.key))return p.ranked.key;
+ if(storage.recoveryPending)return null;
+ p.ranked={key:newRankedKey()};return write('ash-profile',JSON.stringify(p))?p.ranked.key:null;
+}
 export function saveRankedName(name){
- if(storage.recoveryPending)return false;
+ if(storage.recoveryPending||!validRankedName(name))return false;
  const p=profile(),ranked={key:validRankedKey(p.ranked?.key)?p.ranked.key:newRankedKey(),name};
- if(!validRankedProfile(ranked))return false;
  p.ranked=ranked;return write('ash-profile',JSON.stringify(p))?ranked:false;
 }
 // The ranked run starts like any campaign (the officer on duty rotates) but from the ticket's spec; the controller
@@ -92,11 +98,21 @@ function noteVerdict(runId,verdict){
  const kept=Object.entries(rankedVerdicts()).filter(([id])=>id!==runId).sort((a,b)=>(a[1].at||0)-(b[1].at||0)).slice(-(VERDICT_LIMIT-1));
  writeExtra(RANKED_VERDICTS_KEY,JSON.stringify(Object.fromEntries([...kept,[runId,{...verdict,at:Date.now()}]])));
 }
-// What the result screen says about a run: null when it was not a ranked run.
+// What the result screen says about a run (with its runId): null when it was not a ranked run.
 export function rankedStatus(g){
  if(!g?.runId)return null;
- const v=rankedVerdicts()[g.runId];if(v)return v;
- return rankedRun()?.runId===g.runId?{state:g.status==='playing'?'playing':'settling'}:null;
+ const v=rankedVerdicts()[g.runId];if(v)return {...v,runId:g.runId};
+ return rankedRun()?.runId===g.runId?{state:g.status==='playing'?'playing':'settling',runId:g.runId}:null;
+}
+// Finished runs whose report has not been submitted yet, oldest first.
+export const unsentReports=(now=Date.now())=>rankedQueue().filter(e=>!validRankedName(e.name)&&now<=e.submitBy);
+// The player's report on a finished run: the callsign goes with it (and is offered again next time), and the run can be
+// sent. Returns '' when done, otherwise why not: 'invalid', 'notSaved', or 'gone' (sent, refused or past its deadline).
+export function submitRankedReport(runId,text){
+ const name=rankedName(text);if(!validRankedName(name))return 'invalid';
+ const queue=rankedQueue(),entry=queue.find(e=>e.runId===runId);if(!entry)return 'gone';
+ if(!saveRankedName(name)||!saveQueue(queue.map(e=>e===entry?{...e,name}:e)))return 'notSaved';
+ noteVerdict(runId,{state:'queued',day:entry.day});return '';
 }
 
 // The ranked run has ended: its log goes into the queue, or the reason it cannot is noted. Returns whether anything
@@ -114,25 +130,28 @@ export async function settleRankedRun(game){
   else if(log.result.status!=='won'&&log.result.status!=='dead')verdict={state:'abandoned'};
   else{
    let packed=null;try{packed=await packLog(log);}catch{}
-   const entry=packed&&{runId:run.runId,ticket:run.ticket,day:run.spec?.day,submitBy:run.submitBy,language:run.language,version:log.build,log:packed};
-   verdict=!entry?{state:'unsupported'}:saveQueue([...rankedQueue().filter(e=>e.runId!==run.runId),entry].slice(-QUEUE_LIMIT))?{state:'queued'}:{state:'nolog'};
+   const entry=packed&&{runId:run.runId,ticket:run.ticket,day:run.spec?.day,submitBy:run.submitBy,language:run.language,version:log.build,
+    character:log.params.character,result:{status:log.result.status,deepest:log.result.deepest,turn:log.result.turn},log:packed};
+   verdict=!entry?{state:'unsupported'}:saveQueue([...rankedQueue().filter(e=>e.runId!==run.runId),entry].slice(-QUEUE_LIMIT))?{state:'unsent'}:{state:'nolog'};
   }
   noteVerdict(run.runId,{...verdict,day:run.spec?.day});removeExtra(RANKED_RUN_KEY);return true;
  }finally{settling=false;}
 }
-// Sends the queue, oldest first. Resolves to {sent, retryIn}: retryIn (ms) when it is worth trying again while the page
-// stays open (otherwise the next run's end, the next load or the browser coming back online sends it).
+// Sends the runs with a report, oldest first; the others wait for theirs. Resolves to {sent, retryIn}: retryIn (ms) when
+// it is worth trying again while the page stays open (otherwise the next report, the next load or the browser coming
+// back online sends it). sent counts every run that left the queue, sent or not.
 let flushing=null;
 export function flushRanked(host=globalThis.location?.hostname){if(!flushing)flushing=sendQueue(host).finally(()=>{flushing=null;});return flushing;}
 async function sendQueue(host){
- const me=profile().ranked;let sent=0;
- if(!validRankedProfile(me))return {sent,retryIn:0};
+ const key=profile().ranked?.key;let sent=0;
+ if(!validRankedKey(key))return {sent,retryIn:0};
  for(const entry of rankedQueue()){
   const drop=verdict=>{saveQueue(rankedQueue().filter(e=>e.runId!==entry.runId));noteVerdict(entry.runId,{...verdict,day:entry.day});sent++;};
   if(Date.now()>entry.submitBy){drop({state:'expired'});continue;}
+  if(!validRankedName(entry.name))continue;
   try{
    // A run sent again after its answer was lost gets the same answer (repeat).
-   const d=await call('/v1/daily/runs',{method:'POST',timeout:SUBMIT_TIMEOUT,body:{ticket:entry.ticket,playerKey:me.key,name:me.name,version:entry.version,channel:channelOf(host),language:entry.language,log:entry.log}});
+   const d=await call('/v1/daily/runs',{method:'POST',timeout:SUBMIT_TIMEOUT,body:{ticket:entry.ticket,playerKey:key,name:entry.name,version:entry.version,channel:channelOf(host),language:entry.language,log:entry.log}});
    drop({state:'sent',rank:d.best?.rank??null,newBest:Boolean(d.newBest),version:d.board?.version,result:d.result});
   }catch(error){
    // Kept for later (until submitBy): the server asked to wait, is still checking an earlier send of this run

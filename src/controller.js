@@ -68,13 +68,13 @@ import {mirrorDeck,parseDeckLayout,DECK_GRID} from './deck-layout.js';
 import {replayLog,stateHash,validReplay} from './replay.js';
 import {persistRunLog,lastRunLog,runLogName,noteRunError,trackRun} from './run-log.js';
 import {rankedParams} from './ranked-daily.js';
-import {flushRanked,rankedStatus,saveRankedName,settleRankedRun,startRankedCampaign} from './ranked-client.js';
-import {rankedName,validRankedName} from './ranked-profile.js';
+import {flushRanked,rankedStatus,settleRankedRun,startRankedCampaign,submitRankedReport} from './ranked-client.js';
+import {rankedName} from './ranked-profile.js';
 // 3.206.3: the topic modules (declarations only; they load before this file's start-up code runs).
 import {floorToast,notify,notifyLatest,renderEffects,update} from './controller-hud.js';
 import {bossScene,bossSceneTick,closeCourseCard,courseCard,courseHolds,courseNext,courseWaiting,endRecordComms,kia,kiaTick,playRecordComms,recordComms,resetKia,sayComms,setCourseWaiting,startBossDeath,startKia} from './controller-comms.js';
 import {HOTKEY_RUN,cancelAim,centerCamera,cycleTarget,fireWeapon,grenade,interact,move,operatorReady,recoverCorpse,retarget,setAim,setBlindAim,setDroneAim,setPetAim,setSuppressAim,skill,startBlindAim,startDeploy,startThrowAim,toggleTargeting,useItem,zoomBy} from './controller-aim.js';
-import {MISSION_IDS,drawOperatorSprites,openRanked,rankedBoardReturn,refreshRankedResult,runIsLive,showDeployDifficulty,showDeployMission,showDeployOperator,showDeployment,showIntro,showKillhouseMenu,showRankedBoard,showRankedName,spendRankedTicket,startQuick} from './controller-deploy.js';
+import {MISSION_IDS,drawOperatorSprites,openRanked,putOffReports,rankedBoardReturn,refreshRankedBoard,refreshRankedResult,runIsLive,showDeployDifficulty,showDeployMission,showDeployOperator,showDeployment,showIntro,showKillhouseMenu,showRankedBoard,showRankedReport,spendRankedTicket,startQuick} from './controller-deploy.js';
 import {bestiary,buyUnlock,confirmUnlock,showBriefing,showHelp,showJournal,showLevelUp,showLog,showMap,showMission,showPerks,showResult,showUnlocks} from './controller-screens.js';
 import {INVENTORY_TABS,inventoryTab,refreshTerminalDeal,setTerminalDraft,showBlueprints,showInventory,showTerminal,showTerminalDeal,showWeaponComparison,showWorkshop,startDeployAim,terminalDraft} from './controller-pack.js';
 import {DECK_LAYOUTS,PAD_SIZES,applyBrightness,applyDeck,applyHotkeyHints,captureHotkey,downloadJSON,exportSave,pickDeckSlot,saveDeckLayout,saveHotkeys,settings,showDeckEditor,showHotkeys,showSettingsTab,sizeDeck} from './controller-settings.js';
@@ -334,7 +334,7 @@ function beginRun(start){if(game.status==='playing'&&(entered||resumable)){const
 // A finished ranked run goes into the queue, the queue is sent, and the result screen's line follows (src/ranked-client.js).
 let rankedRetry=0;
 async function sendRanked(){
-  try{if(await settleRankedRun(game))refreshRankedResult();const {sent,retryIn}=await flushRanked();if(sent)refreshRankedResult();clearTimeout(rankedRetry);if(retryIn)rankedRetry=setTimeout(sendRanked,retryIn);}catch{}
+  try{if(await settleRankedRun(game))refreshRankedResult();const {sent,retryIn}=await flushRanked();if(sent){refreshRankedResult();refreshRankedBoard();}clearTimeout(rankedRetry);if(retryIn)rankedRetry=setTimeout(sendRanked,retryIn);}catch{}
 }
 function backupError(error){modal(`<h2>${t('controller.backup.failedTitle')}</h2><p>${escapeHTML(error.message)}</p><button class="modal-button" data-modal="backupCancel">${t('controller.backToSettings')}</button>`);}
 function adoptSnapshot(next){
@@ -501,11 +501,13 @@ document.addEventListener('click',e=>{
       if(!validMissionId(mission)){notify(t('controller.deploy.pickValidMission'));return;}
       deployDraft={mode:'normal',mission,seed};showDeployOperator();break;}
     case 'deployRanked':openRanked();break;
-    case 'rankedName':{const name=rankedName($('#ranked-name')?.value);
-      if(!validRankedName(name)){notify(t('ranked.name.invalid'));return;}
-      if(!saveRankedName(name)){notify(t('ranked.name.notSaved'),{danger:true});return;}
-      if(b.dataset.back==='rankedBoard')showRankedBoard();else openRanked();break;}
-    case 'rankedRename':showRankedName('rankedBoard');break;
+    // 3.225.0 (user): the callsign is typed when the report is submitted, after the run.
+    case 'rankedReport':{const why=submitRankedReport(b.dataset.run,$('#ranked-name')?.value);
+      if(why==='invalid'){notify(t('ranked.name.invalid'));return;}
+      if(why==='notSaved'){notify(t('ranked.name.notSaved'),{danger:true});return;}
+      sendRanked();if(b.dataset.back==='result')refreshRankedResult();else if(b.dataset.back==='rankedBoard')showRankedBoard();else openRanked();break;}
+    case 'rankedPending':showRankedReport(undefined,'rankedBoard');break;
+    case 'rankedLater':putOffReports();openRanked();break;
     case 'rankedBoard':showRankedBoard({from:b.closest('#ranked-result')?'result':b.closest('.deploy-menu')?'deploy':undefined});break;
     case 'rankedBack':if(rankedBoardReturn()==='result'&&entered&&game.status!=='playing')showResult();else showDeployment();break;
     case 'rankedStart':{const character=$('input[name="character"]:checked')?.value,color=$('input[name="operator-color"]:checked')?.value;
@@ -681,10 +683,10 @@ $('#import-save').addEventListener('change',async e=>{
   // 3.210.0 (src/stale-runs.js): a run saved before RUN_SAVE_FLOOR is not continued, so it is not imported either.
   try{if(file.size>1000000)throw new Error(t('controller.import.tooLarge'));const text=await file.text();if(staleRunOf(text))throw new Error(t('controller.import.oldRun'));const imported=Game.restore(text);if(!imported)throw new Error(t('controller.import.incompatible'));const kept=write('ash-save-before-import',game.serialize());game=connectUnlocks(imported);entered=true;resumable=true;game.setCarryLevel(profile().upgrades.carrying);playback=null;renderer.game=game;renderer.camera={x:game.player.x,y:game.player.y};renderer.effects=[];renderer.callouts.clear();resetKia();lastStatus='playing';previousFloor=game.floor;$('#modal').close();update();notify(kept?t('controller.import.done'):t('controller.import.doneNoBackup')); }catch(error){modal(t('controller.import.failedTitle')+escapeHTML(error.message)+t('controller.import.failedClose'));}e.target.value='';
 });
-// The callsign field keeps only what a callsign can hold, in capitals; Enter confirms it (3.224.0).
+// The callsign field keeps only what a callsign can hold, in capitals; Enter submits the report (3.224.0, 3.225.0).
 const tidyCallsign=e=>{if(e.target.id!=='ranked-name'||e.isComposing)return;const v=rankedName(e.target.value);if(v!==e.target.value)e.target.value=v;};
 document.addEventListener('input',tidyCallsign);document.addEventListener('compositionend',tidyCallsign);
-document.addEventListener('keydown',e=>{if(e.target.id==='ranked-name'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();$('[data-modal="rankedName"]')?.click();}});
+document.addEventListener('keydown',e=>{if(e.target.id==='ranked-name'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();$('[data-modal="rankedReport"]')?.click();}});
 document.addEventListener('selectstart',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(!target?.closest('input,textarea'))e.preventDefault();});
 document.addEventListener('contextmenu',e=>{const target=e.target instanceof Element?e.target:e.target.parentElement;if(target?.closest('.battle-panel'))e.preventDefault();});
 // Older iOS Safari still pans or bounces a locked page; stop drags outside menus, which keep their own scrolling.
