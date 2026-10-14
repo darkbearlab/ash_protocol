@@ -2194,6 +2194,7 @@ export default Object.freeze({
  "settings.hintsLabel":"Key hints: {v}",
  "settings.simSection":"Simulation",
  "settings.runSection":"This run",
+ "settings.debugSection":"Debug",
  "settings.dangerSection":"Danger",
  "settings.languageSection":"Language · 語言",
  "settings.languageLabel":"Language / 語言: {name}",

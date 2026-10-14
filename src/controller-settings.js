@@ -96,7 +96,6 @@ ${simulating?'':`${sec(t('settings.runSection'))}<button class="modal-button sec
 <p>${rankedLock()?`${t('ranked.languageLocked')}<br>`:''}${t('settings.languageNote')}<br>${t('settings.languageWip')}</p>
 ${sec(t('settings.saveSection'))}
 <div class="modal-row"><button class="modal-button secondary" data-modal="backupExport">${t('settings.fullBackup')}</button>${simulating?'':t('settings.restore')}</div>
-<div class="modal-row"><button class="modal-button secondary" data-modal="runLog" ${lastRunLog(game)?'':'disabled'}>${t('controller.runLog.download')}</button></div>
 ${read('ash-backup-before-restore')?t('settings.previousBackup'):''}
 ${simulating?t('settings.simBackup'):t('settings.backupBlock')}
 ${TEST_MODE?`${sec('測試：操作紀錄')}<div class="modal-row"><button class="modal-button secondary" data-modal="replayLoad">播放操作紀錄</button><button class="modal-button secondary" data-modal="replayFast">快速播放</button></div>
@@ -104,7 +103,9 @@ ${TEST_MODE?`${sec('測試：操作紀錄')}<div class="modal-row"><button class
 ${withRun?'':`${sec(t('settings.records'))}
 <button class="modal-button secondary" data-modal="journal">${t('settings.journal')}</button>`}
 ${simulating?'':`${sec(t('settings.dangerSection'))}
-<button class="modal-button secondary" data-modal="resetProgress">${t('settings.reset')}</button>`}`,
+<button class="modal-button secondary" data-modal="resetProgress">${t('settings.reset')}</button>`}
+${sec(t('settings.debugSection'))}
+<div class="modal-row"><button class="modal-button secondary" data-modal="runLog" ${lastRunLog(game)?'':'disabled'}>${t('controller.runLog.download')}</button></div>`,
     display:()=>`<label class="boundary-opacity" for="screen-brightness">${t('settings.brightnessLabel')} <output id="screen-brightness-value" for="screen-brightness">${screenBrightness}%</output><input id="screen-brightness" type="range" min="${SCREEN_BRIGHTNESS.min}" max="${SCREEN_BRIGHTNESS.max}" step="${SCREEN_BRIGHTNESS.step}" value="${screenBrightness}" aria-describedby="screen-brightness-help"></label>
 <p id="screen-brightness-help">${t('settings.brightness')}</p>
 <label class="boundary-opacity" for="top-spacing">${t('settings.topSpacingLabel')} <output id="top-spacing-value" for="top-spacing">${topSpacing}px</output><input id="top-spacing" type="range" min="${TOP_SPACING.min}" max="${TOP_SPACING.max}" step="${TOP_SPACING.step}" value="${topSpacing}" aria-describedby="top-spacing-help"></label>

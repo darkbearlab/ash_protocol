@@ -65,6 +65,10 @@ test('controller wiring: every live campaign records, never a simulation or repl
   assert.ok(source.includes("window.addEventListener('pagehide',()=>{if(entered){saveGame(game);persistRunLog(game);}});"));
   const result=source.slice(source.indexOf('function showResult'),source.indexOf('function showResult')+3000);assert.ok(result.includes('${runRecordMarkup(game)}'));
   assert.match(source,/data-modal="runLog" \$\{lastRunLog\(game\)\?'':'disabled'\}/);
+  // 2026-10-14 (user): a tool from the testing period, always last, so removing it later moves nothing else.
+  assert.ok(result.includes('${runRecordMarkup(game)}${runLogButton(game)}<div class="modal-footer">'),'last on the result sheet');
+  const general=source.slice(source.indexOf('general:()=>'),source.indexOf('display:()=>'));
+  assert.ok(general.trimEnd().endsWith(`\${sec(t('settings.debugSection'))}\n<div class="modal-row"><button class="modal-button secondary" data-modal="runLog" \${lastRunLog(game)?'':'disabled'}>\${t('controller.runLog.download')}</button></div>\`,`),'last in settings');
   assert.ok(source.includes("case 'runLog':"));assert.ok(!source.includes('recordStart'),'the manual test-mode recorder gave way');
 });
 

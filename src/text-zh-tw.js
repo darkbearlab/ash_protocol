@@ -2195,6 +2195,7 @@ export default Object.freeze({
  "settings.hintsLabel":"按鈕上顯示熱鍵：{v}",
  "settings.simSection":"模擬",
  "settings.runSection":"本局",
+ "settings.debugSection":"除錯",
  "settings.dangerSection":"危險",
  "settings.languageSection":"語言 · Language",
  "settings.languageLabel":"語言 / Language：{name}",
