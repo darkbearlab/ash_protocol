@@ -126,5 +126,6 @@ test('saves: a pending body keeps its tile and time; a long wait is cut to the t
 test('the wisp card is an energy body with no loot, bound by the rift alone',()=>{
  const card=ENEMY_TYPES.wisp;
  assert.equal(card.energy,true);assert.equal(card.huntsLife,true);assert.equal(card.lifeDrain,true);assert.equal(card.loot,undefined);
- for(const id of ['wisp','flicker','possessed'])assert.ok(FACTIONS.rift.roster.early.some(([type])=>type===id),id);   // 3.227.0
+ const roster=[...FACTIONS.rift.roster.early,...FACTIONS.rift.roster.late];
+ for(const id of ['wisp','flicker','possessed','possessed_melee','shade'])assert.ok(roster.some(([type])=>type===id),id);   // 3.227.0–3.229.0
 });

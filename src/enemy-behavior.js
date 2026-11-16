@@ -44,7 +44,7 @@ import {releasePayload,acidBloodDeath} from './swarm-fields.js';
 import {runStep,registerStep,registerSpecial,lockedTarget,dropAttack,gunless} from './enemy-specials.js';
 import {personalityOf} from './personality.js';
 import {spentCase} from './traces.js';
-import {lightingEffects} from './lighting.js';
+import {lightingEffects,isDark} from './lighting.js';
 import {enemyBand,inBand,BAND_TUNING} from './range-band.js';
 import {tacticalSight} from './throwables.js';
 export const ENEMY_WEAPONS=Object.freeze(Object.fromEntries(Object.entries(ENEMY_TYPES).filter(([id])=>hasEnemyTag(id,'armed')).map(([id,def])=>[id,Object.freeze({rounds:def.rounds||1})])));
@@ -393,7 +393,9 @@ export function executeEnemyTree(g,e){const locked=lockedTarget(e),p=(locked?[g.
  // 3.152.0 有效距離 (src/range-band.js): a shooter outside its band moves into it first and only fires from a bad
  // distance when that move found nothing better. A telegraphed shot (charge) still lands, as before.
  const band=def.range>1?enemyBand(e.type):null;
- const shootable=Boolean((los&&g.shotClear(e,p)&&d<=def.range&&(def.range>1||g.canCross(e,p)))||(tree.fixedTile&&e.charge&&e.aim));
+ // 3.229.0: an armed possessed human (`needsLight`) shoots only with itself and its target in the light; otherwise it closes in.
+ const lightless=Boolean(def.needsLight&&(isDark(g,e)||isDark(g,p)));
+ const shootable=!lightless&&Boolean((los&&g.shotClear(e,p)&&d<=def.range&&(def.range>1||g.canCross(e,p)))||(tree.fixedTile&&e.charge&&e.aim));
  // A shot already telegraphed (charge with an aim) lands wherever the target stands; a unit that keeps firing (rapid)
  // clears its aim after each one, so the band decides again on its next turn.
  // A unit that just fixed its distance stays and shoots for BAND_TUNING.settle turns, so walking into it cannot keep it

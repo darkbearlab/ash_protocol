@@ -6,6 +6,7 @@ import {bindAnchors,liveAnchors,RIFT_TUNING} from '../src/rift.js';
 import {tickNests} from '../src/runtime-enemies.js';
 import {ENEMY_AFFIXES} from '../src/enemy-affixes.js';
 import {distance} from '../src/world.js';
+import {LIGHT_MODEL,isDark} from '../src/lighting.js';
 import {clearGeneratedMap} from './helpers/arena.mjs';
 
 // 3.227.0 (docs/FACTIONS.md 5.5): the rift's shared blink (src/rift-blink.js) and the possessed human, a living anchor
@@ -103,4 +104,23 @@ test('the cards: the flicker is an energy body that strikes, the possessed a hum
   assert.equal(h.energy,undefined);assert.equal(h.anchorHolder,true);assert.equal(h.blink,'evade');assert.ok(h.sprite.outline,'outlined: it reads at a glance');
   const e=makeEnemy('possessed',1,1,'p',3,0,'rift');
   for(const id of ['flamer','grenadier','lockdown','disarm'])assert.equal(ENEMY_AFFIXES.find(a=>a.id===id).applies(e),false,id);
+});
+
+// 3.229.0 (user 2026-11-16): most possessed hosts fight hand to hand; the armed ones shoot only in the light.
+test('a melee possessed host blinks in beside you and strikes; it is still an anchor',()=>{
+  const g=open(),h=unit(g,'possessed_melee',10,13,'h'),w=unit(g,'wisp',3,3,'w');
+  bindAnchors({props:g.props,enemies:g.enemies});assert.ok(h.anchor);assert.equal(w.anchorId,'h');
+  g.action('wait');assert.deepEqual(h.blinkIntent?.point,{x:10,y:15},'marks the tile beside you');
+  const hp=g.player.hp;g.action('wait');assert.deepEqual([h.x,h.y],[10,15]);assert.ok(g.player.hp<hp,'and strikes');
+  g.hurt(h,999,g.player);assert.equal(w.dissipated,true,'its bodies go with it');
+  assert.equal(ENEMY_TYPES.possessed_melee.range,1);assert.equal(ENEMY_TYPES.possessed_melee.loot,undefined);
+});
+
+test('an armed possessed human shoots only when it and its target both stand in the light; in the dark it closes in',()=>{
+  const lit=open(),a=unit(lit,'possessed',10,11,'a');
+  const hp=lit.player.hp;lit.action('wait');assert.ok(lit.player.hp<hp||a.charge,'in the light it fires (or aims)');
+  // You in the light, the shooter on an unpowered tile (dim at best): it sees you, but does not fire.
+  const dark=open();dark.lightModel=LIGHT_MODEL;dark.lamps=[];dark.lighting[11][10]=0;
+  const b=unit(dark,'possessed',10,11,'b');assert.ok(isDark(dark,b));assert.ok(dark.sight(b,dark.player),'it sees you');const before=dark.player.hp;
+  dark.action('wait');assert.equal(dark.player.hp,before,'no shot from the dark');assert.equal(b.charge,false);assert.ok(distance(b,dark.player)<5,'it closes in');
 });
