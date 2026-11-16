@@ -25,6 +25,7 @@ import {tickTongues} from '../src/swarm.js';
 import {tickSwarmBosses} from '../src/swarm-bosses.js';
 import {tickPounces} from '../src/pounce.js';
 import {tickBlinks} from '../src/rift-blink.js';
+import {tickWarps} from '../src/rift-warp.js';import {tickBeams} from '../src/rift-beam.js';   // 3.231.0
 import {tickLockdowns} from '../src/lockdown.js';
 import {tickDisarms} from '../src/disarm.js';
 import {tickFields} from '../src/swarm-fields.js';
@@ -32,7 +33,7 @@ import {tickOperatives} from '../src/delisted-operatives.js';
 
 export const MATRIX_FIXTURE=new URL('../tests/fixtures/special-matrix.json',import.meta.url);
 const REASONS=['death','disabled','displaced','target_lost','suppressed','bogus'];
-const FIELDS=['blinkIntent','blinkCooldown','callCooldown','grenadeIntent','flameIntent','tongueIntent','tongueCooldown','pounceIntent','pounceCooldown','lobIntent','lobCooldown','chargeIntent','chargeCooldown','crashed','nestIntent','nestCooldown','markIntent','markReady','gun','special','fireIntent','heat','overheat','burn','scanCooldown','grenadeCooldown','smokeIntent','smokeCooldown','droneCooldown','decloaked','deployKind','deployCharges','lockIntent','lockCooldown','disarmIntent','disarmCooldown','concealed','charge','aim','windup','fireChain','x','y','hp','control','suppression','vaultExposed'];   // 3.207.0: the delisted operatives' fields; 3.212.0: a deployer's
+const FIELDS=['blinkIntent','blinkCooldown','warpIntent','warpCooldown','beamIntent','beamCooldown','callCooldown','grenadeIntent','flameIntent','tongueIntent','tongueCooldown','pounceIntent','pounceCooldown','lobIntent','lobCooldown','chargeIntent','chargeCooldown','crashed','nestIntent','nestCooldown','markIntent','markReady','gun','special','fireIntent','heat','overheat','burn','scanCooldown','grenadeCooldown','smokeIntent','smokeCooldown','droneCooldown','decloaked','deployKind','deployCharges','lockIntent','lockCooldown','disarmIntent','disarmCooldown','concealed','charge','aim','windup','fireChain','x','y','hp','control','suppression','vaultExposed'];   // 3.207.0: the delisted operatives' fields; 3.212.0: a deployer's
 const canon=v=>Array.isArray(v)?v.map(canon):v&&typeof v==='object'?Object.fromEntries(Object.keys(v).sort().map(k=>[k,canon(v[k])])):v;
 const fields=u=>canon(Object.fromEntries(FIELDS.filter(k=>u?.[k]!==undefined).map(k=>[k,u[k]])));
 const cell=v=>JSON.stringify(canon(v));
@@ -76,6 +77,9 @@ const SPECIALS={
  // 3.227.0: the rift's blink (src/rift-blink.js), a flicker's strike beside its target and a possessed human's step away.
  blink:{card:'flicker',faction:'rift',main:'blinkIntent',count:'blinkCooldown',state:(E,T)=>({blinkIntent:{origin:at(E),target:at(T),point:{x:T.x+1,y:T.y}},blinkCooldown:1})},
  evade:{card:'possessed',faction:'rift',main:'blinkIntent',count:'blinkCooldown',state:(E,T)=>({blinkIntent:{origin:at(E),target:at(T),point:{x:T.x+2,y:T.y}},blinkCooldown:1})},
+ // 3.231.0: a displacer's mark (src/rift-warp.js) and a ray body's line (src/rift-beam.js).
+ warp:{card:'displacer',faction:'rift',main:'warpIntent',count:'warpCooldown',state:(E,T)=>({warpIntent:{origin:at(E),target:at(T),point:{x:T.x+3,y:T.y}},warpCooldown:1})},
+ beam:{card:'beamer',faction:'rift',main:'beamIntent',count:'beamCooldown',state:(E,T)=>({beamIntent:{origin:at(E),target:at(T)},beamCooldown:1})},
  lockdown:{card:'rifleman',affixes:['lockdown'],main:'lockIntent',count:'lockCooldown',state:(E,T)=>({lockIntent:{origin:at(E),tile:{x:T.x,y:T.y+1}},lockCooldown:1})},
  // 3.215.0: a marksman's aim at your weapon and its cooldown (src/disarm.js).
  disarm:{card:'rifleman',affixes:['disarm'],main:'disarmIntent',count:'disarmCooldown',state:E=>({disarmIntent:{origin:at(E)},disarmCooldown:3})},
@@ -148,6 +152,7 @@ const TICKS={
  opSoldier:{card:'delisted_soldier',state:(E,T)=>({grenadeIntent:{stage:'prepare',targetId:'player',x:T.x,y:T.y,origin:at(E)},grenadeCooldown:2,scanCooldown:2})},
  lockdown:SPECIALS.lockdown,   // 3.213.0
  blink:SPECIALS.blink,evade:SPECIALS.evade,   // 3.227.0
+ warp:SPECIALS.warp,beam:SPECIALS.beam,   // 3.231.0
  disarm:SPECIALS.disarm,   // 3.215.0
  opRecon:SPECIALS.smoke,opEngineer:SPECIALS.drones,opNinja:SPECIALS.cloak,opBerserker:{card:'delisted_berserker',state:(E,T)=>({tongueIntent:{origin:at(E),target:at(T),point:{x:E.x-1,y:E.y}},tongueCooldown:1,chargeCooldown:2})},
 };
@@ -156,7 +161,7 @@ function tickTable(){
  const states={fit:()=>{},stunned:e=>{e.control={disabled:1,immune:0};},pinned:e=>{e.suppression=3;},dead:e=>{e.hp=0;}};
  for(const [id,spec] of Object.entries(TICKS))for(const [state,tweak] of Object.entries(states)){
   const r=out[`${id}:${state}`]={};
-  {const {g,e}=scene(spec);tweak(e);tickTongues(g);tickSwarmBosses(g);tickPounces(g);tickBlinks(g);tickFields(g);tickOperatives(g);tickLockdowns(g);tickDisarms(g);r.exports=cell(fields(e));}
+  {const {g,e}=scene(spec);tweak(e);tickTongues(g);tickSwarmBosses(g);tickPounces(g);tickBlinks(g);tickWarps(g);tickBeams(g);tickFields(g);tickOperatives(g);tickLockdowns(g);tickDisarms(g);r.exports=cell(fields(e));}
   {const {g,e}=scene(spec);tweak(e);g.action('wait');r.round=cell({...fields(g.enemies.find(u=>u.id===e.id)||e),props:g.props.filter(o=>o.type==='nest').length});}
  }
  return out;

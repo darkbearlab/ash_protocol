@@ -4,6 +4,7 @@
 // a boss's paint and your mark, pet and drone aims, the grapple preview and the locked target.
 // Methods of Renderer (src/renderer.js), which copies them onto Renderer.prototype (src/mixin.js, 3.206.3): `this` is
 // the renderer, `this.game` the state being drawn and `this.ctx` the canvas.
+import {beamTelegraphs} from './rift-beam.js';   // 3.231.0
 import {t as tx} from './i18n.js';   // t is the tile size in the draw code
 import {lineReason} from './lines.js';
 import {grenadeMarkers} from './affix-ui.js';
@@ -14,7 +15,7 @@ import {NEST_ATLAS,drawNestSprite} from './nest-art.js';
 import {blindReason} from './blind-fire.js';
 import {DECOY_TUNING,decoyReason,glowstickReason,mineReason} from './field-gear.js';
 import {isNoncombatant,enemyDef} from './enemy-data.js';
-import {liveAnchors,drainAura} from './rift.js';
+import {drainAura} from './rift.js';
 import {droneCells} from './allies.js';
 import {LIGHT,flareLightCells,glowstickCells,isLamp} from './lighting.js';
 import {areaCells,squareCells} from './throwables.js';
@@ -94,13 +95,17 @@ export class RendererTelegraphs {
     const c=this.ctx,g=this.game,t=this.tile,half=t/2,p=g.player;
     // Swarm waves arrive unannounced (user decision, 3.85.2); only retreat reinforcements keep their countdown marker.
     for(const spawn of g.reinforcements||[])if(g.visible(spawn))this.markArea(spawn,0,'#70dce833','#94f0eeaa','+'+Math.max(1,spawn.due-g.turn));
-    // 3.226.0 (src/rift.js): a rift body forming again beside its anchor, on the tile it will take, with the rounds left.
-    for(const anchor of liveAnchors(g))for(const r of anchor.anchor.reforms)if(r.x!==null&&g.visible(r))this.markArea(r,0,'#b078ed33','#c9a0ffaa','+'+Math.max(1,r.due-g.turn));
+    // 3.231.0 (user 2026-11-17: 「錨點旁還有多少增援排隊那個提示是多餘的」): a rift body forming again beside its anchor is no
+    // longer marked on the floor (3.226.0 drew a 「+N」 there); the anchor's own glow says it still holds.
     // 3.227.0 (src/rift-blink.js): a marked blink — where the carrier will appear, and for a flicker the tile it strikes
     // (yours when it marked: step off it).
     // 3.228.0: a drain aura you can see tints the floor it reaches, faintly (src/rift.js tickDrain).
     for(const e of g.enemies){const r=e.hp>0&&g.visible(e)?drainAura(e):0;if(!r)continue;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const q={x:e.x+dx,y:e.y+dy};if(Math.abs(dx)+Math.abs(dy)>r||g.grid[q.y]?.[q.x]!==1||!g.seen?.[q.y]?.[q.x])continue;const a=this.project(q.x,q.y);this.box(a.x-half+1,a.y-half+1,t-2,t-2,'#a46be21c');}}
     for(const e of g.enemies)if(e.hp>0&&e.blinkIntent){const b=e.blinkIntent;if(g.visible(b.point))this.markArea(b.point,0,'#7f9cff30','#a9bcffcc','✧');if(enemyDef(e)?.blink==='strike'&&g.visible(b.target))this.markArea(b.target,0,'#e9694933','#f89969cc','');}
+    // 3.231.0 (src/rift-warp.js): a displacer's mark — the tile it would put you on (◇) and the tile you stand on (step off).
+    for(const e of g.enemies)if(e.hp>0&&e.warpIntent){const w=e.warpIntent;if(g.visible(w.point))this.markArea(w.point,0,'#5fd3c033','#9ff0e2cc','◇');if(g.visible(w.target))this.markArea(w.target,0,'#5fd3c022','#9ff0e2aa','');}
+    // 3.231.0 (src/rift-beam.js): a ray body's warned line, every tile of it you can see, as the floor stands now.
+    for(const b of beamTelegraphs(g))for(const q of b.lane)if(g.visible(q)){const m=this.project(q.x,q.y);this.box(m.x-t*.4,m.y-t*.4,t*.8,t*.8,'#e58bff30','#f2b8ffaa');}
     // Allied bombardment marks (3.95.0) are amber, so the player can tell them from enemy marks; both still hurt the player.
     for(const m of g.marks)if(m.kind!=='grenade')this.markArea(m,1,m.kind==='ally'?'#e9a2494f':'#e969494f',m.kind==='ally'?'#f8c46977':'#f8996977',String(Math.max(1,m.due-g.turn)));
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);

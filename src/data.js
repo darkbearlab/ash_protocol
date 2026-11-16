@@ -6,7 +6,7 @@ export const SIZE = 27;
 // blasts cross it. seeThrough is what a line of sight may pass over or end on.
 export const VOID = 2;
 export const seeThrough = v => v === 1 || v === VOID;
-export const SAVE_VERSION = 97;   // 97 (3.228.0): 流逝 stacks (`drain`) on the player, allies and civilians (src/drain.js, src/rift.js); nothing to migrate. 96 (3.227.0): a possessed human's `anchor` (src/rift.js), the blink's `blinkIntent` and `blinkCooldown` (src/rift-blink.js); nothing to migrate. 95 (3.226.0): the rift — anchors (a `nest` prop with `anchor`), a body's `anchorId`, `reformed`, `dissipated`.
+export const SAVE_VERSION = 98;   // 98 (3.231.0): the displacer's `warpIntent`, `warpCooldown` (src/rift-warp.js) and the ray body's `beamIntent`, `beamCooldown` (src/rift-beam.js); nothing to migrate. 97 (3.228.0): 流逝 stacks (`drain`) on the player, allies and civilians (src/drain.js, src/rift.js); nothing to migrate. 96 (3.227.0): a possessed human's `anchor` (src/rift.js), the blink's `blinkIntent` and `blinkCooldown` (src/rift-blink.js); nothing to migrate. 95 (3.226.0): the rift — anchors (a `nest` prop with `anchor`), a body's `anchorId`, `reformed`, `dissipated`.
 // 94 (3.222.0): the new 困難 curve (`brutal`); endless past floor 9 frozen, thinner supplies (a terminal's `spent` from the start).
 // 93 (3.220.0): 酸血 acid that dries (a hazard's `expires`); 產卵 nests laid by an ordinary bug (`<id>-nest-<n>`); 鉤舌 tongues on bugs with the affix.
 // 92 (3.219.0): 通報 (`callCooldown`), 殉爆 (a `volatile` blast mark), 裝死 (`concealed` {as:'corpse',turns}).
@@ -262,3 +262,7 @@ ENEMY_TYPES.shade={sprite:{key:'giant_bug',corpse:'giant_bug',size:1.3,scale:1.3
 // 3.230.0 (docs/FACTIONS.md 5.8): the phase body walks through walls and doors (`behavior:'phase'`, src/rift-phase.js) and
 // shows itself only within 3 tiles (`revealRange`). Borrowed art, tinted.
 ENEMY_TYPES.phase={sprite:{key:'dog',corpse:'dog',size:.9,tint:'#8fc8e8'},drawing:{shape:'critter',color:'#8fc8e8',glow:'#bfe6ff44'},projectile:'melee',voice:'creature',tags:[],traits:['no_cover'],energy:true,huntsLife:true,phase:true,behavior:'phase',revealRange:3,gore:'energy',rounds:1,attackStyle:'claw',name:t('enemyTypes.phase.name'),hp:28,damage:12,range:1,armor:0,color:'#8fc8e8',xp:2,role:t('enemyTypes.phase.role')};
+// 3.231.0 (docs/FACTIONS.md 5.9): the displacer marks a tile and moves you there if you stay put (`warp`, src/rift-warp.js);
+// the ray body warns a straight line, then fires along it (`beam`, src/rift-beam.js). Borrowed art, tinted.
+ENEMY_TYPES.displacer={sprite:{key:'drone',corpse:'drone',size:.85,tint:'#5fd3c0'},drawing:{shape:'drone',color:'#5fd3c0',glow:'#9ff0e244'},projectile:'melee',voice:'creature',tags:[],traits:['no_cover'],energy:true,huntsLife:true,warp:true,gore:'energy',rounds:1,attackStyle:'claw',name:t('enemyTypes.displacer.name'),hp:24,damage:8,range:1,armor:0,color:'#5fd3c0',xp:2,role:t('enemyTypes.displacer.role')};
+ENEMY_TYPES.beamer={sprite:{key:'spitter',corpse:'spitter',size:.95,tint:'#e58bff'},drawing:{shape:'critter',color:'#e58bff',glow:'#f2b8ff44'},projectile:'melee',voice:'creature',tags:[],traits:['no_cover'],energy:true,huntsLife:true,beam:true,gore:'energy',rounds:1,attackStyle:'claw',name:t('enemyTypes.beamer.name'),hp:30,damage:14,range:1,armor:0,color:'#e58bff',xp:2,role:t('enemyTypes.beamer.role')};

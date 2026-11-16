@@ -234,6 +234,8 @@ export function hiddenInDark(game,observer,target){
  // 3.228.0: what stands in a light-eater's black is hidden from night vision, infrared and machines alike; only the
  // rift's own (energy) see there. A unit that carries a drain aura is always seen (5.2), the light-eater included.
  if(factionTraitRank(target,'drain_aura'))return false;
+ // 3.231.0 (user 2026-11-17: every anchor gives off a faint light): a possessed host is never hidden in the dark.
+ if(enemyDef(target)?.anchorHolder)return false;
  if(inVoid(game,target))return !activeTrait(observer,'energy');
  if(seesInDark(game,observer))return false;
  // 3.181.0 (C7): a machine finds anything warm in the black, as infrared does (it does not see through smoke for it).

@@ -100,7 +100,7 @@ test('an energy body: EMP disables it, stun does not; no suppression; it sees in
 });
 
 test('saves: a pending body keeps its tile and time; a long wait is cut to the tuning; broken data is refused; a kept floor waits',()=>{
- assert.equal(SAVE_VERSION,97);
+ assert.equal(SAVE_VERSION,98);
  const g=rift(),w=g.enemies.find(e=>e.anchorId?.startsWith('anchor-')),anchor=liveAnchors(g).find(a=>a.id===w.anchorId);
  g.hurt(w,999,g.player);
  const copy=roundTrip(g);assert.ok(copy);assert.deepEqual(copy.props.find(p=>p.id===anchor.id).anchor,anchor.anchor);
@@ -127,5 +127,5 @@ test('the wisp card is an energy body with no loot, bound by the rift alone',()=
  const card=ENEMY_TYPES.wisp;
  assert.equal(card.energy,true);assert.equal(card.huntsLife,true);assert.equal(card.lifeDrain,true);assert.equal(card.loot,undefined);
  const roster=[...FACTIONS.rift.roster.early,...FACTIONS.rift.roster.late];
- for(const id of ['wisp','flicker','possessed','possessed_melee','shade'])assert.ok(roster.some(([type])=>type===id),id);   // 3.227.0–3.229.0
+ for(const id of ['wisp','flicker','possessed','possessed_melee','shade','phase','displacer','beamer'])assert.ok(roster.some(([type])=>type===id),id);   // 3.227.0–3.231.0
 });

@@ -40,7 +40,7 @@ const swarmBody=e=>combatant(e)&&!isBossClass(e)&&enemyFaction(e)==='swarm'&&!ac
 // simply never drawn.
 const barred=(e,id)=>Boolean(ENEMY_TYPES[e.type]?.barredAffixes?.includes(id));
 // 3.227.0: a rift blinker (src/rift-blink.js) never carries an affix that brings a top step of its own.
-const blinks=e=>Boolean(ENEMY_TYPES[e.type]?.blink);
+const blinks=e=>{const c=ENEMY_TYPES[e.type];return Boolean(c?.blink||c?.warp||c?.beam);};   // 3.231.0: the displacer and the ray body too
 const infected=e=>hasEnemyTag(e,'infected')&&Boolean(factionDef(enemyFaction(e))?.infectedAffixes);
 // 投放 (3.212.0, docs/ENEMY_VARIETY.md section 1): the one kind a deployer puts out, the cards of the things your engineer
 // makes — a drone, a loitering munition, a fixed turret, a bomb bot. Fixed at birth on a stream of its own

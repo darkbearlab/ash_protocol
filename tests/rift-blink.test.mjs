@@ -124,3 +124,25 @@ test('an armed possessed human shoots only when it and its target both stand in 
   const b=unit(dark,'possessed',10,11,'b');assert.ok(isDark(dark,b));assert.ok(dark.sight(b,dark.player),'it sees you');const before=dark.player.hp;
   dark.action('wait');assert.equal(dark.player.hp,before,'no shot from the dark');assert.equal(b.charge,false);assert.ok(distance(b,dark.player)<5,'it closes in');
 });
+
+// 3.231.0 (user 2026-11-17): standing on a blink's mark does not stop it — you take the blow and are put beside the mark.
+test('step onto the marked tile and the blink still lands: you take its blow and end up on a free tile beside it',()=>{
+  const g=open(),f=unit(g,'flicker',10,13,'f');g.action('wait');
+  const point=f.blinkIntent.point;assert.deepEqual(point,{x:10,y:15});
+  const hp=g.player.hp;g.action('move',[0,-1]);
+  assert.deepEqual([f.x,f.y],[10,15],'it arrived');assert.ok(g.player.hp<hp,'you took the blow');
+  assert.equal(distance(g.player,point),1,'beside the mark');assert.ok(said(g,'撞了出去'));
+  // Boxed in by walls: the blow lands, you stay, and the blink fizzles.
+  const h=open(),k=unit(h,'flicker',10,13,'k');h.action('wait');
+  for(const [x,y] of [[9,15],[11,15],[10,14]])h.grid[y][x]=0;h.hazards.push({x:10,y:16,type:'acid'});h.reveal();   // the tile you came from is acid
+  const before=h.player.hp;h.action('move',[0,-1]);
+  assert.deepEqual([h.player.x,h.player.y],[10,15],'nowhere to go');assert.ok(h.player.hp<before);assert.deepEqual([k.x,k.y],[10,13],'it stays');
+});
+
+test('a possessed host glows: it is never hidden in the dark',async()=>{
+  const {LIGHT_MODEL,hiddenInDark}=await import('../src/lighting.js');
+  const g=open();g.lightModel=LIGHT_MODEL;g.lamps=[];g.lighting=g.grid.map(r=>r.map(()=>0));
+  const h=unit(g,'possessed_melee',10,12,'h'),w=unit(g,'wisp',11,12,'w');
+  assert.equal(hiddenInDark(g,g.player,w),true,'a wisp in the black is hidden');
+  assert.equal(hiddenInDark(g,g.player,h),false,'the host is not');
+});

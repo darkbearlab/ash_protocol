@@ -164,6 +164,8 @@ if(k<1){c.save();c.translate(a.x,a.y);c.scale(k,k);a={x:0,y:0};}const color=ITEM
     this.objectHealth(p,a.x-12,y-4);
   }
   prop(a,p,time){
+    // 3.231.0 (user 2026-11-17: 「所有有錨點性質的單位都要發出微光」): a standing rift anchor glows, as a possessed host does.
+    if(p.type==='nest'&&p.anchor&&p.hp>0)this.glow(a.x,a.y,this.tile*(.72+.08*Math.sin((time||0)/260)),'#c9a0ff40');
     if(p.type==='nest'){drawNest(this.ctx,this.terrainImages?.get(NEST_ATLAS),a,this.tile,p,this.game?.facilityFaction);if(p.hp>0)this.objectHealth(p,a.x-12,a.y-this.tile*.4);return;}
 
     if(p.type==='module'){const q=modulePoint(p,0,1);if(this.game.visibleTiles.has(`${q.x},${q.y}`)){const pos=this.project(q.x,q.y);this.text(MODULE_TYPES[p.theme].code,pos.x,pos.y+this.tile*.3,MODULE_TYPES[p.theme].color,8);}return;}

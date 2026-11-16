@@ -14,6 +14,8 @@ import {interruptEnemyIntent,enemyCallout,tickSpecials} from './enemy-intents.js
 import {enemyDisplayName} from './enemy-affixes.js';
 import {DIRECTIONS,distance,key} from './world.js';
 import {SIZE} from './data.js';
+import {hazardTile} from './hazard-paths.js';
+import {scaleEnemy,floorDamageBonus} from './endless.js';
 import {registerSpecial,registerStep,validSpecials,INTERRUPT_REASONS,dropAttack} from './enemy-specials.js';
 
 export const BLINK_TUNING=Object.freeze({strikeRange:4,strikeCooldown:3,evadeRange:2,evadeReach:4,evadeGap:4,evadeCooldown:4,maxReach:6});
@@ -47,6 +49,24 @@ function evadePlan(g,e){
 }
 export const blinkPlan=(g,e)=>blinkMode(e)==='evade'?evadePlan(g,e):blinkMode(e)==='strike'?strikePlan(g,e):null;
 
+// 3.231.0 (user 2026-11-17: 「站在裂隙派系的傳送標的上，傳送不會取消，而是對玩家造成傷害（依敵人級別而定）並改站在相鄰隨機格」):
+// you stand on the tile a blink marked. The blink goes on: you take the arriving body's blow (its own damage, so it grows with
+// the card, the floor, the difficulty and an elite's scale), sure and past cover, and are put on a random free tile beside
+// the mark (no hazard; the game's dice, so a replay agrees). Nowhere free beside it: you take the blow, stay, and the blink
+// fizzles. Anyone else on the tile still makes it fizzle.
+const arrivalDamage=(g,e)=>{const base=scaleEnemy(enemyDef(e).damage+floorDamageBonus(g.floor,g.difficultySpec),g.floor,'damage',g.difficultySpec);return e.damageScale===undefined?base:Math.max(1,Math.round(base*e.damageScale));};
+const standable=(g,q)=>q.x>=0&&q.y>=0&&q.x<SIZE&&q.y<SIZE&&g.passable(q.x,q.y,g.player)&&!g.enemies.some(o=>o.hp>0&&key(o)===key(q))&&!g.activeAllies.some(a=>key(a)===key(q))&&!hazardTile(g,q.x,q.y,g.player)&&!(g.hazards||[]).some(h=>key(h)===key(q));
+export function shoveOff(g,e,point){
+ const p=g.player,name=enemyDisplayName(e);
+ const tiles=DIRECTIONS.map(([dx,dy])=>({x:point.x+dx,y:point.y+dy})).filter(q=>standable(g,q)&&g.canCross(point,q));
+ g.log(t('rift-blink.shoved',{enemy:name}),true);
+ g.damagePlayer(arrivalDamage(g,e),name,e,true);
+ if(!tiles.length||p.hp<=0)return false;
+ const q=tiles[Math.floor(g.rng()*tiles.length)];
+ Object.assign(p,{x:q.x,y:q.y,moved:false,moveDelta:[0,0],cornerExposure:null,fireChain:null,guard:false,focus:false,evasive:false,vaultExposed:false});
+ g.pickup();g.reveal();
+ return true;
+}
 const appear=(g,e,to)=>{const from={x:e.x,y:e.y};g.effects.push({type:'portalSpawn',from:{...from},to:{...from},damage:0});Object.assign(e,{x:to.x,y:to.y});e.moved=true;e.moveDelta=[to.x-from.x,to.y-from.y];
  g.effects.push({type:'portalSpawn',from:{...to},to:{...to},damage:0});};
 export function blinkAction(ctx){
@@ -56,6 +76,7 @@ export function blinkAction(ctx){
  const pending=e.blinkIntent;
  if(pending){
   delete e.blinkIntent;e.blinkCooldown=cooldownOf(e);dropAttack(e);
+  if(g.player.hp>0&&key(g.player)===key(pending.point)&&!shoveOff(g,e,pending.point)){g.log(t('rift-blink.fizzled',{enemy:enemyDisplayName(e)}),true);return true;}
   if(!free(g,e,pending.point)){g.log(t('rift-blink.fizzled',{enemy:enemyDisplayName(e)}),true);return true;}
   appear(g,e,pending.point);
   if(blinkMode(e)==='strike'&&key(g.player)===key(pending.target)&&distance(e,g.player)===1&&g.canCross(e,g.player)){

@@ -33,6 +33,7 @@ import {traitLabels,cardTraitLabels} from '../src/traits.js';
 import {suppressionStatus} from '../src/suppression-ui.js';
 import {grenadeMarkers} from '../src/affix-ui.js';
 import {tongueTelegraphs} from '../src/swarm.js';
+import {beamTelegraphs} from '../src/rift-beam.js';   // 3.231.0
 import {chargeLanes,eggSacs} from '../src/swarm-bosses.js';
 import {smokeTelegraphs} from '../src/delisted-operatives.js';
 import {FIELD_TUNING} from '../src/swarm-fields.js';
@@ -147,6 +148,7 @@ function dangerCells(g){
  for(const e of g.enemies)if(e.hp>0&&e.pounceIntent)cells.add(`${e.pounceIntent.target.x},${e.pounceIntent.target.y}`);
  for(const e of g.enemies)if(e.hp>0&&e.blinkIntent?.point&&e.type==='flicker')cells.add(`${e.blinkIntent.target.x},${e.blinkIntent.target.y}`);   // 3.227.0: a flicker strikes the tile you stood on
  for(const e of g.enemies)if(e.hp>0&&e.lockIntent)cells.add(`${e.lockIntent.tile.x},${e.lockIntent.tile.y}`);   // 3.213.0
+ for(const b of beamTelegraphs(g))for(const q of b.lane)cells.add(`${q.x},${q.y}`);   // 3.231.0: a ray body's line
  for(const e of g.enemies)if(e.hp>0&&e.lobIntent)for(const q of areaCells(g.grid,e.lobIntent.point,FIELD_TUNING.radius,g.barriers,g).filter(q=>g.grid[q.y]?.[q.x]===1))cells.add(`${q.x},${q.y}`);
  for(const s of eggSacs(g))cells.add(`${s.x},${s.y}`);
  for(const s of smokeTelegraphs(g))for(const q of s.cells)cells.add(`${q.x},${q.y}`);   // 3.207.0: a delisted recon's warned smoke
@@ -197,7 +199,7 @@ function enemyRows(g){
   const view=Object.create(g);view.target=e.id;const card=targetDetails(view)||{};
   const enemy=ENEMY_TYPES[e.type],reach=enemy?.range??0,threat=!isNoncombatant(e)&&reach>1&&distance(e,p)<=reach&&g.sight(e,p);
   const cover=threat?(g.protectingCover(p,e)?(g.accuracy(e,p).coverEfficiency===.5?'你對它半效掩護':'你對它有掩護'):'你對它暴露'):'';
-  const intent=[e.charge?'蓄力/瞄準中':'',e.windup?`預備 ${e.windup}`:'',e.tongueIntent?'鉤舌預備':'',e.chargeIntent?'衝鋒預備':'',e.nestIntent?'產卵中':'',e.crashed?'撞牆暈眩':'',e.fireIntent?(e.fireIntent.kind==='ring'?'圍困預備':'火牆預備'):'',e.heat?`熱度 ${e.heat}`:'',e.overheat?`過熱散熱 ${e.overheat}（裝甲 0）`:'',e.burn?.stage==='pack'?`收起噴火器 ${e.burn.left}`:'',e.grenadeIntent?'準備投彈':'',e.pounceIntent?'撲擊預備':'',e.blinkIntent?'閃爍預備':'',e.lobIntent?'毒囊鼓起':'',e.smokeIntent?'煙霧彈預備':'',e.scanCooldown?`預警冷卻 ${e.scanCooldown}`:'',e.droneCooldown?`無人機冷卻 ${e.droneCooldown}`:'',e.decloaked?'剛出手：現形':'',e.alert?'':'未察覺',g.target===e.id?'已鎖定':''].filter(Boolean);
+  const intent=[e.charge?'蓄力/瞄準中':'',e.windup?`預備 ${e.windup}`:'',e.tongueIntent?'鉤舌預備':'',e.chargeIntent?'衝鋒預備':'',e.nestIntent?'產卵中':'',e.crashed?'撞牆暈眩':'',e.fireIntent?(e.fireIntent.kind==='ring'?'圍困預備':'火牆預備'):'',e.heat?`熱度 ${e.heat}`:'',e.overheat?`過熱散熱 ${e.overheat}（裝甲 0）`:'',e.burn?.stage==='pack'?`收起噴火器 ${e.burn.left}`:'',e.grenadeIntent?'準備投彈':'',e.pounceIntent?'撲擊預備':'',e.blinkIntent?'閃爍預備':'',e.warpIntent?'錯位預備':'',e.beamIntent?'射線預備':'',e.lobIntent?'毒囊鼓起':'',e.smokeIntent?'煙霧彈預備':'',e.scanCooldown?`預警冷卻 ${e.scanCooldown}`:'',e.droneCooldown?`無人機冷卻 ${e.droneCooldown}`:'',e.decloaked?'剛出手：現形':'',e.alert?'':'未察覺',g.target===e.id?'已鎖定':''].filter(Boolean);
   return `  ${letterOf(g,e)} ${e.id} ${enemyName(e)} ${at(e)} 距離 ${distance(p,e)} HP ${hp(e)}${enemy?.armor?` 裝甲 ${enemy.armor}`:''} · ${card.chance||''} · 目標${card.cover||''}${card.state?` · ${card.state}`:''}${card.traits?` · ${card.traits}`:''}${card.order?` · ${card.order}`:''}${cover?` · ${cover}`:''}${intent.length?` · ${intent.join(' · ')}`:''}`.replace(/\n/g,' ');
  })];
 }
@@ -229,6 +231,8 @@ function surroundings(g){
   ...eggSacs(g).map(s=>`卵囊：${at(s)} 下回合孵成蟲巢`),
   ...g.enemies.filter(e=>e.hp>0&&e.pounceIntent).map(e=>`撲擊：${e.id} 下回合撲向 ${at(e.pounceIntent.target)}，離開那一格就撲空`),   // 3.206.2
   ...g.enemies.filter(e=>e.hp>0&&e.blinkIntent).map(e=>`閃爍：${e.id} 下回合出現在 ${at(e.blinkIntent.point)}${e.type==='flicker'?`，並攻擊 ${at(e.blinkIntent.target)}（離開就落空）`:''}`),   // 3.227.0
+  ...g.enemies.filter(e=>e.hp>0&&e.warpIntent).map(e=>`錯位：${e.id} 下回合你還在 ${at(e.warpIntent.target)} 就被移到 ${at(e.warpIntent.point)}（離開那一格就落空）`),   // 3.231.0
+  ...beamTelegraphs(g).map(b=>`射線：${b.sourceId} 下回合沿直線發射，經過 ${b.lane.map(at).join(' ')}，離開那條線`),   // 3.231.0
   ...g.enemies.filter(e=>e.hp>0&&e.lockIntent).map(e=>`封鎖：${e.id} 下回合打 ${at(e.lockIntent.tile)}，別踏上那一格`),   // 3.213.0
   ...g.enemies.filter(e=>e.hp>0&&e.disarmIntent).map(e=>`繳械：${e.id} 下回合瞄準你手上的武器，換武器或離開它的視線`),   // 3.215.0
   ...g.enemies.filter(e=>e.hp>0&&e.lobIntent).map(e=>`毒霧：${e.id} 下回合把毒霧拋到 ${at(e.lobIntent.point)} 一帶`),

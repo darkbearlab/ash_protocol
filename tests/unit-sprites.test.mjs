@@ -41,7 +41,7 @@ test('every unit that borrowed a cell draws its own now; only the elites and the
  for(const id of own){const look=enemySprite(id);assert.deepEqual([look.key,look.corpse],[id,id],id);assert.equal(enemyTint({type:id}),null,`${id} has its colours in the art`);}
  const borrowed=Object.keys(ENEMY_TYPES).filter(id=>enemySprite(id).key!==id).sort();
  // 3.226.0–3.227.0: the rift's wisp (larva), flicker (hunter bug), possessed (rifleman) and shade (giant bug) borrow tinted cells until the rift has its own art.
- assert.deepEqual(borrowed,['delisted_berserker','delisted_engineer','delisted_ninja','delisted_recon','delisted_soldier','flicker','gunner_elite','phase','possessed','possessed_melee','raider_elite','shade','wisp']);
+ assert.deepEqual(borrowed,['beamer','delisted_berserker','delisted_engineer','delisted_ninja','delisted_recon','delisted_soldier','displacer','flicker','gunner_elite','phase','possessed','possessed_melee','raider_elite','shade','wisp']);
  assert.equal(enemySprite('gunner_elite').key,'gunner');assert.equal(enemySprite('raider_elite').key,'raider');
  // Sizes stay the cards': the big bugs and the heavy flamer are drawn enlarged, the larva small.
  assert.deepEqual(['hive_beast','hive_matriarch','giant_bug','heavy_flamer','brood','fodder'].map(id=>enemySprite(id).size),[1.55,1.7,1.3,1.25,.65,1]);
