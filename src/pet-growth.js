@@ -4,6 +4,7 @@ import {distance,DIRECTIONS,key} from './world.js';
 import {healActor,grantTrait,removeTraitSource} from './traits.js';
 import {classPerkRank} from './class-perks.js';
 import {salvageValue,canSalvageOwned} from './weapons.js';
+import {maxHpOf} from './drain.js';   // 3.228.0: 流逝 lowers the maximum in play
 
 // Fuel is integer ticks: 72 ticks = one scrap's terminal buying power.
 export const PET_FEEDING_TUNING={fuelScale:72,capacity:30,capacityPerRank:10,discountPerRank:10,
@@ -52,7 +53,7 @@ export function placePet(g,a,revive=false){
  const point=DIRECTIONS.map(([dx,dy])=>({x:g.player.x+dx,y:g.player.y+dy})).find(q=>g.passable(q.x,q.y)&&g.canCross(g.player,q)&&![...g.enemies,...g.allies.filter(e=>e.floor===g.floor&&e.status==='active')].some(e=>e!==a&&e.hp>0&&key(e)===key(q)));
  a.floor=g.floor;if(!point)return false;petMoved(g,a);
  Object.assign(a,{...point,status:'active',order:null,bornTurn:g.turn,moved:false,moveDelta:[0,0],vaultExposed:false,restTurn:undefined,cornerExposure:null,tactics:null,fireChain:null});
- if(revive){a.hp=Math.max(1,Math.min(a.maxHp-1,Math.floor(a.maxHp*petReviveFraction(g.player))));g.player.petBond.diedTurn=null;}
+ if(revive){a.hp=Math.max(1,Math.min(maxHpOf(a)-1,Math.floor(maxHpOf(a)*petReviveFraction(g.player))));g.player.petBond.diedTurn=null;}
  return true;
 }
 export function transportPet(g,a){
@@ -95,10 +96,10 @@ export function petFeedQuote(g,arg){
   Object.assign(quote,{resource:AMMUNITION[kind].key,amount,cost:amount,gain:amount*value});
   if(amount<=0)return deny(b.fuel+value>petCapacity(p)?'胃容量不足':'備彈不足');
  }else if(id==='medkit'){
-  Object.assign(quote,{resource:'meds',amount:1,cost:1,gain:Math.ceil(a.maxHp*T.medkitFraction)});
-  if(!p.meds||a.hp>=a.maxHp)return deny(!p.meds?'醫療包不足':'獵獸生命已滿');
+  Object.assign(quote,{resource:'meds',amount:1,cost:1,gain:Math.ceil(maxHpOf(a)*T.medkitFraction)});
+  if(!p.meds||a.hp>=maxHpOf(a))return deny(!p.meds?'醫療包不足':'獵獸生命已滿');
  }else{
-  if(id==='life'){line='vitality';available=p.hp;gain=T.lifePortion;quote.resource='hp';if(p.hp-gain<Math.max(T.lifeFloor,Math.ceil(p.maxHp*T.lifeFloorFraction)))return deny('餵食後生命會低於安全下限');}
+  if(id==='life'){line='vitality';available=p.hp;gain=T.lifePortion;quote.resource='hp';if(p.hp-gain<Math.max(T.lifeFloor,Math.ceil(maxHpOf(p)*T.lifeFloorFraction)))return deny('餵食後生命會低於安全下限');}
   else if(id==='plates'){line='armor';available=p.plates;gain=Math.min(T.platePortion,available);quote.resource='plates';}
   else if(id==='weapon'){line='turret';if(!canSalvageOwned(g,arg.weaponSlot))return deny('這把武器不能拆解或餵食');available=1;gain=salvageValue(p,arg.weaponSlot);quote.resource='weapon';quote.weaponSlot=arg.weaponSlot;}
   else if(id.startsWith('grenade:')){const kind=id.slice(8);if(!Object.hasOwn(GRENADES,kind))return deny('未知投擲物');line='extrusion';available=p[GRENADES[kind].resource];gain=1;quote.resource=GRENADES[kind].resource;quote.grenade=kind;}
@@ -123,7 +124,7 @@ export function outputChoiceReason(g,arg){return !g.player.petBond||petRank(g.pl
 export function petFeedingState(g){
  const p=g.player,b=p.petBond,a=petActor(g);if(!b||!a)return null;
  const inputs=[...AMMO_IDS.map(id=>({optionId:'ammo:'+id})),{optionId:'life'},{optionId:'plates'},...p.owned.map(weaponSlot=>({optionId:'weapon',weaponSlot})),...Object.keys(GRENADES).map(id=>({optionId:'grenade:'+id})),{optionId:'medkit'}];
- return {actorId:a.id,status:a.status,hp:a.hp,maxHp:a.maxHp,fuel:{stored:b.fuel,capacity:petCapacity(p),scale:T.fuelScale,displayValue:b.fuel/T.fuelScale},
+ return {actorId:a.id,status:a.status,hp:a.hp,maxHp:maxHpOf(a),fuel:{stored:b.fuel,capacity:petCapacity(p),scale:T.fuelScale,displayValue:b.fuel/T.fuelScale},
   growth:Object.fromEntries(Object.keys(T.thresholds).map(line=>{const rank=petRank(p,line);return [line,{progress:b.growth[line],rank,nextThreshold:T.thresholds[line][rank]??null,capped:rank===6,nodes:petNodes(p,line)}];})),
   reviveRemaining:b.reviveRemaining,reviveFraction:petReviveFraction(p),abilities:petAbilityState(g),output:{kind:petOutputKind(p),remaining:b.outputRemaining,ready:petRank(p,'extrusion')>0&&b.outputRemaining===0,fuelCost:petFuelCost(p,'output'),selectableKinds:petRank(p,'extrusion')>=2?Object.keys(GRENADES):[]},
   options:inputs.map(input=>({...petFeedQuote(g,input),action:input}))};
@@ -194,10 +195,10 @@ function smokeAt(g,a,point,throwing){
 export function petReactions(g){
  const a=activePet(g),b=g.player.petBond;if(!a||!b)return;
  const rank=petRank(g.player,'extrusion');
- if(rank>=4&&a.hp<=a.maxHp*T.criticalFraction&&!b.criticalUsedFloors.includes(g.floor)){
+ if(rank>=4&&a.hp<=maxHpOf(a)*T.criticalFraction&&!b.criticalUsedFloors.includes(g.floor)){
   b.criticalUsedFloors.push(g.floor);smokeAt(g,a,a,false);g.log('獵獸展開危急煙霧。');
  }
- if(rank>=6&&g.player.hp<=g.player.maxHp*T.criticalFraction&&!b.guardianUsedFloors.includes(g.floor)&&distance(a,g.player)<=T.guardianRange&&g.sight(a,g.player)){
+ if(rank>=6&&g.player.hp<=maxHpOf(g.player)*T.criticalFraction&&!b.guardianUsedFloors.includes(g.floor)&&distance(a,g.player)<=T.guardianRange&&g.sight(a,g.player)){
   b.guardianUsedFloors.push(g.floor);smokeAt(g,a,g.player,true);g.log('獵獸投出守護煙霧。');
  }
 }

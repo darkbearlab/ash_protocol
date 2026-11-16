@@ -4,6 +4,7 @@
 // - screen: the whole frame parts into a red and a blue-green layer and a few horizontal bands tear sideways;
 // - object: one sprite, prop or item is cut into slices that jump sideways, with red and blue-green ghosts.
 import {chromaSplit} from './screen-shake.js';
+import {maxHpOf} from './drain.js';   // 3.228.0: 流逝 lowers the maximum in play
 
 export const GLITCH_TUNING=Object.freeze({
  fromShake:.8,                                   // your shot, a blast, a hit: screen strength per pixel of its shake
@@ -55,7 +56,7 @@ export function stateGlitches(state,view,time,visible){
  state.disabled=disabled;
  const pulse=(on,key,d)=>{if(!on){state[key]=null;return;}if(state[key]==null)state[key]=time+between(d.every);else if(time>=state[key]){screen.push({start:time,duration:d.ms,amp:d.amp});state[key]=time+between(d.every);}};
  pulse((p.suppression||0)>=3,'nextPinned',T.pinned);
- pulse(p.hp>0&&p.hp<p.maxHp*T.lowHp.ratio,'nextLowHp',T.lowHp);
+ pulse(p.hp>0&&p.hp<maxHpOf(p)*T.lowHp.ratio,'nextLowHp',T.lowHp);
  state.idle??={};
  for(const e of visible.enemies.filter(affixed)){const due=state.idle[e.id];if(due==null)state.idle[e.id]=time+between(T.affixIdle.every);else if(time>=due){objects.push({key:e.id,start:time,duration:T.affixIdle.ms,amp:T.affixIdle.amp,seed:Math.random()*1000});state.idle[e.id]=time+between(T.affixIdle.every);}}
  if(state.nextAmbient==null)state.nextAmbient=time+between(T.ambient.every);

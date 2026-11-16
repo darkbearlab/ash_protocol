@@ -35,6 +35,7 @@ import {$,effectsOpen,entered,escapeHTML,game,lastActionLogs,lastStatus,logButto
 import {updateAim} from './controller-aim.js';
 import {bossScene,endRun,kia,playCourse,sayCommsEvents} from './controller-comms.js';
 import {promptLog,showLevelUp,showRoomPrompt} from './controller-screens.js';
+import {maxHpOf} from './drain.js';   // 3.228.0: 流逝 lowers the maximum in play
 let noticeTimer;
 // 3.104.0 (user request): the bar is not empty when quiet — it falls back to the floor and mission line that used to
 // live in this row, so a message only borrows the space for a couple of seconds.
@@ -56,7 +57,7 @@ export function notify(text,{extra=0,danger=false}={}){notice.textContent=text;n
 export const notifyLatest=()=>{sayCommsEvents(game.logs.slice(0,lastActionLogs));const latest=game.logs[0],blueprint=game.logs.slice(0,Math.max(1,lastActionLogs)).find(l=>isBlueprintLog(l.text));if(latest)notify(blueprint&&blueprint!==latest?`${blueprint.text} ${latest.text}`:latest.text,{extra:lastActionLogs-1,danger:latest.danger});};
 // Half health or less: the battlefield edges pulse red, deeper and faster as health falls (3.43).
 function lowHealth(p){
-  const glow=$('#low-health'),ratio=Math.max(0,p.hp)/p.maxHp,on=ratio<=.5;glow.classList.toggle('on',on);if(!on)return;
+  const glow=$('#low-health'),ratio=Math.max(0,p.hp)/maxHpOf(p),on=ratio<=.5;glow.classList.toggle('on',on);if(!on)return;
   const danger=Math.min(1,(.5-ratio)/.5); // 0 at half health, 1 at zero; the glow's depth scales with the board in CSS.
   glow.style.setProperty('--danger',danger.toFixed(2));glow.style.setProperty('--edge',(.45+.35*danger).toFixed(2));glow.style.setProperty('--pulse',`${(1.6-.7*danger).toFixed(2)}s`);
 }
@@ -75,7 +76,7 @@ export function update(view=renderer.game) {
   // The mission summary moved into the ☰ menu (3.104.0, user request): most runs just push deeper, and the row
   // it used to occupy is worth more as the message bar.
   $('#turn').textContent=String(view.turn).padStart(3,'0');
-  $('#mobile-hp-bar').style.width=`${Math.max(0,p.hp)/p.maxHp*100}%`;$('#mobile-hp').textContent=`${Math.max(0,p.hp)} / ${p.maxHp}`;
+  $('#mobile-hp-bar').style.width=`${Math.max(0,p.hp)/maxHpOf(p)*100}%`;$('#mobile-hp').textContent=`${Math.max(0,p.hp)} / ${maxHpOf(p)}`;
   $('#mobile-plates-bar').style.width=`${(p.plates||0)/view.plateCapacity*100}%`;$('#mobile-plates').textContent=`${p.plates||0} / ${view.plateCapacity}`;lowHealth(p);
   $('#level').textContent=`${sectorLabel} · ${levelLabel(p.level)}`;$('#level').title=`${t('controller.hud.levelTitle',{sectorLabel,v:levelTitle(p.level,p.xp,levelCost(game,p.level))})}`;
   // One spelling of a prepared slot's label, so a mode that borrows the button can put it back exactly (3.109.0).

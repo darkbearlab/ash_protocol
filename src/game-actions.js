@@ -43,6 +43,8 @@ import {distance} from './world.js';
 import {terminalReason} from './terminal.js';
 import {flareReason} from './flares.js';
 import {SPRAY_PLATES,SURGE_COST,SURGE_STEPS} from './game.js';
+import {maxHpOf} from './drain.js';   // 3.228.0: 流逝 lowers the maximum in play
+import {tickDrain} from './rift.js';
 // 3.109.0 (user request): carried cover goes on the edge between you and the side you pick, so any of the four
 // sides is one action — no turning — and because a low partition can be vaulted it can never seal a corridor.
 // 3.111.0 (user request): a point-target launcher is aimed like a thrown grenade — at a floor tile, not at an enemy's
@@ -79,7 +81,7 @@ export function itemUseReason(g,id){
  const p=g.player,entry=PREPARED_CATALOG.item[id];
  if(!entry?.action)return t('game.noSuchItem');
  if(!p[entry.resource])return t('common.noItem',{item:entry.name});
- if(entry.action==='heal')return p.hp<p.maxHp||p.poison>0?'':t('game.healNotNeeded');
+ if(entry.action==='heal')return p.hp<maxHpOf(p)||p.poison>0?'':t('game.healNotNeeded');
  if(entry.action==='plate')return (p.plates||0)<g.plateCapacity?'':t('game.platesFull');
  if(entry.action==='surge')return p.control.disabled?t('game.disabledCannotUse'):g.shadowSteps?t('game.freeMovesLeft'):p.hp>SURGE_COST?'':t('game.surgeFatal');
  return '';
@@ -274,6 +276,7 @@ export class GameActions {
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>resolveRetreatWave(this));
       if(p.hp>0)presentStep(this,()=>this.environmentTurn());
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>tickNests(this));
+      if(p.hp>0&&!isSimulation(this))presentStep(this,()=>tickDrain(this));   // 3.228.0: 流逝 (src/rift.js)
       if(p.hp>0&&!isSimulation(this))presentStep(this,()=>tickSwarmWaves(this));
       if(p.hp>0&&isSurvival(this))presentStep(this,()=>tickSurvival(this));   // 3.189.0
     }
@@ -362,7 +365,7 @@ export class GameActions {
       case 'reload': success=this.reload();break;
       case 'heal':
         if(p.meds<=0)return this.fail(t('game.medkitsOut'),'empty',{item:t('game.medkitName')});
-        if(p.hp===p.maxHp&&p.poison===0)return this.fail(t('game.healthFull'),'not_needed');
+        if(p.hp>=maxHpOf(p)&&p.poison===0)return this.fail(t('game.healthFull'),'not_needed');
         p.meds--;const recovered=healActor(p,45,p.healBonus);clearPoison(p);
         this.log(`${t('game.medkitUsed',{recovered})}`);success=true;break;
       case 'plate': {

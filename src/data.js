@@ -6,7 +6,7 @@ export const SIZE = 27;
 // blasts cross it. seeThrough is what a line of sight may pass over or end on.
 export const VOID = 2;
 export const seeThrough = v => v === 1 || v === VOID;
-export const SAVE_VERSION = 96;   // 96 (3.227.0): a possessed human's `anchor` (src/rift.js), the blink's `blinkIntent` and `blinkCooldown` (src/rift-blink.js); nothing to migrate. 95 (3.226.0): the rift — anchors (a `nest` prop with `anchor`), a body's `anchorId`, `reformed`, `dissipated`.
+export const SAVE_VERSION = 97;   // 97 (3.228.0): 流逝 stacks (`drain`) on the player, allies and civilians (src/drain.js, src/rift.js); nothing to migrate. 96 (3.227.0): a possessed human's `anchor` (src/rift.js), the blink's `blinkIntent` and `blinkCooldown` (src/rift-blink.js); nothing to migrate. 95 (3.226.0): the rift — anchors (a `nest` prop with `anchor`), a body's `anchorId`, `reformed`, `dissipated`.
 // 94 (3.222.0): the new 困難 curve (`brutal`); endless past floor 9 frozen, thinner supplies (a terminal's `spent` from the start).
 // 93 (3.220.0): 酸血 acid that dries (a hazard's `expires`); 產卵 nests laid by an ordinary bug (`<id>-nest-<n>`); 鉤舌 tongues on bugs with the affix.
 // 92 (3.219.0): 通報 (`callCooldown`), 殉爆 (a `volatile` blast mark), 裝死 (`concealed` {as:'corpse',turns}).
@@ -252,3 +252,6 @@ ENEMY_TYPES.wisp={sprite:{key:'brood',corpse:'brood',size:.8,tint:'#b078ed'},dra
 // human is a living anchor that blinks away when you close in ('evade', src/rift.js anchorHolder). Borrowed art, tinted.
 ENEMY_TYPES.flicker={sprite:{key:'crawler',corpse:'crawler',size:.85,tint:'#7f9cff'},drawing:{shape:'critter',color:'#7f9cff',glow:'#a9bcff44'},projectile:'melee',voice:'creature',tags:[],traits:['no_cover'],energy:true,huntsLife:true,blink:'strike',gore:'energy',rounds:1,attackStyle:'claw',name:t('enemyTypes.flicker.name'),hp:26,damage:11,range:1,armor:0,color:'#7f9cff',xp:1,role:t('enemyTypes.flicker.role')};
 ENEMY_TYPES.possessed={sprite:{key:'rifleman',corpse:'rifleman',tint:'#a88bd8',outline:'#d9b8ff'},drawing:{color:'#a88bd8',glow:'#c9a0ff55'},projectile:'rifle',casing:'rifle',voice:'creature',tags:['armed'],traits:[],anchorHolder:true,blink:'evade',rounds:2,attackStyle:'bullet',loot:{weapon:0,chance:.20,ammo:'ammo'},name:t('enemyTypes.possessed.name'),hp:34,damage:15,range:6,armor:0,color:'#a88bd8',xp:2,role:t('enemyTypes.possessed.role')};
+// 3.228.0 (docs/FACTIONS.md 5.6): the shade, a large energy body that eats the light around it (`eatsLight`, src/lighting.js)
+// and drains life near it (流逝光環 2, the rift's override in src/faction-catalog.js). Borrowed art, tinted.
+ENEMY_TYPES.shade={sprite:{key:'giant_bug',corpse:'giant_bug',size:1.3,scale:1.3,tint:'#4b3474'},drawing:{shape:'critter',color:'#4b3474',glow:'#8a62c844'},projectile:'melee',voice:'creature',tags:[],traits:['no_cover','large'],energy:true,huntsLife:true,eatsLight:2,gore:'energy',rounds:1,attackStyle:'claw',name:t('enemyTypes.shade.name'),hp:90,damage:16,range:1,armor:1,color:'#7a58b8',xp:3,role:t('enemyTypes.shade.role')};

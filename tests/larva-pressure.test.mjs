@@ -38,8 +38,10 @@ test('the swarm override: agile larvae and 近戰壓制 N on its biters; the sha
   }
   // Bombers explode, spitters spit and the infected shoot: no trait.
   for(const type of ['bomber','spitter','rifleman_infected','raider_infected'])assert.equal(meleeSuppressionRank(makeEnemy(type,5,5,'n',3,0,'swarm')),0,type);
-  // Only the swarm's table adds traits.
-  for(const [id,d] of Object.entries(FACTIONS))for(const [type,o] of Object.entries(d.overrides||{}))if(o.traits)assert.equal(id,'swarm',`${id} ${type}`);
+  // Only the swarm's table adds 近戰壓制.
+  // 3.228.0: the rift's shade carries 流逝光環 the same way (tests/rift-drain.test.mjs); 近戰壓制 stays the swarm's.
+  for(const [id,d] of Object.entries(FACTIONS))for(const [type,o] of Object.entries(d.overrides||{}))if(o.traits?.some(x=>x.id==='melee_suppression'))assert.equal(id,'swarm',`${id} ${type}`);
+  assert.deepEqual(FACTIONS.rift.overrides.shade.traits,[{id:'drain_aura',rank:2}]);
   assert.deepEqual(factionTraits('swarm','brood'),[{id:'agile',source:'faction:swarm'},{id:'melee_suppression',source:'faction:swarm'}]);
   assert.deepEqual(factionTraits('legacy','brood'),[]);assert.deepEqual(factionTraits(undefined,'brood'),[]);
   // A rank belongs to the source that gave the trait: the same trait from anywhere else has none.
@@ -217,7 +219,7 @@ function swarmTrip(){
   return {g,child};
 }
 test('SAVE 86: swarm units in an older save get their traits — this floor and a kept one; the legacy mix is untouched',()=>{
-  assert.equal(SAVE_VERSION,96);
+  assert.equal(SAVE_VERSION,97);
   const {g,child}=swarmTrip();
   const raw=JSON.parse(g.serialize());raw.version=85;
   raw.data.enemies=raw.data.enemies.map(stripped);for(const f of Object.values(raw.data.floorStates))f.enemies=f.enemies.map(stripped);

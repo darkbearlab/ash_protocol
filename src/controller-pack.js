@@ -26,6 +26,7 @@ import {AMMO_IDS,AMMUNITION,MELEE_TINT,TERMINAL_AMMO,ammoInfo} from './ammunitio
 import {$,close,escapeHTML,game,modal,renderer} from './controller.js';
 import {updateAim} from './controller-aim.js';
 import {notify} from './controller-hud.js';
+import {maxHpOf} from './drain.js';   // 3.228.0: 流逝 lowers the maximum in play
 export let inventoryTab='weapon';
 export const INVENTORY_TABS={weapon:t('controller.tab.weapon'),...PREPARED_CATEGORIES};
 // Engineer workshop panel (docs/ENGINEER.md phase 1): the class skill opens the production lines; building and
@@ -79,7 +80,7 @@ function petFeedingSection(){
 // description behind "?", and the main button in the pinned footer. Operator stats and passive rules live in the journal,
 // reached from the settings menu (3.97.1, user report: a journal button in the pack was noise).
 const packInfo=(id,text)=>text?`<button class="pack-info" data-pack-info="${id}" aria-expanded="false" aria-controls="pack-desc-${id}" aria-label="${t('controller.pack.describe')}">?</button><p class="pack-desc" id="pack-desc-${id}" hidden>${text}</p>`:'';
-const allyStatus=a=>`${t('controller.ally.row',{v:a.status==='reforming'?t('controller.ally.reforming'):a.status==='arriving'?t('controller.ally.arriving'):a.status==='destroyed'?t('controller.ally.destroyed'):t('controller.ally.active'),floor:a.floor,hp:a.hp,maxHp:a.maxHp,v2:a.kind==='drone'?(a.payload?` ${t('controller.ally.loaded',{short:GRENADES[a.payload].short})}`:['unit_bomber','unit_warden','unit_boss'].includes(a.sourceId)?(a.primed?(a.sourceId==='unit_warden'?t('controller.ally.charging'):t('controller.ally.windingUp')):a.bombard?t('controller.ally.bombardNext'):''):(allyWeapon(a,game.player).builtIn?t('controller.ally.selfAmmo'):` ${t('controller.ally.ammo',{v:Number.isInteger(a.weapon)?game.weaponAt(a.weapon).name+' ':'',ammo:a.ammo,v2:allyWeapon(a,game.player).mag})}`)):''})}`;
+const allyStatus=a=>`${t('controller.ally.row',{v:a.status==='reforming'?t('controller.ally.reforming'):a.status==='arriving'?t('controller.ally.arriving'):a.status==='destroyed'?t('controller.ally.destroyed'):t('controller.ally.active'),floor:a.floor,hp:a.hp,maxHp:maxHpOf(a),v2:a.kind==='drone'?(a.payload?` ${t('controller.ally.loaded',{short:GRENADES[a.payload].short})}`:['unit_bomber','unit_warden','unit_boss'].includes(a.sourceId)?(a.primed?(a.sourceId==='unit_warden'?t('controller.ally.charging'):t('controller.ally.windingUp')):a.bombard?t('controller.ally.bombardNext'):''):(allyWeapon(a,game.player).builtIn?t('controller.ally.selfAmmo'):` ${t('controller.ally.ammo',{v:Number.isInteger(a.weapon)?game.weaponAt(a.weapon).name+' ':'',ammo:a.ammo,v2:allyWeapon(a,game.player).mag})}`)):''})}`;
 export function showInventory(tab=inventoryTab,message='') {
   inventoryTab=Object.hasOwn(INVENTORY_TABS,tab)?tab:'weapon';
   const p=game.player,ground=game.items.filter(o=>o.type==='weapon'&&distance(o,p)<=1),category=inventoryTab;

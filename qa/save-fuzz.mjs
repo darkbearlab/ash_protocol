@@ -3,7 +3,7 @@
 // ends in exactly the same state as the original, and the save after the action loads. This is the check that found
 // the worst bugs of 3.203–3.205 (saves refused after a telegraph, stale intents, tuning changes), so run it before
 // handing off anything that adds persisted state or enemy specials. docs/CHECKLIST.md lists when.
-//   node qa/save-fuzz.mjs                                 every faction, floors 1-6, 4 seeds, 3 classes, 80 actions
+//   node qa/save-fuzz.mjs                                 every faction (the rift since 3.228.0), floors 1-6, 4 seeds, 3 classes, 80 actions
 //   node qa/save-fuzz.mjs --faction swarm --floors 3,6 --seeds 10 --steps 150 --classes soldier,ninja
 //   node qa/save-fuzz.mjs --near-boss                     start boss floors 4-6 tiles from the boss
 //   node qa/save-fuzz.mjs --operative cycle               3.207.0: every loyalist and rebel floor that draws (6, 9...)
@@ -33,7 +33,7 @@ import {setOperativeDraw,OPERATIVE_CLASSES} from '../src/operative-draw.js';
 
 const arg=(name,fallback)=>{const i=process.argv.indexOf('--'+name);return i<0?fallback:process.argv[i+1];};
 const list=(name,fallback)=>String(arg(name,fallback)).split(',').map(s=>s.trim()).filter(Boolean);
-const FACTIONS=list('faction','loyalist,rebel,swarm,legacy'),FLOORS=list('floors','1,2,3,4,5,6').map(Number);
+const FACTIONS=list('faction','loyalist,rebel,swarm,legacy,rift'),FLOORS=list('floors','1,2,3,4,5,6').map(Number);
 const SEEDS=Number(arg('seeds',4)),FROM=Number(arg('seed-from',1)),STEPS=Number(arg('steps',80)),CLASSES=list('classes','soldier,recon,engineer');
 const DIFFICULTY=arg('difficulty',null),NEAR_BOSS=process.argv.includes('--near-boss'),OUT=arg('out',null),TRACE=arg('trace',null),AGAINST=arg('against',null),OPERATIVE=arg('operative',null);
 // 3.207.0: the draw forced through its QA hook (src/operative-draw.js setOperativeDraw), so the run meets each class.

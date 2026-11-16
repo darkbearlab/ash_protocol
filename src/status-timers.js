@@ -6,6 +6,7 @@ import {decayedStacks,suppressionStacks} from './suppression.js';
 import {TRAITS} from './traits.js';
 import {BOSS_TUNING,DESIGNATED,designatedTurns} from './loyalist-bosses.js';
 import {OPERATIVE_TUNING,SCANNED} from './delisted-operatives.js';
+import {drainStacks,maxHpOf} from './drain.js';
 
 // Poison drops one stack every poisonDecayTurns environment turns; poisonClock counts toward the next drop.
 export const poisonTurns=p=>p.poison>0?p.poison*SWARM_TUNING.poisonDecayTurns-(p.poisonClock||0):0;
@@ -21,6 +22,8 @@ export function timedStatuses(g){return timedStatusChips(g).map(chip=>chip.text)
 export function timedStatusChips(g){
   const p=g.player,skill=id=>p.skillState?.[id]?.remaining||0,out=[],add=(icon,n,tone,text)=>out.push({icon,n,tone,text});
   if(g.shadowSteps)add('steps',g.shadowSteps,'good',t('status-timers.freeSteps',{n:g.shadowSteps}));
+  // 3.228.0: 流逝 (src/drain.js), its stacks and the maximum health they leave.
+  if(drainStacks(p))add('down',drainStacks(p),'bad',t('status-timers.drain',{n:drainStacks(p),max:maxHpOf(p)}));
   if(p.poison)add('drop',p.poison,'bad',t('status-timers.poison',{stacks:p.poison,turns:poisonTurns(p)}));
   if(p.control?.disabled)add('bolt',p.control.disabled,'bad',t('status-timers.disabled',{n:p.control.disabled}));
   if(p.control?.immune)add('shieldCheck',p.control.immune,'good',t('status-timers.immune',{n:p.control.immune}));

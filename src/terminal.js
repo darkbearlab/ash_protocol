@@ -63,6 +63,7 @@ const OPTIONS=['heal','med','ammo',...AMMO_IDS,'grenade','smoke','emp','stun',..
 // and still sells everything.
 export {TERMINAL_KINDS,KIND_ROOMS,floorTerminalKinds} from './terminal-kinds.js';
 import {TERMINAL_KINDS} from './terminal-kinds.js';
+import {maxHpOf} from './drain.js';   // 3.228.0: 流逝 lowers the maximum in play
 export function offerKind(option){
  if(upgradeSlot(option)!==null||option==='ammo'||AMMO_IDS.includes(option))return 'arms';
  if(option==='heal'||option==='med'||option==='spray')return 'medical';
@@ -85,7 +86,7 @@ export function offerReason(g,option){
  if(price>left)return t('terminal.creditShort',{left,price});
  if(slot!==null)return '';
  const item=TERMINAL_ITEMS[option];
- if(option==='heal'&&p.hp===p.maxHp&&!p.poison)return t('terminal.healthFull');
+ if(option==='heal'&&p.hp>=maxHpOf(p)&&!p.poison)return t('terminal.healthFull');
  if(item?.wear&&p.wearables.includes(item.wear))return t('terminal.haveOne');
  if(item?.wear==='exo'&&activeTrait(p,'large'))return t('terminal.tooLargeExo');
  const kind=grenadeByItem(option)?'grenade':TERMINAL_AMMO[option]?option:null;

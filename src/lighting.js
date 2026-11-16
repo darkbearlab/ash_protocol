@@ -7,6 +7,7 @@ import {enemyDef,hasEnemyTag} from './enemy-data.js';
 import {ENEMY_TYPES,VOID} from './data.js';
 import {FLARE_TUNING,flareLights} from './flares.js';
 import {t} from './i18n.js';
+import {factionTraitRank} from './faction-catalog.js';
 
 export const DARK_PENALTY=40;
 export const fullLighting=grid=>grid.map(row=>row.map(()=>1));
@@ -199,8 +200,13 @@ function computeSources(game){
 }
 // Light spilling from a powered area through an opening or an open door (D2: one tile, one level down).
 const spills=(game,x,y)=>game.grid[y]?.[x]===1&&DIRS.some(([dx,dy])=>{const q={x:x+dx,y:y+dy};return game.lighting[q.y]?.[q.x]===1&&game.grid[q.y]?.[q.x]===1&&!edgeBlocks(barrierBetween(game.barriers||[],{x,y},q),'blast');});
+// 3.228.0 (docs/FACTIONS.md 5.6): a 噬光體 eats the light around it (`eatsLight`, a radius): those tiles are black
+// whatever lights them — power, a flashlight, a flare.
+const lightEaters=game=>(game?.enemies||[]).filter(e=>e.hp>0&&enemyDef(e)?.eatsLight);
+export const inVoid=(game,point)=>lightEaters(game).some(e=>distance(e,point)<=enemyDef(e).eatsLight);
 export function lightAt(game,point){
  const x=point?.x,y=point?.y;
+ if(game?.enemies&&inVoid(game,{x,y}))return LIGHT.black;
  if(game?.lighting?.[y]?.[x]!==0)return LIGHT.lit;   // powered, off the map, or no power map at all
  // Floors from before 3.178.0 keep the old rule exactly: unpowered is dim unless a flare lights it, judged live.
  if(!newLighting(game))return game.flareLit?.({x,y})?LIGHT.lit:LIGHT.dim;
@@ -224,7 +230,12 @@ const mechanical=b=>Boolean(activeTrait(b,'mechanical')||enemyDef(b)?.mechanical
 const markedFor=(game,observer,target)=>observer===game.player&&Boolean(activeTrait(target,'exposed'));
 export function hiddenInDark(game,observer,target){
  if(!newLighting(game)||!observer||!target||observer===target)return false;
- if(!isBlack(game,target)||seesInDark(game,observer)||markedFor(game,observer,target))return false;
+ if(!isBlack(game,target)||markedFor(game,observer,target))return false;
+ // 3.228.0: what stands in a light-eater's black is hidden from night vision, infrared and machines alike; only the
+ // rift's own (energy) see there. A unit that carries a drain aura is always seen (5.2), the light-eater included.
+ if(factionTraitRank(target,'drain_aura'))return false;
+ if(inVoid(game,target))return !activeTrait(observer,'energy');
+ if(seesInDark(game,observer))return false;
  // 3.181.0 (C7): a machine finds anything warm in the black, as infrared does (it does not see through smoke for it).
  if(mechanical(observer)&&!mechanical(target))return false;
  return !(activeTrait(observer,'infrared')&&!mechanical(target));

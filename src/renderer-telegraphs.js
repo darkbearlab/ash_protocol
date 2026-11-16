@@ -14,7 +14,7 @@ import {NEST_ATLAS,drawNestSprite} from './nest-art.js';
 import {blindReason} from './blind-fire.js';
 import {DECOY_TUNING,decoyReason,glowstickReason,mineReason} from './field-gear.js';
 import {isNoncombatant,enemyDef} from './enemy-data.js';
-import {liveAnchors} from './rift.js';
+import {liveAnchors,drainAura} from './rift.js';
 import {droneCells} from './allies.js';
 import {LIGHT,flareLightCells,glowstickCells,isLamp} from './lighting.js';
 import {areaCells,squareCells} from './throwables.js';
@@ -98,6 +98,8 @@ export class RendererTelegraphs {
     for(const anchor of liveAnchors(g))for(const r of anchor.anchor.reforms)if(r.x!==null&&g.visible(r))this.markArea(r,0,'#b078ed33','#c9a0ffaa','+'+Math.max(1,r.due-g.turn));
     // 3.227.0 (src/rift-blink.js): a marked blink — where the carrier will appear, and for a flicker the tile it strikes
     // (yours when it marked: step off it).
+    // 3.228.0: a drain aura you can see tints the floor it reaches, faintly (src/rift.js tickDrain).
+    for(const e of g.enemies){const r=e.hp>0&&g.visible(e)?drainAura(e):0;if(!r)continue;for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++){const q={x:e.x+dx,y:e.y+dy};if(Math.abs(dx)+Math.abs(dy)>r||g.grid[q.y]?.[q.x]!==1||!g.seen?.[q.y]?.[q.x])continue;const a=this.project(q.x,q.y);this.box(a.x-half+1,a.y-half+1,t-2,t-2,'#a46be21c');}}
     for(const e of g.enemies)if(e.hp>0&&e.blinkIntent){const b=e.blinkIntent;if(g.visible(b.point))this.markArea(b.point,0,'#7f9cff30','#a9bcffcc','✧');if(enemyDef(e)?.blink==='strike'&&g.visible(b.target))this.markArea(b.target,0,'#e9694933','#f89969cc','');}
     // Allied bombardment marks (3.95.0) are amber, so the player can tell them from enemy marks; both still hurt the player.
     for(const m of g.marks)if(m.kind!=='grenade')this.markArea(m,1,m.kind==='ally'?'#e9a2494f':'#e969494f',m.kind==='ally'?'#f8c46977':'#f8996977',String(Math.max(1,m.due-g.turn)));

@@ -100,7 +100,7 @@ test('an energy body: EMP disables it, stun does not; no suppression; it sees in
 });
 
 test('saves: a pending body keeps its tile and time; a long wait is cut to the tuning; broken data is refused; a kept floor waits',()=>{
- assert.equal(SAVE_VERSION,96);
+ assert.equal(SAVE_VERSION,97);
  const g=rift(),w=g.enemies.find(e=>e.anchorId?.startsWith('anchor-')),anchor=liveAnchors(g).find(a=>a.id===w.anchorId);
  g.hurt(w,999,g.player);
  const copy=roundTrip(g);assert.ok(copy);assert.deepEqual(copy.props.find(p=>p.id===anchor.id).anchor,anchor.anchor);

@@ -14,6 +14,10 @@ import {t} from './i18n.js';
 import {enemyDef} from './enemy-data.js';
 import {ENEMY_TYPES,SIZE} from './data.js';
 import {DIRECTIONS,distance,key} from './world.js';
+import {DRAIN_TUNING,drainStacks,cutToDrain,maxHpOf} from './drain.js';
+import {activeTrait} from './traits.js';
+import {isNoncombatant} from './enemy-data.js';
+import {factionTraitRank} from './faction-catalog.js';
 
 export const RIFT_TUNING=Object.freeze({anchorHp:60,anchors:2,lateAnchors:3,lateFloor:4,anchorGap:8,startGap:6,reformTurns:4,wakeRadius:6,maxReforms:64});
 export const ANCHOR_ID=/^anchor-\d+-\d+$/;
@@ -93,7 +97,31 @@ export function collapseAnchor(g,p){
   for(const e of bodies){e.hp=0;e.dissipated=true;}
   if(host)g.log(bodies.length?t('rift.hostFellBodies',{n:bodies.length}):t('rift.hostFell'),true);
   else g.log(bodies.length?t('rift.anchorBrokenBodies',{n:bodies.length}):t('rift.anchorBroken'),true);
+  if(!liveAnchors(g).length)clearDrain(g);   // 3.228.0: the last anchor gone, 流逝 lifts at once
   return bodies;
+}
+
+// 流逝 (3.228.0, docs/FACTIONS.md 5.2; src/drain.js): at the end of each enemy phase, every living thing within a
+// drain aura gains a stack per source — you, living allies and pets, civilians and researchers; never machines. The
+// stacks hold across floors and lift only when the floor you are on has no anchor left standing (or the run ends).
+// A source counts while it stands (3.229.0 will add: and only once it shows itself).
+export const drainAura=e=>factionTraitRank(e,'drain_aura');
+const living=a=>a&&a.hp>0&&!activeTrait(a,'mechanical');
+const drainTargets=g=>[g.player,...(g.activeAllies||[]),...g.enemies.filter(isNoncombatant)].filter(living);
+export function clearDrain(g){
+  let lifted=false;
+  for(const a of [g.player,...(g.allies||[]),...(g.enemies||[])])if(a&&a.drain!==undefined){if(a===g.player&&a.drain>0)lifted=true;delete a.drain;}
+  if(lifted){g.log(t('drain.cleared'),true);g.effects.push({type:'pulse',from:{x:g.player.x,y:g.player.y},to:{x:g.player.x,y:g.player.y},radius:.5,color:'#d9c6ff',damage:0});}
+}
+export function tickDrain(g){
+  if(!liveAnchors(g).length){clearDrain(g);return;}
+  const sources=g.enemies.filter(e=>e.hp>0&&drainAura(e)>0);if(!sources.length)return;
+  for(const a of drainTargets(g)){
+    const n=sources.filter(s=>distance(s,a)<=drainAura(s)).length;if(!n)continue;
+    const before=drainStacks(a);a.drain=Math.min(DRAIN_TUNING.maxStacks,before+n);cutToDrain(a);
+    if(a.drain>before)g.effects.push({type:'pulse',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},radius:.5,color:'#a46be2',damage:0});   // also what records the step for the HUD (src/presentation.js)
+    if(a===g.player&&a.drain>before)g.log(t('drain.gained',{n:a.drain,max:maxHpOf(a)}),true);
+  }
 }
 
 // Load checks (src/runtime-enemies.js validRuntime): broken data refuses; a due later than today's tuning allows is cut
@@ -111,6 +139,9 @@ export function validAnchors(g){
     }
     if(p.hp<=0&&s.reforms.length)s.reforms=[];
   }
+  // 3.228.0: 流逝 stacks are whole and positive; more than the tuning allows is cut to it, health above the maximum too.
+  const actors=[g.player,...(g.allies||[]),...g.enemies];
+  for(const a of actors){if(a?.drain===undefined)continue;if(!Number.isInteger(a.drain)||a.drain<1)return false;a.drain=Math.min(a.drain,DRAIN_TUNING.maxStacks);cutToDrain(a);}
   return g.enemies.every(e=>(e.anchorId===undefined||typeof e.anchorId==='string')&&(e.reformed===undefined||typeof e.reformed==='boolean')&&(e.dissipated===undefined||e.dissipated===true&&e.hp<=0));
 }
 // Kept floors (src/retreat.js): a body due on departure forms on the first round back; the wait counts on the floor's clock.

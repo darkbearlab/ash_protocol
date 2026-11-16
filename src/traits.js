@@ -4,6 +4,7 @@ import {validSuppression} from './suppression.js';
 import {ENEMY_TYPES,SIZE} from './data.js';
 import {enemyStartingTraitIds} from './enemy-data.js';
 import {factionTraits,factionTraitRank} from './faction-catalog.js';
+import {maxHpOf} from './drain.js';   // 3.228.0: 流逝 lowers the maximum in play
 // Independent passive rules. Sources persist even when opposite effects cancel.
 export const POINT_BLANK=Object.freeze({range:3,accuracy:10});
 export const TRAITS={
@@ -65,6 +66,7 @@ export const TRAITS={
   // many suppression stacks as the rank (src/suppression.js meleeSuppression). Only the swarm's biters carry it, through
   // their faction's override (src/faction-catalog.js), which also holds the rank.
   melee_suppression:{name:t('traits.melee_suppression.name'),text:t('traits.melee_suppression.text')},
+  drain_aura:{name:t('traits.drain_aura.name'),text:t('traits.drain_aura.text')},   // 3.228.0, ranked: src/rift.js drainAura
   // 3.210.0 (user decision 2026-10-01, docs/BULWARK.md 改版): the bulwark's plates are its life. They take all of a direct
   // hit left after armour (src/game-damage.js damagePlayer), fire, steam and acid floor hit them first (src/game-enemies.js
   // environmentTurn), and while any are left the suit is one more rank of poison resistance (src/poison.js).
@@ -153,4 +155,4 @@ export function reduceDirectDamage(actor,damage){
 
 export const healingAmount=(actor,amount)=>activeTrait(actor,'difficult_healing')?Math.floor(amount/2):amount;
 // 3.136.0 (user decision): difficult healing halves the base amount only; a bonus (the medic perk's) is added in full.
-export function healActor(actor,amount,bonus=0){const before=actor.hp;actor.hp=Math.min(actor.maxHp,actor.hp+healingAmount(actor,amount)+bonus);return actor.hp-before;}
+export function healActor(actor,amount,bonus=0){const before=actor.hp;actor.hp=Math.min(maxHpOf(actor),actor.hp+healingAmount(actor,amount)+bonus);return actor.hp-before;}

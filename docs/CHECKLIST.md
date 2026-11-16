@@ -10,7 +10,7 @@
 | --- | --- | --- |
 | `npm run test:quick` | 全部測試，跳過 `qa/slow-tests.txt` 列的慢測試（大型地圖生成掃描），約 1.5 分鐘 | **每次提交前**；開發中也可以只給檔名：`npm run test:quick -- tests/fire.test.mjs` |
 | `npm test` | 完整測試，約 3.5 分鐘 | 不用自己跑：推上 main 後 CI 會跑，失敗就不部署，修好再推。想在推送前先確認時再跑 |
-| `node qa/save-fuzz.mjs` | 在真的樓層隨機行動，每一步都存檔、讀檔、重播比對；四個派系平行，約 1.5 分鐘 | 選用：大改存檔欄位、敵人招式、預告或回合結算時；頭目相關加 `--near-boss --floors 3,6` |
+| `node qa/save-fuzz.mjs` | 在真的樓層隨機行動，每一步都存檔、讀檔、重播比對；五個派系平行（3.228.0 起含裂隙），約 2 分鐘 | 選用：大改存檔欄位、敵人招式、預告或回合結算時；頭目相關加 `--near-boss --floors 3,6` |
 | `node qa/save-fuzz.mjs --trace <檔> [--against <舊檔>]` | 同上，另外每一步記一行：狀態雜湊（含戰報）、這一步的特效種類、看得到的每個敵人的目標卡狀態；`--against` 指出和舊記錄第一個不同的步驟 | 不改行為的重構：動 `src/` 之前用同樣的參數先錄一份，之後每一步再錄一份比對 |
 | `node qa/special-matrix.mjs` | 每個敵人招式的對照表（打斷的每個原因；誘餌、看過的地雷、腳下的危險格、壓制、自己的回合；回合開頭；竄改過的存檔與往返任務封存樓層的讀檔），和 `tests/fixtures/special-matrix.json` 逐格比對，列出不同的格子；約 15 秒，`tests/enemy-specials.test.mjs` 也會比 | 動到敵人招式、預告、打斷、讀檔時；`--write` 只在有意改規則時重錄，提交訊息寫明哪些格子變了 |
 | `node qa/enemy-data-identity.mjs` | 地圖生成、任務開局、機器人結果和基準逐筆比對 | 選用：大型重構，或想確認改動只影響預期範圍時；`--only generation`／`missions`／`bots` 只跑一段 |
