@@ -74,10 +74,10 @@ export const FACTIONS={
   // 3.227.0: the flicker and the possessed human.
   // 3.229.0: the possessed hosts are mostly melee; the armed ones come later and fewer.
   early:[['wisp',3],['flicker',1],['possessed_melee',1]],
-  late:[['wisp',3],['flicker',2],['possessed_melee',2],['possessed',1],['shade',1]],   // 3.228.0: the shade
-  deepExtra:[['flicker',1],['possessed_melee',1],['possessed',1],['shade',1]],
+  late:[['wisp',3],['flicker',2],['possessed_melee',2],['possessed',1],['shade',1],['phase',2]],   // 3.228.0: the shade; 3.230.0: the phase body
+  deepExtra:[['flicker',1],['possessed_melee',1],['possessed',1],['shade',1],['phase',1]],
  },
- personality:{wisp:'mindless',flicker:'mindless',possessed:'mindless',possessed_melee:'mindless',shade:'mindless'},overrides:RIFT_OVERRIDES,
+ personality:{wisp:'mindless',flicker:'mindless',possessed:'mindless',possessed_melee:'mindless',shade:'mindless',phase:'mindless'},overrides:RIFT_OVERRIDES,
  bosses:{3:'warden',6:'boss'},scout:'wisp',preview:'shade',retreatWave:['wisp','wisp'],fodder:null,nestChild:null},
 };
 export const factionDef=id=>typeof id==='string'&&Object.hasOwn(FACTIONS,id)?FACTIONS[id]:undefined;

@@ -2109,6 +2109,8 @@ export default Object.freeze({
  "enemyTypes.possessed_melee.name":"Possessed",
  "enemyTypes.possessed_melee.role":"A human taken by the rift: a walking anchor. Energy bodies bound to them form again at their side and dissipate when they fall. They do not shoot: seeing you within 4 tiles, they mark a tile beside you and blink in to strike next turn; leave the tile you stood on and they miss.",
  "enemyTypes.possessed.role":"A possessed human still holding a rifle, also a walking anchor whose bound energy bodies dissipate when they fall. They shoot only when both they and their target stand in the light; in the dark they close in. Come within 2 tiles and they mark a tile, then blink away.",
+ "enemyTypes.phase.name":"Phase Body",
+ "enemyTypes.phase.role":"A rift energy body that comes straight for you; walls, doors and partitions do not stop it (it passes through in one move and never stops inside a wall). It can only be seen within 3 tiles; farther off, the officer's sensors warn you first. Hunts life and forms again while its anchor stands.",
  "enemyTypes.shade.name":"Shade",
  "enemyTypes.shade.role":"A large rift energy body. It eats all light within 2 tiles; night vision and infrared cannot see into that dark, though the shade itself is always seen. Staying near it builds Drain, lowering your maximum health. Hunts life and forms again while its anchor stands.",
  "enemyTypes.wisp.role":"A rift energy body that hunts life and ignores machines; its touch drains life. No loot. While its anchor stands, it forms again beside the anchor after it falls.",

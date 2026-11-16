@@ -259,3 +259,6 @@ ENEMY_TYPES.possessed_melee={sprite:{key:'raider',corpse:'raider',tint:'#a88bd8'
 // 3.228.0 (docs/FACTIONS.md 5.6): the shade, a large energy body that eats the light around it (`eatsLight`, src/lighting.js)
 // and drains life near it (流逝光環 2, the rift's override in src/faction-catalog.js). Borrowed art, tinted.
 ENEMY_TYPES.shade={sprite:{key:'giant_bug',corpse:'giant_bug',size:1.3,scale:1.3,tint:'#4b3474'},drawing:{shape:'critter',color:'#4b3474',glow:'#8a62c844'},projectile:'melee',voice:'creature',tags:[],traits:['no_cover','large'],energy:true,huntsLife:true,eatsLight:2,gore:'energy',rounds:1,attackStyle:'claw',name:t('enemyTypes.shade.name'),hp:90,damage:16,range:1,armor:1,color:'#7a58b8',xp:3,role:t('enemyTypes.shade.role')};
+// 3.230.0 (docs/FACTIONS.md 5.8): the phase body walks through walls and doors (`behavior:'phase'`, src/rift-phase.js) and
+// shows itself only within 3 tiles (`revealRange`). Borrowed art, tinted.
+ENEMY_TYPES.phase={sprite:{key:'dog',corpse:'dog',size:.9,tint:'#8fc8e8'},drawing:{shape:'critter',color:'#8fc8e8',glow:'#bfe6ff44'},projectile:'melee',voice:'creature',tags:[],traits:['no_cover'],energy:true,huntsLife:true,phase:true,behavior:'phase',revealRange:3,gore:'energy',rounds:1,attackStyle:'claw',name:t('enemyTypes.phase.name'),hp:28,damage:12,range:1,armor:0,color:'#8fc8e8',xp:2,role:t('enemyTypes.phase.role')};

@@ -236,7 +236,7 @@ test('忍者: unseen but in thin smoke, in your thick cloud, beside you, just af
 });
 
 test('the sensors: a hidden ninja near you raises the officer\'s alert, then not again for eight rounds',()=>{
-  assert.deepEqual(detectors().map(d=>[d.kind,d.event,d.range,d.cooldown]),[['cloak','cloakAlert',6,8]]);
+  assert.deepEqual(detectors().map(d=>[d.kind,d.event,d.range,d.cooldown]),[['cloak','cloakAlert',6,8],['phase','cloakAlert',6,8]]);   // phase: 3.230.0, the rift's phase body (src/rift-phase.js)
   const g=field(),e=op(g,'ninja',18,10),memory=newCommsMemory(g.runId),alerts=()=>commsEvents({game:g,memory}).filter(v=>v.type==='cloakAlert').length;
   assert.equal(alerts(),0,'eight steps away');
   e.x=15;assert.equal(alerts(),1);assert.equal(alerts(),0,'cooling down');g.turn+=8;assert.equal(alerts(),1);
