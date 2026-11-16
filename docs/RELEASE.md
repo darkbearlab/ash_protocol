@@ -2,17 +2,17 @@
 
 遊戲網址：`https://darkbearlab.github.io/ash_protocol/`。倉庫：`https://github.com/darkbearlab/ash_protocol`，整合到 **main**，不要 force push main。推送要使用者同意：做完先提交，使用者說推才推（「做完後推上去」這類指示就是同意）。
 
-## 每次交付（3.206.1 起）
+## 每次交付（2026-11-16 起放寬）
 
 1. 版本號：`npm run bump -- x.y.z`，一次改 `package.json`、`src/version.js`、`sw.js` 的快取名稱；`tests/release.test.mjs` 會在三者不一致時失敗。
-2. 交件檢查照 [CHECKLIST.md](CHECKLIST.md) 第 1 節：完整 `npm test`、動到存檔或敵人招式時跑存檔隨機測試、身分基準、改到文字時跑英文檢查、`npm run build`。同一份沒改過的程式，通過的結果可以沿用。
+2. 提交前跑 `npm run test:quick`。完整測試交給推送後的 CI（失敗就不部署）；其他工具照 [CHECKLIST.md](CHECKLIST.md) 第 1 節，風險高時才用。
 3. 文件：
-   - CHANGELOG 新版本放最上面：做了什麼、使用者的決定與 Claude 自己的判斷、驗證數字、審查結果；**最後一行「試玩重點：」**寫使用者要實際看的地方（取代舊的驗證紙條，使用者 2026-09-29 同意）。
-   - `qa/results/` 寫一份精簡報告：需求、做法、驗證（自己跑的與代理跑的分開寫）、審查找到什麼與怎麼修；CHANGELOG 已經寫的不重複。
+   - CHANGELOG 新版本放最上面，簡短寫做了什麼、使用者的決定；**最後一行「試玩重點：」**寫使用者要實際看的地方（使用者 2026-09-29 同意）。
+   - 不再寫 `qa/results/` 報告（2026-11-16 起；舊報告留著當歷史）。
    - 對應規格照改；HANDOFF 只在架構、存檔、指令改變時更新。
 4. `git status` 確認只 stage 本批檔案，沒有秘密或暫存檔。
 5. 先 `git fetch`，確認 `origin/main` 是目前提交的祖先，再 `git push origin HEAD:main`。`[skip ci]` 的提交不要疊在程式提交上面一起推，不然整批都不會部署。
-6. `python tools/github-release.py status` 確認**這個 SHA** 的 Pages 工作流程 completed／success，線上 `src/version.js` 是新版本。部署結果補進報告（可以之後用 `[skip ci]` 的文件提交）。
+6. `python tools/github-release.py status` 確認**這個 SHA** 的 Pages 工作流程 completed／success，線上 `src/version.js` 是新版本。CI 測試失敗就修好再推一次。
 
 新增 `src/` 模組時，同步加進 `sw.js` 的 `FILES` 與 `index.html` 的 `data-modules` 數量（測試會檢查）。
 

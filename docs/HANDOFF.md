@@ -1,21 +1,21 @@
 # ASH PROTOCOL 現況手冊
 
-3.206.1 起重寫（使用者 2026-09-29：Claude 已經實際接手，給 Codex 交接用的文件不再維護）。舊版手冊的歷史段落在 [archive/handoff-to-3.206.md](archive/handoff-to-3.206.md)。**本檔何時更新**：架構、模組分工、存檔格式、指令或流程改變時。一般版本只寫 CHANGELOG、對應規格與精簡報告。
+3.206.1 起重寫（使用者 2026-09-29：Claude 已經實際接手，給 Codex 交接用的文件不再維護）。2026-11-16 起專案搬到 Claude Code 單獨維護，和 Codex 的分工拆掉，驗證放寬（見第 2、7 節）。舊版手冊的歷史段落在 [archive/handoff-to-3.206.md](archive/handoff-to-3.206.md)。**本檔何時更新**：架構、模組分工、存檔格式、指令或流程改變時。一般版本只寫 CHANGELOG、對應規格與精簡報告。
 
 ## 1. 文件地圖
 
 | 要找 | 看這裡 |
 | --- | --- |
-| 每次開工必讀的規則與不變條件 | [AGENTS.md](../AGENTS.md) |
-| 交件前要跑的工具與檢查 | [CHECKLIST.md](CHECKLIST.md) |
+| 每次開工必讀的規則與不變條件 | [CLAUDE.md](../CLAUDE.md) |
+| 什麼時候跑哪些檢查、敵人招式與存檔的規則 | [CHECKLIST.md](CHECKLIST.md) |
 | 使用者的排序、待決定事項 | [使用者願望清單.txt](../使用者願望清單.txt) |
 | 各系統規格（索引） | [DESIGN.md](DESIGN.md)；核心規則 [CORE_RULES.md](CORE_RULES.md) |
 | 每版改了什麼、試玩重點 | [CHANGELOG.md](CHANGELOG.md)（3.190 以前在 archive） |
-| 每版的驗證紀錄 | `qa/results/`（3.206.1 起精簡版） |
+| 舊版的驗證紀錄 | `qa/results/`（到 3.225.0 為止；之後不再每版寫） |
 | 發版與 itch.io 凍結版 | [RELEASE.md](RELEASE.md) |
 | 頭目、危險地形、派系 | [BOSSES.md](BOSSES.md)、[HAZARDS.md](HAZARDS.md)、[FACTIONS.md](FACTIONS.md) |
 | 故事與管制員 | [STORY.md](STORY.md)；設施紀錄內容在 `content/stories/` |
-| 聲音、美術素材的規格（開給 Codex） | [AUDIO.md](AUDIO.md)、[FX_SPRITES_BRIEF.md](FX_SPRITES_BRIEF.md)、[PIXEL_ART.md](PIXEL_ART.md)、`art/` |
+| 聲音、美術素材的規格（當初開給 Codex，格式照舊適用） | [AUDIO.md](AUDIO.md)、[FX_SPRITES_BRIEF.md](FX_SPRITES_BRIEF.md)、[PIXEL_ART.md](PIXEL_ART.md)、`art/` |
 | 拿這個遊戲做變體：哪些系統可以插拔、美術換皮規格 | [REUSE.md](REUSE.md) |
 | 每日排行榜：規則、防作弊、後端（Cloudflare Worker `ash-scores`） | [LEADERBOARD.md](LEADERBOARD.md)；`workers/ash-scores/README.md` |
 | 舊文件原文 | [archive/](archive/README.md) |
@@ -23,18 +23,18 @@
 ## 2. 分工
 
 - **使用者**：設計決定、試玩與手感判斷；明確的決定優先於文件，Claude 把決定記進對應規格。
-- **Claude**：規則、數值、介面、文件、測試、發版（推送要使用者同意）。大工作可以交給子代理實作，但一律經獨立審查與 Claude 自己重跑驗證再推送。
-- **Codex**：只接素材與音效。Claude 寫規格書（參考 FX_SPRITES_BRIEF.md 的格式：用途、格式、要交的檔、遊戲怎麼畫、交件方式），Codex 交圖或音效與交件說明，Claude 接進遊戲；Codex 不改遊戲程式、不升版、不推送。
+- **Claude（Claude Code）**：規則、數值、介面、素材與音效的接入、文件、測試、發版（推送要使用者同意）。大工作可以交給子代理實作，Claude 自己跑過 `npm run test:quick` 再提交；獨立審查只在使用者要求時做。
+- 2026-11-16 以前 Codex 負責素材與音效（規格書格式見 FX_SPRITES_BRIEF.md：用途、格式、要交的檔、遊戲怎麼畫、交件方式）。現在不再有 Codex；素材由使用者提供，或用 `art/` 的生成流程做。
 
 ## 3. 指令
 
 | 指令 | 用途 |
 | --- | --- |
 | `npm start` | 開發伺服器 http://localhost:5174（5173 常被別的專案占用）。瀏覽器 QA 一律加 `?test=1` |
-| `npm run test:quick` | 開發中的測試，跳過 `qa/slow-tests.txt` 的慢測試，約 1.5 分鐘；可以只給檔名 |
-| `npm test` | 完整測試（Node 內建測試器，`tests/*.test.mjs`），約 3.5 分鐘；推送後 GitHub 也會跑 |
-| `node qa/save-fuzz.mjs` | 存檔隨機測試，四派系平行，約 1.5 分鐘（選項見檔頭） |
-| `node qa/enemy-data-identity.mjs` | 身分基準；`--only`、`--accept`（見 CHECKLIST 第 1 節） |
+| `npm run test:quick` | 每次提交前跑的測試，跳過 `qa/slow-tests.txt` 的慢測試，約 1.5 分鐘；可以只給檔名 |
+| `npm test` | 完整測試（Node 內建測試器，`tests/*.test.mjs`），約 3.5 分鐘；推送後 CI 會跑，通常不用自己跑 |
+| `node qa/save-fuzz.mjs` | （選用）存檔隨機測試，四派系平行，約 1.5 分鐘（選項見檔頭） |
+| `node qa/enemy-data-identity.mjs` | （選用）身分基準；`--only`、`--accept`（見 CHECKLIST 第 1 節） |
 | `node qa/special-matrix.mjs`、`node qa/save-fuzz.mjs --trace <檔> --against <舊檔>` | 敵人招式對照表；存檔隨機測試的逐步記錄（不改行為的重構用，見 CHECKLIST 第 1 節） |
 | `node qa/render-snapshots.mjs --out <檔> [--against <舊檔>]` | 畫面與介面的快照：無頭 Chrome 在測試模式畫固定場景的 canvas 雜湊與重要畫面的 HTML（不改行為地動到 renderer 或 controller 時用，見 CHECKLIST 第 1 節） |
 | `node qa/english-scan.mjs`、`node tools/glossary.mjs --check` | 英文模式、名詞表 |
@@ -95,7 +95,7 @@
 
 ## 7. 發版
 
-照 [RELEASE.md](RELEASE.md)：`npm run bump` → CHECKLIST 的交件檢查 → CHANGELOG（最後一行寫試玩重點）與精簡報告 → 只 stage 本批檔案 → 快轉推上 main（使用者同意後，不強推）→ 確認這個 SHA 的 Pages 部署成功。itch.io 凍結版（3.199.x）不動，除非使用者要求。
+照 [RELEASE.md](RELEASE.md)：`npm run bump` → `npm run test:quick` → CHANGELOG（簡短；最後一行寫試玩重點）→ 只 stage 本批檔案提交 → 使用者說推才快轉推上 main（不強推）→ CI 跑完整測試並部署，確認這個 SHA 的 Pages 部署成功，失敗就修好再推。不再寫 `qa/results/` 報告。itch.io 凍結版不動，除非使用者要求。
 
 ## 8. 已知限制
 
