@@ -69,11 +69,12 @@ export const FACTIONS={
  // `pickable` until the faction is finished (3.232.0): no random facility or ranked daily draws it, only the deploy
  // screen's test list. Its own bosses come in 3.231.0; until then the legacy warden and core guard stand in.
  rift:{name:t('factions.rift.name'),tag:true,voice:'creature',nestStyle:'rift',anchors:true,roster:{
-  early:[['wisp',1]],
-  late:[['wisp',1]],
-  deepExtra:[['wisp',1]],
+  // 3.227.0: the flicker and the possessed human.
+  early:[['wisp',3],['flicker',1],['possessed',1]],
+  late:[['wisp',3],['flicker',2],['possessed',1]],
+  deepExtra:[['flicker',1],['possessed',1]],
  },
- personality:{wisp:'mindless'},
+ personality:{wisp:'mindless',flicker:'mindless',possessed:'mindless'},
  bosses:{3:'warden',6:'boss'},scout:'wisp',preview:'wisp',retreatWave:['wisp','wisp'],fodder:null,nestChild:null},
 };
 export const factionDef=id=>typeof id==='string'&&Object.hasOwn(FACTIONS,id)?FACTIONS[id]:undefined;

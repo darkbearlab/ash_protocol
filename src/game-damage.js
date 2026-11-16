@@ -15,7 +15,7 @@ import {shotDamageAllowed} from './suppression.js';
 import {followUpRound} from './pursuit.js';
 import {petCombat,petDeath,petDefense,petHit,petRank,petReactions,petSurvives,syncPetSenses} from './pet-growth.js';
 import {collapseNest} from './runtime-enemies.js';
-import {anchorDeath,collapseAnchor,isAnchor,isEnergy} from './rift.js';
+import {anchorDeath,collapseAnchor,isAnchor,isEnergy,isHost} from './rift.js';
 import {objectSightGrid} from './scenery.js';
 import {CLASS_PERK_TUNING,classPerkRank,markValues} from './class-perks.js';
 import {bladeMultiplier,meleeDefense,meleeReward} from './melee-classes.js';
@@ -158,6 +158,7 @@ export class GameDamage {
     // one hands over supplies instead of a pick, so the HUD can simply read MAX.
     this.settleLevels();
     enemyDeath(this,e);anchorDeath(this,e);dropKeycard(this,e);   // 3.146.0; anchorDeath: 3.226.0, a bound rift body forms again (src/rift.js)
+    if(isHost(e)&&e.anchor)for(const b of collapseAnchor(this,e))enemyDeath(this,b);   // 3.227.0: a possessed human was a living anchor
     const tank=flamerTank(this,e);   // 3.203.0: a fallen flamer's tank goes up (30%) or it leaves its flamethrower below
     // A comrade gunned down in sight breaks the rebels who saw it; executions and self-destruction never do.
     if(attacker&&!this.enemies.includes(attacker))witnessDeath(this,e);

@@ -39,6 +39,8 @@ const swarmBody=e=>combatant(e)&&!isBossClass(e)&&enemyFaction(e)==='swarm'&&!ac
 // 3.204.0 review: a card may bar an affix (the loyalist bosses bar 快速 and 紅外線). Since 3.218.0 (重抽) a barred affix is
 // simply never drawn.
 const barred=(e,id)=>Boolean(ENEMY_TYPES[e.type]?.barredAffixes?.includes(id));
+// 3.227.0: a rift blinker (src/rift-blink.js) never carries an affix that brings a top step of its own.
+const blinks=e=>Boolean(ENEMY_TYPES[e.type]?.blink);
 const infected=e=>hasEnemyTag(e,'infected')&&Boolean(factionDef(enemyFaction(e))?.infectedAffixes);
 // 投放 (3.212.0, docs/ENEMY_VARIETY.md section 1): the one kind a deployer puts out, the cards of the things your engineer
 // makes — a drone, a loitering munition, a fixed turret, a bomb bot. Fixed at birth on a stream of its own
@@ -59,7 +61,7 @@ export const ENEMY_AFFIXES=[
  {id:'suppressor',fragment:t('enemyAffixes.suppressor.fragment'),order:3,applies:e=>armed(e)&&!isFlamer(e),trait:'rapid_fire',reveal:REVEAL_TYPES.effect},
  // 3.213.0: nor on a lockdown gunman (an elite's top-up comes after the special rolls): each has a warned step of its own
  // at the top of the turn, and one unit carries one (src/enemy-specials.js).
- {id:'grenadier',fragment:t('enemyAffixes.grenadier.fragment'),order:4,applies:e=>armed(e)&&!isFlamer(e)&&!locksDown(e)&&!disarms(e),behavior:'grenade',reveal:REVEAL_TYPES.effect},
+ {id:'grenadier',fragment:t('enemyAffixes.grenadier.fragment'),order:4,applies:e=>armed(e)&&!blinks(e)&&!isFlamer(e)&&!locksDown(e)&&!disarms(e),behavior:'grenade',reveal:REVEAL_TYPES.effect},
  {id:'venomous',fragment:t('enemyAffixes.venomous.fragment'),order:5,applies:infected,infection:true,reveal:REVEAL_TYPES.effect},
  {id:'brood_host',fragment:t('enemyAffixes.brood_host.fragment'),order:6,applies:infected,infection:true,reveal:REVEAL_TYPES.effect},
  // Puts out units of its one kind (DEPLOY_KINDS). The range bar keeps it off the raider: a rusher that launches and then
@@ -71,12 +73,12 @@ export const ENEMY_AFFIXES=[
  // stream, so every other affix on every floor stays as it was. Claude's call on who: an armed soldier with no behaviour
  // of its own (not the sniper, the squad leader or the enforcer), not an infected one, and not one already carrying a gun
  // affix (壓制者, 擲彈兵, 投放).
- {id:'flamer',fragment:t('enemyAffixes.flamer.fragment'),order:8,applies:e=>armed(e)&&!ENEMY_TYPES[e.type]?.behavior&&!ENEMY_TYPES[e.type]?.flamer&&!hasEnemyTag(e,'infected')&&!e.affixes?.some(a=>['suppressor','grenadier','deployer','volatile'].includes(a.id)),special:true,reveal:REVEAL_TYPES.effect},
+ {id:'flamer',fragment:t('enemyAffixes.flamer.fragment'),order:8,applies:e=>armed(e)&&!blinks(e)&&!ENEMY_TYPES[e.type]?.behavior&&!ENEMY_TYPES[e.type]?.flamer&&!hasEnemyTag(e,'infected')&&!e.affixes?.some(a=>['suppressor','grenadier','deployer','volatile'].includes(a.id)),special:true,reveal:REVEAL_TYPES.effect},
  // 封鎖 (3.213.0, user 2026-09-30, docs/ENEMY_VARIETY.md section 2): a gunman with reach 5 or more and no behaviour card
  // of its own (so not the sniper, the squad leader or the enforcer), never infected, never a flamer (no gun) or a
  // grenadier (one warned step at the top of the turn a unit), never fast (3.213.0 review: acting before you, its one-round
  // warning would come too late to act on). Special, rolled last on its own stream ('lockdown-v1').
- {id:'lockdown',fragment:t('enemyAffixes.lockdown.fragment'),order:9,applies:e=>armed(e)&&!ENEMY_TYPES[e.type]?.behavior&&!hasEnemyTag(e,'infected')&&(ENEMY_TYPES[e.type]?.range??0)>=AFFIX_TUNING.lockdownRange&&!isFlamer(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
+ {id:'lockdown',fragment:t('enemyAffixes.lockdown.fragment'),order:9,applies:e=>armed(e)&&!blinks(e)&&!ENEMY_TYPES[e.type]?.behavior&&!hasEnemyTag(e,'infected')&&(ENEMY_TYPES[e.type]?.range??0)>=AFFIX_TUNING.lockdownRange&&!isFlamer(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
  // 繳械 (3.215.0, user 2026-09-30, docs/ENEMY_VARIETY.md section 4): any gun (3.218.0, user 2026-10-02: 「有槍的大家都可以
  // 抽」; bosses and fixed turrets carry no 'armed' tag) — never a flamer (no gun), a grenadier or a lockdown gunman
  // (one warned step at the top of the turn a unit) or a fast one (its warning would come too late). Special, rolled last
@@ -100,7 +102,7 @@ export const ENEMY_AFFIXES=[
  {id:'hook',fragment:t('enemyAffixes.hook.fragment'),order:17,applies:e=>swarmBody(e)&&!hasEnemyTag(e,'infected')&&ENEMY_TYPES[e.type]?.range===1,reveal:REVEAL_TYPES.effect},
  {id:'acid_blood',fragment:t('enemyAffixes.acid_blood.fragment'),order:18,applies:swarmBody,reveal:REVEAL_TYPES.effect},
  {id:'feign',fragment:t('enemyAffixes.feign.fragment'),order:15,applies:e=>combatant(e)&&!isBossClass(e)&&!['bomber','munition'].includes(ENEMY_TYPES[e.type]?.behavior),reveal:REVEAL_TYPES.effect},
- {id:'disarm',fragment:t('enemyAffixes.disarm.fragment'),order:10,applies:e=>armed(e)&&!isFlamer(e)&&!locksDown(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
+ {id:'disarm',fragment:t('enemyAffixes.disarm.fragment'),order:10,applies:e=>armed(e)&&!blinks(e)&&!isFlamer(e)&&!locksDown(e)&&!e.affixes?.some(a=>a.id==='grenadier')&&!activeTrait(e,'fast'),special:true,reveal:REVEAL_TYPES.effect},
 ];
 export const locksDown=e=>Boolean(e?.affixes?.some(a=>a.id==='lockdown'));
 export const disarms=e=>Boolean(e?.affixes?.some(a=>a.id==='disarm'));

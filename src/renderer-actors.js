@@ -84,7 +84,8 @@ export class RendererActors {
       // 3.207.0: a delisted operative is drawn with the player's class art in its card's colour; the ninja, when it shows at
       // all, as a silhouette of dense noise (OPERATIVE_VISUAL).
       const op=!player&&def?.operative,noise=op==='ninja';
-      const body=()=>{if(noise&&this.cloakNoise(a,size,time,e))return;if(op&&this.classSprite(a,size,op,false,dark,enemyTint(e)||def.color))return;if(player&&this.classSprite(a,size,e.character,false,dark)){if(stealth)this.stealthOutline(a,size,e.character,stealth.outline);return;}if(player)this.sprite(spriteType,a,size,dark,hidden);else this.enemySprite(spriteType,a,size,dark,hidden,enemyTint(e),e?.elite?ELITE_VISUAL.outline:null);};
+      const body=()=>{if(noise&&this.cloakNoise(a,size,time,e))return;if(op&&this.classSprite(a,size,op,false,dark,enemyTint(e)||def.color))return;if(player&&this.classSprite(a,size,e.character,false,dark)){if(stealth)this.stealthOutline(a,size,e.character,stealth.outline);return;}if(player)this.sprite(spriteType,a,size,dark,hidden);else this.enemySprite(spriteType,a,size,dark,hidden,enemyTint(e),e?.elite?ELITE_VISUAL.outline:def?.sprite?.outline||null);};   // outline: 3.227.0, a possessed human reads at a glance
+      if(!player&&def?.anchorHolder&&e?.hp>0)this.glow(a.x,a.y,size*(.62+.08*Math.sin(time/260)),'#c9a0ff40');   // 3.227.0: the rift's light around a possessed human
       const drop=this.breathOffset(e,type,time,size);
       if(!drop)body();
       else{

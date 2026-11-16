@@ -22,7 +22,7 @@ export function archiveFloor(g){
   // A bombardment due on departure resumes on the first action back.
   for(const mark of frame.marks)mark.due=Math.max(mark.due,g.turn+1);
   for(const spawn of frame.swarmWaves?.pending||[])spawn.due=Math.max(spawn.due,g.turn+1);
-  archiveAnchors(frame.props,g.turn);   // 3.226.0: a rift body forming again waits with its floor
+  archiveAnchors(frame,g.turn);   // 3.226.0: a rift body forming again waits with its floor
   return frame;
 }
 export function resumedFloor(frame,turn){
@@ -37,7 +37,7 @@ export function resumedFloor(frame,turn){
   for(const mark of state.marks)mark.due+=elapsed;
   for(const spawn of state.reinforcements)spawn.due+=elapsed;
   for(const spawn of state.swarmWaves?.pending||[])spawn.due+=elapsed;
-  resumeAnchors(state.props,elapsed);
+  resumeAnchors(state,elapsed);
   for(const a of state.enemies){if(a.cornerExposure)for(const d of Object.keys(a.cornerExposure.until))a.cornerExposure.until[d]+=elapsed;if(a.tactics){a.tactics.until+=elapsed;if(a.tactics.holdUntil)a.tactics.holdUntil+=elapsed;if(a.tactics.retryAfter)a.tactics.retryAfter+=elapsed;}}
   return state;
 }

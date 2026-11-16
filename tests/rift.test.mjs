@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Game,ENEMY_TYPES,SAVE_VERSION} from '../src/engine.js';
 import {FACTIONS,rollFacilityFaction} from '../src/faction-catalog.js';
-import {RIFT_TUNING,liveAnchors,isEnergy} from '../src/rift.js';
+import {RIFT_TUNING,liveAnchors,anchorProps,isEnergy} from '../src/rift.js';
 import {tickNests,validRuntime} from '../src/runtime-enemies.js';
 import {addAlly} from '../src/allies.js';
 import {applyDisruption} from '../src/throwables.js';
@@ -20,9 +20,9 @@ const roundTrip=g=>Game.restore(g.serialize());
 test('a rift floor stands two anchors (three from floor 4) and binds every body to its nearest one',()=>{
  for(const seed of [1,2,3]){
   for(const [floor,want] of [[1,RIFT_TUNING.anchors],[4,RIFT_TUNING.lateAnchors]]){
-   const g=rift(seed,floor),anchors=liveAnchors(g);
-   assert.equal(anchors.length,want,`seed ${seed} floor ${floor}`);
-   for(const a of anchors){assert.equal(a.hp,RIFT_TUNING.anchorHp);assert.ok(distance(a,g.start)>=RIFT_TUNING.startGap);for(const b of anchors)if(a!==b)assert.ok(distance(a,b)>=RIFT_TUNING.anchorGap);}
+   const g=rift(seed,floor),props=anchorProps(g),anchors=liveAnchors(g);
+   assert.equal(props.length,want,`seed ${seed} floor ${floor}`);
+   for(const a of props){assert.equal(a.hp,RIFT_TUNING.anchorHp);assert.ok(distance(a,g.start)>=RIFT_TUNING.startGap);for(const b of props)if(a!==b)assert.ok(distance(a,b)>=RIFT_TUNING.anchorGap);}
    const bodies=g.enemies.filter(isEnergy);assert.ok(bodies.length>0);
    for(const e of bodies){const mine=anchors.find(a=>a.id===e.anchorId);assert.ok(mine,e.id);assert.equal(distance(e,mine),Math.min(...anchors.map(a=>distance(e,a))));}
   }
@@ -35,25 +35,25 @@ test('a rift floor stands two anchors (three from floor 4) and binds every body 
 });
 
 test('a body that falls with its anchor standing forms again on the marked tile, and pays its xp only once',()=>{
- const g=rift(),w=g.enemies.find(e=>e.anchorId),anchor=liveAnchors(g).find(a=>a.id===w.anchorId);
+ const g=rift(),w=g.enemies.find(e=>e.anchorId?.startsWith('anchor-')),anchor=liveAnchors(g).find(a=>a.id===w.anchorId);
  const xp=g.player.xp,scrap=g.player.scrap,items=g.items.length;
  g.hurt(w,999,g.player);
  assert.equal(w.hp<=0,true);assert.equal(g.player.xp,xp+1,'the first fall pays its xp');
  assert.equal(g.player.scrap,scrap,'an energy body leaves no scrap');assert.equal(g.items.length,items,'and no loot');
  assert.equal(anchor.anchor.reforms.length,1);
- const r=anchor.anchor.reforms[0];assert.equal(r.type,'wisp');assert.equal(r.due,g.turn+RIFT_TUNING.reformTurns);assert.equal(distance(r,anchor),1,'the marked tile is beside the anchor');
+ const r=anchor.anchor.reforms[0];assert.equal(r.type,w.type);assert.equal(r.due,g.turn+RIFT_TUNING.reformTurns);assert.equal(distance(r,anchor),1,'the marked tile is beside the anchor');
  // Not before its time.
  const count=g.enemies.length;g.turn=r.due-1;tickNests(g);assert.equal(g.enemies.length,count);
  g.turn=r.due;tickNests(g);
  const again=g.enemies[g.enemies.length-1];
- assert.equal(again.type,'wisp');assert.equal(again.reformed,true);assert.equal(again.anchorId,anchor.id);assert.deepEqual([again.x,again.y],[r.x,r.y]);
+ assert.equal(again.type,w.type);assert.equal(again.reformed,true);assert.equal(again.anchorId,anchor.id);assert.deepEqual([again.x,again.y],[r.x,r.y]);
  assert.ok(g.effects.some(fx=>fx.type==='portalSpawn'));assert.equal(anchor.anchor.reforms.length,0);
  const before=g.player.xp;g.hurt(again,999,g.player);assert.equal(g.player.xp,before,'a body that formed again pays nothing');
  assert.equal(anchor.anchor.reforms.length,1,'and it forms again while the anchor stands');
 });
 
 test('a marked tile taken in the meantime moves the body to another tile beside the anchor; none free, it waits',()=>{
- const g=rift(),w=g.enemies.find(e=>e.anchorId),anchor=liveAnchors(g).find(a=>a.id===w.anchorId);
+ const g=rift(),w=g.enemies.find(e=>e.anchorId?.startsWith('anchor-')),anchor=liveAnchors(g).find(a=>a.id===w.anchorId);
  g.hurt(w,999,g.player);const r=anchor.anchor.reforms[0];
  const blocker=g.enemies.find(e=>e.hp>0&&e!==w);Object.assign(blocker,{x:r.x,y:r.y});
  g.turn=r.due;tickNests(g);const again=g.enemies[g.enemies.length-1];
@@ -61,7 +61,7 @@ test('a marked tile taken in the meantime moves the body to another tile beside 
 });
 
 test('breaking the anchor dissipates its bodies for good: no kill, no xp, and nothing forms again',()=>{
- const g=rift(),anchor=liveAnchors(g)[0],mine=bound(g,anchor),other=g.enemies.filter(e=>e.hp>0&&e.anchorId&&e.anchorId!==anchor.id);
+ const g=rift(),anchor=anchorProps(g)[0],mine=bound(g,anchor),other=g.enemies.filter(e=>e.hp>0&&e.anchorId&&e.anchorId!==anchor.id);
  assert.ok(mine.length>0);
  const first=mine[0];g.hurt(first,999,g.player);assert.equal(anchor.anchor.reforms.length,1);
  const kills=g.player.kills,xp=g.player.xp;
@@ -100,8 +100,8 @@ test('an energy body: EMP disables it, stun does not; no suppression; it sees in
 });
 
 test('saves: a pending body keeps its tile and time; a long wait is cut to the tuning; broken data is refused; a kept floor waits',()=>{
- assert.equal(SAVE_VERSION,95);
- const g=rift(),w=g.enemies.find(e=>e.anchorId),anchor=liveAnchors(g).find(a=>a.id===w.anchorId);
+ assert.equal(SAVE_VERSION,96);
+ const g=rift(),w=g.enemies.find(e=>e.anchorId?.startsWith('anchor-')),anchor=liveAnchors(g).find(a=>a.id===w.anchorId);
  g.hurt(w,999,g.player);
  const copy=roundTrip(g);assert.ok(copy);assert.deepEqual(copy.props.find(p=>p.id===anchor.id).anchor,anchor.anchor);
  assert.equal(copy.enemies.find(e=>e.id===w.id).anchorId,anchor.id);
@@ -114,7 +114,7 @@ test('saves: a pending body keeps its tile and time; a long wait is cut to the t
  assert.ok(validRuntime(g));
  // A kept floor (the round trip mission) holds its pending body until you come back.
  const trip=new Game(7,[],0,'soldier','onyx','roundtrip',{facilityFaction:'rift'});Object.assign(trip.player,{hp:999,maxHp:999});
- const tw=trip.enemies.find(e=>e.anchorId),ta=liveAnchors(trip).find(a=>a.id===tw.anchorId);trip.hurt(tw,999,trip.player);
+ const tw=trip.enemies.find(e=>e.anchorId?.startsWith('anchor-')),ta=liveAnchors(trip).find(a=>a.id===tw.anchorId);trip.hurt(tw,999,trip.player);
  const wait=ta.anchor.reforms[0].due-trip.turn;
  for(const e of trip.enemies)e.hp=0;Object.assign(trip.player,trip.exitPoint);assert.ok(trip.descend());
  const kept=trip.floorStates[1]||Object.values(trip.floorStates)[0];assert.ok(kept);
@@ -126,5 +126,5 @@ test('saves: a pending body keeps its tile and time; a long wait is cut to the t
 test('the wisp card is an energy body with no loot, bound by the rift alone',()=>{
  const card=ENEMY_TYPES.wisp;
  assert.equal(card.energy,true);assert.equal(card.huntsLife,true);assert.equal(card.lifeDrain,true);assert.equal(card.loot,undefined);
- assert.deepEqual(FACTIONS.rift.roster.early,[['wisp',1]]);
+ for(const id of ['wisp','flicker','possessed'])assert.ok(FACTIONS.rift.roster.early.some(([type])=>type===id),id);   // 3.227.0
 });

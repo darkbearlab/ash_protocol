@@ -13,7 +13,7 @@ import {smokeTelegraphs} from './delisted-operatives.js';
 import {NEST_ATLAS,drawNestSprite} from './nest-art.js';
 import {blindReason} from './blind-fire.js';
 import {DECOY_TUNING,decoyReason,glowstickReason,mineReason} from './field-gear.js';
-import {isNoncombatant} from './enemy-data.js';
+import {isNoncombatant,enemyDef} from './enemy-data.js';
 import {liveAnchors} from './rift.js';
 import {droneCells} from './allies.js';
 import {LIGHT,flareLightCells,glowstickCells,isLamp} from './lighting.js';
@@ -96,6 +96,9 @@ export class RendererTelegraphs {
     for(const spawn of g.reinforcements||[])if(g.visible(spawn))this.markArea(spawn,0,'#70dce833','#94f0eeaa','+'+Math.max(1,spawn.due-g.turn));
     // 3.226.0 (src/rift.js): a rift body forming again beside its anchor, on the tile it will take, with the rounds left.
     for(const anchor of liveAnchors(g))for(const r of anchor.anchor.reforms)if(r.x!==null&&g.visible(r))this.markArea(r,0,'#b078ed33','#c9a0ffaa','+'+Math.max(1,r.due-g.turn));
+    // 3.227.0 (src/rift-blink.js): a marked blink — where the carrier will appear, and for a flicker the tile it strikes
+    // (yours when it marked: step off it).
+    for(const e of g.enemies)if(e.hp>0&&e.blinkIntent){const b=e.blinkIntent;if(g.visible(b.point))this.markArea(b.point,0,'#7f9cff30','#a9bcffcc','✧');if(enemyDef(e)?.blink==='strike'&&g.visible(b.target))this.markArea(b.target,0,'#e9694933','#f89969cc','');}
     // Allied bombardment marks (3.95.0) are amber, so the player can tell them from enemy marks; both still hurt the player.
     for(const m of g.marks)if(m.kind!=='grenade')this.markArea(m,1,m.kind==='ally'?'#e9a2494f':'#e969494f',m.kind==='ally'?'#f8c46977':'#f8996977',String(Math.max(1,m.due-g.turn)));
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);

@@ -6,7 +6,7 @@ export const SIZE = 27;
 // blasts cross it. seeThrough is what a line of sight may pass over or end on.
 export const VOID = 2;
 export const seeThrough = v => v === 1 || v === VOID;
-export const SAVE_VERSION = 95;   // 95 (3.226.0): the rift — anchors (a `nest` prop with `anchor`), a body's `anchorId`, `reformed`, `dissipated` (src/rift.js); nothing to migrate.
+export const SAVE_VERSION = 96;   // 96 (3.227.0): a possessed human's `anchor` (src/rift.js), the blink's `blinkIntent` and `blinkCooldown` (src/rift-blink.js); nothing to migrate. 95 (3.226.0): the rift — anchors (a `nest` prop with `anchor`), a body's `anchorId`, `reformed`, `dissipated`.
 // 94 (3.222.0): the new 困難 curve (`brutal`); endless past floor 9 frozen, thinner supplies (a terminal's `spent` from the start).
 // 93 (3.220.0): 酸血 acid that dries (a hazard's `expires`); 產卵 nests laid by an ordinary bug (`<id>-nest-<n>`); 鉤舌 tongues on bugs with the affix.
 // 92 (3.219.0): 通報 (`callCooldown`), 殉爆 (a `volatile` blast mark), 裝死 (`concealed` {as:'corpse',turns}).
@@ -248,3 +248,7 @@ ENEMY_TYPES.heavy_flamer={sprite:{size:1.25,scale:1.25},projectile:'rifle',casin
 // it). It hunts life only (`huntsLife`: it passes over machines) and what it touches feeds it (`lifeDrain`: a hit heals
 // it by the damage done). Bound to an anchor, it forms again after falling (src/rift.js). Numbers are Claude's.
 ENEMY_TYPES.wisp={sprite:{key:'brood',corpse:'brood',size:.8,tint:'#b078ed'},drawing:{shape:'critter',color:'#b078ed',glow:'#c9a0ff44'},projectile:'melee',voice:'creature',tags:[],traits:['no_cover'],energy:true,huntsLife:true,lifeDrain:true,gore:'energy',rounds:1,attackStyle:'claw',name:t('enemyTypes.wisp.name'),hp:20,damage:7,range:1,armor:0,color:'#b078ed',xp:1,role:t('enemyTypes.wisp.role')};
+// 3.227.0 (docs/FACTIONS.md 5.5): the flicker blinks beside you and strikes (src/rift-blink.js 'strike'); the possessed
+// human is a living anchor that blinks away when you close in ('evade', src/rift.js anchorHolder). Borrowed art, tinted.
+ENEMY_TYPES.flicker={sprite:{key:'crawler',corpse:'crawler',size:.85,tint:'#7f9cff'},drawing:{shape:'critter',color:'#7f9cff',glow:'#a9bcff44'},projectile:'melee',voice:'creature',tags:[],traits:['no_cover'],energy:true,huntsLife:true,blink:'strike',gore:'energy',rounds:1,attackStyle:'claw',name:t('enemyTypes.flicker.name'),hp:26,damage:11,range:1,armor:0,color:'#7f9cff',xp:1,role:t('enemyTypes.flicker.role')};
+ENEMY_TYPES.possessed={sprite:{key:'rifleman',corpse:'rifleman',tint:'#a88bd8',outline:'#d9b8ff'},drawing:{color:'#a88bd8',glow:'#c9a0ff55'},projectile:'rifle',casing:'rifle',voice:'creature',tags:['armed'],traits:[],anchorHolder:true,blink:'evade',rounds:2,attackStyle:'bullet',loot:{weapon:0,chance:.20,ammo:'ammo'},name:t('enemyTypes.possessed.name'),hp:34,damage:15,range:6,armor:0,color:'#a88bd8',xp:2,role:t('enemyTypes.possessed.role')};
