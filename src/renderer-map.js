@@ -19,6 +19,7 @@ import {edgeCells,blockedBetween} from './barriers.js';
 import {pointLetter,pointStatus,pointTargeted} from './survival.js';
 import {SIZE,SUPPLY_NAMES,distance,SUPPLY_ROOMS} from './engine.js';
 import {VOID} from './data.js';
+import {enemyDef} from './enemy-data.js';
 import {fxFrame,fxSheet,FX_SMOKE_ALPHA} from './fx-sprites.js';
 import {drawTrace} from './traces.js';
 import {burningAt} from './fire.js';
@@ -223,7 +224,7 @@ const target=this.targetingEnabled?g.targeted:null;if(target){c.strokeStyle='#ff
     }
     const fieldCells=[],bodies=[],later=[];
     // 3.211.0 (docs/KILL_GORE.md 屍體圖層): the floor's bodies by tile, once, for the corpse pass below.
-    const deadAt=new Map();for(const dead of g.enemies)if((dead.hp<=0||downed(dead))&&!dead.raised){const k=dead.x+','+dead.y;if(!deadAt.has(k))deadAt.set(k,[]);deadAt.get(k).push(dead);}
+    const deadAt=new Map();for(const dead of g.enemies)if((dead.hp<=0||downed(dead))&&!dead.raised&&!enemyDef(dead)?.energy){const k=dead.x+','+dead.y;if(!deadAt.has(k))deadAt.set(k,[]);deadAt.get(k).push(dead);}
     for(const {a,left,top,x,y}of floorCells){
       c.globalAlpha=g.visibleTiles?.has(x+','+y)?1:.36;
       // 3.151.0 blind fire: until the tile is seen again it keeps what it showed before the shot (src/blind-fire.js).

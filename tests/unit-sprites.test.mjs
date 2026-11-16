@@ -40,7 +40,8 @@ test('every unit that borrowed a cell draws its own now; only the elites and the
  const own=['designator','gunline','arsonist','burnline','hive_beast','hive_matriarch','fodder','brood','giant_bug','turret','munition','bomber_bot','heavy_flamer','enforcer','squad_leader','gunner','rifleman_infected','raider_infected','rifleman_armored','raider_armored'];
  for(const id of own){const look=enemySprite(id);assert.deepEqual([look.key,look.corpse],[id,id],id);assert.equal(enemyTint({type:id}),null,`${id} has its colours in the art`);}
  const borrowed=Object.keys(ENEMY_TYPES).filter(id=>enemySprite(id).key!==id).sort();
- assert.deepEqual(borrowed,['delisted_berserker','delisted_engineer','delisted_ninja','delisted_recon','delisted_soldier','gunner_elite','raider_elite']);
+ // 3.226.0: the rift's wisp borrows the larva, tinted violet, until the rift has its own art.
+ assert.deepEqual(borrowed,['delisted_berserker','delisted_engineer','delisted_ninja','delisted_recon','delisted_soldier','gunner_elite','raider_elite','wisp']);
  assert.equal(enemySprite('gunner_elite').key,'gunner');assert.equal(enemySprite('raider_elite').key,'raider');
  // Sizes stay the cards': the big bugs and the heavy flamer are drawn enlarged, the larva small.
  assert.deepEqual(['hive_beast','hive_matriarch','giant_bug','heavy_flamer','brood','fodder'].map(id=>enemySprite(id).size),[1.55,1.7,1.3,1.25,.65,1]);

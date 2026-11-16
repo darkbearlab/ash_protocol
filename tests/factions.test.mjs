@@ -13,7 +13,8 @@ import {receiveCallout} from '../src/callouts.js';
 
 test('faction catalog validates references and covers every current enemy card',()=>{
  const used=new Set(Object.values(ALLY_BASE_TYPES));
- assert.deepEqual(Object.keys(FACTIONS),['legacy','loyalist','rebel','swarm']);
+ assert.deepEqual(Object.keys(FACTIONS),['legacy','loyalist','rebel','swarm','rift']);   // rift: 3.226.0, not pickable until it is finished
+ assert.equal(FACTIONS.rift.pickable,undefined,'the rift stays out of random facilities and the ranked daily until 3.232.0');
  for(const d of Object.values(FACTIONS)){
   for(const [id,n] of d.noncombatants?.roster||[]){assert.ok(ENEMY_TYPES[id]?.tags.includes('noncombatant'));assert.ok(Number.isInteger(n)&&n>0);used.add(id);}
   for(const entries of Object.values(d.roster))for(const [id,n] of entries){assert.ok(ENEMY_TYPES[id]);assert.ok(Number.isInteger(n)&&n>0);used.add(id);}

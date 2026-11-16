@@ -215,7 +215,7 @@ export const isDark=(game,point)=>lightAt(game,point)<LIGHT.lit;
 export const isBlack=(game,point)=>lightAt(game,point)===LIGHT.black;
 // Who sees in the dark (B4, B6): night vision, and on the new lighting every swarm creature.
 const swarmEyes=a=>a?.faction==='swarm'&&typeof a.type==='string'&&!a.kind;
-export const seesInDark=(game,a)=>Boolean(activeTrait(a,'night_vision')||(newLighting(game)&&swarmEyes(a)));
+export const seesInDark=(game,a)=>Boolean(activeTrait(a,'night_vision')||(newLighting(game)&&(swarmEyes(a)||activeTrait(a,'energy'))));   // energy: 3.226.0, the rift needs no light
 const mechanical=b=>Boolean(activeTrait(b,'mechanical')||enemyDef(b)?.mechanical);
 // B1, B5: someone standing in the black is hidden, even next to you, from an observer without night vision; infrared
 // still finds anything warm (not machines). Tiles themselves never hide: sight passes through the black.

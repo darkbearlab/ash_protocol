@@ -2101,6 +2101,17 @@ export default Object.freeze({
  // src/retreat.js
  "retreat.wave":"Reinforcements: {n} teleport {n|signal|signals} on this floor, arriving in two actions; no more after these.",
  "retreat.arrived":"Enemy reinforcements teleport in.",
+ "factions.rift.name":"Rift",
+ "enemyTypes.wisp.name":"Wisp",
+ "enemyTypes.wisp.role":"A rift energy body that hunts life and ignores machines; its touch drains life. No loot. While its anchor stands, it forms again beside the anchor after it falls.",
+ "traits.energy.name":"Energy",
+ "traits.energy.text":"Neither living nor mechanical: EMP disables it, stun grenades do not; it ignores suppression and sees in the dark.",
+ "rift.anchorName":"Rift Anchor",
+ "rift.anchorAwake":"A rift anchor starts to pulse.",
+ "rift.dissipates":"{target} dissipates, but its anchor still stands.",
+ "rift.reformed":"{target} forms again beside a rift anchor.",
+ "rift.anchorBroken":"The rift anchor collapses.",
+ "rift.anchorBrokenBodies":"The rift anchor collapses; {n} energy bodies dissipate with it.",
  // src/run-unlocks.js
  "run-unlocks.lifeSignal":"Life signal of a missing operative detected: a light beam marks the body; walk up and tap interact to recover the ID.",
  "run-unlocks.noProfile":"No profile; unlocks can't be saved.",

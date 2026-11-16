@@ -26,7 +26,7 @@ export const grenadeTotal=p=>Object.values(GRENADES).reduce((n,g)=>n+(p[g.resour
 export const grenadeByItem=type=>Object.keys(GRENADES).find(id=>GRENADES[id].item===type);
 export const controlState=()=>({disabled:0,immune:0});
 export const validControl=c=>c&&typeof c==='object'&&!Array.isArray(c)&&Object.keys(c).length===2&&['disabled','immune'].every(k=>Number.isInteger(c[k])&&c[k]>=0&&c[k]<=(k==='disabled'?DISRUPT_TURNS:DISRUPT_IMMUNITY))&&!(c.disabled&&c.immune);
-export const disruptionEligible=(actor,keyword)=>activeTrait(actor,keyword)||(keyword==='biological'&&(activeTrait(actor,'night_vision')||activeTrait(actor,'infrared')));
+export const disruptionEligible=(actor,keyword)=>activeTrait(actor,keyword)||(keyword==='mechanical'&&activeTrait(actor,'energy'))||(keyword==='biological'&&(activeTrait(actor,'night_vision')||activeTrait(actor,'infrared')));
 export function applyDisruption(actor,keyword){
   if(!disruptionEligible(actor,keyword)||actor.hp<=0||actor.control.disabled||actor.control.immune)return false;
   actor.control.disabled=isBossClass(actor)?BOSS_DISRUPT_TURNS:DISRUPT_TURNS;

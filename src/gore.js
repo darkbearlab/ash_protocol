@@ -10,6 +10,7 @@ import {WEAPONS} from './data.js';
 export const GORE_PALETTES=Object.freeze({
   flesh:Object.freeze({drops:Object.freeze(['#5c0f12','#7d161a','#9c1d20','#c42a2a','#e04a3a']),mist:Object.freeze([150,22,26]),sparks:Object.freeze(['#fff6d8','#ffc36b']),blood:1,sparkScale:1}),
   swarm:Object.freeze({drops:Object.freeze(['#3f5212','#5d7519','#86a324','#b3c93a','#d6e25a']),mist:Object.freeze([118,146,32]),sparks:Object.freeze(['#f4ffd0','#d6e25a']),blood:1,sparkScale:1}),
+  energy:Object.freeze({drops:Object.freeze(['#3a1f5c','#5b2f8f','#8a52c9','#b078ed','#e2c9ff']),mist:Object.freeze([150,96,220]),sparks:Object.freeze(['#f4e8ff','#c9a0ff']),blood:.5,sparkScale:2}),   // 3.226.0: the rift's bodies come apart as light
   mech:Object.freeze({drops:Object.freeze(['#15130f','#241f19','#3a3128','#5a4a36','#8a6a3e']),mist:Object.freeze([72,70,66]),sparks:Object.freeze(['#fff6d8','#ffd27a','#9fdcff']),blood:.6,sparkScale:2}),
 });
 export const GORE_KINDS=Object.freeze(Object.keys(GORE_PALETTES));

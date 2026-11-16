@@ -24,6 +24,7 @@ export const TRAITS={
   exoskeleton:{name:t('traits.exoskeleton.name'),text:t('traits.exoskeleton.text')},
   infrared:{name:t('traits.infrared.name'),text:t('traits.infrared.text')},
   biological:{name:t('traits.biological.name'),text:t('traits.biological.text')},
+  energy:{name:t('traits.energy.name'),text:t('traits.energy.text')},   // 3.226.0: the rift's bodies, neither flesh nor machine
   mechanical:{name:t('traits.mechanical.name'),text:t('traits.mechanical.text')},
   heavy_armor:{name:t('traits.heavy_armor.name'),text:t('traits.heavy_armor.text')},
   cowering:{name:t('traits.cowering.name'),text:t('traits.cowering.text')},
@@ -85,7 +86,7 @@ export function tickTraits(actor){actor.traits=(actor.traits||[]).flatMap(t=>t.t
 // The most traits a save may carry (66 legacy entries plus the two senses the v17 migration adds).
 export const TRAIT_CAP=68;
 export function validTraits(traits){return Array.isArray(traits)&&traits.length<=TRAIT_CAP&&traits.filter(t=>t?.id==='suppression_resistance').length<=3&&new Set(traits.filter(t=>t?.id==='suppression_resistance').map(t=>t.source)).size===traits.filter(t=>t?.id==='suppression_resistance').length&&traits.every(t=>t&&typeof t==='object'&&!Array.isArray(t)&&typeof t.id==='string'&&Object.hasOwn(TRAITS,t.id)&&typeof t.source==='string'&&/^[a-zA-Z0-9:_-]{1,100}$/.test(t.source)&&(t.turns===undefined||(Number.isInteger(t.turns)&&t.turns>0&&t.turns<=999)));}
-export const bodyKeyword=type=>ENEMY_TYPES[type]?.mechanical?'mechanical':'biological';
+export const bodyKeyword=type=>ENEMY_TYPES[type]?.energy?'energy':ENEMY_TYPES[type]?.mechanical?'mechanical':'biological';
 // 3.208.0: with its faction, the traits that faction's override adds to the card too (src/faction-catalog.js).
 export function startingTraits(type,floor=1,faction=null){
   const ids=enemyStartingTraitIds(type,floor);

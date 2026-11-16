@@ -14,6 +14,7 @@ import {NEST_ATLAS,drawNestSprite} from './nest-art.js';
 import {blindReason} from './blind-fire.js';
 import {DECOY_TUNING,decoyReason,glowstickReason,mineReason} from './field-gear.js';
 import {isNoncombatant} from './enemy-data.js';
+import {liveAnchors} from './rift.js';
 import {droneCells} from './allies.js';
 import {LIGHT,flareLightCells,glowstickCells,isLamp} from './lighting.js';
 import {areaCells,squareCells} from './throwables.js';
@@ -93,6 +94,8 @@ export class RendererTelegraphs {
     const c=this.ctx,g=this.game,t=this.tile,half=t/2,p=g.player;
     // Swarm waves arrive unannounced (user decision, 3.85.2); only retreat reinforcements keep their countdown marker.
     for(const spawn of g.reinforcements||[])if(g.visible(spawn))this.markArea(spawn,0,'#70dce833','#94f0eeaa','+'+Math.max(1,spawn.due-g.turn));
+    // 3.226.0 (src/rift.js): a rift body forming again beside its anchor, on the tile it will take, with the rounds left.
+    for(const anchor of liveAnchors(g))for(const r of anchor.anchor.reforms)if(r.x!==null&&g.visible(r))this.markArea(r,0,'#b078ed33','#c9a0ffaa','+'+Math.max(1,r.due-g.turn));
     // Allied bombardment marks (3.95.0) are amber, so the player can tell them from enemy marks; both still hurt the player.
     for(const m of g.marks)if(m.kind!=='grenade')this.markArea(m,1,m.kind==='ally'?'#e9a2494f':'#e969494f',m.kind==='ally'?'#f8c46977':'#f8996977',String(Math.max(1,m.due-g.turn)));
     for(const m of grenadeMarkers(g))this.grenadeMarker(m);

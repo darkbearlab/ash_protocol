@@ -65,6 +65,16 @@ export const FACTIONS={
  personality:{crawler:'feral',rifleman_infected:'mindless',raider_infected:'mindless',bomber:'mindless'},
  // preview (3.137.0, docs/DIFFICULTY.md): the special enemy floor 2 shows on the standard curve.
  bosses:{3:'hive_beast',6:'hive_matriarch'},scout:'rifleman_infected',preview:'spitter',retreatWave:['crawler','crawler'],fodder:'fodder',nestChild:'brood',overrides:SWARM_OVERRIDES},
+ // Rift (3.226.0 skeleton, docs/FACTIONS.md 5.1–5.3): energy bodies held by anchors (src/rift.js `anchors`). Not
+ // `pickable` until the faction is finished (3.232.0): no random facility or ranked daily draws it, only the deploy
+ // screen's test list. Its own bosses come in 3.231.0; until then the legacy warden and core guard stand in.
+ rift:{name:t('factions.rift.name'),tag:true,voice:'creature',nestStyle:'rift',anchors:true,roster:{
+  early:[['wisp',1]],
+  late:[['wisp',1]],
+  deepExtra:[['wisp',1]],
+ },
+ personality:{wisp:'mindless'},
+ bosses:{3:'warden',6:'boss'},scout:'wisp',preview:'wisp',retreatWave:['wisp','wisp'],fodder:null,nestChild:null},
 };
 export const factionDef=id=>typeof id==='string'&&Object.hasOwn(FACTIONS,id)?FACTIONS[id]:undefined;
 // The traits a faction's override adds to one of its cards (3.208.0), as they go on the unit.

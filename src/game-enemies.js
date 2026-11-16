@@ -33,7 +33,8 @@ export class GameEnemyTurn {
   spawnEnemy(type,x,y,id,marks=null){const d=this.difficultySpec;return rollEnemyElite(rollEnemyAffixes(Object.assign(makeEnemy(type,x,y,id,this.floor,d,this.facilityFaction),marks),this.seed,this.floor,d),this.seed,this.floor,d);}
   enemyTarget(e){
     if(isNoncombatant(e))return this.player;
-    const options=[this.player,...this.activeAllies].filter(a=>a.hp>0&&distance(e,a)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,a));
+    // 3.226.0 (src/rift.js): a rift body hunts life and passes over machines (a drone, a sentry, a munition).
+    const options=[this.player,...this.activeAllies].filter(a=>a.hp>0&&distance(e,a)<=Math.max(10,ENEMY_TYPES[e.type].range)&&this.sight(e,a)&&!(ENEMY_TYPES[e.type]?.huntsLife&&activeTrait(a,'mechanical')));
     if(unitTree(e).fixedTile&&e.charge&&e.aim){const occupant=[this.player,...this.activeAllies].find(a=>key(a)===key(e.aim));if(occupant)return occupant;}
     if(e.charge&&e.focusTarget){const old=[this.player,...this.activeAllies].find(a=>(a.id||'player')===e.focusTarget);if(old)return old;}
     const ready=a=>distance(e,a)<=ENEMY_TYPES[e.type].range&&this.shotClear(e,a);

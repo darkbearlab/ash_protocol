@@ -10,7 +10,7 @@ export const suppressionResistance=a=>Math.min(3,new Set((a?.traits||[]).filter(
 export function grantNativeResistance(a){const source=a.character==='bulwark'?'character:bulwark':enemyDef(a)?.traits?.includes('suppression_resistance')?`enemy:${a.type}`:null;if(!Array.isArray(a.traits))a.traits=[];if(source&&!a.traits.some(t=>t.id==='suppression_resistance'&&t.source===source))a.traits.push({id:'suppression_resistance',source});}
 export function migrateResistance(g){for(const a of [g.player,...g.enemies,...(g.allies||[]),...Object.values(g.floorStates||{}).flatMap(f=>f.enemies||[])])grantNativeResistance(a);}
 export const rapidFireModifiers=a=>a?.traits?.some(t=>t.id==='rapid_fire')?{extraRounds:1,accuracyBonus:-SUPPRESSION_TUNING.rapidAccuracy}:{extraRounds:0,accuracyBonus:0};
-const mechanical=a=>a?.traits?.some(t=>t.id==='mechanical');
+const mechanical=a=>a?.traits?.some(t=>t.id==='mechanical'||t.id==='energy');   // energy: 3.226.0, nothing to frighten
 export const suppressionStacks=a=>mechanical(a)?0:(a?.suppression||0);
 export const suppressionPenalty=a=>suppressionStacks(a)*SUPPRESSION_TUNING.accuracy;
 export const pinned=a=>suppressionStacks(a)>=SUPPRESSION_TUNING.pinned;

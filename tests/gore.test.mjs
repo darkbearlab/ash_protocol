@@ -15,7 +15,8 @@ test('bodies bleed by what they are made of: people red, the swarm yellow-green,
  assert.equal(goreKind({type:'giant_bug',faction:'swarm'}),'swarm');
  assert.equal(goreKind({type:'drone',faction:'loyalist'}),'mech','the drone is mechanical in its data');
  assert.equal(goreKind({type:'rifleman',faction:'rebel',traits:[{id:'mechanical'}]}),'mech');
- assert.deepEqual(Object.keys(GORE_PALETTES),['flesh','swarm','mech']);
+ assert.deepEqual(Object.keys(GORE_PALETTES),['flesh','swarm','energy','mech']);
+ assert.equal(goreKind({type:'wisp',faction:'rift'}),'energy','3.226.0: a rift body comes apart as light');
  const oil=makeBurst(3,{dx:1,dy:0},{kind:'mech'}),flesh=makeBurst(3,{dx:1,dy:0},{kind:'flesh'});
  assert.ok(oil.drops.every(d=>GORE_PALETTES.mech.drops.includes(d.color)));
  assert.ok(oil.drops.length<flesh.drops.length&&oil.sparks.length>flesh.sparks.length,'machines spill less and spark more');

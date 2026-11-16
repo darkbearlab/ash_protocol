@@ -15,6 +15,7 @@ import {shotDamageAllowed} from './suppression.js';
 import {followUpRound} from './pursuit.js';
 import {petCombat,petDeath,petDefense,petHit,petRank,petReactions,petSurvives,syncPetSenses} from './pet-growth.js';
 import {collapseNest} from './runtime-enemies.js';
+import {anchorDeath,collapseAnchor,isAnchor,isEnergy} from './rift.js';
 import {objectSightGrid} from './scenery.js';
 import {CLASS_PERK_TUNING,classPerkRank,markValues} from './class-perks.js';
 import {bladeMultiplier,meleeDefense,meleeReward} from './melee-classes.js';
@@ -57,6 +58,8 @@ import {radioHit} from './squad.js';
 // - `firstHand`: the enemies that learned an origin themselves during this action; what a witness saw never replaces it.
 const attackNotes=new WeakMap();
 const notesOf=g=>{let n=attackNotes.get(g);if(!n)attackNotes.set(g,n={origin:null,ours:false,pending:[],firstHand:new Set()});return n;};
+// 3.226.0: a rift body's touch feeds it (`lifeDrain`): it heals by the life it took, up to its maximum. Never from a blast.
+const drainLife=(attacker,taken,blast)=>{if(blast||!attacker||!(taken>0)||attacker.hp<=0||!enemyDef(attacker)?.lifeDrain)return;attacker.hp=Math.min(attacker.maxHp??attacker.hp,attacker.hp+taken);};
 export const ATTACK_ORIGIN_TUNING=Object.freeze({witnessRadius:8});
 export class GameDamage {
   // 3.209.0: attacks that tell an enemy where they came from are yours and your units' (pets, drones, summons, survivors),
@@ -148,18 +151,18 @@ export class GameDamage {
     // 3.127.0: an enforcer's execution is not the player's kill, and a conscript pays out nothing.
     // 3.205.0: nor is a swarm boss's bite or charge on one of its own (`ownKind` above): no kill, xp or scrap.
     const executed=isEnforcer(attacker)||ownKind;
-    if(!executed)this.player.kills++;if(!e.expendable&&!executed&&simulationUpgrades(this))this.player.xp+=enemyKillXp(e);
-    if(!e.expendable&&!e.conscript&&!executed&&simulationDrops(this))this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
+    if(!executed)this.player.kills++;if(!e.expendable&&!e.reformed&&!executed&&simulationUpgrades(this))this.player.xp+=enemyKillXp(e);
+    if(!e.expendable&&!e.conscript&&!isEnergy(e)&&!executed&&simulationDrops(this))this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
     this.log(t('game.killed',{target:enemyName(e)}));if(missionTarget(this,e))this.log(sentence(this.missionSummary));salvageBlueprint(this,e,attacker);
     // The number stops at MAX_LEVEL (3.52.0, user call). Past it the threshold stays at the level-20 cost and each
     // one hands over supplies instead of a pick, so the HUD can simply read MAX.
     this.settleLevels();
-    enemyDeath(this,e);dropKeycard(this,e);   // 3.146.0
+    enemyDeath(this,e);anchorDeath(this,e);dropKeycard(this,e);   // 3.146.0; anchorDeath: 3.226.0, a bound rift body forms again (src/rift.js)
     const tank=flamerTank(this,e);   // 3.203.0: a fallen flamer's tank goes up (30%) or it leaves its flamethrower below
     // A comrade gunned down in sight breaks the rebels who saw it; executions and self-destruction never do.
     if(attacker&&!this.enemies.includes(attacker))witnessDeath(this,e);
     if(isBossClass(e))this.awardProtocol(e.type,`${this.floor}:${e.id}`);
-    if(e.reinforcement||e.expendable||e.conscript||!simulationDrops(this))return; // Retreat waves add pressure, not replacement supplies.
+    if(e.reinforcement||e.expendable||e.conscript||isEnergy(e)||!simulationDrops(this))return; // Retreat waves add pressure, not replacement supplies. 3.226.0: an energy body carries nothing.
     const loot=enemyDef(e)?.loot;
     // 3.203.0: a flamer carries no gun of its card's; its flamethrower drops whenever the tank did not go up.
     if(isFlamer(e)){if(!tank)this.dropEnemyWeapon(e,FLAMETHROWER);}
@@ -195,6 +198,7 @@ export class GameDamage {
     if(prop.hp<=0)return;
     prop.hp-=damage;
     if(prop.hp>0)return;
+    if(isAnchor(prop)){for(const e of collapseAnchor(this,prop))enemyDeath(this,e);this.reveal();return;}   // 3.226.0 (src/rift.js)
     if(prop.type==='nest'){collapseNest(this,prop);return;}
     addTrace(this,prop,'debris');
     if(isRigged(prop)){this.detonateCase(prop,attacker);return;}
@@ -317,7 +321,7 @@ export class GameDamage {
     // 3.144.0: a worn exoskeleton's plates take their share of the hit (half of it) before your own plates do.
     // 3.210.0 (docs/BULWARK.md 改版): the bulwark's plates (plate_life) take all of what is left, not half.
     const half=Math.floor(damage/2),frame=exoAbsorb(this,half),absorbed=Math.min(p.plates||0,(activeTrait(p,'plate_life')?damage:half)-frame);p.plates=(p.plates||0)-absorbed;damage-=frame+absorbed;
-    p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');const coverNote=cover?t('game.noteCover'):'';
+    p.hp-=damage;if(damage>0)addTrace(this,p,activeTrait(p,'mechanical')?'oil':'blood');drainLife(attacker,damage,blast);const coverNote=cover?t('game.noteCover'):'';
     const notes=coverNote+(frame?t('game.noteExo',{n:frame}):'')+(absorbed?t('game.notePlates',{n:absorbed}):''),real=t('game.playerHurtReal',{source:label,notes:coverNote+(frame||absorbed?t('game.noteArmor'):'')});
     // 3.210.0: a hit the plates took whole says so, instead of 「生命 −0」.
     this.log(damage>0||!absorbed?t('game.playerHurt',{source:label,notes,damage}):t('game.playerHurtPlates',{source:label,notes:coverNote+(frame?t('game.noteExo',{n:frame}):''),n:absorbed}),true,real);
@@ -333,7 +337,7 @@ export class GameDamage {
     if(cover){damage*=1-coverEffects(cover,a,attacker).reduction;if(!cover.indestructible)this.damageProp(cover,Math.ceil(raw*.35),attacker);}
     if(!blast&&attacker&&toxicShot(this,attacker,a,this.actorWeapon(attacker)))damage*=.5;   // 3.134.0 mist
     if(!environment)petCombat(this,a);damage=reduceDirectDamage(a,Math.max(1,Math.round(damage-a.armor)));
-    if(!environment)damage=petDefense(this,a,damage);a.hp=Math.max(0,a.hp-damage);
+    if(!environment)damage=petDefense(this,a,damage);const before=a.hp;a.hp=Math.max(0,a.hp-damage);if(!activeTrait(a,'mechanical'))drainLife(attacker,before-a.hp,blast||environment);
     addTrace(this,a,activeTrait(a,'mechanical')?'oil':'blood');this.effects.push({type:'impact',from:{x:a.x,y:a.y},to:{x:a.x,y:a.y},damage});this.log(t('game.allyHurt',{ally:allyName(a),damage}),true,t('game.allyHurtReal',{ally:allyName(a)}));
     if(!a.hp&&a.kind==='pet'){if(!petSurvives(this,a))petDeath(this,a);petReactions(this);this.reveal();return;}
     petReactions(this);

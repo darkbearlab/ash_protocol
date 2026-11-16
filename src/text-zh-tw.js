@@ -2102,6 +2102,17 @@ export default Object.freeze({
  // src/retreat.js
  "retreat.wave":"撤退增援：本層 {n} 個傳送訊號，兩次行動後抵達；不再追加。",
  "retreat.arrived":"敵方增援傳送抵達。",
+ "factions.rift.name":"裂隙",
+ "enemyTypes.wisp.name":"殘光",
+ "enemyTypes.wisp.role":"裂隙的能量體，只追獵生命、不理會機械；碰到就吸取生命。沒有戰利品。錨點還在時，倒下後會在錨點旁重新成形。",
+ "traits.energy.name":"能量體",
+ "traits.energy.text":"既不是生物也不是機械：電磁脈衝能讓它失能，震撼彈不行；不怕壓制，黑暗中也看得見。",
+ "rift.anchorName":"裂隙錨",
+ "rift.anchorAwake":"裂隙錨開始脈動。",
+ "rift.dissipates":"{target}消散了，但錨點還在。",
+ "rift.reformed":"{target}在裂隙錨旁重新成形。",
+ "rift.anchorBroken":"裂隙錨崩塌了。",
+ "rift.anchorBrokenBodies":"裂隙錨崩塌，{n} 個能量體隨之消散。",
  // src/run-unlocks.js
  "run-unlocks.lifeSignal":"偵測到失聯幹員的生命訊號：遺體上方有光柱，靠近後按互動回收識別資料。",
  "run-unlocks.noProfile":"玩家檔案尚未連接，無法保存解鎖。",
