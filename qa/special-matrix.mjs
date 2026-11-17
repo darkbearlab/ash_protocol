@@ -80,6 +80,9 @@ const SPECIALS={
  // 3.231.0: a displacer's mark (src/rift-warp.js) and a ray body's line (src/rift-beam.js).
  warp:{card:'displacer',faction:'rift',main:'warpIntent',count:'warpCooldown',state:(E,T)=>({warpIntent:{origin:at(E),target:at(T),point:{x:T.x+3,y:T.y}},warpCooldown:1})},
  beam:{card:'beamer',faction:'rift',main:'beamIntent',count:'beamCooldown',state:(E,T)=>({beamIntent:{origin:at(E),target:at(T)},beamCooldown:1})},
+ // 3.232.0: the rift bosses — the drifting anchor's pull, the core's fanned beam (src/rift-bosses.js).
+ riftPull:{card:'rift_wanderer',faction:'rift',main:'warpIntent',count:'warpCooldown',state:(E,T)=>({warpIntent:{origin:at(E),target:at(T),point:{x:E.x-1,y:E.y}},warpCooldown:1})},
+ coreBeam:{card:'rift_core',faction:'rift',main:'beamIntent',count:'beamCooldown',state:(E,T)=>({beamIntent:{origin:at(E),target:at(T),spread:[{x:T.x,y:T.y+3}]},beamCooldown:1,warpCooldown:2})},
  lockdown:{card:'rifleman',affixes:['lockdown'],main:'lockIntent',count:'lockCooldown',state:(E,T)=>({lockIntent:{origin:at(E),tile:{x:T.x,y:T.y+1}},lockCooldown:1})},
  // 3.215.0: a marksman's aim at your weapon and its cooldown (src/disarm.js).
  disarm:{card:'rifleman',affixes:['disarm'],main:'disarmIntent',count:'disarmCooldown',state:E=>({disarmIntent:{origin:at(E)},disarmCooldown:3})},
@@ -153,6 +156,7 @@ const TICKS={
  lockdown:SPECIALS.lockdown,   // 3.213.0
  blink:SPECIALS.blink,evade:SPECIALS.evade,   // 3.227.0
  warp:SPECIALS.warp,beam:SPECIALS.beam,   // 3.231.0
+ riftPull:SPECIALS.riftPull,coreBeam:SPECIALS.coreBeam,   // 3.232.0
  disarm:SPECIALS.disarm,   // 3.215.0
  opRecon:SPECIALS.smoke,opEngineer:SPECIALS.drones,opNinja:SPECIALS.cloak,opBerserker:{card:'delisted_berserker',state:(E,T)=>({tongueIntent:{origin:at(E),target:at(T),point:{x:E.x-1,y:E.y}},tongueCooldown:1,chargeCooldown:2})},
 };

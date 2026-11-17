@@ -219,7 +219,7 @@ function swarmTrip(){
   return {g,child};
 }
 test('SAVE 86: swarm units in an older save get their traits — this floor and a kept one; the legacy mix is untouched',()=>{
-  assert.equal(SAVE_VERSION,98);
+  assert.equal(SAVE_VERSION,99);
   const {g,child}=swarmTrip();
   const raw=JSON.parse(g.serialize());raw.version=85;
   raw.data.enemies=raw.data.enemies.map(stripped);for(const f of Object.values(raw.data.floorStates))f.enemies=f.enemies.map(stripped);

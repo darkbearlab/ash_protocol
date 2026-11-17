@@ -1,6 +1,7 @@
 // Hits and damage (3.206.3 split): cover, hitting and hurting any body, what an enemy drops, props and rigged cases,
 // throwables and explosions, and damage to the player and allies.
 // Methods of Game (src/game.js), which copies them onto Game.prototype (src/mixin.js, 3.206.3): `this` is the game.
+import {anchorWard} from './rift-bosses.js';   // 3.232.0
 import {revealConcealed,downed,feignDown} from './concealed.js';   // 3.217.0 埋伏, 3.219.0 裝死
 import {sentence,t} from './i18n.js';
 import {simulationDrops,simulationUpgrades} from './killhouse-policy.js';
@@ -137,6 +138,8 @@ export class GameDamage {
     // to pay you the kill, xp and scrap; the enforcer's execution (its own line in src/rebels.js) used to count in your damage
     // and log as your hit. Blasts with no attacker (an enemy grenade, a bomber, a tank) are not covered yet.
     const ownKind=Boolean(attacker&&attacker!==e&&this.enemies.includes(attacker));
+    // 3.232.0 (src/rift-bosses.js): the rift anchors standing ward a rift boss — each takes its share off every hit.
+    {const ward=anchorWard(this,e);if(ward>0&&damage>0)damage=Math.max(1,Math.round(damage*(1-ward)));}
     const beforeHp=e.hp;e.hp-=damage;injuryCallout(this,e,beforeHp);if(damage>0)orderHit(this,e);if(!ownKind)this.player.stats.damage+=damage;if(damage>0)addTrace(this,e,activeTrait(e,'mechanical')?'oil':'blood');
     this.effects.push({type:'impact',from:{x:e.x,y:e.y},to:{x:e.x,y:e.y},damage,mechanical:ENEMY_TYPES[e.type]?.mechanical});
     // 3.202.0: a hazard's damage is logged only for an enemy you can see; the floor does not report on the ones you cannot.
@@ -151,7 +154,7 @@ export class GameDamage {
     // 3.127.0: an enforcer's execution is not the player's kill, and a conscript pays out nothing.
     // 3.205.0: nor is a swarm boss's bite or charge on one of its own (`ownKind` above): no kill, xp or scrap.
     const executed=isEnforcer(attacker)||ownKind;
-    if(!executed)this.player.kills++;if(!e.expendable&&!e.reformed&&!executed&&simulationUpgrades(this))this.player.xp+=enemyKillXp(e);
+    if(!executed)this.player.kills++;if(!e.expendable&&!executed&&simulationUpgrades(this))this.player.xp+=enemyKillXp(e);
     if(!e.expendable&&!e.conscript&&!isEnergy(e)&&!executed&&simulationDrops(this))this.player.scrap+=Math.round((isBossClass(e)?35:3)*(1+this.player.scavenger*.5))+classPerkRank(this.player,'engineer_salvage')*CLASS_PERK_TUNING.salvage;
     this.log(t('game.killed',{target:enemyName(e)}));if(missionTarget(this,e))this.log(sentence(this.missionSummary));salvageBlueprint(this,e,attacker);
     // The number stops at MAX_LEVEL (3.52.0, user call). Past it the threshold stays at the level-20 cost and each

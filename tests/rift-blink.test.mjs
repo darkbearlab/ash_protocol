@@ -66,23 +66,22 @@ test('a pinned possessed human loses its mark; an energy body cannot be pinned o
   assert.equal(h.blinkIntent,undefined,'the pin drops it');assert.deepEqual([h.x,h.y],[10,14]);
 });
 
-test('the possessed is a living anchor: its bodies form again beside it wherever it stands, and dissipate when it falls',()=>{
+test('the possessed is a living anchor: it draws bodies beside itself wherever it stands, and they dissipate when it falls',()=>{
   const g=open(),h=unit(g,'possessed',4,4,'h'),w=unit(g,'wisp',4,8,'w'),x=unit(g,'flicker',6,8,'x');
   bindAnchors({props:g.props,enemies:g.enemies});
   assert.ok(h.anchor);assert.equal(w.anchorId,'h');assert.equal(x.anchorId,'h');assert.deepEqual(liveAnchors(g),[h]);
   const xp=g.player.xp;g.hurt(w,999,g.player);assert.equal(g.player.xp,xp+1);
-  assert.equal(h.anchor.reforms.length,1);
-  // It walks; the marked tile follows it.
-  Object.assign(h,{x:7,y:4});g.turn=h.anchor.reforms[0].due;tickNests(g);
-  const again=g.enemies.find(e=>e.reformed);assert.ok(again);assert.equal(distance(again,h),1,'beside where it stands now');assert.equal(again.anchorId,'h');
-  g.hurt(again,999,g.player);assert.equal(h.anchor.reforms.length,1);
-  // It falls: the standing bodies dissipate (no kill, no xp), the pending one never forms; it pays its own xp.
+  // 3.232.0: it walks; on its clock it draws, and what it draws forms beside where it stands now.
+  Object.assign(h,{x:7,y:4});h.anchor.next=g.turn;const n0=g.enemies.length;tickNests(g);
+  const drawn=g.enemies.slice(n0);assert.ok(drawn.length<=1);
+  for(const d of drawn){assert.equal(distance(d,h),1,'beside where it stands now');assert.equal(d.anchorId,'h');}
+  // It falls: the standing bodies dissipate (no kill, no xp); it pays its own xp and draws no more.
   const kills=g.player.kills,before=g.player.xp;
   g.hurt(h,999,g.player);
-  assert.equal(x.hp<=0&&x.dissipated,true);assert.equal(h.anchor.reforms.length,0);
+  assert.equal(x.hp<=0&&x.dissipated,true);
   assert.equal(g.player.kills,kills+1,'only the host counts');assert.equal(g.player.xp,before+ENEMY_TYPES.possessed.xp);
   assert.ok(said(g,'被附身者倒下'));
-  g.turn+=RIFT_TUNING.reformTurns*2;const n=g.enemies.length;tickNests(g);assert.equal(g.enemies.length,n);
+  g.turn+=20;const n=g.enemies.length;tickNests(g);assert.equal(g.enemies.length,n);
   assert.deepEqual(liveAnchors(g),[]);
 });
 
@@ -94,8 +93,8 @@ test('saves: a host and a marked blink round-trip; a stale mark is dropped; anch
   {const raw=JSON.parse(g.serialize());const e=raw.data.enemies.find(e=>e.id==='f');e.x+=1;const r=Game.restore(JSON.stringify(raw));assert.ok(r,'a moved carrier loads');assert.equal(r.enemies.find(e=>e.id==='f').blinkIntent,undefined,'without its mark');}
   {const raw=JSON.parse(g.serialize());raw.data.enemies.find(e=>e.id==='f').blinkIntent.point={x:'a',y:1};assert.equal(Game.restore(JSON.stringify(raw)),null);}
   {const raw=JSON.parse(g.serialize());raw.data.enemies.find(e=>e.id==='f').blinkCooldown=99;assert.equal(Game.restore(JSON.stringify(raw)).enemies.find(e=>e.id==='f').blinkCooldown,Math.max(BLINK_TUNING.strikeCooldown,BLINK_TUNING.evadeCooldown),'cut to the tuning');}
-  {const raw=JSON.parse(g.serialize());raw.data.enemies.find(e=>e.id==='f').anchor={active:true,serial:0,reforms:[]};assert.equal(Game.restore(JSON.stringify(raw)),null,'only a possessed human carries an anchor');}
-  {const raw=JSON.parse(g.serialize());raw.data.enemies.find(e=>e.id==='h').anchor.reforms[0].type='rifleman';assert.equal(Game.restore(JSON.stringify(raw)),null);}
+  {const raw=JSON.parse(g.serialize());raw.data.enemies.find(e=>e.id==='f').anchor={active:true,serial:0,next:1};assert.equal(Game.restore(JSON.stringify(raw)),null,'only a possessed human carries an anchor');}
+  {const raw=JSON.parse(g.serialize());raw.data.enemies.find(e=>e.id==='h').anchor.guard=true;assert.equal(Game.restore(JSON.stringify(raw)),null,'a host is never a guard');}
 });
 
 test('the cards: the flicker is an energy body that strikes, the possessed a human anchor that evades and never draws a top-step affix',()=>{

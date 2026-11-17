@@ -7,7 +7,7 @@
 // hand to hand.
 // Numbers are Claude's (user: "你先定就做" for the rift), to be tuned after play.
 import {t} from './i18n.js';
-import {enemyDef} from './enemy-data.js';
+import {enemyDef,isBossClass} from './enemy-data.js';
 import {SIZE} from './data.js';
 import {interruptEnemyIntent,enemyCallout,tickSpecials} from './enemy-intents.js';
 import {enemyDisplayName} from './enemy-affixes.js';
@@ -27,6 +27,7 @@ export const landing=(g,q)=>standable(g,q)&&key(q)!==key(g.player)&&exits(g,q)>=
 export function warpPlan(g,e){
  const p=g.player,d=distance(e,p);
  if(p.hp<=0||d<WARP_TUNING.minRange||d>WARP_TUNING.range||!g.sight(e,p))return null;
+ if(enemyDef(e)?.warp==='pull')return pullPlan(g,e);
  const crowd=q=>g.enemies.filter(o=>o!==e&&o.hp>0&&distance(o,q)<=WARP_TUNING.crowd).length;
  let best=null,bestCrowd=-1;
  for(let dy=-WARP_TUNING.far;dy<=WARP_TUNING.far;dy++)for(let dx=-WARP_TUNING.far;dx<=WARP_TUNING.far;dx++){
@@ -34,6 +35,17 @@ export function warpPlan(g,e){
   if(gap<WARP_TUNING.near||gap>WARP_TUNING.far||!landing(g,q))continue;
   const c=crowd(q);
   if(c>bestCrowd||c===bestCrowd&&distance(q,e)<distance(best,e)){best=q;bestCrowd=c;}
+ }
+ return best?{origin:{x:e.x,y:e.y},target:{x:p.x,y:p.y},point:best}:null;
+}
+// 3.232.0 (src/rift-bosses.js): a rift boss's pull — a tile beside it (or one further out), the nearest to it, then reading
+// order; the same mark and the same rule (stay and you are put there).
+function pullPlan(g,e){
+ const p=g.player;let best=null;
+ for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++){
+  const q={x:e.x+dx,y:e.y+dy},r=Math.abs(dx)+Math.abs(dy);
+  if(r<1||r>2||distance(q,p)<2||!landing(g,q))continue;
+  if(!best||r<distance(best,e)||r===distance(best,e)&&(q.y<best.y||q.y===best.y&&q.x<best.x))best=q;
  }
  return best?{origin:{x:e.x,y:e.y},target:{x:p.x,y:p.y},point:best}:null;
 }
@@ -76,7 +88,7 @@ const whole=q=>Boolean(q&&typeof q==='object'&&Number.isInteger(q.x)&&Number.isI
 const staleWarp=e=>{const s=e.warpIntent;return Boolean(s&&typeof s==='object'&&whole(s.origin)&&!(live(e)&&key(s.origin)===key(e)));};
 registerSpecial({id:'warp',intent:'warpIntent',carries:warps,
  fields:{
-  warpIntent:{valid:(s,e,f)=>{const floor=q=>whole(q)&&f.grid?.[q.y]?.[q.x]===1;return Boolean(s&&warps(e)&&e.hp>0&&floor(s.origin)&&floor(s.target)&&floor(s.point)&&key(e)===key(s.origin)&&key(s.point)!==key(s.target)&&distance(s.target,s.point)<=WARP_TUNING.maxReach);}},
+  warpIntent:{valid:(s,e,f)=>{const floor=q=>whole(q)&&f.grid?.[q.y]?.[q.x]===1;return Boolean(s&&warps(e)&&e.hp>0&&floor(s.origin)&&floor(s.target)&&floor(s.point)&&key(e)===key(s.origin)&&key(s.point)!==key(s.target)&&distance(s.target,s.point)<=WARP_TUNING.maxReach+2);}},
   warpCooldown:{count:{max:()=>WARP_TUNING.cooldown,clamp:'cut'}},
  },
  interrupt:{on:['death','disabled','displaced'],cooldown:'warpCooldown'},
@@ -85,6 +97,6 @@ registerSpecial({id:'warp',intent:'warpIntent',carries:warps,
  load:{stale:staleWarp,restart:'warpCooldown'},
  card:(g,e)=>[e.warpIntent?t('target-card.warping'):''],
 });
-registerStep('top','warp',warpAction,warps);
+registerStep('top','warp',warpAction,e=>warps(e)&&!isBossClass(e));   // 3.232.0: a rift boss pulls from its own step
 export const tickWarps=g=>tickSpecials(g,[['warp']]);
 export const validWarp=g=>validSpecials(g,['warp']);

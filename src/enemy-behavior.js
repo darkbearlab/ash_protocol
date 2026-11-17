@@ -38,7 +38,7 @@ import {selfFlank} from './flank.js';
 import {usePounceHooks} from './pounce.js';
 import {useBlinkHooks} from './rift-blink.js';   // 3.227.0
 import './rift-phase.js';   // 3.230.0: the phase body's walk and its sensor alert
-import './rift-warp.js';import './rift-beam.js';   // 3.231.0: the displacer and the ray body (top steps)
+import './rift-warp.js';import './rift-beam.js';import './rift-bosses.js';   // 3.231.0: the displacer and the ray body (top steps)
 import {useLockdownHooks,lockdownBranch} from './lockdown.js';
 import {useDisarmHooks,disarmBranch} from './disarm.js';
 import {useConcealedHooks} from './concealed.js';

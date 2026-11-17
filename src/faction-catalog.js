@@ -25,7 +25,7 @@ const melee=n=>({id:'melee_suppression',rank:n});
 const SWARM_OVERRIDES={fodder:{name:t('factions.swarm.overrides.fodder.name'),traits:[melee(1)]},brood:{name:t('factions.swarm.overrides.brood.name'),traits:[{id:'agile'},melee(1)]},crawler:{name:t('factions.swarm.overrides.crawler.name'),traits:[melee(2)]},
  giant_bug:{traits:[melee(3)]},hive_beast:{traits:[melee(5)]},hive_matriarch:{traits:[melee(5)]}};
 // 3.228.0: 流逝光環 N (docs/FACTIONS.md 5.2), the drain aura's reach in tiles; the rift bosses will carry 3 (3.231.0).
-const RIFT_OVERRIDES={shade:{traits:[{id:'drain_aura',rank:2}]}};
+const RIFT_OVERRIDES={shade:{traits:[{id:'drain_aura',rank:2}]},rift_wanderer:{traits:[{id:'drain_aura',rank:3}]},rift_core:{traits:[{id:'drain_aura',rank:3}]}};   // 3.232.0: the bosses carry 3
 export const FACTIONS={
  legacy:{name:t('factions.legacy.name'),tag:false,roster:{
   early:[['rifleman',2],['raider',1],['gunner',1],['drone',1],['crawler',1]],
@@ -77,8 +77,8 @@ export const FACTIONS={
   late:[['wisp',3],['flicker',2],['possessed_melee',2],['possessed',1],['shade',1],['phase',2],['displacer',1],['beamer',2]],   // 3.228.0: the shade; 3.230.0: the phase body; 3.231.0: the displacer and the ray body
   deepExtra:[['flicker',1],['possessed_melee',1],['possessed',1],['shade',1],['phase',1],['displacer',1],['beamer',1]],
  },
- personality:{wisp:'mindless',flicker:'mindless',possessed:'mindless',possessed_melee:'mindless',shade:'mindless',phase:'mindless',displacer:'mindless',beamer:'mindless'},overrides:RIFT_OVERRIDES,
- bosses:{3:'warden',6:'boss'},scout:'wisp',preview:'shade',retreatWave:['wisp','wisp'],fodder:null,nestChild:null},
+ personality:{wisp:'mindless',flicker:'mindless',possessed:'mindless',possessed_melee:'mindless',shade:'mindless',phase:'mindless',displacer:'mindless',beamer:'mindless',rift_wanderer:'mindless',rift_core:'mindless'},overrides:RIFT_OVERRIDES,
+ bosses:{3:'rift_wanderer',6:'rift_core'},scout:'wisp',preview:'shade',retreatWave:['wisp','wisp'],fodder:null,nestChild:null},
 };
 export const factionDef=id=>typeof id==='string'&&Object.hasOwn(FACTIONS,id)?FACTIONS[id]:undefined;
 // The traits a faction's override adds to one of its cards (3.208.0), as they go on the unit.
